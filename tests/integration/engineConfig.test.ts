@@ -21,7 +21,7 @@ const ENGINE_TIMEOUT = 240_000;
 /** A scalar as the config tools print it (bare boolean or number, JSON string), maybe marked "(default)". */
 const SCALAR_VALUE = /^(true|false|-?\d+(\.\d+)?(e[+-]?\d+)?|"(?:[^"\\]|\\.)*")( \(default\))?$/;
 
-/** get_config's option lines (`key: value` under the section headers) as a map. */
+/** get_config's option lines (`key: value`, then ` — <label>` when the option has one, C-37c) under the section headers, as a map of values. */
 function optionLines(text: string): Map<string, string> {
   const lines = text.split('\n');
   const firstSection = lines.findIndex((l) => /^=== .+ ===$/.test(l) && !l.startsWith('=== Configuration'));
@@ -31,7 +31,9 @@ function optionLines(text: string): Map<string, string> {
     if (line === '' || /^=== .+ ===$/.test(line)) continue;
     const at = line.indexOf(': ');
     expect({ line, hasSeparator: at > 0 }).toEqual({ line, hasSeparator: true });
-    out.set(line.slice(0, at), line.slice(at + 2));
+    const rest = line.slice(at + 2);
+    const label = rest.indexOf(' — ');
+    out.set(line.slice(0, at), label >= 0 ? rest.slice(0, label) : rest);
   }
   return out;
 }

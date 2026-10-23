@@ -541,7 +541,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "search_tree_nodes",
-      description: "Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. `query` is required unless `ascendancy` is given. Matches are sorted by type (keystone, notable, jewel, mastery, ascendancy, normal), then name, then node id, and then cut to `limit` (default 20, max 30). Ascendancy notables are typed notable.",
+      description: "Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`, each with its distance in passive points from a class start or a node when `from` is given. `query` is required unless `ascendancy` is given. Matches are sorted by type (keystone, notable, jewel, mastery, ascendancy, normal), then name, then node id, and then cut to `limit` (default 20, max 30). Ascendancy notables are typed notable. With `from`, each hit gains `Distance: <n> points from <from>`: the points of the shortest legal path on the static tree (a path leaves a class start by one exit and never enters ascendancy nodes), the start not counted, needing no build; an ascendancy hit, or one no path reaches, shows `Distance: none`. Without `from`, nothing else changes.",
       inputSchema: {
         type: "object",
         properties: {
@@ -552,6 +552,10 @@ export function getLuaToolSchemas(): any[] {
           ascendancy: {
             type: "string",
             description: "Keep only this ascendancy's nodes, notables included (a name such as 'Titan', case-insensitive); an unknown name fails and lists the valid ones",
+          },
+          from: {
+            type: "string",
+            description: "Where each hit's distance is measured from: a class name (Path of Exile 2's, such as 'Warrior', or the tree's older name for the same start), an ascendancy name (its class's start, such as 'Titan'), a node id, or an exact node name (case-insensitive; a name several nodes bear fails with their ids). An unknown value fails and lists the valid class names",
           },
           node_type: {
             type: "string",
@@ -596,18 +600,18 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "lookup_game_data",
-      description: "Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences), read-only. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage, crit chance and PoB's tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines and, labelled, the Gemling Legionnaire's extra quality lines, the requirements at every gem level, its hit-making children (granted and triggered skills, minions' skills), for an active gem the meta gems that can use it, and for a support the skill types it supports and can't support. With one gem returned (or several all named as the query), a support also lists the active gems it can support, and an active gem the supports another support's added types unlock. Then the minion skills named exactly `query`, each with its minions and summoning gems, command flag, granting passives, cooldown, types and stat sets. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally only of item type `slot`. Each shows its base, type and matched lines (naming the variant of a line the selected variant lacks); its full item text, for add_item, only when it is the one unique returned. mode 'mechanic': every gem description, stat-set line (naming the stat set's number) and quality line, unique mod line (any variant), passive node line (ascendancy nodes included), item mod line, essence mod line (or essence name) and item base implicit line (or base name) containing `query`, '…' matching any text, one hit per line as `[kind] source: line`; a mod hit is followed by the base types that can roll it. `kind` lists only gem, unique, passive, mod, essence or base hits, and the header counts each kind's hits. Results are sorted, then cut to max_results (default 20, max 30). When nothing matches, the closest names of the kind searched are listed. Gems PoB marks legacy and uniques no longer obtainable are left out and named.",
+      description: "Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences, item bases, config options, constants), read-only; no build needed. mode 'gem': gems whose name contains `query`, each with its kind, PoB's tier, skill types, description, weapon requirement, every stat set (\"skill part\") with its base attack damage, crit chance and tooltip lines at `gem_level` and `gem_quality`, the \"At +20% Quality\" lines (the Gemling Legionnaire's labelled), its hit-making children, the meta gems that can use it, a support's supported and excluded types, and per gem level its requirements, cost, Spirit reservation, cooldown and stored uses (a support's cost and reservation multipliers). With one gem returned (or several all named as the query), a support lists the active gems it can support, and an active gem the supports another support's added types unlock. Then the minion skills named exactly `query`. mode 'unique': uniques whose name or any variant's mod line contains `query`, optionally of item type `slot`, each with its base, type and matched lines; the full item text (for add_item) only when one unique is returned. mode 'mechanic': every gem, unique, passive (ascendancy included), item mod, essence and item-base implicit line containing `query` ('…' matches any text), and PoB's constants whose name contains it, one hit per line as `[kind] source: line`; `kind` lists one kind; the header counts every kind. mode 'base': the bases of item type `slot` (required), optionally up to required level `level` and named like `query`, highest level first, each with its requirements, implicits, defences, weapon damage, crit, attack rate and range, Spirit and sockets. mode 'config': PoB's config options whose key or label contains `query`, each with its label, type, list values, show conditions and tooltip's first line. Results are sorted, then cut to max_results (default 20, max 30). No match lists the closest names. Gems PoB marks legacy and uniques no longer obtainable are left out and named.",
       inputSchema: {
         type: "object",
         properties: {
           mode: {
             type: "string",
-            enum: ["gem", "unique", "mechanic"],
-            description: "What to look up: 'gem', 'unique' or 'mechanic'. A support's supported and excluded skill types are PoB's type expressions, in which AND, OR and NOT combine the types before them",
+            enum: ["gem", "unique", "mechanic", "base", "config"],
+            description: "What to look up: 'gem', 'unique', 'mechanic', 'base' (an item type's bases) or 'config' (PoB's config options). A support's supported and excluded skill types are PoB's type expressions, in which AND, OR and NOT combine the types before them. A minion skill found in gem mode lists its minions and summoning gems, whether it is a command, the passives that grant it, its cooldown, types and stat sets. A gem's per-level costs are shown as PoB's gem tooltip shows them, a per-minute cost per second; a run of levels with the same values is one row. A config option is shown when every condition it lists holds, and a condition holds when any of its values does",
           },
           query: {
             type: "string",
-            description: "Case-insensitive text to find (required for gem and mechanic modes; unique mode needs it, `slot` or both). Unique mode skips the lines of legacy 'Pre x.y' variants. In mechanic mode, '…' or '...' matches any text within a line, so 'cannot … but' finds lines with 'cannot' and then 'but', and an essence hit names the item types the essence grants its mod on. When nothing matches, the closest names of the kind searched are listed (fewest edits from the query, then by name): in gem mode up to 5 active gems, then up to 3 supports; otherwise up to 5. A query over 100 characters gets none",
+            description: "Case-insensitive text to find (required for gem, mechanic and config modes; unique mode needs it, `slot` or both; base mode keeps the bases whose name contains it). Unique mode skips the lines of legacy 'Pre x.y' variants. In mechanic mode, '…' or '...' matches any text within a line, so 'cannot … but' finds lines with 'cannot' and then 'but', an essence hit names the item types the essence grants its mod on, and a constant hit reads `[constant] <game|character|monster>: <name> = <value>`, matched on the name (such as 'BaseMaximumRage'). Config mode matches an option's key or label. When nothing matches, the closest names of the kind searched are listed (fewest edits from the query, then by name): in gem mode up to 5 active gems, then up to 3 supports; otherwise up to 5. A query over 100 characters gets none",
           },
           gem_level: {
             type: "integer",
@@ -622,17 +626,22 @@ export function getLuaToolSchemas(): any[] {
           },
           slot: {
             type: "string",
-            description: "Unique mode: PoB's item type, such as 'Gloves', 'Spear' or 'Jewel'; an unknown type fails and lists the valid ones. Unique mode needs `query`, `slot` or both",
+            description: "Unique and base modes: PoB's item type, such as 'Gloves', 'Body Armour', 'Wand', 'Spear' or 'Jewel'; an unknown type fails and lists the valid ones. Unique mode needs `query`, `slot` or both; base mode needs `slot`",
+          },
+          level: {
+            type: "integer",
+            minimum: 0,
+            description: "Base mode: keep only the bases whose required level is at most this (a character level)",
           },
           kind: {
             type: "string",
-            enum: ["gem", "unique", "passive", "mod", "essence", "base"],
-            description: "Mechanic mode: list only this kind of hit (the header still counts every kind)",
+            enum: ["gem", "unique", "passive", "mod", "essence", "base", "constant"],
+            description: "Mechanic mode: list only this kind of hit (the header still counts every kind); 'constant' lists PoB's game, character and monster constants",
           },
           max_results: {
             type: "integer",
             minimum: 1,
-            description: "Maximum results to return (default 20, max 30). Results are sorted, then cut: exact name matches first, then by name (gem mode: the gems, then the minion skills); mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name",
+            description: "Maximum results to return (default 20, max 30). Results are sorted, then cut: exact name matches first, then by name (gem mode: the gems, then the minion skills); mechanic hits by kind (gem, unique, passive, mod, essence, base, constant), then by name; bases by required level, highest first, then by name; config options with an exact key or label first, then by key",
           },
         },
         required: ["mode"],
@@ -1161,7 +1170,7 @@ export function getConfigToolSchemas(): any[] {
   return [
     {
       name: "get_config",
-      description: "List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value, plus the enemy level in effect. Options the build doesn't set show the value PoB uses for them, marked (default). Use the keys with set_config.",
+      description: "List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value and its label, plus the enemy level in effect. Options the build doesn't set show the value PoB uses for them, marked (default). Use the keys with set_config.",
       inputSchema: {
         type: "object",
         properties: {},

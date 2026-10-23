@@ -772,10 +772,10 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       const all = full.results as LookupHit[];
       const count = (k: string) => all.filter((h) => h.kind === k).length;
       expect(full.total).toBe(all.length);
-      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base') });
+      expect(full.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base'), constant: count('constant') });
       expect(count('unique')).toBeGreaterThan(0);
-      // WU-60: the essence hits are counted too; WU-53 (AC-K60): then the base hits, last.
-      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod, ${count('essence')} essence, ${count('base')} base.`;
+      // WU-60: the essence hits are counted too; WU-53 (AC-K60): then the base hits; C-37d (WU-100): the constants, last.
+      const header = `${all.length} hits: ${count('gem')} gem, ${count('unique')} unique, ${count('passive')} passive, ${count('mod')} mod, ${count('essence')} essence, ${count('base')} base, ${count('constant')} constant.`;
 
       const plain = await okTool({ mode: 'mechanic', query });
       expect(plain.split('\n')).toContain(header);
@@ -826,8 +826,8 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
 
   /** Whether a full Lua list is in §2.2's order. */
   function expectOrdered(mode: 'gem' | 'unique' | 'mechanic', query: string, results: LookupGameDataResult['results']): void {
-    // WU-60: essence hits last; WU-53 (AC-K60): base hits after them.
-    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4, essence: 5, base: 6 };
+    // WU-60: essence hits last; WU-53 (AC-K60): base hits after them; C-37d (WU-100): constant hits after those.
+    const rank: Record<string, number> = { gem: 1, unique: 2, passive: 3, mod: 4, essence: 5, base: 6, constant: 7 };
     const exact = (r: { name: string }) => r.name.toLowerCase() === query.toLowerCase();
     const idOf = (r: { kind: string; id: string }) => (r.kind === 'passive' ? Number(r.id) : r.id);
     for (let i = 1; i < results.length; i++) {
@@ -1089,6 +1089,16 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(mods.length).toBeGreaterThan(0);
       expect(essences.length).toBeGreaterThan(0);
       expect(bases.length).toBeGreaterThan(0);
+      // C-37d (WU-100): PoB's game, character and monster constants, labelled with their table.
+      const constants = (
+        await luaQuery<Array<{ name: string; table: string }>>(`
+          local out = {}
+          for tableName, key in pairs({ game = 'gameConstants', character = 'characterConstants', monster = 'monsterConstants' }) do
+            for name in pairs(data[key]) do table.insert(out, { name = tostring(name), table = tableName }) end
+          end
+          return out`)
+      ).map((c): Candidate => ({ name: c.name, kind: 'constant', detail: c.table }));
+      expect(constants.length).toBeGreaterThan(0);
       const label = (c: Candidate) => `- ${c.name} (${[c.kind, c.detail].filter(Boolean).join(', ')})`;
 
       // "Crushing Impact" is no line's text, but it is one edit from the Titan notable's name.
@@ -1100,9 +1110,9 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(text).toContain('Closest passive names (fewest edits from the query, then by name):');
       expect(suggestionLines(text)).toEqual(onlyPassives.map(label));
 
-      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods, ...essences, ...bases]);
+      const every = closest('zzzz qqqq', [...(await gemCandidates('gem')), ...(await uniqueCandidates()), ...passives, ...mods, ...essences, ...bases, ...constants]);
       const all = await okTool({ mode: 'mechanic', query: 'zzzz qqqq' });
-      expect(all).toContain('Closest gem, unique, passive, mod, essence and base names (fewest edits from the query, then by name):');
+      expect(all).toContain('Closest gem, unique, passive, mod, essence, base and constant names (fewest edits from the query, then by name):');
       expect(suggestionLines(all)).toEqual(every.map(label));
 
       // WU-60: with kind essence, only essence names; a misspelt essence is one edit from its name.
@@ -1366,7 +1376,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(full.kinds?.essence).toBe(want.length);
       const k = full.kinds!;
       const plain = await okTool({ mode: 'mechanic', query: name });
-      expect(plain.split('\n')).toContain(`${all.length} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base.`);
+      expect(plain.split('\n')).toContain(`${all.length} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base, ${k.constant} constant.`);
 
       // By mod text: the line of the mod it grants on the most item types finds an essence hit naming this essence.
       const widest = [...mods].sort((a, b) => b.types.length - a.types.length)[0];
@@ -1796,7 +1806,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
           const k = full.kinds!;
           const all = full.results.length;
           expect((await okTool({ mode: 'mechanic', query })).split('\n')).toContain(
-            `${all} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base.`,
+            `${all} hits: ${k.gem} gem, ${k.unique} unique, ${k.passive} passive, ${k.mod} mod, ${k.essence} essence, ${k.base} base, ${k.constant} constant.`,
           );
         }
       }
@@ -2029,7 +2039,7 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
         expect(want.length).toBeGreaterThan(0);
         expect({ query, got: (gap.results as LookupHit[]).map(renderHit) }).toEqual({ query, got: want });
         const count = (k: string) => (base.results as LookupHit[]).filter((h) => h.kind === k && re.test(h.line)).length;
-        expect(gap.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base') });
+        expect(gap.kinds).toEqual({ gem: count('gem'), unique: count('unique'), passive: count('passive'), mod: count('mod'), essence: count('essence'), base: count('base'), constant: count('constant') });
       }
       const dots = await lookupAction({ mode: 'mechanic', query: 'cannot ... but', maxResults: 100000 });
       const ellipsis = await lookupAction({ mode: 'mechanic', query: 'cannot … but', maxResults: 100000 });

@@ -477,6 +477,8 @@ async function dispatch(
       if (!hasQuery && !ascendancy) {
         throw new Error(`search_tree_nodes requires a 'query' or an 'ascendancy' parameter (received args: ${JSON.stringify(Object.keys(args))})`);
       }
+      // C-43a: `from`, a class, an ascendancy, a node id or an exact node name; each hit then gains its distance.
+      const from = args.from == null ? '' : String(args.from).trim();
       return await handleSearchTreeNodes(
         luaContext,
         hasQuery ? String(searchQuery).trim() : undefined,
@@ -484,6 +486,7 @@ async function dispatch(
         (args.limit || args.max_results) as number | undefined,
         args.include_allocated as boolean | undefined,
         ascendancy || undefined,
+        from ? { from, treeService: treeContext.treeService } : undefined,
       );
     }
 
@@ -531,6 +534,7 @@ async function dispatch(
         gemQuality: args?.gem_quality,
         slot: args?.slot,
         kind: args?.kind,
+        level: args?.level,
         maxResults: args?.max_results,
       });
 

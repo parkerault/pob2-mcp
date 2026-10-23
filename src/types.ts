@@ -11,6 +11,8 @@ export interface PassiveTreeNode {
   isAscendancyStart?: boolean;
   /** A class start node (tree.json `classesStart`): the start of the classes it names (D-360). */
   isClassStart?: boolean;
+  /** C-43a: a class start's `classesStart` names, the tree's legacy class and Path of Exile 2's (`['Marauder', 'Warrior']`). */
+  classesStart?: string[];
   ascendancyName?: string;
   group?: number;
   orbit?: number;
@@ -24,7 +26,8 @@ export interface PassiveTreeNode {
 export interface PassiveTreeData {
   nodes: Map<string, PassiveTreeNode>;
   version: string;
-  classes?: any[];
+  /** C-43a: tree.json's classes, each with its ascendancies' names. */
+  classes?: Array<{ name: string; ascendancies: string[] }>;
   groups?: any[];
 }
 

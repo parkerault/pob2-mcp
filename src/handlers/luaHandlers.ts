@@ -1,6 +1,7 @@
 import type { PoBLuaApiClient } from "../pobLuaBridge.js";
 import type { EngineCallContext, LoadedBuild } from "../engine/session.js";
 import type { BuildFileWriter } from "../services/buildFileWriter.js";
+import type { TreeService } from "../services/treeService.js";
 import type { SpecSummary, StatsBreakdown } from "../engine/schemas.js";
 import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import { renderIssueLines } from "../advice/report.js";
@@ -665,9 +666,21 @@ export async function handleUpdateTreeDelta(context: LuaHandlerContext, addNodes
 }
 
 /**
+ * C-43a (D-425): `search_tree_nodes`' `from`, a class, an ascendancy (its class's start), a node id or an exact
+ * node name, and the TreeService that measures each hit's distance from it on the static tree (no engine).
+ */
+export interface TreeDistanceRequest {
+  from: string;
+  treeService: Pick<TreeService, 'getTreeData' | 'resolveDistanceFrom' | 'distanceFrom'>;
+}
+
+/**
  * `search_tree_nodes` (C-43): nodes whose name or stats contain `keyword`, or every node of
  * `ascendancy` (a case-insensitive name; with it, `keyword` is optional). Lua sorts every match (type
  * rank, then name, then id) before the cut, so the shown nodes are the first `limit` of the full list.
+ * With `distance` (C-43a), each hit gains `Distance: <n> points from <from>`, the points of the shortest legal
+ * path (D-360) from that start or node on the static tree of the engine's tree version, the start not counted,
+ * or `Distance: none` for an ascendancy hit or one no path reaches. Without it, the output is unchanged.
  */
 export async function handleSearchTreeNodes(
   context: LuaHandlerContext,
@@ -676,6 +689,7 @@ export async function handleSearchTreeNodes(
   maxResults?: number,
   includeAllocated?: boolean,
   ascendancy?: string,
+  distance?: TreeDistanceRequest,
 ) {
   return wrapHandler('search tree nodes', async () => {
     await context.ensureLuaClient();
@@ -689,6 +703,24 @@ export async function handleSearchTreeNodes(
     const ascendancyName = ascendancy == null ? '' : String(ascendancy).trim();
     if (query.length === 0 && ascendancyName.length === 0) {
       throw new Error(`keyword/query cannot be empty without an ascendancy (received: ${JSON.stringify(keyword)})`);
+    }
+
+    // C-43a: the static tree of the engine's tree version, and the start or node `from` names (an unknown one fails
+    // before the search, listing the class names).
+    const fromText = distance ? distance.from.trim() : '';
+    let measure: ((id: number, engineAscendancy?: string) => string) | undefined;
+    let fromLine: string | undefined;
+    if (distance && fromText.length > 0) {
+      const tree = await luaClient.getTree();
+      const treeData = await distance.treeService.getTreeData(tree.treeVersion);
+      const start = distance.treeService.resolveDistanceFrom(fromText, treeData);
+      fromLine = `Distances from ${fromText} (${start.description}): passive points of the shortest path, the start not counted`;
+      measure = (id, engineAscendancy) => {
+        const node = treeData.nodes.get(String(id));
+        if (!node || node.ascendancyName !== undefined || engineAscendancy) return 'Distance: none';
+        const points = distance.treeService.distanceFrom(start.nodeId, String(id), treeData);
+        return points === null ? 'Distance: none' : `Distance: ${points} points from ${fromText}`;
+      };
     }
 
     // Limit results to prevent large responses
@@ -708,6 +740,7 @@ export async function handleSearchTreeNodes(
     if (nodeType) {
       textLines.push(`Node type filter: ${nodeType}`);
     }
+    if (fromLine) textLines.push(fromLine);
     textLines.push('');
 
     if (!results.nodes || results.nodes.length === 0) {
@@ -735,6 +768,7 @@ export async function handleSearchTreeNodes(
         if (node.ascendancyName) {
           textLines.push(`  Ascendancy: ${node.ascendancyName}`);
         }
+        if (measure) textLines.push(`  ${measure(node.id, node.ascendancyName)}`);
 
         if (node.stats && node.stats.length > 0) {
           // Limit to first 3 stats to reduce response size

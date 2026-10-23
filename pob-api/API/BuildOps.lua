@@ -784,9 +784,14 @@ end
 
 
 -- PoB2's config options: the list `Modules/ConfigOptions` returns, which ConfigTab builds its controls
--- from. Loaded once per engine process. Each entry is {var, type, section, list?}, deduplicated by var
--- (the first entry wins, as for ConfigTab's own varControls).
+-- from. Loaded once per engine process. Each entry is {var, type, section, list?, label?, varData},
+-- deduplicated by var (the first entry wins, as for ConfigTab's own varControls). `label` is the option's
+-- label without PoB's colour codes (C-37c); `varData` is PoB's own entry, for the lookup's config mode.
 local configOptionsCache
+
+local function strip_colour_codes(text)
+  return (tostring(text):gsub('%^x%x%x%x%x%x%x', ''):gsub('%^%d', ''))
+end
 
 local function config_options()
   if configOptionsCache then return configOptionsCache end
@@ -797,7 +802,11 @@ local function config_options()
     if varData.section then
       section = varData.section
     elseif varData.var and not byVar[varData.var] then
-      local option = { var = varData.var, type = varData.type, section = section, list = varData.list }
+      local label = type(varData.label) == 'string' and strip_colour_codes(varData.label):match('^%s*(.-)%s*$') or nil
+      if label == '' then label = nil end
+      local option = {
+        var = varData.var, type = varData.type, section = section, list = varData.list, label = label, varData = varData,
+      }
       if varData.type == 'list' then
         -- The value a new config set holds for this list (ConfigTab:CreateConfigSet): the default entry
         -- when the option names one, else its defaultState (nil for every list PoB2 ships). It is also
@@ -829,7 +838,7 @@ local CONFIG_VALUE_TYPE = {
 --   input:      every option the build sets, with its scalar value;
 --   defaults:   for every option it doesn't set, the value PoB uses instead (ConfigTab:GetDefaultState:
 --               the placeholder, else the option's default state);
---   options:    every option key in PoB's order, with its type and section.
+--   options:    every option key in PoB's order, with its type, section and label (C-37c).
 function M.get_config()
   local ct = build and build.configTab
   if not ct or not ct.configSets then return nil, 'build/config not initialized' end
@@ -846,7 +855,7 @@ function M.get_config()
       local d = ct:GetDefaultState(option.var, CONFIG_VALUE_TYPE[option.type])
       if is_scalar(d) then defaults[option.var] = d end
     end
-    options[#options + 1] = { key = option.var, type = option.type, section = option.section }
+    options[#options + 1] = { key = option.var, type = option.type, section = option.section, label = option.label }
   end
   return { enemyLevel = ct.enemyLevel, input = input, defaults = defaults, options = options }
 end
@@ -943,7 +952,8 @@ function M.set_config(params)
 end
 
 -- The option list and the per-value check set_config uses, for the compiler's read-only preflight
--- (API/Compile.lua's compile_check, C-41), so the two never disagree on what a valid option is.
+-- (API/Compile.lua's compile_check, C-41), so the two never disagree on what a valid option is. The lookup's
+-- config mode (API/Lookup.lua, C-37c) reads the same list.
 M.config_options = config_options
 M.config_value = config_value
 

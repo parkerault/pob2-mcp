@@ -179,9 +179,9 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `set_tree_state` | core | Set the active passive tree spec's weapon-set passives and attribute choices, without changing which nodes are allocated. |
 | `lua_get_build_info` | core | Get metadata about the currently loaded build: name, character level, class, ascendancy, and tree version. |
 | `lua_reload_build` | core | Reload the current build from disk, picking up any changes made in PoB GUI or via direct XML editing. |
-| `search_tree_nodes` | core | Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`. |
+| `search_tree_nodes` | core | Search the passive tree for nodes whose name or stats contain `query`, or list an ascendancy's nodes with `ascendancy`, each with its distance in passive points from a class start or a node when `from` is given. |
 | `list_gems` | core | List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). |
-| `lookup_game_data` | core | Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences), read-only. |
+| `lookup_game_data` | core | Look up the pinned Path of Building's game data (gems, uniques, passives, item mods, essences, item bases, config options, constants), read-only; no build needed. |
 | `check_model_coverage` | core | Check, line by line, whether the pinned Path of Building applies an item's, a passive node's or a gem's lines, so you know which parts of a build its numbers leave out. |
 | `get_classes` | core | List PoE2 classes and their ascendancies with the engine's classId / ascendancy ids (use with lua_set_tree). |
 | `import_build` | core | Import a PoE2 build from a Path of Building 2 export code OR a share link (pobb.in / pastebin), decode it, and load it into the engine (replacing the engine's build). |
@@ -206,7 +206,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `plan_leveling` | core | Generate a PoE2 0.5 leveling guide for a build: act/interlude progression with bosses and level targets, Trials of Ascendancy timing, skill-tag-aware support direction, support-socket guidance, and passive tree priority order |
 | `compile_plan` | core | Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, and stages with identical gear, gems or configuration share one item, skill or config set. |
 | `guide_run` | core | Start or resume a build-guide run, check a plan without compiling it, or read one stage or every claim of a plan. |
-| `get_config` | core | List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value, plus the enemy level in effect. |
+| `get_config` | core | List the loaded build's configuration: every PoB2 config option key (PoB's Configuration tab, by section) with its value and its label, plus the enemy level in effect. |
 | `set_config` | core | Set one PoB2 config option on the loaded build and recalculate; reports the option's previous and new value. |
 | `set_enemy_stats` | core | Set the enemy's level, resistances, armour and evasion (PoB2's Enemy Stats config options) on the loaded build, recalculate, and report each previous and new value with the DPS change. |
 | `save_config_preset` | core | Save the loaded build's config options (every option it sets: charges, conditions, enemy stats, ...) as a named preset in the server's state directory, for reuse on any build |

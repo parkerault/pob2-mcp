@@ -402,8 +402,13 @@ export type RuleBreaksResult = z.infer<typeof getRuleBreaksReply>['result'];
 export const calcWithReply = baseReply.extend({ output: luaMap(luaNumber) });
 
 const configScalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-/** One of PoB2's config options (`Modules/ConfigOptions`): its key, control type and section. */
-export const configOptionSchema = z.object({ key: z.string(), type: z.string(), section: z.string() }).passthrough();
+/**
+ * One of PoB2's config options (`Modules/ConfigOptions`): its key, control type and section, and (C-37c) its label
+ * without PoB's colour codes, absent for an option with none.
+ */
+export const configOptionSchema = z
+  .object({ key: z.string(), type: z.string(), section: z.string(), label: optString })
+  .passthrough();
 /**
  * The build's config over PoB2's config options (WU-12):
  * - `enemyLevel`: the enemy level in effect (ConfigTab:UpdateLevel);
@@ -837,6 +842,25 @@ export const lookupGemSchema = z
         int: luaArray(z.number()).optional(),
       })
       .passthrough(),
+    /**
+     * C-37a (D-425): per gem level 1..maxLevel, as PoB's `grantedEffect.levels[n]` holds them: the cost (each
+     * resource of its `cost` table, the raw value and PoB's tooltip text, a per-minute cost per second), Spirit
+     * reservation (`spiritReservationFlat`), cooldown, stored uses, and a support's `manaMultiplier` and
+     * `reservationMultiplier`. Absent when no level holds any of them.
+     */
+    levelCosts: luaArray(
+      z
+        .object({
+          level: z.number().int(),
+          cost: luaArray(z.object({ resource: z.string(), value: z.number(), text: z.string() }).passthrough()).optional(),
+          spirit: z.number().optional(),
+          cooldown: z.number().optional(),
+          storedUses: z.number().optional(),
+          manaMultiplier: z.number().optional(),
+          reservationMultiplier: z.number().optional(),
+        })
+        .passthrough(),
+    ).optional(),
   })
   .passthrough();
 
@@ -898,10 +922,73 @@ export const lookupBaseTypeSchema = z
   })
   .passthrough();
 
+/**
+ * C-37b (D-425): an item base of base mode, as PoB's `Data/Bases` holds it: its item type and subtype, its
+ * required level and attributes (absent when none), implicit lines, defences (non-zero only; `movementPenalty` is
+ * PoB's fraction), weapon damage by type with critical hit chance, attacks per second, range and reload time,
+ * Spirit and socket limit.
+ */
+export const lookupItemBaseSchema = z
+  .object({
+    kind: z.literal('item-base'),
+    id: z.string(),
+    name: z.string(),
+    type: z.string(),
+    subType: optString,
+    level: z.number().optional(),
+    str: z.number().optional(),
+    dex: z.number().optional(),
+    int: z.number().optional(),
+    implicits: luaArray(z.object({ line: z.string(), variants: luaArray(z.string()).optional() }).passthrough()),
+    defences: z
+      .object({
+        armour: z.number().optional(),
+        evasion: z.number().optional(),
+        energyShield: z.number().optional(),
+        ward: z.number().optional(),
+        block: z.number().optional(),
+        movementPenalty: z.number().optional(),
+      })
+      .passthrough()
+      .optional(),
+    weapon: z
+      .object({
+        damage: luaArray(z.object({ type: z.string(), min: z.number(), max: z.number() }).passthrough()),
+        critChance: z.number().optional(),
+        attackRate: z.number().optional(),
+        range: z.number().optional(),
+        reloadTime: z.number().optional(),
+      })
+      .passthrough()
+      .optional(),
+    spirit: z.number().optional(),
+    socketLimit: z.number().int().optional(),
+  })
+  .passthrough();
+
+/**
+ * C-37c (D-425): a config option of config mode: its key, label (colour codes stripped), control type and section,
+ * its list's values and labels, the conditions that show it (each `if…` field with its values; every condition
+ * must hold, and any of one condition's values holds it) and its tooltip's first line.
+ */
+export const lookupConfigSchema = z
+  .object({
+    kind: z.literal('config'),
+    id: z.string(),
+    name: z.string(),
+    label: optString,
+    type: z.string(),
+    section: z.string(),
+    list: luaArray(z.object({ value: z.string(), label: optString }).passthrough()).optional(),
+    conditions: luaArray(z.object({ key: z.string(), values: luaArray(z.string()) }).passthrough()),
+    tooltip: optString,
+  })
+  .passthrough();
+
 /** A mechanic hit: one matching line and where it came from. */
 export const lookupHitSchema = z
   .object({
-    kind: z.enum(['gem', 'unique', 'passive', 'mod', 'essence', 'base']),
+    kind: z.enum(['gem', 'unique', 'passive', 'mod', 'essence', 'base', 'constant']),
     id: z.string(),
     name: z.string(),
     source: z.string(),
@@ -943,10 +1030,13 @@ export const lookupSuggestionSchema = z
 export const lookupGameDataReply = baseReply.extend({
   result: z
     .object({
-      mode: z.enum(['gem', 'unique', 'mechanic']),
+      mode: z.enum(['gem', 'unique', 'mechanic', 'base', 'config']),
       /** Every match before the cut (in mechanic mode, of the requested `kind`). */
       total: z.number().int(),
-      /** Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240; `essence`, WU-60; `base`, WU-53). */
+      /**
+       * Mechanic mode: every kind's hit count, whatever `kind` was asked for (D-240; `essence`, WU-60; `base`, WU-53;
+       * `constant`, C-37d).
+       */
       kinds: z
         .object({
           gem: z.number().int(),
@@ -955,9 +1045,12 @@ export const lookupGameDataReply = baseReply.extend({
           mod: z.number().int(),
           essence: z.number().int(),
           base: z.number().int(),
+          constant: z.number().int(),
         })
         .optional(),
-      results: luaArray(z.union([lookupGemSchema, lookupMinionSkillSchema, lookupUniqueSchema, lookupHitSchema])),
+      results: luaArray(
+        z.union([lookupGemSchema, lookupMinionSkillSchema, lookupUniqueSchema, lookupItemBaseSchema, lookupConfigSchema, lookupHitSchema]),
+      ),
       /**
        * Only when nothing matched: the closest names of the kind searched, closest first (D-258). Gem mode: up
        * to 5 active gems, then up to 3 supports (D-258a); other modes: up to 5.
@@ -981,6 +1074,8 @@ export type LookupGem = z.infer<typeof lookupGemSchema>;
 export type LookupMinionSkill = z.infer<typeof lookupMinionSkillSchema>;
 export type LookupUnique = z.infer<typeof lookupUniqueSchema>;
 export type LookupHit = z.infer<typeof lookupHitSchema>;
+export type LookupItemBase = z.infer<typeof lookupItemBaseSchema>;
+export type LookupConfig = z.infer<typeof lookupConfigSchema>;
 export type LookupBaseType = z.infer<typeof lookupBaseTypeSchema>;
 export type LookupSuggestion = z.infer<typeof lookupSuggestionSchema>;
 
@@ -1873,17 +1968,19 @@ export interface ActionParamsMap {
   trade_evaluate_items: TradeEvaluateItemsParams;
   trade_query_options: { slot: string };
   /**
-   * C-37: `query` is required for gem and mechanic modes; unique mode needs `query`, `slot` or both;
-   * `kind` (mechanic mode, D-240; `essence`, WU-60; `base`, WU-53) keeps one kind of hit. A mechanic query
-   * may hold gaps, `…` or `...` (WU-53).
+   * C-37: `query` is required for gem, mechanic and config modes; unique mode needs `query`, `slot` or both; base
+   * mode needs `slot` (C-37b); `kind` (mechanic mode, D-240; `essence`, WU-60; `base`, WU-53; `constant`, C-37d)
+   * keeps one kind of hit. A mechanic query may hold gaps, `…` or `...` (WU-53).
    */
   lookup_game_data: {
-    mode: 'gem' | 'unique' | 'mechanic';
+    mode: 'gem' | 'unique' | 'mechanic' | 'base' | 'config';
     query?: string;
     level?: number;
     quality?: number;
     slot?: string;
-    kind?: 'gem' | 'unique' | 'passive' | 'mod' | 'essence' | 'base';
+    kind?: 'gem' | 'unique' | 'passive' | 'mod' | 'essence' | 'base' | 'constant';
+    /** C-37b: base mode keeps the bases whose required level is at most this. */
+    maxLevel?: number;
     maxResults?: number;
   };
   /**

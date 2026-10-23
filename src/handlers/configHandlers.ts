@@ -269,7 +269,7 @@ function formatConfigOutput(config: ConfigResult): string {
   let output = "=== Configuration (PoB2 config options) ===\n\n";
   output += `Enemy level in effect: ${enemyLevelText(config)}\n`;
   output += `Options set on this build: ${Object.keys(config.input).length} of ${config.options.length}\n`;
-  output += "Each line is `key: value`. Options this build doesn't set show the value PoB uses, marked (default). ";
+  output += `Each line is \`key: value${CONFIG_LABEL_SEPARATOR}label\`, the label PoB's Configuration tab shows, when it has one. Options this build doesn't set show the value PoB uses, marked (default). `;
   output += 'Change one with set_config (a "" value clears a non-checkbox option), enemy stats with set_enemy_stats.\n';
 
   let section: string | null = null;
@@ -279,10 +279,15 @@ function formatConfigOutput(config: ConfigResult): string {
       section = name;
       output += `\n=== ${name} ===\n`;
     }
-    output += `${option.key}: ${configValueText(config, option.key)}\n`;
+    // C-37c (D-425): each option's label, after its value.
+    const label = option.label ? `${CONFIG_LABEL_SEPARATOR}${option.label}` : '';
+    output += `${option.key}: ${configValueText(config, option.key)}${label}\n`;
   }
   return output;
 }
+
+/** C-37c: what separates an option's value from its label on a get_config line, `key: value — label`. */
+export const CONFIG_LABEL_SEPARATOR = ' — ';
 
 function formatStats(stats: Record<string, unknown>): string {
   const total = stats.TotalDPS;

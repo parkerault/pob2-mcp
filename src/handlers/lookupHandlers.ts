@@ -24,6 +24,12 @@
  * yes` for a command, a `Granted by: <passive> (<ascendancy>, node <id>)` line per passive whose line grants it,
  * then its cooldown, skill types, description and stat sets.
  *
+ * C-37a…C-37d (D-425), the researchers' lookups without a build: each gem's cost, Spirit reservation, cooldown and
+ * stored uses per gem level, and a support's cost and reservation multipliers (one row per level, a run of equal
+ * levels as one row); mode `base`, an item type's bases with their requirements, implicits, defences and weapon
+ * figures; mode `config`, PoB's config options by key or label; and mechanic hits of kind `constant`, PoB's game,
+ * character and monster constants by name.
+ *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
  * active gems, then up to 3 supports under their own header (D-258a); otherwise up to 5. A query too long
@@ -32,9 +38,11 @@
 import type { LuaHandlerContext } from "./luaHandlers.js";
 import type {
   LookupBaseType,
+  LookupConfig,
   LookupGameDataResult,
   LookupGem,
   LookupHit,
+  LookupItemBase,
   LookupMinionSkill,
   LookupSuggestion,
   LookupUnique,
@@ -50,13 +58,15 @@ export interface LookupGameDataArgs {
   gemQuality?: unknown;
   slot?: unknown;
   kind?: unknown;
+  /** C-37b: base mode's highest required level. */
+  level?: unknown;
   maxResults?: unknown;
 }
 
-const MODES = ["gem", "unique", "mechanic"] as const;
+const MODES = ["gem", "unique", "mechanic", "base", "config"] as const;
 type Mode = (typeof MODES)[number];
-/** Mechanic mode's `kind` filter (D-240; `essence`, WU-60; `base`, WU-53). */
-const HIT_KINDS = ["gem", "unique", "passive", "mod", "essence", "base"] as const;
+/** Mechanic mode's `kind` filter (D-240; `essence`, WU-60; `base`, WU-53; `constant`, C-37d). */
+const HIT_KINDS = ["gem", "unique", "passive", "mod", "essence", "base", "constant"] as const;
 type HitKind = (typeof HIT_KINDS)[number];
 
 export const LOOKUP_DEFAULT_RESULTS = 20;
@@ -202,6 +212,120 @@ function renderGem(gem: LookupGem): string[] {
   for (const [label, values] of attrs) {
     if (values && values.length > 0) lines.push(`${label} (${span}): ${values.join(", ")}`);
   }
+  // C-37a (D-425): each level's cost, Spirit, cooldown and stored uses, and a support's multipliers.
+  if (gem.levelCosts && gem.levelCosts.length > 0) {
+    lines.push(LEVEL_COSTS_HEADER);
+    lines.push(...levelCostRows(gem.levelCosts, gem.gemKind === "support"));
+  }
+  return lines;
+}
+
+/** C-37a: the header of a gem's per-level cost rows. */
+export const LEVEL_COSTS_HEADER =
+  "Cost, Spirit and cooldown by gem level (PoB's levels[n], as its gem tooltip shows them; a per-minute cost per second):";
+
+type LevelCost = NonNullable<LookupGem["levelCosts"]>[number];
+
+/**
+ * C-37a: one level's row text: `Cost <costs>`, `Spirit <n>` (a support's `Additional Spirit <n>`), `Cooldown <s> s
+ * (<n> uses)`, and the `Cost multiplier <100 + n>%` and `Reservation multiplier <100 + n>%` a support's level holds
+ * (an item-granted skill's may hold them too), as PoB's gem tooltip shows them (GemTooltip.lua:110-160), separated
+ * by `; `; `(none)` for a level that holds none.
+ */
+export function levelCostText(row: LevelCost, support: boolean): string {
+  const parts: string[] = [];
+  if (row.cost && row.cost.length > 0) parts.push(`Cost ${row.cost.map((c) => c.text).join(", ")}`);
+  if (row.spirit !== undefined) parts.push(`${support ? "Additional Spirit" : "Spirit"} ${row.spirit}`);
+  if (row.cooldown !== undefined) {
+    const uses = row.storedUses !== undefined ? ` (${row.storedUses} ${row.storedUses === 1 ? "use" : "uses"})` : "";
+    parts.push(`Cooldown ${row.cooldown} s${uses}`);
+  } else if (row.storedUses !== undefined) {
+    parts.push(`Stored uses ${row.storedUses}`);
+  }
+  if (row.manaMultiplier !== undefined) parts.push(`Cost multiplier ${100 + row.manaMultiplier}%`);
+  if (row.reservationMultiplier !== undefined) parts.push(`Reservation multiplier ${100 + row.reservationMultiplier}%`);
+  return parts.length > 0 ? parts.join("; ") : "(none)";
+}
+
+/** C-37a: one row per gem level, `  <level>: <text>`; a run of levels with the same text is one row, `  <a>–<b>: <text>`. */
+function levelCostRows(rows: LevelCost[], support: boolean): string[] {
+  const out: string[] = [];
+  let i = 0;
+  while (i < rows.length) {
+    const text = levelCostText(rows[i], support);
+    let j = i;
+    while (j + 1 < rows.length && levelCostText(rows[j + 1], support) === text) j++;
+    const span = i === j ? `${rows[i].level}` : `${rows[i].level}–${rows[j].level}`;
+    out.push(`  ${span}: ${text}`);
+    i = j + 1;
+  }
+  return out;
+}
+
+/** C-37b: `Requires: level <n>, <s> Str, <d> Dex, <i> Int`, or `Requires: none`. */
+function baseRequirementText(base: LookupItemBase): string {
+  const bits: string[] = [];
+  if (base.level !== undefined && base.level > 0) bits.push(`level ${base.level}`);
+  if (base.str !== undefined) bits.push(`${base.str} Str`);
+  if (base.dex !== undefined) bits.push(`${base.dex} Dex`);
+  if (base.int !== undefined) bits.push(`${base.int} Int`);
+  return `Requires: ${bits.length > 0 ? bits.join(", ") : "none"}`;
+}
+
+/**
+ * C-37b (D-425): one item base: `## <name>`, its type (and subtype), requirements, each implicit line (naming its
+ * variants), defences, weapon figures, Spirit and socket limit, as PoB holds them.
+ */
+function renderItemBase(base: LookupItemBase): string[] {
+  const lines: string[] = [`## ${base.name}`, `Type: ${base.type}${base.subType ? ` (${base.subType})` : ""}`];
+  lines.push(baseRequirementText(base));
+  if (base.implicits.length === 0) lines.push("Implicit: (none)");
+  for (const imp of base.implicits) {
+    const variants = imp.variants && imp.variants.length > 0 ? ` (${imp.variants.length === 1 ? "variant" : "variants"} ${imp.variants.join(", ")})` : "";
+    lines.push(`Implicit: ${imp.line}${variants}`);
+  }
+  const d = base.defences;
+  if (d) {
+    const bits: string[] = [];
+    if (d.armour !== undefined) bits.push(`Armour ${d.armour}`);
+    if (d.evasion !== undefined) bits.push(`Evasion ${d.evasion}`);
+    if (d.energyShield !== undefined) bits.push(`Energy Shield ${d.energyShield}`);
+    if (d.ward !== undefined) bits.push(`Ward ${d.ward}`);
+    if (d.block !== undefined) bits.push(`Block ${d.block}%`);
+    if (d.movementPenalty !== undefined) bits.push(`Movement penalty ${Math.round(d.movementPenalty * 10000) / 100}%`);
+    if (bits.length > 0) lines.push(`Defences: ${bits.join(", ")}`);
+  }
+  const w = base.weapon;
+  if (w) {
+    const bits = w.damage.map((dmg) => `${dmg.type} ${dmg.min}–${dmg.max}`);
+    if (w.critChance !== undefined) bits.push(`Critical hit chance ${w.critChance}%`);
+    if (w.attackRate !== undefined) bits.push(`${w.attackRate} attacks per second`);
+    if (w.range !== undefined) bits.push(`Range ${w.range}`);
+    if (w.reloadTime !== undefined) bits.push(`Reload ${w.reloadTime} s`);
+    if (bits.length > 0) lines.push(`Weapon: ${bits.join("; ")}`);
+  }
+  if (base.spirit !== undefined) lines.push(`Spirit: ${base.spirit}`);
+  if (base.socketLimit !== undefined) lines.push(`Sockets: up to ${base.socketLimit}`);
+  return lines;
+}
+
+/**
+ * C-37c (D-425): one config option: `## <key>`, its label, type and section, its list's values with their labels,
+ * the conditions that show it and its tooltip's first line.
+ */
+function renderConfig(option: LookupConfig): string[] {
+  const lines: string[] = [`## ${option.name}`];
+  if (option.label) lines.push(`Label: ${option.label}`);
+  lines.push(`Type: ${option.type}; section: ${option.section || "(none)"}`);
+  if (option.list && option.list.length > 0) {
+    lines.push(`Values: ${option.list.map((v) => (v.label && v.label !== v.value ? `${v.value} (${v.label})` : v.value)).join("; ")}`);
+  }
+  if (option.conditions.length > 0) {
+    lines.push(`Shown when: ${option.conditions.map((c) => `${c.key} ${c.values.join(" or ")}`).join("; ")}`);
+  } else {
+    lines.push("Shown when: always");
+  }
+  if (option.tooltip) lines.push(`Tooltip: ${option.tooltip}`);
   return lines;
 }
 
@@ -293,13 +417,16 @@ interface Request {
   query?: string;
   slot?: string;
   kind?: HitKind;
+  /** C-37b: base mode's highest required level. */
+  level?: number;
   maxResults: number;
 }
 
 function criteria(req: Request): string {
   const bits: string[] = [];
   if (req.query) bits.push(`"${req.query}"`);
-  if (req.mode === "unique" && req.slot) bits.push(`item type ${req.slot}`);
+  if ((req.mode === "unique" || req.mode === "base") && req.slot) bits.push(`item type ${req.slot}`);
+  if (req.mode === "base" && req.level !== undefined) bits.push(`required level at most ${req.level}`);
   if (req.mode === "mechanic" && req.kind) bits.push(`kind ${req.kind}`);
   return bits.join(", ");
 }
@@ -309,7 +436,9 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /** What the closest names are names of (D-258): the kind the request searched. */
 function suggestionNoun(req: Request): string {
   if (req.mode === "unique") return req.slot ? `unique names of item type ${req.slot}` : "unique names";
-  return req.kind ? `${req.kind} names` : "gem, unique, passive, mod, essence and base names";
+  if (req.mode === "base") return `base names of item type ${req.slot}`;
+  if (req.mode === "config") return "config option keys";
+  return req.kind ? `${req.kind} names` : "gem, unique, passive, mod, essence, base and constant names";
 }
 
 const SUGGESTION_ORDER = "(fewest edits from the query, then by name)";
@@ -361,10 +490,10 @@ function render(req: Request, result: LookupGameDataResult): string {
   const kinds = result.kinds;
   if (req.mode === "mechanic" && kinds) {
     // D-240: every kind's hit total, whatever `kind` lists.
-    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod + kinds.essence + kinds.base;
+    const all = kinds.gem + kinds.unique + kinds.passive + kinds.mod + kinds.essence + kinds.base + kinds.constant;
     if (all > 0) {
       lines.push(
-        `${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod, ${kinds.essence} essence, ${kinds.base} base.`,
+        `${plural(all, "hit", "hits")}: ${kinds.gem} gem, ${kinds.unique} unique, ${kinds.passive} passive, ${kinds.mod} mod, ${kinds.essence} essence, ${kinds.base} base, ${kinds.constant} constant.`,
       );
     }
   }
@@ -383,8 +512,12 @@ function render(req: Request, result: LookupGameDataResult): string {
   const isMinionSkill = (r: (typeof result.results)[number]) => r.kind === "minion-skill";
   const order =
     req.mode === "mechanic"
-      ? "sorted by kind (gem, unique, passive, mod, essence, base), then by name"
-      : `exact name matches first, then by name${result.results.some(isMinionSkill) ? "; the minion skills after the gems" : ""}`;
+      ? "sorted by kind (gem, unique, passive, mod, essence, base, constant), then by name"
+      : req.mode === "base"
+        ? "sorted by required level, highest first, then by name"
+        : req.mode === "config"
+          ? "exact key or label matches first, then by key"
+          : `exact name matches first, then by name${result.results.some(isMinionSkill) ? "; the minion skills after the gems" : ""}`;
   if (shown < result.total) {
     const more = [
       req.maxResults < LOOKUP_MAX_RESULTS ? `raise max_results (up to ${LOOKUP_MAX_RESULTS})` : "",
@@ -421,9 +554,13 @@ function render(req: Request, result: LookupGameDataResult): string {
       const block =
         r.kind === "minion-skill"
           ? renderMinionSkill(r as LookupMinionSkill)
-          : req.mode === "gem"
-            ? renderGem(r as LookupGem)
-            : renderUnique(r as LookupUnique);
+          : r.kind === "item-base"
+            ? renderItemBase(r as LookupItemBase)
+            : r.kind === "config"
+              ? renderConfig(r as LookupConfig)
+              : req.mode === "gem"
+                ? renderGem(r as LookupGem)
+                : renderUnique(r as LookupUnique);
       lines.push(...block, "");
     }
   }
@@ -434,18 +571,20 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
   return wrapHandler("look up game data", async () => {
     const mode = text(args.mode);
     if (!mode || !(MODES as readonly string[]).includes(mode)) {
-      throw new Error(`unknown mode ${JSON.stringify(args.mode ?? null)}; use gem, unique or mechanic`);
+      throw new Error(`unknown mode ${JSON.stringify(args.mode ?? null)}; use gem, unique, mechanic, base or config`);
     }
     const m = mode as Mode;
     const query = text(args.query);
-    const slot = m === "unique" ? text(args.slot) : undefined;
-    if ((m === "gem" || m === "mechanic") && !query) throw new Error(`${m} mode needs a query`);
+    const slot = m === "unique" || m === "base" ? text(args.slot) : undefined;
+    if ((m === "gem" || m === "mechanic" || m === "config") && !query) throw new Error(`${m} mode needs a query`);
     if (m === "unique" && !query && !slot) throw new Error("unique mode needs a query, a slot or both");
+    if (m === "base" && !slot) throw new Error("base mode needs a slot (PoB's item type, such as 'Wand' or 'Body Armour')");
     const level = m === "gem" ? wholeNumber(args.gemLevel, "gem_level", 1) : undefined;
     const quality = m === "gem" ? wholeNumber(args.gemQuality, "gem_quality", 0, 20) : undefined;
+    const maxLevel = m === "base" ? wholeNumber(args.level, "level", 0) : undefined;
     const kindText = m === "mechanic" ? text(args.kind)?.toLowerCase() : undefined;
     if (kindText !== undefined && !(HIT_KINDS as readonly string[]).includes(kindText)) {
-      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive, mod, essence or base`);
+      throw new Error(`unknown kind ${JSON.stringify(args.kind)}; use gem, unique, passive, mod, essence, base or constant`);
     }
     const kind = kindText as HitKind | undefined;
     const maxResults = resultLimit(args.maxResults);
@@ -461,8 +600,11 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
       ...(quality !== undefined ? { quality } : {}),
       ...(slot ? { slot } : {}),
       ...(kind ? { kind } : {}),
+      ...(maxLevel !== undefined ? { maxLevel } : {}),
       maxResults,
     });
-    return { content: [{ type: "text" as const, text: render({ mode: m, query, slot, kind, maxResults }, result) }] };
+    // C-37b: base mode names the item type as PoB spells it.
+    const shownSlot = m === "base" && result.results.length > 0 ? (result.results[0] as LookupItemBase).type : slot;
+    return { content: [{ type: "text" as const, text: render({ mode: m, query, slot: shownSlot, kind, level: maxLevel, maxResults }, result) }] };
   });
 }

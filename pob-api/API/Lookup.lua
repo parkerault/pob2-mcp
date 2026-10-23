@@ -1,7 +1,7 @@
 -- API/Lookup.lua
 -- PoB2's loaded game data, read without touching the build (C-37, WU-31):
 --
---   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxResults?}
+--   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxLevel?, maxResults?}
 --     gem       data.gems names -> PoB's Tier (D-258), description, weapon, per stat set its base attack
 --               damage and crit chance and its lines from PoB's stat describer (at `level`, default the
 --               gem's natural max level; see defaultLevel; a returned gem without `level` is shown at its
@@ -12,7 +12,9 @@
 --               lists the active gems it can support and an active gem the supports another support unlocks.
 --               After the gems, the minion skills whose name is the query, case-insensitive (WU-77, D-379):
 --               of the skills a gem's minion casts, each with its minions and summoning gems, whether it is
---               a command, the passives whose line grants it, its cooldown, skill types and stat sets
+--               a command, the passives whose line grants it, its cooldown, skill types and stat sets. Each
+--               gem also carries, per gem level, its cost, Spirit reservation, cooldown and stored uses, and a
+--               support's cost and reservation multipliers, from its levels[n] (C-37a, D-425)
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
 --               only when exactly one unique is returned (D-239)
@@ -21,17 +23,24 @@
 --               the essences' mod lines (or names) and the item bases' implicit lines (or names) -> one hit
 --               per matching line; a mod hit carries the base types that can roll it (WU-60, D-277); `kind`
 --               keeps one kind, and `kinds` counts every kind's hits (D-240). A query may hold gaps, `…` or
---               `...`, each matching any text within the line (WU-53)
+--               `...`, each matching any text within the line (WU-53). Data/Misc.lua's game, character and
+--               monster constants whose name matches are hits of kind `constant`, ranked last (C-37d)
+--     base      the bases of item type `slot` (required), of required level at most `maxLevel`, whose name
+--               contains `query`: requirements, implicits, defences, weapon figures, Spirit, socket limit;
+--               sorted by required level, highest first, then by name (C-37b, D-425)
+--     config    PoB's config options whose key or label contains `query`: key, label, type, section, list
+--               values and labels, the conditions that show it and its tooltip's first line (C-37c, D-425)
 --
 -- Registered by one line in Handlers.lua. Results are sorted, then cut to maxResults (default 20; the
 -- server caps it): exact name matches first, then by name, then by id (gem mode: the gems, then the minion
--- skills by id); mechanic hits by kind (gem, unique, passive, mod, essence, base), then by name, then by
--- id, then by line. `total` counts every match.
+-- skills by id); mechanic hits by kind (gem, unique, passive, mod, essence, base, constant), then by name,
+-- then by id, then by line; config options by key. `total` counts every match.
 --
 -- When a query matches nothing, `suggestions` lists the closest names of the kind searched (D-258): in gem
 -- mode up to 5 active gems, then up to 3 supports (D-258a); in unique mode up to 5 unique names, of `slot`
--- when given; in mechanic mode up to 5 names of the gems, uniques, passives, mods, essences and bases
--- searched, of `kind` when given. Each group is ranked by edit distance to the query (see editDistance), then by name,
+-- when given; in mechanic mode up to 5 names of the gems, uniques, passives, mods, essences, bases and
+-- constants searched, of `kind` when given; in base mode up to 5 base names of the item type; in config mode up
+-- to 5 option keys. Each group is ranked by edit distance to the query (see editDistance), then by name,
 -- then by kind and detail. A query longer than MAX_SUGGESTION_QUERY characters gets none (the cost grows
 -- with its length); the reply says so with `suggestionsSkipped`.
 --
@@ -219,6 +228,55 @@ local function gemRequirements(gem)
     end
   end
   return req
+end
+
+-- C-37a (D-425): a cost as PoB's gem tooltip shows it (GemTooltip.lua:136-150): data.costs' resource string, the
+-- value divided by its divisor (a per-minute cost shown per second) and rounded to 2 places.
+local function costText(res, value)
+  local shown = math.floor(value / (res.Divisor or 1) * 100 + 0.5) / 100
+  return (res.ResourceString:gsub('{0}', string.format('%g', shown)):gsub('%s+$', ''))
+end
+
+-- C-37a (D-425): each gem level's cost, Spirit reservation, cooldown and stored uses, and a support's cost and
+-- reservation multipliers, as PoB's `grantedEffect.levels[n]` holds them, for gem levels 1..naturalMaxLevel (the
+-- requirements' span). A cost lists each resource the level's `cost` table holds, in data.costs' order (any
+-- other resource after them, by name), with its raw value and PoB's tooltip text. Nil when no level holds any.
+local function gemLevelCosts(gem)
+  local ge = gem.grantedEffect
+  local costs = gameData().costs or {}
+  local maxLevel = tonumber(gem.naturalMaxLevel) or 1
+  local rows, any = {}, false
+  for l = 1, maxLevel do
+    local level = ge.levels[l] or {}
+    local row = { level = l }
+    if type(level.cost) == 'table' then
+      local list, known = {}, {}
+      for _, res in ipairs(costs) do
+        local v = level.cost[res.Resource]
+        if type(v) == 'number' then
+          known[res.Resource] = true
+          table.insert(list, { resource = res.Resource, value = v, text = costText(res, v) })
+        end
+      end
+      for _, key in ipairs(sortedKeys(level.cost)) do
+        local v = level.cost[key]
+        if not known[key] and type(v) == 'number' then
+          table.insert(list, { resource = tostring(key), value = v, text = string.format('%g %s', v, tostring(key)) })
+        end
+      end
+      if #list > 0 then row.cost = list end
+    end
+    row.spirit = tonumber(level.spiritReservationFlat)
+    row.cooldown = tonumber(level.cooldown)
+    row.storedUses = tonumber(level.storedUses)
+    row.manaMultiplier = tonumber(level.manaMultiplier)
+    row.reservationMultiplier = tonumber(level.reservationMultiplier)
+    if row.cost or row.spirit or row.cooldown or row.storedUses or row.manaMultiplier or row.reservationMultiplier then
+      any = true
+    end
+    rows[l] = row
+  end
+  return any and rows or nil
 end
 
 local function weaponText(gem)
@@ -566,6 +624,8 @@ local function gemResult(id, gem, levelParam, quality, single)
     additional = {},
     qualityLines = gemQualityLines(gem, 'qualityStats'),
     requirements = gemRequirements(gem),
+    -- C-37a (D-425): each level's cost, Spirit, cooldown and stored uses, and a support's multipliers.
+    levelCosts = gemLevelCosts(gem),
     -- WU-53: a skill's hit-making children, for the payoff-thief check.
     children = hitChildren(gem),
   }
@@ -1107,6 +1167,31 @@ end
 
 local baseImplicitsCache = setmetatable({}, { __mode = 'k' })
 
+-- A base's implicit lines: `implicit` split at "\n", each line's leading tags removed, and a `{variant:<n>}`
+-- tag's variants named from the base's `variantList`.
+local function implicitLines(base)
+  local lines = {}
+  if type(base.implicit) ~= 'string' then return lines end
+  for raw in base.implicit:gmatch('[^\n]+') do
+    local line, variants = raw, nil
+    while true do
+      local tag, rest = line:match('^{([^}]*)}(.*)$')
+      if not tag then break end
+      local list = tag:match('^variant:(.*)$')
+      if list then
+        variants = {}
+        for n in list:gmatch('%d+') do
+          local name = type(base.variantList) == 'table' and base.variantList[tonumber(n)] or nil
+          table.insert(variants, name or ('#' .. n))
+        end
+      end
+      line = rest
+    end
+    if line ~= '' then table.insert(lines, { line = line, variants = variants }) end
+  end
+  return lines
+end
+
 local function baseImplicits()
   local d = gameData()
   if baseImplicitsCache[d] then return baseImplicitsCache[d] end
@@ -1116,24 +1201,7 @@ local function baseImplicits()
       local base = entry.base
       if not seen[entry.name] and type(base) == 'table' and type(base.implicit) == 'string' then
         seen[entry.name] = true
-        local lines = {}
-        for raw in base.implicit:gmatch('[^\n]+') do
-          local line, variants = raw, nil
-          while true do
-            local tag, rest = line:match('^{([^}]*)}(.*)$')
-            if not tag then break end
-            local list = tag:match('^variant:(.*)$')
-            if list then
-              variants = {}
-              for n in list:gmatch('%d+') do
-                local name = type(base.variantList) == 'table' and base.variantList[tonumber(n)] or nil
-                table.insert(variants, name or ('#' .. n))
-              end
-            end
-            line = rest
-          end
-          if line ~= '' then table.insert(lines, { line = line, variants = variants }) end
-        end
+        local lines = implicitLines(base)
         if #lines > 0 then table.insert(out, { name = entry.name, type = base.type, lines = lines }) end
       end
     end
@@ -1200,9 +1268,217 @@ function M.matcher(needle)
 end
 
 -- ---------------------------------------------------------------------------------------------------
+-- Item bases by item type (C-37b, D-425)
+--
+-- The bases of one of PoB's item types (`base.type`, such as Wand or Body Armour), from PoB's base lists
+-- (data.itemBaseLists, hidden bases left out), as PoB's Data/Bases/*.lua hold them: the requirements, implicits,
+-- defences, weapon figures, Spirit and socket limit. Sorted by required level, highest first (PoB's own base
+-- lists' order), then by name; `maxLevel` keeps those whose required level is at most it, `query` those whose
+-- name contains it.
+
+-- PoB's item types that have a base in its base lists, sorted.
+function M.baseItemTypes()
+  local out = {}
+  for _, itemType in ipairs(baseIndex(gameData()).types) do table.insert(out, itemType.name) end
+  return out
+end
+
+local function resolveBaseType(slot)
+  local wanted = tostring(slot):lower()
+  for _, itemType in ipairs(baseIndex(gameData()).types) do
+    if itemType.name:lower() == wanted then return itemType end
+  end
+  fail('unknown slot "' .. tostring(slot) .. '"; valid item types: ' .. table.concat(M.baseItemTypes(), ', '))
+end
+
+local DAMAGE_TYPES = { 'Physical', 'Fire', 'Cold', 'Lightning', 'Chaos' }
+
+local function nonZero(v)
+  v = tonumber(v)
+  if v and v ~= 0 then return v end
+  return nil
+end
+
+local function baseResult(entry)
+  local base = entry.base
+  local req = type(base.req) == 'table' and base.req or {}
+  local result = {
+    kind = 'item-base', id = entry.name, name = entry.name, type = base.type, subType = base.subType,
+    level = tonumber(req.level), str = nonZero(req.str), dex = nonZero(req.dex), int = nonZero(req.int),
+    implicits = implicitLines(base),
+    spirit = nonZero(base.spirit), socketLimit = tonumber(base.socketLimit),
+  }
+  if type(base.armour) == 'table' then
+    local a = base.armour
+    local defences = {
+      armour = nonZero(a.Armour), evasion = nonZero(a.Evasion), energyShield = nonZero(a.EnergyShield),
+      ward = nonZero(a.Ward), block = nonZero(a.BlockChance), movementPenalty = nonZero(a.MovementPenalty),
+    }
+    if next(defences) then result.defences = defences end
+  end
+  if type(base.weapon) == 'table' then
+    local w = base.weapon
+    local damage = {}
+    for _, t in ipairs(DAMAGE_TYPES) do
+      local lo, hi = tonumber(w[t .. 'Min']), tonumber(w[t .. 'Max'])
+      if (lo and lo ~= 0) or (hi and hi ~= 0) then table.insert(damage, { type = t, min = lo or 0, max = hi or 0 }) end
+    end
+    result.weapon = {
+      damage = damage, critChance = tonumber(w.CritChanceBase), attackRate = tonumber(w.AttackRateBase),
+      range = tonumber(w.Range), reloadTime = tonumber(w.ReloadTimeBase),
+    }
+  end
+  return result
+end
+
+local function lookupBases(needle, slot, maxLevel, maxResults)
+  local itemType = resolveBaseType(slot)
+  local matches = {}
+  for _, list in ipairs(itemType.lists) do
+    for _, entry in ipairs(list.bases) do
+      local req = type(entry.base.req) == 'table' and entry.base.req or {}
+      local level = tonumber(req.level) or 0
+      if (not maxLevel or level <= maxLevel) and (not needle or contains(entry.name, needle)) then
+        table.insert(matches, { name = entry.name, level = level, entry = entry })
+      end
+    end
+  end
+  table.sort(matches, function(a, b)
+    if a.level ~= b.level then return a.level > b.level end
+    return a.name < b.name
+  end)
+  local results = {}
+  for i, m in ipairs(cut(matches, maxResults)) do results[i] = baseResult(m.entry) end
+  return results, #matches, itemType.name
+end
+
+-- ---------------------------------------------------------------------------------------------------
+-- Config options (C-37c, D-425)
+--
+-- PoB's config options (Modules/ConfigOptions, one per key as BuildOps keeps them, in PoB's order) whose key or
+-- label contains the query: each one's key, label, type, section, list values and labels, the conditions that
+-- show it (its `if…` fields: ConfigTab shows it when every condition holds, and a condition holding a list holds
+-- when any of its values does) and its tooltip's first line. Colour codes are stripped from the text. Exact key or
+-- label matches first, then by key.
+
+local function stripEscapes(text)
+  return (tostring(text):gsub('%^x%x%x%x%x%x%x', ''):gsub('%^%d', ''))
+end
+
+-- ConfigOptions' `if…` fields, in this order; any other `if…` field after them, by name.
+local CONDITION_KEYS = {
+  'ifOption', 'ifCond', 'ifMinionCond', 'ifEnemyCond', 'ifMult', 'ifEnemyMult', 'ifStat', 'ifEnemyStat', 'ifFlag',
+  'ifMod', 'ifSkill', 'ifSkillType', 'ifSkillFlag', 'ifSkillData', 'ifGemFamily', 'ifTagType', 'ifNode',
+}
+
+local function conditionValues(key, v)
+  local list = type(v) == 'table' and v or { v }
+  local out = {}
+  for _, item in ipairs(list) do
+    if key == 'ifSkillType' and type(item) == 'number' and SkillTypeName and SkillTypeName[item] then
+      table.insert(out, SkillTypeName[item])
+    else
+      table.insert(out, tostring(item))
+    end
+  end
+  return out
+end
+
+local function configConditions(varData)
+  local out, seen = {}, {}
+  local function add(key)
+    if seen[key] or varData[key] == nil then return end
+    seen[key] = true
+    table.insert(out, { key = key, values = conditionValues(key, varData[key]) })
+  end
+  for _, key in ipairs(CONDITION_KEYS) do add(key) end
+  for _, key in ipairs(sortedKeys(varData)) do
+    if type(key) == 'string' and key:match('^if%u') then add(key) end
+  end
+  return out
+end
+
+local function configResult(option)
+  local varData = option.varData or {}
+  local result = {
+    kind = 'config', id = option.var, name = option.var, label = option.label, type = option.type,
+    section = option.section, conditions = configConditions(varData),
+  }
+  if type(option.list) == 'table' then
+    result.list = {}
+    for _, item in ipairs(option.list) do
+      table.insert(result.list, { value = tostring(item.val), label = item.label and stripEscapes(item.label) or nil })
+    end
+  end
+  if type(varData.tooltip) == 'string' then
+    local first = stripEscapes(varData.tooltip):match('^%s*([^\n]*)')
+    if first and first:match('%S') then result.tooltip = first:gsub('%s+$', '') end
+  end
+  return result
+end
+
+local function lookupConfig(needle, maxResults)
+  local opts, err = BuildOps.config_options()
+  if not opts then fail(err or 'config options not available') end
+  local matches = {}
+  for i, option in ipairs(opts.list) do
+    local exact = option.var:lower() == needle or (option.label and option.label:lower() == needle)
+    if exact or contains(option.var, needle) or contains(option.label, needle) then
+      table.insert(matches, { name = option.var, id = string.format('%05d', i), exact = exact, option = option })
+    end
+  end
+  table.sort(matches, function(a, b)
+    if a.exact ~= b.exact then return a.exact end
+    if a.name ~= b.name then return a.name < b.name end
+    return a.id < b.id
+  end)
+  local results = {}
+  for i, m in ipairs(cut(matches, maxResults)) do results[i] = configResult(m.option) end
+  return results, #matches
+end
+
+-- ---------------------------------------------------------------------------------------------------
+-- Constants (C-37d, D-425): Data/Misc.lua's game, character and monster constants, matched on their names.
+
+local CONSTANT_TABLES = {
+  { name = 'game', key = 'gameConstants' },
+  { name = 'character', key = 'characterConstants' },
+  { name = 'monster', key = 'monsterConstants' },
+}
+
+local function constantValue(v)
+  if type(v) == 'number' then return string.format('%.14g', v) end
+  return tostring(v)
+end
+
+local function collectConstantHits(hits, match)
+  local d = gameData()
+  for _, t in ipairs(CONSTANT_TABLES) do
+    local constants = d[t.key]
+    if type(constants) == 'table' then
+      for _, name in ipairs(sortedKeys(constants)) do
+        if match(tostring(name)) then
+          table.insert(hits, {
+            kind = 'constant', id = t.name, name = tostring(name), order = 1,
+            source = t.name, line = tostring(name) .. ' = ' .. constantValue(constants[name]), table = t.name,
+          })
+        end
+      end
+    end
+  end
+end
+
+local function addConstantNames(add)
+  local d = gameData()
+  for _, t in ipairs(CONSTANT_TABLES) do
+    for _, name in ipairs(sortedKeys(d[t.key] or {})) do add(tostring(name), 'constant', t.name) end
+  end
+end
+
+-- ---------------------------------------------------------------------------------------------------
 -- Mechanics
 
-local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5, base = 6 }
+local KIND_RANK = { gem = 1, unique = 2, passive = 3, mod = 4, essence = 5, base = 6, constant = 7 }
 
 -- A mod table entry's text lines (its array part); a rune entry nests one mod per item class.
 local function collectModHits(hits, tableName, entryId, entry, match)
@@ -1231,7 +1507,7 @@ local function collectModHits(hits, tableName, entryId, entry, match)
   end
 end
 
-local KINDS_TEXT = 'gem, unique, passive, mod, essence or base'
+local KINDS_TEXT = 'gem, unique, passive, mod, essence, base or constant'
 
 -- `match` is the query's matcher (M.matcher).
 local function lookupMechanics(match, kind, maxResults, leaveOut)
@@ -1323,6 +1599,9 @@ local function lookupMechanics(match, kind, maxResults, leaveOut)
   -- Bases: every base's implicit lines, or all of them when its name matches (WU-53).
   collectBaseHits(hits, match)
 
+  -- Constants: Data/Misc.lua's game, character and monster constants whose name matches (C-37d), ranked last.
+  collectConstantHits(hits, match)
+
   table.sort(hits, function(a, b)
     if a.kind ~= b.kind then return KIND_RANK[a.kind] < KIND_RANK[b.kind] end
     if a.name ~= b.name then return a.name < b.name end
@@ -1330,7 +1609,7 @@ local function lookupMechanics(match, kind, maxResults, leaveOut)
     return a.order < b.order
   end)
   -- Every kind's hit count, then (with `kind`) only that kind's hits are listed and cut.
-  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0, essence = 0, base = 0 }
+  local kinds = { gem = 0, unique = 0, passive = 0, mod = 0, essence = 0, base = 0, constant = 0 }
   local listed = {}
   for _, hit in ipairs(hits) do
     kinds[hit.kind] = kinds[hit.kind] + 1
@@ -1438,6 +1717,15 @@ local function suggestionCandidates(mode, filter)
     addGemNames(add)
   elseif mode == 'unique' then
     addUniqueNames(add, filter)
+  elseif mode == 'base' then
+    -- C-37b: the names of the bases of the item type searched.
+    for _, list in ipairs(resolveBaseType(filter).lists) do
+      for _, entry in ipairs(list.bases) do add(entry.name, 'base', entry.base.type) end
+    end
+  elseif mode == 'config' then
+    -- C-37c: the config option keys, each labelled with its label.
+    local opts = BuildOps.config_options()
+    for _, option in ipairs(opts and opts.list or {}) do add(option.var, 'config', option.label) end
   else
     if not kind or kind == 'gem' then addGemNames(add, 'gem') end
     if not kind or kind == 'unique' then addUniqueNames(add) end
@@ -1445,6 +1733,7 @@ local function suggestionCandidates(mode, filter)
     if not kind or kind == 'mod' then addModNames(add) end
     if not kind or kind == 'essence' then addEssenceNames(add) end
     if not kind or kind == 'base' then addBaseNames(add) end
+    if not kind or kind == 'constant' then addConstantNames(add) end
   end
   return list
 end
@@ -1477,7 +1766,7 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- The action
 
-local MODES = { gem = true, unique = true, mechanic = true }
+local MODES = { gem = true, unique = true, mechanic = true, base = true, config = true }
 
 local function trimmed(v)
   if type(v) ~= 'string' then return nil end
@@ -1488,7 +1777,7 @@ end
 function M.lookup_game_data(params)
   local mode = params.mode
   if type(mode) ~= 'string' or not MODES[mode] then
-    fail('unknown mode "' .. tostring(mode) .. '"; use gem, unique or mechanic')
+    fail('unknown mode "' .. tostring(mode) .. '"; use gem, unique, mechanic, base or config')
   end
   local query = trimmed(params.query)
   local needle = query and query:lower() or nil
@@ -1508,6 +1797,15 @@ function M.lookup_game_data(params)
     if not needle and not slot then fail('unique mode needs a query, a slot or both') end
     results, total = lookupUniques(needle, slot, maxResults, leaveOut)
     filter = slot and resolveSlot(slot) or nil
+  elseif mode == 'base' then
+    -- C-37b: `slot` (PoB's item type) is required; `maxLevel` keeps bases whose required level is at most it.
+    local slot = trimmed(params.slot)
+    if not slot then fail('base mode needs a slot (an item type)') end
+    local maxLevel = params.maxLevel ~= nil and math.floor(tonumber(params.maxLevel) or -1) or nil
+    results, total, filter = lookupBases(needle, slot, maxLevel, maxResults)
+  elseif mode == 'config' then
+    if not needle then fail('config mode needs a query') end
+    results, total = lookupConfig(needle, maxResults)
   else
     local match = needle and M.matcher(needle) or nil
     if not match then fail('mechanic mode needs a query') end

@@ -128,7 +128,10 @@ export class TreeService {
       if (rn.isMastery) node.isMastery = true;
       if (rn.isJewelSocket) node.isJewelSocket = true;
       if (rn.isAscendancyStart) node.isAscendancyStart = true;
-      if (Array.isArray(rn.classesStart) && rn.classesStart.length > 0) node.isClassStart = true;
+      if (Array.isArray(rn.classesStart) && rn.classesStart.length > 0) {
+        node.isClassStart = true;
+        node.classesStart = rn.classesStart.map(String);
+      }
       if (rn.ascendancyName) node.ascendancyName = rn.ascendancyName;
       node.out = [];
       node.in = [];
@@ -150,7 +153,81 @@ export class TreeService {
       }
     }
 
-    return { nodes, version };
+    const classes = (Array.isArray(raw?.classes) ? raw.classes : [])
+      .filter((c: any) => c && typeof c.name === "string")
+      .map((c: any) => ({
+        name: String(c.name),
+        ascendancies: (Array.isArray(c.ascendancies) ? c.ascendancies : [])
+          .map((a: any) => (a && (a.name ?? a.id)) as unknown)
+          .filter((n: unknown): n is string => typeof n === "string" && n.length > 0),
+      }));
+
+    return { nodes, version, classes };
+  }
+
+  /** C-43a: every class name a start carries (`classesStart`: Path of Exile 2's and the tree's legacy ones), sorted. */
+  classStartNames(treeData: PassiveTreeData): string[] {
+    const names = new Set<string>();
+    for (const node of treeData.nodes.values()) for (const n of node.classesStart ?? []) names.add(n);
+    return [...names].sort();
+  }
+
+  /**
+   * C-43a: the node a distance is measured from. `from` is, in this order (names case-insensitive): a class name
+   * (Path of Exile 2's or the tree's legacy one), meaning the start whose `classesStart` names it; an ascendancy
+   * name, meaning its class's start; a node id; or an exact node name. A name that several nodes bear is refused
+   * with their ids. Anything else is refused with the valid class names.
+   */
+  resolveDistanceFrom(from: string, treeData: PassiveTreeData): { nodeId: string; description: string } {
+    const wanted = from.trim();
+    const lower = wanted.toLowerCase();
+    const startOf = (className: string): string | undefined => {
+      for (const [id, node] of treeData.nodes) {
+        if ((node.classesStart ?? []).some((n) => n.toLowerCase() === className.toLowerCase())) return id;
+      }
+      return undefined;
+    };
+    const startText = (id: string) => `the ${(treeData.nodes.get(id)?.classesStart ?? []).join(" and ")} start, node ${id}`;
+
+    const className = this.classStartNames(treeData).find((n) => n.toLowerCase() === lower);
+    if (className) {
+      const id = startOf(className)!;
+      return { nodeId: id, description: startText(id) };
+    }
+    for (const cls of treeData.classes ?? []) {
+      const asc = cls.ascendancies.find((a) => a.toLowerCase() === lower);
+      if (!asc) continue;
+      const id = startOf(cls.name);
+      if (id) return { nodeId: id, description: `a ${cls.name} ascendancy: ${startText(id)}` };
+    }
+    if (/^\d+$/.test(wanted) && treeData.nodes.has(String(Number(wanted)))) {
+      const id = String(Number(wanted));
+      const node = treeData.nodes.get(id)!;
+      return { nodeId: id, description: node.isClassStart ? startText(id) : `${node.name ?? "Unnamed"}, node ${id}` };
+    }
+    const named = [...treeData.nodes.entries()].filter(([, n]) => (n.name ?? "").toLowerCase() === lower);
+    if (named.length === 1) {
+      const [id, node] = named[0];
+      return { nodeId: id, description: node.isClassStart ? startText(id) : `${node.name}, node ${id}` };
+    }
+    if (named.length > 1) {
+      const ids = named.map(([id]) => Number(id)).sort((a, b) => a - b);
+      const shown = ids.slice(0, 10).join(", ") + (ids.length > 10 ? `, and ${ids.length - 10} more` : "");
+      throw new Error(`from "${wanted}" names ${ids.length} nodes (ids ${shown}); pass one node's id`);
+    }
+    throw new Error(
+      `unknown from "${wanted}": not a class, an ascendancy, a node id or an exact node name; valid class names: ${this.classStartNames(treeData).join(", ")}`,
+    );
+  }
+
+  /**
+   * C-43a: the points of the shortest legal path (D-360's start and exit rule) from node `fromId` to `targetId`,
+   * the start not counted, as `findShortestPaths` gives it with `fromId` as the only allocated node; null when no
+   * path reaches the target.
+   */
+  distanceFrom(fromId: string, targetId: string, treeData: PassiveTreeData): number | null {
+    const paths = this.findShortestPaths(new Set([fromId]), targetId, treeData);
+    return paths.length > 0 ? paths[0].cost : null;
   }
 
   async mapNodesToDetails(

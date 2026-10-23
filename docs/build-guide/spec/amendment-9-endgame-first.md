@@ -782,3 +782,110 @@ takes them with the decisions they touch.
   and the limiter kept one window set per policy; it now keeps windows per kind (C-11's internal interface gains
   `auth`), and a 429 logs the site's rate-limit headers. One narrow gap stays: a process's first anonymous request
   after only logged-in traffic is admitted under the logged-in windows (no limit can be hard-coded, S-4).
+
+## 24. M-22: contracts, criteria and rulings (2026-10-23)
+
+Written by the coordinator after the live test, before the M-22 build, which the user started on 2026-10-23 ("Build
+M-22 now, in parallel" with amendment 10's review). §17's decisions stand; this section fixes their contracts, the
+work units' scope and their criteria, and records the rulings the live test brought. The code facts are from a
+read-only survey of the server the same day.
+
+### 24.1 Rulings
+
+- **PG-72, Avatar of Fire (the user, 2026-10-23):** PoB is right. Damage is converted before it is scaled, so
+  increased and more modifiers apply by the type the damage ends as, with no double dipping as in Path of Exile 1;
+  gained cold and lightning are lost under Avatar of Fire's "Deal no Non-Fire Damage", and increased cold damage does
+  nothing for a skill it converts. The user's gate ruling of 2026-10-19 was wrong ("after doing more research that
+  turns out not to be the case"; the creator's video in `../studies/2026-10-23-spud-warcryer-comparison.md` §5 agrees).
+  PG-72 becomes a closed entry recording that PoB matches the game; the library gains the damage-order rule (WU-103).
+- **D-425, the tree distance** goes on `search_tree_nodes`, the researcher's tool, not on `find_path_to_node`, which
+  needs a build: the search runs through the engine as today, and the distance is computed from the static tree
+  (`TreeService.findShortestPaths`, no engine), so it holds with no build loaded.
+- **D-427, the skill-type search** goes on `list_gems` (`skill_type`), not on `lookup_game_data`'s gem mode: the gem
+  mode prints each gem whole, and a type search wants a list. PoB's gem tags (`warcry`, `travel`) are not skill types.
+- **D-427, the clear band:** PoB gives no distance per use for a travel skill, so a pace can't be computed. The
+  record reports the stage's travel skill and its uses per second beside movement speed; the band (D-353) stays
+  radius-based.
+- **D-428, ring slots:** PoB already warns past its 9 skill slots plus one per "Grants 1 additional Skill Slot"
+  (the Unset Ring), and V1 reports the warning as `pob-warning`. V1 gives that warning its own code, `skill-slots`,
+  with the remedy named; no new count.
+- **D-426, set 2's measure** runs only on a stage that uses set 2 (set-2 passives, a set-2 item or a skill group on
+  set 2), so a stage without it compiles as today.
+
+### 24.2 Contracts (HG-12 granted for these only, by the user's go-ahead on 2026-10-23)
+
+- **C-43a, `search_tree_nodes`** gains `from`: a class name (Path of Exile 2's or the tree's legacy name), an
+  ascendancy name (its class's start) or a node id or exact node name. Each main-tree hit then gains
+  `Distance: <n> points from <from>`, the points of the shortest legal path (D-360's start and exit rule) from that
+  start or node, the start not counted; an ascendancy hit, or one no path reaches, shows `Distance: none`. An unknown
+  `from` fails and lists the valid class names. Without `from`, the output is unchanged. `TreeService` keeps each
+  start's `classesStart` names (today it keeps only `isClassStart`).
+- **C-37a, `lookup_game_data` gem mode** prints, beside the requirements at every level, each level's cost (PoB's
+  `cost` table: mana, mana per minute, the percentage forms, ward), Spirit reservation (`spiritReservationFlat`),
+  cooldown and stored uses, for the levels that hold them; a support also prints its cost and reservation
+  multipliers. Values are PoB's `levels[n]`.
+- **C-37b, `lookup_game_data` mode `base`:** bases of PoB's item type `slot` (required; an unknown type fails with
+  the list), optionally only those whose required level is at most `level`, and only names containing `query`. Each
+  base shows its required level and attributes, implicits, defences (armour, evasion, energy shield, ward, block,
+  movement penalty), weapon damage by type, critical chance, attack rate and range, Spirit, and socket limit, as PoB
+  holds them; sorted by required level, highest first, then cut to `max_results`. Hidden bases are left out.
+- **C-37c, `lookup_game_data` mode `config`:** PoB's config options whose key or label contains `query`, each with its
+  key, label, type, its list's values and labels, the condition that shows it (`ifCond`, `ifSkill` and the like), and
+  its tooltip's first line. `get_config` gains the label on each option too.
+- **C-37d, `lookup_game_data` mechanic kind `constant`:** PoB's game, character and monster constants
+  (`Data/Misc.lua`) whose name contains `query`, one hit each, `[constant] <table>: <name> = <value>`; ranked after
+  the other kinds; `kind: "constant"` lists only them.
+- **C-56, `list_gems`** gains `skill_type`, a PoB skill type by name (`Travel`, `Warcry`), case-insensitive; an unknown
+  name fails and lists the valid ones. It keeps the gems whose granted effect has that type.
+- **C-55a, `get_node_power`'s swap** may move weapon-set nodes within their own pool: a second search beside the
+  main one, for each pool with nodes, removes that pool's weakest branch and adds nodes tagged to the same pool,
+  legal by V1's `weapon-set-points` (each pool within its points) and PoB's pathing; a swap never moves a node between
+  pools or between a pool and the main tree. Its reply names the pool.
+- **The compile record (C-41)** gains, on a stage that uses set 2, `outputsSet2`, the key figures with set 2 active
+  (Spirit and its reservation among them), and V1's Spirit check reads both sets; and on every stage, the clear
+  measure's `travel: {group, skill, usesPerSecond} | null`, the stage's first group whose active skill has the Travel
+  type, other than the clear group.
+
+### 24.3 Work units and owners
+
+| Unit | Owns |
+|---|---|
+| WU-100 | C-43a, C-37a to C-37d: `pob-api/API/Lookup.lua`, `pob-api/API/BuildOps.lua` (config labels), `src/handlers/lookupHandlers.ts`, `src/handlers/luaHandlers.ts` (`search_tree_nodes`), `src/services/treeService.ts`, `src/types.ts`, `src/engine/schemas.ts` (their replies), the two tools' entries in `toolSchemas.ts`, the README table; `R1a.md` and `RV.md` (the new lookups; the Grep rule: PoB's `Modules/` for how the engine computes, cited by file and line, data questions through the tools); `references/lookups.md`; the researcher's definition |
+| WU-101 | C-55a and set 2's measure: `pob-api/API/NodePower.lua`, `pob-api/API/Compile.lua` (set 2), `src/handlers/treeHandlers.ts` (`get_node_power`), its `toolSchemas.ts` entry, `src/plan/record.ts`, `src/plan/compiler.ts`, `src/plan/checks/v1.ts` (Spirit per set), `docs/build-guide/plan-reference.md`; the card template's weapon-set line, `R1a.md` and `RV.md` (the check), `D1-build.md` (measure each set; a set-2 buff carried to set 1 as a custom modifier with its reason), `D1-tree.md` and `D1-gate.md` (pool moves), `W1.md` and both guide templates (the swap's Life cost), `docs/build-guide/pob-gaps.md` (PG-71) |
+| WU-102 | C-56 and the travel measure: `BuildOps.lua` (`list_gems`), `luaHandlers.ts` (`list_gems`), its `toolSchemas.ts` entry, `record.ts` and `compiler.ts` (the clear measure's `travel`), `Compile.lua` (its figures), `scripts/run-log.mjs` (the design display's travel line); `R1a.md` (the travel search through `skill_type`) |
+| WU-103 | `references/patterns.md`: the user's three weapon-set shapes (work-log 2026-10-19, "weapon sets, under-used by the researchers", cited to the user), "Travel by action"'s mechanism (cited to the user), a warcry Standard kit, the damage-order rule (24.1), all within 12,000 words; `pob-gaps.md`: PG-72 closed (24.1) and PG-73, a unique tame's tablet modifier with no line in the pin; `v1.ts`'s `skill-slots` code |
+
+**Waves.** Wave 1: WU-100 and WU-101 in parallel; the coordinator merges WU-100 first and WU-101 rebases (both touch
+`toolSchemas.ts`, `R1a.md` and `RV.md`, in different places). Wave 2, after both merge: WU-102 and WU-103 in parallel
+(WU-102 touches the record after WU-101; WU-103 alone touches `patterns.md`).
+
+### 24.4 Acceptance criteria (M-22)
+
+- **AC-P75 (WU-100).** Engine, no build loaded:
+  - `search_tree_nodes` with `from: "Warrior"` gives each main-tree hit the distance `findShortestPaths` gives from
+    node 47175; `from` a node id gives distances from it; an ascendancy hit shows `none`; `from: "Nobody"` fails and
+    lists the class names; with no `from`, the output equals today's;
+  - gem mode prints, for a gem with each, its per-level cost, Spirit reservation, cooldown and stored uses equal to
+    PoB's `levels[n]`, and a support's multipliers;
+  - mode `base` with `slot: "Wand"` lists wand bases with their implicits and required levels, `level` filters them,
+    an armour base's defences equal PoB's, and an unknown slot fails with the list;
+  - mode `config` finds an option by a word of its label and prints its key, type and list labels;
+  - mechanic kind `constant` finds `BaseMaximumRage` with its value.
+- **AC-W79 (WU-100).** Static: `R1a.md` names the new lookups and the Grep rule; the researcher's definition and
+  `lookups.md` agree; the README table is regenerated.
+- **AC-P76 (WU-101).** Engine, on fixtures:
+  - a stage with set-2 passives and a set-2 weapon records `outputsSet2` with its Spirit, and V1 reports Spirit over
+    on set 2 when only set 2 exceeds it; a stage without set 2 records none;
+  - `get_node_power` on a fixture with weapon-set nodes returns a legal pool move when one gains, tagged to its pool,
+    passing `weapon-set-points`, and never moves a node across pools.
+- **AC-W80 (WU-101).** Static: the card template's weapon-set line (none, a second tree, a second weapon, a set-2
+  buff); `R1a.md` and `RV.md` check it; `D1-build.md` measures each set and carries a set-2 buff as a custom modifier
+  with its reason; `D1-tree.md` and `D1-gate.md` allow pool moves; `W1.md` and the templates say a swap's Life cost;
+  PG-71 in `pob-gaps.md`.
+- **AC-W81 (WU-102).** `list_gems` with `skill_type: "Travel"` returns the pin's Travel gems and an unknown type fails;
+  a fixture stage with a travel skill records `travel` with its uses per second; the design display prints it; `R1a.md`
+  searches travel skills by type.
+- **AC-W82 (WU-103).** Static and unit: `patterns.md` holds the weapon-set shapes and the travel mechanism (each cited
+  to the user), the warcry kit and the damage-order rule, under 12,000 words; `pob-gaps.md` closes PG-72 and adds
+  PG-73; V1 reports PoB's too-many-groups warning as `skill-slots`, naming the Unset Ring.
+- **AC-W78a.** The M-22 wave gate: the full suite and the build pass on the integration head, as for M-21.

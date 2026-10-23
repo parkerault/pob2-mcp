@@ -4,7 +4,47 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-21: amendment 9, endgame builds first and trees that minimize travel (read this first)
+## M-22: amendment 9 §17 and §24, the researchers' lookups, weapon sets, travel skills (read this first)
+
+Added 2026-10-23. For this build, this section overrides the M-21 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's formats stay in force where M-22 doesn't change
+them.
+
+- **Spec.** `docs/build-guide/spec/amendment-9-endgame-first.md` §17 (D-425…D-428) and §24 (rulings, contracts, owners,
+  AC-P75, AC-P76, AC-W79…AC-W82) are binding; where §24 and §17 differ, §24 wins (it was written after the live
+  test). The spine and slices are v1.6 with amendments 8 and 9's M-21 built. Amendment 10 is a draft under review: not
+  part of this build. Read §17, §24, and the decisions your unit touches.
+- **Approved:** amendment 9 by the user on 2026-10-19; this build started by the user on 2026-10-23 ("Build M-22 now,
+  in parallel").
+- **HG-12 is granted for §24.2's contract changes only** (C-43a, C-37a to C-37d, C-56, C-55a, and the record's
+  `outputsSet2` and `travel`). The listed tool count doesn't change: no tool is added. Any other tool-contract change
+  is still HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m22`, branch `build-guide/m22`, off `main`. Lanes
+  `bg-<nn>` on `bg/wu-<nn>`, off the integration head when the unit starts. Never touched: the main checkout,
+  `/home/parker/projects/pob2-mcp-wt/m18` (the live runs'), and the stale worktrees (`m20`, `m21`, `bg-84`…`bg-98`).
+- **Waves and owners:** §24.3. Wave 1: WU-100 and WU-101 in parallel; WU-100 merges first and WU-101 rebases. Wave 2,
+  after both: WU-102 and WU-103 in parallel. The coordinator merges each unit after its verifier passes, and owns the
+  work-log and the spec.
+- **Shared files:** `toolSchemas.ts`, `toolRouter.ts`, `toolMeta.ts` and the README table: each unit edits only its
+  own tools' entries, and regenerates the README table (`pnpm build && pnpm docs:tools --write`) when a description
+  changes. `R1a.md` and `RV.md`: WU-100, then WU-101, then WU-102, each in its own paragraphs. `patterns.md`: WU-103
+  alone. `tests/static/buildGuidePipeline.test.ts` has no owner: put new static checks in new files, and when your text
+  breaks a pinned assertion there, update only that assertion and say so in the report.
+- **Formats fixed before the build** (§24.2 holds the contracts):
+  - `search_tree_nodes`' distance line: `Distance: <n> points from <from>`, or `Distance: none`.
+  - Mechanic kind `constant`'s hit: `[constant] <table>: <name> = <value>`, `<table>` one of `game`, `character`,
+    `monster`.
+  - The record's `outputsSet2`: the same key-figure map as `outputs`, present only on a stage that uses set 2; the
+    clear measure's `travel`: `{group, skill, usesPerSecond}` or `null`.
+  - `get_node_power`'s pool move: its best-swap line names the pool, `Best swap (weapon set <1|2>): …`, in the main
+    swap's form.
+  - V1's code `skill-slots`, its message naming the Unset Ring ("Grants 1 additional Skill Slot").
+- **Weapon sets, the facts:** the work-log, 2026-10-19, "weapon sets, under-used by the researchers" (the user's note,
+  the game's rules, PoB's support count across both sets), and "Gem Studded, checked in game by the user".
+- **No network** beyond GitHub and npm for a worktree's bootstrap.
+
+## M-21: amendment 9, endgame builds first and trees that minimize travel (built)
 
 Added 2026-10-19. For this build, this section overrides the M-20 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

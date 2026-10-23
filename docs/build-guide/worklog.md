@@ -5342,3 +5342,32 @@ the `m17` engine at `b76967b`.
   need; the design gate shows the chain with the points the tree spends on each link. **The user's ruling: wait
   for the live test**, whose D1-tree swaps on r1-b-3 show whether the step removes what an engine relies on; the
   amendment after it decides.
+
+## 2026-10-23: the live test reviewed; the comparison; M-22 starts; amendment 10 drafted
+
+- **The live test (WU-99)** completed as planned: r1-b-3 finalized endgame-only ("Wand-and-Shield Warcaller"), its
+  final gate `accept:verification`, then `design:r1-x-1` and `accept:file`. The resumed session: 608K output, 76.8M
+  cache read in the transcripts (r1-b-3 552K, against amendment 9's 0.5M estimate); telemetry adds 130
+  `agent_summary` requests, 29.6M cache read the transcripts don't show.
+- **D1-tree:** one swap (budget rung: two life-regeneration nodes for fire and elemental damage, +7.1%), Avatar of Fire
+  kept as a need, travel m 36 of 93, b 42 of 113, n 44 of 118, the gate's best swap none. It removed nothing the engine
+  relied on. Its custom modifier makes node power rate dropping the keystone as a gain (the guide warns).
+- **Run findings:** the clear group's number (the record's plan group 1 was the engine's group 3, after the wand's Mana
+  Drain and Bellow's explosion; D1-tree and the gate passed 3 by hand); V4-2's stray `- ` line (the checker's third
+  violation; the other two are 10-19's); `audit.md`'s title kept the card's old name. A record-plan violation was
+  this checkout's stale `build/`, not the run (the checker passes from `m18`).
+- **The comparison** (`studies/2026-10-23-spud-warcryer-comparison.md`, `5e8e93f`), with the user's reference build
+  and the creator's Avatar of Fire video: the run found the core; the reference stacks six damage layers to ours two,
+  removes the mana limit, counts three warcries for Escalation, and has a boss setup; most of its pieces were on our
+  other cards. **The user's direction:** synthesize the brainstorm into builds instead of dealing independent cards.
+- **Avatar of Fire (the user, after research):** PoB is right; the gate ruling of 10-19 was wrong. Recorded as
+  amendment 9 §24.1 (PG-72 closed, the damage-order rule for the library). r1-b-3's custom modifiers overstate its
+  damage by about a quarter; a test run, so noted, not re-run.
+- **The user's choices:** composites drawing on all cards (over keeping cards and merging at design); M-22 built now,
+  in parallel with amendment 10's review.
+- **M-22 formalized:** amendment 9 §24 (rulings, the contracts C-43a, C-37a to C-37d, C-56, C-55a and the record's
+  fields, owners, waves, AC-P75, AC-P76, AC-W79…AC-W82) from a read-only code survey (about 150K tokens); the
+  handoff's M-22 section. Integration worktree `m22`, lanes `bg-100`… .
+- **Amendment 10 drafted** (`spec/amendment-10-synthesis.md`, D-429…D-435, WU-104…WU-109, M-23): composites, the
+  research files' Ideas, synthesis questions 16–19, the gate's pieces, leave-one-out measures in R1b, the design that
+  keeps synthesizing, the live test's fixes. Waiting for the user's read, then an independent review.

@@ -26,7 +26,7 @@ Ask these of every candidate; the builds in brackets showed why.
 The answers fill the card (`templates/card-template.md`). The questions and the ten families come from
 [worklog], "Off-meta builds 7–30"; the earlier patterns from its "Off-meta builds 2–6".
 
-## Brainstorm questions 11–14: the engine
+## Brainstorm questions 11–15: the engine
 
 Ask these after 1–10 (D-409). Navira's Fracturing against our Varashta build showed why: tuning can't find a
 better structure, and the pieces of one sat unused in the research ([comparison] §7.1).
@@ -39,6 +39,9 @@ better structure, and the pieces of one sat unused in the research ([comparison]
     search for a supply that frees it (Supply by family). (Navira's Fracturing)
 14. Which rule changer touches this engine? Grep `data/rules/pairs.md` for its families (A rule changer).
     (Flicker Monk, Eventide Petals)
+15. Climb the chain. What scales the damage, what scales that, and what scales that? Search each scaler's
+    name as the target of another line ("effect of", "bonuses gained from", "also apply to", "per"), not only
+    as a stat to stack. See Scale the scaler. (Widowhail, Mana Flare Shaman)
 
 ## How to read an entry
 
@@ -68,7 +71,8 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   tamed rare beast and A rule changer (amendment 8, D-409) were reviewed by the user on 2026-10-18 with no
   corrections. The kits were thin for want of common-practice sources; the Mobalytics review of 17 popular
   guides (the `mob-` keys) revised them, added five kits, Meta trigger as a supply and Self-firing buff, and was
-  approved by the user on 2026-10-19 (C-53).
+  approved by the user on 2026-10-19 (C-53). Question 15 and Scale the scaler are the user's lens (2026-10-23:
+  search for what scales the thing that scales the thing being scaled), approved as worded.
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
@@ -654,6 +658,27 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** modelled, with the "Current Mana %" config option; Count stays 1 (a 1 s cooldown caps procs).
 - **Examples:** Mana Flare Shaman: 25% of current mana as a hit, at 20k mana [mana-flare].
 - **Cautions:** mutated uniques aren't in the data (PG-42); mana sustain is a hand calculation.
+
+### Scale the scaler
+
+- **Shape:** A is what the build scales (its damage, or the stat its hit reads); B scales A, C scales B and
+  D scales C. Each link multiplies everything below it, and the higher pools are usually empty, so one line two
+  links up can outweigh another increase in a damage pool that already holds hundreds of percent.
+- **Search:** climb from the payoff one link at a time. Search the last link's name as the target of a line,
+  not as a stat to stack: `mechanic "effect of <link>"`, then "bonuses gained from", "also apply to",
+  "per … <link>", "to Level of" and "Quality", across gems, uniques, the tree, ascendancy nodes, runes and
+  base implicits. Do each link's arithmetic before compiling (300% quiver effect is a 4× quiver). Stop when
+  the next link would multiply something small, or costs a slot a plain damage line would beat.
+- **PoB:** modelled: quiver effect [widowhail], rune effect and Bonded lines [mana-flare]; check coverage at
+  every link, since one unparsed link hides the whole chain above it.
+- **Examples:** Widowhail: Spark's damage ← projectile speed (Projectile Acceleration III) ← the quiver's
+  lines ← Widowhail's "increased bonuses gained from Equipped Quiver" (280%) ← the tree's 32% on top, for 300%
+  and a 4× quiver [widowhail]. Mana Flare Shaman: a hit worth 25% of current mana ← maximum mana ← six Mind
+  Runes ← Runeseeker's Call's "200% increased effect of Socketed Runes", with Wisdom of the Maji turning on the
+  runes' Bonded lines: 1,620 flat mana and 90% increased from the wand alone [mana-flare].
+- **Cautions:** a link is worth nothing until the one below it is built up (a 300% Widowhail over a weak
+  quiver), so a ranking of single upgrades by DPS never climbs: assemble the chain on paper first, as with A
+  count as a multiplier. A search that stops at B finds what the obvious build already has (question 11).
 
 ### Damage-source substitution
 

@@ -13,7 +13,7 @@ one card, or find that none clears faster. R1b then verifies your card like a pi
   latest brainstorm round, `n` counting the run's rival cards in it from 1).
 - **Prompt:** the parsed brief and your card id.
 - **Read**, the independent reads in one response:
-  - `.claude/skills/build-guide/references/patterns.md`, the pattern library, whole, first: its questions 11–14
+  - `.claude/skills/build-guide/references/patterns.md`, the pattern library, whole, first: its questions 11–15
     and its Standard kits are this step's tools;
   - `dossier.md` in the run folder, when it exists: one row per verified card, with its status, its synergy in a
     few words, its DPS, Life, EHP and clear speed. These are the structures to beat;
@@ -34,7 +34,7 @@ one card, or find that none clears faster. R1b then verifies your card like a pi
 2. **Read each verified card's structure** from its dossier row: its engine, its weapon's job, its count of
    minion types or of damage sources, its clear speed. With no dossier yet (a rival the user asked for at the
    brainstorm gate), the structure to beat is the archetype's standard kit.
-3. **Flip their assumptions.** Ask questions 11–14 of the best rows, and reverse each load-bearing assumption
+3. **Flip their assumptions.** Ask questions 11–15 of the best rows, and reverse each load-bearing assumption
    in a paragraph of your own reasoning: the supply (search it by family, as `R1a.md`'s supply search does: the
    family and its substitutes, every source kind, one lookup for each unfamiliar term), the weapon, the count,
    a premium slot that props up the engine, a rule changer (Grep `pairs.md`, and `creates:` across the index and

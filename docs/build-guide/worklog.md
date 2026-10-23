@@ -5317,3 +5317,19 @@ the `m17` engine at `b76967b`.
   - **Left for the user:** closing the old run session; the launcher's settings (the allow list and the `compact`
     hook from `run-settings.example.json`); pushing; removing the worktrees `m20`, `m21`, `bg-84`…`bg-98` and their
     branches (`build-guide/m20`, `build-guide/m21`, `bg/wu-84`…`bg/wu-98`).
+
+## 2026-10-23: the user's lens, Scale the scaler
+
+- **The user's observation:** the designers find what scales the thing being scaled and stop there; well-designed
+  builds go further and look for what scales that, and what scales that in turn. Searching PoB for B (the scaler)
+  doesn't find C (what scales B): C turns up only when B's name is searched as the target of another line.
+- **Added to `patterns.md`, approved by the user as worded:** brainstorm question 15 ("Climb the chain", in the
+  engine section, now 11–15) and the entry Scale the scaler in 4. Stat bridges, after Stat-as-base convergence.
+  Its examples come from studies already in the library: Widowhail's quiver chain and Mana Flare Shaman's rune
+  chain. The library is at 11,459 words against its 12,000 cap (D-410).
+- **`stages/RV.md`:** the rival asks questions 11–15 (it read 11–14).
+- **`tests/static/patternLibraryEngine.test.ts`:** the section's title and question 15, and the entry's family,
+  search wording and recorded approval.
+- **Open, for M-22 or the amendment after the live test:** D1-tree, the design step that fixes the passive tree,
+  doesn't read the library. `get_node_power` can rank nodes on B (mana, an attribute), which would surface the
+  tree's C nodes that a Full DPS ranking hides until B is built up. That needs a line in `stages/D1-tree.md`.

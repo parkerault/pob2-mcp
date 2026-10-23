@@ -2,7 +2,8 @@
  * AC-W74 (WU-90, amendment 8: D-403, D-409, static): the pattern library's new entries,
  * `.claude/skills/build-guide/references/patterns.md`.
  * - Brainstorm questions 11–14 as D-409 words them, after the first ten (which AC-W28 still counts), and question 9
- *   points to Standard kits.
+ *   points to Standard kits. Question 15 and its entry, Scale the scaler (in Stat bridges), are the user's lens,
+ *   approved 2026-10-23.
  * - "Standard kits" (D-403): one entry per archetype (minions, spells, attacks with each weapon family the studies
  *   cover, damage over time, totems), each with its kit and its levers; every line cites a study by key and section,
  *   the pinned data (`pin:`, a file the pin holds; "lookup" is the lookup tool's word), or the user; the minion
@@ -71,20 +72,21 @@ const field = (body: string, name: string) => {
 };
 
 describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () => {
-  it('asks brainstorm questions 11–14 in their own section after the first ten, and question 9 points to Standard kits', () => {
+  it('asks brainstorm questions 11–15 in their own section after the first ten, and question 9 points to Standard kits', () => {
     const first = h2('Brainstorm questions');
     expect(first).toBeDefined();
     const h2s = headings.filter((h) => h.level === 2);
     const engine = h2s[h2s.indexOf(first!) + 1];
-    expect(engine.title).toBe('Brainstorm questions 11–14: the engine');
+    expect(engine.title).toBe('Brainstorm questions 11–15: the engine');
     const body = bodyOf(engine);
     const numbered = [...body.matchAll(/^(\d+)\. ([\s\S]*?)(?=^\d+\. |(?![\s\S]))/gm)].map((m) => ({ n: Number(m[1]), q: folded(m[2]) }));
-    expect(numbered.map((x) => x.n)).toEqual([11, 12, 13, 14]);
+    expect(numbered.map((x) => x.n)).toEqual([11, 12, 13, 14, 15]);
     const want: [number, string[]][] = [
       [11, ['What does the obvious build do, and how is this card faster?', 'Standard kits']],
       [12, ['What grows with a count, and what pays for a bigger count?', 'A count as a multiplier']],
       [13, ['What does each premium slot serve?', 'search for a supply that frees it', 'Supply by family']],
       [14, ['Which rule changer touches this engine?', '`data/rules/pairs.md`', 'A rule changer']],
+      [15, ['What scales the damage, what scales that, and what scales that?', 'as the target of another line', 'Scale the scaler']],
     ];
     for (const [n, parts] of want) {
       const q = numbered.find((x) => x.n === n)!.q;
@@ -93,6 +95,15 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     const nine = folded(bodyOf(first!)).match(/9\. (.*?) 10\. /)![1];
     expect(nine).toContain('Give it the standard kit before calling it weak.');
     expect(nine).toContain('Standard kits');
+  });
+
+  it('files Scale the scaler under Stat bridges, climbing by each link\'s name as a target, and records the user\'s approval', () => {
+    const e = entry('Scale the scaler');
+    expect(e?.family).toBe('4. Stat bridges');
+    expect(field(e!.body, 'Search')).toContain("Search the last link's name as the target of a line");
+    expect(field(e!.body, 'Cautions')).toContain('a ranking of single upgrades by DPS never climbs');
+    const review = bullets(bodyOf(h2('How to read an entry')!)).find((b) => b.startsWith('- **Reviewed.**')) ?? '';
+    expect(review).toContain('Question 15 and Scale the scaler are the user\'s lens (2026-10-23');
   });
 
   describe('Standard kits (D-403)', () => {

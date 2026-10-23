@@ -5425,3 +5425,13 @@ the `m17` engine at `b76967b`.
   words left under its 3,500-word test (amendment 10's additions may hit it); neither conversion entry points to the
   damage-order rule (a pointer added at integration); `[spud] §9` resolves once main's study commits arrive at the
   sign-rebase.
+- **WU-102 failed verification** (verifier about 247K tokens), two blocking defects; a fix round to the doer.
+  B1: a group with `weaponSet` in a weapon slot also supports that weapon's granted skill, because PoB gives an
+  item-granted skill every support of the enabled groups in its slot (`CalcSetup.lua:1913-1928`, " Swap" stripped at
+  `:1732`); the game doesn't (a Hardwood Spear's Spear Throw +18% from a slotted Rapid Assault group). The fix keeps
+  §24.2 ("that set's slot"): the slot of the set whose item grants no skill (an empty off-hand counts); when both
+  grant, the main hand and a V1 finding naming the overstated skill; PG-74. B2: `list_gems`' `skill_type` read only a
+  gem's first effect, missing Blink and Black Powder Blitz (12 of D-427's 14), and its test derived the list the same
+  way. Also in the round: the clear measure reads a set-2 clear group's figures from set 2 (it read set 1's), and
+  `plan-reference.md` and `record.ts`'s comment corrected. Everything else passed: the set-2 figure equals PoB's own,
+  groups without `weaponSet` compile as before, and the merge with WU-103 is clean.

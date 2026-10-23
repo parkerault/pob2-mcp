@@ -12,12 +12,15 @@ main skill. The user named three sources:
   build download: the game's own build-planner files, one per variant (Act 1–6, level 90 endgame, final form, a rich
   version), holding full item text and gem lists;
 - **[aof]** his "SECRET PASSIVE That 99.7% Players IGNORE (It's actually OP)" (YouTube `VrEOjufM6Q0`, 2026-10-06,
-  25:45), on Avatar of Fire.
+  25:45), on Avatar of Fire;
+- **[ninja]** his character's PoB file, which the user found on poe.ninja by the character name in the video and
+  saved with the guide's config and skill settings (weapon set 2 holding the warcry gear). It is the planner's rich
+  variant (Mageblood), at level 96, and is studied in §9.
 
 Times are `mm:ss` in the named video. Claims are the creator's unless marked **pin**, checked against the pinned
-PoB data (0.5.4; `vendor/PathOfBuilding-PoE2/src/`). **No figure is compared side by side:** the planner has no PoB
-code, and its passive tree uses the game's internal node ids (`warcries52`, `AscendancyWarrior2Notable1`), which
-neither PoB's tree data nor ours can map. His evidence is in-game; ours is PoB's.
+PoB data (0.5.4; `vendor/PathOfBuilding-PoE2/src/`). The planner's passive tree uses the game's internal node ids
+(`warcries52`), which neither PoB's tree data nor ours can map; [ninja]'s file has PoB's ids, and §9 measures it in
+our engine.
 
 ## 1. Summary
 
@@ -26,8 +29,9 @@ neither PoB's tree data nor ours can map. His evidence is in-game; ours is PoB's
   Weight into Imploding Impacts. That combination is what makes a warcry a main skill, and he says it took him a
   challenge run and later play to find ([warcryer] 00:54–01:13).
 - **He kept building where ours stopped.** His warcries carry six damage layers to our two, he removed the limit
-  our guide lists as its main con (mana), he counts three warcries where we count one, and he has a boss setup
-  (§4).
+  our guide lists as its main con (mana), and he has a boss setup (§4). Measured in our engine (§9), Avatar of Fire,
+  Xoph's Blood and the corpse explosions carry his clear; the damage over time pays mostly on Shield Wall, his big
+  slow hit.
 - **Most of his pieces were in our deck, on different cards** (§6.1). The deck deals independent cards, the user
   picks some, and the design step builds one card; nothing combines them. The user's reading (2026-10-23): "having
   multiple independent cards is not how a human build designer would work. They'd be doing the same brainstorm
@@ -100,8 +104,8 @@ in his own advice: on a dangerous map, drop Blood Magic for mana (26:20).
 
 Escalation (pin: "20% increased Damage for each different Warcry you've used Recently") is on both trees. Ours counts
 one warcry, the "about 6% more damage" in its ledger. His counts three, Seismic, Infernal and Fortifying Cry
-(09:10–09:24). Brainstorm question 12 ("What grows with a count, and what pays for a bigger count?") finds this
-when it is asked of the design and not only of the cards.
+(09:10–09:24). Measured (§9), two more warcries are worth only about 3% of his Full DPS: the increases pool is
+already deep, so an increase there is diluted.
 
 ### 4.4 A boss setup
 
@@ -158,9 +162,10 @@ Focus had turned ailments off, and Zerphi's Infamy because the build spends mana
 was measured against and wrong for the structure he built: the local maximum the user has warned about.
 
 The card ruled Battershout out under the library's "Payoff thief (anti-pattern)": it consumes the broken armour
-Imploding Impacts needs. He has the same conflict and schedules it instead: Battershout goes on Infernal Cry for
-clear, where packs die whether their armour stays broken or not, and Fortifying Cry, his boss warcry, carries none,
-so broken armour stays for Imploding Impacts (14:51–15:34).
+Imploding Impacts needs. In the video he schedules the conflict: Battershout goes on Infernal Cry for clear, where
+packs die whether their armour stays broken or not, and Fortifying Cry, his boss warcry, carries none, so broken
+armour stays for Imploding Impacts (14:51–15:34). His character ([ninja], §9) resolves it the other way: it takes
+Jade Heritage in place of Imploding Impacts, so nothing competes for the broken armour.
 
 ### 6.3 Lenses not asked again after the design changed
 
@@ -203,3 +208,62 @@ about this.
   the tree weren't, since the planner's node ids can't be mapped.
 - The planner (0.5.5, updated 2026-09-15) and [aof] (2026-10-06) postdate the pin (0.5.4). Two of the planner's
   variants weren't studied: the Act 1–6 variant (Shield Wall for the campaign) and the rich version.
+
+## 9. His character's PoB file ([ninja])
+
+Measured read-only in our engine (the pin, from `main`'s server at `f89d74f`, started from a temp folder with trade
+and poe.ninja off) on a copy of the file. Our engine reproduces the file's saved figures exactly (Seismic Cry 40,173
+hit DPS, 45,325 combined), so the two PoB versions agree on this build.
+
+**The build.** Level 96. Keystones Blood Magic and Avatar of Fire; ascendancy Warcaller's Bellow, Anvil's Weight,
+Renly's Training and Jade Heritage (not Imploding Impacts); 30 notables, Escalation, Urgent Call, Lay Siege and The
+Molten One's Gift among them. **Two weapon sets, each with its own 24-point tree:** set 1 holds a rune-forged Hoghunt
+alone, for Hammer of the Gods, with crit and duration notables (Sundering, Overwhelming Strike, Burning Strikes, Near
+at Hand); set 2, the active one, holds the wand and Chernobog's Pillar for the warcries, with warcry notables
+(Guttural Roar, Bolstering Yell, Reverberating Impact, Howling Beast, Urgent Call, Cacophony). The wand carries only
+fire: 37% gained as extra fire, 109% increased fire, flammability and bleeding magnitude, exposure effect, 58 life per
+kill. Mageblood, Xoph's Blood (anointed Taste for Blood), Deidbell, Blistering Bond, gloves with 79 life per kill.
+Config: the enemy ignited, bleeding, armour-broken and under all three exposures, three warcries used recently, 30
+Rage. PoB warns of 11 gem groups against its 9 skill slots, so the file holds more skills than the game lets him
+socket at once.
+
+**Per skill** (PoB's DPS for each, as the main skill):
+
+| Skill | Hit DPS | Ignite | Bleeding | Combined | Uses a second |
+|---|---|---|---|---|---|
+| Seismic Cry | 40,173 | 2,839 | 2,312 | 45,325 | 5.19 |
+| Shield Wall | 59,630 | 32,447 | 25,205 | 117,282 | 0.96 |
+| Corpse explosion (one source) | 72,877 | 9,914 | — | 72,877 (PoB's combined) | per kill |
+| Infernal Cry's Combust | 3,289 | 116 | 1,214 | about 4,600 | 1 |
+
+Full DPS (Seismic Cry, Infernal Cry and the explosion) is 107,717. Battershout's detonation shows no DPS: PoB doesn't
+measure it. Hammer of the Gods measures nothing while set 2 is active. Defence: 2,379 life, 16,724 armour (63%
+physical reduction), 49.7% block, 19,659 effective HP, 3,616 physical max hit; resistances 75/62/74/27, cold and chaos
+uncapped. Seismic Cry costs 110 life a cry, 571 a second at full speed, against life per kill.
+
+**Each piece left out** (the file reloaded before each change):
+
+| Left out | Full DPS | Seismic Cry | Shield Wall |
+|---|---|---|---|
+| Avatar of Fire | −49% | −22% | −20% |
+| Xoph's Blood | −18% | −18% | −18% |
+| Deidbell | −5% | −9% | −2% |
+| Escalation counting 1 warcry, not 3 | −3% | −2% | −2% |
+| Blistering Bond | −2% | −5% | −21% |
+| Bleed III on Seismic Cry | −1% | −5% | 0 |
+
+**What it adds:**
+- **The ailment layers pay on the big slow hit.** On Seismic Cry (7,744 a hit, five a second) ignite and bleeding are
+  11% of its damage; on Shield Wall (62,115 a hit, about one a second) they are half. Blistering Bond is worth 21% of
+  Shield Wall and 2% of Full DPS. This is [aof]'s breakpoint (§5) and the user's ailment-conversion lens, measured.
+- **Clear rests on conversion, resistance and corpses:** Avatar of Fire (half of Full DPS) and Xoph's Blood (a fifth),
+  then the explosions, which out-damage the cry.
+- **Weapon sets as second trees:** each skill family gets its own 24 points, the user's "second tree" shape (amendment
+  9, D-426).
+- **A leave-one-out costs little:** each test above is a reload and one change through tools the server already has,
+  which is the measurement amendment 10 asks of R1b (D-433), and it shows why a piece must be measured on every
+  damaging skill, not only the main one: Blistering Bond looks small on the cry and large on the boss skill.
+- **For our build:** his Seismic Cry (45,325 combined, Mageblood gear) and ours on the non-budget rung (33,314, with
+  the custom modifier that overstates it by about a quarter, §5) are in the same range, with similar effective HP
+  (ours about 19,500, all resistances capped). The gap is everything beside the cry: the explosions, the boss skill,
+  and the resistance cut.

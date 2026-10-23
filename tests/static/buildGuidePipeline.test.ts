@@ -3871,7 +3871,8 @@ describe('AC-W77 (WU-95): the references carry amendment 9\'s rules', () => {
     expect(example.find((l) => l.startsWith('- Effective HP:'))).toMatch(/^- Effective HP: [\d,]+ \(against T15 map hits, area 79: \d+ physical\)\.$/);
     // The display's own formats (run-log.mjs): the tree lines and the Effective HP line.
     const runLog = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'run-log.mjs'), 'utf8');
-    expect(runLog).toContain('`- Passive tree: ${isNum(t.travel) ? t.travel : \'?\'} of ${isNum(t.points) ? t.points : \'?\'} points on travel; best swap left: ${swap}`');
+    // WU-102: a pool move's best swap names its weapon set (`${pool}`, C-55a).
+    expect(runLog).toContain('`- Passive tree: ${isNum(t.travel) ? t.travel : \'?\'} of ${isNum(t.points) ? t.points : \'?\'} points on travel; best swap left${pool}: ${swap}`');
     expect(runLog).toContain("`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}.`");
     const text = folded(raw);
     for (const answer of ['- **accept**: the build ends `completed`.', '- **accept, then verification** (`accept:verification`, D-411)', '- **campaign** (`campaign`, D-415)', '- **decline** (`decline:<note>`)']) {

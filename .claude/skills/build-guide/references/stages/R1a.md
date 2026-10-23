@@ -152,6 +152,14 @@ requires` line), search the supply before you settle on one:
 - **unfamiliar terms:** a term in a result you can't place ("Verisium Infusion") gets one lookup before the
   search ends.
 
+**Travel skills, by skill type** (D-427). To find the skills that carry a build between packs, search by PoB's skill
+type, not by name: `mcp__pob2__list_gems {skill_type: "Travel"}` lists every gem whose skill has the Travel type
+(Leap Slam, Shield Charge and the rest), which a word search ("leap", "teleport") misses. `skill_type` takes any of
+PoB's skill types by name, case ignored (`Warcry`, `Slam`); an unknown name fails and lists them. A gem tag
+(`warcry`, `travel`) isn't a skill type: tags go in `tag`. Look each candidate up in gem mode for its weapon
+requirement, cost and cooldown. A compiled stage's record names its travel skill and its uses a second beside
+movement speed (`measures.clearSpeed.travel`).
+
 By focus:
 
 - **`mechanics`**: sections `Mechanics` and `Config gaps`; cards led by a skill, its supports or a mechanic.

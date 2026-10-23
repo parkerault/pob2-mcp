@@ -51,6 +51,9 @@
 //    from the D1 gate verdict's `design.rungs[].tree`, `{travel, points, bestSwap, needs}`; the final display's travel
 //    beside each rung's figures); the verification display lists every build with its status, and says when the pin
 //    or the digest changed since the run last ran.
+//  - M-22 (WU-102; D-426, D-427): the design display's movement speed line names the rung's travel skill and its uses
+//    a second (the record's `measures.clearSpeed.travel`), and a best swap left that is a pool move (its `weaponSet`)
+//    names its pool, `best swap left (weapon set <n>): …`.
 //
 // A gate's checkpoint (amendment 7: D-389, D-391) also carries `questions`, how many questions the user asked at
 // that visit (its interview notes, `interviews/<gate>-<visit>.md`, hold as many); `changes`, the revisions riding
@@ -1259,12 +1262,28 @@ const names = (v) => (Array.isArray(v) && v.length > 0 ? v.map(String).join(', '
 /**
  * D-419: a rung's passive-tree lines on the design display, from the D1 gate verdict's `design.rungs[].tree`
  * (`{travel, points, bestSwap, needs}`, `bestSwap` null or `{gainPercent, removed, added}`): the travel and the best swap
- * left, then each need the tree keeps, one line each, so the user sees why a long branch stays.
+ * left, then each need the tree keeps, one line each, so the user sees why a long branch stays. A pool move (C-55a,
+ * D-426), a `bestSwap` with `weaponSet` 1 or 2, names its pool as get_node_power does: `best swap left (weapon set 2): …`.
  */
 function treeLines(t) {
-  const swap = isObj(t.bestSwap) ? `+${pct(t.bestSwap.gainPercent)}% Full DPS by moving ${Array.isArray(t.bestSwap.removed) ? t.bestSwap.removed.length : '?'} points from ${names(t.bestSwap.removed)} to ${names(t.bestSwap.added)}` : 'none';
+  const s = t.bestSwap;
+  const swap = isObj(s) ? `+${pct(s.gainPercent)}% Full DPS by moving ${Array.isArray(s.removed) ? s.removed.length : '?'} points from ${names(s.removed)} to ${names(s.added)}` : 'none';
+  const pool = isObj(s) && (s.weaponSet === 1 || s.weaponSet === 2) ? ` (weapon set ${s.weaponSet})` : '';
   const needs = Array.isArray(t.needs) ? t.needs.filter(text) : [];
-  return [`- Passive tree: ${isNum(t.travel) ? t.travel : '?'} of ${isNum(t.points) ? t.points : '?'} points on travel; best swap left: ${swap}`, ...needs.map((n) => `- Kept on the tree: ${n}`)];
+  return [`- Passive tree: ${isNum(t.travel) ? t.travel : '?'} of ${isNum(t.points) ? t.points : '?'} points on travel; best swap left${pool}: ${swap}`, ...needs.map((n) => `- Kept on the tree: ${n}`)];
+}
+
+/**
+ * D-427 (WU-102): the stage's travel skill beside its movement speed, from the record's `measures.clearSpeed.travel`
+ * (`{group, skill, usesPerSecond}` or null): `; travel skill <skill>, <n> uses a second`, or `; no travel skill`; nothing
+ * for a record from before M-22, which has no `travel`.
+ */
+function travelWords(c) {
+  if (!isObj(c) || !('travel' in c)) return '';
+  const t = c.travel;
+  if (!isObj(t) || !text(t.skill)) return '; no travel skill';
+  const uses = isNum(t.usesPerSecond) ? `${Number(t.usesPerSecond.toFixed(2))} uses a second` : 'uses a second not measured';
+  return `; travel skill ${t.skill.trim()}, ${uses}`;
 }
 
 function designDisplay(dir, log, id) {
@@ -1286,7 +1305,8 @@ function designDisplay(dir, log, id) {
     // the boss floor, the Arbiter check, then damage and effective HP.
     out.push(`${rungLabel(plan, r.stage)}:`);
     out.push(`- Clear speed: ${noArea(measured) ? clearPhrase(measured) : `${speedOf(typeof r.clearSpeed === 'string' ? r.clearSpeed : measured)} (rough)`}.`);
-    out.push(`- Movement speed: ${moveWords(moveOf(rec))}.`);
+    // D-427: the travel skill beside the movement speed, from the record's clear measure.
+    out.push(`- Movement speed: ${moveWords(moveOf(rec))}${travelWords(measured)}.`);
     if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
     out.push(`- Damage: ${whole(r.dps)} per second.`);
     // D-423: the Effective HP line names the hit it was measured against (the rung's `ehpHit`), so it compares with

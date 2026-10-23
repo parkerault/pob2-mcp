@@ -160,7 +160,8 @@ findings.
      numbers, from the rung's `Travel:` line; `bestSwap`, the swap left (the main swap or a pool move, whichever
      gains most), `null` when every line says none, else `{gainPercent,
      removed: [<names>], added: [<names>]}`, `gainPercent` the swap's Full DPS gain as a number, the names as the
-     reply gives them; `needs`, one short line per need of the rung's `tree.needs`, under 120 characters, what
+     reply gives them, and for a pool move `weaponSet`, its pool's set (`1` or `2`), which the display names
+     (`best swap left (weapon set 2): …`); `needs`, one short line per need of the rung's `tree.needs`, under 120 characters, what
      it keeps and why, from its claim (`Mana on Kill and Mana Regeneration: the howl spam's mana`). The display
      prints the travel and the swap left, then each need, so the user sees why a long branch stays. A rung the
      tool didn't measure (`tool-error`, `tool-refused`): `{"travel": 0, "points": 0, "bestSwap": null, "needs":

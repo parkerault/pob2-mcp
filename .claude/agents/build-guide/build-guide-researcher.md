@@ -31,6 +31,11 @@ focus and your letter, or the question.
   never create a run folder: those belong to the coordinator and the runner (D-130, D-178). When a point
   needs a measurement (a `possibly unread` line, a number only PoB can compute), say so in your files
   for the coordinator; don't guess the number.
+- **Data through the lookups; PoB's source for how only** (D-425). A data question (a gem's cost or Spirit by
+  level, a base, a config option, a constant, a node's distance from the class start) goes through the lookup
+  tools (`mode: "gem"`, `"base"`, `"config"`, `kind: "constant"`, `mcp__pob2__search_tree_nodes`' `from`), never
+  PoB's data files. You may Grep PoB's `vendor/PathOfBuilding-PoE2/src/Modules/` for how the engine computes
+  something, and cite it by file and line. No scratch builds: the server holds one loaded build (FR-W3).
 - **Batch independent calls** (D-356). When reads, Greps or lookups don't depend on each other's results, make
   them in one response, several tool calls at once, not one a turn. The lookup tools take no engine lock, so
   they batch.

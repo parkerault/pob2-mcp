@@ -49,6 +49,11 @@ one card, or find that none clears faster. R1b then verifies your card like a pi
    much.
 6. **Or none.** When no structure you can confirm clears faster, write no card.
 
+**Lookups, and PoB's source for how only** (D-425), as `R1a.md` says: data questions go through the lookups (a
+node's distance from the class start with `mcp__pob2__search_tree_nodes`' `from`, a gem's cost and Spirit by level,
+`mode: "base"`, `mode: "config"`, `kind: "constant"`); Grep PoB's `vendor/PathOfBuilding-PoE2/src/Modules/` only for
+how the engine computes something, cited by file and line; no scratch builds (FR-W3).
+
 Offline (`mode: "offline"`): no web, as for R1a.
 
 ## Writes

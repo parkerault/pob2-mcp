@@ -23,6 +23,11 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
       of <total> active gems)`, which names the gems it can't support (`all except …`) when it can support
       most; and an active gem's `Unlocked by another support:`, the supports it can take only after another
       support adds a skill type. Example: Whirling Assault lists `Ailith's Chimes: after … Culmination II …`.
+    - **Cost, Spirit and cooldown by gem level** (C-37a, D-425). After the requirement lines, one row per gem level
+      from PoB's `levels[n]`, as its gem tooltip shows them, a run of levels with the same values as one row: the
+      cost (a per-minute cost per second), `Spirit <n>`, `Cooldown <s> s (<n> uses)`, and a support's `Additional
+      Spirit <n>`, `Cost multiplier <p>%` and `Reservation multiplier <p>%`. Examples: Herald of Ash's `1–20: Spirit
+      30`; Flameblast's `1: Cost 5.62 Mana per second; Cooldown 10 s (1 use)`.
     - **A minion skill** (D-379), by its exact name, after the gems of that name: `## <name>`, then
       `Kind: minion skill`, one `Cast by: <minion> (summoned by <gem>)` line per summon, `Commanded: yes` for a
       command, one `Granted by: <passive> (<ascendancy>, node <id>)` line per passive that grants it, its
@@ -34,9 +39,9 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
     only when exactly one unique is returned** (D-239). Look a unique up by its exact name (or with
     `max_results: 1`) to get its text.
   - `{mode: "mechanic", query, kind?}`: keyword hits across gems, uniques, passives (ascendancy included),
-    item mods, essences and item-base implicits. **`kind` (`gem`, `unique`, `passive`, `mod`, `essence`
-    or `base`) lists one kind only**; the header still counts every kind's hits (D-240). Use it when a
-    broad query fills every slot with one kind. Amendment 3's additions (D-299):
+    item mods, essences, item-base implicits and PoB's constants. **`kind` (`gem`, `unique`, `passive`, `mod`,
+    `essence`, `base` or `constant`) lists one kind only**; the header still counts every kind's hits (D-240). Use it
+    when a broad query fills every slot with one kind. Amendment 3's additions (D-299):
     - **Stat sets by number.** A gem hit from a stat set names it as gem mode numbers it, the number a
       plan's `skills.main.statSet` takes: `[gem] Blood Hunt (stat set 2: Explosion): …`. A hit from
       another granted effect reads `<gem> / <effect> (stat set <n>: <label>)`.
@@ -45,6 +50,8 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
       `[base] Absent Amulet (Amulet; variant Cast on Critical): Grants Skill: Level (1-20) Cast on
       Critical`. A base's name matches every line of it.
     - **Gaps.** `…` (or `...`) in the query matches any text within one line.
+    - **Constants** (C-37d, D-425). PoB's game, character and monster constants (`Data/Misc.lua`) whose name
+      contains the query, ranked after the other kinds: `[constant] game: BaseMaximumRage = 30`.
   - **The named phrase searches** (D-299). Run these as mechanic queries when a concept leans on a hidden
     interaction; each finds a wording family the pattern library uses: `also apply to`,
     `while already at maximum`, `per 100 maximum`, `for each type of`, `cannot … but`, `instead of you`
@@ -68,10 +75,28 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
   - **Sourcing an affix's limit on its base** (D1, amendment 2): look the affix up with `kind: "mod"`
     and `kind: "essence"`. When its base types (or an essence's item types) narrow the base, the guide
     says so. Example: "Arcane Surge on Crit is desecrated, so the gloves need energy shield".
+  - `{mode: "base", slot, level?, query?}` (C-37b, D-425): the bases of PoB's item type `slot` (`Wand`, `Body Armour`;
+    an unknown type fails with the list), only those up to required level `level` and named like `query` when given,
+    highest required level first. Each shows its requirements, implicits, defences (armour, evasion, energy shield,
+    ward, block, movement penalty), weapon damage by type, critical hit chance, attacks per second, range, Spirit and
+    socket limit, as PoB holds them.
+  - `{mode: "config", query}` (C-37c, D-425): PoB's config options whose key or label contains `query`, each with its
+    key, label, type, section, list values and labels, `Shown when:` (the `if…` conditions that show it: each must
+    hold, and any of one condition's values does) and its tooltip's first line. `get_config` prints each option's
+    label after its value too.
   - `max_results` defaults to 20 and is capped at 30 (D-225).
 - `mcp__pob2__check_model_coverage` (C-38): per line of an item, a node or a gem, whether PoB applies it.
-- `mcp__pob2__search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`.
+- `mcp__pob2__search_tree_nodes` (C-43): nodes by text, or every node of an `ascendancy`. With `from` (C-43a, D-425:
+  a class, an ascendancy for its class's start, a node id or an exact node name), each main-tree hit gains
+  `Distance: <n> points from <from>`, the points of the shortest legal path from there on the static tree, the start
+  not counted, with no build loaded; an ascendancy hit, or one no path reaches, shows `Distance: none`. An unknown
+  `from` fails and lists the class names.
 - `mcp__pob2__list_gems`, `mcp__pob2__get_classes`.
+
+**PoB's source, for how it computes only** (D-425). A data question (a gem's numbers, a base, a config option, a
+constant, a node's distance) goes through these lookups. A researcher may Grep PoB's
+`vendor/PathOfBuilding-PoE2/src/Modules/` to see how the engine computes something, and cites it by file and line
+(`Modules/CalcOffence.lua:1234`). No scratch builds: the server holds one loaded build (FR-W3).
 
 **Legacy means not in the game** (D-395). A gem PoB marks legacy, or a unique PoB says is no longer obtainable,
 is in no build: the lookups and `mcp__pob2__compile_plan` refuse them, and one you find some other way is

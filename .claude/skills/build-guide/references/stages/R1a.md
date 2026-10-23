@@ -109,6 +109,12 @@ Use the lookup tools your agent definition lists (how to read their results is b
 online only, the web on the allowed hosts (your agent definition). Look things up rather than recalling
 them: a game fact you didn't look up is a `judgment`, with a confidence.
 
+**PoB's source, for how it computes only** (D-425). A data question (a gem's numbers, a base, a config option, a
+constant, how far a node is) goes through the lookups below, never PoB's data files. You may Grep PoB's
+`vendor/PathOfBuilding-PoE2/src/Modules/` to see how the engine computes something (how a bonus is scaled, which
+condition a modifier reads), and cite what you read by file and line (`Modules/CalcOffence.lua:1234`). No scratch
+builds: the server holds one loaded build (FR-W3), and you never load, change or compile one.
+
 **Discovery calls** (every focus may use them):
 
 - supports: `mcp__pob2__list_gems {type: "support", tag: <a tag of the skill>}`, and
@@ -119,7 +125,17 @@ them: a game fact you didn't look up is a `judgment`, with a confidence.
   brief; full item text comes only when exactly one unique matches, so look a candidate up by its exact
   name, D-239), and `mcp__pob2__lookup_game_data {mode: "mechanic", query, kind: "unique"}`;
 - the tree: `mcp__pob2__search_tree_nodes {query}` for notables and keystones, `mcp__pob2__search_tree_nodes {ascendancy}` for
-  the ascendancy's own nodes;
+  the ascendancy's own nodes; with `from: <class or ascendancy>` (`{query, from: "Titan"}`) each main-tree hit gains
+  `Distance: <n> points from <from>`, the passive points from the class start with no build loaded (`from: <node id>`
+  measures from a node; an ascendancy hit shows `Distance: none`), so a card prices a notable's travel;
+- a gem's cost and Spirit: `mcp__pob2__lookup_game_data {mode: "gem", query}` prints, per gem level, its cost, Spirit
+  reservation, cooldown and stored uses (a support's cost and reservation multipliers), beside the requirements;
+- bases: `mcp__pob2__lookup_game_data {mode: "base", slot: <item type>, level?}` lists an item type's bases (`Wand`,
+  `Body Armour`), highest required level first, each with its requirements, implicits, defences and weapon figures;
+- config options: `mcp__pob2__lookup_game_data {mode: "config", query}` finds PoB's config options by key or label, with
+  their values and the conditions that show them, for the Config gaps;
+- PoB's constants: `mcp__pob2__lookup_game_data {mode: "mechanic", query, kind: "constant"}` (base maximum Rage is
+  `BaseMaximumRage`);
 - what PoB models: `mcp__pob2__check_model_coverage` with `gems`, `item_text` or `nodes`. A line that is unparsed,
   partly parsed (PoB then applies **none** of it), parsed to nothing, possibly unread, or marked "check
   config" is a modelling gap. An unparsed `Grants Skill: <minion skill>` line isn't one: PoB computes that skill

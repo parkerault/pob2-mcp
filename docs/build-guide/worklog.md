@@ -5333,3 +5333,12 @@ the `m17` engine at `b76967b`.
 - **Open, for M-22 or the amendment after the live test:** D1-tree, the design step that fixes the passive tree,
   doesn't read the library. `get_node_power` can rank nodes on B (mana, an attribute), which would surface the
   tree's C nodes that a Full DPS ranking hides until B is built up. That needs a line in `stages/D1-tree.md`.
+- **The open item, revised after the user asked whether D1-tree should read the library.** Not the library: D1-tree
+  picks no structure, and the library would cost about 15k tokens on each of its turns. Ranking node power on the
+  scaler (above) is wrong where PoB models the chain, since Full DPS already measures a node through every link;
+  Full DPS is blind only to an unmodelled link. The proposal: D1-build writes the build's chain into the plan (each
+  link, its node-power stat if any, whether PoB models it, its library entry); D1-tree reads only that, guarding an
+  unmodelled link with a stat as a third `get_node_power` stat at `max_loss` 0 and keeping one without a stat as a
+  need; the design gate shows the chain with the points the tree spends on each link. **The user's ruling: wait
+  for the live test**, whose D1-tree swaps on r1-b-3 show whether the step removes what an engine relies on; the
+  amendment after it decides.

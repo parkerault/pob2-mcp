@@ -210,7 +210,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   ```
   Budget endgame (level 92):
   - Clear speed: fast (rough).
-  - Movement speed: +25% over your base speed.
+  - Movement speed: +25% over your base speed; no travel skill.
   - The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.82 of your max hit).
   - Damage: 98,412 per second.
   - Effective HP: 31,250 (against T15 map hits, area 79: 402 physical).
@@ -222,12 +222,13 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   - Kept on the tree: Dexterity for Martial Tempo's requirement
   ```
 
-  Clear speed and movement speed lead, then the boss floor (D-407). `m` shows no Arbiter and no anoint. The
+  Clear speed and movement speed lead, then the boss floor (D-407). The movement line names the rung's travel skill
+  and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427). `m` shows no Arbiter and no anoint. The
   Effective HP line names the hit it was measured against (the rung's `ehpHit`, D-423), so it compares with the
   dossier's EHP at the verification gate. The tree lines follow the Gems line (D-419): the points the rung spends
   on travel, nodes that give the build nothing themselves and only connect it to nodes that do, of its points; the
   best swap PoB's node power still finds (`+<x>% Full DPS by moving <n> points from <nodes> to <nodes>`, or
-  `none`); then each need the tree keeps whatever node power says, one line each, so the user sees why a long
+  `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then each need the tree keeps whatever node power says, one line each, so the user sees why a long
   branch stays. Then the open estimates, one line each from `estimates[]`, the gate's verdict line, and the
   verdict file's path. Under the display, in your reply, give each `not made:` line D1-tree returned in this design
   (a tree change the user asked for that it couldn't make, with its why), so the user hears it before deciding.

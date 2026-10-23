@@ -735,7 +735,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** modelled: Blackflame's chaos ignite; the spread is not modelled (PG-21).
 - **Examples:** The Eraser: Blackflame's chaos ignite lets Contagion spread it [eraser]. Twister: cold
   conversion lets freeze apply [twister].
-- **Cautions:** a non-DPS floor may follow: ignite of at least 2 s [eraser].
+- **Cautions:** a non-DPS floor may follow: ignite of at least 2 s [eraser]. Converted damage scales by its new
+  type only (the damage-order rule, "How to read an entry").
 
 ### Convert into the ailment's type
 

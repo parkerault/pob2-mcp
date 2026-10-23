@@ -22,8 +22,10 @@ function M.get_main_output()
     return nil, "build not initialized"
   end
   -- D-428: PoB's warning past its skill slots (Modules/CalcPerform.lua:3603-3609) reads the skills tab's count of
-  -- groups (GlobalGemAssignments, Classes/SkillsTab.lua:1570-1608), which the tab refreshes only as it draws or shows
-  -- a group (:1167, :1331), never in a headless build. Refresh it before each calculation, as the GUI keeps it current.
+  -- groups (GlobalGemAssignments, Classes/SkillsTab.lua:1570-1608), which the tab refreshes only at load and as it draws
+  -- or shows a group (:1562, :1331, :1167), so it goes stale once the bridge edits groups headless. Refresh it before
+  -- each calculation, as the GUI keeps it current. It also feeds PoB's one-copy-per-lineage-support warning
+  -- (CalcPerform.lua:3610-3615); nothing else reads it.
   local skillsTab = build.skillsTab
   if skillsTab and skillsTab.socketGroupList and skillsTab.UpdateGlobalGemCountAssignments then
     skillsTab:UpdateGlobalGemCountAssignments()

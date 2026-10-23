@@ -5399,3 +5399,16 @@ the `m17` engine at `b76967b`.
   "each mode's ok sample", so `tool-calls.json` gains samples for the new modes in WU-102 (it owns the next tool
   change); `get_config`'s output grew from about 22K to 39K characters with C-37c's labels; a blank `from` is ignored
   rather than failing (cosmetic); `lookup_game_data`'s description has 13 characters left.
+- **WU-101 done and merged** (doer about 549K tokens, verifier about 205K plus its gate): PASS, no blocking defect.
+  Doer's gate after its rebase onto `ec2076f`: rc 0 (166 suites, 2,892 tests), build rc 0; the verifier's own gate the
+  same. Fast-forwarded: `c99d24b` (set 2's measure, V1's Spirit on both sets, `get_node_power`'s pool moves),
+  `cea9700` (skill text, PG-71), `58cc40f` (the tool's description under AC-F15's cap). The verifier's probe: Spirit
+  130 on set 1 (the Act 1 quest's 30 plus the Rattling Sceptre's 100), 30 on set 2, two Heralds reserving 30 each, V1
+  flags set 2 only; set 1 is active again after the compile and after `get_node_power`; `two-stage` and `minion-wolf`
+  compile to the same records on `ec2076f` and `58cc40f`. Accepted deviations: V1's set-2 Spirit line reuses
+  `pob-warning` (no code fixed for it); the pool's legality is "may not grow", stricter than `weapon-set-points`; the
+  pool search adds about 10% to a call. Notes: a stage measured with `useSecondWeaponSet` true never measures set 1
+  (the pipeline never sets it); the design display doesn't name a pool move's pool, and each way a stage uses set 2
+  isn't tested alone (both passed to WU-102, which owns the display and the third way).
+- **Wave 2 started before WU-101 merged** (the coordinator's call, to save an hour): WU-102 and WU-103 doers on
+  `58cc40f` while WU-101's verifier ran; it passed, so no rebase is needed.

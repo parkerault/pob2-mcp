@@ -61,6 +61,15 @@ which count its untagged main-tree nodes only (no weapon-set or ascendancy node)
 second tree on a start, no weapon-set or ascendancy node moved), which isn't V1's: you still compile it and
 compare V1 (below).
 
+**Pool moves** (C-55a, D-426). On a rung with weapon-set passives, each weapon set's pool (its `weaponSetNodes.set1`
+or `set2`) gets its own line after `Best swap:`, in the same form, `Best swap (weapon set <n>): none: …` or `Best
+swap (weapon set <n>): +<x>% Full DPS (+<n>); … Remove …. Add …`: a move within that pool, measured with set `<n>`
+active, so its gain is of that set's Full DPS. It removes only nodes of the pool and adds nodes tagged to it, and
+the pool holds no more points than before, so it stays within the pool's weapon-set points; no node moves between
+pools or between a pool and the main tree. Apply it like a main swap (a change, below), with its nodes in the
+pool's list too: remove the removed nodes from `weaponSetNodes.set<n>` as from `tree.nodes`, and add the added
+nodes to both.
+
 **A change**, below, is any edit to the rungs' trees: a swap, spare points, a need's nodes, a user's request.
 Each one runs the same way:
 - **Up the ladder** (D-282): a change on `m` goes to `b` and `n` too, which contain `m`'s tree, and one on `b`
@@ -68,7 +77,9 @@ Each one runs the same way:
   added node a rung lacks (an added node a later rung already holds stays as it is there, its weapon-set tag
   included); give each added attribute node the choice the tool named (`{node, attribute: "strength" |
   "dexterity" | "intelligence"}`). When it adds the notable a rung's `items.anoint` names, remove that
-  `items.anoint`: the compiler refuses an anoint the tree allocates, and D1-finish anoints the rung again.
+  `items.anoint`: the compiler refuses an anoint the tree allocates, and D1-finish anoints the rung again. A pool
+  move goes up the ladder in its pool: its removed nodes leave each rung's `weaponSetNodes.set<n>` too, and each
+  added node a rung lacks goes into that rung's `set<n>` as well as its `tree.nodes`.
 - **Compile every rung it touches together**: `mcp__pob2__compile_plan {plan_path: "<plan>", measure_only:
   true, stages: [<the rung and every later rung>]}`, which also loads the later rungs' loadouts that
   `protect_for` names. Never a final compile.
@@ -120,7 +131,10 @@ Each one runs the same way:
    3. **The swap loop**: call the tool in compact mode. While its best swap gains at least **3%** Full DPS, make
       it a change, and call again; stop at "Best swap: none", under 3%, or after **8 swaps** on the rung, an
       undone one counted. The D1 gate fails a rung at 5%, so the anoint and the prices D1-finish adds can't push
-      a finished loop over the gate's line.
+      a finished loop over the gate's line. **Pool moves** run in the same loop: of the reply's `Best swap:` and
+      `Best swap (weapon set <n>):` lines, make the one that gains most a change (each counted among the 8), and
+      go on while any of them gains at least 3%; a pool move stays within its pool's points, and V1's
+      `weapon-set-points` checks it at the compile.
    4. **No unspent point**: after the loop, spend the rung's spare points again as step 2 does, so the rung
       ends with every regular point the level allows spent. A point left (no node within reach fits, or each
       fill was undone) is returned with its reason, `unspent: <rung> <k>: <why>`, which D1-finish writes as a
@@ -134,8 +148,8 @@ reports no error.
 
 ## Writes
 
-`<buildFolder>/plan.json` only, its rungs' `tree` (`nodes`, `attributeChoices`, `needs`) and a removed
-`items.anoint`. The server writes the record and the XML beside it.
+`<buildFolder>/plan.json` only, its rungs' `tree` (`nodes`, `attributeChoices`, `needs`, and a pool move's
+`weaponSetNodes`) and a removed `items.anoint`. The server writes the record and the XML beside it.
 
 ## Returns
 

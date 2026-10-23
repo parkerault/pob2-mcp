@@ -36,6 +36,9 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - [only when a passive-tree node or a unique grants a skill the card uses, D-342; one line per skill]
   Granted by: <skill>: "<node name>" (<node id>), <a <ascendancy> ascendancy node | allocated by this card>,
   or <the unique>, equipped by this card.
+- Weapon sets: <none | a second tree | a second weapon | a set-2 buff, one or more, D-426>: <what set 2 holds
+  (its passives' job, its weapon, the buff cast from it) and when the player swaps to it; "none" when the card
+  uses one set>.
 
 ### Pitch
 

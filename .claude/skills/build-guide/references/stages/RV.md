@@ -54,6 +54,13 @@ node's distance from the class start with `mcp__pob2__search_tree_nodes`' `from`
 `mode: "base"`, `mode: "config"`, `kind: "constant"`); Grep PoB's `vendor/PathOfBuilding-PoE2/src/Modules/` only for
 how the engine computes something, cited by file and line; no scratch builds (FR-W3).
 
+**Weapon sets** (D-426). Weapon set 2 is one of the assumptions to flip in step 3: a second tree for a skill that
+scales differently, a second weapon, or a buff cast from set 2 that keeps set 2's effect while set 1 is out. Judge
+from each dossier row's synergy and weapon whether it uses set 2 (you never read the cards); when the fastest rows
+use one set, ask whether set 2 would lift their clear, and weigh what the swap costs: set 2's points are converted
+regular points, and its Spirit and Life are its own. Your card's identity carries its `Weapon sets:` line, checked
+as R1a checks it (`R1a.md`, "Weapon sets").
+
 Offline (`mode: "offline"`): no web, as for R1a.
 
 ## Writes

@@ -217,6 +217,17 @@ yet.`, for R1b to fill.
   them, or a minion skill one summon casts (the gem lookup's `Kind: minion skill`; name its summon, D-379). A
   damage source that isn't a skill (an item, a passive or a modifier, such as a flask nova; never a minion skill,
   even one a passive grants) may lead a card, marked "can't be finalized yet" (D-303, D-334).
+- **Weapon sets** (D-426): every card's identity has the line `Weapon sets:`, its use of weapon set 2, one or more
+  of `none`, `a second tree` (a second skill that scales differently gets its own tree from set 2's passive points),
+  `a second weapon` (a weapon a second skill needs, sharing the off-hand or not), or `a set-2 buff` (a buff cast
+  from set 2, which keeps set 2's effect while set 1 is out), with what set 2 holds and when the player swaps.
+  Check each card for it before you write `none`: a skill that scales on other stats than the named source, a buff
+  or boss button, or a weapon the named source can't use is a reason for set 2; the pattern library's weapon-set
+  shapes are the leads. Set 2's points are converted regular points, not extra ones, and its Spirit and Life are its
+  own (a sceptre in one set, passives tagged to one set): the card's Needs or The catch says what the swap costs.
+  PoB counts the socketed supports of both sets, where the game counts only the active set's (PG-71): on a card with
+  a set-2 skill, a link through a per-support modifier (Gem Studded) is followed by a custom modifier or a hand
+  calculation, citing PG-71, never `modelled`.
 - **Pitch** (D-392): each field as the template asks, in player terms, its **Name** unique among your cards and
   the deck's. **How it clears** matters most: players judge a build by its clear speed (damage, area and pace
   between packs); bosses are a minimum check. The playstyle tags come from the brief's vocabulary.

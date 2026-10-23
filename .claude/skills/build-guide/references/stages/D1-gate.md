@@ -129,9 +129,14 @@ findings.
      compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
      `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Full
      DPS (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>
-     points: <Name> [<id>], …`, the nodes by name. A rung whose best swap gains **5%** Full DPS or more fails the part, one `tree-swap` finding per such
+     points: <Name> [<id>], …`, the nodes by name. **Pool moves** (C-55a, D-426): on a rung with weapon-set
+     passives, the reply adds one line per weapon set's pool after it, `Best swap (weapon set <n>): …` in the same
+     form, a move within that pool (only its nodes removed, only nodes tagged to it added, the pool within its
+     points) measured with set `<n>` active, so its gain is of that set's Full DPS. A pool move is allowed, as
+     D1-tree applies it; the rung's swap left is the line, main or pool, that gains most. A rung whose best swap gains **5%** Full DPS or more fails the part, one `tree-swap` finding per such
      rung, its message the swap (`b: +6.2% Full DPS by moving 5 points from Dexterity, Agile Succession to Cold
-     Nature, Rhythm of Ice`); else the part passes. When a call fails or times out, the part is `unverified`
+     Nature, Rhythm of Ice`), a pool move's naming its set (`b: weapon set 2: +5.4% Full DPS by moving 2 points from
+     Dexterity, Intelligence to Melee Damage`); else the part passes. When a call fails or times out, the part is `unverified`
      with one `tool-error` finding, its `stage` the rung and its message the error line, and no `tree-swap`
      finding even on a rung measured at 5% or more: the gate re-runs alone and judges every rung then. A refused
      call (D-421) is `unverified` with `tool-refused`: stop calling, write the verdict file, and return
@@ -152,7 +157,8 @@ findings.
    - `gear` and `gems`: one short line each, under 120 characters: the key uniques and rare targets; the named
      source's group and its main supports;
    - `tree` (D-419): `{travel, points, bestSwap, needs}` from the tree part: `travel` and `points`, whole
-     numbers, from the rung's `Travel:` line; `bestSwap` `null` when the reply says none, else `{gainPercent,
+     numbers, from the rung's `Travel:` line; `bestSwap`, the swap left (the main swap or a pool move, whichever
+     gains most), `null` when every line says none, else `{gainPercent,
      removed: [<names>], added: [<names>]}`, `gainPercent` the swap's Full DPS gain as a number, the names as the
      reply gives them; `needs`, one short line per need of the rung's `tree.needs`, under 120 characters, what
      it keeps and why, from its claim (`Mana on Kill and Mana Regeneration: the howl spam's mana`). The display

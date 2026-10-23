@@ -156,6 +156,23 @@ request (D-411, D-413).
      (`computedWithCustomMods`), and the guide lists each with its reason. **After setting Count** on a group
      whose skill reserves once per copy, on totems under Ancestral Bond, or on a group whose Umbral Well buffs
      it scales, check the stage's reservation and those buffs in the record: Count multiplies them too.
+   - **Weapon sets** (D-426). Build the card's `Weapon sets:` line into each rung: set 2's passives in
+     `tree.weaponSetNodes.set2` (set 1's own in `set1`), set 2's weapons in `Weapon 1 Swap` and `Weapon 2 Swap`
+     (an item in both sets is equipped in both slots: PoB has no item in both sets), and `items.useSecondWeaponSet`
+     `false`, so the stage's own measure is set 1's. **Measure every set the card's skills use:** on a stage that
+     uses set 2 (set-2 passives, an item in a Swap slot, or a skill socketed in one), the compile also measures it
+     with set 2 active and records the same key figures as `outputsSet2` beside `outputs` (`plan-reference.md`,
+     "Weapon set 2's measure"): set 2's Life, defences and Spirit, and the main skill's figures with set 2 active.
+     The named source and the floor are judged by `outputs`. To measure a skill the player uses from set 2, add a
+     temporary stage that copies the rung with `skills.main` on that skill's group, compile the two (`stages`
+     naming them), read its `outputsSet2`, and remove the stage before you finish. **Spirit on each set:** V1 reports PoB's Spirit warning on set 1 and `Your unreserved
+     Spirit is negative on weapon set 2` on set 2, both `pob-warning`; fix either like any finding. **A set-2 buff**
+     (a buff cast from set 2, which keeps set 2's effect while set 1 is out) is measured on set 2: read its effect
+     with set 2 active (the figure it moves in `outputsSet2`, or its skill's effect there), then carry it to set 1
+     as a `config.customMods` entry whose `reason` says it is the set-2 buff's effect, measured on set 2, and how
+     its number was worked out. PoB counts the socketed supports of both sets, where the game counts only the active
+     set's (PG-71): on a build with a set-2 skill, a per-support modifier (Gem Studded) is overstated, so
+     hand-calculate it as a custom modifier with its reason.
 5. **Tree.** A node list within the points the level allows (`data/campaign/limits.json`:
    `passive-points.max`; the ascendancy at most `ascendancy.max`), with its weapon-set nodes and attribute
    choices. Start from the skeleton's tree, a sketch of the card's targets (D-418): keep its targets with their
@@ -265,7 +282,8 @@ request (D-411, D-413).
    measure_only: true}`). Its reply gives each stage's key-figure line (the headline DPS, life, energy shield,
    EHP, the four resistances, the V1 and V2 finding counts, the Arbiter verdict and the rough clear speed) and
    its V1 and V2 findings: read the floor there, and Grep `compile-record.json` only for what the reply
-   lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`). Iterate on clear speed and damage
+   lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`, and on a stage that uses
+   weapon set 2 its `outputsSet2`: the key-figure line is set 1's). Iterate on clear speed and damage
    once the floor holds (D-118), with the gear, gems and config: the rough clear speed leads, and bosses are a
    floor (D-407); the tree's points beyond its targets and needs are D1-tree's. A V1 `missing-reason` on a need
    (`tree.needs[<m>].claim`) is expected: D1-finish writes the claims. Never a final compile.

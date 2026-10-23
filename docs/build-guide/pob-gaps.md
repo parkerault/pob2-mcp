@@ -107,6 +107,19 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     grants it, one line per group (D-398). A temporary load's lines name the file. A group nothing grants (its
     passive isn't allocated, its item isn't equipped) is removed with its supports, and its line says so.
   - **Workaround:** PG-51's: model the skill as a socketed group and put the supports there.
+- **PG-71, socketed supports are counted across both weapon sets.** bug, confirmed in code and in game (the user's
+  test on Gem Studded, 2026-10-19).
+  - **Where:** `Modules/CalcSetup.lua:2101-2105`, PoB's own comment: "Currently PoB2 doesn't associate weapon skill
+    supports with the actual weapon sets so it ends up counting all support gems when it should only take into
+    account the active weapon set". The loop after it (`:2106-2131`) counts every enabled group's supports by
+    colour, whichever weapon set its slot is in, into the `RedSupportGems`, `GreenSupportGems` and
+    `BlueSupportGems` multipliers (`:2132-2134`).
+  - **Effect:** the game counts only the active weapon set's socketed supports (the user checked Gem Studded's
+    "most numerous colour" on their Gemling), so PoB overstates Gem Studded, and any modifier that counts socketed
+    supports, on a build with a skill in weapon set 2.
+  - **Seen in:** the weapon-set review (work-log 2026-10-19). The [hotg] study's "Gem Studded counts every set's
+    supports" predates the game's 0.5.5 fix to the inactive set.
+  - **Workaround:** hand calc the active set's support count, and type the difference in as a custom mod.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)
 

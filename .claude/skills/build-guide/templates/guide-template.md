@@ -117,6 +117,7 @@ Move here when <the trigger>.
 
 [only when the budget variant has an anoint; this rung has none (D-358)] If you can afford it before maps, anoint your amulet now with the budget variant's <notable> (<its three Distilled Emotions>).
 [optional] <a fallback D1 weighed, where one exists>.
+[only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
 
@@ -138,6 +139,7 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 - **Tree:** <the keystones and notables, each with what it buys>.
 - **Anoint:** <the notable>, from <its three Distilled Emotions, as the record names them> (<its price, or unavailable>): <its reason, as the plan gives it>.
 - [only when the stage has a respec] **Respec from the entering-maps loadout:** drop <the nodes> for about <gold cost> gold.
+- [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] **Weapon swap:** swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
 
@@ -151,6 +153,7 @@ Move here when <the trigger>.
 
 **Anoint:** <the notable>, from <its three Distilled Emotions> (<its price, or unavailable>): <its reason, as the plan gives it>.
 [only when the stage has a respec] Respec from the budget loadout: drop <the nodes> for about <gold cost> gold.
+[only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
 

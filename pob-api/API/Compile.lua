@@ -67,7 +67,7 @@
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[],
---                   minionSkill?, minionStatSet?}], main, configSet, config, customMods[], offenseFields[],
+--                   minionSkill?, minionStatSet?, weaponSet?}], main, configSet, config, customMods[], offenseFields[],
 --                   itemSlots[], anoint?, companion?{id}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
@@ -96,8 +96,15 @@
 --     group socketed in one), the stage is also measured with set 2 active, just before its own measurement, and
 --     `outputsSet2` is that measure in `outputs`' form; on a stage whose own measure is set 2's
 --     (useSecondWeaponSet), it is `outputs` itself, and a stage that doesn't use set 2 has none.
+--     A skill on a weapon set (WU-102, §24.2): a group's `weaponSet` (1 or 2) sockets it in that set's slot
+--     (WEAPON_SET_SLOT: `Weapon 1`, `Weapon 1 Swap`), which PoB enables only while that set is active
+--     (Modules/CalcSetup.lua:1728-1729); a group on set 2 makes the stage one that uses set 2. Such a stage's
+--     `skillOutputsSet2` is every group's breakdown with set 2 active, keyed as `skillOutputs` (it is `skillOutputs`
+--     itself on a stage measured on set 2). `travelSkills` (D-427) lists each enabled group's active skill whose
+--     granted effect has PoB's Travel skill type, {group, activeSkill, skill}, in the reply's group numbers.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
---         outputs{}, outputsSet2?{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
+--         outputs{}, outputsSet2?{}, skillOutputs{}, skillOutputsSet2?{}, travelSkills[{group, activeSkill, skill}],
+--         skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
 --         configSurvivesDrop{option: boolean}, dotCanStack{main, skills{key: boolean}},
 --         checks{...}, minionSkills[{group, activeSkill, summon, minion, minionId, name, index, statSet,
@@ -1186,6 +1193,12 @@ end
 -- The off-hand slots, in order (OFF_HAND above is the same set as a lookup).
 local OFF_HAND_SLOTS = { 'Weapon 2', 'Weapon 2 Swap' }
 
+-- D-426 (§24.2): the slot a plan group on weapon set n is socketed in: the set's main hand, whose slot control PoB
+-- tags with that set (ItemsTab: `Weapon 1` weaponSet 1, `Weapon 1 Swap` weaponSet 2, Classes/ItemsTab.lua:226-236),
+-- so the group is enabled only while that set is active (Modules/CalcSetup.lua:1728-1729). Its label in PoB's
+-- "Socketed in" list is `Weapon 1` and `Weapon 1 (Swap)` (Classes/SkillsTab.lua:13-17).
+local WEAPON_SET_SLOT = { [1] = 'Weapon 1', [2] = 'Weapon 1 Swap' }
+
 -- Select or create the stage's set of one type: `ref.reuse` (an id an earlier stage created) is selected;
 -- otherwise the first stage retitles the build's first set and every other stage creates one. Returns
 -- the set id, and whether its content has to go in.
@@ -1307,13 +1320,18 @@ end
 -- D-402: with a companion, the stage's Tame Beast gem goes in as PoB's companion gem, as the game turns the gem when
 -- it captures the beast, with the beast as its minion (skillMinion, which CalcActiveSkill picks from the beast library,
 -- Modules/CalcActiveSkill.lua:904-929).
+-- D-426 (§24.2): a group with a `weaponSet` is socketed in that set's slot (WEAPON_SET_SLOT), which PoB enables only
+-- while its set is active (Modules/CalcSetup.lua:1728-1729); a group without one gets no slot, as before.
 local function build_skills(st, fresh)
   if not fresh then return end
   local beast = companion_id(st)
   for gi, group in ipairs(list(st.groups)) do
+    local weaponSet = tonumber(group.weaponSet)
+    local slot = weaponSet ~= nil and WEAPON_SET_SLOT[weaponSet] or nil
+    if weaponSet ~= nil and slot == nil then fail(('group %d: weaponSet is 1 or 2, not %s'):format(gi, tostring(group.weaponSet))) end
     local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
       label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
-      groupCount = group.groupCount,
+      groupCount = group.groupCount, slot = slot,
     }))
     for _, gem in ipairs(list(group.gems)) do
       local captured = beast ~= nil and is_companion_gem(BuildOps.resolve_gem(gem.name))
@@ -1439,8 +1457,13 @@ end
 -- measures each one as the main selection through BuildOps.get_main_output, so while it runs that function
 -- is wrapped to read the flag after each of its rebuilds; the wrapper is removed however the breakdown ends.
 -- <group> is the group's number in the reply (D-382: the plan's groups first), not its index in PoB's list.
+-- D-427 (§24.2): the third value lists each measured active skill whose granted effect has PoB's Travel skill type
+-- (SkillType.Travel, Data/Global.lua), in an enabled group: {group, activeSkill, skill}, for the clear measure's
+-- `travel`.
 local function skill_outputs(fields)
-  local out, stacks = {}, {}
+  local out, stacks, travel = {}, {}, {}
+  local data = build.data or _G.data
+  local travelType = type(SkillType) == 'table' and SkillType.Travel or nil
   local own = BuildOps.get_main_output
   BuildOps.get_main_output = function(...)
     local output, err = own(...)
@@ -1459,6 +1482,7 @@ local function skill_outputs(fields)
     for gi = 1, #(build.skillsTab.socketGroupList or {}) do
       local _, number = group_indices()
       local res = must('measuring socket group ' .. tostring(number[gi]), BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
+      local group = build.skillsTab.socketGroupList[gi]
       for _, skill in ipairs(res.skills or {}) do
         for _, set in ipairs(skill.statSets or {}) do
           local numbers = {}
@@ -1469,6 +1493,11 @@ local function skill_outputs(fields)
             skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
           }
         end
+        local ge = data and data.skills and data.skills[skill.grantedEffectId]
+        if travelType ~= nil and group and group.enabled ~= false and type(ge) == 'table' and type(ge.skillTypes) == 'table'
+            and ge.skillTypes[travelType] then
+          travel[#travel + 1] = { group = number[gi], activeSkill = skill.index, skill = tostring(skill.name) }
+        end
       end
     end
   end)
@@ -1477,7 +1506,7 @@ local function skill_outputs(fields)
   -- Only the measured keys: the wrapper also saw the rebuilds that put the stage's own selection back.
   local measured = {}
   for key in pairs(out) do measured[key] = stacks[key] == true end
-  return out, measured
+  return out, measured, travel
 end
 
 local function allocation()
@@ -1836,8 +1865,8 @@ local function output_map(output)
 end
 
 -- D-426: whether the stage uses weapon set 2: passives tagged to it, an item in a Swap slot, or a skill group
--- socketed in one (PoB's own group for a Swap item's skill: a group follows a set only through its slot,
--- Modules/CalcSetup.lua:1729).
+-- socketed in one (PoB's own group for a Swap item's skill, or a plan group on weapon set 2, which build_skills
+-- sockets in `Weapon 1 Swap`: a group follows a set only through its slot, Modules/CalcSetup.lua:1729).
 local function uses_set_two(st)
   if #list(st.weaponSets and st.weaponSets.set2) > 0 then return true end
   for _, it in ipairs(list(st.items)) do
@@ -1856,17 +1885,23 @@ end
 -- put back however it ends, so the stage's own measurement after it sees the build as it would without it; the
 -- weapon-fit flags are cleared for it, so PoB's slot check doesn't unequip a set's off-hand against the other set's
 -- passives (ValidateWeaponSlots runs only when a calculation loses a flag the last one had).
-local function measure_set_two()
+-- D-426 (§24.2, WU-102): the second value is every group's breakdown with set 2 active, skill_outputs' map in its
+-- form and keys (`skillOutputsSet2`), so a group on either set has a figure measured on its own set.
+local function measure_set_two(fields)
   local itemsTab = build.itemsTab
   local itemSet = itemsTab.activeItemSet
   local flags = itemsTab.lastWeaponFlagState
   itemSet.useSecondWeaponSet = true
   itemsTab.lastWeaponFlagState = nil
-  local ok, output, err = pcall(rebuild)
+  local ok, outputs, skills = pcall(function()
+    local output, err = rebuild()
+    local map = output_map(must('measuring the stage with weapon set 2 active', output, err))
+    return map, (skill_outputs(fields))
+  end)
   itemSet.useSecondWeaponSet = false
   itemsTab.lastWeaponFlagState = flags
-  if not ok then error(output, 0) end
-  return output_map(must('measuring the stage with weapon set 2 active', output, err))
+  if not ok then error(outputs, 0) end
+  return outputs, skills
 end
 
 function M.compile_stage(st)
@@ -1915,8 +1950,10 @@ function M.compile_stage(st)
     end)
     -- D-426: on a stage that uses weapon set 2, set 2's measure, before the stage's own so the build ends as it
     -- would without it; on a stage measured with set 2 active (useSecondWeaponSet), its own measure is set 2's.
+    -- WU-102: with every group's breakdown on set 2 (skillOutputsSet2), keyed as skillOutputs.
     local setTwo = uses_set_two(st)
-    local outputsSet2 = (setTwo and st.useSecondWeaponSet ~= true) and measure_set_two() or nil
+    local outputsSet2, skillsSet2
+    if setTwo and st.useSecondWeaponSet ~= true then outputsSet2, skillsSet2 = measure_set_two(list(st.offenseFields)) end
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
     local companion = companion_measure(st)
@@ -1938,7 +1975,8 @@ function M.compile_stage(st)
     -- The V1/V2 inputs, before the breakdown changes the main selection and restores it.
     local checks = stage_checks(st, output, configSetId, defer)
     local alloc = allocation()
-    local skills, skillStacks = skill_outputs(list(st.offenseFields))
+    local skills, skillStacks, travelSkills = skill_outputs(list(st.offenseFields))
+    if setTwo and st.useSecondWeaponSet == true then skillsSet2 = skills end
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
@@ -1946,6 +1984,8 @@ function M.compile_stage(st)
       outputs = outputs,
       outputsSet2 = outputsSet2,
       skillOutputs = skills,
+      skillOutputsSet2 = skillsSet2,
+      travelSkills = travelSkills,
       skippedToggles = skipped,
       items = set_items(itemsTab.itemSets[itemSetId], list(st.itemSlots)),
       addedItems = added,

@@ -42,7 +42,9 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - a stage's tamed beast, `companion` (`stages[].companion`); an earlier plan has none, and the key is an error.
 
   Version 6 added (D-418):
-  - a stage's tree needs, `tree.needs` (`stages[].tree.needs`); an earlier plan has none, and the key is an error.
+  - a stage's tree needs, `tree.needs` (`stages[].tree.needs`); an earlier plan has none, and the key is an error;
+  - (M-22, D-426) a group's weapon set, `weaponSet` (`stages[].skills.groups[]`); in an earlier plan every group is
+    active on both weapon sets, and the key is an error.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -374,6 +376,12 @@ its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arb
   `slow (PoB gives no area)`.
 - **`movementSpeed`** is PoB's `EffectiveMovementSpeedMod`, the player's movement speed × action speed as a
   multiplier (the sidebar's "Movement Speed Modifier"): 1.25 is +25%. It is null when PoB gives none.
+- **`clearSpeed.travel`** (D-427) is the stage's travel skill, beside the movement speed: `{group, skill,
+  usesPerSecond}`, the first enabled group, other than the clear group, whose active skill has PoB's Travel skill type
+  (`list_gems {skill_type: "Travel"}` lists them), by group number; `skill` is PoB's name for it and `usesPerSecond`
+  PoB's `Speed` at its first stat set, from `skillOutputsSet2` for a group with `weaponSet: 2`, else `skillOutputs`
+  (null when PoB gives none). It is `null` when the stage has no such skill. PoB gives no distance per use, so no
+  pace is computed from it, and the band stays the clear skill's radius.
 
 `compile_plan`'s reply prints a key-figure line after each stage's line (D-356), so a compile needs no read of
 the record for these: the headline DPS (the main group's Count-scaled figure, followed by the minion skill's name
@@ -392,14 +400,33 @@ Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
 PoB measures a loadout with one weapon set active, the one `items.useSecondWeaponSet` names: passives tagged to a
 set apply only while it is active, a skill group follows a set only through the slot it is socketed in, and set 2's
 weapons are the `Weapon 1 Swap` and `Weapon 2 Swap` slots. So a stage that **uses weapon set 2** (a node in
-`tree.weaponSetNodes.set2`, an item in a Swap slot, or a skill group PoB socketed in one, as for a Swap item's
-granted skill) is measured twice: with set 2 active, then as the plan says. The record's `stages.<id>.outputsSet2`
+`tree.weaponSetNodes.set2`, an item in a Swap slot, or a skill group socketed in one: a group with `weaponSet: 2`, or
+PoB's own group for a Swap item's granted skill) is measured twice: with set 2 active, then as the plan says. The record's `stages.<id>.outputsSet2`
 is the second weapon set's measure, the same key-figure map as `outputs` (every finite number of PoB's main output,
 the minion's as `Minion<Field>`): Life, energy shield, Spirit and `SpiritUnreserved`, the resistances, Full DPS and
 the rest, all with set 2 active. `outputs`, `skillOutputs`, the counted figures, the measures and the key-figure line
 stay the plan's own set's, set 1's unless `useSecondWeaponSet` is true; a stage measured on set 2 has `outputsSet2`
-equal to `outputs`. A stage that doesn't use set 2 has no `outputsSet2`, and compiles as before. A plan's group
-names no slot, so it is active on both sets: a buff or a reservation in it counts on each.
+equal to `outputs`. A stage that doesn't use set 2 has no `outputsSet2`, and compiles as before.
+
+**A skill on a weapon set** (D-426, §24.2). A group's `weaponSet` (`1` or `2`) puts it on that set: the compiler
+sockets it in the set's main-hand slot (`Weapon 1` for set 1, `Weapon 1 Swap` for set 2, PoB's "Socketed in" choice),
+and PoB enables a group only while its slot's set is active (`Modules/CalcSetup.lua:1728-1729`), so its skill, buff
+or reservation counts on its own set only. A group without `weaponSet` gets no slot and is active on both sets, as
+before: a buff or a reservation in it counts on each. A group on set 2 makes its stage one that uses set 2. On such a
+stage the record gains `stages.<id>.skillOutputsSet2` beside `skillOutputs`: every group's figures measured with set 2
+active, keyed as `skillOutputs` is (`g<group>s<skill>p<statSet>`), so a skill on either set has a figure of its own:
+read a set-1 group's in `skillOutputs`, a set-2 group's in `skillOutputsSet2`, and a group on both sets in either. Its
+figures are raw (no Count). On a stage measured with set 2 active it is `skillOutputs` itself; a stage that doesn't use
+set 2 has none. V1 reports a group on a set whose weapon slots are both empty as `empty-weapon-set` (the stage's
+`items.slots` fill neither `Weapon 1` nor `Weapon 2`, or neither Swap slot), its `data` `{group, weaponSet, slots,
+path}`.
+
+```json
+"skills": { "groups": [
+  { "label": "Boneshatter", "enabled": true, "role": "single_target", "weaponSet": 1, "gems": [ … ] },
+  { "label": "Infernal Cry", "enabled": true, "role": "utility", "weaponSet": 2, "gems": [ … ] }
+], … }
+```
 
 V1's Spirit check reads both sets. PoB's own warning lines are the measured set's ("Your unreserved Spirit is
 negative", a `pob-warning`), and on a stage measured on set 1, V1 applies PoB's rule to `outputsSet2` too: a
@@ -549,6 +576,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].countReason` | string | no | Non-empty. Why `count` copies act at once; needed when `count` is above 1, else V1 reports `missing-reason`. Schema version 2 | D-293, D-322 |
 | `stages[].skills.groups[].minionSkill` | string | no | Non-empty. The skill the group's summon's minion uses, as the gem lookup names it (see a minion's skill above). The group holds exactly one summon; the compile resolves the name against the minion's skill list, ignoring case, and refuses a name it can't use, listing its skills. The group's damage figure is then its minion's `MinionTotalDPS`. Schema version 4 | D-377, D-378 |
 | `stages[].skills.groups[].minionStatSet` | integer | no | At least 1; 1 when absent. The minion skill's stat set; only with `minionSkill`. The compile refuses one beyond the skill's stat sets. Schema version 4 | D-377 |
+| `stages[].skills.groups[].weaponSet` | `1` or `2` | no | The weapon set the group is on: the compiler sockets it in that set's slot (`Weapon 1`, `Weapon 1 Swap`), so PoB enables it only while that set is active (see a skill on a weapon set above). Absent, it is active on both sets. A group on set 2 makes the stage one that uses set 2; V1 reports a group on a set whose weapon slots are empty (`empty-weapon-set`). Schema version 6 | D-426 |
 | `stages[].skills.main` | object | yes | The main skill selection | C-31, C-44 |
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |

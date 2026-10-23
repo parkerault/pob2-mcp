@@ -43,6 +43,12 @@
  * write a need without `claim`, and D1-finish sets it; a need with no `claim`, or one naming no claim of the stage, is a
  * V1 finding (`missing-reason`), not a schema error. Only `claim` is left out of `buildSha1` (`buildHash.ts`, D-266).
  *
+ * **A skill on a weapon set** (D-426, amendment 9 §24.2; WU-102, the user's HG-12 grant). A socket group's `weaponSet`
+ * (`1` or `2`, optional) puts it on one weapon set: the compiler sockets it in PoB's slot for that set, so PoB enables
+ * it only while that set is active. Absent, the group is active on both sets, as before. It is a version-6 addition,
+ * added to version 6 itself (no new version: it is optional and changes nothing when absent), so a plan of version 1
+ * to 5 that names it errs at the key. V1 reports a group on a set whose weapon slots are empty (`empty-weapon-set`).
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -226,6 +232,13 @@ const skillsSchema = z
             .number()
             .int({ message: 'minionStatSet is a whole number' })
             .min(1, { message: 'minionStatSet is at least 1' })
+            .optional(),
+          // D-426 (§24.2): the weapon set the group is on; absent, it is active on both sets.
+          weaponSet: z
+            .number()
+            .int({ message: 'weaponSet is 1 or 2' })
+            .min(1, { message: 'weaponSet is 1 or 2' })
+            .max(2, { message: 'weaponSet is 1 or 2' })
             .optional(),
         })
         .strict()
@@ -483,7 +496,7 @@ interface VersionAddition {
 /** One path per socket group, in any stage, that sets `key`. */
 const groupKeyUses = (
   plan: z.infer<typeof planObject>,
-  key: 'count' | 'countReason' | 'minionSkill' | 'minionStatSet',
+  key: 'count' | 'countReason' | 'minionSkill' | 'minionStatSet' | 'weaponSet',
 ): (string | number)[][] =>
   plan.stages.flatMap((s, i) =>
     s.skills.groups.flatMap((g, k) => (g[key] !== undefined ? [['stages', i, 'skills', 'groups', k, key]] : [])),
@@ -545,6 +558,12 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     what: "a tree's needs (D-418)",
     before: 'no tree needs',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.needs !== undefined ? [['stages', i, 'tree', 'needs']] : [])),
+  },
+  {
+    since: 6,
+    what: "a group's weapon set (D-426)",
+    before: 'every group active on both weapon sets',
+    uses: (plan) => groupKeyUses(plan, 'weaponSet'),
   },
 ];
 

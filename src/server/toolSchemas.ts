@@ -570,7 +570,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "list_gems",
-      description: "List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). Use this for accurate PoE2 gem info instead of guessing — PoE2's uncut skill gems and support gems differ entirely from PoE1.",
+      description: "List skill/support gems from Path of Building's authoritative PoE2 gem database (names, tags, gem family, requirements, max level). Use this for accurate PoE2 gem info instead of guessing — PoE2's uncut skill gems and support gems differ entirely from PoE1. skill_type lists the gems whose skill has one of PoB's skill types, such as 'Travel' (the skills that move you, as Leap Slam does) or 'Warcry'; a gem tag is not a skill type.",
       inputSchema: {
         type: "object",
         properties: {
@@ -586,6 +586,10 @@ export function getLuaToolSchemas(): any[] {
           tag: {
             type: "string",
             description: "Filter by a tag, matched against the gem's tag string or tag set (e.g. 'cold', 'attack', 'minion', 'aoe').",
+          },
+          skill_type: {
+            type: "string",
+            description: "Keep the gems whose granted skill has this PoB skill type, by name, case ignored (e.g. 'Travel', 'Warcry', 'Slam'); an unknown name fails and lists PoB's skill types. Gem tags such as 'warcry' or 'travel' are matched by `tag`, not here.",
           },
           max_results: {
             type: "number",
@@ -1074,7 +1078,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "compile_plan",
-      description: "Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, and stages with identical gear, gems or configuration share one item, skill or config set. Each stage is measured at its own level, and the build is saved in auto-level mode at the highest stage's level, with that stage's loadout active. The plan is checked first: schema errors are listed by JSON path, and unknown gems, item bases, passive nodes and config options, disconnected passives (a node tagged weapon set n connects only through untagged nodes and nodes tagged n), misplaced weapon-set tags and attribute choices are listed per stage; then nothing is compiled. The call replaces the engine's loaded build, unsaved changes included. Two modes: measure_only: true writes compile-record.json and compiled-build.xml beside the plan and nothing to the builds folder (stages may name a subset to compile); build_name (the final compile, always the whole plan) also saves the build into the builds folder, overwriting an existing file only when an earlier final compile of the same run folder wrote it and nobody changed it since. compile-record.json holds each stage's PoB numbers (every main output, and the offense fields per active skill and stat set, keyed g<group>s<skill>p<statSet>), the plan's ledger formulas evaluated on them, the sets and loadouts made, and the build's import code. Returns a line per stage, the ledger values and the paths written.",
+      description: "Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, its skill groups each on weapon set 1, 2 or both (a group's weaponSet), and stages with identical gear, gems or configuration share one item, skill or config set. Each stage is measured at its own level, and the build is saved in auto-level mode at the highest stage's level, with that stage's loadout active. The plan is checked first: schema errors are listed by JSON path, and unknown gems, item bases, passive nodes and config options, disconnected passives (a node tagged weapon set n connects only through untagged nodes and nodes tagged n), misplaced weapon-set tags and attribute choices are listed per stage; then nothing is compiled. The call replaces the engine's loaded build, unsaved changes included. Two modes: measure_only: true writes compile-record.json and compiled-build.xml beside the plan and nothing to the builds folder (stages may name a subset to compile); build_name (the final compile, always the whole plan) also saves the build into the builds folder, overwriting an existing file only when an earlier final compile of the same run folder wrote it and nobody changed it since. compile-record.json holds each stage's PoB numbers (every main output, and the offense fields per active skill and stat set, keyed g<group>s<skill>p<statSet>), the plan's ledger formulas evaluated on them, the sets and loadouts made, and the build's import code. Returns a line per stage, the ledger values and the paths written.",
       inputSchema: {
         type: "object",
         properties: {

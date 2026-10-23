@@ -244,7 +244,9 @@ function parseUnique(block: string): UniqueBlock {
 const hitLines = (text: string): string[] => text.split('\n').filter((l) => /^\[[a-z]+\] /.test(l));
 
 describe('AC-K6: lookup_game_data is a read tool with an ok sample per mode (static)', () => {
-  it('AC-K6: TOOL_META says read/core, and tool-calls.json has an expect:"ok" sample for gem, unique and mechanic', () => {
+  // M-22 (WU-102, the WU-100 verifier's note): the mode set gains C-37b's `base` and C-37c's `config`, and mechanic mode
+  // has an ok sample of C-37d's `kind: "constant"`.
+  it('AC-K6: TOOL_META says read/core, and tool-calls.json has an expect:"ok" sample for gem, unique, mechanic, base and config, and for mechanic kind constant', () => {
     expect(TOOL_META.lookup_game_data).toEqual({ engine: 'read', group: 'core' });
     const samples = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'tool-calls.json'), 'utf8')) as Array<{
       tool: string;
@@ -252,13 +254,13 @@ describe('AC-K6: lookup_game_data is a read tool with an ok sample per mode (sta
       expect: string;
       stateChange?: boolean;
     }>;
-    const modes = samples
-      .filter((s) => s.tool === 'lookup_game_data' && s.expect === 'ok')
-      .map((s) => {
-        expect(s.stateChange).toBeUndefined();
-        return s.args.mode;
-      });
-    expect([...new Set(modes)].sort()).toEqual(['gem', 'mechanic', 'unique']);
+    const ok = samples.filter((s) => s.tool === 'lookup_game_data' && s.expect === 'ok');
+    const modes = ok.map((s) => {
+      expect(s.stateChange).toBeUndefined();
+      return s.args.mode;
+    });
+    expect([...new Set(modes)].sort()).toEqual(['base', 'config', 'gem', 'mechanic', 'unique']);
+    expect(ok.some((s) => s.args.mode === 'mechanic' && s.args.kind === 'constant')).toBe(true);
   });
 });
 

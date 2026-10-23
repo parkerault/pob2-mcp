@@ -1471,6 +1471,15 @@ export const stageCompanionSchema = z
   .passthrough();
 export type StageCompanion = z.infer<typeof stageCompanionSchema>;
 
+/**
+ * D-427 (§24.2): an enabled group's active skill whose granted effect has PoB's Travel skill type: the group (the
+ * reply's number, the plan's first), the active skill's index in it and its name, for the clear measure's `travel`.
+ */
+export const stageTravelSkillSchema = z
+  .object({ group: z.number().int(), activeSkill: z.number().int(), skill: z.string() })
+  .passthrough();
+export type StageTravelSkill = z.infer<typeof stageTravelSkillSchema>;
+
 export const compileStageReply = baseReply.extend({
   result: z
     .object({
@@ -1490,6 +1499,10 @@ export const compileStageReply = baseReply.extend({
       /** D-426: on a stage that uses weapon set 2, the same map measured with set 2 active; absent otherwise. */
       outputsSet2: luaMap(z.number()).optional(),
       skillOutputs: luaMap(stageSkillOutputSchema),
+      /** WU-102 (§24.2): on a stage that uses weapon set 2, every group's breakdown with set 2 active; absent otherwise. */
+      skillOutputsSet2: luaMap(stageSkillOutputSchema).optional(),
+      /** D-427: each enabled group's active skill with PoB's Travel skill type. */
+      travelSkills: luaArray(stageTravelSkillSchema),
       skippedToggles: luaArray(z.string()),
       items: luaMap(slotItemSchema),
       addedItems: luaMap(slotItemSchema),
@@ -1746,6 +1759,8 @@ export interface CompileStageParams {
     minionSkill?: string;
     /** D-377: that minion skill's stat set (default 1). */
     minionStatSet?: number;
+    /** D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets. */
+    weaponSet?: number;
   }>;
   main: { group: number; activeSkill: number; statSet?: number };
   configSet: StageSetRef;
@@ -1973,7 +1988,8 @@ export interface ActionParamsMap {
   remove_gem: { groupIndex: number; gemIndex: number };
   /** C-43: `keyword` is optional when `ascendancy` (a name) is given; `nodeType` 'any' filters nothing. */
   search_nodes: { keyword?: string; ascendancy?: string; nodeType?: string; maxResults?: number; includeAllocated?: boolean };
-  list_gems: { type?: 'active' | 'support'; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean };
+  /** C-56 (D-427): `skillType`, a PoB skill type by name (case ignored), keeps the gems whose granted effect has it. */
+  list_gems: { type?: 'active' | 'support'; search?: string; tag?: string; skillType?: string; maxResults?: number; dedupeByName?: boolean };
   get_classes: NoParams;
   list_support_candidates: { groupIndex: number; measure?: boolean };
   set_socket_group_enabled: { groupIndex: number; enabled: boolean };

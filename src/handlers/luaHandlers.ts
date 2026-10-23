@@ -800,7 +800,7 @@ export async function handleSearchTreeNodes(
 
 export async function handleListGems(
   context: LuaHandlerContext,
-  opts: { type?: "active" | "support"; search?: string; tag?: string; maxResults?: number; dedupeByName?: boolean } = {}
+  opts: { type?: "active" | "support"; search?: string; tag?: string; skillType?: string; maxResults?: number; dedupeByName?: boolean } = {}
 ) {
   return wrapHandler('list gems', async () => {
     await context.ensureLuaClient();
@@ -810,10 +810,12 @@ export async function handleListGems(
     }
 
     const effectiveMax = Math.min(opts.maxResults || 60, 200);
+    // C-56 (D-427): a PoB skill type by name; the engine fails an unknown one with the list of names.
     const result = await luaClient.listGems({
       type: opts.type,
       search: opts.search,
       tag: opts.tag,
+      ...(opts.skillType !== undefined ? { skillType: opts.skillType } : {}),
       maxResults: effectiveMax,
       dedupeByName: opts.dedupeByName,
     });
@@ -823,6 +825,7 @@ export async function handleListGems(
     if (opts.type) filters.push(`type=${opts.type}`);
     if (opts.search) filters.push(`search="${opts.search}"`);
     if (opts.tag) filters.push(`tag=${opts.tag}`);
+    if (opts.skillType !== undefined) filters.push(`skill_type=${opts.skillType}`);
     lines.push(filters.length ? `Filters: ${filters.join(', ')}` : 'Filters: none');
 
     if (!result.gems || result.gems.length === 0) {

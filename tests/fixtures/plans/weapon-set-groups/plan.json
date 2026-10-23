@@ -1,0 +1,650 @@
+{
+  "schemaVersion": 6,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Boneshatter"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "ledger": [],
+  "prices": [],
+  "stages": [
+    {
+      "id": "ws",
+      "loadoutName": "Groups on both weapon sets (L80) {ws}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Two weapons",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          },
+          {
+            "label": "Leap Slam",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Leap Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "both",
+      "loadoutName": "No group on a set (L80) {both}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Two weapons",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Leap Slam",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Leap Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "g2",
+      "loadoutName": "A group on an empty set 2 (L80) {g2}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "One weapon",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          },
+          {
+            "label": "Leap Slam",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Leap Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "none",
+      "loadoutName": "No set 2 (L80) {none}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "One weapon",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "p2",
+      "loadoutName": "Set-2 passives (L80) {p2}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839,
+          5710,
+          6015,
+          22928,
+          27373
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [
+            5710,
+            6015
+          ],
+          "set2": [
+            22928,
+            27373
+          ]
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 6015,
+            "attribute": "strength"
+          },
+          {
+            "node": 22928,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 27373,
+            "attribute": "intelligence"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "One weapon",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Leap Slam",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Leap Slam",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ]
+}

@@ -24,6 +24,7 @@
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
+ * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -725,6 +726,38 @@ export function checkNotGranted(
   }
 }
 
+/** D-426 (§24.2): each weapon set's weapon slots, main hand first: set 1's, then set 2's (PoB's Swap slots). */
+export const WEAPON_SET_SLOTS: Readonly<Record<1 | 2, readonly string[]>> = {
+  1: ['Weapon 1', 'Weapon 2'],
+  2: ['Weapon 1 Swap', 'Weapon 2 Swap'],
+};
+
+/**
+ * `empty-weapon-set` (WU-102; D-426, §24.2). A group with `weaponSet` is socketed in that set's slot, and PoB enables
+ * it only while that set is active; a set whose weapon slots are both empty holds no weapon to use it with (a set-2
+ * group on a stage that equips nothing in a Swap slot). The stage's planned items decide: `items.slots`, whose items
+ * the compile requires PoB to hold (`compareItems`). One finding per group, enabled or not; `data.path` is the key's
+ * path in the stage.
+ */
+export function checkWeaponSetGroups(stage: Pick<Stage, 'items' | 'skills'>, findings: Finding[]): void {
+  const filled = new Set(stage.items.slots.map((s) => s.slot as string));
+  stage.skills.groups.forEach((group, k) => {
+    const set = group.weaponSet;
+    if (set !== 1 && set !== 2) return;
+    const slots = WEAPON_SET_SLOTS[set];
+    if (slots.some((slot) => filled.has(slot))) return;
+    const name = group.label ?? group.gems[0]?.name ?? `group ${k + 1}`;
+    findings.push({
+      code: 'empty-weapon-set',
+      message:
+        `skill group ${k + 1} (${name}) is on weapon set ${set} (weaponSet ${set}), whose weapon slots (${slots.join(', ')}) ` +
+        `are empty: PoB enables the group only while set ${set} is active, and the stage equips no weapon there (D-426). ` +
+        `Equip set ${set}'s weapon, or move the group to the other set or to both (no weaponSet)`,
+      data: { group: k + 1, weaponSet: set, slots: [...slots], path: `skills.groups[${k}].weaponSet` },
+    });
+  });
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -744,5 +777,6 @@ export function checkV1(input: V1Input): V1Result {
   checkTreeShape(input.trees, findings);
   checkSupportSockets(stage, checks, facts, findings);
   checkNotGranted(stage, checks, findings);
+  checkWeaponSetGroups(stage, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

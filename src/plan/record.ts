@@ -55,6 +55,12 @@
  * effect's `levelRequirement` at its level (`Classes/SkillsTab.lua:1308`), for every gem of the plan's groups; an
  * item's is PoB's `requirements.level` (`Classes/Item.lua:1287-1288`: the item text's, else its base's, raised to
  * its runes'), for every item in the item slots.
+ *
+ * **A skill on a weapon set and the travel skill** (WU-102; D-426, D-427, §24.2; the user's HG-12 grant), additive. A
+ * stage that uses weapon set 2 (`outputsSet2`'s stages, which now include a stage with a group on set 2) gets
+ * `skillOutputsSet2`, every group's figures with set 2 active, keyed as `skillOutputs`. Every measured stage's clear
+ * measure gets `travel` (`travelOf`): the first enabled group other than the clear group whose active skill has PoB's
+ * Travel skill type, with its uses per second, or null.
  */
 import type { StageChecks } from '../engine/schemas.js';
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
@@ -366,6 +372,50 @@ export interface ClearSpeedMeasure {
   usesPerSecond: number | null;
   /** One step slower: a use takes over 1 second (`Speed` below 1, an estimate). */
   longUse: boolean;
+  /**
+   * D-427 (§24.2): the stage's travel skill, beside the movement speed: the first enabled group, other than the clear
+   * group, whose active skill has PoB's Travel skill type (`travelOf`); null when the stage has none. The band stays
+   * radius-based: PoB gives no distance per use, so no pace is computed. Absent from records written before M-22.
+   */
+  travel?: TravelMeasure | null;
+}
+
+/** D-427: a stage's travel skill: its group (the plan's number), its name and its uses per second (`Speed`). */
+export interface TravelMeasure {
+  group: number;
+  skill: string;
+  /** PoB's `Speed` for the skill, measured with its group's weapon set active; null when PoB gives none. */
+  usesPerSecond: number | null;
+}
+
+/** D-427: an active skill with PoB's Travel skill type, as `compile_stage` reports it (`travelSkills`). */
+export interface TravelSkill {
+  group: number;
+  activeSkill: number;
+  skill: string;
+}
+
+/**
+ * D-427 (§24.2): the clear measure's `travel`: of the stage's travel skills (`compile_stage`'s `travelSkills`, each an
+ * enabled group's active skill with PoB's Travel type), the first by group number, then active skill, whose group isn't
+ * the clear group (`clearGroupOf`). Its uses per second are PoB's `Speed` at its first stat set, from the figures of
+ * its group's weapon set: `skillOutputsSet2` for a group on set 2 (WU-102) when the record has it, else
+ * `skillOutputs`. Null when no such skill is there.
+ */
+export function travelOf(
+  stage: Pick<Stage, 'skills'>,
+  rec: Pick<StageRecord, 'skillOutputs' | 'skillOutputsSet2' | 'minionSkills'>,
+  travelSkills: readonly TravelSkill[],
+): TravelMeasure | null {
+  const clear = clearGroupOf(stage, rec)?.group ?? null;
+  const pick = [...travelSkills]
+    .sort((a, b) => a.group - b.group || a.activeSkill - b.activeSkill)
+    .find((t) => t.group !== clear);
+  if (pick === undefined) return null;
+  const onSetTwo = stage.skills.groups[pick.group - 1]?.weaponSet === 2 && rec.skillOutputsSet2 !== undefined;
+  const figures = onSetTwo ? rec.skillOutputsSet2! : rec.skillOutputs;
+  const speed = figures[selectionKey({ group: pick.group, activeSkill: pick.activeSkill, statSet: 1 })]?.fields.Speed;
+  return { group: pick.group, skill: pick.skill, usesPerSecond: typeof speed === 'number' && Number.isFinite(speed) ? speed : null };
 }
 
 /** The band of a radius (D-353): below 2 m slow, from 2 m below 4 m medium, 4 m or more fast. */
@@ -566,13 +616,15 @@ export function measuredStage(stage: Pick<Stage, 'progress' | 'variant'>): boole
 
 /**
  * An endgame stage's measures from its record (D-353, D-407): the pace measures on every one; `dps`, `ehp` and, on
- * `b` and `n`, `arbiter`, on a variant stage.
+ * `b` and `n`, `arbiter`, on a variant stage. D-427 (WU-102): given the stage's travel skills (`compile_stage`'s
+ * `travelSkills`), the clear measure carries `travel` (`travelOf`), the travel skill or null.
  */
 export function stageMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
-  rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
+  rec: Pick<StageRecord, 'outputs' | 'skillOutputs' | 'skillOutputsSet2' | 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>,
   arbiterHits: readonly ArbiterHit[],
   gemTexts: Readonly<Record<string, string>>,
+  travelSkills?: readonly TravelSkill[],
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
   const move = rec.outputs[MOVEMENT_SPEED_FIELD];
@@ -581,14 +633,18 @@ export function stageMeasures(
   // D-378, D-397: a clear skill whose figures are its minion's (a group that names a minion skill, or a plain summon)
   // is measured by its minion's area and use rate, by the damage figure's own test.
   const minion = entry !== null && minionFigures(rec, entry.group, entry.key);
-  const clearSpeed = clearSpeedOf({
-    radiusMetres: entry?.fields[minion ? 'MinionAreaOfEffectRadiusMetres' : 'AreaOfEffectRadiusMetres'],
-    usesPerSecond: entry?.fields[minion ? 'MinionSpeed' : 'Speed'],
-    texts: clearGemNames(stage).flatMap((name) => (gemTexts[name] !== undefined ? [gemTexts[name]] : [])),
-    group: entry?.group ?? null,
-    key: entry?.key ?? null,
-    skill: entry?.skill ?? null,
-  });
+  const clearSpeed: ClearSpeedMeasure = {
+    ...clearSpeedOf({
+      radiusMetres: entry?.fields[minion ? 'MinionAreaOfEffectRadiusMetres' : 'AreaOfEffectRadiusMetres'],
+      usesPerSecond: entry?.fields[minion ? 'MinionSpeed' : 'Speed'],
+      texts: clearGemNames(stage).flatMap((name) => (gemTexts[name] !== undefined ? [gemTexts[name]] : [])),
+      group: entry?.group ?? null,
+      key: entry?.key ?? null,
+      skill: entry?.skill ?? null,
+    }),
+    // D-427: the travel skill beside the movement speed (the HG-12 grant for the record's `travel`).
+    ...(travelSkills !== undefined ? { travel: travelOf(stage, rec, travelSkills) } : {}),
+  };
   // D-407: a card skeleton (no variant) has the pace measures only (the HG-12 grant covers these two fields).
   if (stage.variant === undefined) return { clearSpeed, movementSpeed };
   return {
@@ -714,6 +770,13 @@ export interface StageRecord {
   /** D-293, D-321: the main skill's figures with the main group's Count applied (`countedFigures`). */
   countedOutputs: CountedFigures & { group: number };
   skillOutputs: Record<string, { skill: string; statSetLabel: string; fields: Record<string, number> }>;
+  /**
+   * WU-102 (D-426, §24.2): on a stage that uses weapon set 2 (as for `outputsSet2`, or a group with `weaponSet: 2`), every
+   * group's figures measured with set 2 active, keyed as `skillOutputs` is, so a group on either set has a figure of
+   * its own: a group on set 1 reads `skillOutputs`, one on set 2 `skillOutputsSet2`. It is `skillOutputs` itself on a
+   * stage measured with set 2 active, and absent where `outputsSet2` is. Raw figures: no Count is applied to it.
+   */
+  skillOutputsSet2?: Record<string, { skill: string; statSetLabel: string; fields: Record<string, number> }>;
   /** D-293, D-321: each `skillOutputs` entry, under the same key, with its group's Count applied. */
   countedSkillOutputs: Record<string, CountedFigures & { skill: string; statSetLabel: string }>;
   /** Every option the stage lists, earned and scenario, as written into its config set (C-32). */

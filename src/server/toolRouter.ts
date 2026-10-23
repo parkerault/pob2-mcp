@@ -522,6 +522,7 @@ async function dispatch(
         type: args?.type as ("active" | "support" | undefined),
         search: args?.search as string | undefined,
         tag: args?.tag as string | undefined,
+        skillType: (args?.skill_type ?? args?.skillType) as string | undefined,
         maxResults: (args?.max_results ?? args?.maxResults) as number | undefined,
         dedupeByName: (args?.dedupe_by_name ?? args?.dedupeByName) as boolean | undefined,
       });

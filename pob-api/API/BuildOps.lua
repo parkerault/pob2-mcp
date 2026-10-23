@@ -2474,8 +2474,25 @@ function M.search_nodes(params)
 end
 
 
+-- C-56 (D-427): a PoB skill type by name (the SkillType table, Data/Global.lua), ignoring case: its name and value,
+-- or nil and an error listing every name. A gem tag (`warcry`, `travel`) is no skill type.
+local function resolve_skill_type(name)
+  local wanted = tostring(name):lower()
+  local names = {}
+  for typeName, value in pairs(type(SkillType) == 'table' and SkillType or {}) do
+    if type(typeName) == 'string' then
+      if typeName:lower() == wanted then return typeName, value end
+      names[#names + 1] = typeName
+    end
+  end
+  table.sort(names)
+  return nil, ('unknown skill type "%s"; PoB\'s skill types are: %s'):format(tostring(name), table.concat(names, ', '))
+end
+
 -- List gems from PoB2's authoritative gem database.
--- params: { type?: 'active'|'support', search?: string, tag?: string, maxResults?: number, dedupeByName?: boolean }
+-- params: { type?: 'active'|'support', search?: string, tag?: string, skillType?: string, maxResults?: number,
+--           dedupeByName?: boolean }
+-- C-56 (D-427): `skillType` keeps the gems whose granted effect has that PoB skill type (its `skillTypes`).
 function M.list_gems(params)
   if type(params) ~= 'table' then params = {} end
   local data = (build and build.data) or _G.data
@@ -2486,6 +2503,12 @@ function M.list_gems(params)
   local tag = params.tag and tostring(params.tag):lower() or nil
   local maxResults = tonumber(params.maxResults) or 400
   local dedupe = params.dedupeByName == true
+  local skillType
+  if params.skillType ~= nil then
+    local name, value = resolve_skill_type(params.skillType)
+    if not name then return nil, value end
+    skillType = value
+  end
 
   local out = {}
   local seenNames = {}
@@ -2496,6 +2519,10 @@ function M.list_gems(params)
       local include = true
       if typeFilter and kind ~= typeFilter then include = false end
       if include and search and not g.name:lower():find(search, 1, true) then include = false end
+      if include and skillType ~= nil then
+        local ge = g.grantedEffect
+        if not (type(ge) == 'table' and type(ge.skillTypes) == 'table' and ge.skillTypes[skillType]) then include = false end
+      end
       if include and tag then
         local hasTag = false
         if g.tagString and g.tagString:lower():find(tag, 1, true) then hasTag = true end

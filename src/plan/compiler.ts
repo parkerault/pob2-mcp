@@ -58,6 +58,11 @@
  * every stage's record gives `requirements`, the highest level requirement among its items and gems and what sets it
  * (D-413, `stageRequirements`). A plan's `tree.needs` (schema 6, D-418) compiles as written: the compile reads no need.
  *
+ * WU-102 (D-426, D-427, §24.2): a group's `weaponSet` goes to `compile_stage`, which sockets the group in that set's
+ * slot, so PoB enables it only while that set is active, and a group on set 2 makes its stage one that uses set 2; such
+ * a stage's record gains `skillOutputsSet2` beside `skillOutputs`. Every measured stage's clear measure gains `travel`,
+ * from `compile_stage`'s `travelSkills` (`travelOf`). V1 reports a group on a set whose weapon slots are empty.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -852,6 +857,8 @@ export function stageParams(
         ...(named ? { groupCount: g.count ?? 1 } : {}),
         gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
         ...minionFields(g),
+        // D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets.
+        ...(g.weaponSet !== undefined ? { weaponSet: g.weaponSet } : {}),
       };
     }),
     main: stage.skills.main,
@@ -1119,6 +1126,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       ...(reply.outputsSet2 !== undefined ? { outputsSet2: reply.outputsSet2 } : {}),
       countedOutputs: counted.countedOutputs,
       skillOutputs: reply.skillOutputs,
+      // WU-102 (§24.2): every group's figures with weapon set 2 active, on a stage that uses it.
+      ...(reply.skillOutputsSet2 !== undefined ? { skillOutputsSet2: reply.skillOutputsSet2 } : {}),
       countedSkillOutputs: counted.countedSkillOutputs,
       configWritten: stageConfig(stage),
       customModsWritten,
@@ -1144,7 +1153,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       requirements: stageRequirements(reply.checks),
     };
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
-    if (measuredStage(stage)) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts);
+    // D-427: the clear measure's travel skill, from the stage's skills with PoB's Travel type.
+    if (measuredStage(stage)) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts, reply.travelSkills);
     const anoint = anoints.get(stage.id);
     if (anoint !== undefined) {
       stages[stage.id].anoint = { notable: anoint.notable, node: anoint.node, recipe: [...anoint.recipe], emotions: [...anoint.emotions] };

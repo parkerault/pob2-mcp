@@ -5412,3 +5412,16 @@ the `m17` engine at `b76967b`.
   isn't tested alone (both passed to WU-102, which owns the display and the third way).
 - **Wave 2 started before WU-101 merged** (the coordinator's call, to save an hour): WU-102 and WU-103 doers on
   `58cc40f` while WU-101's verifier ran; it passed, so no rebase is needed.
+- **The pin upgrade procedure** (`CLAUDE.md`, step 5, `b313d0b`, the user's request): re-check the skills-tab refresh
+  in `BuildOps.get_main_output` and the two skill-slot tests' line numbers in `Modules/Build.lua`.
+- **WU-103 done and merged** (doer about 315K tokens, verifier about 193K): PASS, no blocking defect. Gate rc 0 (169
+  suites, 2,910 tests), build rc 0, on the doer's and the verifier's runs. Rebased onto `b313d0b` and fast-forwarded:
+  `427689b` (V1's `skill-slots`), `37f18f3` (the library at 12,315 words of 13,000, PG-72 closed, PG-73 Mighty
+  Silverfist's extra rare modifier, a stat the pin holds only as text). Outside its files, accepted by the user:
+  `get_main_output` refreshes PoB's count of skill groups before each calculation, since the skills tab refreshes it
+  only at load and as it draws; the verifier found only PoB's warnings read it (`CalcPerform.lua:3603-3616`), and
+  28,117 recorded numbers on three fixtures match before and after, with no time cost. It also switches on PoB's
+  one-copy-per-lineage-support warning headless (faithful; a `pob-warning`). Notes: the kits section has about 120
+  words left under its 3,500-word test (amendment 10's additions may hit it); neither conversion entry points to the
+  damage-order rule (a pointer added at integration); `[spud] §9` resolves once main's study commits arrive at the
+  sign-rebase.

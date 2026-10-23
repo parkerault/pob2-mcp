@@ -825,6 +825,12 @@ read-only survey of the server the same day.
   >   Herald's) turns each kill into a hit sized by the monster's life, so a pack chain-explodes once the first
   >   monsters die: one of the strongest and most fun additions to map clear (the user, 2026-10-23). PoB sizes it per
   >   corpse, and its Full DPS counts it once a second ([spud] §9).
+- **A skill on a weapon set (the user, 2026-10-23: "Add the field in M-22", with HG-12 granted for it).** PoB ties a
+  skill group to a weapon set only through the slot it is socketed in (`Modules/CalcSetup.lua:1728-1729`), and a
+  plan's group names no slot, so every gem skill was active on both sets and a build like the reference one (Hammer
+  of the Gods on set 1, the warcries on set 2, `../studies/2026-10-23-spud-warcryer-comparison.md` §9) couldn't be
+  expressed. D-426's "measure every set a card's skills use" needs it. Amendment 10's review found it (NB1). The plan
+  gains `skills.groups[].weaponSet` and the record per-group figures on set 2 (24.2), built by WU-102.
 - **The library's cap (the user, 2026-10-23: "Raise the cap"):** 13,000 words, from D-410's 12,000, for M-22's
   additions and amendment 10's questions. Amends D-410 and the two tests that pin the cap
   (`tests/static/patternLibraryEngine.test.ts`, `tests/static/buildGuidePipeline.test.ts`'s `LIBRARY_WORD_CAP`).
@@ -871,6 +877,12 @@ read-only survey of the server the same day.
   main one, for each pool with nodes, removes that pool's weakest branch and adds nodes tagged to the same pool,
   legal by V1's `weapon-set-points` (each pool within its points) and PoB's pathing; a swap never moves a node between
   pools or between a pool and the main tree. Its reply names the pool.
+- **The plan's `skills.groups[].weaponSet`** (C-41, plan schema; HG-12 granted by the user on 2026-10-23): `1` or `2`,
+  optional; absent, the group is active on both sets, as today. The compiler gives the group PoB's slot for that set,
+  so PoB enables it only while that set is active; a group on set 2 makes its stage one that uses set 2. V1 reports a
+  group on a set whose weapon slots are empty. `plan-reference.md` documents it.
+- **The record's `skillOutputsSet2`** (C-41): on a stage that uses set 2, each group's figures measured with set 2
+  active, keyed as `skillOutputs` is, so a skill on either set has a figure of its own.
 - **The compile record (C-41)** gains, on a stage that uses set 2, `outputsSet2`, the key figures with set 2 active
   (Spirit and its reservation among them), and V1's Spirit check reads both sets; and on every stage, the clear
   measure's `travel: {group, skill, usesPerSecond} | null`, the stage's first group whose active skill has the Travel
@@ -882,7 +894,7 @@ read-only survey of the server the same day.
 |---|---|
 | WU-100 | C-43a, C-37a to C-37d: `pob-api/API/Lookup.lua`, `pob-api/API/BuildOps.lua` (config labels), `src/handlers/lookupHandlers.ts`, `src/handlers/luaHandlers.ts` (`search_tree_nodes`), `src/services/treeService.ts`, `src/types.ts`, `src/engine/schemas.ts` (their replies), the two tools' entries in `toolSchemas.ts`, the README table; `R1a.md` and `RV.md` (the new lookups; the Grep rule: PoB's `Modules/` for how the engine computes, cited by file and line, data questions through the tools); `references/lookups.md`; the researcher's definition |
 | WU-101 | C-55a and set 2's measure: `pob-api/API/NodePower.lua`, `pob-api/API/Compile.lua` (set 2), `src/handlers/treeHandlers.ts` (`get_node_power`), its `toolSchemas.ts` entry, `src/plan/record.ts`, `src/plan/compiler.ts`, `src/plan/checks/v1.ts` (Spirit per set), `docs/build-guide/plan-reference.md`; the card template's weapon-set line, `R1a.md` and `RV.md` (the check), `D1-build.md` (measure each set; a set-2 buff carried to set 1 as a custom modifier with its reason), `D1-tree.md` and `D1-gate.md` (pool moves), `W1.md` and both guide templates (the swap's Life cost), `docs/build-guide/pob-gaps.md` (PG-71) |
-| WU-102 | C-56 and the travel measure: `BuildOps.lua` (`list_gems`), `luaHandlers.ts` (`list_gems`), its `toolSchemas.ts` entry, `record.ts` and `compiler.ts` (the clear measure's `travel`), `Compile.lua` (its figures), `scripts/run-log.mjs` (the design display's travel line); `R1a.md` (the travel search through `skill_type`) |
+| WU-102 | C-56, the travel measure and a skill on a weapon set: `BuildOps.lua` (`list_gems`), `luaHandlers.ts` (`list_gems`), its `toolSchemas.ts` entry, `src/plan/schema.ts` (`weaponSet`), `record.ts` and `compiler.ts` (the clear measure's `travel`, `skillOutputsSet2`), `Compile.lua` (its figures, the group's slot), `src/plan/checks/v1.ts` (a group on an empty set), `plan-reference.md`, `compile_plan`'s description if it names the plan's fields, `scripts/run-log.mjs` (the design display's travel line); `R1a.md` (the travel search through `skill_type`) |
 | WU-103 | `references/patterns.md`: the user's three weapon-set shapes (work-log 2026-10-19, "weapon sets, under-used by the researchers", cited to the user), "Travel by action"'s mechanism (cited to the user), a warcry Standard kit, the damage-order rule, the ailment-conversion entry and the corpse-explosion line (24.1, as worded there), all within the new 13,000-word cap, which it sets (the library's own text and the two tests that pin the cap); `pob-gaps.md`: PG-72 closed (24.1) and PG-73, a unique tame's tablet modifier with no line in the pin; `v1.ts`'s `skill-slots` code |
 
 **Waves.** Wave 1: WU-100 and WU-101 in parallel; the coordinator merges WU-100 first and WU-101 rebases (both touch
@@ -912,7 +924,10 @@ read-only survey of the server the same day.
   buff); `R1a.md` and `RV.md` check it; `D1-build.md` measures each set and carries a set-2 buff as a custom modifier
   with its reason; `D1-tree.md` and `D1-gate.md` allow pool moves; `W1.md` and the templates say a swap's Life cost;
   PG-71 in `pob-gaps.md`.
-- **AC-W81 (WU-102).** `list_gems` with `skill_type: "Travel"` returns the pin's Travel gems and an unknown type fails;
+- **AC-W81 (WU-102).** On fixture plans: a group with `weaponSet: 1` and one with `weaponSet: 2` compile with PoB's slots
+  for their sets; each is enabled only while its set is active; the stage records `skillOutputsSet2` with the set-2
+  group's figure and `skillOutputs` with the set-1 group's; a group with no `weaponSet` keeps today's figures; a group
+  on a set with no weapon fails V1. `list_gems` with `skill_type: "Travel"` returns the pin's Travel gems and an unknown type fails;
   a fixture stage with a travel skill records `travel` with its uses per second; the design display prints it; `R1a.md`
   searches travel skills by type.
 - **AC-W82 (WU-103).** Static and unit: `patterns.md` holds the weapon-set shapes and the travel mechanism (each cited

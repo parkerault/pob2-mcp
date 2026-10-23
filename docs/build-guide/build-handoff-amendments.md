@@ -17,8 +17,9 @@ them.
   part of this build. Read §17, §24, and the decisions your unit touches.
 - **Approved:** amendment 9 by the user on 2026-10-19; this build started by the user on 2026-10-23 ("Build M-22 now,
   in parallel").
-- **HG-12 is granted for §24.2's contract changes only** (C-43a, C-37a to C-37d, C-56, C-55a, and the record's
-  `outputsSet2` and `travel`). The listed tool count doesn't change: no tool is added. Any other tool-contract change
+- **HG-12 is granted for §24.2's contract changes only** (C-43a, C-37a to C-37d, C-56, C-55a, the record's
+  `outputsSet2`, `skillOutputsSet2` and `travel`, and the plan's `skills.groups[].weaponSet`, the last two added by
+  the user on 2026-10-23 for WU-102). The listed tool count doesn't change: no tool is added. Any other tool-contract change
   is still HG-12: stop and report.
 - **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m22`, branch `build-guide/m22`, off `main`. Lanes
   `bg-<nn>` on `bg/wu-<nn>`, off the integration head when the unit starts. Never touched: the main checkout,
@@ -40,6 +41,8 @@ them.
   - `get_node_power`'s pool move: its best-swap line names the pool, `Best swap (weapon set <1|2>): …`, in the main
     swap's form.
   - V1's code `skill-slots`, its message naming the Unset Ring ("Grants 1 additional Skill Slot").
+  - The plan's `skills.groups[].weaponSet`: `1`, `2` or absent (both sets); the record's `skillOutputsSet2`: keyed as
+    `skillOutputs`, present only on a stage that uses set 2.
 - **Weapon sets, the facts:** the work-log, 2026-10-19, "weapon sets, under-used by the researchers" (the user's note,
   the game's rules, PoB's support count across both sets), and "Gem Studded, checked in game by the user".
 - **No network** beyond GitHub and npm for a worktree's bootstrap.

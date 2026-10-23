@@ -89,6 +89,11 @@ a user decision, because the golden values move. The procedure (spike S-2,
    stats must equal the engine's.
 4. Update the recorded values where the new release legitimately changed them, and re-check the bridge's
    `construct()` helper and `pob-api/API/Trade.lua` against the new release.
+5. Re-check the skills-tab refresh in `BuildOps.get_main_output` (`pob-api/API/BuildOps.lua`): it calls
+   `skillsTab:UpdateGlobalGemCountAssignments()` so PoB's skill-slot warning fires headless (D-428). If the
+   new release renames that method, the guard skips it silently and the warning stops; the engine test
+   `tests/integration/skillSlots.test.ts` then fails. That test and `tests/unit/v1SkillSlots.test.ts` find PoB's
+   warning by its line number in `Modules/Build.lua`, so update those numbers when the release moves the line.
 
 ## Where things are
 

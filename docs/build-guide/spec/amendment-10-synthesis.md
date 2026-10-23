@@ -1,8 +1,9 @@
 # Amendment 10: one build from the whole brainstorm
 
-**Status: DRAFT, revision 1, 2026-10-23.** The user took the first draft's five choices on 2026-10-23 (§15, 1 to 5);
-an independent review found 5 blockers, 17 should-fix findings and 9 nits, all resolved here (§16); the user took
-the two new choices (§15, 6 and 7) as recommended the same day; the reviewer's re-check is next. It carries:
+**Status: DRAFT, revision 2, 2026-10-23.** The user took the first draft's five choices on 2026-10-23 (§15, 1 to 5).
+An independent review found 5 blockers, 17 should-fix findings and 9 nits (revision 1); the reviewer's re-check found
+24 resolved, 7 partly, and 2 new blockers, 2 should-fix findings and 8 nits, all resolved here (§16). The user took
+the new choices 6 to 8 as recommended the same day. It carries:
 - the user's direction after the live test (WU-99): the brainstorm's ideas are synthesized into builds, not dealt
   as independent cards of which all but one are dropped;
 - the user's two choices the same day: **composites drawing on all cards** (one composite per compatible structure,
@@ -12,8 +13,10 @@ the two new choices (§15, 6 and 7) as recommended the same day; the reviewer's 
   2026-10-23).
 
 It is written against spec v1.6, amendment 8 (built as M-20), and amendment 9: M-21 built and merged at `9efb779`;
-M-22 (§17 and §24) building on branch `build-guide/m22`, whose §24 as revised there (`77bd695`: the user's damage-order
-rule, the ailment-conversion entry, the library's cap at 13,000) is binding and reaches `main` with M-22's merge.
+M-22 (§17 and §24) building on branch `build-guide/m22`. Amendment 9 §24 as merged with M-22 is binding here: the
+user's damage-order rule, "Convert into the ailment's type", the corpse-explosion line, the library's cap at 13,000,
+and a skill on a weapon set (`skills.groups[].weaponSet`, `skillOutputsSet2`). On the branch these are commits
+`77bd695`, `aa3c3bf` and `98c828f`, which M-22's signed merge will remap like M-21's.
 Paths are from the repository root, except stage files (`R1a.md` and so on), which are under
 `.claude/skills/build-guide/references/stages/`. Decisions continue from D-429, work units from WU-104, criteria from
 AC-W83 and AC-P77; no contract or PoB gap is added; the milestone is M-23. Each decision ends with the rows and rules
@@ -52,10 +55,12 @@ From [study] (§1, §6, §9):
 - **It stopped there.** The reference build carries six damage layers to ours two (ignite, bleeding as fire through
   Blistering Bond, a second corpse explosion from Deidbell, Battershout's armour detonation), removes the limit our
   guide names as its main con (mana, by Blood Magic and life per kill), and has a boss setup on its own weapon set.
-- **Measured in our engine** (its PoB file, [study] §9): Avatar of Fire carries half its Full DPS and Xoph's Blood a
-  fifth; the corpse explosions out-damage the cry; the ailments are 11% of the fast cry's damage and half of Shield
-  Wall's, its big slow boss hit, where Blistering Bond alone is worth 21%. A piece's worth shows only on the skill it
-  pays on.
+- **Measured in our engine** (its PoB file without Mageblood, [study] §9): leaving out Avatar of Fire costs 48% of
+  PoB's Full DPS and Xoph's Blood 18%; one corpse's explosion does more than three seconds of the cry's damage, but
+  PoB's Full DPS counts each explosion once a second with its ignite against a boss, so about half of it is one
+  explosion's ignite; the ailments are 11% of the fast cry's damage and half of Shield Wall's, its big slow boss hit,
+  where Blistering Bond alone is worth 22%. A piece's worth shows only on the skill it pays on, and on-kill damage
+  needs its own figure.
 - **The deck held his pieces on separate cards.** Deidbell's explosion was "Triple Corpse Bellow", not dealt as a
   duplicate; Hammer of the Gods for bosses was "Seismic Hammerfall", dealt and not picked; Rage was on the Titan and
   Shaman cards; Battershout was on r1-b-3's own card, ruled out as a payoff thief.
@@ -82,7 +87,8 @@ checker against a stale server build, and the telemetry's background summaries (
   another group can be measured without changing PoB's Full DPS (D-337).
 - **Roles:** `single_target` already exists for a boss button, and the named-source check compares within a role.
 - **Weapon sets** (D-426, M-22): a second set is one way to schedule a conflict, as the reference build puts Hammer of
-  the Gods on set 2's own 24-point tree.
+  the Gods on set 1's own 24-point tree and the warcries on set 2's. M-22 adds `skills.groups[].weaponSet` and each
+  group's figures with set 2 active (`skillOutputsSet2`).
 
 ## 4. D-429: composites, drawing on all cards
 
@@ -91,10 +97,11 @@ coordinator step changes from dealing cards to composing builds: `R1a-synthesize
 `R1a-assemble.md` for new runs (Appendix A has its interface).
 
 - **Structures.** The round's cards, every earlier round's cards and the gate-made cards are grouped by structure,
-  `{className, ascendancy, named damage source}`. **When the brief fixes that identity** (a fixed roll, or a brief
-  naming ascendancy and skill), every card shares it, so structures are keyed by engine instead, `<consumed> from
-  <supply>` in `data/rules/vocabulary.md`'s words (D-405), so a fixed roll still yields alternatives (choice 6). A
-  card that fails its identity check or the ascendancy lock is out, as today; its confirmed pieces stay in the pool.
+  `{className, ascendancy, named damage source}`. **When every card shares one identity** (a fixed roll, a brief
+  naming ascendancy and skill, a skill locked to one ascendancy, or researchers who converged), structures are keyed
+  by engine instead, `<consumed> from <supply>` in `data/rules/vocabulary.md`'s words (D-405), so the round still
+  yields alternatives (choice 6); cards whose consumed word is `none` share one key, `none`. A card that fails its
+  identity check or the ascendancy lock is out, as today; its confirmed pieces stay in the pool.
 - **One composite per structure, 1 to 4 a round.** When structures, with splits, number more than 4, keep those whose
   cards confirm the most load-bearing links, summed over the structure's cards (ties: the lower first card id); the
   rest go under `## Not composed`. The composite starts from its structure's strongest card (the one whose links
@@ -104,8 +111,8 @@ coordinator step changes from dealing cards to composing builds: `R1a-synthesize
 - **A conflict that can't be scheduled splits** a structure into two composites, one per side ("mana engine" and
   "life engine"), each taking a slot within the 4.
 - **The round's rule** (amends D-287's 6–9 and NFR-23's count): 1 to 4 composites. The round is short, with a
-  `shortReason` as today (D-339), when it composes fewer than 2, or when no composite takes a piece its researcher
-  judged under-played.
+  `shortReason` as today (D-339), when it composes fewer than 2, or when no composite takes a piece marked
+  under-played (an Ideas line's or a card's label, carried to the Pieces row, Appendix A).
 - **The obvious card** (D-403) stays: written as today and shown at the gate as the baseline, one line, not a
   composite. It is judged as written, before any borrowing, so the composite of its own structure says how it beats
   the card it grew from; its pieces join the pool.
@@ -116,9 +123,10 @@ coordinator step changes from dealing cards to composing builds: `R1a-synthesize
 - **The engine rule** (D-405, at most half a round on one engine) is dropped for composites: they differ by structure
   or by the side of a split.
 - **A later round** (brainstorm more, with the user's note) adds cards and Ideas to the pool; only structures that
-  gained pieces are recomposed. A composite shown at a gate is never edited in place: its successor gets a new id
-  and a new name (D-392), and the old one is listed under `## Superseded`, still pickable. A verified or built
-  composite is never superseded; a recomposition of its structure is a separate card.
+  gained pieces are recomposed. A composite shown at a gate is never edited in place by a later synthesis (a gate's
+  revision, D-391, still applies): its successor gets a new id and a new name (D-392), and the old one is listed under
+  `## Superseded`, still pickable. A verified or built composite is never superseded; a recomposition of its
+  structure is a separate card.
 - **The rival** (D-408) writes a plain card, verified with the checklist's probes. "A structure that differs from
   every row in the dossier" reads the composites' rows. Its card's pieces join the next round's pool.
 - **Old runs:** the run log stays schema 4, gaining the stage name `R1a-synthesize`. A run whose first brainstorm
@@ -175,7 +183,8 @@ stays one paragraph (D-392, D-424). `## Pieces not used` holds at most 10 lines,
 
 The display (`display brainstorm`) shows the brief, then each composite: its line, then its pieces in short (in,
 scheduled, out; each out piece's reason in a few words), then the obvious build's line and the cards' count. The
-answers stay (D-391, D-411): **verify** 1–3 composites or cards, picked or made at the gate; `changes` on a picked
+answers stay (D-391, D-411): **verify** 1–3 composites or cards, picked or made at the gate, each named by number or
+name as today (the display lists every plain card's name and structure, one line each, after the composites); `changes` on a picked
 composite may add or drop pieces by name or key ("add Blood Magic", "drop i1b-4"); **brainstorm more**; **stop**. A
 gate-made card's `from` may name cards, composites and piece keys (a Pieces row's or an Ideas line's); one that draws
 on pieces is a composite, with Pieces tables and leave-one-out probes.
@@ -187,14 +196,20 @@ Amends the brainstorm gate (`checkpoints.md`), D-391 (`from` may name pieces) an
 - **The tables.** The synthesis writes the composite's `### Pieces` in its brainstorm half; R1b writes `### Pieces
   measured` in its verification half (Appendix A). The card template gains both H3s (amends its fixed heading list).
 - **The skeleton** carries every piece in, a scheduled piece in its own group: a boss button with role
-  `single_target`; a piece on weapon set 2 in a group on set 2, through the plan field M-22's WU-101 provides for it,
-  measured with set 2 active. A second clear group keeps role `clear` and stays below the named source (the
-  `rolled-not-largest` check, as today); when it is larger, the synthesis named the wrong source, and the composite is
-  recomposed around it.
-- **The measure** is the composite's total: the named source's Count-scaled figure plus each damaging group's figure
-  from the record's `countedSkillOutputs`, PoB's own groups (a corpse explosion) included. PoB's Full DPS still counts
-  the named source only (D-337). A leave-one-out reports the drop in the total and in each damaging group, since a
-  piece may pay on one skill and not another ([study] §9: Blistering Bond, 2% of the total and 21% of the boss skill).
+  `single_target`; a skill on one weapon set in a group with `weaponSet` (amendment 9 §24.2), its figure from
+  `skillOutputs` or, on set 2, `skillOutputsSet2`. A second clear group keeps role `clear` and stays below the named
+  source (the `rolled-not-largest` check, as today). When it is larger, R1b records it in `### Structure check` as `-
+  A stronger structure? <the group's skill> as the named source`; the user may make that card at the verification
+  gate (D-391), and the next round's synthesis composes the structure.
+- **The measure is three kinds of figure, never summed across groups** ([study] §9: summing makes one explosion's
+  ignite drown the skills a player presses, and buttons that compete for the player's time can't all run at once):
+  - **per second, for clear:** each enabled `clear` group's figure at its own selection (the record's key for the
+    group's main active skill and stat set), the named source's Count-scaled figure first;
+  - **per corpse:** each of PoB's own on-kill groups (a corpse explosion), its hit and its ignite per corpse;
+  - **for bosses:** each enabled `single_target` group's figure.
+  A leave-one-out reports the drop in each, since a piece may pay on one and not another (Blistering Bond: 5% of the
+  cry, 22% of the boss skill). A skill left out counts as 0: the compile measures every group as the main skill, a
+  disabled one included. PoB's Full DPS still counts the named source only (D-337).
 - **Leaving a piece out,** by kind: a support, removed from its group; a skill, its group disabled; a unique, the
   slot's plain base of the same base type; a rare's mod line, removed from the item; a node, removed with every node
   that depends on it (other pieces among them named in `How`); a keystone, removed with every custom modifier that
@@ -203,11 +218,12 @@ Amends the brainstorm gate (`checkpoints.md`), D-391 (`from` may name pieces) an
   a custom modifier, a layer on another group, an ailment's carrier, then the rest by the synthesis's own order.
 - **A piece PoB doesn't model** (Battershout's detonation shows no DPS) is measured by the card's hand estimate,
   marked `estimate (<reason>)`, never a ledger entry: a skeleton has no ledger.
-- **The budget:** a composite's probe cap is 8: the checklist's 4 (dead slots, the condition on and off, the
-  encounter mods, the skill shape) and the 4 leave-one-out probes. A plain card keeps 4. Amends D-292, D-338, the
+- **The budget:** a composite's probe cap is 8: the checklist's 4 first (dead slots, the condition on and off, the
+  encounter mods, the skill shape), then the 4 leave-one-out probes; a probe a failed compile cuts is `not measured
+  (<why>)` in the table. A composite is any card with `### Pieces`, whatever its id letter. A plain card keeps 4. Amends D-292, D-338, the
   checker's `PROBE_CAP` and `run-log.md`'s cap.
-- **The dossier** (R1b-assemble) gains a twelfth column, `key pieces`: each measured piece and its drop in the total,
-  from the card's Pieces measured.
+- **The dossier** (R1b-assemble) gains a twelfth column, `key pieces`: each measured piece and its largest drop, with
+  the figure it falls on, from the card's Pieces measured.
 
 Amends R1b (its probes and order), D-292, D-338, R1b-assemble and the dossier template (D-407's column list).
 
@@ -217,14 +233,16 @@ D1-build reads the composite's Pieces tables and the deck's `## Pieces not used`
 - **asks the synthesis questions again** whenever the design adds a conversion or a keystone, or would name a limit
   as a con (questions 15–19 and the type-conversion entry);
 - **revisits an out piece** whose reason the design changed (Zerphi's Infamy after costs move to life);
-- **judges a piece with the pieces it needs,** measuring a set together, on the composite's total and each damaging
-  group (D-433's measure), before rejecting any of them;
+- **judges a piece with the pieces it needs,** measuring a set together, on each of D-433's figures, before rejecting
+  any of them;
 - **schedules before rejecting** (question 18), a second weapon set included (D-426);
 - **answers question 19** on every build whose clear skill is limited or pack-shaped: a boss button, or why none is
   needed.
 
 It writes `<buildFolder>/pieces.md` (Appendix A): the Pieces table as designed, each piece's status and reason, and
-`## Searched`, each question it asked again and what the search found. Its return keeps its 8 lines and adds one,
+`## Searched`, each question it asked again and what the search found. The file joins the build folder's layout
+(`run-folder.md`, the checker's `BUILD_FILES`) and D1-build's `writes`; a fix round's round copy doesn't take it, and
+`--changed` doesn't list it, since only D1 writes it. Its return keeps its 8 lines and adds one,
 `pieces: <n> in, <n> scheduled, <n> out`. D1-finish writes a `reason` claim for each scheduled piece and each
 composite piece left out, from `pieces.md`, so W1 can explain the boss button and the swap; the `left out:` lines
 (D-396) stay for dead gems.
@@ -233,8 +251,8 @@ A node that a custom modifier depends on (the keystone whose conversion the modi
 so node power's swaps never drop it while the modifier stays.
 
 The D1 gate's `design` field gains `pieces {in, scheduled, out, scheduledNames, outNames}` for the build (pieces
-belong to the build, not a rung), read from `pieces.md`, and the design display prints `- Pieces: <n> in, <n>
-scheduled (<names>), <n> out (<names>)` once, before the rungs.
+belong to the build, not a rung), read from `pieces.md`, and the design display (`run-log.mjs display design`)
+prints `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)` once, before the rungs.
 
 Amends D1-build (D-375, D-418's needs list), D1-finish (its claims), the D1 gate's design field and the design display
 (D-419).
@@ -245,7 +263,9 @@ Amends D1-build (D-375, D-418's needs list), D1-finish (its claims), the D1 gate
   numbers it, but the bridge reads it as PoB's socket-group index, where item- and ascendancy-granted skills come
   first: on r1-b-3, plan group 1 (Seismic Cry) was PoB's group 3. `get_node_power` maps `clear_group` from the plan's
   numbering with `Compile.lua`'s `group_indices` logic at call time, as C-55 already states: a defect fix, no record
-  change and no new contract. D1-tree and the D1 gate keep passing the record's number.
+  change and no new contract. For a build not compiled from a plan, the numbering is the build's own groups in
+  order, PoB's granted groups not counted. The tool's `clear_group` description says so, and the README table is
+  regenerated. D1-tree and the D1 gate keep passing the record's number.
 - **V4's report:** a stray `- ` line in the verifier's own report failed the checker. The verifier keeps no Edit
   (R-5): V4 checks its report's list syntax before its one Write, and the checker ignores an empty list item in a V4
   report.
@@ -255,7 +275,8 @@ Amends D1-build (D-375, D-418's needs list), D1-finish (its claims), the D1 gate
   it; the card keeps its own.
 - **The checker against a stale build:** `check-run.mjs`'s result gains a `warnings` list, which `display final`
   prints. When `build/plan/ledger.js` or `build/plan/buildHash.js` is older than its source under `src/plan/`, it warns
-  that a `record-plan` or ledger violation may come from the stale build; the violations stay.
+  that a `record-plan` or ledger violation may come from the stale build; the violations stay. For tests, the
+  server's build directory is read from `BUILD_GUIDE_SERVER_BUILD` when it is set.
 - **Background summaries:** the resumed session's telemetry holds 130 `agent_summary` requests, 29.6M cache read the
   transcripts don't show. `run-usage.mjs` already prints a row per `query_source`; it gains the cache read in each
   row. WU-108 looks for a Claude Code setting that turns the summaries off for runs: a line in
@@ -282,11 +303,11 @@ user, choice 7). Amends D-416's first figure.
 
 | Unit | What |
 |---|---|
-| WU-104 | `R1a.md` (the Ideas, D-430); the new `R1a-synthesize.md` (D-429, Appendix A's interface and deck); the card template's two H3s and the id letter; `references/stages/README.md`, `references/task-header.md` (the stage, `changes.from`, `writes`), `references/run-folder.md`; the researcher's and coordinator's definitions (their descriptions and the stage table, with the pinned assertions in `tests/static/buildGuidePipeline.test.ts`) |
-| WU-105 | `run-log.mjs` (the stage, the `s` letter, the brainstorm display, `from` keys, `build`'s `name`); `check-run.mjs` (the deck rules for composites and `## Cards`, the round's count and short rule, the Pieces tables, the probe cap 8, the dossier's twelfth column, the mixed-run rule, the empty V4 item, `warnings`); `render-audit.mjs` (the title, the `s` letter); `scripts/run-usage.mjs` (the `s` letter, cache read per source); `tests/fixtures/pipeline/`; `references/run-log.md`; `references/offline-and-test.md` (`first-n` picks composites) |
+| WU-104 | `R1a.md` (the Ideas, D-430); the new `R1a-synthesize.md` (D-429, Appendix A's interface and deck); the card template's two H3s and the id letter; `references/stages/README.md`, `references/task-header.md` (the stage, `changes.from`, the synthesis's `writes`, `pieces.md` in D1-build's `writes`), `references/run-folder.md` (the composites, `pieces.md`); the researcher's and coordinator's definitions (their descriptions and the stage table, with the pinned assertions in `tests/static/buildGuidePipeline.test.ts`) |
+| WU-105 | `run-log.mjs` (the stage, the `s` letter, the brainstorm display with each plain card's line, `from` keys, `build`'s `name`, the design display's pieces line); `check-run.mjs` (the deck rules for composites and `## Cards`, the round's count and short rule with the under-played mark, the Pieces tables, a composite by its `### Pieces`, the probe cap 8, the dossier's twelfth column, `pieces.md` in `BUILD_FILES`, the mixed-run rule, the empty V4 item, `warnings` and `BUILD_GUIDE_SERVER_BUILD`); `render-audit.mjs` (the title, the `s` letter); `scripts/run-usage.mjs` (the `s` letter, cache read per source); `tests/fixtures/pipeline/`; `references/run-log.md`; `references/offline-and-test.md` (`first-n` picks composites) |
 | WU-106 | `R1b.md` (the composite's skeleton, the measure, leaving out by kind, the probe order and cap), `R1b-assemble.md` and the dossier template, `references/checkpoints.md` (the brainstorm gate), `SKILL.md` (steps 2b and 2c, the names) |
 | WU-107 | `D1-build.md` (D-434, `pieces.md`), `D1-finish.md` (the pieces' claims), `D1-gate.md` (the design field's `pieces`), `RV.md` (questions 16–19, the rival under composites), `references/patterns.md` (questions 16–19, the two entries) |
-| WU-108 | `get_node_power`'s `clear_group` mapping (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`); `V4.md`'s syntax check; the background-summary investigation |
+| WU-108 | `get_node_power`'s `clear_group` mapping (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, its `toolSchemas.ts` description, the README table); `V4.md`'s syntax check; the background-summary investigation |
 | WU-109 | The live test: a run with an open brief and one with a fixed roll, the user's, with the coordinator |
 
 Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; then WU-106 and WU-107; then WU-109.
@@ -302,9 +323,13 @@ Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; t
   stage README and definitions name `R1a-synthesize`.
 - **AC-W84 (WU-105).** Script unit, on fixture runs:
   - a run with `R1a-synthesize` and composites `r1-s-1` and `r1-s-2` passes; a third round of five composites fails;
-  - a round of one composite without a `shortReason` fails; a fixed-roll fixture with two engine composites passes;
-  - a composite without its Pieces tables fails; a Pieces row `out` with no reason fails; `## Cards` missing a
-    researcher card fails;
+  - a round of one composite without a `shortReason` fails, as does a round with no under-played piece in any
+    composite; a fixed-roll fixture with two engine composites passes;
+  - a composite (any card with `### Pieces`) without its Pieces measured fails once R1b has verified it and passes
+    before; a measured table with `not measured (<why>)` rows passes; a Pieces row `out` with no reason fails;
+    `## Cards` missing a researcher card fails;
+  - `pieces.md` in a build folder passes;
+  - the design display prints the pieces line from the D1 gate's `pieces`;
   - a `from` naming a Pieces key or an Ideas id passes; one naming neither, nor a card, fails;
   - a composite with 8 probes passes and 9 fails; a plain card with 5 fails;
   - a schema-4 run with `R1a-assemble` passes, and one mixing `R1a-assemble` and `R1a-synthesize` rounds fails;
@@ -313,9 +338,10 @@ Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; t
   - the checker warns, and still reports the violation, when a fixture's `build/plan/buildHash.js` is older than its
     source;
   - the brainstorm display lists each composite's pieces; `run-usage.mjs` prints cache read per `query_source`.
-- **AC-W85 (WU-106).** Static: `R1b.md` builds the composite's skeleton with scheduled pieces in their own groups,
-  measures the total and each damaging group, leaves pieces out by kind, holds the probe order and the cap of 8,
-  and marks an unmodelled piece's figure an estimate; the dossier template has `key pieces`; `checkpoints.md` shows
+- **AC-W85 (WU-106).** Static: `R1b.md` builds the composite's skeleton with scheduled pieces in their own groups and
+  sets, measures the three kinds of figure without summing groups, leaves pieces out by kind (a left-out skill as 0),
+  runs the checklist's probes before the leave-one-outs within the cap of 8, records a stronger structure in
+  `### Structure check`, and marks an unmodelled piece's figure an estimate; the dossier template has `key pieces`; `checkpoints.md` shows
   composites and accepts piece changes and piece keys in `from`; `SKILL.md` names `R1a-synthesize`.
 - **AC-W86 (WU-107).** Static: `D1-build.md` asks questions 15–19 again after a conversion, a keystone or a limit,
   revisits out pieces, measures sets on the total and each group, schedules before rejecting, answers question 19,
@@ -324,7 +350,7 @@ Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; t
   places the rival under composites; `patterns.md` holds questions 16–19 and the two amended entries, under its cap.
 - **AC-P77 (WU-108).** Engine, on a fixture build whose weapon grants a skill: `get_node_power` called with the
   record's group number for the clear group guards that group's skill (its radius and uses per second), not the
-  granted skill's.
+  granted skill's; the README table matches the new description.
 - **AC-W87 (WU-108).** Static: `V4.md` checks its report's list syntax before its Write; the work-log or
   `run-settings.example.json` records the background-summary finding.
 - **AC-W88 (WU-109).** The live test: the user's judgment of the composites and the finished build, recorded in the
@@ -338,8 +364,8 @@ Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; t
   cap of 4 keep alternatives where they are real; the cards stay visible and verifiable.
 - **The synthesis reads every card** (about 9 brainstorm halves of 400 words and three Ideas tables a round) and runs
   few lookups (D-430); a later round adds to it. Its peak should stay under D-357's 150K-per-agent target.
-- **The measure is a sum of groups,** not PoB's Full DPS: a reader comparing with PoB's sidebar sees a different
-  number; the dossier and the display name it the composite's total.
+- **The measure is three kinds of figure,** not PoB's Full DPS: a reader comparing with PoB's sidebar sees different
+  numbers; the dossier and the displays name each figure's kind.
 - **Old runs:** schema-4 runs with `R1a-assemble` stay readable and keep it for later rounds.
 
 ## 15. Choices for the user
@@ -359,6 +385,11 @@ New, from the review:
    alternatives (recommended; taken); or one composite (two after a split) plus the baseline.
 7. **The shared phases' target** (S13): raise D-416's 1.2M to 1.3M for composites (recommended; taken: the estimate
    is about 1.26M, and the synthesis replaces verifying thin cards), or keep 1.2M and verify fewer.
+
+From the re-check:
+
+8. **A skill on a weapon set** (NB1): add `skills.groups[].weaponSet` and per-group figures on set 2 in M-22, under
+   the user's HG-12 grant (recommended; taken: amendment 9 §24, WU-102), or narrow scheduling to the active set.
 
 ## 16. The independent review and its resolution
 
@@ -395,6 +426,27 @@ The nits: N1 (C-57 and PG-74 dropped) the header; N2 (the research file's citati
 existing row; the deliverable) §10; N8 (R1b's figure includes its assemble) §11; N9 (the baseline judged as written)
 §4.
 
+**The re-check** (the same reviewer, about 72K more tokens, 470K in all) found 24 findings resolved and 7 partly, and
+2 new blockers, 2 should-fix findings and 8 nits, resolved in revision 2:
+
+| Finding | Resolved in |
+|---|---|
+| S1 identity collapses without a fixed brief; `none` engines | §4: the engine key whenever every card shares one identity; `none` one key |
+| S2 the under-played mark has no data | Appendix A: the Ideas line's `under-played` field and the Pieces row's `Kind` suffix; §4's short rule reads them; AC-W84 |
+| S4 the display shows only a count | §7: every plain card's line; WU-105 |
+| S7, NB1 no plan field for a skill on set 2 | Choice 8: `skills.groups[].weaponSet` and `skillOutputsSet2` in M-22 (amendment 9 §24, WU-102); §3, §8 |
+| S9 the display's line has no owner | §9 and WU-105: `run-log.mjs display design`; AC-W84 |
+| S12 files left unowned | §12: `pieces.md`'s files, the display line, the tool's description and README |
+| S14 criteria left | §13: the pieces line, the no-under-played round, a composite before and after R1b |
+| NB2 the total sums per-corpse and boss figures | §8: three kinds of figure, never summed across groups; a left-out skill as 0; the selection key per group; §2 re-synced |
+| NS1 "recomposed around it" | §8: a `### Structure check` line; the user's gate card or the next synthesis |
+| NS2 `pieces.md` outside the layout | §9: `run-folder.md`, `BUILD_FILES`, D1-build's `writes`; not in the round copy or `--changed` |
+
+The nits: NN1 (the branch hashes, cited as merged with M-22) the header; NN2 (the tool's description, the README, a
+build not from a plan) §10; NN3 (edited by a later synthesis) §4; NN4 (the return's 7 lines, ` | `) Appendix A; NN5
+(a composite by its `### Pieces`; before and after R1b) §8, AC-W84; NN6 (`BUILD_GUIDE_SERVER_BUILD`) §10; NN7 (the
+checklist first) §8; NN8 (§2 re-synced to the snapshot without Mageblood) §2.
+
 ## Appendix A. Formats
 
 **A piece's key.** An Ideas line's id, `i<k><letter>-<m>` (round `k`, the researcher's letter, `m` from 1), or a Pieces
@@ -404,8 +456,11 @@ synthesis merges lines naming the same piece and kind into one Pieces row, listi
 **An Ideas line** (`## Ideas` in a research file):
 
 ```
-- i<k><letter>-<m> | <piece> | <kind> | role: <layer | scaler of <X> | supply of <X> | removes limit: <X> | defence | boss> | needs: <class, ascendancy, skill types, weapon or slot | any> | conflicts: <what it consumes or forbids | none> | <lookup> | <PoB label> | on: <card ids | none>
+- i<k><letter>-<m> | <piece> | <kind> | role: <layer | scaler of <X> | supply of <X> | removes limit: <X> | defence | boss> | needs: <class, ascendancy, skill types, weapon or slot | any> | conflicts: <what it consumes or forbids | none> | <lookup> | <PoB label> | on: <card ids | none>[ | under-played: <the shape>]
 ```
+
+`role: removes limit: <X>` means the piece takes away limit X (a cost moved, a cooldown ignored). The last field is
+present only on a piece the researcher judges under-played (D-339), as its card's label would say.
 
 `<kind>` is one of `skill`, `support`, `unique`, `mod`, `node`, `keystone`, `rune`, `config`; `<PoB label>` one of
 the library's six; `<lookup>` the call that confirmed it, as a card's links table names it.
@@ -417,24 +472,26 @@ the library's six; `<lookup>` the call that confirmed it, as a card's links tabl
 
 | Key | Piece | Kind | Status | Where | Why | From |
 |---|---|---|---|---|---|---|
-| i1b-4 | Blistering Bond | unique | in | Ring 2 | fire sets bleeding's magnitude | r1-b-2, i1b-4 |
-| cr1-a-3-2 | Hammer of the Gods | skill | scheduled | set 1, single_target | boss button | r1-a-3 |
+| i1b-4 | Blistering Bond | unique, under-played | in | Ring 2 | fire sets bleeding's magnitude | r1-b-2, i1b-4 |
+| cr1-a-3-2 | Hammer of the Gods | skill | scheduled | weaponSet 1, single_target | boss button | r1-a-3 |
 | i1a-7 | Elemental Focus | support | out | — | forbids the ignite and bleeding layers | i1a-7 |
 ```
 
 `Status` is `in`, `scheduled` or `out`; `Where` a slot, group, set or node for `in` and `scheduled`, `—` for `out`;
-`Why` is required for `scheduled` and `out`. In the verification half, after `### Key item prices`:
+`Why` is required for `scheduled` and `out`; `Kind` carries `, under-played` for a piece so marked. In the
+verification half, after `### Key item prices`:
 
 ```
 ### Pieces measured
 
-| Key | Total | Per group | How |
-|---|---|---|---|
-| i1b-4 | −2% | Shield Wall −21%, Seismic Cry −5% | the slot's plain Ruby Ring |
+| Key | Drops | How |
+|---|---|---|
+| i1b-4 | Seismic Cry (clear) −5%; Shield Wall (boss) −22%; Bellow's explosion (per corpse) 0% | the slot's plain Ruby Ring |
+| cr1-a-3-2 | not measured (the probe's compile failed: <why>) | — |
 ```
 
-`Total` and `Per group` are the drops when the piece is left out, or `estimate (<reason>)` for a piece PoB doesn't
-model; pieces not probed are left out of the table.
+`Drops` lists each figure of D-433 that moves, as `<group> (<clear | per corpse | boss>) −<x>%`, or `estimate
+(<reason>)` for a piece PoB doesn't model; pieces not probed are left out of the table.
 
 **`cards.md`**, H2s in this order:
 
@@ -444,22 +501,24 @@ model; pieces not probed are left out of the table.
 ## What the composites share        (at most 80 words, D-392)
 ## How they differ                  (one paragraph, each composite's structure and what sets it apart)
 ## The obvious build                (one line: id, name, its kit; or None.)
-## Round <k>                        (one line per composite: id, "name", structure, layers, the limit's answer,
-                                     its under-played label)
-## Cards                            (one line per researcher card: id, "name", its structure, seed when it is the
-                                     seed card, fed: <composite ids | none>)
+## Round <k>                        (- <id> "<name>" | <structure> | <layers> | <the limit's answer> |
+                                     <under-played label>)
+## Cards                            (- <id> "<name>" | <structure> | seed (on the seed card only) |
+                                     fed: <composite ids | none>)
 ## Pieces not used                  (at most 10 lines: - <key> <piece>: <why no composite takes it>; or None.)
 ## Not composed                     (- <structure>: <why>; or None.)
 ## Superseded                       (- <old id> "<name>" → <new id>; only when a later round recomposed)
 ```
+
+Fields are separated by ` | `, as today's deck lines are.
 
 **`R1a-synthesize`'s interface.** Header: `stage: "R1a-synthesize"`, `attempt`, `mode`, `runFolder`, `compile:
 "none"`, `findings`, `writes: ["cards.md", "cards/r<k>-s-<n>.md", …]` with any renames. Prompt: the round, the parsed
 brief, the user's note, and the researchers `{letter, focus, researchFile, cards, returned}`. Reads: every card's
 brainstorm half (this round's, the earlier rounds', the gate-made ones, the rival's), each research file's `## Ideas`
 and `## Supply search`, `cards.md`, the card template, `data/rules/vocabulary.md`, and the library entries its labels
-name (by Grep). Returns at most 8 lines: `composites: <n>`, then one line per composite (`r<k>-s-<n>: <name>`), `cards:
-<n> listed`, `not composed: <n>`, `superseded: <n>`, and `short: <why>` for a short round.
+name (by Grep). Returns at most 7 lines: `composites: <n>`, then one line per composite (`r<k>-s-<n>: <name>`), one
+line `cards: <n> listed | not composed: <n> | superseded: <n>`, and `short: <why>` for a short round.
 
 **`pieces.md`** (D1-build, in the build's folder): `# Pieces: <build name>`, the Pieces table as designed (the card's
 columns), then `## Searched`: one line per question asked again, `- Q<n> after <the change>: searched <what>; found

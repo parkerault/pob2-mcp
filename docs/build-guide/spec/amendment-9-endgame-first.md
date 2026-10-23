@@ -792,12 +792,36 @@ read-only survey of the server the same day.
 
 ### 24.1 Rulings
 
-- **PG-72, Avatar of Fire (the user, 2026-10-23):** PoB is right. Damage is converted before it is scaled, so
-  increased and more modifiers apply by the type the damage ends as, with no double dipping as in Path of Exile 1;
-  gained cold and lightning are lost under Avatar of Fire's "Deal no Non-Fire Damage", and increased cold damage does
-  nothing for a skill it converts. The user's gate ruling of 2026-10-19 was wrong ("after doing more research that
-  turns out not to be the case"; the creator's video in `../studies/2026-10-23-spud-warcryer-comparison.md` §5 agrees).
-  PG-72 becomes a closed entry recording that PoB matches the game; the library gains the damage-order rule (WU-103).
+- **PG-72, Avatar of Fire (the user, 2026-10-23):** PoB is right. The user's gate ruling of 2026-10-19 was wrong
+  ("after doing more research that turns out not to be the case"; the creator's video in
+  `../studies/2026-10-23-spud-warcryer-comparison.md` §5 agrees). PG-72 becomes a closed entry recording that PoB
+  matches the game. The library gains the user's damage-order rule (WU-103), in this wording:
+  > **Damage order.** Flat damage is converted first. Increased and more modifiers then apply by the type the damage
+  > ends as, with no Path of Exile 1 double dipping: increased cold does nothing for cold converted to fire.
+  > Gain-as-extra lines apply last, as a share of the hit after its increases and more multipliers. Avatar of Fire
+  > loses gained cold and lightning only through its "Deal no Non-Fire Damage" (the user, 2026-10-23; PoB agrees).
+- **The ailment-conversion lens (the user, 2026-10-23),** a library entry after "Type conversion so another mechanic
+  applies" (WU-103), checked against the pin (`Modules/Data.lua:440`, `data.defaultAilmentDamageTypes`;
+  `Data/Misc.lua:86-96`), in this wording, `[spud]` a new source key for the 2026-10-23 comparison study:
+  > ### Convert into the ailment's type
+  >
+  > - **Shape:** an ailment reads one type of the hit (ignite fire; bleeding physical; poison physical and chaos).
+  >   Converting every source of the hit into that type, added and gained damage included, makes the whole hit feed
+  >   the ailment. The ailment then scales with its type's increases, damage over time, its magnitude and its
+  >   duration.
+  > - **Search:** from a conversion line (Avatar of Fire, "Converted to"), the ailment's magnitude, chance and
+  >   duration (`mechanic "Ignite Magnitude"`, "Magnitude of Bleeding", "Flammability"), lines that let another type
+  >   count ("also Contributes to": Blistering Bond), and the base shares (kind `constant`).
+  > - **PoB:** modelled: ignite, bleeding and poison read the hit after conversion (pin: `Modules/Data.lua:440`,
+  >   `Data/Misc.lua:86-96`).
+  > - **Examples:** Spud's warcry Warbringer: Avatar of Fire makes every hit fire, so the whole hit ignites, and
+  >   Blistering Bond lets the same fire set bleeding's magnitude [spud].
+  > - **Cautions:** the keystone forbids every other type, so an ailment that reads another type needs a line like
+  >   Blistering Bond's. A support that forbids ailments (Elemental Focus) turns the layer off. Only the strongest
+  >   ignite applies, so it favours big hits over fast ones (the creator's claim, [spud] §5).
+- **The library's cap (the user, 2026-10-23: "Raise the cap"):** 13,000 words, from D-410's 12,000, for M-22's
+  additions and amendment 10's questions. Amends D-410 and the two tests that pin the cap
+  (`tests/static/patternLibraryEngine.test.ts`, `tests/static/buildGuidePipeline.test.ts`'s `LIBRARY_WORD_CAP`).
 - **D-425, the tree distance** goes on `search_tree_nodes`, the researcher's tool, not on `find_path_to_node`, which
   needs a build: the search runs through the engine as today, and the distance is computed from the static tree
   (`TreeService.findShortestPaths`, no engine), so it holds with no build loaded.
@@ -853,7 +877,7 @@ read-only survey of the server the same day.
 | WU-100 | C-43a, C-37a to C-37d: `pob-api/API/Lookup.lua`, `pob-api/API/BuildOps.lua` (config labels), `src/handlers/lookupHandlers.ts`, `src/handlers/luaHandlers.ts` (`search_tree_nodes`), `src/services/treeService.ts`, `src/types.ts`, `src/engine/schemas.ts` (their replies), the two tools' entries in `toolSchemas.ts`, the README table; `R1a.md` and `RV.md` (the new lookups; the Grep rule: PoB's `Modules/` for how the engine computes, cited by file and line, data questions through the tools); `references/lookups.md`; the researcher's definition |
 | WU-101 | C-55a and set 2's measure: `pob-api/API/NodePower.lua`, `pob-api/API/Compile.lua` (set 2), `src/handlers/treeHandlers.ts` (`get_node_power`), its `toolSchemas.ts` entry, `src/plan/record.ts`, `src/plan/compiler.ts`, `src/plan/checks/v1.ts` (Spirit per set), `docs/build-guide/plan-reference.md`; the card template's weapon-set line, `R1a.md` and `RV.md` (the check), `D1-build.md` (measure each set; a set-2 buff carried to set 1 as a custom modifier with its reason), `D1-tree.md` and `D1-gate.md` (pool moves), `W1.md` and both guide templates (the swap's Life cost), `docs/build-guide/pob-gaps.md` (PG-71) |
 | WU-102 | C-56 and the travel measure: `BuildOps.lua` (`list_gems`), `luaHandlers.ts` (`list_gems`), its `toolSchemas.ts` entry, `record.ts` and `compiler.ts` (the clear measure's `travel`), `Compile.lua` (its figures), `scripts/run-log.mjs` (the design display's travel line); `R1a.md` (the travel search through `skill_type`) |
-| WU-103 | `references/patterns.md`: the user's three weapon-set shapes (work-log 2026-10-19, "weapon sets, under-used by the researchers", cited to the user), "Travel by action"'s mechanism (cited to the user), a warcry Standard kit, the damage-order rule (24.1), all within 12,000 words; `pob-gaps.md`: PG-72 closed (24.1) and PG-73, a unique tame's tablet modifier with no line in the pin; `v1.ts`'s `skill-slots` code |
+| WU-103 | `references/patterns.md`: the user's three weapon-set shapes (work-log 2026-10-19, "weapon sets, under-used by the researchers", cited to the user), "Travel by action"'s mechanism (cited to the user), a warcry Standard kit, the damage-order rule and the ailment-conversion entry (24.1, as worded there), all within the new 13,000-word cap, which it sets (the library's own text and the two tests that pin the cap); `pob-gaps.md`: PG-72 closed (24.1) and PG-73, a unique tame's tablet modifier with no line in the pin; `v1.ts`'s `skill-slots` code |
 
 **Waves.** Wave 1: WU-100 and WU-101 in parallel; the coordinator merges WU-100 first and WU-101 rebases (both touch
 `toolSchemas.ts`, `R1a.md` and `RV.md`, in different places). Wave 2, after both merge: WU-102 and WU-103 in parallel
@@ -886,6 +910,7 @@ read-only survey of the server the same day.
   a fixture stage with a travel skill records `travel` with its uses per second; the design display prints it; `R1a.md`
   searches travel skills by type.
 - **AC-W82 (WU-103).** Static and unit: `patterns.md` holds the weapon-set shapes and the travel mechanism (each cited
-  to the user), the warcry kit and the damage-order rule, under 12,000 words; `pob-gaps.md` closes PG-72 and adds
-  PG-73; V1 reports PoB's too-many-groups warning as `skill-slots`, naming the Unset Ring.
+  to the user), the warcry kit, the damage-order rule and "Convert into the ailment's type" (24.1's wording, its
+  `[spud]` key defined), under the 13,000-word cap the two tests now pin; `pob-gaps.md` closes PG-72 and adds PG-73;
+  V1 reports PoB's too-many-groups warning as `skill-slots`, naming the Unset Ring.
 - **AC-W78a.** The M-22 wave gate: the full suite and the build pass on the integration head, as for M-21.

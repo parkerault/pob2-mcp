@@ -5392,3 +5392,10 @@ the `m17` engine at `b76967b`.
   mechanic kind; base mode's kind is `item-base`; an exact node name several nodes share fails listing their ids; no
   `tool-calls.json` samples for the new modes. `lookup_game_data`'s description is at 2,035 of 2,048 characters. The
   verifier is running.
+- **WU-100 verified and merged** (verifier about 222K tokens): PASS, no blocking defect. Its own gate rc 0 (164 suites,
+  2,882 tests), build rc 0; 130 distances checked against an independent breadth-first search over the pin's tree
+  (0 mismatches, including nodes reached only around the Witch start); Flameblast's and Heightened Curse's rows checked
+  by hand. Rebased onto `68c57fe` and fast-forwarded: `76f0c96` (code), `e1593a5` (skill text). Notes: AC-K6 reads
+  "each mode's ok sample", so `tool-calls.json` gains samples for the new modes in WU-102 (it owns the next tool
+  change); `get_config`'s output grew from about 22K to 39K characters with C-37c's labels; a blank `from` is ignored
+  rather than failing (cosmetic); `lookup_game_data`'s description has 13 characters left.

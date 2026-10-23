@@ -1,6 +1,7 @@
 # Amendment 10: one build from the whole brainstorm
 
-**Status: DRAFT, revision 2, 2026-10-23.** The user took the first draft's five choices on 2026-10-23 (§15, 1 to 5).
+**Status: APPROVED by the user, 2026-10-23** ("Approved, no second re-check"), as revision 2; M-23 starts after M-22
+merges. The user took the first draft's five choices on 2026-10-23 (§15, 1 to 5).
 An independent review found 5 blockers, 17 should-fix findings and 9 nits (revision 1); the reviewer's re-check found
 24 resolved, 7 partly, and 2 new blockers, 2 should-fix findings and 8 nits, all resolved here (§16). The user took
 the new choices 6 to 8 as recommended the same day. It carries:

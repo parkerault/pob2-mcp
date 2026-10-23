@@ -10,10 +10,11 @@
  *   kit carries the user's point on a tamed beast's percentage Spirit cost; about 1,200 words.
  *   Amended by D-410 (the Mobalytics review, approved by the user 2026-10-19): five more archetypes (companions,
  *   shapeshifting, plants, shields, automated loops), the tamed beast's line in the Companions kit, about 3,000 words.
+ *   Amended by D-428 (amendment 9 §24, WU-103): a warcry kit after Totems.
  * - "A count as a multiplier" beside an unchanged "Filler to satisfy a count", the two pointing to each other.
  * - The four new shapes (supply by family, bank the resource, a tamed rare beast, a rule changer), each in a family
  *   with its search step, how PoB follows it (one of the six labels), examples and cautions.
- * - The library stays under 12,000 words (D-381, raised by D-410).
+ * - The library stays under 13,000 words (D-381, raised by D-410 and by amendment 9 §24.1, the user, 2026-10-23).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -121,6 +122,7 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       'Spears',
       'Damage over time',
       'Totems',
+      'Warcries',
       'Shapeshifting (talismans)',
       'Plants',
       'Shields',
@@ -237,7 +239,7 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     });
   });
 
-  it('stays under 12,000 words (D-381, D-410)', () => {
-    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(12_000);
+  it('stays under 13,000 words (D-381, D-410, amendment 9 §24.1)', () => {
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(13_000);
   });
 });

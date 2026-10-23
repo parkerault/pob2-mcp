@@ -22,6 +22,7 @@ Started 2026-10-10 from the reference-build studies (`reference-builds.md`, `wor
 
 - **confirmed:** I read the code at the cited line.
 - **reported:** an agent or an earlier document cited it, and it hasn't been re-checked.
+- **closed:** suspected, then found to match the game; kept so the question isn't asked again.
 
 All `ModCache.lua` lines cited below as unparsed were re-checked on 2026-10-10 (`{nil,…}`). So were all the
 skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill's own `statMap`, or in
@@ -120,6 +121,18 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
   - **Seen in:** the weapon-set review (work-log 2026-10-19). The [hotg] study's "Gem Studded counts every set's
     supports" predates the game's 0.5.5 fix to the inactive set.
   - **Workaround:** hand calc the active set's support count, and type the difference in as a custom mod.
+- **PG-72, Avatar of Fire drops gained cold and lightning.** closed: PoB matches the game (the user's ruling,
+  2026-10-23, amendment 9 §24.1).
+  - **Where:** the keystone's "Deal no Non-Fire Damage" sets `DealNoPhysical`, `DealNoLightning`, `DealNoCold` and
+    `DealNoChaos` (`Modules/ModParser.lua:2399`); `canDeal` reads them (`Modules/CalcOffence.lua:2238-2241`), and a
+    hit sums only the types it can deal, after conversion and gain (`:4023`). So cold or lightning gained as extra is
+    lost, while flat cold or lightning converted to fire stays.
+  - **The question:** at the open-clear run's verification gate (2026-10-19) the user ruled that gained cold and
+    lightning convert to fire before the keystone applies, and build r1-b-3 carried that as custom modifiers. The
+    user withdrew the ruling on 2026-10-23 ("after doing more research that turns out not to be the case"), and the
+    creator's video agrees with PoB (`studies/2026-10-23-spud-warcryer-comparison.md` §5). The library's damage-order
+    rule records it (`references/patterns.md`, How to read an entry).
+  - **Workaround:** none needed; a build under Avatar of Fire rolls gained fire, not gained cold or lightning.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)
 
@@ -301,6 +314,22 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     Fracturing consumes; its PoB has no beast.
   - **Workaround:** each modifier's row in `data/monsters/monster-mods.md` says how a plan models it: `stats` as
     custom modifiers, `condition` as a config entry, `none` stated on the card (D-402).
+- **PG-73, a unique tame's tablet modifier has no line in the pin.** gap, confirmed in code (amendment 9, D-428).
+  - **Where:** a tablet can give unique monsters an extra rare modifier: "Unique Monsters have # additional Rare
+    Modifier", stat `map_unique_monster_num_additional_modifiers`. The pin holds it only as text: its stat
+    description (`Data/StatDescriptions/stat_descriptions.lua:193127-193140`), the trade site's stat list
+    (`Data/TradeSiteStats.lua:15283`, `:33042`) and a scalability entry (`Data/ModScalability.lua:14160-14161`). No
+    modifier, base or unique in the pin's `Data/` grants it (it holds no tablet item: its other "tablet" lines are
+    stat texts, such as "Tablets found in Area"), and nothing under `Modules/` or `Classes/` reads the stat. A
+    companion's figures come only from its species' entry in `Data/Spectres.lua` (Mighty Silverfist at `:23949`;
+    PG-56).
+  - **Effect:** the Beast Master guide tames Mighty Silverfist, a unique ape, carrying a tablet's extra modifier,
+    Extra Crits (300% increased Critical Hit Chance) first, then Enraged or an Extra-x Damage; none of it reaches
+    PoB, whose figure for the beast lacks the modifier.
+  - **Seen in:** the Beast Master (`studies/2026-10-18-mob-captainlance9-beast-master.md` §4, §8, §9).
+  - **Workaround:** as PG-56's: name the modifier's row of `data/monsters/monster-mods.md` in the plan's
+    `companion.mods` (Extra Crits is a `stats` row, written as a custom modifier) and say on the card that a tablet
+    supplies it (untested on a unique species).
 
 ## Found in the Mobalytics review (2026-10-18)
 

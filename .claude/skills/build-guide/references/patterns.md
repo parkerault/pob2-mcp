@@ -52,6 +52,10 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   write-ups, and creators err. A card is dealt only when a lookup confirms every load-bearing link in game
   text (the sniff test, R1a-assemble). A claim marked unverified here needs that check, or "needs in-game
   testing" on the card. An interaction no game text documents is never used.
+- **Damage order.** Flat damage is converted first. Increased and more modifiers then apply by the type the damage
+  ends as, with no Path of Exile 1 double dipping: increased cold does nothing for cold converted to fire.
+  Gain-as-extra lines apply last, as a share of the hit after its increases and more multipliers. Avatar of Fire
+  loses gained cold and lightning only through its "Deal no Non-Fire Damage" (the user, 2026-10-23; PoB agrees).
 - **Fields.** **Shape:** one sentence true of any skill. **Search:** the starting point, the lookups, what to
   check. **PoB:** how PoB follows it, in six labels: **modelled**; **Count** (the group's Count multiplies
   its damage); **custom modifier** (a hand-calculated line PoB applies as a modifier); **config stand-in** (a
@@ -72,7 +76,9 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   corrections. The kits were thin for want of common-practice sources; the Mobalytics review of 17 popular
   guides (the `mob-` keys) revised them, added five kits, Meta trigger as a supply and Self-firing buff, and was
   approved by the user on 2026-10-19 (C-53). Question 15 and Scale the scaler are the user's lens (2026-10-23:
-  search for what scales the thing that scales the thing being scaled), approved as worded.
+  search for what scales the thing that scales the thing being scaled), approved as worded. The damage-order rule,
+  Convert into the ailment's type and the corpse-explosion line are the user's (2026-10-23), as [amendment-9] §24.1
+  words them.
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
@@ -85,6 +91,11 @@ obvious card start here; R1b's structure check reads the card's archetype here (
 by its key and section, the pinned data (`pin:`, a grep of the files under `vendor/PathOfBuilding-PoE2/src/`,
 2026-10-18; a bare "(pin)" is a lookup at the pin) or the user; a line with no source stays out. Where guides
 differ, the line gives both. Kits are common wisdom and go stale after a patch: re-check the numbers.
+
+- **Every archetype, for clear:** an explosion on kill (a corpse explosion from a warcry, a node or a unique; a
+  Herald's) turns each kill into a hit sized by the monster's life, so a pack chain-explodes once the first
+  monsters die: one of the strongest and most fun additions to map clear (the user, 2026-10-23). PoB sizes it per
+  corpse, and its Full DPS counts it once a second ([spud] §9).
 
 ### Minions
 
@@ -291,6 +302,22 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   (pin: `TreeData/0_5/tree.lua`).
 - **Ballistas:** one, +1 from Mortar Cannon's Gemling quality, +1 from an Ulaman crossbow prefix; its grenades take
   50% less attack speed and damage for 100% increased cooldown recovery [mob-ballista] §4.
+
+### Warcries
+
+- **Kit:** Spud the King's Warbringer: Warcaller's Bellow (warcries ignore cooldowns and explode corpses, pin:
+  `TreeData/0_5/tree.lua`) spams Seismic Cry under Avatar of Fire; a warcry reads no weapon, so a cheap rare wand
+  carries fire lines, and the shield's block scales damage (Renly's Training, Chernobog's Pillar) [spud] §1, §3. The
+  open-clear run's obvious card borrowed the Maces kit's line for want of this one [worklog].
+- **Levers:** Avatar of Fire and Xoph's Blood scale every skill (each left out costs 48% and 18% of Full DPS), then
+  armour break and ailments, which pay on big hits (Blistering Bond) [spud] §4.1, §9.
+- **Clear:** Bellow's and Deidbell's corpse explosions (25% and 10% of corpse life, pin: `TreeData/0_5/tree.lua`,
+  `Data/Uniques/helmet.lua`), Bellow's above three seconds of the cry; Battershout on Infernal Cry [spud] §4.1, §9.
+- **Costs:** a spammed cry runs out of mana; Blood Magic moves costs to life, refilled per kill [spud] §4.2.
+- **Bosses:** a second button on its own weapon set and tree: Hammer of the Gods on set 1, or Shield Wall detonated
+  by warcries [spud] §4.4, §9.
+- **Count:** Escalation (20% increased damage per different warcry used recently, pin: `TreeData/0_5/tree.lua`) adds
+  about 3% at three warcries: the increases pool is already deep [spud] §9.
 
 ### Shapeshifting (talismans)
 
@@ -710,6 +737,23 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   conversion lets freeze apply [twister].
 - **Cautions:** a non-DPS floor may follow: ignite of at least 2 s [eraser].
 
+### Convert into the ailment's type
+
+- **Shape:** an ailment reads one type of the hit (ignite fire; bleeding physical; poison physical and chaos).
+  Converting every source of the hit into that type, added and gained damage included, makes the whole hit feed
+  the ailment. The ailment then scales with its type's increases, damage over time, its magnitude and its
+  duration.
+- **Search:** from a conversion line (Avatar of Fire, "Converted to"), the ailment's magnitude, chance and
+  duration (`mechanic "Ignite Magnitude"`, "Magnitude of Bleeding", "Flammability"), lines that let another type
+  count ("also Contributes to": Blistering Bond), and the base shares (kind `constant`).
+- **PoB:** modelled: ignite, bleeding and poison read the hit after conversion (pin: `Modules/Data.lua:440`,
+  `Data/Misc.lua:86-96`).
+- **Examples:** Spud's warcry Warbringer: Avatar of Fire makes every hit fire, so the whole hit ignites, and
+  Blistering Bond lets the same fire set bleeding's magnitude [spud].
+- **Cautions:** the keystone forbids every other type, so an ailment that reads another type needs a line like
+  Blistering Bond's. A support that forbids ailments (Elemental Focus) turns the layer off. Only the strongest
+  ignite applies, so it favours big hits over fast ones (the creator's claim, [spud] §5).
+
 ## 5. Copies and rate
 
 ### Proxy multiplier
@@ -792,9 +836,12 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 ### Travel by action
 
 - **Shape:** the build moves by an action it scales (a closing strike, a dodge roll, a teleport): buy its
-  rate or reach, not movement speed.
-- **Search:** relocating actions (`mechanic "teleport" (gem)`, "Dodge Roll distance") and their speed sources.
-- **PoB:** not modelled: travel is no output.
+  rate or reach, not movement speed. A travel skill covers a fixed distance, so it covers ground faster as attack,
+  cast or skill speed rises; Leap Slam's travel adds up to 0.5 s to its attack time (the user, 2026-10-19 [worklog]).
+- **Search:** the Travel skills, `mcp__pob2__list_gems {skill_type: "Travel"}` (C-56); relocating actions
+  (`mechanic "teleport" (gem)`, "Dodge Roll distance") and their speed sources.
+- **PoB:** not modelled: travel is no output; the compile record gives a travel skill's uses a second (`travel`,
+  D-427).
 - **Examples:** Boneshatter at 6.76 attacks a second; Lightning Warp to Ball Lightning [nerd-interactions].
 - **Cautions:** a strike's travel needs in-game testing.
 
@@ -1007,6 +1054,22 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   [mob-poison].
 - **Cautions:** a swap ritual is input demand; Eternal Rage and Sacrifice must be active in both sets (pin).
 
+### A weapon set per skill
+
+- **Shape:** each weapon set holds up to 24 passive points of its own, and using a skill assigned to a set swaps to
+  it, so two skills that scale differently each get a tree. Three shapes: two trees for two skills; two weapons
+  sharing an off-hand (a mace in set 1, a wand in set 2, one shield); both items in both sets, so the swap changes
+  only the tree (the user, and poe2wiki's "Weapon set" as the user pasted it, 2026-10-19 [worklog]).
+- **Search:** where the card's skills want different notables or weapons, give each a set: the plan's
+  `skills.groups[].weaponSet` and `tree.weaponSetNodes`; the card names its weapon-set use (D-426).
+- **PoB:** modelled: set passives apply on their set only, a group follows its set's slot
+  (`Modules/CalcSetup.lua:854`, `:1729`), and the compile measures set 2 on a stage that uses it; supports count
+  across both sets (PG-71).
+- **Examples:** Spud's Warbringer: Hammer of the Gods on set 1's Hoghunt with crit notables, the warcries on set 2's
+  wand and shield with warcry notables [spud] §9. Witchhunter: one crossbow in both sets [mob-witchhunter].
+- **Cautions:** set points are converted regular points, not extra ones; keystones and jewel sockets can't be set
+  passives; a swap drops Life to a lower new maximum; Blink must be on both sets (the wiki, [worklog]).
+
 ### Off-tree defence layer
 
 - **Shape:** a defence from gear and a spirit skill, refilled on kill, frees the tree's defence points.
@@ -1185,6 +1248,7 @@ Paths are from this file; each title is the source's patch.
 [feedback]: ../../../../docs/build-guide/studies/2026-10-17-varashta-run-feedback.md "pin 0.5.4"
 [amendment-8]: ../../../../docs/build-guide/spec/amendment-8-engine-lens.md "pin 0.5.4"
 [amendment-9]: ../../../../docs/build-guide/spec/amendment-9-endgame-first.md "pin 0.5.4"
+[spud]: ../../../../docs/build-guide/studies/2026-10-23-spud-warcryer-comparison.md "0.5.5, measured at pin 0.5.4"
 [fubgun]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-1-fubgun.md "0.5.5"
 [ronarray-page]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-page.md "0.5.5"
 [ronarray-videos]: ../../../../docs/build-guide/studies/2026-10-09-guide-comparison-2-ronarray-videos.md "0.5"

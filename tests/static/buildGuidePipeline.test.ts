@@ -1769,7 +1769,7 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
 });
 
 /** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it). */
-const LIBRARY_WORD_CAP = 12_000;
+const LIBRARY_WORD_CAP = 13_000;
 
 describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () => {
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
@@ -1869,7 +1869,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
   });
 
-  it('is at most 12,000 words, so a researcher reads it whole (D-325, D-381, D-410)', () => {
+  it('is at most 13,000 words, so a researcher reads it whole (D-325, D-381, D-410, amendment 9 §24.1)', () => {
     const words = text.split(/\s+/).filter(Boolean).length;
     expect(words).toBeGreaterThan(1000);
     expect(words).toBeLessThanOrEqual(LIBRARY_WORD_CAP);

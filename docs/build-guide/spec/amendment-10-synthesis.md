@@ -1,8 +1,8 @@
 # Amendment 10: one build from the whole brainstorm
 
 **Status: DRAFT, revision 1, 2026-10-23.** The user took the first draft's five choices on 2026-10-23 (§15, 1 to 5);
-an independent review found 5 blockers, 17 should-fix findings and 9 nits, all resolved here (§16); two new choices
-(§15, 6 and 7) wait for the user, then the reviewer's re-check. It carries:
+an independent review found 5 blockers, 17 should-fix findings and 9 nits, all resolved here (§16); the user took
+the two new choices (§15, 6 and 7) as recommended the same day; the reviewer's re-check is next. It carries:
 - the user's direction after the live test (WU-99): the brainstorm's ideas are synthesized into builds, not dealt
   as independent cards of which all but one are dropped;
 - the user's two choices the same day: **composites drawing on all cards** (one composite per compatible structure,
@@ -274,8 +274,9 @@ about 1.1M (amendment 9 §10). Estimated changes, for a run that verifies two co
 - R1b on a composite: 4 more probe compiles and the Pieces measured, about +30K a composite, +60K for two;
 - D1-build: about +20K a build (questions asked again, sets measured, `pieces.md`).
 
-About +163K on the shared phases, so about 1.26M against D-416's 1.2M target (choice 7). Fewer, better candidates are
-where a saving can come from: two composites verified in place of three thin cards is about −100K.
+About +163K on the shared phases, so about 1.26M. Fewer, better candidates are where a saving can come from: two
+composites verified in place of three thin cards is about −100K. **The shared phases' target rises to 1.3M** (the
+user, choice 7). Amends D-416's first figure.
 
 ## 12. Work units (M-23, after M-22 merges)
 
@@ -355,9 +356,9 @@ Taken on 2026-10-23, walked through one at a time:
 New, from the review:
 
 6. **A fixed roll's composites** (S1): keyed by engine, so `/build-guide <ascendancy> <skill>` still gets up to 4
-   alternatives (recommended); or one composite (two after a split) plus the baseline.
-7. **The shared phases' target** (S13): raise D-416's 1.2M to 1.3M for composites (recommended: the estimate is about
-   1.26M, and the synthesis replaces verifying thin cards), or keep 1.2M and verify fewer.
+   alternatives (recommended; taken); or one composite (two after a split) plus the baseline.
+7. **The shared phases' target** (S13): raise D-416's 1.2M to 1.3M for composites (recommended; taken: the estimate
+   is about 1.26M, and the synthesis replaces verifying thin cards), or keep 1.2M and verify fewer.
 
 ## 16. The independent review and its resolution
 

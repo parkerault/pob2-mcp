@@ -1022,6 +1022,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       checks: reply.checks,
       ref: refData,
       trees: treesOf.get(stage.id),
+      // D-426: V1's Spirit check reads weapon set 2 too.
+      ...(reply.outputsSet2 !== undefined ? { outputsSet2: reply.outputsSet2 } : {}),
     });
     const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
     results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
@@ -1113,6 +1115,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       level: stage.level,
       elapsedMs,
       outputs: reply.outputs,
+      // D-426: weapon set 2's measure, on a stage that uses it.
+      ...(reply.outputsSet2 !== undefined ? { outputsSet2: reply.outputsSet2 } : {}),
       countedOutputs: counted.countedOutputs,
       skillOutputs: reply.skillOutputs,
       countedSkillOutputs: counted.countedSkillOutputs,

@@ -2,7 +2,7 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationChange, PassiveTreeData } from "../types.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
-import type { NodePowerParams, NodePowerResult } from "../engine/schemas.js";
+import type { NodePowerParams, NodePowerResult, PowerPool } from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
@@ -870,9 +870,14 @@ const nodeRef = (n: { id: number; name: string }) => `${n.name} [${n.id}]`;
 const typeText = (n: { type: string; attribute?: boolean }) => `${n.type}${n.attribute ? ' (attribute)' : ''}`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** The best swap, or why there is none, in one paragraph (the compact mode's line). */
-function swapText(r: NodePowerResult): string {
-  const s = r.bestSwap;
+/**
+ * The best swap, or why there is none, in one paragraph (the compact mode's line). For a pool move (C-55a, D-426),
+ * `pool` holds its pool's swaps, and the line names the pool, `Best swap (weapon set <n>): …`, in the same form.
+ */
+function swapText(r: NodePowerResult, pool?: PowerPool): string {
+  const s = pool ? pool.bestSwap : r.bestSwap;
+  const swaps = pool ? pool.swaps : r.swaps;
+  const head = pool ? `Best swap (weapon set ${pool.set})` : 'Best swap';
   const first = r.stats[0];
   if (!s) {
     const others = r.stats.slice(1).map((x) => x.label);
@@ -880,9 +885,9 @@ function swapText(r: NodePowerResult): string {
       ...(others.length > 0 ? [`${others.join(' and ')} may lose at most the max_loss (default 2%)`] : []),
       'movement speed and the clear skill\'s radius and uses per second none (default)',
     ];
-    const legal = r.swaps.filter((s) => s.verdict !== 'illegal').length;
+    const legal = swaps.filter((s) => s.verdict !== 'illegal').length;
     return (
-      `Best swap: none: of the weakest unprotected branches, ${plural(r.swaps.length, 'was', 'were')} tried (${legal} legal), ` +
+      `${head}: none: of the weakest unprotected branches, ${plural(swaps.length, 'was', 'were')} tried (${legal} legal), ` +
       `and none gains ${first.label} within the limits (${limits.join('; ')}).`
     );
   }
@@ -893,7 +898,7 @@ function swapText(r: NodePowerResult): string {
   const added = s.added ?? [];
   const addedText = added.map((n) => `${nodeRef(n)}${n.attributeChoice ? ` (attribute: ${n.attributeChoice})` : ''}`);
   return (
-    `Best swap: ${gains[0]}${gains.length > 1 ? `; ${gains.slice(1).join('; ')}` : ''}. ` +
+    `${head}: ${gains[0]}${gains.length > 1 ? `; ${gains.slice(1).join('; ')}` : ''}. ` +
     `Remove ${plural(removed.length, 'point')}: ${removed.map(nodeRef).join(', ')}. ` +
     `Add ${plural(added.length, 'point')}: ${addedText.join(', ')}. ` +
     `Searched from branch ${s.branchName} [${s.branch}]: its new paths use ${s.used ?? added.length} of the ${plural(s.freed, 'freed point')}, counted after the branch is removed.`
@@ -903,7 +908,9 @@ function swapText(r: NodePowerResult): string {
 /**
  * `get_node_power` (C-55): PoB's node power on a loadout, with the best legal swap (D-417, D-418). One engine
  * request (`node_power`, a 120 s long action) measures every stat; then `check_coverage` rates the listed nodes'
- * lines for what PoB can't measure (C-47's section).
+ * lines for what PoB can't measure (C-47's section). C-55a (D-426): after the best swap's line, one line per
+ * weapon-set pool with nodes, `Best swap (weapon set <n>): …` in the same form, the move within that pool measured
+ * with its set active.
  */
 export async function handleGetNodePower(context: PassiveUpgradesContext, args: NodePowerArgs) {
   return wrapHandler('get node power', async () => {
@@ -923,7 +930,8 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
       lines.push(
         `Ranked by ${statNames[0]}${statNames.length > 1 ? `; also measured: ${statNames.slice(1).join(', ')}` : ''}. ` +
           `${r.measuredNodes} nodes within ${r.maxDistance} points of the tree measured with PoB's calculator ` +
-          `(${r.calculations} calculations, ${r.cpuSeconds.toFixed(1)} s CPU).`,
+          `(${r.calculations} calculations, ${r.cpuSeconds.toFixed(1)} s CPU` +
+          `${(r.poolSwaps ?? []).length > 0 && typeof r.poolCpuSeconds === 'number' ? `, ${r.poolCpuSeconds.toFixed(1)} s of it on the weapon-set pools` : ''}).`,
       );
       const clear = r.clear;
       const clearText =
@@ -938,6 +946,9 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
     }
     lines.push(`Travel: ${r.travel} of ${plural(r.points, 'point')} give nothing alone on ${named}.`);
     lines.push(swapText(r));
+    // C-55a (D-426): each weapon-set pool's move, measured with that set active.
+    const pools = r.poolSwaps ?? [];
+    for (const p of pools) lines.push(swapText(r, p));
     const keepUnallocated = r.keepNotAllocated;
     if (keepUnallocated.length > 0) {
       lines.push(`keep: ${keepUnallocated.join(', ')} ${keepUnallocated.length === 1 ? "isn't" : "aren't"} allocated in this loadout, so ${keepUnallocated.length === 1 ? 'it protects' : 'they protect'} nothing.`);
@@ -945,18 +956,29 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
 
     if (!compact) {
       const prot = Object.entries(r.protected ?? {}).map(([why, n]) => `${n} ${why}`);
-      if (prot.length > 0) lines.push(`Protected nodes (never removed, nor any branch holding one): ${prot.join(', ')}.`);
+      if (prot.length > 0) {
+        lines.push(
+          `Protected nodes (never removed, nor any branch holding one): ${prot.join(', ')}.` +
+            (pools.length > 0 ? ' A weapon-set node moves only within its own pool, by that pool\'s move.' : ''),
+        );
+      }
+      for (const p of pools) {
+        lines.push(
+          `Weapon set ${p.set}: ${plural(p.nodes, 'node')}; with it active, ${r.stats.map((s, i) => `${s.label} ${figure(p.base[i])}`).join(' | ')}.`,
+        );
+      }
       if ((r.heldBranches ?? 0) > 0) {
         lines.push(
           `Also left out: ${plural(r.heldBranches!, 'branch', 'branches')} whose removal would disconnect a node outside it ` +
             "(a weapon-set node PoB's depends leaves out, or a node a protect_for loadout builds on).",
         );
       }
-      if (r.swaps.length > 0) {
-        lines.push('', `Swaps tried (the weakest unprotected branches, until 5 legal tries):`);
-        for (const s of r.swaps) {
+      const tried = [...r.swaps.map((s) => ({ s, pool: '' })), ...pools.flatMap((p) => p.swaps.map((s) => ({ s, pool: `(weapon set ${p.set}) ` })))];
+      if (tried.length > 0) {
+        lines.push('', `Swaps tried (the weakest unprotected branches, until 5 legal tries; each pool's within it):`);
+        for (const { s, pool } of tried) {
           const gain = s.gainPercent?.[0] !== undefined ? ` (${percent(s.gainPercent[0])} ${first.label})` : '';
-          lines.push(`- ${s.branchName} [${s.branch}], ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);
+          lines.push(`- ${pool}${s.branchName} [${s.branch}], ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);
         }
       }
       lines.push('', `## Best unallocated nodes, by path gain per point on ${first.label}`, '');
@@ -983,11 +1005,13 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
       });
     }
 
-    // C-47's section over the nodes listed: the ranked nodes, the listed branches' nodes and the best swap's nodes.
+    // C-47's section over the nodes listed: the ranked nodes, the listed branches' nodes and the best swaps' nodes.
     const listed = new Map<number, string>();
     for (const n of r.best) listed.set(n.id, n.name);
     for (const n of r.weakest) listed.set(n.id, n.name);
-    for (const n of [...(r.bestSwap?.removed ?? []), ...(r.bestSwap?.added ?? [])]) listed.set(n.id, n.name);
+    for (const s of [r.bestSwap, ...pools.map((p) => p.bestSwap)]) {
+      for (const n of [...(s?.removed ?? []), ...(s?.added ?? [])]) listed.set(n.id, n.name);
+    }
     const branchIds = new Set<number>();
     for (const n of r.weakest) for (const id of n.branch) if (!listed.has(id)) branchIds.add(id);
     const coverageIds = [...listed.keys(), ...branchIds];

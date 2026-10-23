@@ -17,7 +17,7 @@
  * | `item-level-requirement` | an equipped item's level requirement exceeds the stage level |
  * | `attributes` | Str < ReqStr, Dex < ReqDex or Int < ReqInt, naming the item or gem |
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
- * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know |
+ * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know; and (D-426) PoB's Spirit warning on weapon set 2, from the stage's set-2 measure (`checkSetTwoSpirit`) |
  * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. Also (D-418, schema 6) a `tree.needs` entry with no `claim`, or whose `claim` names no claim id of the stage: a need keeps nodes node power may call weak, so the plan says why. One finding per group, entry or need; `data.path` is the missing field's path in the stage |
  * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
@@ -50,6 +50,9 @@ export const INFORMATIONAL_WARNING = /^You have \d+ Weapon set 2 passives availa
  */
 export const TOO_MANY_PASSIVES_WARNING = /^You have too many passive points allocated$/;
 
+/** PoB's Spirit warning (Modules/BuildDisplayStats.lua:140): unreserved Spirit below 0. */
+export const SPIRIT_WARNING = 'Your unreserved Spirit is negative';
+
 /** The plan option V1 reads (C-32). */
 const RESISTANCE_PENALTY = 'resistancePenalty';
 
@@ -64,6 +67,8 @@ export interface V1Input {
   ref: PlanReferenceData;
   /** `compile_check`'s trees for the stage (D-360). Without them, `tree-shape` isn't checked. */
   trees?: StageTrees;
+  /** D-426: `compile_stage`'s measure with weapon set 2 active, on a stage that uses set 2; V1 checks its Spirit. */
+  outputsSet2?: Record<string, number>;
 }
 
 export interface V1Result {
@@ -438,6 +443,34 @@ function checkWarnings(checks: StageChecks, martyrSpent: boolean, findings: Find
   return { kept, filtered };
 }
 
+/**
+ * D-426: V1's Spirit check on weapon set 2. PoB's warning lines come from the stage's own measure, on the set it is
+ * measured with (set 1 unless `items.useSecondWeaponSet`); set 2's Spirit can differ (a sceptre, passives tagged to a
+ * set). So on a stage measured on set 1 with a set-2 measure, PoB's own rule (`SpiritUnreserved` below 0,
+ * Modules/BuildDisplayStats.lua:140) is applied to that measure, and a negative one is a `pob-warning` finding naming
+ * the set, its line kept with PoB's.
+ */
+export function checkSetTwoSpirit(
+  stage: Pick<Stage, 'items'>,
+  outputsSet2: Readonly<Record<string, number>> | undefined,
+  findings: Finding[],
+  kept: string[],
+): void {
+  if (outputsSet2 === undefined || stage.items.useSecondWeaponSet) return;
+  const unreserved = outputsSet2.SpiritUnreserved;
+  if (typeof unreserved !== 'number' || !(unreserved < 0)) return;
+  const spirit = outputsSet2.Spirit;
+  const line = `${SPIRIT_WARNING} on weapon set 2`;
+  kept.push(line);
+  findings.push({
+    code: 'pob-warning',
+    message:
+      `${line}: with weapon set 2 active, PoB measures ${typeof spirit === 'number' ? spirit : '?'} Spirit and ` +
+      `${unreserved} unreserved, so set 2 reserves more Spirit than it has`,
+    data: { line, set: 2, spirit: typeof spirit === 'number' ? spirit : null, unreserved },
+  });
+}
+
 function checkContinuity(stage: Stage, predecessor: Stage | null, findings: Finding[]): void {
   const current = new Set([...stage.tree.nodes, ...stage.tree.ascendancyNodes]);
   const dropped = predecessor === null
@@ -680,6 +713,7 @@ export function checkV1(input: V1Input): V1Result {
   checkAttributes(checks, findings);
   checkResistancePenalty(stage, facts, findings, notes);
   const pobWarnings = checkWarnings(checks, martyrSpent, findings);
+  checkSetTwoSpirit(stage, input.outputsSet2, findings, pobWarnings.kept);
   checkContinuity(stage, input.predecessor, findings);
   checkReasons(stage, findings);
   checkTreeShape(input.trees, findings);

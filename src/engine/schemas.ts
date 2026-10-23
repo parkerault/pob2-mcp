@@ -1487,6 +1487,8 @@ export const compileStageReply = baseReply.extend({
         .object({ nodes: luaArray(allocatedNodeSchema), startNodes: luaArray(z.number().int()) })
         .passthrough(),
       outputs: luaMap(z.number()),
+      /** D-426: on a stage that uses weapon set 2, the same map measured with set 2 active; absent otherwise. */
+      outputsSet2: luaMap(z.number()).optional(),
       skillOutputs: luaMap(stageSkillOutputSchema),
       skippedToggles: luaArray(z.string()),
       items: luaMap(slotItemSchema),
@@ -1580,6 +1582,21 @@ export const powerSwapSchema = z
   .passthrough();
 export type PowerSwap = z.infer<typeof powerSwapSchema>;
 
+/**
+ * C-55a (D-426): the pool moves of one weapon-set pool with nodes: the set, its node count, the base figures with that
+ * set active (what its swaps' percentages are of), the swaps tried within the pool and the best one.
+ */
+export const powerPoolSchema = z
+  .object({
+    set: z.union([z.literal(1), z.literal(2)]),
+    nodes: z.number().int(),
+    base: powerFiguresSchema,
+    bestSwap: powerSwapSchema.optional(),
+    swaps: luaArray(powerSwapSchema),
+  })
+  .passthrough();
+export type PowerPool = z.infer<typeof powerPoolSchema>;
+
 const powerResultSchema = z
   .object({
     stats: luaArray(powerStatSchema),
@@ -1611,6 +1628,10 @@ const powerResultSchema = z
     weakest: luaArray(powerWeakSchema),
     bestSwap: powerSwapSchema.optional(),
     swaps: luaArray(powerSwapSchema),
+    /** C-55a (D-426): the pool moves, one entry per weapon-set pool with nodes, set 1 first; empty without any. */
+    poolSwaps: luaArray(powerPoolSchema).optional(),
+    /** C-55a: the CPU seconds the pool moves' searches took, within `cpuSeconds`. */
+    poolCpuSeconds: z.number().optional(),
     failures: luaArray(z.object({ id: z.number().int(), name: z.string(), error: z.string() }).passthrough()),
     calculations: z.number().int(),
     cpuSeconds: z.number(),

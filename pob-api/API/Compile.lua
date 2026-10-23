@@ -92,8 +92,12 @@
 --     (before the plan's when a calculation runs before the groups are built: the off-hand check), so the plan's
 --     groups are found as the groups without one, in order (group_indices). Every group number in the reply is
 --     the plan's: the plan's groups first, in plan order, then PoB's own, in PoB's order.
+--     Weapon set 2 (D-426): on a stage that uses it (passives tagged to set 2, an item in a Swap slot, or a skill
+--     group socketed in one), the stage is also measured with set 2 active, just before its own measurement, and
+--     `outputsSet2` is that measure in `outputs`' form; on a stage whose own measure is set 2's
+--     (useSecondWeaponSet), it is `outputs` itself, and a stage that doesn't use set 2 has none.
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
---         outputs{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
+--         outputs{}, outputsSet2?{}, skillOutputs{}, skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
 --         configSurvivesDrop{option: boolean}, dotCanStack{main, skills{key: boolean}},
 --         checks{...}, minionSkills[{group, activeSkill, summon, minion, minionId, name, index, statSet,
@@ -1812,6 +1816,59 @@ local function companion_measure(st)
   fail('the stage names a companion, but PoB built no companion skill for its Tame Beast gem')
 end
 
+-- Every finite number of a main output, with the minion's own numbers flattened as Minion<Field> (D-376,
+-- BuildOps.output_field; PoB's own field wins).
+local function output_map(output)
+  local outputs = {}
+  for k, v in pairs(output) do
+    if type(k) == 'string' and finite(v) then outputs[k] = v end
+  end
+  if type(output.Minion) == 'table' then
+    for k in pairs(output.Minion) do
+      if type(k) == 'string' then
+        local key = 'Minion' .. k
+        local v = BuildOps.output_field(output, key)
+        if outputs[key] == nil and finite(v) then outputs[key] = v end
+      end
+    end
+  end
+  return outputs
+end
+
+-- D-426: whether the stage uses weapon set 2: passives tagged to it, an item in a Swap slot, or a skill group
+-- socketed in one (PoB's own group for a Swap item's skill: a group follows a set only through its slot,
+-- Modules/CalcSetup.lua:1729).
+local function uses_set_two(st)
+  if #list(st.weaponSets and st.weaponSets.set2) > 0 then return true end
+  for _, it in ipairs(list(st.items)) do
+    if tostring(it.slot):match(' Swap$') then return true end
+  end
+  local slots = build.itemsTab.slots
+  for _, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    local slot = group.slot and slots[group.slot]
+    if slot and slot.weaponSet == 2 then return true end
+  end
+  return false
+end
+
+-- D-426: the stage measured with weapon set 2 active (the item set's useSecondWeaponSet, which every calculation
+-- reads: Modules/CalcSetup.lua:854, :927, :1729), as output_map gives it. The flag and the last weapon-fit flags are
+-- put back however it ends, so the stage's own measurement after it sees the build as it would without it; the
+-- weapon-fit flags are cleared for it, so PoB's slot check doesn't unequip a set's off-hand against the other set's
+-- passives (ValidateWeaponSlots runs only when a calculation loses a flag the last one had).
+local function measure_set_two()
+  local itemsTab = build.itemsTab
+  local itemSet = itemsTab.activeItemSet
+  local flags = itemsTab.lastWeaponFlagState
+  itemSet.useSecondWeaponSet = true
+  itemsTab.lastWeaponFlagState = nil
+  local ok, output, err = pcall(rebuild)
+  itemSet.useSecondWeaponSet = false
+  itemsTab.lastWeaponFlagState = flags
+  if not ok then error(output, 0) end
+  return output_map(must('measuring the stage with weapon set 2 active', output, err))
+end
+
 function M.compile_stage(st)
   if TEST_ACTIONS and st.__crashForTest then os.exit(3) end
   if not build or not build.treeTab or not build.itemsTab or not build.skillsTab or not build.configTab
@@ -1856,23 +1913,15 @@ function M.compile_stage(st)
       must('setting the level', BuildOps.set_level(st.level))
       return id
     end)
+    -- D-426: on a stage that uses weapon set 2, set 2's measure, before the stage's own so the build ends as it
+    -- would without it; on a stage measured with set 2 active (useSecondWeaponSet), its own measure is set 2's.
+    local setTwo = uses_set_two(st)
+    local outputsSet2 = (setTwo and st.useSecondWeaponSet ~= true) and measure_set_two() or nil
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
     local companion = companion_measure(st)
-    local outputs = {}
-    for k, v in pairs(output) do
-      if type(k) == 'string' and finite(v) then outputs[k] = v end
-    end
-    -- D-376: the minion's own numbers, flattened as Minion<Field> (BuildOps.output_field; PoB's own field wins).
-    if type(output.Minion) == 'table' then
-      for k in pairs(output.Minion) do
-        if type(k) == 'string' then
-          local key = 'Minion' .. k
-          local v = BuildOps.output_field(output, key)
-          if outputs[key] == nil and finite(v) then outputs[key] = v end
-        end
-      end
-    end
+    local outputs = output_map(output)
+    if setTwo and st.useSecondWeaponSet == true then outputsSet2 = outputs end
     local configInputs, configSurvivesDrop = {}, {}
     local cs = build.configTab.configSets[configSetId]
     local stored = {}
@@ -1895,6 +1944,7 @@ function M.compile_stage(st)
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
       allocation = alloc,
       outputs = outputs,
+      outputsSet2 = outputsSet2,
       skillOutputs = skills,
       skippedToggles = skipped,
       items = set_items(itemsTab.itemSets[itemSetId], list(st.itemSlots)),

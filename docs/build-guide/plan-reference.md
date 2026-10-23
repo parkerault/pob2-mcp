@@ -387,6 +387,34 @@ Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
   Key figures: DPS 5; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
 ```
 
+### Weapon set 2's measure (D-426)
+
+PoB measures a loadout with one weapon set active, the one `items.useSecondWeaponSet` names: passives tagged to a
+set apply only while it is active, a skill group follows a set only through the slot it is socketed in, and set 2's
+weapons are the `Weapon 1 Swap` and `Weapon 2 Swap` slots. So a stage that **uses weapon set 2** (a node in
+`tree.weaponSetNodes.set2`, an item in a Swap slot, or a skill group PoB socketed in one, as for a Swap item's
+granted skill) is measured twice: with set 2 active, then as the plan says. The record's `stages.<id>.outputsSet2`
+is the second weapon set's measure, the same key-figure map as `outputs` (every finite number of PoB's main output,
+the minion's as `Minion<Field>`): Life, energy shield, Spirit and `SpiritUnreserved`, the resistances, Full DPS and
+the rest, all with set 2 active. `outputs`, `skillOutputs`, the counted figures, the measures and the key-figure line
+stay the plan's own set's, set 1's unless `useSecondWeaponSet` is true; a stage measured on set 2 has `outputsSet2`
+equal to `outputs`. A stage that doesn't use set 2 has no `outputsSet2`, and compiles as before. A plan's group
+names no slot, so it is active on both sets: a buff or a reservation in it counts on each.
+
+V1's Spirit check reads both sets. PoB's own warning lines are the measured set's ("Your unreserved Spirit is
+negative", a `pob-warning`), and on a stage measured on set 1, V1 applies PoB's rule to `outputsSet2` too: a
+negative `SpiritUnreserved` there is the `pob-warning` `Your unreserved Spirit is negative on weapon set 2`, its
+`data` `{line, set: 2, spirit, unreserved}`, and the line joins `pobWarnings.kept`.
+
+```json
+"outputs": { "Life": 274, "Spirit": 130, "SpiritUnreserved": 70, "FullDPS": 20.6, "…": 0 },
+"outputsSet2": { "Life": 244, "Spirit": 30, "SpiritUnreserved": -30, "FullDPS": 18.2, "…": 0 }
+```
+
+A buff cast from set 2 keeps set 2's effect while set 1 is out, which PoB can't show on set 1: measure it with set 2
+active, and carry it to set 1 as a `config.customMods` entry whose `reason` says so (D-293). PoB counts the socketed
+supports of both sets, where the game counts only the active set's (PG-71).
+
 ### The level the build works from (D-413)
 
 Every compiled stage's record gives `requirements {level, by[]}` (`stages.<id>.requirements`): the highest level

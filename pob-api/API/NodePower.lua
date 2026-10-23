@@ -50,6 +50,22 @@
 -- outside it, in this tree or a protectFor loadout's (walked under the weapon-set rule, since PoB's depends leaves
 -- out a weapon-set node hanging off an untagged branch), is protected too.
 --
+-- The pool moves (C-55a, D-426): beside the main swap, a second search for each weapon-set pool that has nodes (the
+-- allocated main-tree nodes tagged 1, or 2), measured with that weapon set active, since a tagged node's lines apply
+-- only on its own set (Condition:WeaponSet<n>, Modules/CalcSetup.lua:263-278). For the loadout's own set the pass's
+-- calculator serves; for the other, the item set's useSecondWeaponSet is switched for the search alone and PoB's misc
+-- calculator is built again (Modules/Calcs.lua getMiscCalculator, which reads the flag on every calculation), the
+-- global skill cache wiped before and after. A pool's branch is one of its nodes with every node its removal cuts off
+-- (under PoB's weapon-set rule a tagged node only holds up nodes of its own set), unprotected by the rules above but
+-- the weapon-set one, ranked by loss per point on that set; for its weakest branches in turn (5 legal tries, at most
+-- 20), remove the branch and add, greedily, nodes tagged to the same pool whose new paths fit the freed points: a
+-- candidate paths from an untagged node or a node of the pool, and neither it nor its path holds a node PoB never
+-- tags (a keystone, a jewel socket). It is legal when every node it keeps or adds stays allocated, no weapon-set tag
+-- changes, every node it removes or adds is the pool's, the pool holds no more points than before by PoB's own count
+-- (PassiveSpec:CountAllocNodes, as V1's weapon-set-points reads it), the other pool and the regular points don't grow,
+-- and no start holds a second tree; then it is judged as the main swap is, against that set's own figures. A node
+-- never moves between pools, or between a pool and the main tree.
+--
 -- Registered by one line in Handlers.lua.
 
 local BuildOps = require('API.BuildOps')
@@ -366,11 +382,11 @@ end
 
 -- What the call reads from one output: each stat's change against the base (CalculatePowerStat), each stat's
 -- value, the movement speed, the clear entry when the clear group is the main one, and any raw fields asked for.
-local function extract(ctx, out)
+local function extract(ctx, out, calcBase)
   local v = { delta = {}, value = {} }
   for i, s in ipairs(ctx.stats) do
     v.value[i] = data.powerStatList.GetFromOutput(out, s)
-    v.delta[i] = build.calcsTab:CalculatePowerStat(s, out, ctx.calcBase)
+    v.delta[i] = build.calcsTab:CalculatePowerStat(s, out, calcBase or ctx.calcBase)
   end
   v.move = tonumber(out.EffectiveMovementSpeedMod)
   if ctx.clearInMain then v.clear = clear_of(out) end
@@ -408,24 +424,30 @@ local function path_ids(node)
   return out
 end
 
+-- A measuring function over `calcFunc` (a misc calculator) against its `calcBase`, caching by key; each calculation
+-- counts in ctx.calcs.
+local function measurer(ctx, calcFunc, calcBase)
+  local cache = {}
+  return function(key, override)
+    if key and cache[key] then return cache[key] end
+    ctx.calcs = ctx.calcs + 1
+    local ok, out = pcall(calcFunc, override, ctx.useFullDPS)
+    local r
+    if ok and type(out) == 'table' then r = extract(ctx, out, calcBase)
+    else r = { err = plain(ok and "PoB's calculator returned no output" or out) } end
+    if key then cache[key] = r end
+    return r
+  end
+end
+
 local function run_pass(ctx)
   local spec = build.spec
   local calcFunc, calcBase = build.calcsTab:GetMiscCalculator()
   ctx.calcFunc, ctx.calcBase = calcFunc, calcBase
   ctx.base = extract(ctx, calcBase)
   ctx.granted = (build.calcsTab.mainEnv and build.calcsTab.mainEnv.grantedPassives) or {}
-  local cache = {}
   ctx.calcs = 0
-  ctx.measure = function(key, override)
-    if key and cache[key] then return cache[key] end
-    ctx.calcs = ctx.calcs + 1
-    local ok, out = pcall(calcFunc, override, ctx.useFullDPS)
-    local r
-    if ok and type(out) == 'table' then r = extract(ctx, out)
-    else r = { err = plain(ok and "PoB's calculator returned no output" or out) } end
-    if key then cache[key] = r end
-    return r
-  end
+  ctx.measure = measurer(ctx, calcFunc, calcBase)
   local measure = ctx.measure
   -- PowerBuilder's own order: the nodes bucketed by distance as it buckets them (each bucket a table filled in
   -- pairs(spec.nodes) order, so pairs over it runs in PowerBuilder's order), the buckets nearest first. Its single-node
@@ -623,9 +645,17 @@ local function attribute_name(treeNode, index)
   return name and tostring(name):lower() or nil
 end
 
--- One swap for the branch `pick` (its node ids as a set): see the header.
+-- C-55a: whether PoB can tag a node to a weapon set (PassiveSpec:AllocNode gives a keystone, a jewel socket or an
+-- ascendancy node allocMode 0, Classes/PassiveSpec.lua:931-936).
+local function taggable(node)
+  return is_main(node) and node.type ~= 'Keystone' and node.type ~= 'Socket' and not node.containJewelSocket
+end
+
+-- One swap for the branch `pick` (its node ids as a set): see the header. With `ctx.pool` (C-55a), a pool move: the
+-- branch is the pool's, and every node added is tagged to the pool.
 local function try_swap(ctx, scratch, orig, origCounts, pick)
   local spec = build.spec
+  local pool = ctx.pool
   local removed = pick.set
   local freed = count(removed)
   local result = { branch = pick.row.id, branchName = node_name(pick.row.node), freed = freed }
@@ -655,13 +685,22 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     end
   end
 
-  -- The candidates: every unallocated main-tree node PoB paths to from an untagged node within the freed points.
+  -- The candidates: every unallocated main-tree node PoB paths to from an untagged node within the freed points; for a
+  -- pool move, also from a node of the pool, and only a node that it and its path can be tagged to the pool.
+  local function path_taggable(n)
+    for _, p in ipairs(n.path or {}) do
+      if not taggable(p) then return false end
+    end
+    return true
+  end
   local cands = {}
   for _, id in ipairs(sorted_ids(scratch.nodes)) do
     local n = scratch.nodes[id]
+    local rootMode = n.pathRoot and (n.pathRoot.allocMode or 0)
     if not n.alloc and REPORT_TYPES[n.type] and not n.ascendancyName and n.modKey ~= nil and n.modKey ~= ''
         and not ctx.granted[id] and n.path and #n.path >= 1 and #n.path <= freed
-        and #(n.intuitiveLeapLikesAffecting or {}) == 0 and n.pathRoot and (n.pathRoot.allocMode or 0) == 0 then
+        and #(n.intuitiveLeapLikesAffecting or {}) == 0 and n.pathRoot
+        and (rootMode == 0 or (pool ~= nil and rootMode == pool)) and (pool == nil or path_taggable(n)) then
       cands[#cands + 1] = { id = id, path = path_ids(n) }
     end
   end
@@ -727,7 +766,15 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
   end
   overrides = scratch.hashOverrides
   local finalIds = sorted_ids(final)
-  import(scratch, spec, finalIds, weaponSets, overrides)
+  -- A pool move's chosen nodes are tagged to its pool (a removed node chosen again keeps its tag, the pool's); the kept
+  -- nodes keep their tags.
+  local finalTags = weaponSets
+  if pool then
+    finalTags = {}
+    for id, mode in pairs(weaponSets) do finalTags[id] = mode end
+    for id in pairs(chosen) do finalTags[id] = pool end
+  end
+  import(scratch, spec, finalIds, finalTags, overrides)
 
   local function illegal(why)
     result.verdict = 'illegal'
@@ -745,11 +792,28 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     end
     return n
   end
-  if main_points(final, scratch) > main_points(orig, spec) then return illegal('it would spend more points') end
+  if pool then
+    -- V1's weapon-set-points and passive-points read PoB's own counts (CountAllocNodes, Compile.lua's stage_checks):
+    -- the pool holds no more points than before, the other pool is unchanged, and the regular points don't grow.
+    local used0, _, _, _, a1, a2 = spec:CountAllocNodes()
+    local used1, _, _, _, b1, b2 = scratch:CountAllocNodes()
+    local before, after = { a1, a2 }, { b1, b2 }
+    if after[pool] > before[pool] then
+      return illegal(('weapon set %d would hold %d points, more than its %d'):format(pool, after[pool], before[pool]))
+    end
+    if after[3 - pool] ~= before[3 - pool] then return illegal(('weapon set %d would change'):format(3 - pool)) end
+    local regular0, regular1 = used0 - math.min(a1, a2), used1 - math.min(b1, b2)
+    if regular1 > regular0 then
+      return illegal(('it would spend more points: %d regular, against %d'):format(regular1, regular0))
+    end
+    if main_points(final, scratch) ~= main_points(orig, spec) then return illegal('the main tree would change') end
+  elseif main_points(final, scratch) > main_points(orig, spec) then
+    return illegal('it would spend more points')
+  end
   local ok, start = shape_ok(spec, final, origCounts)
   if not ok then return illegal('a start would hold a second tree (' .. start .. ')') end
   for _, id in ipairs(finalIds) do
-    local want = orig[id] and (spec.nodes[id].allocMode or 0) or 0
+    local want = orig[id] and (spec.nodes[id].allocMode or 0) or (pool or 0)
     if (scratch.nodes[id].allocMode or 0) ~= want then return illegal('a weapon-set tag would change') end
   end
   for _, id in ipairs(added) do
@@ -757,7 +821,11 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
   end
   for _, id in ipairs(removedNet) do
     local node = spec.nodes[id]
-    if node.ascendancyName or (node.allocMode or 0) ~= 0 then return illegal('it would remove a weapon-set or ascendancy node') end
+    if pool then
+      if (node.allocMode or 0) ~= pool then return illegal(('it would remove a node outside weapon set %d'):format(pool)) end
+    elseif node.ascendancyName or (node.allocMode or 0) ~= 0 then
+      return illegal('it would remove a weapon-set or ascendancy node')
+    end
   end
 
   local v = ctx.measure(nil, { spec = scratch })
@@ -860,26 +928,42 @@ local function measure_call(params, ctx)
   for _, e in ipairs(unalloc) do byId[e.id] = e end
   for _, e in ipairs(alloc) do byId[e.id] = e end
 
-  -- The protected nodes.
-  local prot = {}
+  -- The protected nodes. `poolProt` (C-55a) holds the same protections but the weapon-set one, which the pool moves
+  -- lift for their own pool.
+  local prot, poolProt = {}, {}
   local keepUnallocated = {}
   for _, id in ipairs(ctx.keep) do
-    if spec.allocNodes[id] then prot[id] = prot[id] or 'keep' else keepUnallocated[#keepUnallocated + 1] = id end
+    if spec.allocNodes[id] then
+      prot[id] = prot[id] or 'keep'
+      poolProt[id] = poolProt[id] or 'keep'
+    else
+      keepUnallocated[#keepUnallocated + 1] = id
+    end
   end
   for id, node in pairs(spec.allocNodes) do
     if (node.allocMode or 0) ~= 0 then prot[id] = prot[id] or 'weapon set' end
     for _, line in ipairs(node.sd or {}) do
-      if type(line) == 'string' and line:match('^%s*[Gg]rants [Ss]kill:') then prot[id] = prot[id] or 'grants a skill' end
+      if type(line) == 'string' and line:match('^%s*[Gg]rants [Ss]kill:') then
+        prot[id] = prot[id] or 'grants a skill'
+        poolProt[id] = poolProt[id] or 'grants a skill'
+      end
     end
-    if node.ascendancyName or is_start(node) then prot[id] = prot[id] or 'ascendancy or start' end
+    if node.ascendancyName or is_start(node) then
+      prot[id] = prot[id] or 'ascendancy or start'
+      poolProt[id] = poolProt[id] or 'ascendancy or start'
+    end
   end
   for _, lo in ipairs(ctx.protectFor) do
     local other = build.treeTab.specList[lo.specId]
     for id in pairs(spec.allocNodes) do
       local on = other and other.nodes[id]
-      if on and on.alloc and not prot[id] then
+      if on and on.alloc and (not prot[id] or not poolProt[id]) then
         for _, d in ipairs(on.depends or {}) do
-          if not spec.allocNodes[d.id] then prot[id] = 'built on by ' .. lo.name; break end
+          if not spec.allocNodes[d.id] then
+            prot[id] = prot[id] or ('built on by ' .. lo.name)
+            poolProt[id] = poolProt[id] or ('built on by ' .. lo.name)
+            break
+          end
         end
       end
     end
@@ -1007,54 +1091,60 @@ local function measure_call(params, ctx)
     return v.err and 0 or v.delta[1]
   end
   result.heldBranches = held
-  -- The weakest branches in turn, until SWAP_BRANCHES of them give a legal swap to measure (an illegal one doesn't
-  -- count), the list ends, or MAX_TRIES are tried.
-  local swaps = {}
-  local bestSwap
-  if #weak > 0 then
-    local orig = {}
-    for id in pairs(spec.allocNodes) do orig[id] = true end
-    local origCounts = start_counts(spec, orig)
-    local scratch = new_scratch(spec)
-    local legalTries = 0
-    for i, e in ipairs(weak) do
-      if legalTries >= SWAP_BRANCHES or i > MAX_TRIES then break end
-      local s = try_swap(ctx, scratch, orig, origCounts, { row = e, set = e.set })
-      if s.verdict ~= 'illegal' then legalTries = legalTries + 1 end
-      if s.verdict == 'legal' then
-        local gain = s.measured.delta[1]
-        s.gain = {}
-        for i = 1, nStats do s.gain[i] = s.measured.delta[i] end
-        if gain <= 0 then
-          s.verdict = 'no-gain'
-          s.reason = ('it changes %s by %s'):format(ctx.stats[1].stat, tostring(gain))
-        else
-          local why = loss_reason(ctx, s)
-          if why then
-            s.verdict = 'over-loss'
-            s.reason = why
-          elseif not bestSwap or gain > bestSwap.measured.delta[1] then
-            bestSwap = s
-          end
-        end
+  local orig = {}
+  for id in pairs(spec.allocNodes) do orig[id] = true end
+  local origCounts = start_counts(spec, orig)
+  local scratch
+
+  -- A legal swap's figures against `c`'s base (the pass's, or a pool's set's): no gain, over the limits, or kept.
+  local function judge(c, s)
+    if s.verdict ~= 'legal' then return end
+    local gain = s.measured.delta[1]
+    s.gain = {}
+    for i = 1, nStats do s.gain[i] = s.measured.delta[i] end
+    if gain <= 0 then
+      s.verdict = 'no-gain'
+      s.reason = ('it changes %s by %s'):format(ctx.stats[1].stat, tostring(gain))
+    else
+      local why = loss_reason(c, s)
+      if why then
+        s.verdict = 'over-loss'
+        s.reason = why
       end
-      swaps[#swaps + 1] = s
     end
   end
 
-  local function swap_entry(s)
+  -- The branches `rows` in turn, until SWAP_BRANCHES of them give a legal swap to measure (an illegal one doesn't
+  -- count), the list ends, or MAX_TRIES are tried; each swap tried and the best, judged against `c`.
+  local function search(c, rows)
+    local tried, bestOne = {}, nil
+    if #rows == 0 then return tried, nil end
+    scratch = scratch or new_scratch(spec)
+    local legalTries = 0
+    for i, e in ipairs(rows) do
+      if legalTries >= SWAP_BRANCHES or i > MAX_TRIES then break end
+      local s = try_swap(c, scratch, orig, origCounts, { row = e, set = e.set })
+      if s.verdict ~= 'illegal' then legalTries = legalTries + 1 end
+      judge(c, s)
+      if s.verdict == 'legal' and (not bestOne or s.measured.delta[1] > bestOne.measured.delta[1]) then bestOne = s end
+      tried[#tried + 1] = s
+    end
+    return tried, bestOne
+  end
+
+  local function swap_entry(s, c)
     local entry = { branch = s.branch, branchName = s.branchName, freed = s.freed, verdict = s.verdict, reason = s.reason }
     if s.gain then
       entry.gain = s.gain
       entry.gainPercent = {}
       for i = 1, nStats do
-        local p = pct(s.gain[i], ctx.base.value[i])
+        local p = pct(s.gain[i], c.base.value[i])
         if p == nil then p = NULL end
         entry.gainPercent[i] = p
       end
       entry.movement = s.measured.move
-      local c = ctx.clearSeparate and s.clear or s.measured.clear
-      if c and not c.err then entry.clear = { radius = c.radius, usesPerSecond = c.uses } end
+      local cl = ctx.clearSeparate and s.clear or s.measured.clear
+      if cl and not cl.err then entry.clear = { radius = cl.radius, usesPerSecond = cl.uses } end
     end
     entry.used = s.used
     if s.added then
@@ -1068,9 +1158,105 @@ local function measure_call(params, ctx)
     end
     return entry
   end
-  result.bestSwap = bestSwap and swap_entry(bestSwap) or nil
+
+  -- The main swap: the weakest unprotected branches.
+  local swaps, bestSwap = search(ctx, weak)
+  result.bestSwap = bestSwap and swap_entry(bestSwap, ctx) or nil
   result.swaps = {}
-  for _, s in ipairs(swaps) do result.swaps[#result.swaps + 1] = swap_entry(s) end
+  for _, s in ipairs(swaps) do result.swaps[#result.swaps + 1] = swap_entry(s, ctx) end
+
+  -- C-55a (D-426): the pool moves, one search per weapon-set pool that has nodes (see the header).
+  local pools = { {}, {} }
+  for id, node in pairs(spec.allocNodes) do
+    local m = node.allocMode or 0
+    if m ~= 0 and is_main(node) then pools[m][id] = true end
+  end
+  local itemSet = build.itemsTab.activeItemSet
+  local active = itemSet and itemSet.useSecondWeaponSet and 2 or 1
+  -- The context of pool m's search: the pass's for the loadout's own set; for the other, PoB's misc calculator built
+  -- with that set active (the caller switches it), its base, clear entry and estimates its own.
+  local function pool_context(m)
+    local c = setmetatable({ pool = m }, { __index = ctx })
+    if m == active then return c end
+    local calcFunc, calcBase = build.calcsTab.calcs.getMiscCalculator(build)
+    c.calcFunc, c.calcBase = calcFunc, calcBase
+    c.measure = measurer(ctx, calcFunc, calcBase)
+    c.base = extract(ctx, calcBase, calcBase)
+    c.measure_clear = function(s) return ctx.measure_clear(s, calcFunc) end
+    c.baseClear = ctx.clearSeparate and c.measure_clear(nil) or c.base.clear
+    c.estimate = function(id)
+      local node = spec.nodes[id]
+      if not node or node.modKey == nil or node.modKey == '' or ctx.granted[id] then return 0 end
+      local key = node.alloc and (node.modKey .. '_remove') or node.modKey
+      local v = c.measure(key, node.alloc and { removeNodes = { [node] = true } } or { addNodes = { [node] = true } })
+      if v.err then return 0 end
+      return node.alloc and -v.delta[1] or v.delta[1]
+    end
+    return c
+  end
+  -- Pool m's branches: each node of the pool with the nodes its removal cuts off, none protected but by its tag, and
+  -- none whose removal cuts off a node a protect_for loadout holds; ranked by loss per point on the pool's set.
+  local function pool_branches(c, m)
+    local rows = {}
+    for _, id in ipairs(sorted_ids(pools[m])) do
+      if not poolProt[id] then
+        local set = { [id] = true }
+        for d in pairs(unreached(spec, allocSet, { [id] = true })) do
+          if not trees[1].before[d] then set[d] = true end
+        end
+        local ok = true
+        for d in pairs(set) do
+          if not pools[m][d] or poolProt[d] then ok = false; break end
+        end
+        for k = 2, #trees do
+          if ok and disconnected(trees[k].spec, trees[k].alloc, set, trees[k].before) then ok = false end
+        end
+        if ok then
+          local nodes = {}
+          for d in pairs(set) do nodes[spec.nodes[d]] = true end
+          local v = c.measure(nil, { removeNodes = nodes })
+          if not v.err then
+            local points = count(set)
+            rows[#rows + 1] = { id = id, node = spec.nodes[id], set = set, points = points, lossPerPoint = -v.delta[1] / points }
+          end
+        end
+      end
+    end
+    table.sort(rows, function(a, b)
+      if a.lossPerPoint ~= b.lossPerPoint then return a.lossPerPoint < b.lossPerPoint end
+      if a.points ~= b.points then return a.points > b.points end
+      return a.id < b.id
+    end)
+    return rows
+  end
+  result.poolSwaps = {}
+  local tPools = os.clock()
+  for m = 1, 2 do
+    if next(pools[m]) ~= nil then
+      local prior = itemSet and itemSet.useSecondWeaponSet
+      local switched = m ~= active and itemSet ~= nil
+      local okPool, entry = pcall(function()
+        if switched then
+          itemSet.useSecondWeaponSet = m == 2
+          if wipeGlobalCache then wipeGlobalCache() end
+        end
+        local c = pool_context(m)
+        local tried, bestOne = search(c, pool_branches(c, m))
+        local out = { set = m, nodes = count(pools[m]), base = {}, swaps = {} }
+        for i = 1, nStats do out.base[i] = c.base.value[i] end
+        out.bestSwap = bestOne and swap_entry(bestOne, c) or nil
+        for _, s in ipairs(tried) do out.swaps[#out.swaps + 1] = swap_entry(s, c) end
+        return out
+      end)
+      if switched then
+        itemSet.useSecondWeaponSet = prior
+        if wipeGlobalCache then wipeGlobalCache() end
+      end
+      if not okPool then error(entry, 0) end
+      result.poolSwaps[#result.poolSwaps + 1] = entry
+    end
+  end
+  result.poolCpuSeconds = os.clock() - tPools
 
   -- The lists, `limit` rows each (none in the compact mode, limit 0).
   local limit = ctx.limit
@@ -1197,9 +1383,10 @@ function M.node_power(params)
     ctx.clearInMain = ctx.clearGroup == build.mainSocketGroup
     ctx.clearSeparate = not ctx.clearInMain
     local mainGroup = build.mainSocketGroup
-    ctx.measure_clear = function(scratch)
+    -- `calcFunc`: a pool's own calculator (C-55a), else the pass's.
+    ctx.measure_clear = function(scratch, calcFunc)
       build.mainSocketGroup = ctx.clearGroup
-      local okc, out = pcall(ctx.calcFunc, scratch and { spec = scratch } or {}, false)
+      local okc, out = pcall(calcFunc or ctx.calcFunc, scratch and { spec = scratch } or {}, false)
       build.mainSocketGroup = mainGroup
       if okc and type(out) == 'table' then return clear_of(out) end
       return { err = plain(okc and "PoB's calculator returned no output" or out) }

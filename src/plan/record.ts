@@ -704,6 +704,13 @@ export interface StageRecord {
   elapsedMs: number;
   /** PoB's main output, as measured: the main skill's figures and the defences. */
   outputs: Record<string, number>;
+  /**
+   * D-426: on a stage that uses weapon set 2 (passives tagged to set 2, an item in a Swap slot, or a skill group
+   * socketed in one), the same key-figure map as `outputs`, measured with set 2 active: Life, Spirit and its
+   * reservation (`SpiritUnreserved`) among them. It is `outputs` itself on a stage measured with set 2 active
+   * (`items.useSecondWeaponSet`), and absent from a stage that doesn't use set 2 and from records written before M-22.
+   */
+  outputsSet2?: Record<string, number>;
   /** D-293, D-321: the main skill's figures with the main group's Count applied (`countedFigures`). */
   countedOutputs: CountedFigures & { group: number };
   skillOutputs: Record<string, { skill: string; statSetLabel: string; fields: Record<string, number> }>;

@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 6,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Boneshatter"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "stages": [
+    {
+      "id": "1",
+      "loadoutName": "Act 1 one weapon set (L14) {1}",
+      "level": 14,
+      "progress": "q.act-1-ogham-manor-candlemass",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "One set",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nSplintered Tower Shield"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "2",
+      "loadoutName": "Act 1 two weapon sets (L14) {2}",
+      "level": 14,
+      "progress": "q.act-1-ogham-manor-candlemass",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839,
+          5710,
+          6015,
+          22928,
+          27373
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [
+            5710,
+            6015
+          ],
+          "set2": [
+            22928,
+            27373
+          ]
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 6015,
+            "attribute": "strength"
+          },
+          {
+            "node": 22928,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 27373,
+            "attribute": "intelligence"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Two sets",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: Normal\nSlim Mace"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nRattling Sceptre"
+          },
+          {
+            "slot": "Weapon 2 Swap",
+            "text": "Rarity: Normal\nSplintered Tower Shield"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Ash",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Ash",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ],
+  "ledger": [],
+  "prices": []
+}

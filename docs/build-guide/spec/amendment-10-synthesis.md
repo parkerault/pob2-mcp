@@ -14,13 +14,13 @@ the new choices 6 to 8 as recommended the same day. It carries:
   2026-10-23).
 
 It is written against spec v1.6, amendment 8 (built as M-20), and amendment 9: M-21 built and merged at `9efb779`;
-M-22 (§17 and §24) building on branch `build-guide/m22`. Amendment 9 §24 as merged with M-22 is binding here: the
-user's damage-order rule, "Convert into the ailment's type", the corpse-explosion line, the library's cap at 13,000,
-and a skill on a weapon set (`skills.groups[].weaponSet`, `skillOutputsSet2`). On the branch these are commits
-`77bd695`, `aa3c3bf` and `98c828f`, which M-22's signed merge will remap like M-21's.
+M-22 (§17 and §24) built and merged at `d3a0c7a`. Amendment 9 §24 as merged with M-22 is binding here: the user's
+damage-order rule, "Convert into the ailment's type", the corpse-explosion line, the library's cap at 13,000, and a
+skill on a weapon set (`skills.groups[].weaponSet`, `skillOutputsSet2`), commits `f15b905`, `a46b7fd` and `4c15958`.
 Paths are from the repository root, except stage files (`R1a.md` and so on), which are under
 `.claude/skills/build-guide/references/stages/`. Decisions continue from D-429, work units from WU-104, criteria from
-AC-W83 and AC-P77; no contract or PoB gap is added; the milestone is M-23. Each decision ends with the rows and rules
+AC-W83 and AC-P77; no contract or PoB gap is added, apart from one compiler rule the user added after M-22 (D-435's
+base implicits, HG-12 granted for it by the user's direction); the milestone is M-23. Each decision ends with the rows and rules
 it amends. Appendix A fixes the formats.
 
 **Names.**
@@ -283,8 +283,21 @@ Amends D1-build (D-375, D-418's needs list), D1-finish (its claims), the D1 gate
   row. WU-108 looks for a Claude Code setting that turns the summaries off for runs: a line in
   `docs/build-guide/run-settings.example.json` if one exists, else a work-log note saying none was found.
 
+- **Base implicits (the user, 2026-10-23, after M-22: "Add base implicits to M-23's live-test fixes").** WU-102's
+  verifier found that an item written as a bare base (`Rarity: Normal` and the base name) gets no implicits in PoB:
+  no weapon's granted skill (a spear's Spear Throw), no ring's resistance, no amulet's attributes. The game gives every
+  item its base's implicit, and the skill text never asks for the lines, so the compiler fills them. An item whose
+  text has no `Implicits:` line gets its base's implicits (`Data/Bases/*.lua`'s `implicit`), as PoB's own rare list
+  does (`Modules/Main.lua:170-176`), a range at PoB's default roll, 0.5 (`Modules/Main.lua:105`). A text with an
+  `Implicits:` line, `Implicits: 0` included, is kept as written, and a unique is kept (PoB's unique data carries
+  its own). A base whose implicit has variants (`variantList`: three amulet bases in the pin, `Data/Bases/amulet.lua`)
+  isn't filled: V1 reports `implicit-variant`, naming the base and its variants, so the designer writes the variant's
+  line. `plan-reference.md` states the rule. Fixtures whose recorded figures move with the fill are updated, each
+  declared.
+
 Amends C-55's implementation (not its text), D-392, R-5's V4 practice (not its rule), `render-audit.mjs` (D-355), the
-checker, and `run-usage.mjs` (D-357).
+checker, `run-usage.mjs` (D-357), and the compiler's reading of a plan's item text (C-41; HG-12 granted by the user's
+direction for this rule only).
 
 ## 11. Costs
 
@@ -308,7 +321,7 @@ user, choice 7). Amends D-416's first figure.
 | WU-105 | `run-log.mjs` (the stage, the `s` letter, the brainstorm display with each plain card's line, `from` keys, `build`'s `name`, the design display's pieces line); `check-run.mjs` (the deck rules for composites and `## Cards`, the round's count and short rule with the under-played mark, the Pieces tables, a composite by its `### Pieces`, the probe cap 8, the dossier's twelfth column, `pieces.md` in `BUILD_FILES`, the mixed-run rule, the empty V4 item, `warnings` and `BUILD_GUIDE_SERVER_BUILD`); `render-audit.mjs` (the title, the `s` letter); `scripts/run-usage.mjs` (the `s` letter, cache read per source); `tests/fixtures/pipeline/`; `references/run-log.md`; `references/offline-and-test.md` (`first-n` picks composites) |
 | WU-106 | `R1b.md` (the composite's skeleton, the measure, leaving out by kind, the probe order and cap), `R1b-assemble.md` and the dossier template, `references/checkpoints.md` (the brainstorm gate), `SKILL.md` (steps 2b and 2c, the names) |
 | WU-107 | `D1-build.md` (D-434, `pieces.md`), `D1-finish.md` (the pieces' claims), `D1-gate.md` (the design field's `pieces`), `RV.md` (questions 16–19, the rival under composites), `references/patterns.md` (questions 16–19, the two entries) |
-| WU-108 | `get_node_power`'s `clear_group` mapping (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, its `toolSchemas.ts` description, the README table); `V4.md`'s syntax check; the background-summary investigation |
+| WU-108 | `get_node_power`'s `clear_group` mapping (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, its `toolSchemas.ts` description, the README table); `V4.md`'s syntax check; the background-summary investigation; base implicits (`pob-api/API/Compile.lua`'s item handling, `src/plan/checks/v1.ts`'s `implicit-variant`, `docs/build-guide/plan-reference.md`, the fixtures the fill moves) |
 | WU-109 | The live test: a run with an open brief and one with a fixed roll, the user's, with the coordinator |
 
 Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; then WU-106 and WU-107; then WU-109.
@@ -352,7 +365,11 @@ Order: WU-104, WU-105 and WU-108 in parallel, the formats fixed by Appendix A; t
 - **AC-P77 (WU-108).** Engine, on a fixture build whose weapon grants a skill: `get_node_power` called with the
   record's group number for the clear group guards that group's skill (its radius and uses per second), not the
   granted skill's; the README table matches the new description.
-- **AC-W87 (WU-108).** Static: `V4.md` checks its report's list syntax before its Write; the work-log or
+- **AC-P78 (WU-108).** Engine, on fixture plans: a bare Hardwood Spear compiles with its Spear Throw group and a bare
+  Ruby Ring with its fire resistance at PoB's default roll, each equal to PoB's own item crafted from the base; an item
+  with `Implicits: 0` and a unique compile as written; a bare variant amulet gets V1's `implicit-variant` and no fill.
+- **AC-W87 (WU-108).** Static: `V4.md` checks its report's list syntax before its Write; `plan-reference.md` states
+  the base-implicit rule; the work-log or
   `run-settings.example.json` records the background-summary finding.
 - **AC-W88 (WU-109).** The live test: the user's judgment of the composites and the finished build, recorded in the
   work-log.

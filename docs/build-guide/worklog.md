@@ -5454,3 +5454,11 @@ the `m17` engine at `b76967b`.
   verifiers 222K, 210K, 193K, 298K).
 - **Signed and rebased onto `main`** (`46adaf9`, amendment 10 approved and the study's §9): 21 commits, all signed;
   the unsigned originals are at `refs/archive/pre-sign-m22-2026-10-23`; 24 cited hashes remapped in this commit.
+
+## 2026-10-23: base implicits join M-23
+
+- **The user's direction** after M-22 ("Add base implicits to M-23's live-test fixes"): amendment 10's D-435 gains
+  the rule that the compiler fills a base's implicits on an item written without an `Implicits:` line, as PoB's own
+  rare list does (`Modules/Main.lua:170-176`), a range at PoB's 0.5 default; `Implicits: 0` and uniques kept as
+  written; a variant amulet base unfilled, V1's `implicit-variant`. WU-108 owns it; AC-P78 tests it; HG-12 granted by
+  the direction for this rule only.

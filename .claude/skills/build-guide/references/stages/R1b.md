@@ -351,10 +351,14 @@ main active skill and stat set:
   figure per second.
 - **For bosses:** each enabled `single_target` group's figure.
 
-A group's figure is its damage per second with its ailments: `TotalDPS` plus the `IgniteDPS`, `BleedDPS` and
-`PoisonDPS` PoB gives at its key (an ailment's carrier pays only there), or its minion's `Minion` fields when its
-damage is its minion's (D-378). The named source's comes from `countedSkillOutputs`, every other group's from
-`skillOutputs`, or `skillOutputsSet2` for a group with `weaponSet: 2`. **Never add figures across groups**: summed,
+A group's figure is its damage per second, its hit and its damage over time with its ailments: `TotalDPS +
+TotalDot + IgniteDPS + BleedDPS + PoisonDPS` at its key, each field PoB gives there (a skill's own damage over time
+is `TotalDot`, and an ailment's carrier pays only in its ailment's field). A group whose damage is its minion's (it
+names a minion skill, or its skill summons one, D-378, D-397) reads `MinionTotalDPS`, the field the record holds for
+a minion's figure. The named source's fields come from `countedSkillOutputs`, its Count applied by each field's rule;
+every other group's from `skillOutputs`, or `skillOutputsSet2` for a group with `weaponSet: 2`. Never `CombinedDPS`
+or `TotalDotDPS`: neither has a Count rule, and `CombinedDPS` is per use for a skill PoB measures by its average
+damage. **Never add figures across groups**: summed,
 one explosion's ignite drowns the skills a player presses, and buttons that compete for the player's time can't all
 run at once. PoB's Full DPS still counts the named source only (D-337), so it is no sum of them either.
 

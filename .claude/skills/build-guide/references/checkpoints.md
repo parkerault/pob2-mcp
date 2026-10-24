@@ -227,8 +227,10 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
 (SKILL.md step 7b), never in the fix round or a revision.
 
 - **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `stages/D1-gate.md` step 6):
-  you read no plan or record and call no tool for it; `display design --build <id>` prints it. One block per
-  endgame rung, in ladder order:
+  you read no plan or record and call no tool for it; `display design --build <id>` prints it. First, once per
+  build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n>
+  scheduled (<names>), <n> out (<names>)`; a build with no `pieces.md` has none. Then one block per endgame rung, in
+  ladder order:
 
   ```
   Budget endgame (level 92):

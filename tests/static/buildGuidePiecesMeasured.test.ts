@@ -119,7 +119,20 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
     expect(text).toMatch(/\*\*Per second, for clear:\*\* each enabled `clear` group's figure, the named damage source's first, Count-scaled \(`countedSkillOutputs`/);
     expect(text).toMatch(/\*\*Per corpse:\*\* each of PoB's own on-kill groups \(a corpse explosion .*\): its hit, `AverageDamage` .*, and its ignite, `IgniteDPS`/);
     expect(text).toMatch(/\*\*For bosses:\*\* each enabled `single_target` group's figure/);
-    expect(text).toMatch(/`skillOutputs`, or `skillOutputsSet2` for a group with `weaponSet: 2`/);
+    // A group's figure: its hit, its own damage over time and its ailments, five fields the record holds per group (the
+    // breakdown's offense fields), each with a Count rule, so the named source's are read Count-scaled alike.
+    const FIGURE = ['TotalDPS', 'TotalDot', 'IgniteDPS', 'BleedDPS', 'PoisonDPS'];
+    expect(text).toContain(`\`${FIGURE.join(' + ')}\` at its key`);
+    const record = read(path.join(REPO, 'src', 'plan', 'record.ts'));
+    const offense = read(path.join(REPO, 'src', 'handlers', 'luaHandlers.ts'));
+    const offenseFields = between(offense, 'export const OFFENSE_STAT_FIELDS', '];');
+    for (const field of [...FIGURE, 'MinionTotalDPS']) {
+      expect({ field, counted: new RegExp(`\\['${field}', '`).test(record), measured: offenseFields.includes(`'${field}'`) }).toEqual({ field, counted: true, measured: true });
+    }
+    expect(text).toMatch(/A group whose damage is its minion's \(it names a minion skill, or its skill summons one, D-378, D-397\) reads `MinionTotalDPS`, the field the record holds for a minion's figure/);
+    expect(text).toMatch(/The named source's fields come from `countedSkillOutputs`, its Count applied by each field's rule; every other group's from `skillOutputs`, or `skillOutputsSet2` for a group with `weaponSet: 2`/);
+    expect(text).toMatch(/Never `CombinedDPS` or `TotalDotDPS`: neither has a Count rule/);
+    for (const field of ['CombinedDPS', 'TotalDotDPS']) expect({ field, counted: new RegExp(`\\['${field}', '`).test(record) }).toEqual({ field, counted: false });
     expect(text).toContain('**Never add figures across groups**');
     expect(text).toContain("PoB's Full DPS still counts the named source only (D-337)");
     // The verification half keeps the figures apart too.
@@ -275,6 +288,15 @@ describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and 
     const synth = stage('R1a-synthesize');
     expect(synth).toContain('`composites: <n>`, then one line per composite of the round, `r<k>-s-<n>: <name>`, then `cards: <n> listed | not composed: <n> | superseded: <n>`');
     expect(SKILL).toMatch(/\*\*A short round\*\*: it returns `short: <why>`; record the reason in the run log, as `shortReason` on its `stages\[\]` entry/);
+  });
+
+  it("D1-build writes pieces.md and returns its pieces: line within its 8 (D-434), and the design gate shows the pieces line before the rungs", () => {
+    expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |');
+    expect(SKILL).toMatch(/Returns `done` or `infeasible`, with a reason, its `for D1-tree:` line and its `pieces:` line, `pieces\.md`'s rows by status \(D-434\), within its 8 lines/);
+    const design = folded(between(rawRef('checkpoints.md'), '## The design gate: judge the endgame build', '## The final gate'));
+    expect(design).toContain("First, once per build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)`");
+    // The display's own line (run-log.mjs, Appendix A).
+    expect(RUN_LOG).toContain('`- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out (${named(p.outNames)})`');
   });
 
   it('the brainstorm gate verifies composites or cards, a composite\'s changes adding or dropping pieces, a new card from pieces', () => {

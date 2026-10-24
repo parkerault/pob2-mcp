@@ -2620,7 +2620,8 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
   it('D1.md is gone; D1-build.md and D1-finish.md are its two steps, each a fresh coordinator step, run in that order', () => {
     expect(fs.existsSync(path.join(STAGES_DIR, 'D1.md'))).toBe(false);
     const skill = fs.readFileSync(SKILL_MD, 'utf8');
-    expect(skill).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |');
+    // Amendment 10 (WU-106, D-434): D1-build also writes the build's pieces.md and returns its pieces: line.
+    expect(skill).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |');
     // Amendment 9 (WU-95, D-418): D1 is three steps, D1-tree between D1-build and D1-finish.
     expect(skill).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees and needs) |');
     expect(skill).toContain('| 6c | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims) |');

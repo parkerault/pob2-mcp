@@ -128,7 +128,7 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 4a | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
 | 4b | RV, the rival, once per run (§3) | `build-guide-researcher` | `cards/r<k>-x-<n>.md` | its card, or `none-found` with what it tried |
 | 5 | The verification gate (§3) | you | log | asks the user: finalize 1–3 cards, in their order (step 6a for the first), verify other cards (step 3), brainstorm more (step 2a) or stop; after a resume, a build's guide, campaign or design gate (§7) |
-| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set) | `done` or `infeasible` |
+| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |
 | 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs' trees and needs) | `done`, each rung's travel; `unspent:` lines |
 | 6c | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims) | `done`; its price calls by outcome |
 | 7a | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`, with the design display; `plan.json` (FI-2 and the final re-price pass) | one verdict line; route by §4 |
@@ -223,8 +223,8 @@ runs all three, in that order; a change to the tree alone (the gate's `tree-swap
 D1-tree, then D1-finish.
 
 - **D1-build** (6a): prompt, write `plan.json` anew (attempt 1 of a fresh design) or edit it; `findings`, the
-  last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason, and
-  its `for D1-tree:` line.
+  last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason, its
+  `for D1-tree:` line and its `pieces:` line, `pieces.md`'s rows by status (D-434), within its 8 lines.
 - **D1-tree** (6b): prompt, D1-build's `for D1-tree:` line as it returned it, when D1-build ran before it;
   `findings`, a `tree-swap` verdict or the user's tree request. Returns each rung's travel, `unspent:` lines, and a
   `not made:` line for each tree change the user asked for that it couldn't make: print those under the design

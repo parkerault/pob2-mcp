@@ -5385,9 +5385,9 @@ the `m17` engine at `b76967b`.
   per corpse from a normal monster's base life at the enemy level; its Full DPS counts each source once a second with
   its ignite against the configured boss, so about half of the reference's Full DPS is one explosion's ignite.
 - **M-22's spec grew, all in §24 on this branch:** the user's damage-order rule and the ailment-conversion entry
-  (`77bd695`), the corpse-explosion line (`aa3c3bf`), the library's cap at 13,000 (`77bd695`), and a skill on a weapon
-  set, `skills.groups[].weaponSet` and `skillOutputsSet2`, for WU-102 (`98c828f`, the user's HG-12 grant).
-- **WU-100 done by its doer** (`2a6a9e3`, two commits, about 437K tokens). Gate rc 0 (164 suites, 2,882 tests), build
+  (`f15b905`), the corpse-explosion line (`a46b7fd`), the library's cap at 13,000 (`f15b905`), and a skill on a weapon
+  set, `skills.groups[].weaponSet` and `skillOutputsSet2`, for WU-102 (`4c15958`, the user's HG-12 grant).
+- **WU-100 done by its doer** (`f657841`, two commits, about 437K tokens). Gate rc 0 (164 suites, 2,882 tests), build
   rc 0. Declared deviations: `get_config` prints each option's label (`configHandlers.ts`); `constant` is a full
   mechanic kind; base mode's kind is `item-base`; an exact node name several nodes share fails listing their ids; no
   `tool-calls.json` samples for the new modes. `lookup_game_data`'s description is at 2,035 of 2,048 characters. The
@@ -5395,28 +5395,28 @@ the `m17` engine at `b76967b`.
 - **WU-100 verified and merged** (verifier about 222K tokens): PASS, no blocking defect. Its own gate rc 0 (164 suites,
   2,882 tests), build rc 0; 130 distances checked against an independent breadth-first search over the pin's tree
   (0 mismatches, including nodes reached only around the Witch start); Flameblast's and Heightened Curse's rows checked
-  by hand. Rebased onto `68c57fe` and fast-forwarded: `76f0c96` (code), `e1593a5` (skill text). Notes: AC-K6 reads
+  by hand. Rebased onto `b493e0b` and fast-forwarded: `5554cb1` (code), `f657841` (skill text). Notes: AC-K6 reads
   "each mode's ok sample", so `tool-calls.json` gains samples for the new modes in WU-102 (it owns the next tool
   change); `get_config`'s output grew from about 22K to 39K characters with C-37c's labels; a blank `from` is ignored
   rather than failing (cosmetic); `lookup_game_data`'s description has 13 characters left.
 - **WU-101 done and merged** (doer about 549K tokens, verifier about 205K plus its gate): PASS, no blocking defect.
-  Doer's gate after its rebase onto `ec2076f`: rc 0 (166 suites, 2,892 tests), build rc 0; the verifier's own gate the
-  same. Fast-forwarded: `c99d24b` (set 2's measure, V1's Spirit on both sets, `get_node_power`'s pool moves),
-  `cea9700` (skill text, PG-71), `58cc40f` (the tool's description under AC-F15's cap). The verifier's probe: Spirit
+  Doer's gate after its rebase onto `32abb70`: rc 0 (166 suites, 2,892 tests), build rc 0; the verifier's own gate the
+  same. Fast-forwarded: `79af051` (set 2's measure, V1's Spirit on both sets, `get_node_power`'s pool moves),
+  `db6c869` (skill text, PG-71), `c56ee8b` (the tool's description under AC-F15's cap). The verifier's probe: Spirit
   130 on set 1 (the Act 1 quest's 30 plus the Rattling Sceptre's 100), 30 on set 2, two Heralds reserving 30 each, V1
   flags set 2 only; set 1 is active again after the compile and after `get_node_power`; `two-stage` and `minion-wolf`
-  compile to the same records on `ec2076f` and `58cc40f`. Accepted deviations: V1's set-2 Spirit line reuses
+  compile to the same records on `32abb70` and `c56ee8b`. Accepted deviations: V1's set-2 Spirit line reuses
   `pob-warning` (no code fixed for it); the pool's legality is "may not grow", stricter than `weapon-set-points`; the
   pool search adds about 10% to a call. Notes: a stage measured with `useSecondWeaponSet` true never measures set 1
   (the pipeline never sets it); the design display doesn't name a pool move's pool, and each way a stage uses set 2
   isn't tested alone (both passed to WU-102, which owns the display and the third way).
 - **Wave 2 started before WU-101 merged** (the coordinator's call, to save an hour): WU-102 and WU-103 doers on
-  `58cc40f` while WU-101's verifier ran; it passed, so no rebase is needed.
-- **The pin upgrade procedure** (`CLAUDE.md`, step 5, `b313d0b`, the user's request): re-check the skills-tab refresh
+  `c56ee8b` while WU-101's verifier ran; it passed, so no rebase is needed.
+- **The pin upgrade procedure** (`CLAUDE.md`, step 5, `793216d`, the user's request): re-check the skills-tab refresh
   in `BuildOps.get_main_output` and the two skill-slot tests' line numbers in `Modules/Build.lua`.
 - **WU-103 done and merged** (doer about 315K tokens, verifier about 193K): PASS, no blocking defect. Gate rc 0 (169
-  suites, 2,910 tests), build rc 0, on the doer's and the verifier's runs. Rebased onto `b313d0b` and fast-forwarded:
-  `427689b` (V1's `skill-slots`), `37f18f3` (the library at 12,315 words of 13,000, PG-72 closed, PG-73 Mighty
+  suites, 2,910 tests), build rc 0, on the doer's and the verifier's runs. Rebased onto `793216d` and fast-forwarded:
+  `8a54245` (V1's `skill-slots`), `2828cf4` (the library at 12,315 words of 13,000, PG-72 closed, PG-73 Mighty
   Silverfist's extra rare modifier, a stat the pin holds only as text). Outside its files, accepted by the user:
   `get_main_output` refreshes PoB's count of skill groups before each calculation, since the skills tab refreshes it
   only at load and as it draws; the verifier found only PoB's warnings read it (`CalcPerform.lua:3603-3616`), and
@@ -5440,8 +5440,8 @@ the `m17` engine at `b76967b`.
   when that one grants none (an empty slot counts), else the main hand with V1's new `weapon-skill-supports` naming the
   overstated granted skill (PG-74); Spear Throw keeps its figure beside an empty off-hand or a focus. `list_gems`
   reads every granted effect (14 Travel gems, Blink and Black Powder Blitz among them). A set-2 clear group's uses a
-  second are set 2's (0.5918, PoB's own; set 1 gave 0.6078). Rebased onto `455fcbc` and fast-forwarded: `270f9d7`,
-  `8f67b01`, `253d87e`. New V1 codes in M-22: `skill-slots`, `empty-weapon-set`, `weapon-skill-supports`; they need a
+  second are set 2's (0.5918, PoB's own; set 1 gave 0.6078). Rebased onto `63cf870` and fast-forwarded: `5f58447`,
+  `bb227f9`, `fee197d`. New V1 codes in M-22: `skill-slots`, `empty-weapon-set`, `weapon-skill-supports`; they need a
   decision row at the next spec fold. Notes: a slotted curse group now has PoB's slot priority (1000 main hand, 4000
   off-hand) where it had 0; a set-2 main group measured on set 1 still files its supports under the main hand (narrow,
   in PG-74); `weapon-skill-supports` fails V1 on a spear with a buckler even when nothing reads Spear Throw (rare: it
@@ -5449,6 +5449,8 @@ the `m17` engine at `b76967b`.
 - **Found by WU-102's verifier, before M-22:** an item written as a bare base (`Rarity: Normal` and the base name) gets
   no implicits in PoB, so no granted skill and no ring or amulet implicit; the skill text never asks for them. For the
   user (a candidate for M-23).
-- **The M-22 wave gate (AC-W78a) PASSED** on `253d87e`: test rc 0 (174 suites, 2,961 tests; the timing step 2 suites,
+- **The M-22 wave gate (AC-W78a) PASSED** on `fee197d`: test rc 0 (174 suites, 2,961 tests; the timing step 2 suites,
   3 tests), build rc 0, both waiver files `[]`. M-22's subagents: about 2.6M tokens (doers 437K, 549K, 530K, 315K;
   verifiers 222K, 210K, 193K, 298K).
+- **Signed and rebased onto `main`** (`46adaf9`, amendment 10 approved and the study's §9): 21 commits, all signed;
+  the unsigned originals are at `refs/archive/pre-sign-m22-2026-10-23`; 24 cited hashes remapped in this commit.

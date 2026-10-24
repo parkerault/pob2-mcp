@@ -317,6 +317,31 @@ writes each kept modifier as its row in `data/monsters/monster-mods.md` says.
 "companion": { "species": "Diretusk Boar", "mods": ["haste-aura", "trail-of-ice"] }
 ```
 
+### A base's implicits (D-435)
+
+The game gives every item its base's implicit (a spear's Spear Throw, a ring's resistance, an amulet's attribute),
+but PoB reads only the lines an item's text holds, so a bare base would have none. **An item whose text has no
+`Implicits:` line gets its base's implicits:** the compile writes the base's implicit lines (`Data/Bases/*.lua`'s
+`implicit`) into the item as PoB's own rare list and crafting window fill a base's (`Modules/Main.lua:170-176`), a
+range at PoB's default roll, its middle (0.5, `Modules/Main.lua:105`). So `Rarity: Normal` and `Ruby Ring` is a ring
+with +25% to Fire Resistance, and a bare Hardwood Spear grants Spear Throw, which PoB measures in a group of its own.
+The compile lists PoB's own groups after the plan's, so a plan group's number in PoB is its number in the plan and the
+record, in every loadout. The saved build holds the filled item. Kept as written:
+
+- **A text with an `Implicits:` line,** `Implicits: 0` included: write `Implicits: <n>` and its lines to give an item
+  other implicits than its base's (another roll, a corrupted implicit), or none.
+- **A unique** (or a relic): PoB's unique data carries its own implicits, so write a unique's text whole, its
+  `Implicits:` line included, as the unique lookup gives it.
+- **A base whose implicit has variants** isn't filled: at the pin, the Lament, Portent and Absent Amulets, each
+  variant granting another skill (`variantList`). Which variant an item has is the item's, so the compile leaves it
+  without an implicit, and V1 reports `implicit-variant`, naming the base and its variants, its `data` `{slot, base,
+  variants, path}` (`path` the item's `items.slots[<k>].text`): write the variant's implicit line after an
+  `Implicits:` line.
+
+```json
+{ "slot": "Weapon 1", "text": "Rarity: Normal\nHardwood Spear" }
+```
+
 ### Claim kinds and the anoint (D-351, D-358)
 
 Schema version 3 adds two fields.
@@ -560,7 +585,7 @@ rule may require an optional key in some cases.
 | `stages[].items.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].items.slots` | object[] | yes | One entry per filled slot | C-31 |
 | `stages[].items.slots[].slot` | item slot | yes | One of `Weapon 1`, `Weapon 1 Swap`, `Weapon 2`, `Weapon 2 Swap`, `Helmet`, `Body Armour`, `Gloves`, `Boots`, `Amulet`, `Ring 1`, `Ring 2`, `Ring 3`, `Belt`, `Charm 1`, `Charm 2`, `Charm 3`, `Flask 1`, `Flask 2`. Unique within `slots` (a repeat errs at the later entry) | C-31 |
-| `stages[].items.slots[].text` | string | yes | Non-empty. The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile | C-31 |
+| `stages[].items.slots[].text` | string | yes | Non-empty. The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile; a text with no `Implicits:` line, not a unique, gets its base's implicits (see a base's implicits above) | C-31, D-435 |
 | `stages[].items.treeJewels` | object[] | yes | The jewels socketed in the tree | C-31 |
 | `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` | C-31 |
 | `stages[].items.treeJewels[].text` | string | yes | Non-empty. The jewel's item text | C-31 |

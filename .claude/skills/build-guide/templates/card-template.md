@@ -2,12 +2,16 @@
 
 <!--
 Template for cards/<id>.md (slice 03 section 7.5, spine C-52), one candidate build. The id is
-r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), or r<round>-x-<n>
-for the rival's (D-408). R1a (or the rival, RV) writes the brainstorm half, about 250–400 words, from the pattern
-library (references/patterns.md); R1b writes the verification half under it (and first, a gate's change to the
-brainstorm half, stages/R1b.md). Keep the two H2s and their H3s below exactly, in this order, and add no other
-heading. Replace every <placeholder>, keep a line marked [only when ...] only when it applies (and drop the
-marker), and delete this comment.
+r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), r<round>-x-<n>
+for the rival's (D-408), or r<round>-s-<n> for a composite, one build composed from the whole brainstorm (D-429).
+R1a (or the rival, RV) writes the brainstorm half, about 250–400 words, from the pattern library
+(references/patterns.md); R1a-synthesize writes a composite's whole brainstorm half, its Pieces table included
+(stages/R1a-synthesize.md); R1b writes the verification half under it (and first, a gate's change to the
+brainstorm half, stages/R1b.md), a composite's Pieces measured table included. Keep the two H2s and their H3s
+below exactly, in this order, and add no other heading. The H3s "Pieces" and "Pieces measured" are a composite's
+only (D-429, D-433): a card with "### Pieces" is a composite, whatever its id letter, and a plain card (a
+researcher's, the rival's, a gate-made card drawn from cards only) has neither. Replace every <placeholder>, keep
+a line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
 
 Status words, used everywhere on the card, exactly as written here, one per link, figure or claim:
 - confirmed in game text: a lookup returned the text;
@@ -92,6 +96,14 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Exposed phase: <when the build is vulnerable, and what covers it | none found>
 - Resistant bosses: <bosses that resist the damage source's element | none found>
 
+### Pieces
+
+[only on a composite (D-429, D-432): this H3 and its table, one row per piece it weighs; a plain card has neither]
+
+| Key | Piece | Kind | Status | Where | Why | From |
+|---|---|---|---|---|---|---|
+| <i<k><letter>-<m>, an Ideas line's id \| c<card id>-<m>, from a card's links> | <the piece, by the name its lookup gives> | <skill \| support \| unique \| mod \| node \| keystone \| rune \| config>[, under-played] | <in \| scheduled \| out> | <a slot, group, set or node for in and scheduled \| — for out> | <the job it does; required for scheduled and out> | <every source: card ids and Ideas ids> |
+
 ## Verification half
 
 ### Structure check
@@ -140,3 +152,11 @@ Status words, used everywhere on the card, exactly as written here, one per link
 ### Key item prices
 
 - <item>: <about <low>–<high> divines around day 7 (seen <amount currency> on YYYY-MM-DD, day <n> of <league>[, late] | <league>, its day unknown) | <amount currency>, seen YYYY-MM-DD, not converted: no currency rates | unavailable (<note>)>
+
+### Pieces measured
+
+[only on a composite (D-433): this H3 and its table, R1b's leave-one-out probes; a plain card has neither]
+
+| Key | Drops | How |
+|---|---|---|
+| <the Pieces row's key> | <each figure that moves, `<group> (<clear \| per corpse \| boss>) −<x>%`, joined with `; ` \| estimate (<reason>), for a piece PoB doesn't model \| not measured (<why>)> | <how the probe left the piece out \| —> |

@@ -2,8 +2,9 @@
 
 Three researchers run in parallel in each brainstorm round, each on its own focus (D-287). Each writes one
 research file (the mechanics, synergy search and config gaps that R1b reads) and 3 **cards**, each the brainstorm
-half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then deals the deck from the round's cards (`R1a-assemble.md`), the user
-picks the cards to verify at the brainstorm gate, and R1b compiles them (`R1b.md`).
+half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then composes the round's builds from every card and
+the research files' Ideas (`R1a-synthesize.md`, D-429; in a run whose first round dealt a deck, `R1a-assemble.md`), the
+user picks what to verify at the brainstorm gate, and R1b compiles it (`R1b.md`).
 
 ## Researchers and their focus
 
@@ -80,6 +81,8 @@ compare with the kit, not with the obvious card.
   comparison table, when it exists. Write only cards the deck doesn't already hold, and follow the user's note.
   Add to Mechanics or Config gaps only what the earlier rounds' research files lack: Grep their `^#` headings
   and Read only the sections you add to.
+- **A later round's Ideas** (D-430): write only pieces the earlier rounds' Ideas lack. Grep their `## Ideas`
+  lines, `^- i[0-9]` across `research/`, before you write yours.
 
 ## Work, by focus
 
@@ -201,6 +204,10 @@ By focus:
 
 - <supplier> (<the lookup or data file that found it>): used by <card id> | not used: <why>
 
+## Ideas                     (every focus, at most 25 lines, D-430)
+
+- i<k><letter>-<m> | <piece> | <kind> | role: <layer | scaler of <X> | supply of <X> | removes limit: <X> | defence | boss> | needs: <class, ascendancy, skill types, weapon or slot | any> | conflicts: <what it consumes or forbids | none> | <lookup> | <PoB label> | on: <card ids | none>[ | under-played: <the shape>]
+
 ## Sources
 
 [^p<k>r<n>-1]: pob-data | lookup_game_data gem "<skill>" | patch: <enginePatch>
@@ -214,10 +221,30 @@ The `Supply search` sections are what R1a-assemble reads for the deck's "Found, 
   research file has no plan to cite, so use tags (`pob-data`, `judgment`, `external`,
   `external-unavailable`) and `data | <file>#<key>`, never `ledger` or `price`.
 
+**The Ideas** (D-430), every focus: `## Ideas`, after your focus's sections and the `Supply search` sections and
+before `## Sources`, one line per piece you confirmed in game text, used on your cards or not, **at most 25 lines**,
+in the form above (amendment 10's Appendix A). They are the pool the coordinator's R1a-synthesize step composes builds
+from, with your Supply search (D-429), so a piece no card uses can still reach a build.
+
+- **A piece** is one mechanism with one job for a build (a damage layer, a scaler, a supply, a way around a limit, a
+  defence, a boss answer): a skill, a support, a unique, a rare's mod line, a node, a keystone, a rune, or a mechanic
+  or config condition.
+- **The fields.** `i<k><letter>-<m>`: round `k`, your letter, `m` from 1. `<kind>`: `skill`, `support`, `unique`,
+  `mod`, `node`, `keystone`, `rune` or `config`. `role:` its job; `removes limit: <X>` means it takes limit X away (a
+  cost moved, a cooldown ignored). `needs:` what a build must have to use it, or `any`. `conflicts:` what it consumes
+  or forbids, or `none`. `<lookup>`: the call that confirmed it, as a card's links table names it (a data entry as
+  `data \| <path>#<id>`, its pipe escaped). `<PoB label>`: one of the library's six. `on:` the ids of your cards that
+  use it, or `none`. The last field only on a piece you judge under-played (D-339), as its card's label would say.
+- **Which lines.** The lines your cards use come first, then the widest spread of roles: layers, scalers, supplies,
+  limits removed, defences, boss answers. The supply search's suppliers (D-404) are Ideas lines too, used or not.
+- **Confirmed only.** The synthesis takes a line's lookup as its confirmation (D-430), so a piece no lookup
+  confirmed gets no line. A line cites its lookup in its own field and carries no marker.
+
 **The cards** (C-52): 3, each `cards/r<k>-<letter>-<m>.md`, from the template
 `.claude/skills/build-guide/templates/card-template.md`. Write its H1 and its whole brainstorm half, about
 250–400 words; under `## Verification half` keep the template's H3s, each with the one line `Not checked
-yet.`, for R1b to fill.
+yet.`, for R1b to fill. Your cards are plain cards: leave out the template's `### Pieces` and `### Pieces measured`,
+which only a composite has (D-429, D-433).
 
 - **Identity:** the class, the ascendancy and the **named damage source**, each exactly as the lookup gives
   it. The named damage source is the main source of damage, never a token role (D-122 as D-295 words it): an
@@ -242,7 +269,8 @@ yet.`, for R1b to fill.
 - **Chain, Enabler and Links:** every link of the chain in the links table, with its confirming game text
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
   clauses stated as theory ("from a Hit", "you use yourself"). A link no lookup confirmed is `not checked yet`:
-  the coordinator deals a card only when every load-bearing link is confirmed (`R1a-assemble.md`).
+  the coordinator deals a card, or composes with it, only when every load-bearing link is confirmed
+  (`R1a-assemble.md`, `R1a-synthesize.md`).
 - **Evidence** (D-335): the brief's `popularity` notes that speak to this card's skill, ascendancy or
   combination, quoted and cited as the user's notes; otherwise "no player evidence". No tool supplies player
   evidence. A reference build only from one the user named, or a source on an allowed host online.
@@ -269,7 +297,8 @@ r1-b-1: Bleed Burst Lunge
 r1-b-2: Slam and Lunge
 ```
 
-The coordinator's R1a-assemble step merges the round's cards and deals the deck (D-287).
+The coordinator's R1a-synthesize step then composes the round's builds from every card and your Ideas (D-429); in a
+run whose first round dealt a deck, its R1a-assemble step deals it (D-287).
 
 ## Fault directives
 

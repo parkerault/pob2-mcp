@@ -1,7 +1,8 @@
 # Stage references
 
 One file per step, `<stage>.md`, named by the task header's `stage` (`task-header.md`): `R1a.md`,
-`R1a-assemble.md`, `R1b.md`, `R1b-assemble.md`, `RV.md` (the rival, D-408), `D1-build.md`, `D1-tree.md`,
+`R1a-synthesize.md` (the round's composites, D-429), `R1a-assemble.md` (the deck, in a run whose first brainstorm
+round used it), `R1b.md`, `R1b-assemble.md`, `RV.md` (the rival, D-408), `D1-build.md`, `D1-tree.md`,
 `D1-finish.md` (D1's three steps, D-356, D-418), `D1-gate.md`, `F1.md` (an endgame-only build's final compile,
 D-413), `D2.md`, `D2-gate.md` (a build's campaign, D-415), `W1.md`, `V4.md` (its campaign pass, stage
 `V4-campaign`, too), and `Q.md` (a gate question, D-390). The runner starts every step with the Agent tool, its
@@ -16,7 +17,7 @@ A stage reference says, for its step:
   steps only).
 - **Writes**: exactly the header's `writes`, inside the run folder. A gate step writes its own verdict file
   (`../gates.md`).
-- **Returns**: at most 8 lines, the files written and the outcome; the runner routes on them and on the
+- **Returns**: at most 8 lines (R1a-synthesize's 7), the files written and the outcome; the runner routes on them and on the
   verdict files. The verifier too: it writes its own report, `<buildFolder>/reports/V4-<n>.md`
   (`../source-markers.md`), which the runner reads. A step whose tool call the permission system refused stops and
   returns `refused: <tool>` (D-421, `../gates.md`).

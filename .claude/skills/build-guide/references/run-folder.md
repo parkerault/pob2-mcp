@@ -2,7 +2,7 @@
 
 Every run of the build-guide skill works inside one run folder, which the server creates. This page is
 the layout, who writes each file, how the PoB file is named, and what the run checker holds a run folder
-to (slice 03 §2 and FR-W7, as amendments 1, 3 and 9 change them; spine C-34, C-36, C-52; D-412, D-415).
+to (slice 03 §2 and FR-W7, as amendments 1, 3, 9 and 10 change them; spine C-34, C-36, C-52; D-412, D-415).
 
 ## Creating it
 
@@ -59,16 +59,17 @@ asked once per resume (`checkpoints.md`).
 |---|---|---|
 | `run-log.json` | the runner, through `scripts/run-log.mjs` (D-356) | the run log (`run-log.md`) |
 | `research/p<k>-r1a-<n>.md` | R1a agent `n` of brainstorm round `k` | its sections, with source markers (`source-markers.md`) |
-| `cards/<id>.md` | R1a, or RV for the rival's card (the brainstorm half; R1a-assemble or the rival's R1b only to rename it), then R1b (the verification half, after a gate's change; a card made at a gate whole) | a candidate card (`templates/card-template.md`, C-52) |
-| `cards.md` | the R1a-assemble step; R1b-assemble adds a gate-made card's line | the deck: its header, the dealt cards by round with their engines, "Not dealt" and "Found, not used" (D-287, D-392, D-405) |
+| `cards/<id>.md` | R1a, or RV for the rival's card (the brainstorm half; R1a-synthesize, R1a-assemble or the rival's R1b only to rename it), or R1a-synthesize for a composite `r<k>-s-<n>` (its brainstorm half, `### Pieces` included, D-429), then R1b (the verification half, a composite's `### Pieces measured` included, D-433; after a gate's change; a card made at a gate whole) | a candidate card (`templates/card-template.md`, C-52); a card with `### Pieces` is a composite |
+| `cards.md` | the R1a-synthesize step (the R1a-assemble step in a run whose first brainstorm round used it); R1b-assemble adds a gate-made card's line | the deck: its header, the obvious build, the composites by round, every card with the composites it fed, the pieces not used, the structures not composed and the superseded composites (D-429, D-432, `stages/R1a-synthesize.md`); in an R1a-assemble run, the dealt cards by round with their engines, "Not dealt" and "Found, not used" (D-287, D-392, D-405) |
 | `interviews/<gate>-<visit>.md` | the runner, with Write and Edit, during the interview: after each answer, and the pending decision before a yes (D-420) | a gate visit's interview notes and its `## Pending decision` (D-389, `checkpoints.md`) |
 | `interviews/<gate>-<visit>-q<n>.md`, `probes/q-<gate>-<visit>-<n>/` | a gate question step (Q) | its report, and a coordinator's measured variant (D-390, `stages/Q.md`) |
 | `concepts/<id>/plan.json` | the R1b step for card `<id>` | an endgame skeleton plan (C-31) with its key-item prices |
 | `concepts/<id>/compile-record.json`, `concepts/<id>/compiled-build.xml` | `mcp__pob2__compile_plan`, measure-only (D-208) | the skeleton's compile record (C-33) and compiled XML |
-| `probes/<id>/<n>/plan.json`, and its record and XML | the R1b step for card `<id>`; `mcp__pob2__compile_plan`, measure-only | a probe variant, one stage, `n` from 1 to 4 (D-292, D-331, D-338) |
+| `probes/<id>/<n>/plan.json`, and its record and XML | the R1b step for card `<id>`; `mcp__pob2__compile_plan`, measure-only | a probe variant, one stage, `n` from 1 to 4, or to 8 on a composite (D-292, D-331, D-338, D-433) |
 | `dossier.md` | the R1b-assemble step | the dossier, the verification gate's comparison table (slice 03 §7.2, D-355) |
 | `builds/<id>/` | the build's steps, one folder per finalized card (D-412) | everything that is one build's: the rows below |
 | `builds/<id>/plan.json` | D1's three steps (D1-build, D1-tree, D1-finish) and D2; the D1 gate step only to apply FI-2 and the final re-price pass | the build's plan (C-31) |
+| `builds/<id>/pieces.md` | D1-build (D-434) | the build's pieces as designed: its Pieces table (the card's columns), each piece's status and reason, then `## Searched`, each synthesis question asked again and what it found; no round copy takes it |
 | `builds/<id>/compile-record.json`, `builds/<id>/compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of the build's plan; after its final compile (F1's, or the D2 gate's for its campaign) it names the PoB file and holds `importCode` |
 | `builds/<id>/guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276): the endgame guide, or the full guide once the build has its campaign (D-414) |
 | `builds/<id>/audit.md` | the runner, rendered by `scripts/render-audit.mjs --build <id>` after the final compile (D-355); W1 adds the accepted gate findings' rows to its `Known issues`, and the runner fills that table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |
@@ -82,9 +83,10 @@ root's. Every agent finds a build's files by its header's `buildFolder`, `builds
 
 - Card ids are `r<round>-<researcher letter>-<n>` (`r1-a-2`): the runner letters the researchers `a`, `b` and `c`
   when it starts them, so parallel researchers never collide and ids stay unique across rounds (D-319); a card
-  made at a gate is `r<k>-g-<n>` (D-391), and the rival's `r<k>-x-<n>`, with no deck line (D-408). A step's
-  `concept`, a gate file's `<concept>` and `concepts/<id>/` use the card id. (Runs before amendment 3 used
-  concept ids `c1`, `c2`, ….)
+  made at a gate is `r<k>-g-<n>` (D-391), the rival's `r<k>-x-<n>`, with no deck line (D-408) until a later
+  round's R1a-synthesize lists it under `## Cards` (D-432), and a composite R1a-synthesize writes `r<k>-s-<n>`
+  (D-429). A card holding `### Pieces` is a composite, whatever its letter (D-433). A step's `concept`, a gate
+  file's `<concept>` and `concepts/<id>/` use the card id. (Runs before amendment 3 used concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate`, `F1` or `D2-gate`; `<attempt>` counts from 1 per (stage,
   concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the build's V4 passes
   from 1, full pass, re-checks and campaign pass alike, apart from the other builds' (D-412).
@@ -126,7 +128,8 @@ one stderr line `check-run: [<rule>] <message>`.
 
 - **The artifacts.** This layout. Every plan claim, the skeletons' and probes' included, has its `kind`, `hinge`
   or `reason` (D-351). The dossier is one H1, the `Brief:` line and one table with the comparison's eleven
-  columns, clear speed among them (D-407; ten in a run from before amendment 8), one row per card R1b verified,
+  columns, clear speed among them (D-407; ten in a run from before amendment 8; twelve with `key pieces` in a run with
+  composites, D-433), one row per card R1b verified,
   with no H2, H3 or marker; a failed or not-yet-finalizable card has `—` in its number, price and league cells
   (D-355). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
   step priced.
@@ -187,8 +190,8 @@ one stderr line `check-run: [<rule>] <message>`.
   its agreement with its findings, which it can't recompute without the engine (D-419). The checker fails a
   verdict that differs from its own, and, once a guide exists, any failure no accepted finding covers.
 - **The run log and the control flow** (`run-log.md`, schema 4): the fields and their values, `builds[]` in
-  finalize order with each build's end, the stage names `D1-build`, `D1-tree`, `D1-finish`, `F1`, `RV`, `V4`,
-  `V4-recheck` and `V4-campaign`; steps in a legal order per build, each gate visit's answer followed (D-411): the
+  finalize order with each build's end, the stage names `R1a-synthesize` (a run keeps the brainstorm step its first round used, D-429), `D1-build`,
+  `D1-tree`, `D1-finish`, `F1`, `RV`, `V4`, `V4-recheck` and `V4-campaign`; steps in a legal order per build, each gate visit's answer followed (D-411): the
   queued cards designed in turn; in the design, D1-build, D1-tree, D1-finish, the D1 gate, then the design gate;
   F1 only after a `design` visit answered `accept` or `accept:file` (D-362, D-413), a `revise:` running D1 again,
   its gate and the design gate, and `verification` the verification gate; D2 only for a campaign; entries after a

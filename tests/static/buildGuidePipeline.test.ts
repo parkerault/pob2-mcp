@@ -1264,8 +1264,8 @@ describe('Amendment 1 S1: one orchestration path; the workflow path stays delete
 
   it('the task header lists the eleven steps (R1a-assemble added, D-287; D1 split, D-356), with no pass and no lens; a V4 header has its check, a re-check the checker\'s changed lines (D-352)', () => {
     const text = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'task-header.md'), 'utf8'));
-    // Amendment 9 (WU-95): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415).
-    expect(text).toContain('| `stage` | `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `RV` (the rival, D-408), `D1-build`, `D1-tree`, `D1-finish` (D1\'s three steps, D-356, D-418), `D1-gate`, `F1` (an endgame-only build\'s final compile, D-413), `D2`, `D2-gate`, `W1`, `V4` (`V4-campaign` for its campaign pass, D-415), or `Q` (a gate question, D-390) |');
+    // Amendment 9 (WU-95): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415). Amendment 10 (WU-104): R1a-synthesize (D-429).
+    expect(text).toContain('| `stage` | `R1a`, `R1a-synthesize` (the round\'s composites, D-429), `R1a-assemble` (in a run whose first brainstorm round used it), `R1b`, `R1b-assemble`, `RV` (the rival, D-408), `D1-build`, `D1-tree`, `D1-finish` (D1\'s three steps, D-356, D-418), `D1-gate`, `F1` (an endgame-only build\'s final compile, D-413), `D2`, `D2-gate`, `W1`, `V4` (`V4-campaign` for its campaign pass, D-415), or `Q` (a gate question, D-390) |');
     expect(text).not.toMatch(/\| `pass` \||\| `lens` \|/);
     expect(text).toMatch(/\| `check` \| V4 only: `full` .*, `recheck` .* or `campaign` \(stage `V4-campaign`/);
     expect(text).toMatch(/\| `changed` \| a V4 re-check or campaign pass, W1 in the fix round, and a D1-finish after D1-build \(the locations D1-build returned\)\. The re-check's: the lines `check-run\.mjs --changed <n>` printed, verbatim, one item each: `claim stages\[<i>\]\.claims\[<k>\] \(<id>\)` or `section <H2 title>` \(D-352\)\. W1's: the locations the fix round's owners returned/);
@@ -1695,6 +1695,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
         // D-335: the brief's `popularity` notes, cited as user-supplied, or "no player evidence"; no tool.
         ['Evidence', ['Player evidence:', '`popularity` notes', "this card's skill, ascendancy or combination", 'cited as user-supplied', 'no player evidence', 'Reference build:']],
         ['Risks so far', ['Payoff thieves:', 'Placement limits:', 'Exposed phase:', 'Resistant bosses:']],
+        // D-429, D-433 (WU-104): a composite's Pieces table, after Risks so far; a plain card has neither Pieces H3.
+        ['Pieces', ['| Key | Piece | Kind | Status | Where | Why | From |', 'only on a composite', 'under-played']],
       ],
     ],
     [
@@ -1708,6 +1710,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
         ['Fallback ladder', ['1. ', '2. ']],
         // D-374 (WU-75): a key price converted, as a range with its day, beside the price as seen.
         ['Key item prices', ['around day 7', 'seen <amount currency> on YYYY-MM-DD', 'unavailable (<note>)']],
+        // D-433 (WU-104): R1b's leave-one-out table on a composite, after Key item prices.
+        ['Pieces measured', ['| Key | Drops | How |', 'only on a composite', 'not measured (<why>)']],
       ],
     ],
   ];

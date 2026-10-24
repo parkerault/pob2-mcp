@@ -5474,7 +5474,7 @@ the `m17` engine at `b76967b`.
 - **M-23 started** on the user's go, after the user pushed `main` to `c8b8fa7`. The integration worktree `m23`
   (`build-guide/m23`) and the lanes `bg-104`, `bg-105` and `bg-108` branch off `520538f`. Wave 1 runs WU-104, WU-105
   and WU-108 in parallel.
-- **WU-104 merged** (`b752e4a`): `R1a-synthesize.md` composes 1–4 composites a round from every card and the research
+- **WU-104 merged** (`f45ddd6`): `R1a-synthesize.md` composes 1–4 composites a round from every card and the research
   files' `## Ideas`; `R1a.md` writes the Ideas; the card template gains `### Pieces` and `### Pieces measured` and the
   letter `s`; the task header, stage README, run-folder reference and the researcher's and coordinator's definitions
   name the stage. Tests: `tests/static/buildGuideSynthesis.test.ts`. Its verifier PASSED (gate: 175 suites, 2,990
@@ -5488,7 +5488,7 @@ the `m17` engine at `b76967b`.
   Evidence line; `R1a.md` names the synthesis beside R1a-assemble; `R1a-assemble.md` says it serves old runs only.
 - **For wave 2:** WU-106's `SKILL.md` (step 2b's row and its pin, `| 2b | R1a-assemble |`) and `checkpoints.md` still
   name R1a-assemble; WU-107's questions 16–19 in `patterns.md` must agree with the synthesis's one-line glosses.
-- **WU-105 merged** (`0758d60`, `141e097`, rebased onto `b5b3dd4`): the run scripts learn the synthesis round
+- **WU-105 merged** (`59bfd0a`, `d564cd7`, rebased onto `df7fb9f`): the run scripts learn the synthesis round
   (composites, the Pieces tables, the probe cap 8, the dossier's `key pieces`, `pieces.md`, the mixed-run rule, an
   empty V4 list item ignored, `build`'s `name` and the audit's title, the stale-build `warnings`, cache read per
   `query_source`). Tests: `tests/unit/buildGuideComposites.test.ts`; fixtures `run-composite` and `run-fixed-roll`.
@@ -5504,7 +5504,7 @@ the `m17` engine at `b76967b`.
   test near `buildGuidePipeline.test.ts:416-548` reads the D-433 column list; `checkpoints.md` says `first-n:<n>`
   picks the first n composites; a composite whose Structure check is written needs its Pieces measured even when R1b
   failed (rows may say `not measured`).
-- **WU-108 merged** (`c551ed9`, `ba342d4`, rebased onto `539d907`): `get_node_power`'s `clear_group` in the plan's
+- **WU-108 merged** (`6360a75`, `ff25787`, rebased onto `459ee02`): `get_node_power`'s `clear_group` in the plan's
   numbering (AC-P77); base implicits on an item text with no `Implicits:` line, ranges at 0.5, `Implicits: 0` and
   uniques kept, a variant base unfilled with V1's `implicit-variant` (AC-P78; V1 reads `compile_stage`'s
   `checks.implicitVariants`); V4 checks its report's list syntax before its Write; `plan-reference.md` states the rule.
@@ -5524,8 +5524,8 @@ the `m17` engine at `b76967b`.
   commit); nothing more is pursued.
 - **Noted:** fifteen-stage's Earthquake Aftershock radius (`g4s1p2`) flips between 1.8 and 2.4 from one engine process to
   the next, at `520538f` too (1 run in 5); a test comparing it across processes would be flaky.
-- **Wave 2 started early** (no file overlap with WU-108): WU-106 and WU-107 in lanes off `539d907`; each rebases at merge.
-- **WU-107 merged** (`ae7fa33`, rebased onto `fdc3e62`): D1-build asks questions 15–19 again as the design changes,
+- **Wave 2 started early** (no file overlap with WU-108): WU-106 and WU-107 in lanes off `459ee02`; each rebases at merge.
+- **WU-107 merged** (`fc5e601`, rebased onto `f1b4e94`): D1-build asks questions 15–19 again as the design changes,
   revisits out pieces, measures sets on D-433's three figures, schedules before rejecting, answers question 19 and
   writes `pieces.md`; D1-finish writes the pieces' reason claims; D1-gate writes the design field's `pieces`; RV asks
   11–19 under composites; `patterns.md` holds questions 16–19 and the two amended entries (12,646 of 13,000 words; the
@@ -5533,7 +5533,7 @@ the `m17` engine at `b76967b`.
   177 suites, 3,052 tests). The `pieces:` return line sits within the 8 lines every agent returns (D-267); D-434's
   sentence now says so (this commit). Integration fixes (this commit): the task header's D1-build example writes
   `pieces.md`; the coordinator's definition names a composite's 8 probes; a test title says questions 11–19.
-- **WU-106 merged** (`f2224b9`, `b4ea355`, rebased onto `d9bcefc`): R1b builds a composite's skeleton with scheduled
+- **WU-106 merged** (`63177a9`, `6334d29`, rebased onto `edb4aa7`): R1b builds a composite's skeleton with scheduled
   pieces in their own groups and sets, measures D-433's three kinds of figure without summing groups, leaves pieces out
   by kind within the probe cap of 8, and writes `### Pieces measured`; the dossier's `key pieces` on a composite run;
   `checkpoints.md`'s brainstorm gate shows composites and takes piece changes and keys; `SKILL.md` runs R1a-synthesize
@@ -5549,6 +5549,8 @@ the `m17` engine at `b76967b`.
 - **For the next spec fold (not fixed):** D-433 measures pieces `in`, while Appendix A's Pieces measured example lists a
   scheduled piece; a named source on weapon set 2 reads `countedSkillOutputs`, counted from the set-1 measure
   (pre-existing); a minion's ailment pieces show 0% (the record holds no minion ailment fields).
-- **The M-23 wave gate PASSED** on `749c856`: test rc 0 (182 suites, 3,088 tests; the timing step 2 suites, 3 tests),
+- **The M-23 wave gate PASSED** on `28edb40`: test rc 0 (182 suites, 3,088 tests; the timing step 2 suites, 3 tests),
   build rc 0, both waiver files `[]`. M-23's subagents: about 3.3M tokens (doers WU-104 370K, WU-105 597K, WU-108 501K,
   WU-107 337K, WU-106 401K with its fix round; verifiers 180K, 269K, 279K, 173K, 231K with the re-check).
+- **Signed onto `main`** (`520538f`; `main` hadn't moved, so the rebase was forced to re-sign): 14 commits, all signed;
+  the unsigned originals are at `refs/archive/pre-sign-m23-2026-10-23`; 14 cited hashes remapped in this commit.

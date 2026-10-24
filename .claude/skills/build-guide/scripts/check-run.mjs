@@ -78,10 +78,11 @@
 //  - amendment 10 (WU-105, D-429…D-435; its Appendix A): the brainstorm round's synthesis `R1a-synthesize` (schema 4),
 //    never mixed with `R1a-assemble` in one run, a run keeping the step its first round used; the composite `r<k>-s-<n>`;
 //    the composite deck (`checkCompositeDeck`): its H2s, 1–4 composites a round, short with fewer than 2 or with none
-//    taking an under-played piece, then only with its shortReason, `## Cards` listing every researcher's card with the
-//    composites it fed, `## Pieces not used`, `## Not composed`, `## Superseded`; a composite (any card with
+//    taking an under-played piece, then only with its shortReason, `## Cards` listing every card but the composites
+//    with the composites each fed, `## Pieces not used`, `## Not composed`, `## Superseded`; a composite (any card with
 //    `### Pieces`) and its tables (`checkPieceTables`): an out or scheduled piece's reason, its `### Pieces measured`
-//    once R1b verified it, `not measured (<why>)` rows; its probe cap 8, a plain card's 4; a composite run's dossier
+//    once it counts as verified (its structure check holds more than `Not checked yet.`, or R1b passed), `not measured
+//    (<why>)` rows; its probe cap 8, a plain card's 4; a composite run's dossier
 //    with the twelfth column `key pieces`; `pieces.md` in a build's folder (D-434); `builds[].name` (D-435); an empty
 //    list item in a V4 report ignored; and the result's `warnings`, a server build older than its source under
 //    `src/plan/` (its directory `BUILD_GUIDE_SERVER_BUILD` when set, for tests), the violations still reported.

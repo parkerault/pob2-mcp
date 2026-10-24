@@ -5468,3 +5468,23 @@ the `m17` engine at `b76967b`.
   base-implicit rule, integration worktree `m23`, waves WU-104/105/108 then WU-106/107 then the live test, each file's
   owner, V1's `implicit-variant` data, the library's room (about 670 words; the kits section about 120), the fixtures
   the fill moves, the gate without `rm -rf`. Amendment 10's citations of `77bd695` remapped to `f15b905`.
+
+## 2026-10-23: M-23 starts; WU-104 merged
+
+- **M-23 started** on the user's go, after the user pushed `main` to `c8b8fa7`. The integration worktree `m23`
+  (`build-guide/m23`) and the lanes `bg-104`, `bg-105` and `bg-108` branch off `520538f`. Wave 1 runs WU-104, WU-105
+  and WU-108 in parallel.
+- **WU-104 merged** (`b752e4a`): `R1a-synthesize.md` composes 1–4 composites a round from every card and the research
+  files' `## Ideas`; `R1a.md` writes the Ideas; the card template gains `### Pieces` and `### Pieces measured` and the
+  letter `s`; the task header, stage README, run-folder reference and the researcher's and coordinator's definitions
+  name the stage. Tests: `tests/static/buildGuideSynthesis.test.ts`. Its verifier PASSED (gate: 175 suites, 2,990
+  tests). The doer took the deck parts Appendix A leaves open (a round line keeps `can't be finalized yet:` and
+  `waits on the pin:`; the obvious line `- <id> "<name>" | <its kit>`; an empty later round `None.`; `## Cards`
+  lists every card that isn't an `r<j>-s-<n>` composite); the coordinator passed them to WU-105.
+- **Integration fixes from the verifier's notes** (this commit): engine keying ignores a card that fails the identity
+  check or the lock (one off-brief card in a fixed roll no longer collapses the round to one composite); a gate-made
+  card's pieces count as gained; a piece is no row only when neither weapon set can hold its weapon; a conflict
+  splits when both sides are worth keeping, else question 18 drops the side worth less; the seed card is named by its
+  Evidence line; `R1a.md` names the synthesis beside R1a-assemble; `R1a-assemble.md` says it serves old runs only.
+- **For wave 2:** WU-106's `SKILL.md` (step 2b's row and its pin, `| 2b | R1a-assemble |`) and `checkpoints.md` still
+  name R1a-assemble; WU-107's questions 16–19 in `patterns.md` must agree with the synthesis's one-line glosses.

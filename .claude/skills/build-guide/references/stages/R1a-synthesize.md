@@ -52,14 +52,15 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    is the card's identity `{className, ascendancy, named damage source}`, as its `### Identity` gives it.
    - **Keyed by engine under one identity.** When every card shares one identity (a fixed roll, a brief naming the
      ascendancy and the skill, a skill locked to one ascendancy, or researchers who converged), key the structures by
-     engine instead, so the round still yields alternatives: `<consumed> from <supply>`, from each card's `Consumes or
+     engine instead (a card that fails step 3's checks doesn't count against the one identity), so the round still
+     yields alternatives: `<consumed> from <supply>`, from each card's `Consumes or
      requires: <X>, supplied by <Y>` line, each one word of `data/rules/vocabulary.md` (D-405), so cards that word one
      engine differently share a key. Every card whose consumed word is `none` shares the one key `none`.
    - D-405's cap of half a round on one engine doesn't apply: composites differ by structure, or by the side of a
      split (step 5).
 2. **Which structures this round composes.** Round 1: every structure. **A later round** adds its cards and Ideas
    to the pool, and recomposes only structures that gained pieces: a new card of the structure, or a new piece (an
-   Ideas line, or a piece on this round's or the rival's card) whose `needs:` the structure meets and that serves its
+   Ideas line, or a piece on this round's card, the rival's, or a gate-made card made since the last synthesis) whose `needs:` the structure meets and that serves its
    damage, its limit or its bosses; a structure or piece the user's note names counts as gained. Any other structure
    keeps its composite as it stands.
 3. **Check the cards** of each structure you compose, by `R1a-assemble.md`'s step 2: the identity check, the brief's
@@ -93,7 +94,8 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    - **19, bosses:** when the clear skill is capped by a limit or shaped for packs, what is the boss button?
 
    **A conflict that can't be scheduled splits** the structure into two composites, one per side ("mana engine" and
-   "life engine"), each taking a slot within the 4: both start from the strongest card, and each takes its own side's
+   "life engine"), each taking a slot within the 4, when both sides are worth keeping (a side clearly worth
+   less is dropped instead, question 18's last resort). Both start from the strongest card, and each takes its own side's
    pieces in and the other side's out, its why naming the split.
 
    **The ascendancy lock on every skill a composite takes** (D-342): a skill from another structure's card or an
@@ -163,7 +165,7 @@ H3s, `### Pieces measured` among them, each with the one line `Not checked yet.`
 ```
 
 - **Rows:** every piece in or scheduled; every piece a card of its structure uses; every other piece whose `needs:`
-  the structure meets that it leaves out. A piece whose needs it can't meet (another class, ascendancy or weapon) is
+  the structure meets that it leaves out. A piece whose needs it can't meet (another class or ascendancy, or a weapon neither weapon set can hold) is
   no row. The named damage source and its enabler come first, then the pieces in by how much the composite leans on
   each, then the scheduled ones, then the out ones: R1b's leave-one-out probes take the rest in this order.
 - **Key:** the piece's Ideas id, `i<k><letter>-<m>` (the first in id order, when several lines name it), else
@@ -229,7 +231,7 @@ The example is a fixed roll, so its structures are engines (step 1), and it show
   included, and adds its own `## Round <k>` after the last; `None.` when it composed none.
 - **`## Cards`:** every card of the run but this step's composites (`r<j>-s-<n>`), each `- <id> "<name>" |
   <structure> | seed | fed: <composite ids | none>`: the researchers' cards, the gate-made ones and the rival's;
-  `seed` only on the seed card (D-393); `fed:` the composites that take one of its pieces, in or scheduled.
+  `seed` only on the seed card (D-393, the card whose Evidence reads `Reference build: Seed: <the reference>`); `fed:` the composites that take one of its pieces, in or scheduled.
 - **`## Pieces not used`:** at most 10 lines, the strongest first, each `- <key> <piece>: <why no composite takes
   it>`; or `None.`. The research files' `Supply search` lines say why a card left a supplier out.
 - **`## Not composed`:** `- <structure>: <why>`, from steps 3, 4 and 5; or `None.`.

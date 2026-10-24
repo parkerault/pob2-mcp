@@ -1,6 +1,7 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
-One step per brainstorm round (D-287), after the round's R1a researchers return. It turns their cards into the
+One step per brainstorm round (D-287), after the round's R1a researchers return, in a run whose first brainstorm
+round used it; new runs compose with `R1a-synthesize.md` (D-429). It turns their cards into the
 deck the user picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card
 only when game text confirms its load-bearing links, at most half a round on one engine, and writes `cards.md`.
 It compiles nothing, prices nothing, and edits a card only to rename it (step 7) or drop its under-played label

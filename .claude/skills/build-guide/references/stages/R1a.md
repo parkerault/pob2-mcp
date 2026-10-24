@@ -48,7 +48,7 @@ grants it: only those ascendancies can use it. A card that uses a locked skill t
 "<node name>" (<node id>), a <name> ascendancy node`). A skill a non-ascendancy node or a unique grants isn't
 locked: the card names the source it uses, the node it allocates or the unique it equips. With no node and no
 unique, the skill comes from its gem (a minion skill, from its summon's). A card that uses a locked skill on
-another ascendancy isn't dealt (`R1a-assemble.md`), and R1b fails it before any compile (`wrong-ascendancy`). A
+another ascendancy isn't dealt or composed (`R1a-assemble.md`, `R1a-synthesize.md`), and R1b fails it before any compile (`wrong-ascendancy`). A
 brief whose ascendancy can't use its skill never reaches you: the runner's brief check stops it (SKILL.md step 1).
 
 **An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
@@ -213,7 +213,8 @@ By focus:
 [^p<k>r<n>-1]: pob-data | lookup_game_data gem "<skill>" | patch: <enginePatch>
 ```
 
-The `Supply search` sections are what R1a-assemble reads for the deck's "Found, not used".
+The `Supply search` sections are what R1a-assemble reads for the deck's "Found, not used"; R1a-synthesize reads them, with the
+Ideas, for `## Pieces not used`.
 
 - **Markers.** Every claim carries a marker `[^p<k>r<n>-<m>]`, `m` counting from 1, so the ids stay unique in
   the run. Each id has exactly one definition line, `[^<id>]: <kind> | <ref> | <qualifiers>`, and every

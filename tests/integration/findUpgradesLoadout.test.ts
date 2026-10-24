@@ -50,10 +50,16 @@ const REQUIRED = [
 ];
 const MAX_PRICE = 50;
 
+/**
+ * Each ring with its base's implicit written out (Iron Ring's "Adds 1 to 4 Physical Damage to Attacks",
+ * `Data/Bases/ring.lua`), as a listing carries it: a bare base's text would get it from the compile (D-435) but not
+ * from the listing's own text, and the two would no longer be the same item.
+ */
+const IRON_RING_IMPLICIT = 'Implicits: 1\nAdds 1 to 4 Physical Damage to Attacks';
 const RING = {
-  m: 'Rarity: Rare\nDull Hoop\nIron Ring\n+10 to maximum Life',
-  b: 'Rarity: Rare\nBlood Loop\nIron Ring\n+40 to maximum Life\n+20% to Fire Resistance',
-  n: 'Rarity: Rare\nStorm Loop\nIron Ring\n+90 to maximum Life\n+40% to Fire Resistance',
+  m: `Rarity: Rare\nDull Hoop\nIron Ring\n${IRON_RING_IMPLICIT}\n+10 to maximum Life`,
+  b: `Rarity: Rare\nBlood Loop\nIron Ring\n${IRON_RING_IMPLICIT}\n+40 to maximum Life\n+20% to Fire Resistance`,
+  n: `Rarity: Rare\nStorm Loop\nIron Ring\n${IRON_RING_IMPLICIT}\n+90 to maximum Life\n+40% to Fire Resistance`,
 } as const;
 const ID_B = syntheticId('ac-k67:b-ring');
 const ID_N = syntheticId('ac-k67:n-ring');

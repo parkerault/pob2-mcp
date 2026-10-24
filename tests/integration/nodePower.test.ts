@@ -513,7 +513,9 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         // Fails after the loadout and level were switched (the clear group is checked against m's skill set).
         const failed = await f.call('get_node_power', { loadout: M, clear_group: 99, limit: 0 });
         expect(failed.isError).toBe(true);
-        expect(failed.text).toContain("clear group 99: the loadout's skill set has 6 socket groups");
+        // m's six groups and PoB's two for Raise Shield, the implicit of the Runeforged Fortress Tower Shield in Weapon 2
+        // and Weapon 2 Swap, which the compile now fills on the bare base (D-435; `Data/Bases/shield.lua`).
+        expect(failed.text).toContain("clear group 99: the loadout's skill set has 8 socket groups");
         expect(await state()).toEqual(before);
       },
       ENGINE_TIMEOUT,

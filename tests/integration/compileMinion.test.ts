@@ -24,8 +24,9 @@
  *   disabled group's minion skill is resolved and saved too.
  *
  * - D-382 (the baseline run's blocker): an off-hand makes the stage's first calculation run before its skills are
- *   built, and that calculation adds PoB's own Navira (node 32705's, `source` "Tree:32705") ahead of the plan's group.
- *   The compile still selects, measures and numbers the plan's groups: the main selection and the minion skill are the
+ *   built, and that calculation adds PoB's own Navira (node 32705's, `source` "Tree:32705") ahead of the plan's group;
+ *   since D-435 (WU-108) the compile then lists the plan's groups first, so the saved build's one main group fits every
+ *   stage. The compile still selects, measures and numbers the plan's groups: the main selection and the minion skill are the
  *   plan's level-20 Navira, the record's g1 is it (with the no-item figure) and PoB's copy is g2, a later stage reusing
  *   the item and skill sets reads the same, and V1's group numbers name the plan's groups. A stage's first calculation
  *   runs on its own skill set, so PoB's Navira for stage b's tree never lands in stage a's set.
@@ -384,10 +385,11 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
         plan.stages[0].items.slots = OFF_HAND;
         const { record, pob } = await compile('d382-fresh', plan);
         const s = record.stages.b;
-        // The condition: the off-hand's calculation added PoB's own Navira (node 32705's) before the plan's group.
-        expect(pob.sources).toEqual(['Tree:32705', '']);
+        // The condition: the off-hand's calculation added PoB's own Navira (node 32705's) before the plan's group; once the
+        // groups are built the compile lists the plan's first (D-435, WU-108), so PoB's index is the plan's number.
+        expect(pob.sources).toEqual(['', 'Tree:32705']);
         // PoB's main selection is the plan's level-20 Navira, on Navira's Fracturing.
-        expect([pob.groupIndex, pob.mainSocketGroup, pob.level, pob.selected]).toEqual([2, 2, 20, "Navira's Fracturing"]);
+        expect([pob.groupIndex, pob.mainSocketGroup, pob.level, pob.selected]).toEqual([1, 1, 20, "Navira's Fracturing"]);
         expect(s.minionSkills!.map((m) => [m.group, m.name])).toEqual([[1, "Navira's Fracturing"]]);
         // The record numbers the plan's groups first: g1 is the plan's Navira, with the no-item figure; g2 is PoB's.
         const entry = s.skillOutputs.g1s1p1;
@@ -437,7 +439,8 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
         });
         const { record, pob } = await compile('d382-groups', plan);
         const s = record.stages.b;
-        expect(pob.sources).toEqual(['Tree:32705', '', '']);
+        // The plan's two groups first, then PoB's own Navira (D-435, WU-108).
+        expect(pob.sources).toEqual(['', '', 'Tree:32705']);
         const notGranted = s.v1!.findings.filter((x) => x.code === 'not-granted').map((x) => x.data as Json);
         expect(notGranted).toEqual([{ group: 2, kind: 'gem', name: 'Kelari, the Tainted Sands', nodes: [expect.any(Number)] }]);
         expect(notGranted[0].nodes).not.toContain(32705);

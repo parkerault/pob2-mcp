@@ -26,6 +26,7 @@
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
  * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
  * | `weapon-skill-supports` | (WU-102, PG-74) an enabled group (or the main group) with `weaponSet` and an enabled support gem, on a stage where both of that set's weapon slots hold an item that grants a skill, so the compile sockets the group in the main hand (`groupWeaponSlot`) and PoB gives the main hand's granted skill the group's supports, which the game doesn't: the finding names that skill, whose figure PoB overstates (`checkWeaponSkillSupports`) |
+ * | `implicit-variant` | (D-435) an item written without an `Implicits:` line whose base's implicit has variants (`variantList`, three amulet bases at the pin): the compile fills every other bare base's implicits, but can't pick a variant, so PoB measures the item with none; the finding names the base and its variants and asks for the variant's implicit line (`checkImplicitVariants`, from `compile_stage`'s `implicitVariants`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -819,6 +820,32 @@ export function checkWeaponSkillSupports(
   });
 }
 
+/**
+ * `implicit-variant` (D-435). The compile gives an item written without an `Implicits:` line its base's implicits, as
+ * the game gives every item its base's, except when the base's implicit has variants (`Data/Bases/amulet.lua`'s
+ * `variantList`: the Lament, Portent and Absent Amulets at the pin, each variant granting another skill): which
+ * variant an item has is the item's, so the compile leaves it unfilled and PoB measures it with no implicit.
+ * `compile_stage` names each such item (`checks.implicitVariants`). One finding per item; `data.path` is its text's
+ * path in the stage.
+ */
+export function checkImplicitVariants(
+  stage: Pick<Stage, 'items'>,
+  checks: Pick<StageChecks, 'implicitVariants'>,
+  findings: Finding[],
+): void {
+  for (const v of checks.implicitVariants ?? []) {
+    const k = stage.items.slots.findIndex((s) => s.slot === v.slot);
+    findings.push({
+      code: 'implicit-variant',
+      message:
+        `the item in ${v.slot} is a ${v.base} written without an Implicits: line, and the base's implicit has variants ` +
+        `(${v.variants.join(', ')}): the compile can't pick one, so PoB measures the item with no implicit (D-435). ` +
+        `Write the variant's implicit line in the item's text, after an "Implicits: <n>" line`,
+      data: { slot: v.slot, base: v.base, variants: [...v.variants], path: `items.slots[${k}].text` },
+    });
+  }
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -840,5 +867,6 @@ export function checkV1(input: V1Input): V1Result {
   checkNotGranted(stage, checks, findings);
   checkWeaponSetGroups(stage, findings);
   checkWeaponSkillSupports(stage, checks, input.weaponGrants, findings);
+  checkImplicitVariants(stage, checks, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

@@ -1661,7 +1661,7 @@ export function getBuildGoalsToolSchemas(): any[] {
           clear_group: {
             type: "integer",
             minimum: 1,
-            description: "The socket group of the clear skill whose radius and uses per second a swap may not lower, measured with it as the main skill (default: the main group).",
+            description: "The group of the clear skill whose radius and uses per second a swap may not lower, measured with it as the main skill: the plan's group number, as compile_plan's record numbers it. For a build not compiled from a plan, its own groups in order; the groups PoB adds for a skill an item or passive grants are numbered after them (default: the main group).",
           },
           protect_for: {
             type: "array",

@@ -85,14 +85,26 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
     const plan = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as {
       stages: { id: string; skills: { rolledGroup?: number; groups: { count?: number }[] } }[];
     };
-    const sets = new Map<string, string[]>();
+    // Each saved socket group: its attributes and its content (its gems).
+    const sets = new Map<string, { attrs: string; body: string }[]>();
     for (const m of xml.matchAll(/<SkillSet\b([^>]*)>([\s\S]*?)<\/SkillSet>/g)) {
-      sets.set(/\btitle="([^"]*)"/.exec(m[1])![1], [...m[2].matchAll(/<Skill\b([^>]*?)\/?>/g)].map((s) => s[1]));
+      sets.set(
+        /\btitle="([^"]*)"/.exec(m[1])![1],
+        [...m[2].matchAll(/<Skill\b([^>]*?)(?:\/>|>([\s\S]*?)<\/Skill>)/g)].map((s) => ({ attrs: s[1], body: s[2] ?? '' })),
+      );
     }
     let named = 0;
     for (const stage of plan.stages) {
       const title = record.sets.find((s) => s.kind === 'skill' && s.stages.includes(stage.id))!.title;
-      const groups = sets.get(title)!;
+      const saved = sets.get(title)!;
+      // D-435 (WU-108): the bare tower shields in Weapon 2 and Weapon 2 Swap now get their base's implicit, "Grants Skill:
+      // Raise Shield" (`Data/Bases/shield.lua`), so PoB saves its own group for each (a `source`), after the plan's
+      // groups; neither is in Full DPS.
+      const own = saved.filter((g) => /\bsource="/.test(g.attrs));
+      expect({ stage: stage.id, own: own.map((g) => /Raise ?Shield/i.test(g.body)) }).toEqual({ stage: stage.id, own: [true, true] });
+      for (const g of own) expect({ stage: stage.id, full: /\bincludeInFullDPS="true"/.test(g.attrs) }).toEqual({ stage: stage.id, full: false });
+      expect(saved.slice(-own.length)).toEqual(own);
+      const groups = saved.filter((g) => !own.includes(g)).map((g) => g.attrs);
       expect({ stage: stage.id, groups: groups.length }).toEqual({ stage: stage.id, groups: stage.skills.groups.length });
       groups.forEach((attrs, k) => {
         const isNamed = k + 1 === stage.skills.rolledGroup;

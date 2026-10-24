@@ -42,7 +42,9 @@
 -- other stat losing more than its `maxLoss` (default 2%) and no guard losing more than its own (default 0):
 -- movement speed (EffectiveMovementSpeedMod) and the clear entry's radius and uses per second, read as
 -- src/plan/record.ts reads them (the minion's when the clear skill summons one), measured with `clearGroup`
--- (default the main group) as the main group.
+-- (default the main group) as the main group. `clearGroup` is the plan's group number, as the compile record numbers
+-- it (D-435): Compile.lua's group_indices, the groups without a `source` in order, then PoB's own, mapped to PoB's
+-- index at call time; the reply's clear entry carries that number.
 --
 -- Protected, never removed with any branch containing them: `keep`; a node with a "Grants Skill:" line; a
 -- weapon-set node; for each loadout of `protectFor`, every node of this tree whose dependants in that loadout's
@@ -69,6 +71,7 @@
 -- Registered by one line in Handlers.lua.
 
 local BuildOps = require('API.BuildOps')
+local Compile = require('API.Compile')
 local construct = require('API.Util').construct
 
 local M = {}
@@ -906,8 +909,8 @@ local function measure_call(params, ctx)
   for i = 1, nStats do result.base[i] = ctx.base.value[i] end
   result.movement = ctx.base.move
 
-  -- The clear entry.
-  local clear = { group = ctx.clearGroup }
+  -- The clear entry, numbered as the plan numbers its groups (D-435).
+  local clear = { group = ctx.clearNumber }
   local g = build.skillsTab.socketGroupList[ctx.clearGroup]
   clear.label = g and (g.displayLabel or g.label) or nil
   if ctx.clearSeparate then
@@ -1375,11 +1378,29 @@ function M.node_power(params)
     build.buildFlag = true
     BuildOps.get_main_output()
 
+    -- D-435 (C-55): `clearGroup` is the plan's group number, as the compile record numbers it, mapped to PoB's index
+    -- here, after the loadout's skill set is selected and calculated: Compile.lua's group_indices numbers the groups
+    -- without a `source` first, in order, then PoB's own (a skill an item or the tree grants), which PoB may list
+    -- before them. A build not compiled from a plan is numbered the same way: its own groups in order, PoB's granted
+    -- ones after them. Without `clearGroup`, the main group.
     local groups = build.skillsTab.socketGroupList or {}
-    ctx.clearGroup = params.clearGroup == nil and build.mainSocketGroup or int_arg(params.clearGroup, 'clearGroup', 1, nil)
+    local _, number = Compile.group_indices()
+    if params.clearGroup == nil then
+      ctx.clearGroup = build.mainSocketGroup
+    else
+      local wanted = int_arg(params.clearGroup, 'clearGroup', 1, nil)
+      ctx.clearGroup = nil
+      for i, n in pairs(number) do
+        if n == wanted then ctx.clearGroup = i end
+      end
+      if ctx.clearGroup == nil then
+        fail(('clear group %d: the loadout\'s skill set has %d socket groups'):format(wanted, #groups))
+      end
+    end
     if not groups[ctx.clearGroup] then
       fail(('clear group %d: the loadout\'s skill set has %d socket groups'):format(ctx.clearGroup, #groups))
     end
+    ctx.clearNumber = number[ctx.clearGroup]
     ctx.clearInMain = ctx.clearGroup == build.mainSocketGroup
     ctx.clearSeparate = not ctx.clearInMain
     local mainGroup = build.mainSocketGroup

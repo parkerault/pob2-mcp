@@ -93,7 +93,9 @@
 --     stage's tree and items grant go into it. PoB's own groups have a `source` and land anywhere in the list
 --     (before the plan's when a calculation runs before the groups are built: the off-hand check), so the plan's
 --     groups are found as the groups without one, in order (group_indices). Every group number in the reply is
---     the plan's: the plan's groups first, in plan order, then PoB's own, in PoB's order.
+--     the plan's: the plan's groups first, in plan order, then PoB's own, in PoB's order. D-435: once the stage's
+--     groups are built and calculated, the list is put in that order (plan_groups_first), so a plan group's PoB index
+--     is its number, the same in every stage, and the build's one main group fits each stage's loadout.
 --     Weapon set 2 (D-426): on a stage that uses it (passives tagged to set 2, an item in a Swap slot, or a skill
 --     group socketed in one), the stage is also measured with set 2 active, just before its own measurement, and
 --     `outputsSet2` is that measure in `outputs`' form; on a stage whose own measure is set 2's
@@ -136,7 +138,12 @@
 --     `input` and `placeholder` tables after the writes and the recalculation (enemyIsBoss's placeholders included),
 --     and `shownOptions`, the conditional config options PoB shows for the stage (D-250); and `grantedSkills`
 --     (D-380), each group whose skill gem, or whose minionSkill, a passive's "Grants Skill: <name>" line grants,
---     with those passives and whether the stage allocates any of them.
+--     with those passives and whether the stage allocates any of them; and `implicitVariants` (D-435), each of the
+--     stage's items left without its base's implicits because the base's implicit has variants, {slot, base,
+--     variants[]}, for V1's `implicit-variant`.
+--     A base's implicits (D-435): every item text the stage equips, and compile_check's `weaponGrants` reads, that has
+--     no `Implicits:` line and isn't a unique gets its base's implicit lines first, as PoB's rare list and its
+--     crafting window fill a base's (base_implicits, below).
 --     `items` is what the stage's item set holds in each of `itemSlots` after the measurement, and
 --     `addedItems` what this stage equipped when it created the set, so the compiler can tell an item PoB
 --     unequipped from the plan's. `configInputs` are the stored values of the stage's listed options (and
@@ -1082,12 +1089,82 @@ local function check_anoint(tree, st, defect)
     emotions = emotion_names(recipe) }
 end
 
--- The item text compile_stage equips in a slot: on the amulet, the stage's anoint as PoB's anoint dialog
--- writes it (ItemsTab:anointItem), one enchant line `Allocates <notable>` first, in place of any other
--- `Allocates` line; the amulet's other enchant lines stay, after it.
+-- D-435 (the user, 2026-10-23): a base's implicits. The game gives every item its base's implicit, but PoB gives an
+-- item text written as a bare base none (no spear's Spear Throw, no ring's resistance, no amulet's attribute), and a
+-- plan's item text is often one. So a text with no `Implicits:` line gets its base's implicits (Data/Bases/*.lua's
+-- `implicit`, each line with its `implicitModTypes` tags) as PoB's own rare list fills a base's
+-- (Modules/Main.lua:170-176) and its crafting window makes an item from a base (Classes/ItemsTab.lua:2446-2453): the
+-- lines go into the item's implicitModLines, and PoB re-reads the item (Item:BuildAndParseRaw), which gives a range
+-- PoB's default roll, main.defaultItemAffixQuality (0.5, Modules/Main.lua:105). Kept as written: a text with an
+-- `Implicits:` line (`Implicits: 0` too, the designer's choice), a unique or relic (PoB's unique data carries its
+-- own), an item PoB already reads implicit lines on, and a text PoB can't parse (compile_check reports it). A base
+-- whose implicit has variants (`variantList`: three amulet bases at the pin, Data/Bases/amulet.lua) isn't filled; the
+-- second value names it, {base, variants[]}, for V1's `implicit-variant`, so the designer writes the variant's line.
+-- Cached by text: the result depends only on the game data.
+local implicitCache, implicitCached = {}, 0
+
+local function has_implicits_line(text)
+  for line in (text .. '\n'):gmatch('([^\n]*)\n') do
+    if line:match('^%s*Implicits:') then return true end
+  end
+  return false
+end
+
+local function base_implicits(text)
+  text = tostring(text)
+  local hit = implicitCache[text]
+  if hit then return hit.text, hit.variant end
+  local out, variant = text, nil
+  if not has_implicits_line(text) then
+    local ok, item = pcall(construct, 'Item', text)
+    local base = ok and item and item.base or nil
+    if base and item.rarity ~= 'UNIQUE' and item.rarity ~= 'RELIC' and type(base.implicit) == 'string'
+        and #(item.implicitModLines or {}) == 0 then
+      if base.variantList then
+        local variants = {}
+        for i, v in ipairs(base.variantList) do variants[i] = tostring(v) end
+        variant = { base = tostring(item.baseName), variants = variants }
+      else
+        local index = 1
+        for line in base.implicit:gmatch('[^\n]+') do
+          table.insert(item.implicitModLines,
+            { line = line, modTags = base.implicitModTypes and base.implicitModTypes[index] or {} })
+          index = index + 1
+        end
+        item:BuildAndParseRaw()
+        out = item:BuildRaw()
+      end
+    end
+  end
+  if implicitCached >= 2000 then implicitCache, implicitCached = {}, 0 end
+  implicitCache[text] = { text = out, variant = variant }
+  implicitCached = implicitCached + 1
+  return out, variant
+end
+
+-- The text of a plan item as the compile reads it: with its base's implicits filled (D-435).
+local function item_text(it)
+  return (base_implicits(it.text))
+end
+
+-- D-435: the stage's items whose base's implicit has variants and whose text has no `Implicits:` line, left unfilled:
+-- {slot, base, variants[]} each, in the stage's item order.
+local function implicit_variants(st)
+  local out = {}
+  for _, it in ipairs(list(st.items)) do
+    local _, variant = base_implicits(it.text)
+    if variant then out[#out + 1] = { slot = tostring(it.slot), base = variant.base, variants = variant.variants } end
+  end
+  return out
+end
+
+-- The item text compile_stage equips in a slot, its base's implicits filled (D-435): on the amulet, the stage's anoint
+-- as PoB's anoint dialog writes it (ItemsTab:anointItem), one enchant line `Allocates <notable>` first, in place of
+-- any other `Allocates` line; the amulet's other enchant lines stay, after it.
 local function anointed_text(st, it)
-  if st.anoint == nil or tostring(it.slot) ~= ANOINT_SLOT then return it.text end
-  local ok, item = pcall(construct, 'Item', tostring(it.text))
+  local text = item_text(it)
+  if st.anoint == nil or tostring(it.slot) ~= ANOINT_SLOT then return text end
+  local ok, item = pcall(construct, 'Item', text)
   if not ok or not item or not item.baseName then fail('anointing the amulet: PoB can not parse its text') end
   local lines = { { enchant = true, line = 'Allocates ' .. tostring(st.anoint) } }
   for _, line in ipairs(item.enchantModLines or {}) do
@@ -1119,13 +1196,14 @@ local WEAPON_SLOT = { ['Weapon 1'] = true, ['Weapon 2'] = true, ['Weapon 1 Swap'
 -- grantedSkills, from its `Grants Skill:` lines, a base's implicit included: a spear's Spear Throw, a shield's Raise
 -- Shield). PoB gives such an item's skill the supports of every group socketed in the same slot, " Swap" stripped
 -- (Modules/CalcSetup.lua:1727-1732, :1913-1928), so the compiler puts a group on a weapon set in that set's slot whose
--- item grants none. Appends {stage, slot, skills[]} to `out`, the skills by PoB's names.
+-- item grants none. Appends {stage, slot, skills[]} to `out`, the skills by PoB's names. The item is read as the
+-- compile equips it, its base's implicits filled (D-435), so a bare spear's Spear Throw counts.
 local function weapon_grants(st, out)
   local d = game_data()
   for _, it in ipairs(list(st.items)) do
     local slot = tostring(it.slot)
     if WEAPON_SLOT[slot] then
-      local ok, item = pcall(construct, 'Item', tostring(it.text))
+      local ok, item = pcall(construct, 'Item', item_text(it))
       if ok and item and type(item.grantedSkills) == 'table' and #item.grantedSkills > 0 then
         local names = {}
         for _, g in ipairs(item.grantedSkills) do
@@ -1400,6 +1478,26 @@ local function group_indices()
   end
   for k, i in ipairs(own) do number[i] = #pob + k end
   return pob, number
+end
+-- D-435: node_power numbers its clear group the same way (NodePower.lua), so the logic lives here once.
+M.group_indices = group_indices
+
+-- D-435: the plan's groups first, in plan order, then PoB's own, in PoB's order, so each plan group's PoB index is its
+-- number in the reply. A stage with an off-hand is calculated before its groups go in (the off-hand check), so a skill
+-- its main hand grants (a spear's Spear Throw, which a bare base now gets, base_implicits) lands before them, and the
+-- same plan group would sit at another index in a stage without an off-hand. PoB keeps one main group for the build
+-- (Build.lua's mainSocketGroup, saved once), so the saved file would show another stage's loadout with the wrong main
+-- skill. PoB finds its own groups by their `source`, wherever they are (Modules/CalcSetup.lua:1501-1663), so the list
+-- is reordered in place.
+local function plan_groups_first()
+  local groups = build.skillsTab.socketGroupList
+  if type(groups) ~= 'table' then return end
+  local plan, own = {}, {}
+  for _, group in ipairs(groups) do
+    if group.source then own[#own + 1] = group else plan[#plan + 1] = group end
+  end
+  for i, group in ipairs(plan) do groups[i] = group end
+  for k, group in ipairs(own) do groups[#plan + k] = group end
 end
 
 -- D-382: PoB's index of the plan's group `gi` in the active skill set.
@@ -1838,6 +1936,7 @@ local function stage_checks(st, output, configSetId, defer)
     config = { input = scalars(cs and cs.input), placeholder = scalars(cs and cs.placeholder) },
     shownOptions = shownOptions,
     grantedSkills = granted_skills(st),
+    implicitVariants = implicit_variants(st),
   }
 end
 
@@ -1975,6 +2074,7 @@ function M.compile_stage(st)
       build_skills(st, skillsFresh)
     end)
     rebuild()
+    plan_groups_first()
     local minionSkills = select_minion_skills(st)
     select_main(st)
     local configSetId = deferring(defer, function()

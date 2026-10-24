@@ -1451,6 +1451,14 @@ export const stageChecksSchema = z
         })
         .passthrough(),
     ),
+    /**
+     * D-435: the stage's items the compile left without their base's implicits because the base's implicit has
+     * variants (`variantList`, three amulet bases at the pin), each with its slot, base and the variants' names, for
+     * V1's `implicit-variant`. Optional, so a hand-made `checks` without it reads as none.
+     */
+    implicitVariants: luaArray(
+      z.object({ slot: z.string(), base: z.string(), variants: luaArray(z.string()) }).passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type StageChecks = z.infer<typeof stageChecksSchema>;

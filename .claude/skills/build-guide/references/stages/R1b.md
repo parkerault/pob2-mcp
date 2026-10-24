@@ -347,8 +347,9 @@ main active skill and stat set:
   (`countedSkillOutputs`, as the Verified line reads it).
 - **Per corpse:** each of PoB's own on-kill groups (a corpse explosion an ascendancy node or a unique grants; the
   record numbers PoB's groups after the plan's): its hit, `AverageDamage` (one explosion, which PoB sizes from a
-  normal monster's life), and its ignite, `IgniteDPS`. A corpse explosion fires once per kill, so it is never a
-  figure per second.
+  normal monster's life), and its ignite, `IgniteDPS` (a rate, read for its drop only: a piece that
+  changes the ignite's duration moves the damage per corpse more than the rate shows). A corpse explosion fires once
+  per kill, so its hit is never a figure per second.
 - **For bosses:** each enabled `single_target` group's figure.
 
 A group's figure is its damage per second, its hit and its damage over time with its ailments: `TotalDPS +

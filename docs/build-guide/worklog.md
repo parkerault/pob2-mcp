@@ -5533,3 +5533,19 @@ the `m17` engine at `b76967b`.
   177 suites, 3,052 tests). The `pieces:` return line sits within the 8 lines every agent returns (D-267); D-434's
   sentence now says so (this commit). Integration fixes (this commit): the task header's D1-build example writes
   `pieces.md`; the coordinator's definition names a composite's 8 probes; a test title says questions 11–19.
+- **WU-106 merged** (`f2224b9`, `b4ea355`, rebased onto `d9bcefc`): R1b builds a composite's skeleton with scheduled
+  pieces in their own groups and sets, measures D-433's three kinds of figure without summing groups, leaves pieces out
+  by kind within the probe cap of 8, and writes `### Pieces measured`; the dossier's `key pieces` on a composite run;
+  `checkpoints.md`'s brainstorm gate shows composites and takes piece changes and keys; `SKILL.md` runs R1a-synthesize
+  (R1a-assemble for runs whose first round used it). Tests: `tests/static/buildGuidePiecesMeasured.test.ts`.
+  Its verifier FAILED the first pass on one defect: a group's figure (`TotalDPS` plus the three ailments) missed the
+  skill's own damage over time (`TotalDot`: Essence Drain, Flame Wall). The fix round made it
+  `TotalDPS + TotalDot + IgniteDPS + BleedDPS + PoisonDPS`, all five with Count rules, the named source from
+  `countedSkillOutputs`, a minion's group `MinionTotalDPS` (D-397); not `CombinedDPS` (per use for average-damage
+  skills) or `TotalDotDPS` (no Count rule). The same round added WU-107's follow-ups in its files (`SKILL.md`'s 6a row
+  and D1-build card name `pieces.md` and the `pieces:` line, at the 325-line cap; the design gate shows the pieces line
+  once, before the rungs). Re-verified: PASS. Integration fix (this commit): the per-corpse ignite is a rate, read for
+  its drop only.
+- **For the next spec fold (not fixed):** D-433 measures pieces `in`, while Appendix A's Pieces measured example lists a
+  scheduled piece; a named source on weapon set 2 reads `countedSkillOutputs`, counted from the set-1 measure
+  (pre-existing); a minion's ailment pieces show 0% (the record holds no minion ailment fields).

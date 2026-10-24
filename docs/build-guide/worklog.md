@@ -5549,3 +5549,6 @@ the `m17` engine at `b76967b`.
 - **For the next spec fold (not fixed):** D-433 measures pieces `in`, while Appendix A's Pieces measured example lists a
   scheduled piece; a named source on weapon set 2 reads `countedSkillOutputs`, counted from the set-1 measure
   (pre-existing); a minion's ailment pieces show 0% (the record holds no minion ailment fields).
+- **The M-23 wave gate PASSED** on `749c856`: test rc 0 (182 suites, 3,088 tests; the timing step 2 suites, 3 tests),
+  build rc 0, both waiver files `[]`. M-23's subagents: about 3.3M tokens (doers WU-104 370K, WU-105 597K, WU-108 501K,
+  WU-107 337K, WU-106 401K with its fix round; verifiers 180K, 269K, 279K, 173K, 231K with the re-check).

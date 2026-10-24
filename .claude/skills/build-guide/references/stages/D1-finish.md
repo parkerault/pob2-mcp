@@ -39,6 +39,8 @@ then checks the plan.
     line from the record and whether the plan's build changed since that compile. Its JSON isn't `plan.json`'s
     formatting: to anchor an Edit, Grep or Read `plan.json` at that place;
   - the claims: `mcp__pob2__guide_run {view: {plan: "<plan>", claims: true}}`, one line each;
+  - `<buildFolder>/pieces.md` (D-434), when D1-build wrote it: its `scheduled` and `out` rows, for step 4's
+    pieces' claims;
   - the card `cards/<id>.md` (its chain, enabler, links and estimates: the hinge facts), and `run-log.json`
     (has pricing stopped in this session, D-415? a `stages[]` entry after the last resume, from index
     `resumes[<last>].lengths.stages`, or any entry when the log has no resume, whose `priceOutcomes` counts a
@@ -148,6 +150,12 @@ then checks the plan.
      - **the reward picks without D2**, in a plan with no campaign stage: one claim on `m` per pick D1-build
        made, the quest, the option taken and a one-line reason, citing
        `data:campaign/progress.json#q.<key>.options[<i>]`. The endgame guide names each pick with its reason.
+   - `reason`, for the pieces (D-434), from `pieces.md`: one claim for each `scheduled` row (where it goes, as its
+     Where says, and why: the boss button, the second weapon set and what the swap is for) on the first endgame
+     stage that holds it, and one for each piece the card's `### Pieces` weighed that the build leaves out (its
+     row's Why) on the first endgame stage, so W1 can explain the boss button and the swap. Cite the record's
+     figure for a scheduled piece's group where it has one (`<stageId>.g<group>s<skill>p<statSet>.<Field>`), else
+     a `judgment` naming the row and the drops its Why records. The `left out:` lines (D-396) stay for dead gems.
 
    What the compile proves carries no claim: requirements, gem and stage levels, record numbers, ledger
    values, prices and tree lists (a need's nodes aside), which the guide renders from the plan and the record. Superfluous content
@@ -192,6 +200,7 @@ With V4 findings or the user's requests in `findings`, you edit the plan in plac
      Re-price each slot whose item changed, re-measure the anoint on a changed rung (step 1's measure-only
      compile), and fix the claims and the ledger on what moved. Never return `build:` for a finding D1-build
      handled: a build change still missing is the D1 gate's to find. Return `done`; the D1 gate runs after you.
+     A piece whose `pieces.md` row moved has its claim fixed, added or removed with it (step 4).
 3. **A ledger edit needs no recompile.** A change to a ledger entry's formula, inputs or claim text needs no
    recompile and no gate: the record's `buildSha1` leaves out the ledger, and the run checker re-evaluates
    the plan's current ledger (D-352). A price's `note` is wording too, which `buildSha1` leaves out (D-386).

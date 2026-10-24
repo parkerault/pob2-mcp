@@ -17,8 +17,8 @@ request (D-411, D-413).
   (`<runFolderRel>/plan.json` when `buildFolder` is `.`). The cards, the dossier and `run-log.json` are at the run
   folder's root.
 - **Header:** `stage: "D1-build"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
-  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json"]`, `accepted` (findings the user accepted at an
-  escalation; they need no fix), and `findings`:
+  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`, `accepted`
+  (findings the user accepted at an escalation; they need no fix), and `findings`:
   - on a D1 gate retry, the earlier verdict file and its findings (`{part, code, stage, message}`): fix what
     each failing one names (an `over-target` or `chaos-exception` finding is information: leave it; a
     `tree-swap` finding is D1-tree's, which runs after you); a note when an earlier attempt returned without
@@ -35,9 +35,12 @@ request (D-411, D-413).
 - **Read**, the independent reads in one response:
   - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its key
     numbers, prices and league (D-355);
-  - the card `cards/<id>.md` (its chain, enabler, links, structure check, checklist results and estimates), and
+  - the card `cards/<id>.md` (its chain, enabler, links, structure check, checklist results and estimates; a
+    composite's `### Pieces` and `### Pieces measured` tables), and
     its skeleton `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan:
     "<runFolderRel>/concepts/<id>/plan.json", stage: "<stage id>"}}`, one call per stage, batched;
+  - the pieces (D-434): the deck's `## Pieces not used` (Grep `-A11 "^## Pieces not used"` in `cards.md`), and
+    `<buildFolder>/pieces.md` when an earlier attempt wrote it;
   - `docs/build-guide/plan-reference.md` by section, never whole: Grep `^#` for its headings and Read the
     worked example and "Count and custom modifiers" ("A minion's skill" too, for a minion skill); when
     `validate` names a field, Grep that field's table row;
@@ -96,6 +99,39 @@ request (D-411, D-413).
      skeleton's compiled figures (its record, by Grep): for each big lever of its archetype's Standard kits
      entry (minion levels, Spirit and minion types for a minion build), what `b` and `n` pull. Pull what the
      design can; return each lever it leaves unpulled as `lever unpulled: <lever>: <why>`.
+   - **The pieces: the design keeps synthesizing** (D-434). A composite (a card with `### Pieces`) was composed
+     from the whole brainstorm, and its design goes on composing: start from its Pieces table (each piece in,
+     scheduled or out, with why), its Pieces measured (each piece's drops) and the deck's `## Pieces not used`. A
+     plain card's pieces are those its links table names, keyed `c<card id>-<m>` as R1a-synthesize keys them.
+     Every piece's status ends in `pieces.md` (Writes). (A live run's design judged its pieces alone, and after
+     Avatar of Fire entered searched mana sustain four times, fire payoffs and life costs never.)
+     - **Ask the synthesis questions again** whenever the design adds a conversion or a keystone, or would name a
+       limit as a con: the library's questions 15–19 (climb the chain, breadth, the limit, conflicts, bosses),
+       and after a conversion its entries "Type conversion so another mechanic applies" and "Convert into the
+       ailment's type". Search each with a lookup, and write a `## Searched` line for each.
+     - **Revisit an out piece** whose reason the design changed (Zerphi's Infamy, out because the build spends
+       mana, once Blood Magic moves the costs to life), and measure it as below.
+     - **Judge a piece with the pieces it needs,** measuring the set together, before rejecting any of them (an
+       ignite payoff with the conversion that makes the hit fire, and without the support that forbids ailments).
+       Add a temporary stage that copies the rung with the set in, or without it when it is in, each piece left
+       out by its kind (a support removed from its group; a skill's group disabled; a unique replaced by the
+       slot's plain base of the same base type; a rare's mod line or a rune removed from the item; a node with the
+       nodes that depend on it; a keystone with the custom modifiers that stand for it; a config condition turned
+       off). Compile the two measure-only with `stages` naming them, compare, and remove the stage before you
+       finish. Compare on each of the three kinds of figure (D-433), the total and each group, never summed across
+       groups: **per second, for clear**, each enabled `clear` group's figure, the named source's Count-scaled one
+       first; **per corpse**, each on-kill group's (a corpse explosion's) hit and its ignite per corpse; **for
+       bosses**, each enabled `single_target` group's figure. A group's figure is the record's at the key of its
+       main active skill and stat set (`countedSkillOutputs`, else `skillOutputs`; `skillOutputsSet2` for a group
+       on set 2), a disabled group's counting as 0; the total is the key-figure line's headline DPS. A set may pay
+       on one figure and not another (Blistering Bond: 5% of the cry, 22% of the boss skill): weigh it on each
+       before you leave it out.
+     - **Schedule before rejecting** (question 18): a piece that fights another goes on its own button (a
+       `single_target` group for bosses; a second clear group keeps role `clear` below the named source, step 4),
+       its own weapon set (`skills.groups[].weaponSet`, "Weapon sets" in step 4) or a boss setup before it is out.
+       It is out only when no schedule holds both sides and it is worth less than the piece it fights.
+     - **Answer question 19** on every build whose clear skill is limited (a cost, a cooldown, a charge count) or
+       shaped for packs: a boss button, or why none is needed, in a `## Searched` line.
    - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b` (`m`
      from none when the plan has no campaign stage), so each rung's tree contains the one before it, except where
      its `respec` drops nodes (`respec {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the
@@ -193,6 +229,8 @@ request (D-411, D-413).
        resistances;
      - a defence the floor needs;
      - a node the card's engine names, and a node that grants a skill of the stage (`Grants Skill:`);
+     - a node a custom modifier depends on (the keystone whose conversion the modifier stands for), so node
+       power's swaps never drop it while the modifier stays (D-434);
      - **every producer of the stage's earned config state** that is a passive node
        (`config.earned[].producer`, step 7), which V2 checks is present;
      - a node the user asked for, in a `revise:` or a gate's `changes`.
@@ -312,23 +350,64 @@ never write it anew.
 2. **Leave the rest to D1-finish.** The anoint, the prices, the ledger and the claims are D1-finish's. A
    change to a ledger entry's formula or inputs needs no recompile: the record's `buildSha1` leaves out the
    ledger, and the run checker re-evaluates the plan's current ledger (D-352).
+3. **`pieces.md`:** when a change moves a piece in, scheduled or out, edit its row; when it asks a question
+   again (a conversion, a keystone, a limit named as a con), add its `## Searched` line.
 
 ## Writes
 
-`<buildFolder>/plan.json` only. The server writes the record and the XML beside it.
+`<buildFolder>/plan.json` and `<buildFolder>/pieces.md` (D-434), nothing else. The server writes the record and
+the XML beside the plan.
+
+**`pieces.md`**, the build's pieces as designed: written whole on attempt 1 of a fresh design (one already in the
+build's folder belongs to an earlier design and is replaced), edited after. No round copy takes it, and the
+checker's `--changed` doesn't list it: only D1-build writes it.
+
+```
+# Pieces: Corpse Quake
+
+| Key | Piece | Kind | Status | Where | Why | From |
+|---|---|---|---|---|---|---|
+| cr1-a-1-1 | Seismic Cry | skill | in | group 1, clear | the named damage source | r1-a-1, r1-c-1 |
+| cr1-b-2-1 | Avatar of Fire | keystone | in | tree | every hit fire, so the whole hit ignites | r1-b-2 |
+| i1c-2 | Deidbell | unique | in | Helmet | warcries explode corpses: a second corpse explosion | r1-c-1, i1c-2 |
+| i1b-4 | Blistering Bond | unique, under-played | in | Ring 2 | fire sets bleeding's magnitude: Seismic Cry (clear) −5% | r1-b-2, i1b-4 |
+| cr1-s-2-1 | Blood Magic | keystone | in | tree | the cries' mana cost moved to life | design |
+| cr1-b-2-3 | Zerphi's Infamy | support | in | group 1 | the cries' life cost makes its Glory | r1-b-2 |
+| cr1-a-3-2 | Hammer of the Gods | skill | scheduled | weaponSet 1, single_target | boss button | r1-a-3 |
+| i1a-7 | Elemental Focus | support | out | — | forbids the ignite and bleeding layers | i1a-7 |
+
+## Searched
+
+- Q17 after mana per cry was named a con: searched "Converted to Life Costs" and life on kill; found Blood Magic, now in
+- Q15 after Blood Magic entered: searched "of Life spent" (gem); found Zerphi's Infamy, out while the cries spent mana, now in
+- Q19 after the cry was named mana-limited on bosses: searched a boss button; found Hammer of the Gods, scheduled on weapon set 1
+```
+
+- **Title:** `# Pieces: <build name>`, the build's `name` in `run-log.json`'s `builds[]`, else the card's name.
+- **The table:** the card's Pieces columns and order (the named damage source and its enabler first, then the
+  pieces in, scheduled and out), one row per piece the design weighed: the card's rows, each `## Pieces not used`
+  piece you weighed, and each piece the questions found, keyed `c<the build's card id>-<m>` (`m` counting on
+  from the table's largest such key, else from 1), its From `design`. Where is the plan's place (a slot, `group
+  <n>`, `weaponSet <n>`, or `tree` for a node or keystone); Why is required for
+  `scheduled` and `out`, and for a piece you measured gives its drops as the card's Pieces measured writes them,
+  `<group> (<clear | per corpse | boss>) −<x>%`, for D1-finish's claim.
+- **`## Searched`:** one line per question asked again, `- Q<n> after <the change>: searched <what>; found
+  <result>`, and the line answering question 19; `None.` when no question was asked again.
 
 ## Returns
 
 At most 8 lines: your claim, `done` or `infeasible` with its reason in a sentence; how many
 `mcp__pob2__compile_plan` calls you made; `league unverified` when no league could be verified online (step 2);
 each `left out:`, `lever unpulled:` and `override:` line; with findings, the finding ids you fixed and the locations you changed (`plan.json
-stages[3].items`); and for D1-tree, which runs after you, one line `for D1-tree:` with each rung's floor (`floor
-holds on m, b, n`, or the rungs where it fails) and its needs counted (`needs m 3, b 2, n 1`).
+stages[3].items`); for D1-tree, which runs after you, one line `for D1-tree:` with each rung's floor (`floor
+holds on m, b, n`, or the rungs where it fails) and its needs counted (`needs m 3, b 2, n 1`); and one line
+`pieces: <n> in, <n> scheduled, <n> out`, `pieces.md`'s rows counted by Status (D-434).
 
 ```
 D1-build r1-a-2 attempt 1: done
 compiles: 4
 for D1-tree: floor holds on m, b, n; needs m 3, b 2, n 1
+pieces: 5 in, 0 scheduled, 1 out
 ```
 
 ```
@@ -336,6 +415,7 @@ D1-build r1-a-2 attempt 3: done
 compiles: 1
 fixed: v4-1-3
 changed: plan.json stages[6].items, plan.json stages[6].tree
+pieces: 5 in, 0 scheduled, 1 out
 ```
 
 ## Fault directives

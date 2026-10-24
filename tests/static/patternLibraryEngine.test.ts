@@ -78,10 +78,11 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     expect(first).toBeDefined();
     const h2s = headings.filter((h) => h.level === 2);
     const engine = h2s[h2s.indexOf(first!) + 1];
-    expect(engine.title).toBe('Brainstorm questions 11–15: the engine');
+    // Amendment 10 (WU-107, D-431): questions 16–19 follow 15 in the same section.
+    expect(engine.title).toBe('Brainstorm questions 11–19: the engine and the synthesis');
     const body = bodyOf(engine);
     const numbered = [...body.matchAll(/^(\d+)\. ([\s\S]*?)(?=^\d+\. |(?![\s\S]))/gm)].map((m) => ({ n: Number(m[1]), q: folded(m[2]) }));
-    expect(numbered.map((x) => x.n)).toEqual([11, 12, 13, 14, 15]);
+    expect(numbered.map((x) => x.n)).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19]);
     const want: [number, string[]][] = [
       [11, ['What does the obvious build do, and how is this card faster?', 'Standard kits']],
       [12, ['What grows with a count, and what pays for a bigger count?', 'A count as a multiplier']],

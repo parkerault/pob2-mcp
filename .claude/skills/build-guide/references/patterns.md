@@ -26,10 +26,12 @@ Ask these of every candidate; the builds in brackets showed why.
 The answers fill the card (`templates/card-template.md`). The questions and the ten families come from
 [worklog], "Off-meta builds 7–30"; the earlier patterns from its "Off-meta builds 2–6".
 
-## Brainstorm questions 11–15: the engine
+## Brainstorm questions 11–19: the engine and the synthesis
 
 Ask these after 1–10 (D-409). Navira's Fracturing against our Varashta build showed why: tuning can't find a
-better structure, and the pieces of one sat unused in the research ([comparison] §7.1).
+better structure, and the pieces of one sat unused in the research ([comparison] §7.1). Questions 15–19 are the
+synthesis questions (D-431): the synthesis asks them of each composite, D1-build again after a conversion, a keystone
+or a limit named as a con, and the rival. Spud's Warcryer carried six damage layers to our build's two ([spud] §4).
 
 11. What does the obvious build do, and how is this card faster? Start from its archetype's entry under
     Standard kits. (Navira's Fracturing)
@@ -42,6 +44,18 @@ better structure, and the pieces of one sat unused in the research ([comparison]
 15. Climb the chain. What scales the damage, what scales that, and what scales that? Search each scaler's
     name as the target of another line ("effect of", "bonuses gained from", "also apply to", "per"), not only
     as a stat to stack. See Scale the scaler. (Widowhail, Mana Flare Shaman)
+16. Breadth. What else can this button cause? Each layer its hits can start: ailments, explosions, detonations, a
+    skill it triggers, a second warcry. Search each layer's payoff by its damage type after conversion, and weigh it
+    by the hit that starts it: an ailment pays on a big, slow hit more than on a fast one (Convert into the ailment's
+    type). (Spud's Warcryer)
+17. The limit. What caps this build's rate or uptime, and what removes the cap rather than feeding it? A cost moved
+    to another pool (Cost redirection), a refund, a cooldown ignored. (Spud's Warcryer)
+18. Conflicts. Which pieces fight (one consumes what another needs)? Schedule the conflict before leaving a piece
+    out: a clear button and a boss button, a second weapon set; or drop the piece the other side needs, if it is worth
+    less (Spud's character takes Jade Heritage in place of Imploding Impacts, so Battershout competes with nothing).
+    See Payoff thief.
+19. Bosses. When the clear skill is capped by a limit or shaped for packs, what is the boss button? (Spud's
+    Warcryer: Hammer of the Gods on its own weapon set)
 
 ## How to read an entry
 
@@ -78,7 +92,8 @@ better structure, and the pieces of one sat unused in the research ([comparison]
   approved by the user on 2026-10-19 (C-53). Question 15 and Scale the scaler are the user's lens (2026-10-23:
   search for what scales the thing that scales the thing being scaled), approved as worded. The damage-order rule,
   Convert into the ailment's type and the corpse-explosion line are the user's (2026-10-23), as [amendment-9] §24.1
-  words them.
+  words them. Questions 16–19 and the changes to Cost redirection and Payoff thief are amendment 10's (D-431),
+  approved by the user on 2026-10-23.
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
@@ -528,7 +543,9 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   Elemental Sundering consumed the freeze Honourless needed [fangs]. Flicker and spears: Charged Staff spends
   Flicker's charges [flicker]; every spear skill spends the same Frenzy Charges [mob-spear-amazon];
   [mob-glacial-lance].
-- **Cautions:** re-run it whenever a consumer joins.
+- **Cautions:** re-run it whenever a consumer joins. Before a thief rules a piece out, try scheduling it on
+  another button or set, or weigh it against the piece it robs (question 18): Spud puts Battershout on his clear
+  cry, where packs die whether their armour stays broken or not [spud].
 
 ### Supply by family
 
@@ -577,8 +594,9 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 - **Shape:** costs move to a second pool (split pools), so the first stays full as a damage stat or a
   defence buffer.
-- **Search:** from scaling keyed to a full pool (Archmage, Zenith, Mind over Matter), `mechanic "Life cost"
-  (gem)`, "instead of Mana"; then the paying pool's sustain.
+- **Search:** from scaling keyed to a full pool (Archmage, Zenith, Mind over Matter), or from a resource that
+  caps the build's rate (mana per cast); `mechanic "Life cost" (gem)`, "instead of Mana", "Converted to Life
+  Costs"; then the paying pool's sustain.
 - **PoB:** modelled: Archmage, Atalui's Bloodletting; Zenith is a config stand-in.
 - **Examples:** Widowhail Spark: Lifetap and Atalui's move costs to life [widowhail]. Oracle Entangle: life
   pays, mana defends [oracle].

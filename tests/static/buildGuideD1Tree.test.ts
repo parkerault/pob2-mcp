@@ -86,7 +86,7 @@ describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascenda
   it('writes plan schema 6, in the build\'s folder', () => {
     expect(build).toContain('at `schemaVersion: 6`');
     expect(build).not.toContain('`schemaVersion: 5`');
-    expect(build).toContain('`writes: ["<buildFolder>/plan.json"]`');
+    expect(build).toContain('`writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`');
     expect(build).toMatch(/`<plan>` is `<runFolderRel>\/<buildFolder>\/plan\.json` \(`<runFolderRel>\/plan\.json` when `buildFolder` is `\.`\)/);
   });
 

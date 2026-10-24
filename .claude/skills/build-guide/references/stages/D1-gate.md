@@ -24,7 +24,8 @@ findings.
   `skills.groups` and claims), and Grep `plan.json` for its `prices` entries; `run-log.json` (has pricing stopped
   in this session, D-415? a `stages[]` entry after the last resume, from index `resumes[<last>].lengths.stages`,
   or any entry when the log has no resume, whose `priceOutcomes` counts a `locked_out` or `rate_limited` call);
-  and `data/economy/prices.json`, the league table and the conversion table. After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, and
+  `data/economy/prices.json`, the league table and the conversion table; and `<buildFolder>/pieces.md`'s table
+  (D-434), when the build has one, for step 6. After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, and
   every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
   `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Grep the record for the fields the text
   lacks; never Read it whole. This page states the parts and codes (`gates.md` holds the same table).
@@ -144,8 +145,13 @@ findings.
 5. **Accepted findings.** Report every failure the record shows. One equal to a finding in the header's
    `accepted` (same plan stage, part and code) is reported with `"accepted": true`, and fails no part.
 6. **The design gate's display** (D-362, A-35). Whenever the compile ran, write the verdict file's `design`
-   field, compactly: the runner prints it at the design gate and reads no plan or record for it. One entry
-   per endgame rung in `rungs[]`, in ladder order:
+   field, compactly: the runner prints it at the design gate and reads no plan or record for it. First
+   `pieces` (D-434), once for the build, since pieces belong to the build, not a rung: `{in, scheduled, out,
+   scheduledNames, outNames}` from `pieces.md`'s table, `in`, `scheduled` and `out` its rows counted by Status
+   (whole numbers), `scheduledNames` and `outNames` the Piece of each `scheduled` and each `out` row, in the
+   table's order; the display prints it as `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)`, before
+   the rungs. Leave `pieces` out when the build's folder has no `pieces.md` (a build designed before amendment
+   10). Then one entry per endgame rung in `rungs[]`, in ladder order:
    - `stage`; `dps` and `ehp`, the record's `measures.dps` and `measures.ehp`, rounded to whole numbers;
      `arbiter`, on `b` and `n`, the verdict of `measures.arbiter` with its worst hit and ratio (`survives,
      worst physical 0.82`), else `null`; `clearSpeed`, `measures.clearSpeed.speed` (a rough estimate);
@@ -200,6 +206,7 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
                                                   { "group": 2, "figure": "g2s1p1.TotalDPS" } ] } ]
   },
   "design": {
+    "pieces": { "in": 5, "scheduled": 0, "out": 1, "scheduledNames": [], "outNames": [ "Elemental Focus" ] },
     "rungs": [
       { "stage": "b", "dps": 98412, "ehp": 31250, "ehpHit": "T15 map hits, area 79: 402 physical",
         "arbiter": "survives, worst physical 0.82",
@@ -227,8 +234,8 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
   (`low` and `high` `null` when unverified); per endgame stage, the figure of every group of the named source's
   group's role, with no value. The run checker takes every number from the record (each figure by D-340's
   rule), and W1 quotes the totals and the figures.
-- `design`: the design gate's display (step 6), `rungs[]` and `estimates[]`; absent only when the compile
-  failed.
+- `design`: the design gate's display (step 6), `pieces` (absent for a build with no `pieces.md`), `rungs[]`
+  and `estimates[]`; absent only when the compile failed.
 - `planSha1`: the record's `planSha1` after step 3's compile, the plan this gate passed; F1 compiles only that
   plan (D-413), and `design:<id>` after a resume is offered only while `plan.json` is still it.
 - `recordPath`: the record, from `runFolder` (`<buildFolder>/compile-record.json`).

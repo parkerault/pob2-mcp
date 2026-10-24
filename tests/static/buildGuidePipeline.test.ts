@@ -2771,7 +2771,8 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     expect(gate).toMatch(/Then `estimates\[\]`, one short line per open estimate the display rests on/);
     const example = /```json\n([\s\S]*?)\n```/.exec(readStage('D1-gate'))?.[1] ?? '';
     const verdict = JSON.parse(example);
-    expect(Object.keys(verdict.design)).toEqual(['rungs', 'estimates']);
+    // Amendment 10 (WU-107, D-434): the build's `pieces` first, once, before the rungs.
+    expect(Object.keys(verdict.design)).toEqual(['pieces', 'rungs', 'estimates']);
     // Amendment 9 (WU-96): `ehpHit`, the hit the EHP was measured against (D-423); `tree` the node-power summary (D-419).
     expect(Object.keys(verdict.design.rungs[0])).toEqual(['stage', 'dps', 'ehp', 'ehpHit', 'arbiter', 'clearSpeed', 'anoint', 'gear', 'gems', 'tree']);
   });

@@ -91,7 +91,9 @@ overrule your call either way.
   card as `newCards: [{"id": "r<k>-g-<n>", "name", "from": ["<id>"…], "words"}]`, `k` the latest brainstorm
   round and `n` the run's next gate-made card in it, `from` any cards `cards.md` lists. Propose its name, 2–4
   words no card of the run has, in the restatement; the user may change it before the yes. Picks and new cards
-  together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id.
+  together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id. In a run that composes (D-432),
+  `from` may also name piece keys, a `### Pieces` row's or an Ideas line's, and a composite's `changes` may add or
+  drop pieces (the brainstorm gate, below).
 - **A question that became an idea** can go into brainstorm more as its note; the next round's researchers get
   its answer file.
 
@@ -118,20 +120,41 @@ With a test config, `answers.unsavedBuild` answers it; with none there, the answ
 
 ## The brainstorm gate: pick cards to verify
 
-Shown after every brainstorm round's R1a-assemble (D-287). Recorded as checkpoint `brainstorm`.
+Shown after every brainstorm round's R1a-synthesize (D-429), which composes the round's builds; in a run whose
+first brainstorm round ran R1a-assemble, after its R1a-assemble (D-287), for every later round too. Recorded as
+checkpoint `brainstorm`.
 
-- **Show** (`display brainstorm`, D-392) the brief in a line, the deck's header, every dealt card not verified
-  yet by name, numbered, with its pitch, the "Not dealt" cards with their reasons, and the findings no card used;
-  ids last, under "For reference". The deck's header names each engine with its count (D-405); the obvious card
-  shows its `Obvious build:` line (D-403). A card whose damage source isn't a skill is marked "can't be finalized
-  yet" (D-303); a minion skill is a skill (D-379); a card resting on an entry the PoB pin doesn't know says it
-  waits on PoB (D-400). After a short round (D-339: fewer than 6 cards passed, the deck holds fewer than two
-  under-played cards, or one engine filled it, D-405), say so, with the reason R1a-assemble gave, which the run
-  log keeps as its `shortReason`.
+- **Show** (`display brainstorm`, D-392, D-432) the brief in a line, the deck's header (what the composites share,
+  how they differ), then **each composite** not verified yet, numbered: its round line (its name, its structure,
+  its layers, the limit's answer and its under-played label), then its pieces in short, `in:`, `scheduled:` (each
+  with where it goes) and `out:` (each with its reason in a few words); the composites a later round superseded,
+  still pickable; then **the obvious build's line**, the baseline as its card was written (D-403); then **every
+  plain card's name and structure**, one line each, numbered on (the researchers', the gate-made and the rival's
+  cards `## Cards` lists), each one the user can verify too; ids last, under "For reference". A card whose damage
+  source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
+  resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-429: fewer
+  than 2 composites, or none taking a piece marked under-played), say so, with the reason R1a-synthesize gave,
+  which the run log keeps as its `shortReason`.
+- **Show, in a run whose first brainstorm round ran R1a-assemble** (`display brainstorm`, D-392): the brief in a
+  line, the deck's header, every dealt card not verified yet by name, numbered, with its pitch, the "Not dealt"
+  cards with their reasons, and the findings no card used; ids last, under "For reference". The deck's header names
+  each engine with its count (D-405); the obvious card shows its `Obvious build:` line (D-403). A card whose damage
+  source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
+  resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-339: fewer
+  than 6 cards passed, the deck holds fewer than two under-played cards, or one engine filled it, D-405), say so,
+  with the reason R1a-assemble gave, which the run log keeps as its `shortReason`.
 - **Answers:**
-  - **verify** 1–3 cards, picked (a not-dealt one included) and made at the gate together, any with a revision:
-    `pick:<id>[,<id>…]`, with its `changes` and `newCards`. They go to R1b as a new verification round
+  - **verify** 1–3 composites or cards (D-432), picked and made at the gate together, each named by its number or
+    its name as the display shows it (a superseded composite, a plain card or a not-dealt one included), any with
+    a revision: `pick:<id>[,<id>…]`, with its `changes` and `newCards`. They go to R1b as a new verification round
     (SKILL.md step 3).
+    - **`changes` on a picked composite** may add or drop pieces, by name or key ("add Blood Magic", "drop
+      i1b-4"): a revision, recorded under the composite's id with the user's words, which R1b applies to its
+      `### Pieces` table. A piece that would change the composite's named damage source, ascendancy or engine
+      makes a new card instead.
+    - **A gate-made card's `from`** may name cards, composites and piece keys: a `### Pieces` row's key, or an
+      Ideas line's id (`i<k><letter>-<m>`, `research/`). One that draws on pieces (a piece key, or a composite) is
+      a composite, with Pieces tables and leave-one-out probes (R1b, D-433).
   - **brainstorm more** (D-235, D-287): a new brainstorm round with the user's note, `k` one more than the
     last. Only this answer, here or at the verification gate, starts a brainstorm round; the runner never
     starts one on its own. Recorded as `more`, with `note`.
@@ -176,9 +199,9 @@ queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
     `revise:` at its design gate, or a new card made from it here (D-391). Each card's identity `{className,
     ascendancy, skill}` becomes its build's `roll` (D-286), logged with `run-log.mjs build` as `queued`, in
     `builds/<id>/` (D-412), and the builds are designed in turn (below).
-  - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 cards from the deck not verified yet, with `changes` and
-    `newCards` as at the brainstorm gate): a new verification round (step 3), without a brainstorm. A new card
-    is verified before it can be finalized, at the next visit.
+  - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 composites or cards from the deck not verified yet, with
+    `changes` and `newCards` as at the brainstorm gate, pieces among them, D-432): a new verification round (step
+    3), without a brainstorm. A new card is verified before it can be finalized, at the next visit.
   - **brainstorm more** (`more`, with the user's note as `note`): a new brainstorm round (step 2a).
   - **stop**: the run ends, every card still queued `stopped`; its status is `stopped` unless a build ended
     `completed` or `file-only` before.
@@ -324,7 +347,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 | Question | Test config answer | Meaning |
 |---|---|---|
 | unsaved build | `answers.unsavedBuild`: `proceed` or `stop` | none given: `stop`, `default` |
-| brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` dealt cards in `cards.md` not verified yet, else `stop` |
+| brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` composites `cards.md`'s `## Round <k>` lines list, not verified yet, in the deck's order, never a superseded composite or a plain card (D-429); in a run that deals (R1a-assemble), the first `n` dealt cards not verified yet; else `stop` |
 | verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>[,<id>…]` (1–3 ids, D-411), `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, `pick:<id>`, else `stop`; a card that can't be finalized yet is never `viable` |
 | design gate | `answers.design[]`, one per visit: `accept`, `accept:file`, `revise:<text>`, `verification` or `stop` | none left: `stop`, `default`, rule `no design answer left: stop` (D-362), which ends the run |
 | final gate | `answers.final[]`, one per visit: `accept`, `accept:verification`, `campaign`, `not-accept`, `decline:<note>` or `revise:<text>` | `not-accept` resolves to `decline:<note>`, the note saying the test config declined (D-411); none left: `stop`, `default`, which ends the run |

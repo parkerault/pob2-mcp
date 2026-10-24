@@ -95,11 +95,10 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 a
   their `writes` under it.
 - **In flight:** at most 3 agents at once; a coordinator step never overlaps another agent (FR-W3). R1a's
   researchers and a gate's research questions run in parallel, `run_in_background: true`; any other step alone.
-- **Returns.** At most 8 lines. A gate step's verdict is its file under `reports/gates/`, and the verifier
-  writes its own report, `<buildFolder>/reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it):
-  route on that file. An agent returning without its file is re-run once, uncounted, logged `missing`; a second
-  miss ends the run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return: re-run at the next
-  free `<n>`.
+- **Returns.** At most 8 lines. A gate step's verdict is its file under `reports/gates/`, and the verifier writes
+  its own report, `<buildFolder>/reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it): route on
+  that file. An agent returning without its file is re-run once, uncounted, logged `missing`; a second miss ends
+  the run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return: re-run at the next free `<n>`.
 - **A refused call** (D-421; `references/gates.md`, "The refused route"). Claude Code's permission system can
   refuse a tool call inside a step. The step stops and returns `refused: <tool>`; a gate step's verdict file has
   the part the call served `unverified` with code `tool-refused`. On that line or that code, log the step with
@@ -123,8 +122,8 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 |---|---|---|---|---|
 | 1 | Start (§1) | you | `run-log.json` | parses and checks the brief, or resumes a run (§7); asks the user when `loadedBuildUnsaved` (D-210) |
 | 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' names |
-| 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` | the deck's counts: dealt, not dealt, under-played; `short: <why>` for a short round |
-| 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
+| 2b | R1a-synthesize | `build-guide-coordinator` | `cards.md`, the composites' cards `cards/r<k>-s-<n>.md` | `composites: <n>`, a line per composite, the counts of cards listed, not composed and superseded; `short: <why>` for a short round |
+| 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 composites or cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
 | 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
 | 4a | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
 | 4b | RV, the rival, once per run (§3) | `build-guide-researcher` | `cards/r<k>-x-<n>.md` | its card, or `none-found` with what it tried |
@@ -173,12 +172,16 @@ run again.
 - **R1a** (2a), round `k`: three researchers, foci `mechanics`, `items` and `tree`, which you letter `a`, `b` and `c`
   when you start them, so parallel researchers never collide (D-319). Prompt: the brief, the focus and letter (to
   `b`, a reference build the user named, for a seed card, D-393), and in a later round the user's note.
-- **R1a-assemble** (2b), after the round's researchers. Prompt: the round, the brief, the user's note, and each
-  researcher's letter, research file, cards and whether it returned. **A short round**: it returns `short: <why>`;
-  record the reason in the run log, as `shortReason` on its `stages[]` entry, whole for one engine (D-405).
+- **R1a-synthesize** (2b, D-429), after the round's researchers, composes the round's builds, the composites; a run
+  whose first brainstorm round ran **R1a-assemble** (it deals cards) keeps that step for every later round. Prompt:
+  the round, the brief, the user's note, and each researcher's letter, research file, cards and whether it returned.
+  It returns `composites: <n>`, a line `r<k>-s-<n>: <name>` per composite, then `cards: <n> listed | not composed:
+  <n> | superseded: <n>`. **A short round**: it returns `short: <why>`; record the reason in the run log, as
+  `shortReason` on its `stages[]` entry, whole for one engine (D-405).
 - **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display, `display brainstorm` (the brief,
-  then the deck), whoever answers (Hard rules). Answers: **verify** 1–3 cards, picked or made at the gate (step
-  3); **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
+  then the deck), whoever answers (Hard rules). Answers: **verify** 1–3 composites or cards, picked (a composite's
+  changes may add or drop pieces) or made at the gate (its `from` cards, composites or piece keys, D-432; step 3);
+  **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
 
 ## 3. Verification (steps 3 to 5)
 
@@ -311,12 +314,10 @@ Each build's own: its folder's guide, audit and reports, its V4 reports numbered
 
 1. Set the run's `status` with `run-log.mjs <runFolder> set`, the run log's last write: `completed` when any build
    ended `completed` or `file-only`, else the last build's end, or `stopped` when no card was finalized. Each
-   build's status, guide and PoB file are in `builds[]` already; no import code, whose one home is the record
-   (D-260).
+   build's status, guide and PoB file are in `builds[]` already; no import code, whose one home is the record (D-260).
 2. Run the run checker at step 15 and once more after the run log's last write (`references/run-folder.md`).
 3. Tell the user: the run folder; per build, its guide, its PoB file and where its import code is (the guide's
-   `Your PoB file`, and `compile-record.json`), its status and its known issues; and each violation the checker
-   printed.
+   `Your PoB file`, and `compile-record.json`), its status and its known issues; and each violation the checker printed.
 
 ## Other references
 

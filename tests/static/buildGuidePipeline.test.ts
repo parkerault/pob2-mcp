@@ -76,7 +76,9 @@ const AGENT_TYPES = ['build-guide-researcher', 'build-guide-coordinator', 'build
 /** Amendment 1 §3, as amendment 3 extends it (D-287): each step and the agent type that runs it. */
 const STEP_TYPES: [RegExp, string][] = [
   [/^R1a,/, 'build-guide-researcher'],
-  [/^R1a-assemble\b/, 'build-guide-coordinator'],
+  // Amendment 10 (WU-106, D-429): step 2b is R1a-synthesize, which composes the round's builds; R1a-assemble stays for
+  // runs whose first brainstorm round used it.
+  [/^R1a-synthesize\b/, 'build-guide-coordinator'],
   [/^R1b,/, 'build-guide-coordinator'],
   [/^R1b-assemble\b/, 'build-guide-coordinator'],
   // D-408 (WU-91): the rival, a researcher with fresh context, after R1b-assemble and before the verification gate.
@@ -414,6 +416,12 @@ const DOSSIER_TEMPLATE = path.join(SKILL_DIR, 'templates', 'dossier-template.md'
  * runs recorded before it.
  */
 const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk'];
+/**
+ * Amendment 10 (WU-106, D-433): a composite run's dossier adds a twelfth column, `key pieces`, each composite's measured
+ * pieces and their largest drops; the run checker's `DOSSIER_COLUMNS_D433` holds the same list (WU-105). The template
+ * shows the composite run's twelve; a run whose brainstorm rounds R1a-assemble dealt keeps the first eleven.
+ */
+const DOSSIER_COLUMNS_D433 = [...DOSSIER_COLUMNS, 'key pieces'];
 
 /** Headings outside fenced blocks, with their line numbers. */
 function headings(text: string): { level: number; title: string; line: number }[] {
@@ -516,17 +524,26 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
     for (const gone of ['Mechanics', 'Synergy search', 'Config gaps', 'Not carried', 'Feasibility read']) expect({ gone, present: text.includes(gone) }).toEqual({ gone, present: false });
   });
 
-  it('has the comparison columns in order, the same list the run checker holds, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
-    expect(cells(rows[0])).toEqual(DOSSIER_COLUMNS);
+  it('has the comparison columns in order, the same lists the run checker holds, and one row per card kind: viable, failed with its verdict file, and can\'t be finalized yet', () => {
+    // D-433 (WU-106): the template shows a composite run's twelve columns; an older run's are the first eleven (D-407).
+    expect(cells(rows[0])).toEqual(DOSSIER_COLUMNS_D433);
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
-    const listed = /export const DOSSIER_COLUMNS_D407 = (\[[^\]]*\]);/.exec(checker);
-    expect(listed).not.toBeNull();
-    expect(JSON.parse(listed![1].replace(/'/g, '"'))).toEqual(DOSSIER_COLUMNS);
+    const listed = (name: string) => {
+      const m = new RegExp(`export const ${name} = (\\[[^\\]]*\\]);`).exec(checker);
+      expect(m).not.toBeNull();
+      return JSON.parse(m![1].replace(/'/g, '"'));
+    };
+    expect(listed('DOSSIER_COLUMNS_D407')).toEqual(DOSSIER_COLUMNS);
+    expect(listed('DOSSIER_COLUMNS_D433')).toEqual(DOSSIER_COLUMNS_D433);
+    expect(text).toMatch(/A run whose brainstorm rounds R1a-assemble dealt keeps the first eleven\s+columns, with no "key pieces"; the run checker rejects twelve there/);
     expect(cells(rows[1]).every((c) => /^-+$/.test(c))).toBe(true);
     const body = rows.slice(2).map(cells);
-    for (const row of body) expect(row).toHaveLength(DOSSIER_COLUMNS.length);
-    // D-319: a card id (`r1-a-2`).
-    for (const row of body) expect(row[0]).toMatch(/^r[1-9]\d*-[a-c]-[1-9]\d*$/);
+    for (const row of body) expect(row).toHaveLength(DOSSIER_COLUMNS_D433.length);
+    // D-319: a card id (`r1-a-2`; a composite's `r1-s-1`, D-429).
+    for (const row of body) expect(row[0]).toMatch(/^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/);
+    // D-433: a composite's key pieces, each with its largest drop and the figure it falls on; "—" on a card with no record.
+    expect(body[0][11]).toMatch(/^<each measured piece and its largest drop, with the figure it falls on: <piece> −<x>% \(<the group's skill>, <clear, per corpse or boss>\)/);
+    for (const row of body.slice(1)) expect(row[11]).toBe('—');
     expect(body.map((r) => r[2].split(':')[0].replace(/ after .*/, ''))).toEqual(['viable', 'failed', "can't be finalized yet"]);
     expect(body[1][2]).toMatch(/reports\/gates\/R1b-r1-b-1-a<N>\.json/);
     // D-294, D-296: TotalEHP beside Life, and the figure labelled an estimate on Count or custom modifiers.
@@ -545,7 +562,8 @@ describe('WU-70 (AC-W53, D-355): the dossier template is the verification gate\'
   it('R1b-assemble writes the table and reads the record by Grep; D1-build, D2 and W1 read the card and its row', () => {
     const assemble = folded(readStage('R1b-assemble'));
     expect(assemble).toMatch(/It writes `dossier\.md`, the verification gate's comparison table \(D-355\)/);
-    expect(assemble).toContain(`with its eleven columns exactly, in order: ${DOSSIER_COLUMNS.map((c) => `\`${c}\``).join(', ')}. No H2, no H3, no markers`);
+    // D-433 (WU-106): twelve columns on a composite run, `key pieces` last; the first eleven on an older run.
+    expect(assemble).toContain(`On a composite run, its twelve columns exactly, in order: ${DOSSIER_COLUMNS_D433.map((c) => `\`${c}\``).join(', ')} (D-433, in lower case, as written). On a run whose brainstorm rounds R1a-assemble dealt, the first eleven, without \`key pieces\`: the run checker rejects twelve there. No H2, no H3, no markers`);
     expect(assemble).toMatch(/its record's key numbers, by Grep, never the record whole/);
     for (const stage of ['D1-build', 'D2', 'W1']) expect({ stage, row: folded(readStage(stage)).includes("row of `dossier.md`") || folded(readStage(stage)).includes("the card's row (Grep `^| <id> |`)") }).toEqual({ stage, row: true });
   });
@@ -2178,8 +2196,10 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
     }
   });
 
-  it('SKILL.md has the step R1a-assemble, type build-guide-coordinator, and its stage reference exists', () => {
-    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 2b | R1a-assemble | `build-guide-coordinator` | `cards.md` |');
+  it('SKILL.md has the step R1a-synthesize, type build-guide-coordinator, and its stage reference exists; R1a-assemble stays for older runs', () => {
+    // Amendment 10 (WU-106, D-429): R1a-synthesize writes the deck and the composites' cards.
+    expect(fs.readFileSync(SKILL_MD, 'utf8')).toContain('| 2b | R1a-synthesize | `build-guide-coordinator` | `cards.md`, the composites\' cards `cards/r<k>-s-<n>.md` |');
+    expect(fs.existsSync(path.join(STAGES_DIR, 'R1a-synthesize.md'))).toBe(true);
     expect(fs.existsSync(path.join(STAGES_DIR, 'R1a-assemble.md'))).toBe(true);
     const coordinator = readDefinition(fs.readFileSync(path.join(AGENTS_DIR, 'build-guide-coordinator.md'), 'utf8'))!;
     expect(coordinator.body).toContain('| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` |');

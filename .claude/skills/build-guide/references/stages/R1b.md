@@ -3,7 +3,10 @@
 One step per picked card, one at a time, at most 3 per verification round, the rival's card aside (D-408). It
 checks the card's structure on paper, turns the card into an endgame skeleton plan, compiles it measure-only,
 prices the card's key items, runs the advisory checklist with its probes, and writes the card's verification
-half. **Gate:** the skeleton compiled with no compile error.
+half. On a **composite** (any card with `### Pieces`, whatever its id letter: one R1a-synthesize composed, or one a
+gate made from pieces, D-429, D-432), the skeleton carries every piece the composite takes, and leave-one-out probes
+measure each piece inside it (D-433; "A composite's pieces" below). **Gate:** the skeleton compiled with no compile
+error.
 You write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
 counted retries; then the card is `failed`, its last verdict the evidence (D-141).
 
@@ -15,15 +18,17 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   its findings: fix what each names), `faults` (FI-1, offline test runs only), `changes` (a gate's change,
   below), and `writes:
   ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md",
-  "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338).
+  "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338), to 8 on a
+  composite (D-433).
 - **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, whether a
   gate answer picked a rival's card (the runner relayed it), and how to price in this run (offline; stopped;
   or paced; and with `--no-ninja`, no currency rates).
 - **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
   the skeleton's `rolledGroup`. A minion skill's group holds its summon and names it as `minionSkill` (D-379).
-- **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks) and the
-  round's research files for the mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
+- **Read:** the card `cards/<id>.md` (its brainstorm half: identity, chain, enabler, links and risks; on a
+  composite, its `### Pieces` table, the pieces to carry and to probe) and the round's research files for the
+  mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
   `^#` for its headings and Read the worked example, and "A minion's skill" for a minion skill; when `validate`
   names a field, Grep that field's row); the pattern library's "Standard kits" entry for the card's archetype,
   for the structure check (Grep `^#` in `.claude/skills/build-guide/references/patterns.md`, Read that entry);
@@ -43,6 +48,18 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   template, its brainstorm half from the user's words, the cards in `from` and their research files, like any
   card: its name `name`, and `- Made at the gate (visit <visit>): from <name> and <name>: <words>` as the
   Pitch's last line, naming the `from` cards. Every link is new: confirm each with a lookup.
+- **A piece added or dropped on a composite** (D-432), a revision whose words name a piece by its name or key ("add
+  Blood Magic", "drop i1b-4"): move the piece's `### Pieces` row. An added piece is `in` (or `scheduled`, with its
+  why, when it fights a piece in), under the key `cards.md`, a card's Pieces table or an Ideas line gives it (Grep the
+  key or the name across `cards/` and `research/`), else `c<this card's id>-<m>`, `m` one past the card's highest; its
+  From names its sources and `gate (visit <visit>)`. A dropped piece is `out`, Where `—`, Why `dropped at the gate
+  (visit <visit>): <the user's words>`. Re-check every link it touches, as for any revision.
+- **A card made at the gate from pieces** (D-432): when `from` names a piece key (a Pieces row's or an Ideas
+  line's) or a composite, the new card is a composite. Its brainstorm half also has `### Pieces`, in
+  `R1a-synthesize.md`'s form (its "Writes"; Read that section): the named damage source and its enabler first, then
+  every piece `from` names by key and every piece of a composite it names, each with its key and sources kept, in,
+  scheduled or out by the user's words, with its why. It is measured as a composite (below). The Made line names
+  each piece by its name.
 
 A change that breaks the card (a load-bearing link no lookup confirms, a chain that no longer holds) fails the
 attempt: write only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code: "gate-change",
@@ -59,7 +76,8 @@ name shown at a gate never changes), and go on past the lock, which step 2 ran.
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
 trade site's limits are shared with the user's account) is spent on an item validation would reject. The
-verification checklist's probe variants (below) come on top: up to 4 per card (D-292).
+verification checklist's probe variants (below) come on top: up to 4 per card (D-292), and up to 8 on a composite:
+the checklist's 4, then 4 leave-one-out probes (D-433).
 
 **The ascendancy lock** (D-342), the identity check every card gets first, before any compile and before
 FI-1. For every skill the card names (its named damage source, and each skill in its chain and links; a minion
@@ -105,6 +123,15 @@ of rough arithmetic and no compile, from the card and its archetype's Standard k
 Write it as the card's `### Structure check`, one `- ` line per step. When a flip beats the card on paper, the
 last line is `- A stronger structure? <the flip, in a sentence, and the rough multiplier>`: the verification gate
 shows it, and the user can make a new card from it. The skeleton still tests the card as written.
+
+**On a composite**, after the last compile (step 8), compare each other enabled `clear` group's figure with the
+named damage source's (the measure's per-second figures, "A composite's pieces" below). When one is larger, the
+last line is `- A stronger structure? <the group's skill> as the named source` (D-433): the user may make that card
+at the verification gate (D-391), and the next round's synthesis composes the structure. The section has one such
+line, its last: with a flip too, it is `- A stronger structure? <the group's skill> as the named source; <the
+flip, and its multiplier>`. **Whenever you write a composite's `### Structure check`, write its `### Pieces
+measured` before the verdict too**, whatever happens after: a piece no probe measured is `not measured (<why>)`,
+so a failed attempt's rows say why (the run checker holds a composite with a written structure check to its table).
 
 1. **Tree targets.** From the card's chain and links, list the ascendancy nodes, notables and keystones the
    card rests on, and for a minion skill the passives that grant it and its summon (the lock's `Grants Skill:`
@@ -163,6 +190,15 @@ shows it, and the user can make a new card from it. The skeleton still tests the
      group, as step 3 writes it), each group with a `role` (the named source's is `clear` or
      `single_target`), `main` on the named source, and `rolledGroup`; a
      `count` with its `countReason` where the card's chain has several copies act at once (D-293).
+   - **A composite's skeleton** (D-433) carries **every piece its `### Pieces` table has `in` or `scheduled`**,
+     each where its `Where` puts it (a support in its group, a unique or a rare's mod line in its slot, a node on
+     the tree, a rune in its item, a config condition in `config`), and **a scheduled piece in its own group**: a
+     boss button, a group with role `single_target`; a skill on one weapon set, a group with `weaponSet: <n>`
+     (amendment 9 §24.2, D-426), its figure from the record's `skillOutputs`, or `skillOutputsSet2` on set 2. **A
+     second clear group keeps role `clear`** and stays below the named source (the D1 gate's `rolled-not-largest`
+     check, as today): never re-role it to hide a larger figure; the structure check records it (above). A piece
+     out stays out. A piece PoB doesn't model stays in the skeleton as the card's links say PoB follows it
+     (`How PoB follows it`), and its value is the card's hand estimate (below).
    - `companion`, when the card's chain has a tamed beast (D-402, schema 5): `{species, mods}`, the species as
      PoB's beast library names it and `mods` its kept modifiers' ids in `data/monsters/monster-mods.md`, at most
      4, with one `Tame Beast` gem, enabled, in an enabled group. The compile writes PoB's three companion options
@@ -214,7 +250,8 @@ shows it, and the user can make a new card from it. The skeleton still tests the
    `concepts/<id>/compile-record.json` and `concepts/<id>/compiled-build.xml` beside the plan and
    nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
    verdict. The runner re-runs the step with them as findings. If it succeeds, run the verification
-   checklist (below), then write the card's verification half (below), before the verdict.
+   checklist (below), on a composite then its leave-one-out probes ("A composite's pieces"), then write the
+   card's verification half (below), before the verdict.
 9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json`, written last, whatever happened:
 
    ```json
@@ -287,17 +324,94 @@ Compare its record with the skeleton's.
 **The probe budget.** Up to 4 probe variants per card, beyond the attempt's two compiles, run in the order
 above (5, 6, 7, 8): each a one-stage, measure-only compile, within NFR-21's per-request limit. A probe that
 doesn't fit the budget, or whose compile fails, is reported `not checked`, and it never fails the step.
-Probes don't count in the verdict's `compiles`.
+Probes don't count in the verdict's `compiles`. **A composite's cap is 8** (D-433): the checklist's 4 first, in this
+order, then the 4 leave-one-out probes of "A composite's pieces", numbered on in `probes/<card-id>/<n>/`. A
+checklist probe left unrun frees no fifth leave-one-out. A plain card (no `### Pieces`) keeps 4 and has no Pieces
+tables.
 
 A card whose damage source isn't a skill (D-334) has no skeleton: run checks 1–4 from the card and the
 lookups, report 5–8 `not checked`, and write "not compiled: its damage source isn't a skill" in its
 verification half ("not compiled: <entry> isn't in the PoB pin" for a `not-in-pin` card, D-400).
 
+## A composite's pieces (D-433)
+
+A composite is one build composed from many pieces, so R1b measures what each piece adds inside it: a probe leaves
+one piece out, and its record says what each figure loses. A piece can pay on one figure and not another: in the
+study behind amendment 10, Blistering Bond was 5% of the warcry's clear and 22% of the boss skill.
+
+**The measure: three kinds of figure, never summed across groups.** Read each from the record (the skeleton's,
+then each probe's), at the group's own selection, the record's key `g<group>s<skill>p<statSet>` for the group's
+main active skill and stat set:
+
+- **Per second, for clear:** each enabled `clear` group's figure, the named damage source's first, Count-scaled
+  (`countedSkillOutputs`, as the Verified line reads it).
+- **Per corpse:** each of PoB's own on-kill groups (a corpse explosion an ascendancy node or a unique grants; the
+  record numbers PoB's groups after the plan's): its hit, `AverageDamage` (one explosion, which PoB sizes from a
+  normal monster's life), and its ignite, `IgniteDPS`. A corpse explosion fires once per kill, so it is never a
+  figure per second.
+- **For bosses:** each enabled `single_target` group's figure.
+
+A group's figure is its damage per second with its ailments: `TotalDPS` plus the `IgniteDPS`, `BleedDPS` and
+`PoisonDPS` PoB gives at its key (an ailment's carrier pays only there), or its minion's `Minion` fields when its
+damage is its minion's (D-378). The named source's comes from `countedSkillOutputs`, every other group's from
+`skillOutputs`, or `skillOutputsSet2` for a group with `weaponSet: 2`. **Never add figures across groups**: summed,
+one explosion's ignite drowns the skills a player presses, and buttons that compete for the player's time can't all
+run at once. PoB's Full DPS still counts the named source only (D-337), so it is no sum of them either.
+
+**Which pieces:** up to 4 of the Pieces table's `in` rows, never the named damage source or its enabler (the
+table's first rows), the least certain value first:
+1. a piece the skeleton stands for with a custom modifier (`config.customMods`);
+2. a layer on another group (a second skill, an explosion, a detonation);
+3. an ailment's carrier (a piece that makes or scales an ailment on a hit);
+4. then the rest in the table's row order, the synthesis's own (by how much the composite leans on each).
+
+**Leaving a piece out,** by its kind, each probe a copy of the skeleton with that one change:
+- a **support**: removed from its group;
+- a **skill**: its group disabled (`enabled: false`). **A skill left out counts as 0**: the compile measures every
+  group as the main skill, a disabled one included, so its own figure in the probe's record isn't what the build
+  loses; its drop on its own figure is −100%;
+- a **unique**: the slot's plain base of the same base type (the unique's base, with no modifier);
+- a **rare's mod line**: removed from the item;
+- a **node**: removed with every node that depends on it (the tree still connects); other pieces among them are
+  named in `How`;
+- a **keystone**: removed, with every custom modifier that stands for its mechanic;
+- a **rune**: removed from the item;
+- a **config condition**: turned off.
+
+**A piece PoB doesn't model** (its links row says `not modelled` or `hand calculation`, or
+`mcp__pob2__check_model_coverage` says so; Battershout's detonation shows no DPS): no probe. Its Drops is the
+card's hand estimate, `estimate (<reason>: <the figure it moves, about how much>)`, never a ledger entry: a skeleton
+has no ledger. It takes one of the 4 rows.
+
+**The order and the cap:** the checklist's probes 5–8 first, then the leave-one-outs, at most 8 in all. A probe a
+failed compile cuts is `not measured (<why>)`, with `How` `—`: its own compile's failure (`not measured (the probe's
+compile failed: <the error>)`), or the skeleton's, which cuts every row (`not measured (the skeleton didn't compile:
+<the first error>)`, or `not measured (not compiled: <the reason>)` on a card that compiles nothing, D-334, D-400),
+the 4 pieces chosen as above.
+
+**The drop** of a figure is (the probe's − the skeleton's) ÷ the skeleton's, to a whole percent, written
+`<the group's skill> (<clear | per corpse | boss>) −<x>%` (`+<x>%` for a rise; a corpse explosion's two figures
+`<skill>'s hit (per corpse)` and `<skill>'s ignite (per corpse)`). **`### Pieces measured`** (Appendix A), in the
+verification half after `### Key item prices`, one row per piece left out, in the order probed:
+
+```
+### Pieces measured
+
+| Key | Drops | How |
+|---|---|---|
+| i1b-4 | Seismic Cry (clear) −5%; Shield Wall (boss) −22%; Bellow's explosion's ignite (per corpse) 0% | the slot's plain Ruby Ring |
+| cr1-a-3-2 | not measured (the probe's compile failed: <the error>) | — |
+```
+
+`Key` is the piece's key in `### Pieces`; `Drops` lists each figure that moves, joined with `; ` (the named source's
+`0%` when none moves), or the estimate, or `not measured (<why>)`; `How` is how the probe left it out. Pieces not
+probed are left out of the table, so it holds at most 4 rows.
+
 ## The card's verification half (C-52)
 
 Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
 (`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
-for a gate's change and the rival's rename.
+for a gate's change and the rival's rename (a composite's is R1a-synthesize's, its `### Pieces` included).
 
 - **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
   `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled
@@ -306,10 +420,15 @@ for a gate's change and the rival's rename.
   stat set and group.
 - **Estimates** (D-296): each Count above 1 with its `countReason`, each custom modifier with its reason, and
   every figure the record marks `computedWithCustomMods`, defences included; the clear and boss figures kept
-  separate, never summed.
+  separate, never summed. On a composite, that line names each figure of the measure, group by group: `Clear:
+  <figure, its group>, for each clear group. Per corpse: <hit and ignite, its group>. Boss: <figure, its group>, for
+  each boss group. Kept separate, never summed.`
 - **Checklist results**, from the checklist above; **a fallback ladder**, cheapest first; **key item prices**,
   from step 6, each converted to a range around day 7 with the price as seen and its date and league day, or
   `unavailable` with its note (the template's form).
+- **Pieces measured**, on a composite only, after the key item prices: the table of "A composite's pieces" above,
+  even when the attempt failed after its structure check (its rows then `not measured (<why>)`). A plain card has
+  neither Pieces table.
 
 **A card whose damage source isn't a skill** (D-334) compiles nothing, so it has no skeleton, record or probe.
 Run checks 1–4, write its verification half as above, and write the verdict with `compiled: "fail"`, one
@@ -323,18 +442,26 @@ PoB pin"}`: the pin can't compile it until an upgrade.
 
 Only the header's `writes` (D-338): `concepts/<id>/plan.json`, the verdict file
 `reports/gates/R1b-<id>-a<attempt>.json`, the card `cards/<id>.md` (its verification half, and a gate's
-change), and each probe's `probes/<id>/<n>/plan.json`, `n` from 1 to 4. The server writes each compile's
-record and XML beside its plan.
+change), and each probe's `probes/<id>/<n>/plan.json`, `n` from 1 to 4, to 8 on a composite (D-433). The server
+writes each compile's record and XML beside its plan.
 
 ## Returns
 
 At most 8 lines: the outcome, the verdict file, the card with its checklist and probe counts (`probes <n>`:
-every probe run, a probe whose compile failed included), and your price calls counted by outcome (`pricing.md`):
+every probe run, a probe whose compile failed included; on a composite, then its pieces measured, `pieces <n>
+measured (<n> not measured)`), and your price calls counted by outcome (`pricing.md`):
 
 ```
 R1b r1-a-2 attempt 1: compiled
 reports/gates/R1b-r1-a-2-a1.json
 cards/r1-a-2.md: checklist 8 run (2 not checked), probes 3
+prices: none (offline)
+```
+
+```
+R1b r1-s-1 attempt 1: compiled
+reports/gates/R1b-r1-s-1-a1.json
+cards/r1-s-1.md: checklist 8 run (1 not checked), probes 7, pieces 4 measured (1 not measured)
 prices: none (offline)
 ```
 

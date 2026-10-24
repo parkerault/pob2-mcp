@@ -2,7 +2,8 @@
 
 One step per verification round, after every R1b step of the round, and a second pass after the rival's R1b
 (D-408). It writes `dossier.md`, the verification gate's comparison table (D-355): one row per verified card,
-with its status, its synergy, its key numbers from the record, its clear speed, its key prices and its main risk.
+with its status, its synergy, its key numbers from the record, its clear speed, its key prices and its main risk,
+and on a composite run each composite's key pieces (D-433).
 The user picks from it at the verification gate, and the design steps and W1 read their card and its row. The
 research files and the cards keep the rest: the dossier merges no research.
 
@@ -29,7 +30,12 @@ research files and the cards keep the rest: the dossier merges no research.
     (`countedSkillOutputs[g<group>s<skill>p<statSet>].fields`, its group's `count`; `MinionTotalDPS` when the
     group names a minion skill, else `TotalDPS`, D-378), `Life`, `TotalEHP`, `configWritten` (the reference
     hits EHP was measured against), `computedWithCustomMods` and `measures.clearSpeed` (its `speed`, `noArea` and
-    `skill`); and its key-item prices, converted, from the card's `Key item prices`.
+    `skill`); and its key-item prices, converted, from the card's `Key item prices`;
+  - whether the run composes: a **composite run** is one whose brainstorm rounds R1a-synthesize composed (D-429),
+    its deck `cards.md` opening with `## What the composites share` (Grep that line); a run whose first brainstorm
+    round ran R1a-assemble deals cards and is no composite run;
+  - on a composite run, each **composite** of the round (any card with `### Pieces`, D-433): its `### Pieces
+    measured` table, R1b's leave-one-out drops, and the names its `### Pieces` rows give those keys.
 
 ## Work
 
@@ -37,10 +43,12 @@ research files and the cards keep the rest: the dossier merges no research.
    `concepts/<id>/compile-record.json` exists beside its skeleton. If it doesn't, the card is `failed`:
    say so in its row and in its comparison line. A card that can't be finalized yet has no skeleton,
    record or prices to confirm: it compiled nothing (D-334), and it is never `failed`.
-2. **Write the dossier from the template**: its H1, the one brief line, and the table, with its eleven columns
-   exactly, in order: `Card`, `Round`, `Status`, `Synergy`, `Named source DPS`, `Life`, `EHP`, `Clear speed`,
-   `Key prices`, `League`, `Main risk`. No H2, no H3, no markers: each number is the card's record's, each price
-   its skeleton's entry, and the row's card id finds both.
+2. **Write the dossier from the template**: its H1, the one brief line, and the table. On a composite run, its
+   twelve columns exactly, in order: `Card`, `Round`, `Status`, `Synergy`, `Named source DPS`, `Life`, `EHP`,
+   `Clear speed`, `Key prices`, `League`, `Main risk`, `key pieces` (D-433, in lower case, as written). On a run
+   whose brainstorm rounds R1a-assemble dealt, the first eleven, without `key pieces`: the run checker rejects
+   twelve there. No H2, no H3, no markers: each number is the card's record's, each price its skeleton's entry,
+   and the row's card id finds both.
    - **The brief line:** the brief (its fields as parsed; a fixed roll names its class, ascendancy and skill),
      the mode (offline: no web source and no price was consulted), and the rounds: each brainstorm round with
      its note, each verification round with its cards.
@@ -55,15 +63,20 @@ research files and the cards keep the rest: the dossier merges no research.
      `none (offline)`; online: the skeleton's league, and `<league>, unverified` when its verdict has
      `leagueUnverified`, so D1 doesn't take it); and its main risk. When the card's payoff rests on a mechanic no
      lookup confirmed, or that has no source in the card (no item, node or gem that grants it), its main risk
-     says so.
+     says so. On a composite run, its **key pieces** (D-433), from the card's Pieces measured: for a composite,
+     each piece the table holds, by name, with its largest drop and the figure it falls on, `<piece> −<x>% (<the
+     group's skill>, <clear | per corpse | boss>)`, joined with `; `, as in `Blistering Bond −22% (Shield Wall,
+     boss)`; a piece the table estimates, `<piece> estimate (<reason>)`, and one it didn't measure, `<piece> not
+     measured`. A plain card's is `—`.
    - **A failed card's row:** `failed after <N> attempts: <the last errors>; <its last verdict file>`, and `—` in
-     every number, clear speed, price and league cell. A `wrong-ascendancy` card (D-342) is `failed: <its
-     finding's message>`, with `—` too: it compiled nothing. The rival's `not-dealt` card is `failed after 1
-     attempt: not dealt: <the check it failed>; <its verdict file>` (D-408).
+     every number, clear speed, price and league cell, and in its key pieces on a composite run. A
+     `wrong-ascendancy` card (D-342) is `failed: <its finding's message>`, with `—` too: it compiled nothing. The
+     rival's `not-dealt` card is `failed after 1 attempt: not dealt: <the check it failed>; <its verdict file>`
+     (D-408).
    - **A card that can't be finalized yet** (D-303, D-334): `can't be finalized yet: its damage source isn't
      a skill`, or `can't be finalized yet: waits on the pin` for a `not-in-pin` card (D-400), `—` in every
-     number, clear speed, price and league cell, and its main risk what finalizing it waits on. It names no
-     `concepts/<id>/` path: none exists.
+     number, clear speed, price, league and key pieces cell, and its main risk what finalizing it waits on. It
+     names no `concepts/<id>/` path: none exists.
 3. **A later round** keeps every row already in `dossier.md` and adds this round's below them, in id order, and
    adds the round to the brief line; the rival's pass adds `and the rival r<k>-x-<n>` to its round there. If
    `dossier.md` is missing (an earlier round's assembly never returned its file), write it from the template for
@@ -82,9 +95,9 @@ research files and the cards keep the rest: the dossier merges no research.
 At most 8 lines: `dossier.md`, then the verification gate's comparison, one line per card of this round in id
 order: its id, its status, its synergy in a few words, its key numbers from the record (the named source's
 Count-scaled figure, `Life`, `TotalEHP` and the clear speed), its key prices (ranges with their day, or
-`unavailable`), and its main risk; a failed card's line names its last verdict file. The figure is labelled
-`estimate` when its group's Count is above 1 or the stage is `computedWithCustomMods` (D-296). A card that can't
-be finalized yet says so, with no numbers, and isn't a failure.
+`unavailable`), and its main risk, and on a composite run a composite's key pieces; a failed card's line names its
+last verdict file. The figure is labelled `estimate` when its group's Count is above 1 or the stage is
+`computedWithCustomMods` (D-296). A card that can't be finalized yet says so, with no numbers, and isn't a failure.
 
 ```
 dossier.md
@@ -92,6 +105,13 @@ r1-a-2 viable: bleed burst on rares; Blood Hunt 50,000 DPS (r1a2e g1s1p1 TotalDP
 r1-b-2 viable: totem relay; Ancestral Warrior Totem 84,000 DPS, estimate (Count 2: two totems), Life 3,900, EHP 27,800 vs T15 map hits, clear slow (PoB gives no area); prices unavailable (offline); risk: totem placement
 r1-b-1 failed after 3 attempts: FI-1 Unknown Gem (reports/gates/R1b-r1-b-1-a3.json)
 r1-c-3 can't be finalized yet: its damage source isn't a skill (a flask nova); read-only checks only
+```
+
+On a composite run:
+
+```
+dossier.md
+r1-s-1 viable: the aftershock hits twice and the slam ignites; Rolling Slam 42,000 DPS (r1s1e g1s1p1 TotalDPS), Life 4,600, EHP 33,000 vs T15 map hits, clear medium (rough); prices unavailable (offline); risk: the ignite rests on Blistering Bond; key pieces: Fist of War −18% (Rolling Slam, clear); Blistering Bond −14% (Seismic Cry, boss)
 ```
 
 ## Fault directives

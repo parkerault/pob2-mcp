@@ -60,7 +60,8 @@
  * stage that uses weapon set 2 (`outputsSet2`'s stages, which now include a stage with a group on set 2) gets
  * `skillOutputsSet2`, every group's figures with set 2 active, keyed as `skillOutputs`. Every measured stage's clear
  * measure gets `travel` (`travelOf`): the first enabled group other than the clear group whose active skill has PoB's
- * Travel skill type, with its uses per second, or null.
+ * Travel skill type, with its uses per second, or null. The clear measure and `travel` read a group's figures on its
+ * own set (`groupFigures`).
  */
 import type { StageChecks } from '../engine/schemas.js';
 import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
@@ -356,7 +357,10 @@ export interface ClearSpeedMeasure {
   group: number | null;
   key: string | null;
   skill: string | null;
-  /** Its `AreaOfEffectRadiusMetres` (a minion's `MinionAreaOfEffectRadiusMetres`, D-378), 0 when PoB gives none. */
+  /**
+   * Its `AreaOfEffectRadiusMetres` (a minion's `MinionAreaOfEffectRadiusMetres`, D-378), 0 when PoB gives none. WU-102: a
+   * clear group with `weaponSet: 2` is read from `skillOutputsSet2` (`groupFigures`), this and its uses per second.
+   */
   radiusMetres: number;
   /** The band by the radius alone: below 2 m slow, below 4 m medium, else fast. */
   band: ClearSpeed;
@@ -396,6 +400,19 @@ export interface TravelSkill {
 }
 
 /**
+ * WU-102 (D-426): the figures a group is read from, those of its own weapon set: `skillOutputsSet2` for a group with
+ * `weaponSet: 2` when the record has it, else `skillOutputs`. On a stage measured with set 2 active
+ * (`items.useSecondWeaponSet`), `skillOutputs` is set 2's too, and the stage has no set-1 measure.
+ */
+export function groupFigures(
+  stage: Pick<Stage, 'skills'>,
+  rec: Pick<StageRecord, 'skillOutputs' | 'skillOutputsSet2'>,
+  group: number,
+): StageRecord['skillOutputs'] {
+  return stage.skills.groups[group - 1]?.weaponSet === 2 && rec.skillOutputsSet2 !== undefined ? rec.skillOutputsSet2 : rec.skillOutputs;
+}
+
+/**
  * D-427 (§24.2): the clear measure's `travel`: of the stage's travel skills (`compile_stage`'s `travelSkills`, each an
  * enabled group's active skill with PoB's Travel type), the first by group number, then active skill, whose group isn't
  * the clear group (`clearGroupOf`). Its uses per second are PoB's `Speed` at its first stat set, from the figures of
@@ -412,8 +429,7 @@ export function travelOf(
     .sort((a, b) => a.group - b.group || a.activeSkill - b.activeSkill)
     .find((t) => t.group !== clear);
   if (pick === undefined) return null;
-  const onSetTwo = stage.skills.groups[pick.group - 1]?.weaponSet === 2 && rec.skillOutputsSet2 !== undefined;
-  const figures = onSetTwo ? rec.skillOutputsSet2! : rec.skillOutputs;
+  const figures = groupFigures(stage, rec, pick.group);
   const speed = figures[selectionKey({ group: pick.group, activeSkill: pick.activeSkill, statSet: 1 })]?.fields.Speed;
   return { group: pick.group, skill: pick.skill, usesPerSecond: typeof speed === 'number' && Number.isFinite(speed) ? speed : null };
 }
@@ -629,7 +645,9 @@ export function stageMeasures(
   const ehp = rec.outputs.TotalEHP;
   const move = rec.outputs[MOVEMENT_SPEED_FIELD];
   const movementSpeed = typeof move === 'number' && Number.isFinite(move) ? move : null;
-  const entry = clearEntryOf(stage, rec.skillOutputs, rec);
+  // WU-102: the clear group's figures on its own weapon set (`groupFigures`): a clear group on set 2 reads skillOutputsSet2.
+  const clearGroup = clearGroupOf(stage, rec)?.group;
+  const entry = clearEntryOf(stage, clearGroup === undefined ? rec.skillOutputs : groupFigures(stage, rec, clearGroup), rec);
   // D-378, D-397: a clear skill whose figures are its minion's (a group that names a minion skill, or a plain summon)
   // is measured by its minion's area and use rate, by the damage figure's own test.
   const minion = entry !== null && minionFigures(rec, entry.group, entry.key);
@@ -796,7 +814,7 @@ export interface StageRecord {
     string,
     { value: ConfigValue; origin: 'explicit' | 'default' | 'placeholder'; class: 'earned' | 'scenario' | 'baseline' | 'unlisted' }
   >;
-  /** PoB's warning lines, kept (each a V1 `pob-warning` finding) or filtered as informational. */
+  /** PoB's warning lines, kept (each a V1 `pob-warning` finding, or `skill-slots` for PoB's skill-slot line, D-428) or filtered as informational. */
   pobWarnings: { kept: string[]; filtered: string[] };
   v1: Verdict | null;
   v2: Verdict | null;

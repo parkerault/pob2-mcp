@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 6,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Rapid Assault"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "ledger": [],
+  "prices": [],
+  "stages": [
+    {
+      "id": "on",
+      "loadoutName": "A group on set 1 beside a spear (L80) {on}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "A spear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHardwood Spear\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rapid Assault",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Rapid Assault",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "off",
+      "loadoutName": "The same group on both sets (L80) {off}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "A spear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHardwood Spear\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rapid Assault",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Rapid Assault",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "fb",
+      "loadoutName": "A group on set 1 beside a spear and a shield (L80) {fb}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "A spear and a shield",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHardwood Spear\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nSplintered Tower Shield\nImplicits: 1\nGrants Skill: Raise Shield"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rapid Assault",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Rapid Assault",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "fbn",
+      "loadoutName": "The same group on both sets beside a spear and a shield (L80) {fbn}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          13397,
+          46325,
+          1207,
+          33556,
+          39581,
+          38323,
+          55473,
+          6839
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          },
+          {
+            "node": 1207,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 38323,
+            "attribute": "dexterity"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "A spear and a shield",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nHardwood Spear\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: Normal\nSplintered Tower Shield\nImplicits: 1\nGrants Skill: Raise Shield"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rapid Assault",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Rapid Assault",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 10,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ]
+}

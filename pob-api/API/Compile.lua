@@ -59,15 +59,17 @@
 --     one that is disabled or in a disabled group (`groupsEnabled`, per group). A valid one is reported in
 --     `companions`: the beast's id, name and Spirit percentage (companionReservation), and whether PoB parses each of
 --     `lines` whole (`parsed`), the custom modifier lines its kept modifiers write.
+--     `weaponGrants` (WU-102, PG-74): each stage's weapon slots whose item grants a skill, with the skills' names, as
+--     PoB parses the item (a base's `Grants Skill:` implicit included), for the compiler's pick of a group's slot.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
---         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text},
+--         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}, weaponGrants[{stage, slot, skills[]}],
 --         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
 --                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}],
 --         companions[{stage, species, id, name, companionReservation, parsed[]}]}
 --
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[],
---                   minionSkill?, minionStatSet?, weaponSet?}], main, configSet, config, customMods[], offenseFields[],
+--                   minionSkill?, minionStatSet?, weaponSet?, slot?}], main, configSet, config, customMods[], offenseFields[],
 --                   itemSlots[], anoint?, companion?{id}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
@@ -96,9 +98,10 @@
 --     group socketed in one), the stage is also measured with set 2 active, just before its own measurement, and
 --     `outputsSet2` is that measure in `outputs`' form; on a stage whose own measure is set 2's
 --     (useSecondWeaponSet), it is `outputs` itself, and a stage that doesn't use set 2 has none.
---     A skill on a weapon set (WU-102, §24.2): a group's `weaponSet` (1 or 2) sockets it in that set's slot
---     (WEAPON_SET_SLOT: `Weapon 1`, `Weapon 1 Swap`), which PoB enables only while that set is active
---     (Modules/CalcSetup.lua:1728-1729); a group on set 2 makes the stage one that uses set 2. Such a stage's
+--     A skill on a weapon set (WU-102, §24.2): a group's `weaponSet` (1 or 2) sockets it in one of that set's weapon
+--     slots, `slot`, the compiler's pick (the set's slot whose item grants no skill, compile_check's `weaponGrants`;
+--     PG-74), else the set's main hand (WEAPON_SET_SLOT: `Weapon 1`, `Weapon 1 Swap`); PoB enables it only while that
+--     set is active (Modules/CalcSetup.lua:1728-1729). A group on set 2 makes the stage one that uses set 2. Such a stage's
 --     `skillOutputsSet2` is every group's breakdown with set 2 active, keyed as `skillOutputs` (it is `skillOutputs`
 --     itself on a stage measured on set 2). `travelSkills` (D-427) lists each enabled group's active skill whose
 --     granted effect has PoB's Travel skill type, {group, activeSkill, skill}, in the reply's group numbers.
@@ -1109,6 +1112,32 @@ local function gem_texts(names)
   return out
 end
 
+-- The weapon slots, each set's main hand first (WU-102).
+local WEAPON_SLOT = { ['Weapon 1'] = true, ['Weapon 2'] = true, ['Weapon 1 Swap'] = true, ['Weapon 2 Swap'] = true }
+
+-- WU-102 (PG-74): the stage's weapon slots whose item grants a skill, as PoB parses the item (Item:BuildModList's
+-- grantedSkills, from its `Grants Skill:` lines, a base's implicit included: a spear's Spear Throw, a shield's Raise
+-- Shield). PoB gives such an item's skill the supports of every group socketed in the same slot, " Swap" stripped
+-- (Modules/CalcSetup.lua:1727-1732, :1913-1928), so the compiler puts a group on a weapon set in that set's slot whose
+-- item grants none. Appends {stage, slot, skills[]} to `out`, the skills by PoB's names.
+local function weapon_grants(st, out)
+  local d = game_data()
+  for _, it in ipairs(list(st.items)) do
+    local slot = tostring(it.slot)
+    if WEAPON_SLOT[slot] then
+      local ok, item = pcall(construct, 'Item', tostring(it.text))
+      if ok and item and type(item.grantedSkills) == 'table' and #item.grantedSkills > 0 then
+        local names = {}
+        for _, g in ipairs(item.grantedSkills) do
+          local skill = d and d.skills and d.skills[g.skillId]
+          names[#names + 1] = tostring(skill and skill.name or g.skillId)
+        end
+        out[#out + 1] = { stage = tostring(st.id), slot = slot, skills = names }
+      end
+    end
+  end
+end
+
 function M.compile_check(params)
   local tree = main and main.LoadTree and main:LoadTree(latestTreeVersion)
   if not tree then fail('passive tree data not available') end
@@ -1117,12 +1146,13 @@ function M.compile_check(params)
   if not roll then defects[#defects + 1] = 'roll: ' .. rollErr end
   if roll then roll.starts = tree_starts(tree, roll) end
   local stages = list(params.stages)
-  local anoints, trees, companions = {}, {}, {}
+  local anoints, trees, companions, grants = {}, {}, {}, {}
   for _, st in ipairs(stages) do
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
     trees[#trees + 1] = check_stage(tree, roll, st, defect)
     anoints[#anoints + 1] = check_anoint(tree, st, defect)
     companions[#companions + 1] = check_companion(st, defect)
+    weapon_grants(st, grants)
   end
   local producers = {}
   for _, p in ipairs(list(params.producers)) do
@@ -1131,7 +1161,7 @@ function M.compile_check(params)
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
     configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees,
-    companions = companions }
+    companions = companions, weaponGrants = grants }
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -1193,7 +1223,7 @@ end
 -- The off-hand slots, in order (OFF_HAND above is the same set as a lookup).
 local OFF_HAND_SLOTS = { 'Weapon 2', 'Weapon 2 Swap' }
 
--- D-426 (§24.2): the slot a plan group on weapon set n is socketed in: the set's main hand, whose slot control PoB
+-- D-426 (§24.2): the slot a plan group on weapon set n is socketed in by default: the set's main hand, whose slot control PoB
 -- tags with that set (ItemsTab: `Weapon 1` weaponSet 1, `Weapon 1 Swap` weaponSet 2, Classes/ItemsTab.lua:226-236),
 -- so the group is enabled only while that set is active (Modules/CalcSetup.lua:1728-1729). Its label in PoB's
 -- "Socketed in" list is `Weapon 1` and `Weapon 1 (Swap)` (Classes/SkillsTab.lua:13-17).
@@ -1320,15 +1350,19 @@ end
 -- D-402: with a companion, the stage's Tame Beast gem goes in as PoB's companion gem, as the game turns the gem when
 -- it captures the beast, with the beast as its minion (skillMinion, which CalcActiveSkill picks from the beast library,
 -- Modules/CalcActiveSkill.lua:904-929).
--- D-426 (§24.2): a group with a `weaponSet` is socketed in that set's slot (WEAPON_SET_SLOT), which PoB enables only
--- while its set is active (Modules/CalcSetup.lua:1728-1729); a group without one gets no slot, as before.
+-- D-426 (§24.2): a group with a `weaponSet` is socketed in one of that set's weapon slots, which PoB enables only while
+-- its set is active (Modules/CalcSetup.lua:1728-1729): `slot`, the compiler's pick of the set's slots (the one whose item
+-- grants no skill, PG-74), else the set's main hand (WEAPON_SET_SLOT); a group without one gets no slot, as before.
 local function build_skills(st, fresh)
   if not fresh then return end
   local beast = companion_id(st)
   for gi, group in ipairs(list(st.groups)) do
     local weaponSet = tonumber(group.weaponSet)
-    local slot = weaponSet ~= nil and WEAPON_SET_SLOT[weaponSet] or nil
-    if weaponSet ~= nil and slot == nil then fail(('group %d: weaponSet is 1 or 2, not %s'):format(gi, tostring(group.weaponSet))) end
+    local slot = weaponSet ~= nil and (group.slot or WEAPON_SET_SLOT[weaponSet]) or nil
+    local tagged = slot ~= nil and WEAPON_SLOT[slot] and build.itemsTab.slots[slot]
+    if weaponSet ~= nil and not (tagged and tagged.weaponSet == weaponSet) then
+      fail(('group %d: weapon set %s has no weapon slot %s'):format(gi, tostring(group.weaponSet), tostring(slot)))
+    end
     local created = must('creating socket group ' .. gi, BuildOps.create_socket_group({
       label = group.label, enabled = group.enabled ~= false, includeInFullDPS = group.includeInFullDPS == true,
       groupCount = group.groupCount, slot = slot,

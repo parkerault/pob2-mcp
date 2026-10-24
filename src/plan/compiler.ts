@@ -58,10 +58,13 @@
  * every stage's record gives `requirements`, the highest level requirement among its items and gems and what sets it
  * (D-413, `stageRequirements`). A plan's `tree.needs` (schema 6, D-418) compiles as written: the compile reads no need.
  *
- * WU-102 (D-426, D-427, §24.2): a group's `weaponSet` goes to `compile_stage`, which sockets the group in that set's
- * slot, so PoB enables it only while that set is active, and a group on set 2 makes its stage one that uses set 2; such
- * a stage's record gains `skillOutputsSet2` beside `skillOutputs`. Every measured stage's clear measure gains `travel`,
- * from `compile_stage`'s `travelSkills` (`travelOf`). V1 reports a group on a set whose weapon slots are empty.
+ * WU-102 (D-426, D-427, §24.2): a group's `weaponSet` goes to `compile_stage` with the set's slot it is socketed in,
+ * so PoB enables it only while that set is active, and a group on set 2 makes its stage one that uses set 2; such a
+ * stage's record gains `skillOutputsSet2` beside `skillOutputs`. The slot is the set's one whose item grants no skill
+ * (`groupSlots`, from `compile_check`'s `weaponGrants`; PG-74: PoB gives an item's granted skill the supports of every
+ * group in its slot), the main hand when both do (V1's `weapon-skill-supports`), and stages whose items pick different
+ * slots never share a skill set. Every measured stage's clear measure gains `travel`, from `compile_stage`'s
+ * `travelSkills` (`travelOf`). V1 reports a group on a set whose weapon slots are empty.
  *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
@@ -138,7 +141,7 @@ import type { SourceTag } from './sourceTag.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
-import { checkV1, predecessorOf } from './checks/v1.js';
+import { checkV1, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
@@ -198,11 +201,32 @@ const CONTENT_OF: Record<ContentKind, (s: Stage) => Stage['items'] | Stage['skil
 /**
  * What a stage's sets are grouped by (A-P2): its content of the kind. D-402: a skill set's content includes the stage's
  * companion, the beast its Tame Beast gem summons (`beastOf` the stage, its resolved monster id; else its species), so
- * stages naming different beasts, or one and none, never share a skill set.
+ * stages naming different beasts, or one and none, never share a skill set. WU-102 (PG-74): on a stage with a group on
+ * a weapon set, it includes each group's weapon slot (`slotsOf`, the compiler's pick from the stage's items), so stages
+ * whose items put a group in different slots never share one; a stage with none keeps its key as before.
  */
-function groupingKey(kind: ContentKind, stage: Stage, beastOf?: (stageId: string) => string | undefined): string {
-  if (kind !== 'skill' || stage.companion === undefined) return stableText(CONTENT_OF[kind](stage));
-  return stableText({ ...stage.skills, companion: beastOf?.(stage.id) ?? stage.companion.species });
+function groupingKey(
+  kind: ContentKind,
+  stage: Stage,
+  beastOf?: (stageId: string) => string | undefined,
+  slotsOf?: (stage: Stage) => (string | null)[],
+): string {
+  if (kind !== 'skill') return stableText(CONTENT_OF[kind](stage));
+  const onSet = slotsOf !== undefined && stage.skills.groups.some((g) => g.weaponSet !== undefined);
+  if (stage.companion === undefined && !onSet) return stableText(stage.skills);
+  return stableText({
+    ...stage.skills,
+    ...(stage.companion !== undefined ? { companion: beastOf?.(stage.id) ?? stage.companion.species } : {}),
+    ...(onSet ? { slots: slotsOf!(stage) } : {}),
+  });
+}
+
+/**
+ * WU-102 (D-426, PG-74): each of a stage's groups' weapon slot, the compiler's pick from the stage's weapon slots whose
+ * item grants a skill (`groupWeaponSlot`); null for a group on both sets (no slot).
+ */
+export function groupSlots(stage: Pick<Stage, 'skills'>, grants: WeaponGrants = {}): (string | null)[] {
+  return stage.skills.groups.map((g) => (g.weaponSet === 1 || g.weaponSet === 2 ? groupWeaponSlot(g.weaponSet, grants) : null));
 }
 
 const sha1 = (data: string | Buffer) => crypto.createHash('sha1').update(data).digest('hex');
@@ -244,6 +268,7 @@ export interface SetGroup {
 export function groupSets(
   stages: readonly Stage[],
   beastOf?: (stageId: string) => string | undefined,
+  slotsOf?: (stage: Stage) => (string | null)[],
 ): Record<ContentKind, { groups: SetGroup[]; groupOf: Map<string, number> }> {
   const out = {} as Record<ContentKind, { groups: SetGroup[]; groupOf: Map<string, number> }>;
   for (const kind of CONTENT_KINDS) {
@@ -251,7 +276,7 @@ export function groupSets(
     const groups: { kind: ContentKind; first: Stage; stageIds: string[] }[] = [];
     const groupOf = new Map<string, number>();
     for (const stage of stages) {
-      const key = groupingKey(kind, stage, beastOf);
+      const key = groupingKey(kind, stage, beastOf, slotsOf);
       let index = byKey.get(key);
       if (index === undefined) {
         index = groups.length;
@@ -829,7 +854,9 @@ export function stageParams(
   offenseFields: readonly string[],
   anoint?: string,
   companionId?: string,
+  grants?: WeaponGrants,
 ): CompileStageParams {
+  const slots = groupSlots(stage, grants);
   return {
     id: stage.id,
     first,
@@ -858,7 +885,7 @@ export function stageParams(
         gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
         ...minionFields(g),
         // D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets.
-        ...(g.weaponSet !== undefined ? { weaponSet: g.weaponSet } : {}),
+        ...(g.weaponSet !== undefined ? { weaponSet: g.weaponSet, slot: slots[k]! } : {}),
       };
     }),
     main: stage.skills.main,
@@ -971,7 +998,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
 
   // 4. Shared sets (A-P2), after the preflight: a companion's lines are part of its stage's config, and its resolved
   // beast part of its skills.
-  const grouped = groupSets(compiled, (id) => companionChecks.get(id)?.id);
+  // WU-102 (PG-74): each stage's weapon slots whose item grants a skill, which pick a group's weapon-set slot.
+  const grantsOf = new Map<string, Record<string, string[]>>();
+  for (const g of check.weaponGrants) grantsOf.set(g.stage, { ...grantsOf.get(g.stage), [g.slot]: [...g.skills] });
+  const grouped = groupSets(compiled, (id) => companionChecks.get(id)?.id, (s) => groupSlots(s, grantsOf.get(s.id)));
 
   // 6. A new build replaces the engine's build (D-210).
   await ctx.newBuild({ className: plan.roll.className, ascendancy: plan.roll.ascendancy });
@@ -998,7 +1028,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     }
     const t = env.clock();
     const reply = await ctx.client.compileStage(
-      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id),
+      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id)),
     );
     const elapsedMs = env.clock() - t;
     // D-402: a stage that names a companion has its measured companion (compile_stage fails without one).
@@ -1029,6 +1059,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       checks: reply.checks,
       ref: refData,
       trees: treesOf.get(stage.id),
+      // WU-102 (PG-74): which weapon slots grant a skill, for weapon-skill-supports.
+      weaponGrants: grantsOf.get(stage.id) ?? {},
       // D-426: V1's Spirit check reads weapon set 2 too.
       ...(reply.outputsSet2 !== undefined ? { outputsSet2: reply.outputsSet2 } : {}),
     });

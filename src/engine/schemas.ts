@@ -1341,6 +1341,13 @@ export const compileCheckReply = baseReply.extend({
       trees: luaArray(stageTreesSchema),
       /** D-402: each stage's valid companion; `[]` for none. */
       companions: luaArray(companionCheckSchema),
+      /**
+       * WU-102 (PG-74): each stage's weapon slots whose item grants a skill, with the skills' PoB names, for the
+       * compiler's pick of a group's weapon-set slot; `[]` for none.
+       */
+      weaponGrants: luaArray(
+        z.object({ stage: z.string(), slot: z.string(), skills: luaArray(z.string()) }).passthrough(),
+      ),
     })
     .passthrough(),
 });
@@ -1761,6 +1768,8 @@ export interface CompileStageParams {
     minionStatSet?: number;
     /** D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets. */
     weaponSet?: number;
+    /** WU-102 (PG-74): which of the set's weapon slots, the compiler's pick (`groupWeaponSlot`); with `weaponSet` only. */
+    slot?: string;
   }>;
   main: { group: number; activeSkill: number; statSet?: number };
   configSet: StageSetRef;

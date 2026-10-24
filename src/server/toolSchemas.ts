@@ -589,7 +589,7 @@ export function getLuaToolSchemas(): any[] {
           },
           skill_type: {
             type: "string",
-            description: "Keep the gems whose granted skill has this PoB skill type, by name, case ignored (e.g. 'Travel', 'Warcry', 'Slam'); an unknown name fails and lists PoB's skill types. Gem tags such as 'warcry' or 'travel' are matched by `tag`, not here.",
+            description: "Keep the gems one of whose granted skills has this PoB skill type, by name, case ignored (e.g. 'Travel', 'Warcry', 'Slam'); an unknown name fails and lists PoB's skill types. Gem tags such as 'warcry' or 'travel' are matched by `tag`, not here.",
           },
           max_results: {
             type: "number",

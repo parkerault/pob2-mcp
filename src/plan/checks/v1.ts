@@ -25,6 +25,7 @@
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
  * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
+ * | `weapon-skill-supports` | (WU-102, PG-74) an enabled group (or the main group) with `weaponSet` and an enabled support gem, on a stage where both of that set's weapon slots hold an item that grants a skill, so the compile sockets the group in the main hand (`groupWeaponSlot`) and PoB gives the main hand's granted skill the group's supports, which the game doesn't: the finding names that skill, whose figure PoB overstates (`checkWeaponSkillSupports`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -83,6 +84,8 @@ export interface V1Input {
   trees?: StageTrees;
   /** D-426: `compile_stage`'s measure with weapon set 2 active, on a stage that uses set 2; V1 checks its Spirit. */
   outputsSet2?: Record<string, number>;
+  /** WU-102 (PG-74): `compile_check`'s weapon slots whose item grants a skill; without them, `weapon-skill-supports` isn't checked. */
+  weaponGrants?: WeaponGrants;
 }
 
 export interface V1Result {
@@ -758,6 +761,64 @@ export function checkWeaponSetGroups(stage: Pick<Stage, 'items' | 'skills'>, fin
   });
 }
 
+/** WU-102 (PG-74): a stage's weapon slots whose item grants a skill, slot → the skills' PoB names (`compile_check`). */
+export type WeaponGrants = Readonly<Record<string, readonly string[]>>;
+
+/**
+ * WU-102 (D-426, PG-74): the weapon slot a group on weapon set `set` is socketed in. Both of a set's slots are tied to
+ * it (PoB enables a group in either only while that set is active, Modules/CalcSetup.lua:1728-1729), but PoB gives a
+ * skill an item grants the supports of every group in its slot, " Swap" stripped (CalcSetup.lua:1727-1732, :1913-1928),
+ * which the game doesn't. So the pick is the set's main hand when its item grants no skill, else its off-hand when that
+ * one's grants none (an empty slot grants none: a two-hander's set), else the main hand (`weapon-skill-supports`).
+ */
+export function groupWeaponSlot(set: 1 | 2, grants: WeaponGrants): string {
+  const [main, off] = WEAPON_SET_SLOTS[set];
+  const grantsSkill = (slot: string) => (grants[slot]?.length ?? 0) > 0;
+  if (!grantsSkill(main)) return main;
+  if (!grantsSkill(off)) return off;
+  return main;
+}
+
+/**
+ * `weapon-skill-supports` (WU-102, PG-74). A group on a weapon set whose two slots both hold an item that grants a skill
+ * (a spear and a shield) is socketed in the main hand (`groupWeaponSlot`), and PoB then gives the main hand's granted
+ * skill the group's supports, which the game doesn't: PoB overstates that skill's figure. Only an enabled group or the
+ * main group (PoB applies no other group's supports, CalcSetup.lua:1731) with an enabled support gem; one finding per
+ * group, naming the granted skills and the supports.
+ */
+export function checkWeaponSkillSupports(
+  stage: Pick<Stage, 'skills'>,
+  checks: Pick<StageChecks, 'gems'>,
+  grants: WeaponGrants | undefined,
+  findings: Finding[],
+): void {
+  if (grants === undefined) return;
+  stage.skills.groups.forEach((group, k) => {
+    const set = group.weaponSet;
+    if (set !== 1 && set !== 2) return;
+    if (!group.enabled && stage.skills.main.group !== k + 1) return;
+    const slot = groupWeaponSlot(set, grants);
+    const skills = grants[slot] ?? [];
+    if (skills.length === 0) return;
+    const supports = checks.gems
+      .filter((g) => g.group === k + 1 && g.kind === 'support' && group.gems[g.index - 1]?.enabled !== false)
+      .map((g) => g.name);
+    if (supports.length === 0) return;
+    const [main, off] = WEAPON_SET_SLOTS[set];
+    const name = group.label ?? group.gems[0]?.name ?? `group ${k + 1}`;
+    const held = [main, off].map((s) => `${s}: ${(grants[s] ?? []).join(', ')}`).join('; ');
+    findings.push({
+      code: 'weapon-skill-supports',
+      message:
+        `skill group ${k + 1} (${name}) is on weapon set ${set}, and both of its weapon slots hold an item that grants a skill ` +
+        `(${held}), so the compile sockets it in ${slot}: PoB gives ${skills.join(' and ')} the group's supports ` +
+        `(${supports.join(', ')}), which the game doesn't (PG-74), so PoB overstates ${skills.join(' and ')}'s figures. ` +
+        `Put the group on the other set or on both (no weaponSet), or don't read ${skills.join(' and ')}'s figure from this stage`,
+      data: { group: k + 1, weaponSet: set, slot, skills: [...skills], supports, path: `skills.groups[${k}].weaponSet` },
+    });
+  });
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -778,5 +839,6 @@ export function checkV1(input: V1Input): V1Result {
   checkSupportSockets(stage, checks, facts, findings);
   checkNotGranted(stage, checks, findings);
   checkWeaponSetGroups(stage, findings);
+  checkWeaponSkillSupports(stage, checks, input.weaponGrants, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

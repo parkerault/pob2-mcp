@@ -133,6 +133,27 @@ skill stats cited as unmapped: no entry in `Data/SkillStatMap.lua`, in any skill
     creator's video agrees with PoB (`studies/2026-10-23-spud-warcryer-comparison.md` §5). The library's damage-order
     rule records it (`references/patterns.md`, How to read an entry).
   - **Workaround:** none needed; a build under Avatar of Fire rolls gained fire, not gained cold or lightning.
+- **PG-74, an item's granted skill takes the supports of every group in its slot.** bug, confirmed in code
+  (amendment 9 §24.2, WU-102's fix round, 2026-10-23).
+  - **Where:** PoB files each enabled group's supports under its slot, " Swap" stripped, when the group is socketed in
+    one (`Modules/CalcSetup.lua:1727-1732`, then `supportLists[slotName][group]`); an item-granted group (one with a
+    `source`) then takes every support filed under its slot, from every other group there (`:1913-1928`, "if skill
+    granted by unique item, go through all support groups in slot"). A plain group's own supports stay its own.
+    The slot also feeds curse priority (`Modules/CalcPerform.lua:547`: `Weapon 1` adds 1000 and `Weapon 2` 4000,
+    `Modules/Data.lua:351-354`, a group with no slot nothing) and trigger matching with an item-granted skill
+    (`Modules/CalcTriggers.lua:35`, `:228`).
+  - **Effect:** in the game a skill gem's supports support it alone, and a weapon's granted skill (a spear's Spear
+    Throw, a shield's Raise Shield, a wand's or a sceptre's skill) has none of them. A group socketed in a weapon slot
+    overstates that weapon's granted skill. WU-102's probe: a Hardwood Spear beside a group of Rapid Assault and
+    Brutality I in `Weapon 1` raises Spear Throw's TotalDPS from 2.66 to 3.15 and its explosion's from 4.84 to 5.93.
+  - **Seen in:** WU-102's verification (a group with `weaponSet`, socketed in its set's main hand).
+  - **How the compiler avoids it:** a plan group with `weaponSet` goes in its set's weapon slot whose item grants no
+    skill, the off-hand (an empty slot grants none) when the main hand's does (`groupWeaponSlot`). When both of the
+    set's slots hold a granting item (a spear and a shield), it stays in the main hand, and V1's
+    `weapon-skill-supports` names the granted skill whose figure PoB overstates. A group with no `weaponSet` has no
+    slot, so it leaks nothing.
+  - **Workaround:** put the group on the other weapon set or on both, or don't read the granted skill's figure from
+    that stage.
 
 ## Gaps: triggers and engines (the build's damage engine is invisible)
 

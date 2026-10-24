@@ -2492,7 +2492,7 @@ end
 -- List gems from PoB2's authoritative gem database.
 -- params: { type?: 'active'|'support', search?: string, tag?: string, skillType?: string, maxResults?: number,
 --           dedupeByName?: boolean }
--- C-56 (D-427): `skillType` keeps the gems whose granted effect has that PoB skill type (its `skillTypes`).
+-- C-56 (D-427): `skillType` keeps the gems one of whose granted effects has that PoB skill type (its `skillTypes`).
 function M.list_gems(params)
   if type(params) ~= 'table' then params = {} end
   local data = (build and build.data) or _G.data
@@ -2520,8 +2520,13 @@ function M.list_gems(params)
       if typeFilter and kind ~= typeFilter then include = false end
       if include and search and not g.name:lower():find(search, 1, true) then include = false end
       if include and skillType ~= nil then
-        local ge = g.grantedEffect
-        if not (type(ge) == 'table' and type(ge.skillTypes) == 'table' and ge.skillTypes[skillType]) then include = false end
+        -- Every granted effect of the gem (Modules/Data.lua's grantedEffectList: its first and each additional one),
+        -- so a gem whose Travel skill is its second effect (Blink, Black Powder Blitz) is kept.
+        local has = false
+        for _, ge in ipairs(g.grantedEffectList or { g.grantedEffect }) do
+          if type(ge) == 'table' and type(ge.skillTypes) == 'table' and ge.skillTypes[skillType] then has = true end
+        end
+        if not has then include = false end
       end
       if include and tag then
         local hasTag = false

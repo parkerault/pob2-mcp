@@ -25,8 +25,10 @@
  *   fails V1 (`empty-weapon-set`).
  * - The coordinator's note (WU-101's verifier): each way a stage uses set 2 alone gives `outputsSet2` and
  *   `skillOutputsSet2`: a group on set 2 (`g2`), a Swap-slot item (`both`), set-2 passives (`p2`); `none` has neither.
- * - AC-W81: `list_gems` with `skill_type: "Travel"` returns the pin's Travel gems (the gems whose granted effect lists
- *   `SkillType.Travel` in the data files), ignoring case; an unknown type fails and lists PoB's types.
+ * - AC-W81: `list_gems` with `skill_type: "Travel"` returns the pin's Travel gems, ignoring case: D-427's 14 (the work-log,
+ *   2026-10-19: "Black Powder Blitz to Vaulting Impact"), each a gem one of whose granted effects (its first, or an
+ *   `additionalGrantedEffectId<n>`: Blink's and Black Powder Blitz's Travel skill is their second) lists
+ *   `SkillType.Travel` in the data files; an unknown type fails and lists PoB's types (the fix round's B2).
  * - AC-W81: a stage with a travel skill records `travel` with its uses per second (PoB's own `Speed` for it); a stage with
  *   none records `travel: null`.
  */
@@ -49,7 +51,10 @@ type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-ex
 const close = (a: unknown, b: unknown) =>
   typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
 
-/** The pin's gems whose granted effect has PoB's Travel skill type, read from the data files (not from the engine). */
+/**
+ * The pin's gems one of whose granted effects has PoB's Travel skill type, read from the data files (not from the
+ * engine): the first (`grantedEffectId`) and each additional one (`additionalGrantedEffectId<n>`).
+ */
 function travelGems(): string[] {
   const travel = new Set<string>();
   const dir = path.join(POB_SRC, 'Data', 'Skills');
@@ -63,9 +68,9 @@ function travelGems(): string[] {
   const gems = fs.readFileSync(path.join(POB_SRC, 'Data', 'Gems.lua'), 'utf8');
   const names: string[] = [];
   for (const m of gems.matchAll(/^\t\["Metadata\/Items\/Gems\/[^"]+"\] = \{([\s\S]*?)^\t\},/gm)) {
-    const id = /grantedEffectId = "([^"]+)"/.exec(m[1]);
+    const ids = [...m[1].matchAll(/\b(?:grantedEffectId|additionalGrantedEffectId\d+) = "([^"]+)"/g)].map((x) => x[1]);
     const name = /\n\t\tname = "([^"]+)"/.exec(m[1]);
-    if (id && name && travel.has(id[1])) names.push(name[1]);
+    if (name && ids.some((id) => travel.has(id))) names.push(name[1]);
   }
   return names.sort();
 }
@@ -272,10 +277,12 @@ engineDescribe('WU-102: a skill on a weapon set, skillOutputsSet2, the travel sk
   );
 
   it(
-    "AC-W81: list_gems with skill_type Travel returns the pin's Travel gems, ignoring case; an unknown type fails and lists PoB's types",
+    "AC-W81: list_gems with skill_type Travel returns the pin's 14 Travel gems, each by any of its granted effects (Blink, Black Powder Blitz), ignoring case; an unknown type fails and lists PoB's types",
     async () => {
       const expected = travelGems();
-      expect(expected).toContain('Leap Slam');
+      // D-427: the 14 Travel skills, Blink and Black Powder Blitz by their second effect.
+      expect(expected.length).toBe(14);
+      expect(expected).toEqual(expect.arrayContaining(['Black Powder Blitz', 'Blink', 'Leap Slam', 'Vaulting Impact']));
       const out = await f.call('list_gems', { skill_type: 'Travel', max_results: 200 });
       expect(out.isError).toBe(false);
       expect(listed(out.text)).toEqual(expected);
@@ -303,6 +310,24 @@ engineDescribe('WU-102: a skill on a weapon set, skillOutputsSet2, the travel sk
       expect(ws.travel!.usesPerSecond).toBeGreaterThan(0);
       for (const id of ['both', 'g2', 'p2']) expect({ id, skill: record.stages[id].measures!.clearSpeed.travel?.skill }).toEqual({ id, skill: 'Leap Slam' });
       expect(record.stages.none.measures!.clearSpeed.travel).toBeNull();
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "the fix round's N1: a clear group on set 2 is measured on set 2: Rolling Slam's uses per second and radius are skillOutputsSet2's, PoB's own with set 2 active",
+    async () => {
+      const ws = record.stages.ws;
+      const c = ws.measures!.clearSpeed;
+      expect({ group: c.group, key: c.key, skill: c.skill }).toEqual({ group: 2, key: 'g2s1p1', skill: 'Rolling Slam' });
+      expect(c.usesPerSecond).toBe(ws.skillOutputsSet2!.g2s1p1.fields.Speed);
+      expect(c.radiusMetres).toBe(ws.skillOutputsSet2!.g2s1p1.fields.AreaOfEffectRadiusMetres ?? 0);
+      // Set 2's slower Wooden Club makes it differ from set 1's figure, which the group never uses.
+      expect(c.usesPerSecond).not.toBe(ws.skillOutputs.g2s1p1.fields.Speed);
+      const pob = await pobGroups(WS, ['Speed']);
+      expect(close(c.usesPerSecond, pob.figures.two[1].Speed)).toBe(true);
+      // A clear group on both sets keeps reading skillOutputs: `both` names no set.
+      expect(record.stages.both.measures!.clearSpeed.usesPerSecond).toBe(record.stages.both.skillOutputs.g2s1p1.fields.Speed);
     },
     ENGINE_TIMEOUT,
   );

@@ -10,14 +10,19 @@
  * - The clear measure's `travel` (`travelOf`, `stageMeasures`): the first travel skill, by group, that isn't the clear
  *   group's; its uses per second from its own set's figures (`skillOutputsSet2` for a group on set 2); null with none;
  *   absent when the compile gave no travel skills (a record from before M-22 is read as it was).
+ * - The fix round (B1, PG-74; N1): a group's slot is its set's weapon slot whose item grants no skill
+ *   (`groupWeaponSlot`), the main hand when both grant, which V1 reports (`weapon-skill-supports`); stages whose items
+ *   pick different slots don't share a skill set (`groupSets`); the clear measure reads a clear group on set 2 from
+ *   `skillOutputsSet2`.
  */
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
 import { validatePlan, type Stage } from '../../src/plan/schema';
-import { checkWeaponSetGroups, WEAPON_SET_SLOTS } from '../../src/plan/checks/v1';
+import { checkWeaponSetGroups, checkWeaponSkillSupports, groupWeaponSlot, WEAPON_SET_SLOTS } from '../../src/plan/checks/v1';
 import { stageMeasures, travelOf, type StageRecord, type TravelSkill } from '../../src/plan/record';
-import { stageParams } from '../../src/plan/compiler';
+import { groupSets, groupSlots, stageParams } from '../../src/plan/compiler';
+import type { StageChecks } from '../../src/engine/schemas';
 import type { Finding } from '../../src/plan/record';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -64,7 +69,11 @@ describe('the plan schema: skills.groups[].weaponSet (D-426, §24.2)', () => {
     const refs = { item: { title: 'i' }, skill: { title: 's' }, config: { title: 'c' } };
     const groups = stageParams(stageOf(p, 'ws'), true, refs, ['TotalDPS']).groups;
     expect(groups.map((g) => g.weaponSet)).toEqual([1, 2, undefined]);
+    expect(groups.map((g) => g.slot)).toEqual(['Weapon 1', 'Weapon 1 Swap', undefined]);
     expect('weaponSet' in groups[2]).toBe(false);
+    // PG-74: with set 1's main hand granting a skill, the set-1 group takes set 1's off-hand slot.
+    const spear = stageParams(stageOf(p, 'ws'), true, refs, ['TotalDPS'], undefined, undefined, { 'Weapon 1': ['Spear Throw'] }).groups;
+    expect(spear.map((g) => g.slot)).toEqual(['Weapon 2', 'Weapon 1 Swap', undefined]);
     expect(stageParams(stageOf(p, 'both'), true, refs, ['TotalDPS']).groups.some((g) => 'weaponSet' in g)).toBe(false);
   });
 });
@@ -163,5 +172,109 @@ describe("the clear measure's travel (D-427, §24.2)", () => {
     expect('travel' in stageMeasures(st, rec(), [], {}).clearSpeed).toBe(false);
     // The measures' keys are unchanged (D-407's grant): travel lives in the clear measure.
     expect(Object.keys(stageMeasures(st, rec(), [], {}, [leap])).sort()).toEqual(['clearSpeed', 'movementSpeed']);
+  });
+});
+
+describe('the fix round: a group takes its set\'s slot whose item grants no skill (B1, PG-74)', () => {
+  it('the main hand when its item grants none; else the off-hand when its grants none (an empty slot grants none); else the main hand', () => {
+    expect(groupWeaponSlot(1, {})).toBe('Weapon 1');
+    expect(groupWeaponSlot(2, {})).toBe('Weapon 1 Swap');
+    expect(groupWeaponSlot(1, { 'Weapon 1': ['Spear Throw'] })).toBe('Weapon 2');
+    expect(groupWeaponSlot(2, { 'Weapon 1 Swap': ['Spear Throw'] })).toBe('Weapon 2 Swap');
+    // The other set's items don't decide this set's slot.
+    expect(groupWeaponSlot(1, { 'Weapon 1 Swap': ['Spear Throw'], 'Weapon 2 Swap': ['Raise Shield'] })).toBe('Weapon 1');
+    expect(groupWeaponSlot(1, { 'Weapon 2': ['Raise Shield'] })).toBe('Weapon 1');
+    expect(groupWeaponSlot(1, { 'Weapon 1': ['Spear Throw'], 'Weapon 2': ['Raise Shield'] })).toBe('Weapon 1');
+    expect(groupWeaponSlot(1, { 'Weapon 1': [] })).toBe('Weapon 1');
+  });
+
+  const gems = (rows: Array<[number, number, string, 'skill' | 'support']>): Pick<StageChecks, 'gems'> =>
+    ({ gems: rows.map(([group, index, name, kind]) => ({ group, index, name, level: 10, kind, levelRequirement: 1 })) }) as Pick<StageChecks, 'gems'>;
+  const both = { 'Weapon 1': ['Spear Throw'], 'Weapon 2': ['Raise Shield'] };
+  const stage = (enabled = true, supportEnabled = true): Stage =>
+    ({
+      skills: {
+        groups: [
+          { label: 'Boneshatter', enabled: true, role: 'single_target', gems: [{ name: 'Boneshatter', level: 10, quality: 0, enabled: true }] },
+          {
+            label: 'Rapid Assault',
+            enabled,
+            role: 'clear',
+            weaponSet: 1,
+            gems: [
+              { name: 'Rapid Assault', level: 10, quality: 0, enabled: true },
+              { name: 'Brutality I', level: 1, quality: 0, enabled: supportEnabled },
+            ],
+          },
+        ],
+        main: { group: 1, activeSkill: 1 },
+      },
+    }) as unknown as Stage;
+  const run = (st: Stage, grants: Record<string, string[]> | undefined) => {
+    const findings: Finding[] = [];
+    checkWeaponSkillSupports(st, gems([[1, 1, 'Boneshatter', 'skill'], [2, 1, 'Rapid Assault', 'skill'], [2, 2, 'Brutality I', 'support']]), grants, findings);
+    return findings;
+  };
+
+  it("weapon-skill-supports: both of the set's slots grant a skill, so the group is in the main hand, and PoB gives its granted skill the group's supports", () => {
+    expect(run(stage(), both)).toEqual([
+      {
+        code: 'weapon-skill-supports',
+        message:
+          'skill group 2 (Rapid Assault) is on weapon set 1, and both of its weapon slots hold an item that grants a skill ' +
+          '(Weapon 1: Spear Throw; Weapon 2: Raise Shield), so the compile sockets it in Weapon 1: PoB gives Spear Throw the ' +
+          "group's supports (Brutality I), which the game doesn't (PG-74), so PoB overstates Spear Throw's figures. Put the " +
+          "group on the other set or on both (no weaponSet), or don't read Spear Throw's figure from this stage",
+        data: { group: 2, weaponSet: 1, slot: 'Weapon 1', skills: ['Spear Throw'], supports: ['Brutality I'], path: 'skills.groups[1].weaponSet' },
+      },
+    ]);
+  });
+
+  it('no finding when a slot of the set grants nothing, the group holds no enabled support, the group is disabled and not the main group, or the grants are unknown', () => {
+    expect(run(stage(), { 'Weapon 1': ['Spear Throw'] })).toEqual([]);
+    expect(run(stage(true, false), both)).toEqual([]);
+    expect(run(stage(false), both)).toEqual([]);
+    expect(run(stage(), undefined)).toEqual([]);
+  });
+
+  it("stages with the same groups whose items pick different slots get different skill sets; groupSlots gives each group's slot", () => {
+    const p = plan();
+    const a = stageOf(p, 'ws');
+    const b = { ...stageOf(p, 'both'), skills: a.skills } as Stage;
+    const grants: Record<string, Record<string, string[]>> = { both: { 'Weapon 1': ['Spear Throw'] } };
+    expect(groupSlots(a)).toEqual(['Weapon 1', 'Weapon 1 Swap', null]);
+    expect(groupSlots(b, grants.both)).toEqual(['Weapon 2', 'Weapon 1 Swap', null]);
+    const split = groupSets([a, b], undefined, (s) => groupSlots(s, grants[s.id]));
+    expect(split.skill.groups.map((g) => g.stageIds)).toEqual([['ws'], ['both']]);
+    // The same items' grants pick the same slots: one set.
+    expect(groupSets([a, b], undefined, (s) => groupSlots(s)).skill.groups.map((g) => g.stageIds)).toEqual([['ws', 'both']]);
+    // Stages with no weaponSet group as before, whatever the grants.
+    const c = stageOf(plan(), 'both');
+    const d = { ...stageOf(plan(), 'none'), skills: c.skills } as Stage;
+    expect(groupSets([c, d], undefined, (s) => groupSlots(s, { 'Weapon 1': ['Spear Throw'] })).skill.groups.map((g) => g.stageIds)).toEqual([['both', 'none']]);
+  });
+});
+
+describe("the fix round's N1: the clear measure reads a clear group on set 2 from skillOutputsSet2", () => {
+  const entry = (skill: string, speed: number, radius: number) => ({ skill, statSetLabel: skill, fields: { TotalDPS: 10, Speed: speed, AreaOfEffectRadiusMetres: radius } });
+  const rec = (): StageRecord =>
+    ({
+      outputs: { TotalDPS: 10 },
+      countedOutputs: { group: 1, count: 1, dotCanStack: false, fields: { TotalDPS: 10 } },
+      skillOutputs: { g1s1p1: entry('Boneshatter', 1.5, 1), g2s1p1: entry('Rolling Slam', 0.61, 2.5) },
+      skillOutputsSet2: { g1s1p1: entry('Boneshatter', 1.4, 1), g2s1p1: entry('Rolling Slam', 0.59, 4.2) },
+      countedSkillOutputs: {},
+      minionSkills: [],
+    }) as unknown as StageRecord;
+
+  it("a clear group with weaponSet 2 is read from skillOutputsSet2; on both sets, or with no set-2 figures, from skillOutputs", () => {
+    const st = stageOf(plan(), 'ws');
+    const c = stageMeasures(st, rec(), [], {}).clearSpeed;
+    expect({ group: c.group, usesPerSecond: c.usesPerSecond, radiusMetres: c.radiusMetres, band: c.band }).toEqual({ group: 2, usesPerSecond: 0.59, radiusMetres: 4.2, band: 'fast' });
+    const plain = stageOf(plan(), 'both');
+    expect(stageMeasures(plain, rec(), [], {}).clearSpeed.usesPerSecond).toBe(0.61);
+    const noSet2 = rec();
+    delete noSet2.skillOutputsSet2;
+    expect(stageMeasures(st, noSet2, [], {}).clearSpeed.usesPerSecond).toBe(0.61);
   });
 });

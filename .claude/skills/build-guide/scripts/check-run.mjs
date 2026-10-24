@@ -966,7 +966,7 @@ export async function checkRun(runFolder) {
 
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
   // D-412: a schema-4 run holds its builds in builds/<id>/; only a migrated run's build stays at the root.
-  const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'rounds'];
+  const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'rounds'];
   const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
   // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
   for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
@@ -2220,7 +2220,8 @@ function checkGateAnswer(c, at, bad, schema = 3) {
 /**
  * Schema 4's own fields (amendment 9; D-412, D-415): no run-level `roll` or `outputs`; `noNinja` true or false (null in
  * a migrated run), the pin's commit and the digest's file name (or null); the run-wide `dossier`; `builds[]`, one per
- * finalized card in finalize order, `{id, roll, status, folder, guide, pobFile}`, a migrated run's build alone in "."; and
+ * finalized card in finalize order, `{id, roll, name?, status, folder, guide, pobFile}` (`name` only when given, D-435), a migrated run's build
+ * alone in "."; and
  * `resumes[]`, `{date, pinCommit, digest, noNinja, lengths}`, the lengths of the four lists at each resume, in order.
  */
 function checkSchema4Fields(log, bad) {

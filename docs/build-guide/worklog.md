@@ -5488,3 +5488,19 @@ the `m17` engine at `b76967b`.
   Evidence line; `R1a.md` names the synthesis beside R1a-assemble; `R1a-assemble.md` says it serves old runs only.
 - **For wave 2:** WU-106's `SKILL.md` (step 2b's row and its pin, `| 2b | R1a-assemble |`) and `checkpoints.md` still
   name R1a-assemble; WU-107's questions 16–19 in `patterns.md` must agree with the synthesis's one-line glosses.
+- **WU-105 merged** (`0758d60`, `141e097`, rebased onto `b5b3dd4`): the run scripts learn the synthesis round
+  (composites, the Pieces tables, the probe cap 8, the dossier's `key pieces`, `pieces.md`, the mixed-run rule, an
+  empty V4 list item ignored, `build`'s `name` and the audit's title, the stale-build `warnings`, cache read per
+  `query_source`). Tests: `tests/unit/buildGuideComposites.test.ts`; fixtures `run-composite` and `run-fixed-roll`.
+  Its verifier PASSED (gate: 175 suites, 3,000 tests) and wrote decks by the merged stage text's own examples: the
+  checker accepts each line form the synthesis writes. Integration fix (this commit): `pieces.md` joins a migrated
+  run's root build files; the schema-4 fields comment names `name`.
+- **Noted, not fixed (fixture realism; no rule reads it):** `run-fixed-roll`'s researcher cards all word one engine
+  while the deck keys six, and it leaves 4 of 6 structures not composed with reasons the stage's steps don't give;
+  `run-composite` marks `seed` on a card whose Evidence names no reference, and a leave-one-out probes a scheduled
+  piece. The checker doesn't cross-check a round line's label, `seed` or `fed:` against the cards.
+- **For wave 2 (WU-106):** the dossier template's twelfth column is exactly `key pieces`, and only on a composite run
+  (an old run rejects 12 columns); `R1b-assemble.md`'s "eleven columns" becomes twelve on a composite run; the static
+  test near `buildGuidePipeline.test.ts:416-548` reads the D-433 column list; `checkpoints.md` says `first-n:<n>`
+  picks the first n composites; a composite whose Structure check is written needs its Pieces measured even when R1b
+  failed (rows may say `not measured`).

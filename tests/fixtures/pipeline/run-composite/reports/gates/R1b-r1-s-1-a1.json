@@ -1,0 +1,14 @@
+{
+  "stage": "R1b",
+  "concept": "r1-s-1",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass"
+  },
+  "findings": [],
+  "errors": [],
+  "compiles": 2,
+  "recordPath": "concepts/r1-s-1/compile-record.json",
+  "faultsApplied": [],
+  "leagueUnverified": false
+}

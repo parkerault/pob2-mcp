@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 4,
+  "runFolder": "/tmp/pob2-guides/titan-open/2026-10-23-1",
+  "slug": "titan-open",
+  "brief": {
+    "ascendancy": "Titan"
+  },
+  "status": "stopped",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": "runes-of-aldur.md",
+  "dossier": "dossier.md",
+  "builds": [],
+  "stages": [
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1a-synthesize",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "R1b",
+      "concept": "r1-s-1",
+      "attempt": 1,
+      "outcome": "pass",
+      "probes": 6
+    },
+    {
+      "stage": "R1b-assemble",
+      "attempt": 1,
+      "outcome": "done"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1,
+      "answer": "pick:r1-s-1",
+      "answeredBy": "user",
+      "questions": 0
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1,
+      "answer": "stop",
+      "answeredBy": "user",
+      "questions": 0
+    }
+  ],
+  "displays": [
+    {
+      "checkpoint": "brainstorm",
+      "visit": 1
+    },
+    {
+      "checkpoint": "verification",
+      "visit": 1
+    }
+  ],
+  "escalations": [],
+  "faults": [],
+  "resumes": []
+}

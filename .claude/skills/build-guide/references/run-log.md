@@ -23,7 +23,7 @@ with one build per finalized card (D-411); `run-log.mjs <runFolder> migrate` rew
 | `pinCommit` | the PoB pin's commit when `init` ran, which `run-log.mjs` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
 | `digest` | the newest league digest's file name when `init` ran (`data/league/<name>.md`, newest by its fetch date), or `null` |
 | `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
-| `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412) |
+| `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412), with `name` after `roll` once a `build` entry gave one (D-435) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, shortReason?, tried?}` |
 | `checkpoints[]` | `{checkpoint, concept?, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}`; `concept`, the build's card id, on a design or final checkpoint only |
 | `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below) |
@@ -43,6 +43,7 @@ holds the import code, whose one home is the record (D-260).
 |---|---|
 | `id` | the card id (`r1-a-2`); a card with a build is never finalized again (D-411) |
 | `roll` | the card's identity `{className, ascendancy, skill}`, `skill` its named damage source, the names exactly as the tools gave them (D-286) |
+| `name` | only once a `build` entry gave it: the build's name, the card's or the one its finalize revision gave the build (D-435). `render-audit.mjs` titles the build's `audit.md` with it, else with its card's H1, so F1's render and the run checker's re-render agree; the card keeps its own name |
 | `status` | `queued` at the finalize; `designing` from its D1-build; `writing` once its final compile passed, and while its campaign runs; then its end: `completed` (the final gate's `accept`, `accept:verification` or `campaign`), `file-only` (F1 after the design gate's `accept:file`), `not-accepted` (`decline:<note>`), `dropped` (back to the verification gate), `stopped` or `escalated` |
 | `folder` | `builds/<id>`, the build's folder; `.` for a migrated run's build, whose files stayed at the root |
 | `guide` | `null`, `endgame` or `full`: the template its plan decides (D-414: no campaign stage, the endgame guide), set once W1 wrote it |
@@ -81,15 +82,19 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   of D1's three steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`,
   `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a gate question
   step (D-390), and `RV`, the rival (D-408); and schema 4's `D1-tree` (D-418), `F1`, an endgame-only build's final
-  compile (D-413), and `V4-campaign`, V4's campaign pass (D-415). Each V4 entry is one report, its build's
-  `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`, D-319), set for every step but R1a,
-  R1a-assemble, R1b-assemble, Q and RV: a build's steps name their build.
+  compile (D-413), and `V4-campaign`, V4's campaign pass (D-415); and amendment 10's `R1a-synthesize` (D-429),
+  the brainstorm round's coordinator step that composes 1 to 4 builds, the composites, from every card and the research
+  files' Ideas, in place of R1a-assemble's deal. A run whose first brainstorm round used `R1a-assemble` keeps it for
+  every later round, and one that composed keeps `R1a-synthesize`: `run-log.mjs` refuses the other step, and the run
+  checker fails a run that mixes them. Each V4 entry is one report, its build's
+  `reports/V4-<n>.md`. `concept` is the card id (`r<round>-<letter>-<n>`, D-319; the letter `s` a composite's, `r<k>-s-<n>`, D-429), set
+  for every step but R1a, R1a-assemble, R1a-synthesize, R1b-assemble, Q and RV: a build's steps name their build.
   `attempt` counts the calls of that (stage, card) from 1, re-runs included, and matches the header and the
   verdict file name; per log name, so a re-check's `attempt` counts that card's re-checks from 1, apart from its
   full pass (D-368). `outcome`:
   - `pass` or `fail` for a gate step (R1b, D1-gate, F1, D2-gate) and a V4 entry (`fail`: its report has an
     `unresolved` finding); a D1 gate whose only issue is its tree part's `tool-error` is `fail` (D-419);
-  - `done` for a step that only produces (R1a, R1a-assemble, R1b-assemble, D1-tree, D1-finish, …), `infeasible`
+  - `done` for a step that only produces (R1a, R1a-assemble, R1a-synthesize, R1b-assemble, D1-tree, D1-finish, …), `infeasible`
     for D1-build claiming it and for a D1 gate routed so;
   - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no` with no
     gate after it: it edited claims in place and compiled nothing (D-264). A D1-finish after D1-build, and a D2
@@ -116,13 +121,18 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   (`stages/R1b.md`): every probe run, a probe whose compile failed included, since each leaves its folder
   `probes/<card-id>/<n>/`. `0` when none (a failed attempt runs none: the checklist runs only after the last
   compile succeeded). A card's entries add up to the folders under `probes/<card-id>/`, and to at most 4, D-292's
-  cap (D-338).
-- **`shortReason`**, on an R1a-assemble entry only: the reason its return gave for a short round, its line
+  cap (D-338). A composite's add up to at most 8 (D-433): the checklist's 4, then 4 leave-one-out probes. A composite
+  is any card with a `### Pieces` table, whatever its id letter (a card made at a gate from pieces among them).
+- **`shortReason`**, on an R1a-assemble or R1a-synthesize entry only: the reason its return gave for a short round, its line
   `short: <why>` without the `short: ` (D-339), except for a round short for one engine (D-405): that one keeps its
   whole line, starting `short: <n> cards share one engine` (any other reason follows a `;`), the words the run
   checker looks for, and the round deals no more than 6. A round is short when it deals fewer than 6 cards, or the
   deck (every round's dealt cards so far) holds fewer than two under-played cards; the run checker counts both from
-  `cards.md` and accepts a short round only with its reason.
+  `cards.md` and accepts a short round only with its reason. A composed round (R1a-synthesize, D-429) composes 1 to 4
+  composites, never more; it is short when it composes fewer than 2 (`None.` under its `## Round <k>` when it composed
+  none), or when none of them takes a piece marked under-played (a row of its card's `### Pieces`, `in` or `scheduled`,
+  whose Kind ends `, under-played`, D-339), and the run checker accepts it only with its R1a-synthesize entry's
+  `shortReason`. The engine rule (D-405) doesn't apply to composites.
 - **`priceOutcomes`**, on a pricing step (R1b, D1-finish, D1-gate, D2) that made price calls: its calls counted by
   outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
   `pricing.md`). Never in an offline run. NFR-22 reads it: no `rate_limited` and no `locked_out`. Pricing stops
@@ -159,7 +169,9 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   A gate's or an escalation's entry always has `questions`, how many the user asked at the visit (`0` too);
   its interview notes hold as many (D-389). `changes`,
   `newCards` and `note` carry a pick's revisions, the cards made at the gate and a `more` answer's note
-  (D-391, `checkpoints.md`).
+  (D-391, `checkpoints.md`). A new card's `from` names cards and composites by id, or pieces by key (D-432): a
+  `### Pieces` row's key on a card of the run, or an Ideas line's id in its research files; `run-log.mjs` refuses one
+  that names none of these. A card made from pieces is a composite, with its Pieces tables.
 - **`escalations[]`**: `stage` is `D1-gate`, `D2-gate` or `F1` (D-413); `verdict` is the escalated attempt's verdict file,
   `reports/gates/<stage>-<card>-a<attempt>.json`, so the log copies no findings; `choice` is `accept`, `retry`,
   `verification` (back to the verification gate, which replaces `checkpoint-1`, D-289) or `stop` (D-236), with
@@ -178,7 +190,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 Only the user starts a round (D-287), so the log's gate answers say where every round begins:
 
 - **A brainstorm round** is the run's first R1a entries, or the R1a entries after a `more` answer at either
-  gate: up to 3 R1a researchers, then one R1a-assemble, then the brainstorm gate.
+  gate: up to 3 R1a researchers, then one R1a-assemble (one R1a-synthesize in a run that composes, D-429), then the
+  brainstorm gate.
 - **A verification round** is the R1b entries after a brainstorm `pick:<ids>` or a verification `verify:<ids>`:
   R1b for each named card, in that order, then each of its `newCards`, one at a time, then one R1b-assemble,
   then the verification gate. A card is verified once. In the run's first verification round, the rival runs
@@ -206,12 +219,13 @@ last answer didn't ask for the verification gate.
 
 ## Reading the requirements from the log
 
-- **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards;
+- **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards (or
+  one R1a-synthesize, composing 1–4 composites, D-429);
   per verification round at most 3 cards compiled, the rival's aside (D-408; a second verification round from the
   same deck has its own 3); one V4 pass per guide, and one re-check per fix round or revision (D-352); at most 2 counted
   retries per gate (the run checker counts them from `stages[]`, S6 included); and at most 3 agents in flight,
   which the session's transcript shows.
-- **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4.
+- **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4; a composite's at most 8 (D-433).
 - **NFR-22** (no 429s, no lock-outs): no `priceOutcomes` counts a `rate_limited` or `locked_out` call.
 - **D-416's output targets**, measured after the run by `scripts/run-usage.mjs` over its sessions' transcripts,
   grouped per build by the header's `concept`: the shared phases 1.2M, an endgame-only build 0.75M, a campaign
@@ -259,8 +273,9 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
   `escalations[]`.
 - `build` (D-412) adds a finalized card's build, `{"id", "roll", "status": "queued"}`, its folder `builds/<id>`,
-  once per card the verification gate finalizes; then `{"id", "status"?, "guide"?, "pobFile"?}` updates it. A card
-  with a build is refused as a new one, and a build keeps its card's identity.
+  once per card the verification gate finalizes, with `"name"` when its finalize revision gave the build one (D-435);
+  then `{"id", "name"?, "status"?, "guide"?, "pobFile"?}` updates it. A card with a build is refused as a new one, and a
+  build keeps its card's identity.
 - `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
   `noNinja` (its `--no-ninja`) and the four lists' lengths, sets the top-level `noNinja` to this session's flag, and
   sets `status` `running`. It runs once per resume,
@@ -274,7 +289,13 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   visit's display, built from the run folder's files (`checkpoints.md`), and records the visit in `displays[]`;
   printing it again records nothing new. The design and final gates are a build's: `display design --build <id>`
   and `display final --build <id>` (D-411). A `checkpoint` entry for one of those gates is refused until its
-  visit's display is recorded; the unsaved-build question has no display.
+  visit's display is recorded; the unsaved-build question has no display. In a run that composes (D-432), the
+  brainstorm display shows each composite not verified yet, numbered: its round line, then its pieces in short, `  in:
+  <pieces>`, `  scheduled: <piece> (<where>)` and `  out: <piece> (<why>)`; then the composites a later round
+  superseded, still pickable; the obvious build's line; then every plain card `## Cards` lists, numbered on, its name
+  and structure, one line each. The design display prints `- Pieces: <n> in, <n> scheduled (<names>), <n> out
+  (<names>)` once, before the rungs, from the D1 gate's design field `pieces` (D-434). The final display prints the run
+  checker's warnings under For reference, a server build older than its source among them (D-435).
 - `set` replaces `status`, `dossier` (once R1b-assemble wrote it) or `faults` (`SKILL.md` §8).
 - An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
   written. The run checker checks the whole log and the flow it records.

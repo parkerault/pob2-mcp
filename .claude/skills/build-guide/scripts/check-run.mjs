@@ -75,6 +75,16 @@
 //    decline, the resume's answers and the entries after a run's end placed by each resume's lengths, a refused call
 //    re-run next (D-421); `## Pending decision` exempt in the interview notes (D-420); the deck's "How they differ" one
 //    paragraph (D-424).
+//  - amendment 10 (WU-105, D-429…D-435; its Appendix A): the brainstorm round's synthesis `R1a-synthesize` (schema 4),
+//    never mixed with `R1a-assemble` in one run, a run keeping the step its first round used; the composite `r<k>-s-<n>`;
+//    the composite deck (`checkCompositeDeck`): its H2s, 1–4 composites a round, short with fewer than 2 or with none
+//    taking an under-played piece, then only with its shortReason, `## Cards` listing every researcher's card with the
+//    composites it fed, `## Pieces not used`, `## Not composed`, `## Superseded`; a composite (any card with
+//    `### Pieces`) and its tables (`checkPieceTables`): an out or scheduled piece's reason, its `### Pieces measured`
+//    once R1b verified it, `not measured (<why>)` rows; its probe cap 8, a plain card's 4; a composite run's dossier
+//    with the twelfth column `key pieces`; `pieces.md` in a build's folder (D-434); `builds[].name` (D-435); an empty
+//    list item in a V4 report ignored; and the result's `warnings`, a server build older than its source under
+//    `src/plan/` (its directory `BUILD_GUIDE_SERVER_BUILD` when set, for tests), the violations still reported.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -82,7 +92,8 @@
 // `render-audit.mjs` (D-355). No network.
 //
 // Exit 0: every check passed (one line on stdout). Exit 1: each violation on stderr as
-// `check-run: [<rule>] <message>`. Exit 2: usage error.
+// `check-run: [<rule>] <message>`. Exit 2: usage error. Either way, each warning (D-435) goes to stderr first, as
+// `check-run: warning: <message>`.
 //
 // The shapes it reads are documented in ../references/ (run-folder.md, run-log.md, gates.md,
 // source-markers.md, pricing.md, stages/V4.md) and ../templates/; keep them in step with this file.
@@ -93,17 +104,26 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
-import { parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder } from './run-log.mjs';
+import {
+  parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder,
+  COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
+  PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
+} from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The repository root: .claude/skills/build-guide/scripts -> the root. */
 const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
 /** The repo's C1/E1 data (C-35). */
 const DATA_DIR = path.join(REPO, 'data');
+/**
+ * The server's build directory: the repository's `build/`, or for tests `BUILD_GUIDE_SERVER_BUILD` when it is set
+ * (D-435); its sources are `src/` beside it.
+ */
+const serverBuild = () => (process.env.BUILD_GUIDE_SERVER_BUILD ? path.resolve(process.env.BUILD_GUIDE_SERVER_BUILD) : path.join(REPO, 'build'));
 /** The server's compiled ledger evaluator (C-33), the one `compile_plan` fills the record with. */
-const LEDGER_MODULE = path.join(REPO, 'build', 'plan', 'ledger.js');
+const ledgerModulePath = () => path.join(serverBuild(), 'plan', 'ledger.js');
 /** D-266: the server's compiled build projection, the one the compiler writes the record's `buildSha1` with. */
-const BUILD_HASH_MODULE = path.join(REPO, 'build', 'plan', 'buildHash.js');
+const buildHashModulePath = () => path.join(serverBuild(), 'plan', 'buildHash.js');
 
 // ---------------------------------------------------------------------------------------------------
 // Contracts (slice 03 and amendment 1; spine C-30, C-31, C-33, D-219, D-234)
@@ -157,8 +177,13 @@ export const AUDIT_H2 = ['Estimates', 'Stage detail', 'Checks', "What PoB doesn'
 export const DOSSIER_COLUMNS = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Key prices', 'League', 'Main risk'];
 /** D-407, D-408: amendment 8's dossier, with each card's rough clear speed after its EHP. */
 export const DOSSIER_COLUMNS_D407 = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk'];
-/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its clear speed, its prices and its league. */
-const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League'];
+/**
+ * D-433: a composite run's dossier (one whose brainstorm rounds R1a-synthesize composed), with a twelfth column, `key
+ * pieces`: each measured piece and its largest drop, with the figure it falls on, from the card's Pieces measured.
+ */
+export const DOSSIER_COLUMNS_D433 = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk', 'key pieces'];
+/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its clear speed, its prices, its league and its key pieces. */
+const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'key pieces'];
 /** The endgame ladder's rungs in order (D-281, D-282): `m`, `b`, `n`. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
 /** Each rung's guide H2, which holds the H3 `Checks` (§8). */
@@ -215,6 +240,8 @@ const RUN_LOG_FIELDS = {
 /** D-412: a build's status, its fields in builds[], and its end statuses. */
 const BUILD_STATUSES = ['queued', 'designing', 'writing', 'completed', 'file-only', 'not-accepted', 'dropped', 'stopped', 'escalated'];
 const BUILD_FIELDS = ['id', 'roll', 'status', 'folder', 'guide', 'pobFile'];
+/** D-435: a build whose finalize gave it a name carries `name` after `roll`, the title render-audit.mjs gives its audit. */
+const BUILD_FIELDS_NAMED = ['id', 'roll', 'name', 'status', 'folder', 'guide', 'pobFile'];
 const IN_PROGRESS = ['queued', 'designing', 'writing'];
 /** D-415: a resume's entry, and the four lists whose lengths it records. */
 const RESUME_FIELDS = ['date', 'pinCommit', 'digest', 'noNinja', 'lengths'];
@@ -236,11 +263,11 @@ const STATUSES = ['running', 'completed', 'not-accepted', 'stopped', 'escalated'
 const CHOICES = { 2: ['accept', 'retry', 'checkpoint-1', 'stop'], 3: ['accept', 'retry', 'verification', 'stop'], 4: ['accept', 'retry', 'verification', 'stop'] };
 /**
  * A schema-2 concept id (`c1`), and a schema-3 card id `r<round>-<letter>-<n>` (`r1-a-2`, D-319): the letters a to c
- * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391), x the rival's (`r1-x-1`, D-408,
- * `RIVAL_CARD`).
+ * a brainstorm round's researchers', g a card made at a gate (`r1-g-1`, D-391), s a composite (`r1-s-1`, D-429,
+ * `COMPOSITE_CARD`), x the rival's (`r1-x-1`, D-408, `RIVAL_CARD`).
  */
 const CONCEPT_ID = 'c[1-9]\\d*';
-const CARD_ID = 'r[1-9]\\d*-[a-cgx]-[1-9]\\d*';
+const CARD_ID = 'r[1-9]\\d*-[a-cgsx]-[1-9]\\d*';
 /** A card made at a gate (D-391): `r<k>-g-<n>`, k its brainstorm round, n counting the run's gate-made cards in it. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The id form a run's steps, folders and files use: the card id in schema 3, the concept id in schema 2. */
@@ -248,6 +275,15 @@ const idSource = (schema) => (schema === 2 ? CONCEPT_ID : schema === 3 || schema
 const idForm = (schema) => (schema === 2 ? 'the concept id c<n>' : 'the card id r<round>-<letter>-<n>');
 /** D-292: a card's probe variants, beyond R1b's two compiles. */
 const PROBE_CAP = 4;
+/**
+ * D-433: a composite's probe variants (any card with `### Pieces`, whatever its id letter): the checklist's 4, then 4
+ * leave-one-out probes.
+ */
+const COMPOSITE_PROBE_CAP = 8;
+/** D-433: a composite's leave-one-out probes, so its Pieces measured holds at most 4 rows. */
+const LEAVE_ONE_OUT = 4;
+/** D-429: a round composes 1 to 4 composites; it is short with fewer than 2, or with none taking an under-played piece. */
+const COMPOSE = { max: 4, min: 2 };
 /** The gates whose visits print a display, and take questions (D-389): an interview note's and a gate question's names. */
 const INTERVIEW_GATES = '(brainstorm|verification|design|final|escalation)';
 /** D-390: a gate question step's compiled variant `probes/q-<gate>-<visit>-<n>/`. */
@@ -311,6 +347,8 @@ const STAGE_OUTCOMES = {
 };
 // Amendment 9 (schema 4): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415).
 STAGE_OUTCOMES[4] = { ...STAGE_OUTCOMES[3], 'D1-tree': ['done'], F1: ['pass', 'fail', 'escalated'], 'V4-campaign': ['pass', 'fail'] };
+// Amendment 10 (D-429): the brainstorm round's synthesis, which composes its builds in place of R1a-assemble's deal.
+STAGE_OUTCOMES[4]['R1a-synthesize'] = ['done'];
 /** D-421: a step the permission system refused, logged so and re-run alone, uncounted (schema 4). */
 const REFUSED = 'refused';
 const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED];
@@ -331,7 +369,7 @@ const FINAL_GATES = ['D2-gate', 'F1'];
 /** A step's entry that produced nothing to read: a missing return, or a refused call (D-421). */
 const idle = (s) => s.outcome === 'missing' || s.outcome === REFUSED;
 /** The steps that concern no one concept or card: the rounds' steps, a gate question step (D-390) and the rival (D-408). */
-const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q', 'RV'];
+const ROUND_STAGES = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV'];
 /** Retries (SKILL.md "Retries, in full"; Q2): R1b makes at most 3 counted attempts; a gate allows 2 counted retries. */
 const R1B_ATTEMPTS = 3;
 const GATE_RETRIES = 2;
@@ -689,15 +727,42 @@ function vocabularyWords() {
 /** The server's ledger evaluator, or null when the server isn't built. */
 /** The server's build projection (`buildSha1`), or null when the server isn't built. */
 async function loadBuildHashModule() {
-  if (!fs.existsSync(BUILD_HASH_MODULE)) return null;
-  const mod = await import(pathToFileURL(BUILD_HASH_MODULE).href);
+  if (!fs.existsSync(buildHashModulePath())) return null;
+  const mod = await import(pathToFileURL(buildHashModulePath()).href);
   return typeof mod.buildSha1 === 'function' ? mod : null;
 }
 
 async function loadLedgerModule() {
-  if (!fs.existsSync(LEDGER_MODULE)) return null;
-  const mod = await import(pathToFileURL(LEDGER_MODULE).href);
+  if (!fs.existsSync(ledgerModulePath())) return null;
+  const mod = await import(pathToFileURL(ledgerModulePath()).href);
   return typeof mod.evaluateLedger === 'function' ? mod : null;
+}
+
+/**
+ * D-435: the checker against a stale build. When the server's `build/plan/ledger.js` or `build/plan/buildHash.js` is
+ * older than its source under `src/plan/`, a `record-plan` or ledger violation may come from the stale build, not the
+ * run: one warning per stale module. The violations stay.
+ */
+function staleBuildWarnings() {
+  const build = serverBuild();
+  const src = path.join(path.dirname(build), 'src', 'plan');
+  const mtime = (f) => {
+    try {
+      return fs.statSync(f).mtimeMs;
+    } catch {
+      return null;
+    }
+  };
+  const out = [];
+  for (const name of ['ledger', 'buildHash']) {
+    const js = path.join(build, 'plan', `${name}.js`);
+    const ts = path.join(src, `${name}.ts`);
+    const [built, source] = [mtime(js), mtime(ts)];
+    if (built !== null && source !== null && built < source) {
+      out.push(`the server's build/plan/${name}.js is older than its source src/plan/${name}.ts, so a record-plan or ledger violation may come from the stale build, not the run: rebuild the server (pnpm build) and check again (D-435)`);
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -835,9 +900,32 @@ function legacyPart(log) {
   return Object.fromEntries(RESUME_LISTS.map((k) => [k, isInt(first?.lengths?.[k]) ? first.lengths[k] : len(k)]));
 }
 
+/** D-433: the run's composites: each card file `cards/<id>.md` with a `### Pieces` table, whatever its id letter. */
+function compositeIds(runFolder) {
+  const out = new Set();
+  let files;
+  try {
+    files = fs.readdirSync(path.join(runFolder, 'cards'));
+  } catch {
+    return out;
+  }
+  for (const f of files) {
+    const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
+    if (!m) continue;
+    try {
+      if (parseCard(fs.readFileSync(path.join(runFolder, 'cards', f), 'utf8')).pieces !== null) out.add(m[1]);
+    } catch {
+      // a folder, or unreadable: the layout check names it
+    }
+  }
+  return out;
+}
+
 export async function checkRun(runFolder) {
   const violations = [];
   const fail = (rule, message) => violations.push({ rule, message });
+  // D-435: the result's warnings, a stale server build among them; `display final` prints them. The violations stay.
+  violations.warnings = staleBuildWarnings();
   const { abs, exists, isDir, listDir, readText, readJson } = folderIO(runFolder, fail);
 
   if (!fs.existsSync(runFolder) || !fs.statSync(runFolder).isDirectory()) {
@@ -857,7 +945,11 @@ export async function checkRun(runFolder) {
   const v3 = schema !== 2;
   const v4 = schema === 4;
   const ID = new RegExp(`^${idSource(schema)}$`);
-  checkRunLog(log, fail, schema);
+  // D-433: a composite is any card with `### Pieces`, whatever its id letter; its probe cap is 8, a plain card's 4.
+  const composites = compositeIds(runFolder);
+  const probeCap = (id) => (composites.has(id) ? COMPOSITE_PROBE_CAP : PROBE_CAP);
+  const capWords = (id) => (composites.has(id) ? `a composite has at most ${COMPOSITE_PROBE_CAP}: the checklist's 4, then 4 leave-one-outs (D-433)` : `a card has at most ${PROBE_CAP} (D-292)`);
+  checkRunLog(log, fail, schema, { probeCap, capWords });
   const mode = log.mode;
   const offline = mode === 'offline';
   const stages = list(log.stages);
@@ -900,6 +992,8 @@ export async function checkRun(runFolder) {
   }
   // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
   const rivalRan = stages.some((s) => s.stage === 'RV' && s.outcome !== 'missing');
+  /** D-429: a run whose brainstorm rounds R1a-synthesize composed. */
+  const composite = stages.some((s) => s.stage === 'R1a-synthesize');
   if (log.status === 'completed' && !exists('dossier.md')) fail('layout', 'dossier.md is missing; a completed run has its dossier (§2)');
   if (v4 && log.dossier !== null && log.dossier !== undefined && (typeof log.dossier !== 'string' || !exists(log.dossier))) fail('run-log', `dossier is ${show(log.dossier)}, which names no file in the run folder (D-412)`);
   const researchFiles = listDir('research');
@@ -970,7 +1064,7 @@ export async function checkRun(runFolder) {
     }
     ns.sort((a, b) => a - b);
     if (ns.some((n, k) => n !== k + 1)) fail('layout', `probes/${id}/ holds variants ${ns.join(', ')}; they are numbered from 1 in run order, with no gap (§7.7)`);
-    if (ns.length > PROBE_CAP) fail('probes', `probes/${id}/ holds ${ns.length} probe variants; a card has at most ${PROBE_CAP} (D-292)`);
+    if (ns.length > probeCap(id)) fail('probes', `probes/${id}/ holds ${ns.length} probe variants; ${capWords(id)}`);
     probeCounts.set(id, ns.length);
   }
   const allPlans = [...[...buildPlans.values()].filter(isObj), ...[...conceptPlans.values()].filter(isObj)];
@@ -1037,7 +1131,7 @@ export async function checkRun(runFolder) {
     for (const s of stages.slice(0, lastAssembly + 1)) {
       if (s.stage === 'R1b' && s.outcome !== 'missing') terminal.set(s.concept, s.outcome === 'fail' ? terminalR1b(gateReports.get(`reports/gates/R1b-${s.concept}-a${s.attempt}.json`)) : null);
     }
-    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal });
+    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal, composite });
   }
 
   // ---- Escalations name their verdict files; accepted gate findings (§5.4, D-236) ------------------
@@ -1099,7 +1193,10 @@ export async function checkRun(runFolder) {
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
-    checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log) });
+    const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
+    checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log), cardOf });
+    // D-429, D-433: each composite's Pieces table, and its Pieces measured once R1b verified it.
+    checkPieceTables(stages, cardIds, cardOf, fail);
     // D-408: each rival step that wrote a card, and that card; D-403, D-406: the obvious card's line, the structure check.
     checkRivals(stages, cardIds, fail);
     checkCardLines(log, cardIds, readText, fail);
@@ -1117,7 +1214,7 @@ export async function checkRun(runFolder) {
     for (const id of r1bCards) {
       const folders = probeCounts.get(id) ?? 0;
       const sum = logged.get(id) ?? 0;
-      if (sum > PROBE_CAP) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probes; a card has at most ${PROBE_CAP} (D-292)`);
+      if (sum > probeCap(id)) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probes; ${capWords(id)}`);
       if (sum !== folders) fail('probes', `run-log.json's R1b entries for ${id} log ${sum} probe(s), but probes/${id}/ holds ${folders}; the runner logs each R1b return's "probes <n>", every probe run, a probe whose compile failed included (D-338)`);
     }
     // D-286: the card the verification gate finalized gives its build its roll, its skeleton's identity.
@@ -1170,7 +1267,7 @@ async function checkBuild(c) {
   if (v4 && folder !== '.') {
     // D-412: a build's folder holds what the root held for the one build: plan.json, the record and its XML, guide.md,
     // audit.md, reports/V4-<n>.md and rounds/<n>/.
-    for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, reports/, rounds/; D-412)`);
+    for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, pieces.md, reports/, rounds/; D-412, D-434)`);
   }
   if (completed) {
     for (const rel of ['plan.json', 'compile-record.json', 'guide.md', 'audit.md']) {
@@ -1598,7 +1695,7 @@ async function checkBuild(c) {
       const who = claimsOnlyAfterFinal.map(describe).join(', ');
       const hash = await loadBuildHashModule();
       if (hash === null) {
-        fail('record-plan', `the server's build projection ${path.relative(REPO, BUILD_HASH_MODULE)} is missing; build the server (pnpm build) to check ${who}'s claims-only edit`);
+        fail('record-plan', `the server's build projection ${path.relative(REPO, buildHashModulePath())} is missing; build the server (pnpm build) to check ${who}'s claims-only edit`);
       } else if (typeof finalRecord.buildSha1 !== 'string') {
         fail('record-plan', `${who} edited claims without a compile (${CLAIMS_EDITED}), but the final record has no buildSha1 to hold the plan's build to (D-266)`);
       } else if (hash.buildSha1(plan) !== finalRecord.buildSha1) {
@@ -1631,7 +1728,7 @@ async function checkBuild(c) {
     // digit or within 5%, an estimate's tolerance (D-352), or equals one of the entry's current input values or
     // that value × 100 (a percentage); so a formula changed under its claim (FI-4's doubling) fails here.
     if (ledgerModule === null) {
-      fail('ledger', `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build) to evaluate the ledger`);
+      fail('ledger', `the server's ledger evaluator ${path.relative(REPO, ledgerModulePath())} is missing; build the server (pnpm build) to evaluate the ledger`);
     } else {
       for (const e of plan.ledger.filter((x) => isObj(x) && typeof x.id === 'string')) {
         const r = ledgerNow[e.id];
@@ -1657,8 +1754,8 @@ async function checkBuild(c) {
   }
 }
 
-/** D-412: what a build's folder `builds/<id>/` holds (the root's files for its one build). */
-const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'reports', 'rounds'];
+/** D-412: what a build's folder `builds/<id>/` holds (the root's files for its one build); D-434: D1-build's `pieces.md`. */
+const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'reports', 'rounds'];
 /** The V4 passes a build's reports/V4-<n>.md number: the full pass, a re-check, and schema 4's campaign pass (D-415). */
 const V4_STAGES = ['V4', 'V4-recheck', 'V4-campaign'];
 /** A gate verdict's parts: its stage's, and in schema 4 the D1 gate's `tree` (D-419) when the verdict has it. */
@@ -2072,9 +2169,10 @@ function checkGateChoice(c, at, ids, bad, schema = 3) {
     if (!making) bad(at, `has newCards, but answers ${show(a)}; a new card goes with a brainstorm pick: or a verification verify: (D-391)`);
     else if (made === 0) bad(at, 'has newCards with no card in it');
     c.newCards?.forEach?.((n, k) => {
+      // D-432: `from` names cards and composites by id, and pieces by key, a Pieces row's or an Ideas line's.
       const ok = isObj(n) && GATE_CARD.test(String(n.id)) && typeof n.name === 'string' && n.name.trim() !== '' && typeof n.words === 'string' && n.words.trim() !== ''
-        && Array.isArray(n.from) && n.from.length > 0 && n.from.every((id) => new RegExp(`^${CARD_ID}$`).test(String(id))) && Object.keys(n).every((x) => ['id', 'name', 'from', 'words'].includes(x));
-      if (!ok) bad(`${at}.newCards[${k}]`, `is ${show(n)}; a new card is {"id": "r<k>-g-<n>", "name", "from": ["<card id>", …], "words"} (D-391)`);
+        && Array.isArray(n.from) && n.from.length > 0 && n.from.every((id) => new RegExp(`^(?:${CARD_ID}|${PIECE_KEY})$`).test(String(id))) && Object.keys(n).every((x) => ['id', 'name', 'from', 'words'].includes(x));
+      if (!ok) bad(`${at}.newCards[${k}]`, `is ${show(n)}; a new card is {"id": "r<k>-g-<n>", "name", "from": ["<card id or piece key>", …], "words"} (D-391, D-432)`);
       else if (ids.includes(n.id)) bad(`${at}.newCards[${k}]`, `makes ${n.id}, which the answer also picks`);
     });
   }
@@ -2136,7 +2234,8 @@ function checkSchema4Fields(log, bad) {
   list(log.builds).forEach((b, i) => {
     const at = `builds[${i}]`;
     const keys = Object.keys(b);
-    if (show(keys) !== show(BUILD_FIELDS)) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}} (D-412)`);
+    if (show(keys) !== show(BUILD_FIELDS) && show(keys) !== show(BUILD_FIELDS_NAMED)) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}}, with name after roll when its finalize gave it one (D-412, D-435)`);
+    if ('name' in b && (typeof b.name !== 'string' || b.name.trim() === '')) bad(at, `name is ${show(b.name)}; the build's name, a non-empty text (D-435)`);
     if (!new RegExp(`^${CARD_ID}$`).test(String(b.id))) bad(at, `id ${show(b.id)} isn't a card id r<round>-<letter>-<n> (D-412)`);
     else if (ids.has(b.id)) bad(at, `${b.id} has a second build; a card with a build in the run isn't finalized again (D-411)`);
     ids.add(b.id);
@@ -2173,7 +2272,7 @@ function checkSchema4Fields(log, bad) {
   });
 }
 
-function checkRunLog(log, fail, schema) {
+function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capWords: () => `a card has at most ${PROBE_CAP} (D-292)` }) {
   const v3 = schema !== 2;
   const v4 = schema === 4;
   for (const k of RUN_LOG_FIELDS[v4 ? 4 : v3 ? 3 : 2]) if (!(k in log)) fail('run-log', `run-log.json has no ${k} (§6${v4 ? ', D-412' : ''})`);
@@ -2252,7 +2351,8 @@ function checkRunLog(log, fail, schema) {
         : v3 && s.stage === 'D1' ? '; D1 is two steps, D1-build then D1-finish (D-356)'
           : /^V4-(ledger|sources|prose)/.test(String(s.stage)) ? '; V4 is one pass with no lenses, V4 or V4-recheck, each entry one report reports/V4-<n>.md (D-352)'
             : !v3 && ['D1-build', 'D1-finish'].includes(s.stage) ? "; a schema-2 log's D1 is one step (D-326)"
-              : !v4 && ['D1-tree', 'F1', 'V4-campaign'].includes(s.stage) ? `; ${s.stage} is schema 4's (amendment 9, D-412)` : '';
+              : !v4 && ['D1-tree', 'F1', 'V4-campaign'].includes(s.stage) ? `; ${s.stage} is schema 4's (amendment 9, D-412)`
+                : !v4 && s.stage === 'R1a-synthesize' ? "; R1a-synthesize is schema 4's (amendment 10, D-429)" : '';
       return bad(at, `stage ${show(s.stage)} isn't one of ${known.join(', ')}${why}`);
     }
     // D-421: a refused call is schema 4's outcome; in schema 3 the permission system's refusal had no entry of its own.
@@ -2260,9 +2360,9 @@ function checkRunLog(log, fail, schema) {
     if (ROUND_STAGES.includes(s.stage) ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
       bad(at, ROUND_STAGES.includes(s.stage) ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}`);
     }
-    // D-339: a short brainstorm round's reason, on its R1a-assemble entry.
-    if (v3 && 'shortReason' in s && (s.stage !== 'R1a-assemble' || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
-      bad(at, `has shortReason ${show(s.shortReason)}; only an R1a-assemble entry carries one, the reason its return gave for a short round (D-339)`);
+    // D-339: a short brainstorm round's reason, on its R1a-assemble entry, or its R1a-synthesize entry (D-429).
+    if (v3 && 'shortReason' in s && (!ASSEMBLY_STAGES.includes(s.stage) || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
+      bad(at, `has shortReason ${show(s.shortReason)}; only an R1a-assemble or R1a-synthesize entry carries one, the reason its return gave for a short round (D-339, D-429)`);
     }
     // D-408: a rival that found no faster structure (`none-found`) logs what it tried, and only it.
     const triedOk = typeof s.tried === 'string' && s.tried.trim() !== '';
@@ -2273,7 +2373,7 @@ function checkRunLog(log, fail, schema) {
     if (v3 && 'probes' in s && s.stage !== 'R1b') bad(at, `has probes, but only R1b writes probe variants (D-338)`);
     if (v3 && s.stage === 'R1b' && (s.outcome !== 'missing' || 'probes' in s)) {
       if (!isInt(s.probes)) bad(at, `probes is ${show(s.probes)}; an R1b entry logs the probe variants its attempt wrote, its return's "probes <n>" (D-338)`);
-      else if (s.probes > PROBE_CAP) fail('probes', `run-log.json ${at}: R1b ${s.concept} logs ${s.probes} probes; a card has at most ${PROBE_CAP} (D-292)`);
+      else if (s.probes > caps.probeCap(s.concept)) fail('probes', `run-log.json ${at}: R1b ${s.concept} logs ${s.probes} probes; ${caps.capWords(s.concept)}`);
       else if (s.outcome === 'fail' && s.probes > 0) fail('probes', `run-log.json ${at}: R1b ${s.concept} failed, but logs ${s.probes} probe(s); probes run only after the skeleton's last compile succeeded (§7.7)`);
     }
     if (!isInt(s.attempt, 1)) bad(at, 'attempt is an integer from 1');
@@ -3061,6 +3161,13 @@ function checkFlow4(log, fail, ctx) {
     if (!sameStep(stages[i + 1], s)) illegal(i, `was refused by the permission system${s.outcome === REFUSED ? '' : ` (its verdict's ${TOOL_REFUSED})`}, but ${describe(stages[i + 1])} follows; the runner asks the user to allow the tool and re-runs the refused step alone, next, uncounted (D-421)`);
   });
 
+  // D-429: a run keeps the coordinator step its first brainstorm round used: R1a-assemble's deal for a run that began
+  // with it, R1a-synthesize's composites for one that began composing; a run mixing the two fails.
+  const roundStep = stages.find((s) => ASSEMBLY_STAGES.includes(s.stage))?.stage;
+  stages.forEach((s, i) => {
+    if (ASSEMBLY_STAGES.includes(s.stage) && s.stage !== roundStep) illegal(i, `runs ${s.stage}, but this run's first brainstorm round ran ${roundStep}; a run whose first round used R1a-assemble keeps it for every later round, and one that composed keeps R1a-synthesize: the two never mix in one run (D-429)`);
+  });
+
   // The findings accepted so far, per card (D-411): an acceptance covers that build's gate attempts after it.
   const acceptedSoFar = [];
   const coveredSoFar = (concept) => (f) => acceptedSoFar.some((a) => a.concept === concept && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
@@ -3328,7 +3435,8 @@ function checkFlow4(log, fail, ctx) {
   const transition = (p, s) => {
     if (!p) return { table: true };
     const b = typeof p.concept === 'string' ? B.get(p.concept) : undefined;
-    if (p.stage === 'R1a-assemble' && s?.stage !== 'R1a-assemble') return { gate: 'brainstorm' };
+    // D-429: a brainstorm round ends at its coordinator step, R1a-assemble's deal or R1a-synthesize's composites.
+    if (ASSEMBLY_STAGES.includes(p.stage) && s?.stage !== p.stage) return { gate: 'brainstorm' };
     if (p.stage === 'R1b-assemble') return s !== undefined && s === autoRival ? { table: true } : { gate: 'verification' };
     if (p.stage === 'RV' && p.outcome === 'none-found') return { gate: 'verification' };
     if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return { gate: 'verification' };
@@ -3416,8 +3524,9 @@ function checkFlow4(log, fail, ctx) {
         const legacy = legacyAt(prev?.i);
         const allowed = {
           start: ['R1a'],
-          R1a: ['R1a', 'R1a-assemble'],
+          R1a: ['R1a', 'R1a-assemble', 'R1a-synthesize'],
           'R1a-assemble': ['R1a-assemble'],
+          'R1a-synthesize': ['R1a-synthesize'],
           R1b: ['R1b', 'R1b-assemble'],
           'R1b-assemble': ['RV'],
           RV: p?.outcome === 'done' ? ['R1b'] : [],
@@ -3455,9 +3564,9 @@ function checkFlow4(log, fail, ctx) {
       round.r1a += 1;
       if (round.r1a > ROUND_CAP) fail('caps', `${at(i)}: brainstorm round ${round.n} runs ${round.r1a} R1a researchers; at most ${ROUND_CAP} (NFR-23)`);
     }
-    if (s.stage === 'R1a-assemble' && round) {
+    if (ASSEMBLY_STAGES.includes(s.stage) && round) {
       round.assembles += 1;
-      if (round.assembles > 1) fail('caps', `${at(i)}: brainstorm round ${round.n} runs ${round.assembles} R1a-assemble steps; one deals the round's deck (D-287, NFR-23)`);
+      if (round.assembles > 1) fail('caps', `${at(i)}: brainstorm round ${round.n} runs ${round.assembles} ${s.stage} steps; one ${s.stage === 'R1a-synthesize' ? "composes the round's builds (D-429" : "deals the round's deck (D-287"}, NFR-23)`);
     }
     if (s.stage === 'R1b') {
       const seen = r1bSeen.get(s.concept);
@@ -3880,10 +3989,12 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
   stages.forEach((s, i) => {
     if (!isObj(s) || s.outcome === 'missing') return;
     if (s.stage === 'R1a' && prev !== 'R1a') rounds.push({ k: rounds.length + 1, assembly: null });
-    if (s.stage === 'R1a-assemble' && rounds.length > 0) rounds[rounds.length - 1].assembly = { ...s, i };
+    if (ASSEMBLY_STAGES.includes(s.stage) && rounds.length > 0) rounds[rounds.length - 1].assembly = { ...s, i };
     prev = s.stage;
   });
   const dealtRounds = rounds.filter((r) => r.assembly !== null);
+  // D-429: a run whose brainstorm rounds R1a-synthesize composed writes a composite deck.
+  const composite = stages.some((s) => isObj(s) && s.stage === 'R1a-synthesize');
   // C-52, D-319: R1a writes a card in its own round, so no card's round is past the brainstorm rounds the log ran
   // (counted with the researchers that returned without their file, which may have written cards); a card made at
   // a gate is of the latest round (D-391).
@@ -3893,7 +4004,11 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
     if (k > ran) fail('layout', `cards/${id}.md is a card of brainstorm round ${k}, but run-log.json runs ${ran} brainstorm round(s); R1a writes a card only in its own round (§2, D-319)`);
   }
   if (text === null) {
-    if (dealtRounds.length > 0) fail('layout', `cards.md is missing, but R1a-assemble dealt ${dealtRounds.length} brainstorm round(s); it writes the deck there (§2, D-287)`);
+    if (dealtRounds.length > 0) fail('layout', composite ? `cards.md is missing, but R1a-synthesize composed ${dealtRounds.length} brainstorm round(s); it writes the deck there (§2, D-429)` : `cards.md is missing, but R1a-assemble dealt ${dealtRounds.length} brainstorm round(s); it writes the deck there (§2, D-287)`);
+    return;
+  }
+  if (composite) {
+    checkCompositeDeck(parseDeck(text), dealtRounds, stages, cardIds, fail, ctx);
     return;
   }
   const deck = parseDeck(text);
@@ -3999,6 +4114,244 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
   for (const id of cardIds) {
     const k = Number(/^r(\d+)-/.exec(id)[1]);
     if (dealtK.has(k) && !GATE_CARD.test(id) && !RIVAL_CARD.test(id) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+  }
+}
+
+/** D-339, D-429: whether a composite takes a piece marked under-played: a Pieces row in or scheduled, its Kind `, under-played`. */
+const takesUnderPlayed = (card) => !!card?.pieces?.rows.some((r) => r.underPlayed && ['in', 'scheduled'].includes(r.status));
+/**
+ * D-429: whether a card counts as verified: its `### Structure check` holds more than `Not checked yet.` (what
+ * R1a-synthesize writes under each H3 of a composite's verification half), or R1b passed on it.
+ */
+const verifiedCard = (card, stages, id) => card?.structure?.checked === true || stages.some((s) => isObj(s) && s.stage === 'R1b' && s.concept === id && s.outcome === 'pass');
+
+/**
+ * D-429 (Appendix A, R1a-synthesize.md): a deck line's structure, its first part after the name: the identity
+ * `<className>, <ascendancy>, <named damage source>`, or under one fixed identity the engine key `<consumed> from
+ * <supply>` in data/rules/vocabulary.md's words, or `none`. The problem with it, or null.
+ */
+function structureProblem(part, vocab) {
+  const p = String(part ?? '').trim();
+  const engine = /^([a-z0-9]+(?:-[a-z0-9]+)*) from ([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(p);
+  if (engine) {
+    if (vocab === null) return "its engine can't be checked: data/rules/vocabulary.md, the mechanic families, can't be read (D-401)";
+    const off = [engine[1], engine[2]].filter((w) => !vocab.has(w));
+    return off.length > 0 ? `its engine names ${off.map((w) => show(w)).join(' and ')}, which isn't a family of data/rules/vocabulary.md (or none); an engine key uses only its words (D-401, D-405, D-429)` : null;
+  }
+  if (p === 'none' || /^[^,|]+, [^,|]+, \S.*$/.test(p)) return null;
+  return `its structure is ${show(p)}; it is "<className>, <ascendancy>, <named damage source>", or under one fixed identity the engine key "<consumed> from <supply>" or "none" (D-429)`;
+}
+
+/**
+ * D-429, D-432 (Appendix A, R1a-synthesize.md): a composite deck `cards.md`, against the brainstorm rounds R1a-synthesize
+ * composed. Its H2s: "What the composites share" (1–80 words), "How they differ" (one paragraph), "The obvious build"
+ * (one line `- r1-a-1 "<name>" | <its kit>`, the obvious card's, D-403, or "None."), one "Round <k>" per composed round
+ * ("None." when it composed none), "Cards", "Pieces not used" (at most 10 lines `- <key> <piece>: <why>`, or "None."),
+ * "Not composed" (`- <structure>: <why>` lines, or "None."), then "Superseded" only when a later round recomposed. A
+ * round lists its composites `r<k>-s-<n>`, each with its card and its structure (`structureProblem`), and the cards made
+ * at its gate; it composes 1 to 4, and is short, accepted only with its R1a-synthesize entry's shortReason, with fewer
+ * than 2 or with none taking a piece marked under-played (D-339). "Cards" lists every card but the composites, each line
+ * with its structure and `fed: <composite ids | none>` naming composites the deck holds: every researcher's card of a
+ * composed round, and each gate-made card and rival's card a synthesis ran after (D-391, D-408). Every composite keeps
+ * its round line; a superseded one is also listed under "Superseded", never one verified (D-429), its successor a
+ * later round's. The engine rule (D-405) doesn't apply to composites, which differ by structure or by a split's side.
+ */
+function checkCompositeDeck(deck, rounds, stages, cardIds, fail, ctx) {
+  const bad = (why) => fail('deck', `cards.md${why}`);
+  const want = [...COMPOSITE_HEADER, ...rounds.map((r) => `Round ${r.k}`), ...COMPOSITE_FOOTER];
+  const got = deck.h2.includes(SUPERSEDED) ? [...want, SUPERSEDED] : want;
+  if (show(deck.h2) !== show(got)) bad(`'s H2s are ${show(deck.h2)}; R1a-synthesize writes ${show(want)}, then "${SUPERSEDED}" only when a later round recomposed (D-429, D-432)`);
+  const body = (title) => deck.body?.get(title) ?? [];
+  const none = (lines) => lines.length === 1 && lines[0].raw === 'None.';
+  const cardOf = (id) => ctx.cardOf?.(id) ?? null;
+  // D-392, D-424: what the composites share, once, in 1 to 80 words; how they differ, one paragraph.
+  if (deck.h2.includes(COMPOSITE_HEADER[0])) {
+    const words = countWords(body(COMPOSITE_HEADER[0]).map((l) => l.raw));
+    if (words === 0 || words > 80) bad(`'s "${COMPOSITE_HEADER[0]}" holds ${words} words; it says the composites' common core once, in player terms, in 1 to 80 words (D-392, D-432)`);
+  }
+  const paragraphs = body('How they differ').filter((l, k, all) => k === 0 || l.n !== all[k - 1].n + 1).length;
+  if (deck.h2.includes('How they differ') && paragraphs !== 1) bad(`'s "How they differ" holds ${paragraphs} paragraphs; it is one paragraph, each composite's structure and what sets it apart (D-392, D-424, D-432)`);
+  // D-403, D-429: the obvious build, the baseline judged as written: one line naming the obvious card r1-a-1, or None.
+  // (when the run has no obvious card, or it failed its identity check).
+  if (deck.h2.includes(COMPOSITE_HEADER[2])) {
+    const lines = body(COMPOSITE_HEADER[2]);
+    const o = deck.obvious;
+    if (!none(lines)) {
+      if (lines.length !== 1 || o === null) bad(`'s "${COMPOSITE_HEADER[2]}" holds ${lines.length} line(s); it is one line, - <id> "<name>" | <its kit>, or "None." (D-403, D-429)`);
+      else if (o.id !== 'r1-a-1' || !cardIds.has('r1-a-1') || cardOf('r1-a-1')?.fields?.get('Obvious build') === undefined) bad(`:${o.n}: the obvious build names ${show(o.id)}; it is the obvious card r1-a-1, researcher a's first card in round 1, which carries "- Obvious build:" (D-403)`);
+    }
+  }
+  const unused = body('Pieces not used');
+  if (deck.h2.includes('Pieces not used') && !none(unused)) {
+    if (unused.length === 0 || unused.length > 10) bad(`'s "Pieces not used" holds ${unused.length} line(s); it lists at most 10, the strongest first, or says "None." (D-432)`);
+    for (const l of unused) if (!new RegExp(`^[-*]\\s+${PIECE_KEY}\\s+\\S.*:\\s*\\S`).test(l.raw)) bad(`:${l.n}: ${show(l.raw)} isn't "- <key> <piece>: <why no composite takes it>", the key a Pieces row's or an Ideas line's (D-432, Appendix A)`);
+  }
+  const notComposed = body('Not composed');
+  if (deck.h2.includes('Not composed') && !none(notComposed)) {
+    if (notComposed.length === 0) bad(`'s "Not composed" is empty; it lists each structure left out, "- <structure>: <why>", or says "None." (D-429)`);
+    for (const l of notComposed) if (!/^[-*]\s+\S[^:]*:\s*\S/.test(l.raw)) bad(`:${l.n}: ${show(l.raw)} isn't "- <structure>: <why>" (D-429, Appendix A)`);
+  }
+  // Each line's name, its engine's words (D-401, D-405), a card waiting on the pin (D-400); the rival's card unrounded.
+  const vocab = vocabularyWords();
+  for (const d of deck.entries) {
+    if (d.name === null || d.name.trim() === '') bad(`:${d.n}: ${show(d.id)}'s line gives no name; a deck line is - <id> "<Name>" | … (D-392)`);
+    for (const e of d.engines) {
+      if (!e.ok) bad(`:${d.n}: ${d.id}'s ${show(e.raw)} isn't "engine: <family> from <family>", each one word of data/rules/vocabulary.md (D-401, D-405)`);
+      else if (vocab !== null) for (const w of [e.consumed, e.supply]) if (!vocab.has(w)) bad(`:${d.n}: ${d.id}'s engine names ${show(w)}, which isn't a family of data/rules/vocabulary.md (or none) (D-401, D-405)`);
+    }
+    // D-429: a composite's round line and every "Cards" line give the structure first.
+    if (COMPOSITE_CARD.test(d.id) || d.section === 'Cards') {
+      const why = structureProblem(d.parts[0], vocab);
+      if (why !== null) bad(`:${d.n}: ${d.id}'s line: ${why}`);
+    }
+    if (d.waits !== null && !d.parts.some((p) => CANT_FINALIZE.test(p))) bad(`:${d.n}: ${d.id} waits on the pin, but its line isn't marked "can't be finalized yet: <why>" (D-303, D-400)`);
+    if (RIVAL_CARD.test(d.id) && d.section !== 'Cards') bad(`:${d.n}: lists ${d.id}, the rival's card, under ${show(d.section)}; the rival's card is no composite: R1b-assemble gives it a dossier row, and "Cards" lists it (D-408, D-429)`);
+  }
+  // The rounds: each one's composites, 1 to 4, and the short round's reason (D-339, D-429); the cards made at its gate.
+  const listed = new Map();
+  for (const r of rounds) {
+    const composites = [];
+    const lines = body(`Round ${r.k}`);
+    if (lines.some((l) => !/^[-*]\s/.test(l.raw)) && !none(lines)) bad(`'s round ${r.k} holds ${show(lines.find((l) => !/^[-*]\s/.test(l.raw)).raw)}; a round lists its composites, one line each, or says "None." when it composed none (D-429)`);
+    for (const d of deck.entries.filter((x) => x.round === r.k)) {
+      const gate = GATE_CARD.exec(d.id);
+      const comp = COMPOSITE_CARD.exec(d.id);
+      if (gate) {
+        if (Number(gate[1]) !== r.k) bad(`:${d.n}: round ${r.k} lists ${d.id}, a card made at a gate in round ${gate[1]}; R1b-assemble adds it under "Round ${gate[1]}" (D-391)`);
+        if (d.made === null) bad(`:${d.n}: ${d.id} is a card made at a gate, but its line isn't marked "${MADE_MARK}" (D-391)`);
+      } else if (comp && Number(comp[1]) === r.k) {
+        composites.push(d);
+        if (!cardIds.has(d.id)) bad(`:${d.n}: round ${r.k} composes ${d.id}, but cards/${d.id}.md doesn't exist (C-52, D-429)`);
+      } else if (!RIVAL_CARD.test(d.id)) bad(`:${d.n}: round ${r.k} lists ${show(d.id)}; a composite deck's round lists its composites r${r.k}-s-<n> and the cards made at its gate, and the other cards go under "Cards" (D-429)`);
+      if (listed.has(d.id)) bad(`:${d.n}: ${d.id} is listed again (line ${listed.get(d.id)}); a round line is kept once (D-429)`);
+      listed.set(d.id, d.n);
+    }
+    const takes = composites.filter((d) => takesUnderPlayed(cardOf(d.id))).length;
+    if (composites.length > COMPOSE.max) bad(`'s round ${r.k} composes ${composites.length} composites; a round composes 1 to ${COMPOSE.max} (D-429, NFR-23)`);
+    const reason = r.assembly.shortReason;
+    if ((composites.length < COMPOSE.min || takes === 0) && !(typeof reason === 'string' && reason.trim() !== '')) {
+      bad(`'s round ${r.k} composes ${composites.length} composite(s), ${takes} of them taking a piece marked under-played; a round is short with fewer than ${COMPOSE.min}, or with none taking one (D-339, D-429), but its ${r.assembly.stage} entry, run-log.json stages[${r.assembly.i}], has no shortReason; a short round is accepted only with its reason`);
+    }
+  }
+  for (const d of deck.entries.filter((x) => x.round !== null && !rounds.some((r) => r.k === x.round))) bad(`:${d.n}: lists ${d.id} under "Round ${d.round}", which R1a-synthesize didn't compose (D-429)`);
+  // Superseded (D-429): a composite a later round recomposed keeps its round line; never one verified or built, and its
+  // successor a later round's.
+  const roundOf = (id) => Number(/^r(\d+)-/.exec(String(id))?.[1] ?? 0);
+  const ran = (id) => stages.some((s) => isObj(s) && s.stage === 'R1b' && s.concept === id && s.outcome !== 'missing');
+  const seen = new Set();
+  for (const s of deck.superseded) {
+    if (!s.ok) {
+      bad(`:${s.n}: ${show(s.raw)} isn't "- <old id> "<name>" → <new id>" (D-429, Appendix A)`);
+      continue;
+    }
+    if (!COMPOSITE_CARD.test(s.old) || !cardIds.has(s.old)) bad(`:${s.n}: supersedes ${show(s.old)}, which is no composite's card of the run (cards/r<k>-s-<n>.md, D-429)`);
+    else if (!listed.has(s.old)) bad(`:${s.n}: supersedes ${s.old}, but no round lists it; a superseded composite keeps its round line, still pickable (D-429)`);
+    if (seen.has(s.old)) bad(`:${s.n}: ${s.old} is superseded twice`);
+    seen.add(s.old);
+    if (ran(s.old) || verifiedCard(cardOf(s.old), stages, s.old)) bad(`:${s.n}: supersedes ${s.old}, which R1b verified; a verified or built composite is never superseded, and a recomposition of its structure is a separate composite (D-429)`);
+    const next = deck.entries.find((d) => d.id === s.next && d.round !== null);
+    if (!COMPOSITE_CARD.test(s.next) || next === undefined || next.round <= roundOf(s.old)) bad(`:${s.n}: ${s.old}'s successor ${show(s.next)} isn't a composite a later round lists; a later synthesis gives a recomposed structure a new id and name (D-392, D-429)`);
+  }
+  // Cards (D-429): every card but the composites, each with the composites it fed.
+  const composites = new Set([...listed.keys()].filter((id) => COMPOSITE_CARD.test(id)));
+  const cardLines = new Map();
+  for (const d of deck.entries.filter((x) => x.section === 'Cards')) {
+    if (COMPOSITE_CARD.test(d.id)) bad(`:${d.n}: "Cards" lists ${d.id}, a composite; it lists every other card, each with the composites it fed (D-429)`);
+    else if (!cardIds.has(d.id)) bad(`:${d.n}: "Cards" names ${show(d.id)}, which is no card of the run (cards/<id>.md, C-52)`);
+    if (cardLines.has(d.id)) bad(`:${d.n}: "Cards" lists ${d.id} again (line ${cardLines.get(d.id)})`);
+    cardLines.set(d.id, d.n);
+    if (d.fed === null) bad(`:${d.n}: ${d.id}'s line has no "fed: <composite ids | none>"; each card says which composites it fed (D-429, Appendix A)`);
+    else for (const id of d.fed) if (!composites.has(id)) bad(`:${d.n}: ${d.id} fed ${show(id)}, which is no composite the deck holds (D-429)`);
+  }
+  // The cards a synthesis must have listed: a composed round's researchers' cards, and the gate-made and rival's cards
+  // that existed when the last synthesis ran (the gate-made card's first R1b, the rival's RV step, before it).
+  const composed = new Set(rounds.map((r) => r.k));
+  const lastSynthesis = stages.reduce((at, s, i) => (isObj(s) && s.stage === 'R1a-synthesize' && s.outcome !== 'missing' ? i : at), -1);
+  const before = new Set();
+  for (const [s, id] of rivalCards(stages)) if (stages.indexOf(s) < lastSynthesis) before.add(id);
+  stages.forEach((s, i) => { if (isObj(s) && s.stage === 'R1b' && GATE_CARD.test(String(s.concept)) && i < lastSynthesis) before.add(s.concept); });
+  for (const id of [...cardIds].sort()) {
+    const k = roundOf(id);
+    if (RESEARCHER_CARD.test(id) && composed.has(k) && !cardLines.has(id)) bad(`'s "Cards" doesn't list ${id}, a researcher's card of round ${k}; the deck lists every card but the composites, the seed marked, with the composites each fed (D-429)`);
+    else if (before.has(id) && !cardLines.has(id)) bad(`'s "Cards" doesn't list ${id}, ${RIVAL_CARD.test(id) ? "the rival's card" : 'a card made at a gate'}, which existed when the last R1a-synthesize ran; the deck lists every card but the composites (D-429)`);
+    if (COMPOSITE_CARD.test(id) && composed.has(k) && !listed.has(id)) bad(`'s round ${k} doesn't list ${id}, a composite of round ${k} (cards/${id}.md); a round keeps every composite's line (D-429)`);
+  }
+}
+
+/** A Drops item (D-433, Appendix A): `<group> (<clear | per corpse | boss>) −<x>%`, or that figure's estimate. */
+const DROP_ITEM = /^\S.*\((?:clear|per corpse|boss)\)\s+(?:[−+-]?\d+(?:\.\d+)?%|estimate \(.+\))$/;
+/** A Drops cell: `not measured (<why>)`, `estimate (<reason>)`, or its drop items separated by "; ". */
+const dropsOk = (d) => /^not measured \(.+\)$/.test(d) || /^estimate \(.+\)$/.test(d) || d.split(/;\s+/).every((x) => DROP_ITEM.test(x.trim()));
+
+/**
+ * D-429, D-433 (Appendix A): a composite is any card with `### Pieces`, whatever its id letter, and a card `r<k>-s-<n>` is
+ * one. Its Pieces table sits in its brainstorm half, with the columns Key, Piece, Kind, Status, Where, Why, From: each
+ * row a piece key (an Ideas line's id or a card link's), once; a piece; its kind, with ", under-played" for one so
+ * marked; in, scheduled or out; where it goes, `—` for an out piece; why, required for scheduled and out; its sources.
+ * Once the card counts as verified (`verifiedCard`: its structure check holds more than `Not checked yet.`, or R1b passed
+ * on it), its verification half's `### Pieces measured` is a table, columns Key, Drops, How: at most 4 rows (the
+ * leave-one-out probes), each a key of its Pieces table, its Drops each figure that moves (`<group> (<clear | per corpse
+ * | boss>) −<x>%`), an estimate, or `not measured (<why>)`. Before that, it may hold only `Not checked yet.`, as
+ * R1a-synthesize writes it. A plain card has neither table.
+ */
+function checkPieceTables(stages, cardIds, cardOf, fail) {
+  const KIND = new RegExp(`^(?:${PIECE_KINDS.join('|')})(?:,\\s*under-played)?$`);
+  const KEY = new RegExp(`^${PIECE_KEY}$`);
+  for (const id of [...cardIds].sort()) {
+    const card = cardOf(id);
+    const p = card.pieces;
+    const m = card.measured;
+    const bad = (line, why) => fail('pieces', `cards/${id}.md:${line}: ${why}`);
+    if (p === null) {
+      if (COMPOSITE_CARD.test(id)) fail('pieces', `cards/${id}.md is a composite's card (r<k>-s-<n>), but has no "### Pieces"; a composite lists every piece it took, in, scheduled or out, in its brainstorm half (D-429, D-433)`);
+      if (m !== null && !m.pending) bad(m.line, `"### Pieces measured" on a card with no "### Pieces"; only a composite measures its pieces (D-433)`);
+      continue;
+    }
+    if (p.h2 !== 'Brainstorm half') bad(p.line, `"### Pieces" is under ${p.h2 === null ? 'no H2' : show(p.h2)}; it is a heading of the card's brainstorm half, after "### Risks so far" (D-433)`);
+    if (show(p.header) !== show(PIECES_COLUMNS) || !p.ruled) {
+      bad(p.line, `the Pieces table's columns are ${show(p.header)}; they are ${show(PIECES_COLUMNS)}, in that order, with the |---| row under them (Appendix A)`);
+      continue;
+    }
+    if (p.rows.length === 0) bad(p.line, 'the Pieces table has no row; a composite lists every piece it took, in, scheduled or out (D-429)');
+    const keys = new Map();
+    for (const r of p.rows) {
+      const what = `the Pieces row ${show(r.key)}${emptyCell(r.piece) ? '' : ` (${r.piece})`}`;
+      if (r.cells.length !== PIECES_COLUMNS.length) {
+        bad(r.line, `${what} has ${r.cells.length} cells; a row has ${PIECES_COLUMNS.length} (Appendix A)`);
+        continue;
+      }
+      if (!KEY.test(r.key)) bad(r.line, `${what}: its key isn't an Ideas line's id i<k><letter>-<m> or a card link's c<card id>-<m> (Appendix A)`);
+      else if (keys.has(r.key)) bad(r.line, `${what} repeats the key of line ${keys.get(r.key)}; lines naming one piece merge into one row (Appendix A)`);
+      keys.set(r.key, r.line);
+      if (emptyCell(r.piece)) bad(r.line, `${what} names no piece (Appendix A)`);
+      if (!KIND.test(r.kind)) bad(r.line, `${what}'s kind is ${show(r.kind)}; one of ${PIECE_KINDS.join(', ')}, with ", under-played" for a piece so marked (Appendix A)`);
+      if (!PIECE_STATUSES.includes(r.status)) bad(r.line, `${what}'s status is ${show(r.status)}; in, scheduled or out (D-429)`);
+      else if (r.status === 'out' ? !emptyCell(r.where) : emptyCell(r.where)) bad(r.line, r.status === 'out' ? `${what} is out, but its Where is ${show(r.where)}; an out piece's Where is — (Appendix A)` : `${what} is ${r.status} with no Where: the slot, group, set or node it takes (Appendix A)`);
+      if (['scheduled', 'out'].includes(r.status) && emptyCell(r.why)) bad(r.line, `${what} is ${r.status} with no reason in Why; a scheduled or out piece says why (D-429, Appendix A)`);
+      if (emptyCell(r.from)) bad(r.line, `${what} names no source in From: the cards and Ideas lines it came from (Appendix A)`);
+    }
+    if (m === null || m.pending) {
+      if (verifiedCard(card, stages, id)) fail('pieces', `cards/${id}.md ${m === null ? 'has no "### Pieces measured"' : 'holds only "Not checked yet." under "### Pieces measured"'}, but R1b verified ${id} (${card.structure?.checked ? 'its structure check is written' : 'R1b passed on it'}); R1b measures each piece inside its composite, in the card's verification half after "### Key item prices" (D-433)`);
+      continue;
+    }
+    if (m.h2 !== 'Verification half') bad(m.line, `"### Pieces measured" is under ${m.h2 === null ? 'no H2' : show(m.h2)}; it is a heading of the card's verification half, after "### Key item prices" (D-433)`);
+    if (show(m.header) !== show(MEASURED_COLUMNS) || !m.ruled) {
+      bad(m.line, `the Pieces measured table's columns are ${show(m.header)}; they are ${show(MEASURED_COLUMNS)}, in that order, with the |---| row under them (Appendix A)`);
+      continue;
+    }
+    if (m.rows.length > LEAVE_ONE_OUT) bad(m.line, `the Pieces measured table holds ${m.rows.length} rows; R1b leaves out at most ${LEAVE_ONE_OUT} pieces, and pieces not probed are left out of the table (D-433)`);
+    const measured = new Set();
+    for (const r of m.rows) {
+      const what = `the Pieces measured row ${show(r.key)}`;
+      if (r.cells.length !== MEASURED_COLUMNS.length) {
+        bad(r.line, `${what} has ${r.cells.length} cells; a row has ${MEASURED_COLUMNS.length} (Appendix A)`);
+        continue;
+      }
+      if (!keys.has(r.key)) bad(r.line, `${what} is no key of the card's Pieces table (D-433)`);
+      else if (measured.has(r.key)) bad(r.line, `${what} is measured twice; each piece is left out once (D-433)`);
+      measured.add(r.key);
+      if (!dropsOk(r.drops)) bad(r.line, `${what}'s Drops is ${show(r.drops)}; each figure that moves, "<group> (<clear | per corpse | boss>) −<x>%", separated by "; ", or "estimate (<reason>)" for a piece PoB doesn't model, or "not measured (<why>)" (D-433, Appendix A)`);
+    }
   }
 }
 
@@ -4230,7 +4583,7 @@ function checkInterviews(log, files, readText, exists, questionProbes, fail) {
  * from R1b-assemble's second pass (D-408). A card whose R1b ended not-in-pin reads "can't be finalized yet: waits
  * on the pin" (D-400), and the rival's card whose R1b ended not-dealt "failed …: not dealt …" (D-408).
  */
-function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, terminal: new Map() }) {
+function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, terminal: new Map(), composite: false }) {
   const bad = (why) => fail('dossier-sections', `dossier.md${why}`);
   // An HTML comment (the template's, left in) is no part of the dossier: blanked, its lines kept for the numbering.
   const md = parseMarkdown(String(text).replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')));
@@ -4247,14 +4600,17 @@ function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, termin
     tables[tables.length - 1].push({ ...l, cells: l.raw.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()) });
   });
   if (tables.length !== 1) {
-    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${DOSSIER_COLUMNS_D407.join(' | ')} (D-355, D-407)`);
+    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${(ctx.composite ? DOSSIER_COLUMNS_D433 : DOSSIER_COLUMNS_D407).join(' | ')} (D-355, D-407${ctx.composite ? ', D-433' : ''})`);
     if (tables.length === 0) return;
   }
   const [head, rule, ...rows] = tables[0];
-  // D-407: amendment 8's columns; a dossier from before it (a run that didn't run the rival) may keep D-355's.
-  const columns = show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
+  // D-433: a composite run's twelve columns, `key pieces` last. D-407: amendment 8's eleven; a dossier from before it (a
+  // run that didn't run the rival) may keep D-355's ten.
+  const columns = ctx.composite ? (show(head.cells) === show(DOSSIER_COLUMNS_D433) ? DOSSIER_COLUMNS_D433 : null)
+    : show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
   if (columns === null || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
-    bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS_D407)}, in that order (D-355, D-407)${ctx.rivalRan ? ', in a run that ran the rival (D-408)' : `, or before amendment 8 ${show(DOSSIER_COLUMNS)}`}`);
+    if (ctx.composite) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a composite run's comparison has twelve, ${show(DOSSIER_COLUMNS_D433)}, in that order, its last each composite's measured pieces and their largest drops (D-355, D-407, D-433)`);
+    else bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS_D407)}, in that order (D-355, D-407)${ctx.rivalRan ? ', in a run that ran the rival (D-408)' : `, or before amendment 8 ${show(DOSSIER_COLUMNS)}`}`);
     return;
   }
   const seen = new Set();
@@ -4296,7 +4652,8 @@ export function parseV4Report(text) {
   let finding = null;
   String(text ?? '').split(/\r?\n/).forEach((raw, i) => {
     const line = raw.replace(/\s+$/, '');
-    if (line.trim() === '') return;
+    // D-435: an empty list item (a stray "- ") is no line of the form; the verifier, who has no Edit, may leave one.
+    if (line.trim() === '' || /^\s*[-*]$/.test(line)) return;
     const h = /^(#{1,6})\s+(.*?)$/.exec(line);
     const kv = /^- ([a-z]+):\s?(.*)$/.exec(line);
     if (h) {
@@ -4864,7 +5221,7 @@ export async function changedSince(runFolder, n, folder = '.') {
   const dir = path.join(base, 'rounds', String(n));
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return { error: `rounds/${n}/ doesn't exist; make the round copy first (--snapshot ${n}, A-34)` };
   const ledgerModule = await loadLedgerModule();
-  if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)` };
+  if (ledgerModule === null) return { error: `the server's ledger evaluator ${path.relative(REPO, ledgerModulePath())} is missing; build the server (pnpm build)` };
   try {
     if (!isObj(JSON.parse(fs.readFileSync(path.join(base, 'plan.json'), 'utf8')))) throw new Error('not an object');
   } catch {
@@ -4934,6 +5291,8 @@ async function main(argv) {
   if (args.length !== 1) return usage();
   const folder = path.resolve(args[0]);
   const violations = await checkRun(folder);
+  // D-435: the warnings, on stderr whether or not a violation was found.
+  for (const w of violations.warnings ?? []) process.stderr.write(`check-run: warning: ${w}\n`);
   if (violations.length === 0) {
     process.stdout.write(`check-run: ok: ${folder}\n`);
     return 0;

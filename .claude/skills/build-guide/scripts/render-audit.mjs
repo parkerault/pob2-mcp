@@ -5,7 +5,8 @@
 //
 // A schema-4 run (amendment 9, D-412) renders one build's audit.md, `--build <card id>`: from its folder's plan.json,
 // compile-record.json and audit.md (`builds/<id>/`, or "." for a migrated run's build), and its card's last D1 gate
-// verdict file; a schema-3 run renders the root's, with no --build.
+// verdict file; a schema-3 run renders the root's, with no --build. Its H1 names the build by its `builds[].name`, the
+// name its finalize revision gave it, else by its card's H1 (amendment 10, D-435).
 //
 // It writes audit.md in the form of ../templates/audit-template.md from plan.json, the final compile-record.json
 // and the D1 gate's last verdict file (the run log's last D1-gate entry), and keeps the lines under an existing
@@ -40,7 +41,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
-const LEDGER_MODULE = path.join(REPO, 'build', 'plan', 'ledger.js');
+/** The server's compiled ledger evaluator: in the repository's `build/`, or for tests `BUILD_GUIDE_SERVER_BUILD` when set (D-435). */
+const ledgerModulePath = () => path.join(process.env.BUILD_GUIDE_SERVER_BUILD ? path.resolve(process.env.BUILD_GUIDE_SERVER_BUILD) : path.join(REPO, 'build'), 'plan', 'ledger.js');
 const PRICES_FILE = path.join(REPO, 'data', 'economy', 'prices.json');
 
 /** The endgame rungs, in the order the Checks blocks follow. */
@@ -229,15 +231,19 @@ export async function loadAuditInputs(runFolder, build) {
   if (!entry) throw new Error(`run-log.json has no D1-gate entry${build === undefined ? '' : ` for ${build}`}; the render reads the D1 gate's last verdict file`);
   const gateFile = `reports/gates/D1-gate-${entry.concept}-a${entry.attempt}.json`;
   const gate = json(gateFile);
+  // D-435: the build's name (builds[].name, the one its finalize revision gave it), else its card's H1, so F1's render
+  // and the run checker's re-render agree.
   let title = String(entry.concept);
   try {
     title = /^# Card [^:\n]+:\s*(.+?)\s*$/m.exec(fs.readFileSync(file(`cards/${entry.concept}.md`), 'utf8'))?.[1] ?? title;
   } catch {
     // no card file: the card id stands in for its title
   }
+  if (typeof entryOf?.name === 'string' && entryOf.name.trim() !== '') title = entryOf.name.trim();
   const audit = fs.existsSync(file(`${folder}audit.md`)) ? fs.readFileSync(file(`${folder}audit.md`), 'utf8') : null;
-  if (!fs.existsSync(LEDGER_MODULE)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, LEDGER_MODULE)} is missing; build the server (pnpm build)`);
-  const ledgerModule = await import(pathToFileURL(LEDGER_MODULE).href);
+  const ledgerFile = ledgerModulePath();
+  if (!fs.existsSync(ledgerFile)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, ledgerFile)} is missing; build the server (pnpm build)`);
+  const ledgerModule = await import(pathToFileURL(ledgerFile).href);
   const prices = priceTable();
   return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
 }
@@ -517,7 +523,8 @@ function byConfidence({ plan, offline }) {
 
 async function main(argv) {
   const args = argv.slice(2);
-  const withBuild = args.length === 3 && args[1] === '--build' && /^r[1-9]\d*-[a-cgx]-[1-9]\d*$/.test(args[2]);
+  // D-429: a composite's id has the letter s.
+  const withBuild = args.length === 3 && args[1] === '--build' && /^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/.test(args[2]);
   if ((args.length !== 1 && !withBuild) || args[0].startsWith('--')) {
     process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id>]\n');
     return 2;

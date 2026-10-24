@@ -14,7 +14,9 @@
 // message_start usage (a 60K-character Write logged at 8 output tokens). A complete record carries
 // `output_tokens_details` (thinking tokens) and `iterations`; a request without one is estimated from
 // its content (see `estimate`). `--telemetry` joins the OTLP events written by
-// scripts/otlp-receiver.mjs, request by request; with no transcript it totals the telemetry alone.
+// scripts/otlp-receiver.mjs, request by request; with no transcript it totals the telemetry alone. Its rows, one per
+// query_source and model, show each one's requests, output and cache read (build-guide D-435: background requests such as
+// agent_summary read cache that no transcript shows).
 // `--fit` prints the least-squares fit behind the constants in K, over the given transcripts' complete
 // records. The output is JSON (`--json`) and a text table on stdout; it holds no paths or identity.
 
@@ -71,10 +73,10 @@ function stepKind(firstPrompt, meta, isMain) {
   return (meta.agentType || 'agent').replace(/^build-guide-/, '');
 }
 
-/** D-416: the build a step works for, its task header's `"concept"` (the card id), or null. */
+/** D-416: the build a step works for, its task header's `"concept"` (the card id, a composite's letter s among them, D-429), or null. */
 function stepConcept(firstPrompt, isMain) {
   if (isMain) return null;
-  return /"concept"\s*:\s*"(r[1-9]\d*-[a-cgx]-[1-9]\d*)"/.exec(firstPrompt.slice(0, 4000))?.[1] ?? null;
+  return /"concept"\s*:\s*"(r[1-9]\d*-[a-cgsx]-[1-9]\d*)"/.exec(firstPrompt.slice(0, 4000))?.[1] ?? null;
 }
 
 /** A transcript's session id: its entries' `sessionId`, else its file name without `.jsonl`. */
@@ -515,7 +517,8 @@ function main(argv) {
     result.telemetry = summarizeTelemetry(tel);
     const t = result.telemetry;
     text.push(`\nTelemetry${sessions ? ` (the ${sessions.size} session${sessions.size === 1 ? '' : 's'} given)` : ''}: ${t.total.requests} api_request events, output ${fmtK(t.total.output)}, cache read ${fmtK(t.total.cacheRead)}`);
-    for (const s of t.bySource) text.push(`  ${pad(s.key, 60)} ${pad(s.requests, 5, 1)} req  output ${pad(fmtK(s.output), 8, 1)}`);
+    // build-guide D-435: each query_source's cache read too, since background requests (agent_summary) read cache the transcripts don't show.
+    for (const s of t.bySource) text.push(`  ${pad(s.key, 60)} ${pad(s.requests, 5, 1)} req  output ${pad(fmtK(s.output), 8, 1)}  cache read ${pad(fmtK(s.cacheRead), 9, 1)}`);
     for (const [k, v] of Object.entries(t.tokenMetric)) text.push(`  token.usage ${pad(k, 50)} ${pad(fmtK(v), 9, 1)}`);
     if (agents.length) {
       const j = joinTelemetry(agents, tel.events);

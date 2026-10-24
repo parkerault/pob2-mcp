@@ -61,6 +61,10 @@ brief's `popularity` notes speak to it, cited as the user's notes.
 The answers are `brainstorm`, `verification`, `design` and `final`, one per gate visit (D-323, D-362;
 `checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. The answer forms
 (D-411):
+- `answers.brainstorm[]`: `pick:<id>[,<id>…]` (1–3 cards), `first-n:<n>`, `more` or `stop`. `first-n:<n>` (`n` 1–3)
+  picks the first `n` cards of `cards.md` not verified yet: in a run whose brainstorm rounds compose (`R1a-synthesize`,
+  D-429), the first `n` composites its `## Round <k>` lines list, in the deck's order, never a superseded composite or
+  a plain card from `## Cards`; in a run that deals (`R1a-assemble`), the first `n` dealt cards;
 - `answers.verification[]`: `first-viable`, `pick:<id>[,<id>…]` (1–3 cards finalized, in order), `verify:<id>[,<id>…]`,
   `more` or `stop`;
 - `answers.design[]`, one per design gate visit, whichever build is at it: `accept`, `accept:file` (F1 only: the
@@ -78,8 +82,10 @@ card ids (D-319), or `"all"`.
 **An answer entry scripts an interview** (D-394): a string, or an object `{ask?, answer, changes?, newCards?,
 note?}`, `answer` one of the gate's strings. `changes`, `newCards` (each `{name, from, words}`; you assign the
 id) and `note` go only on brainstorm and verification entries, with the answers `checkpoints.md` gives them; the
-config says which kind each change is. First check each new card against `cards.md`: its `from` names cards the
-deck lists, and its name, ignoring case, is none the deck or an earlier `newCards` holds. Then answer each `ask`
+config says which kind each change is. In a run that composes, a new card's `from` may also name pieces by key
+(D-432): a `### Pieces` row's key on a card of the run, or an Ideas line's id in its research files. First check
+each new card against `cards.md`: its `from` names cards the deck lists, and its name, ignoring case, is none the
+deck or an earlier `newCards` holds. Then answer each `ask`
 as you would the user's, gate question steps included, write the interview notes, and take `answer` with no
 confirmation: the checkpoint's `rule` is `answer` as written, its `questions` the `ask` count.
 

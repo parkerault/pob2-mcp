@@ -5,7 +5,7 @@
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage '{"stage", "concept"?, "attempt", "outcome", …}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint '{"checkpoint", "concept"?, "visit", "answer", "answeredBy", "rule"?, "questions"?, "changes"?, "newCards"?, "note"?}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation '{"stage", "concept", "verdict", "choice", "guidance"?}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build '{"id", "roll"?, "status"?, "guide"?, "pobFile"?}'
+//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build '{"id", "roll"?, "name"?, "status"?, "guide"?, "pobFile"?}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set '{"status"?, "dossier"?, "faults"?}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> resume '{"noNinja"}'
 //   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
@@ -79,6 +79,17 @@
 // display leads each rung with its clear speed and movement speed, then the Arbiter check. A clear skill PoB gives no
 // area reads `<speed> (PoB gives no area)`. The formats: docs/build-guide/studies/2026-10-18-wu89-formats.md.
 //
+// Amendment 10 (WU-105; D-429…D-435): the brainstorm round's coordinator step `R1a-synthesize` (schema 4, outcome
+// `done`, a short round's `shortReason`), which composes the round's builds; a run whose first brainstorm round used
+// `R1a-assemble` keeps it for every later round, and a write mixing the two is refused. The card id letter `s`, a
+// composite `r<k>-s-<n>`. The brainstorm display of a composite deck (Appendix A): each composite's round line, then its
+// `in:`, `scheduled:` and `out:` pieces, then the obvious build's line, then every plain card's name and structure, one
+// line each. A new card's `from` names cards, composites, or piece keys: a Pieces row's key on a card of the run, or an
+// Ideas line's id in a research file (D-432). `build` takes `name`, the build's name when its finalize revision gave it
+// one (D-435), which render-audit.mjs titles its audit with. The design display prints `- Pieces: …` once, before the
+// rungs, from the D1 gate's design field `pieces {in, scheduled, out, scheduledNames, outNames}` (D-434). The final
+// display prints the run checker's `warnings` (D-435).
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview. What needs the deck (a new card's `from`
 // and its name) is checked when the gate's checkpoint is written.
@@ -91,14 +102,26 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * A card id (D-319): `r<round>-<letter>-<n>`, the letters a to c a brainstorm round's researchers', g a card made at a
- * gate (D-391), x the rival's (D-408).
+ * gate (D-391), s a composite R1a-synthesize composed (D-429), x the rival's (D-408).
  */
-export const CARD_ID = 'r[1-9]\\d*-[a-cgx]-[1-9]\\d*';
+export const CARD_ID = 'r[1-9]\\d*-[a-cgsx]-[1-9]\\d*';
 const CARD = new RegExp(`^${CARD_ID}$`);
 /** A card made at a gate (D-391): `r<k>-g-<n>`. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The rival's card (D-408): `r<k>-x-<n>`, k the latest brainstorm round when its RV step ran, n counting the run's rivals in it. */
 export const RIVAL_CARD = /^r([1-9]\d*)-x-([1-9]\d*)$/;
+/** A composite (D-429): `r<k>-s-<n>`, k the brainstorm round whose R1a-synthesize composed it, n counting its composites. */
+export const COMPOSITE_CARD = /^r([1-9]\d*)-s-([1-9]\d*)$/;
+/** A researcher's card (D-319): `r<k>-<a|b|c>-<n>`. */
+export const RESEARCHER_CARD = /^r([1-9]\d*)-[a-c]-([1-9]\d*)$/;
+/**
+ * A piece's key (Appendix A): an Ideas line's id `i<k><letter>-<m>` (round k, the researcher's letter, m from 1), or a
+ * Pieces row's key from a card's links, `c<card id>-<m>`.
+ */
+export const PIECE_KEY = `(?:i[1-9]\\d*[a-c]-[1-9]\\d*|c${CARD_ID}-[1-9]\\d*)`;
+const KEY = new RegExp(`^${PIECE_KEY}$`);
+/** The brainstorm round's two coordinator steps: R1a-assemble deals cards, R1a-synthesize composes builds (D-429). */
+export const ASSEMBLY_STAGES = ['R1a-assemble', 'R1a-synthesize'];
 const IDS = `${CARD_ID}(?:,${CARD_ID}){0,2}`;
 const TRADE_KINDS = ['no_session', 'session_rejected', 'too_complex', 'invalid_query', 'rate_limited', 'locked_out', 'would_wait', 'auth', 'http', 'network', 'timeout', 'disabled'];
 /** Each stage and its outcomes (run-log.md); every step may also be `missing`. `Q` is a gate question step (D-390). */
@@ -123,10 +146,12 @@ const OUTCOMES = {
   'D1-tree': ['done'],
   F1: ['pass', 'fail', 'escalated'],
   'V4-campaign': ['pass', 'fail'],
+  // Amendment 10 (D-429): the brainstorm round's synthesis, which composes 1–4 composites; schema 4's only.
+  'R1a-synthesize': ['done'],
 };
-/** The stages schema 4 adds (amendment 9); a schema-3 log has none. */
-const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign'];
-const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1b-assemble', 'Q', 'RV'];
+/** The stages schema 4 adds (amendment 9, and amendment 10's synthesis); a schema-3 log has none. */
+const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize'];
+const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV'];
 const PRICING = ['R1b', 'D1-finish', 'D1-gate', 'D2'];
 /**
  * Each gate's or question's answers (run-log.md, D-362). A brainstorm `pick:` or a verification `verify:` with no
@@ -189,11 +214,12 @@ const FIELDS4 = {
   checkpoint: ['checkpoint', 'concept', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note'],
   set: ['status', 'dossier', 'faults'],
   init: ['slug', 'brief', 'mode', 'testConfig', 'noNinja', 'status'],
-  build: ['id', 'roll', 'status', 'guide', 'pobFile'],
+  build: ['id', 'roll', 'name', 'status', 'guide', 'pobFile'],
   resume: ['noNinja'],
 };
-/** A build entry's fields in builds[], in order (D-412). */
+/** A build entry's fields in builds[], in order (D-412); `name` after `roll` once a build entry gave one (D-435). */
 const BUILD_FIELDS = ['id', 'roll', 'status', 'folder', 'guide', 'pobFile'];
+const BUILD_FIELDS_NAMED = ['id', 'roll', 'name', 'status', 'folder', 'guide', 'pobFile'];
 /** The repository root (scripts → build-guide → skills → .claude → root): `pob-pin.json` and `data/league/`. */
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const NEW_CARD_FIELDS = ['id', 'name', 'from', 'words'];
@@ -265,7 +291,8 @@ function newCardProblems(c) {
 function newCardBody(c) {
   const bad = [];
   if (!text(c.name)) bad.push('has its name, the player\'s name for the build (D-392)');
-  if (!Array.isArray(c.from) || c.from.length === 0 || !c.from.every((id) => CARD.test(String(id)))) bad.push('from lists the card ids it draws on, one or more');
+  // D-432: `from` names cards and composites by id, and pieces by key (a Pieces row's key or an Ideas line's id).
+  if (!Array.isArray(c.from) || c.from.length === 0 || !c.from.every((id) => CARD.test(String(id)) || KEY.test(String(id)))) bad.push('from lists the card ids it draws on, one or more, composites among them, or piece keys: a Pieces row\'s key or an Ideas line\'s id (D-432)');
   else if (new Set(c.from).size !== c.from.length) bad.push('from names a card twice');
   if (!text(c.words)) bad.push("has words, the user's words for the card");
   return bad;
@@ -294,7 +321,7 @@ export function entryProblems(kind, e, schema = 3) {
       else if (!isObj(e.priceOutcomes) || Object.entries(e.priceOutcomes).some(([k, v]) => !['ok', 'error', ...TRADE_KINDS].includes(k) || !isInt(v, 0))) bad.push('priceOutcomes counts calls by outcome: ok, error or a [trade:<kind>] kind, each a whole number');
     }
     if (e.stage === 'R1b' ? !isInt(e.probes, 0) : e.probes !== undefined) bad.push(e.stage === 'R1b' ? 'an R1b entry has probes, the probe variants it ran (0 when none)' : 'probes is only on R1b');
-    if (e.stage === 'R1a-assemble' ? e.shortReason !== undefined && !text(e.shortReason) : e.shortReason !== undefined) bad.push('shortReason is only on R1a-assemble, a non-empty text');
+    if (ASSEMBLY_STAGES.includes(e.stage) ? e.shortReason !== undefined && !text(e.shortReason) : e.shortReason !== undefined) bad.push('shortReason is only on R1a-assemble and R1a-synthesize, a non-empty text');
     // D-408: a rival that found no faster structure says what it tried.
     if (e.stage === 'RV' && e.outcome === 'none-found' ? !text(e.tried) : e.tried !== undefined) bad.push('tried is on an RV entry whose outcome is none-found, and only there: what the rival tried, a non-empty text (D-408)');
   } else if (kind === 'checkpoint') {
@@ -346,10 +373,12 @@ export function entryProblems(kind, e, schema = 3) {
     // guide (as the plan decides, D-414) or its PoB file (the final compile's record path).
     if (!CARD.test(String(e.id))) bad.push(`id ${show(e.id)} isn't a card id r<round>-<letter>-<n>`);
     if (e.roll !== undefined && !isRoll(e.roll)) bad.push("roll is the card's identity {className, ascendancy, skill} (D-286)");
+    // D-435: the build's name, the card's or the one its finalize revision gave it; render-audit.mjs titles the audit with it.
+    if (e.name !== undefined && !text(e.name)) bad.push("name is the build's name, the card's or the one its finalize revision gave it, a non-empty text (D-435)");
     if (e.status !== undefined && !BUILD_STATUSES.includes(e.status)) bad.push(`status is ${BUILD_STATUSES.join(', ')}`);
     if (e.guide !== undefined && !GUIDE_KINDS.includes(e.guide)) bad.push('guide is null, endgame or full (D-414)');
     if (e.pobFile !== undefined && e.pobFile !== null && !text(e.pobFile)) bad.push("pobFile is the final compile's PoB file path, or null");
-    if (Object.keys(e).length === 1 && e.id !== undefined) bad.push('a build entry changes its roll, status, guide or pobFile');
+    if (Object.keys(e).length === 1 && e.id !== undefined) bad.push('a build entry changes its roll, name, status, guide or pobFile');
   } else if (kind === 'resume') {
     if (typeof e.noNinja !== 'boolean') bad.push("noNinja is true or false: whether this session prices without poe.ninja (--no-ninja, D-415)");
   }
@@ -374,18 +403,25 @@ function newCardsAgainstRun(runFolder, log, entry) {
   const earlier = objects(log.checkpoints).flatMap((c) => objects(c.newCards));
   let n = earlier.filter((c) => GATE_CARD.exec(String(c.id))?.[1] === String(k)).length;
   const deck = parseDeck(readText(runFolder, 'cards.md'));
-  const held = new Set(deck.entries.map((d) => d.id));
+  // D-429: a composite deck holds its composites (a superseded one keeps its round line, still pickable) and every other card under `## Cards`.
+  const held = new Set([...deck.entries.map((d) => d.id), ...deck.superseded.map((s) => s.old)]);
   const taken = new Map(deck.entries.filter((d) => text(d.name)).map((d) => [norm(d.name), d.id]));
   for (const c of earlier) if (text(c.name)) taken.set(norm(c.name), c.id);
   for (const id of listCards(runFolder)) {
     const name = parseCard(readText(runFolder, `cards/${id}.md`)).name;
     if (text(name)) taken.set(norm(name), id);
   }
+  const keys = entry.newCards.some((c) => Array.isArray(c.from) && c.from.some((x) => KEY.test(String(x)))) ? pieceKeysOf(runFolder) : new Set();
   entry.newCards.forEach((c, i) => {
     n += 1;
     if (k === 0) bad.push(`newCards[${i}]: no brainstorm round has run, so there is no deck to draw on`);
     else if (c.id !== `r${k}-g-${n}`) bad.push(`newCards[${i}] has id ${show(c.id)}; the next card made at a gate is r${k}-g-${n}: round ${k} is the latest brainstorm round, and the run has made ${n - 1} gate card(s) in it (D-391)`);
-    for (const id of c.from) if (!held.has(id)) bad.push(`newCards[${i}] draws on ${id}, which the deck (cards.md) doesn't hold (D-391)`);
+    for (const id of c.from) {
+      if (KEY.test(String(id))) {
+        // D-432: a piece by its key, a Pieces row's key on a card of the run or an Ideas line's id in its research files.
+        if (!keys.has(id)) bad.push(`newCards[${i}] draws on ${id}, which is no Pieces row's key on a card of the run and no Ideas line's id in its research files (D-432)`);
+      } else if (!held.has(id)) bad.push(`newCards[${i}] draws on ${id}, which the deck (cards.md) doesn't hold (D-391)`);
+    }
     const clash = taken.get(norm(c.name));
     if (clash !== undefined) bad.push(`newCards[${i}] is named ${show(c.name)}, which card ${clash} already has; a name is never reused (D-392)`);
   });
@@ -425,6 +461,11 @@ export function writeLog(runFolder, kind, entry) {
       const against = [...newCardsAgainstRun(runFolder, log, entry), ...(schema === 4 ? buildsAgainstRun(log, entry) : [])];
       if (against.length > 0) throw new Error(`checkpoint entry refused: ${against.join('; ')}`);
     }
+    // D-429: a run keeps the coordinator step its first brainstorm round used, R1a-assemble or R1a-synthesize.
+    const used = kind === 'stage' && ASSEMBLY_STAGES.includes(entry.stage) ? stagesOf(log).find((s) => ASSEMBLY_STAGES.includes(s.stage))?.stage : undefined;
+    if (used !== undefined && used !== entry.stage) {
+      throw new Error(`stage entry refused: this run's brainstorm rounds use ${used}, as its first round did; a run whose first round used R1a-assemble keeps it for every later round, and a run that composes keeps R1a-synthesize (D-429)`);
+    }
     const list = { stage: 'stages', checkpoint: 'checkpoints', escalation: 'escalations' }[kind];
     const fields = (schema === 4 ? FIELDS4 : FIELDS)[kind];
     if (list) {
@@ -457,16 +498,18 @@ export function writeLog(runFolder, kind, entry) {
 function upsertBuild(log, entry) {
   if (!Array.isArray(log.builds)) log.builds = [];
   const at = log.builds.findIndex((b) => isObj(b) && b.id === entry.id);
+  /** A build's fields in order; `name` only once an entry gave one (D-435). */
+  const shaped = (b) => Object.fromEntries((text(b.name) ? BUILD_FIELDS_NAMED : BUILD_FIELDS).map((k) => [k, b[k] ?? null]));
   if (at < 0) {
-    if (entry.roll === undefined || entry.status !== 'queued') throw new Error(`build entry refused: ${entry.id} has no build yet; a new build is {"id", "roll", "status": "queued"}, added when the verification gate finalizes its card (D-411, D-412)`);
-    log.builds.push({ id: entry.id, roll: entry.roll, status: 'queued', folder: `builds/${entry.id}`, guide: entry.guide ?? null, pobFile: entry.pobFile ?? null });
+    if (entry.roll === undefined || entry.status !== 'queued') throw new Error(`build entry refused: ${entry.id} has no build yet; a new build is {"id", "roll", "status": "queued"}, with "name" when its finalize revision gave the build one, added when the verification gate finalizes its card (D-411, D-412, D-435)`);
+    log.builds.push(shaped({ id: entry.id, roll: entry.roll, name: entry.name, status: 'queued', folder: `builds/${entry.id}`, guide: entry.guide ?? null, pobFile: entry.pobFile ?? null }));
     return log;
   }
   const b = log.builds[at];
   if (entry.roll !== undefined && JSON.stringify(entry.roll) !== JSON.stringify(b.roll)) throw new Error(`build entry refused: ${entry.id}'s identity is ${JSON.stringify(b.roll)}; a build keeps its card's identity (D-286)`);
   if (entry.status === 'queued' && b.status !== 'queued') throw new Error(`build entry refused: ${entry.id} already has a build (${b.status}); a card with a build in the run isn't finalized again: revise it at its design gate, or make a new card from it (D-411)`);
-  for (const k of ['status', 'guide', 'pobFile']) if (entry[k] !== undefined) b[k] = entry[k];
-  log.builds[at] = Object.fromEntries(BUILD_FIELDS.map((k) => [k, b[k] ?? null]));
+  for (const k of ['name', 'status', 'guide', 'pobFile']) if (entry[k] !== undefined) b[k] = entry[k];
+  log.builds[at] = shaped(b);
   return log;
 }
 
@@ -747,24 +790,42 @@ export const PITCH_LINES = ['Why pick it', 'How it clears', 'Bosses', 'Needs', '
 /** The deck's H2s around its rounds (D-392): the header before them, the not-dealt cards and the unused findings after. */
 export const DECK_HEADER = ['What the cards share', 'How they differ'];
 export const DECK_FOOTER = ['Not dealt', 'Found, not used'];
+/**
+ * A composite deck's H2s (D-429, D-432; Appendix A): the header, one `Round <k>` per round R1a-synthesize composed, the
+ * footer, then `Superseded` only when a later round recomposed.
+ */
+export const COMPOSITE_HEADER = ['What the composites share', 'How they differ', 'The obvious build'];
+export const COMPOSITE_FOOTER = ['Cards', 'Pieces not used', 'Not composed'];
+export const SUPERSEDED = 'Superseded';
+/** A composite card's two tables (D-433; Appendix A): `### Pieces` in its brainstorm half, `### Pieces measured` in its verification half. */
+export const PIECES_COLUMNS = ['Key', 'Piece', 'Kind', 'Status', 'Where', 'Why', 'From'];
+export const MEASURED_COLUMNS = ['Key', 'Drops', 'How'];
+/** A piece's kind (Appendix A), and its status in a composite: in, scheduled (its own button, set or setup), or out (D-429). */
+export const PIECE_KINDS = ['skill', 'support', 'unique', 'mod', 'node', 'keystone', 'rune', 'config'];
+export const PIECE_STATUSES = ['in', 'scheduled', 'out'];
 /** The mark on a gate-made card's deck line (D-391). */
 export const MADE_MARK = 'made at the gate';
 /** D-406: the structure check's optional last line, `- A stronger structure? <the flip, and the rough multiplier>`. */
 export const STRONGER = 'A stronger structure?';
+/** D-429: what each H3 of a composite's verification half holds until R1b writes it. */
+export const NOT_CHECKED = 'Not checked yet.';
 
 /**
  * D-406: a card's `### Structure check`, in its verification half: its top-level items `- <text>` (indented lines
  * joined to them) with their line numbers, the H2 it sits under, and its stronger-structure line `- A stronger
  * structure? <text>` (`stronger`, the text after the question mark; `strongerLast`, whether it is the section's last
- * item). Null when the card has no such heading.
+ * item), and `checked`, whether it holds more than `Not checked yet.` (D-429: a composite counts as verified then). Null
+ * when the card has no such heading.
  */
 function structureCheck(lines) {
   const at = lines.findIndex((l) => /^###\s+Structure check\s*$/.test(l));
   if (at < 0) return null;
   const h2 = lines.slice(0, at).filter((l) => /^##\s/.test(l)).pop()?.replace(/^##\s+/, '').trim() ?? null;
   const items = [];
+  const body = [];
   for (let i = at + 1; i < lines.length && !/^#{1,3}\s/.test(lines[i]); i += 1) {
     const l = lines[i];
+    if (l.trim() !== '') body.push(l.trim());
     const item = /^[-*]\s+(.*)$/.exec(l);
     if (item) items.push({ text: item[1].trim(), line: i + 1 });
     else if (items.length > 0 && /^\s+\S/.test(l)) items[items.length - 1].text += ` ${l.trim().replace(/^[-*]\s+/, '')}`;
@@ -772,24 +833,80 @@ function structureCheck(lines) {
   const k = items.findIndex((x) => x.text.startsWith(STRONGER));
   return {
     line: at + 1, h2, items,
+    // D-429: R1a-synthesize writes a composite's verification half with each H3 holding `Not checked yet.`; the card is
+    // verified once its structure check holds more than that.
+    checked: body.some((l) => l !== NOT_CHECKED),
     stronger: k < 0 ? null : items[k].text.slice(STRONGER.length).trim(),
     strongerLine: k < 0 ? null : items[k].line,
     strongerLast: k < 0 || k === items.length - 1,
   };
 }
 
+/** A table cell that says nothing: blank, or a dash (`—`, `-`). */
+export const emptyCell = (c) => /^[-\u2010-\u2015\u2212]*$/.test(String(c ?? '').trim());
+
+/**
+ * D-433, Appendix A: the table under a card's H3 `### <title>` (`Pieces` or `Pieces measured`): `{line, h2, header,
+ * ruled, rows, pending}`, `h2` the H2 it sits under, `header` the first row's cells, `ruled` whether a `|---|` row
+ * follows it, `rows` the rest, each `{cells, line, field(column)}`, and `pending` when the heading holds only `Not
+ * checked yet.` (D-429). Null when the card has no such heading.
+ */
+function tableUnder(lines, title, columns) {
+  const at = lines.findIndex((l) => new RegExp(`^###\\s+${title}\\s*$`).test(l));
+  if (at < 0) return null;
+  const h2 = lines.slice(0, at).filter((l) => /^##\s/.test(l)).pop()?.replace(/^##\s+/, '').trim() ?? null;
+  let i = at + 1;
+  while (i < lines.length && lines[i].trim() === '') i += 1;
+  // D-429: a heading R1b hasn't written yet holds only `Not checked yet.`.
+  const pending = lines[i]?.trim() === NOT_CHECKED;
+  const rows = [];
+  for (; i < lines.length && lines[i].trim().startsWith('|'); i += 1) {
+    rows.push({ cells: lines[i].trim().replace(/^\|/, '').replace(/\|\s*$/, '').split('|').map((c) => c.trim()), line: i + 1 });
+  }
+  const header = rows[0]?.cells ?? [];
+  const ruled = rows.length > 1 && rows[1].cells.every((c) => /^:?-+:?$/.test(c));
+  const body = rows.slice(ruled ? 2 : 1).map((r) => ({ ...r, field: (col) => r.cells[columns.indexOf(col)] ?? '' }));
+  return { line: at + 1, h2, header, ruled, rows: body, pending };
+}
+
+/**
+ * A composite's Pieces table (D-429, Appendix A): each row `{key, piece, kind, underPlayed, status, where, why, from,
+ * line, cells}`, `underPlayed` when its Kind carries `, under-played`. Null when the card has no `### Pieces`.
+ */
+function piecesTable(lines) {
+  const t = tableUnder(lines, 'Pieces', PIECES_COLUMNS);
+  if (t === null) return null;
+  return {
+    ...t,
+    rows: t.rows.map((r) => ({
+      key: r.field('Key'), piece: r.field('Piece'), kind: r.field('Kind'), underPlayed: /,\s*under-played\s*$/i.test(r.field('Kind')),
+      status: r.field('Status'), where: r.field('Where'), why: r.field('Why'), from: r.field('From'), line: r.line, cells: r.cells,
+    })),
+  };
+}
+
+/** A composite's Pieces measured table (D-433, Appendix A): each row `{key, drops, how, line, cells}`; null without it. */
+function measuredTable(lines) {
+  const t = tableUnder(lines, 'Pieces measured', MEASURED_COLUMNS);
+  if (t === null) return null;
+  return { ...t, rows: t.rows.map((r) => ({ key: r.field('Key'), drops: r.field('Drops'), how: r.field('How'), line: r.line, cells: r.cells })) };
+}
+
 /**
  * A card file's Pitch (D-392): each top-level item `- <Field>: <text>` under `### Pitch`, its indented lines
- * joined to it (a nested item with "; "). Returns `{name, fields, changed, made, structure}`: the name (`Name`, or a
- * card from before amendment 7's `Title`), every field by its name (`Obvious build` among them, D-403), the gate lines
- * R1b adds, `- Changed at the gate (visit <n>): <words>` and `- Made at the gate (visit <n>): from <name> and <name>:
- * <words>`, each `{visit, text, line}`, and the verification half's structure check (D-406, `structureCheck`).
+ * joined to it (a nested item with "; "). Returns `{name, fields, changed, made, structure, pieces, measured}`: the
+ * name (`Name`, or a card from before amendment 7's `Title`), every field by its name (`Obvious build` among them,
+ * D-403), the gate lines R1b adds, `- Changed at the gate (visit <n>): <words>` and `- Made at the gate (visit <n>):
+ * from <name> and <name>: <words>`, each `{visit, text, line}`, the verification half's structure check (D-406,
+ * `structureCheck`), and a composite's Pieces and Pieces measured tables (D-433; null on a plain card).
  */
 export function parseCard(textOrNull) {
-  const out = { name: null, fields: new Map(), changed: [], made: [], structure: null };
+  const out = { name: null, fields: new Map(), changed: [], made: [], structure: null, pieces: null, measured: null };
   if (typeof textOrNull !== 'string') return out;
   const lines = textOrNull.replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')).split('\n');
   out.structure = structureCheck(lines);
+  out.pieces = piecesTable(lines);
+  out.measured = measuredTable(lines);
   const at = lines.findIndex((l) => /^###\s+Pitch\s*$/.test(l));
   if (at < 0) return out;
   let last = null;
@@ -832,14 +949,25 @@ export const WAITS_ON_PIN = /^waits on the pin\b/i;
  * carries the part `made at the gate (visit <n>): from "<Name>" and "<Name>"`, an under-played one the part
  * `under-played (judgment: <why>)`. Amendment 8: a line's `engine: <family> from <family>` parts (`engines`, D-405)
  * and its `waits on the pin: <entry>` part (`waits`, D-400).
+ *
+ * Amendment 10 (D-429, D-432; Appendix A), a composite deck (`composite`, its first H2 "What the composites share"):
+ * its rounds' lines are its composites `r<k>-s-<n>`; `## Cards` lines are entries too (section `Cards`, round null), each
+ * with its `seed` mark and `fed`, the composite ids after `fed:` ([] for `none`, null with no such part); `obvious`, the
+ * line under `## The obvious build`; `superseded`, each `- <old id> "<name>" → <new id>` as `{old, name, next, ok}`.
  */
 export function parseDeck(textOrNull) {
-  const deck = { h2: [], share: null, differ: null, entries: [], found: [], lines: [] };
+  const deck = { h2: [], share: null, differ: null, entries: [], found: [], lines: [], obvious: null, superseded: [], composite: false };
   if (typeof textOrNull !== 'string') return deck;
   const lines = textOrNull.replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')).split('\n');
   deck.lines = lines;
   let section = null;
   const body = new Map();
+  /** A line `- <id> "<Name>" | <part> | …`, split. */
+  const split = (itemText) => {
+    const m = /^(\S+)(?:\s+"([^"]*)")?\s*(.*)$/.exec(itemText);
+    const rest = m[3].replace(/^\|\s*/, '');
+    return { id: m[1], name: m[2] ?? null, parts: rest === '' ? [] : rest.split(/\s+\|\s+/).map((p) => p.trim()) };
+  };
   lines.forEach((raw, i) => {
     const h2 = /^##\s+(.+?)\s*$/.exec(raw);
     if (h2) {
@@ -856,24 +984,70 @@ export function parseDeck(textOrNull) {
       deck.found.push({ text: item[1].trim(), n: i + 1 });
       return;
     }
+    // D-429, Appendix A: the composite deck's obvious build, `- <id> "<name>" | <its kit>`.
+    if (section === COMPOSITE_HEADER[2]) {
+      if (deck.obvious === null) deck.obvious = { ...split(item[1]), raw: raw.trim(), n: i + 1 };
+      return;
+    }
+    // D-429: `- <old id> "<name>" → <new id>`, a composite a later round recomposed, still pickable.
+    if (section === SUPERSEDED) {
+      const s = /^(\S+)(?:\s+"([^"]*)")?\s*(?:→|->)\s*(\S+)\s*$/.exec(item[1].trim());
+      deck.superseded.push({ old: s?.[1] ?? item[1].trim().split(/\s+/)[0], name: s?.[2] ?? null, next: s?.[3] ?? null, ok: s !== null, raw: raw.trim(), n: i + 1 });
+      return;
+    }
     const round = /^Round ([1-9]\d*)$/.exec(section);
-    if (!round && section !== 'Not dealt') return;
-    const m = /^(\S+)(?:\s+"([^"]*)")?\s*(.*)$/.exec(item[1]);
-    const rest = m[3].replace(/^\|\s*/, '');
-    const parts = rest === '' ? [] : rest.split(/\s+\|\s+/).map((p) => p.trim());
+    if (!round && section !== 'Not dealt' && section !== 'Cards') return;
+    const { id, name, parts } = split(item[1]);
+    const fed = parts.find((p) => /^fed:/i.test(p))?.replace(/^fed:\s*/i, '').trim();
     deck.entries.push({
-      id: m[1], name: m[2] ?? null, parts, raw: raw.trim(), n: i + 1, section, round: round ? Number(round[1]) : null,
+      id, name, parts, raw: raw.trim(), n: i + 1, section, round: round ? Number(round[1]) : null,
       made: parts.find((p) => p.toLowerCase().startsWith(MADE_MARK)) ?? null,
       underPlayed: parts.find((p) => /^under-played\b/i.test(p)) ?? null,
       engines: parts.filter((p) => /^engine\b/i.test(p)).map(engineOf),
       waits: parts.find((p) => WAITS_ON_PIN.test(p)) ?? null,
+      // D-429: a `## Cards` line's seed mark (D-393) and the composites it fed.
+      seed: parts.some((p) => /^seed\b/i.test(p)),
+      fed: fed === undefined ? null : fed === 'none' ? [] : fed.split(/\s*,\s*/).filter((x) => x !== ''),
     });
   });
   const paragraph = (title) => (body.has(title) ? body.get(title).map((l) => l.raw).join(' ') : null);
-  deck.share = paragraph('What the cards share');
+  deck.composite = deck.h2.includes(COMPOSITE_HEADER[0]);
+  deck.share = paragraph(deck.composite ? COMPOSITE_HEADER[0] : 'What the cards share');
   deck.differ = paragraph('How they differ');
   deck.body = body;
   return deck;
+}
+
+/**
+ * D-430, Appendix A: the ids of a research file's `## Ideas` lines, `- i<k><letter>-<m> | <piece> | …`, with each
+ * line's piece and number: `[{id, piece, n}]`.
+ */
+export function parseIdeas(textOrNull) {
+  if (typeof textOrNull !== 'string') return [];
+  const out = [];
+  let inIdeas = false;
+  textOrNull.split('\n').forEach((raw, i) => {
+    if (/^#{1,2}\s/.test(raw)) inIdeas = /^##\s+Ideas\s*$/.test(raw);
+    else if (inIdeas) {
+      const m = new RegExp(`^[-*]\\s+(${PIECE_KEY})\\s*\\|\\s*([^|]*)`).exec(raw.trim());
+      if (m) out.push({ id: m[1], piece: m[2].trim(), n: i + 1 });
+    }
+  });
+  return out;
+}
+
+/** D-432: every piece key of a run, its cards' Pieces rows' keys and its research files' Ideas ids. */
+function pieceKeysOf(dir) {
+  const keys = new Set();
+  for (const id of listCards(dir)) for (const r of parseCard(readText(dir, `cards/${id}.md`)).pieces?.rows ?? []) keys.add(r.key);
+  let files = [];
+  try {
+    files = fs.readdirSync(path.join(dir, 'research')).filter((f) => f.endsWith('.md'));
+  } catch {
+    files = [];
+  }
+  for (const f of files) for (const idea of parseIdeas(readText(dir, `research/${f}`))) keys.add(idea.id);
+  return keys;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -1033,6 +1207,8 @@ function verdictWords(stage, verdict) {
 /** Each display ends its plain part with the invitation (D-389), then its codes, ids and paths (D-392). */
 const INVITE = {
   brainstorm: 'Ask anything about these cards first. Then say in your own words which 1 to 3 to verify (by name or number), with any changes you want, or a new card from their ideas; or brainstorm more, or stop.',
+  // D-432: the composites, or a plain card on request; a change may add or drop pieces, and a new card may draw on pieces.
+  composites: 'Ask anything about these builds first. Then say in your own words which 1 to 3 to verify (by name or number), composites or cards, with any changes you want (a piece to add or drop), or a new card from their cards and pieces; or brainstorm more, or stop.',
   verification: 'Ask anything about these builds first. Then say in your own words which one to finalize, with any changes; or verify other cards, make a new one, brainstorm more, or stop.',
   design: 'Ask anything about this build first. Then accept it, ask for changes, go back to the verification gate to finalize another card, or stop.',
   final: 'Ask anything about the guide first. Then accept it, ask for changes, or say that you decline it.',
@@ -1084,15 +1260,84 @@ function pitchLines(card, plain, deckLine) {
   return out;
 }
 
+const NOT_CONFIRMED = "Not confirmed in game: no card has been played yet; each rests on the game's text and PoB's model. A card says so where one of its key links isn't confirmed even by a lookup.";
+
+/** Whether a run composes its brainstorm rounds (D-429): its log runs R1a-synthesize, or its deck is a composite deck. */
+const composes = (log, deck) => deck.composite || stagesOf(log).some((s) => s.stage === 'R1a-synthesize');
+
+/**
+ * D-432, Appendix A: a composite's pieces in short, under its round line: `  in: <pieces>`, `  scheduled: <piece>
+ * (<where>)`, `  out: <piece> (<why>)`, names joined with commas, `none` for an empty list.
+ */
+function pieceLines(card, plain) {
+  const rows = card.pieces?.rows ?? [];
+  const of = (status, show) => {
+    const xs = rows.filter((r) => r.status === status);
+    return xs.length > 0 ? xs.map(show).join(', ') : 'none';
+  };
+  return [
+    `  in: ${of('in', (r) => plain(r.piece))}`,
+    `  scheduled: ${of('scheduled', (r) => `${plain(r.piece)} (${plain(r.where)})`)}`,
+    `  out: ${of('out', (r) => `${plain(r.piece)} (${plain(r.why)})`)}`,
+  ];
+}
+
+/**
+ * D-432: the brainstorm display of a composite deck: the brief and the deck's header, then each composite not verified
+ * yet, numbered, its round line in names then its pieces in short; the composites a later round superseded, still
+ * pickable; the obvious build's line, the baseline as its card was written (D-403); then every plain card `## Cards`
+ * lists (the researchers', the gate-made and the rival's) not verified yet, numbered on, its name and structure, one
+ * line each; a short round's reason; the invitation; the ids last.
+ */
+function compositeDisplay(dir, log, deck) {
+  const out = [briefLine(log), ''];
+  const { cards, name, plain } = cardsOf(dir, deck);
+  if (text(deck.share)) out.push(`What the composites share: ${plain(deck.share)}`);
+  if (text(deck.differ)) out.push(`How they differ: ${plain(deck.differ)}`);
+  out.push(NOT_CONFIRMED, '');
+  const verified = new Set(stagesOf(log).filter((s) => s.stage === 'R1b').map((s) => s.concept));
+  const ref = [];
+  let k = 0;
+  const number = (id) => {
+    k += 1;
+    ref.push(`${k}. ${name(id)}: ${id}`);
+    return k;
+  };
+  // D-429: a superseded composite keeps its round line; it is shown with its successor, below.
+  const superseded = new Set(deck.superseded.map((s) => s.old));
+  const composites = deck.entries.filter((d) => d.round !== null && !verified.has(d.id) && !superseded.has(d.id));
+  for (const d of composites) {
+    const card = cards.get(d.id) ?? parseCard(null);
+    out.push(`${number(d.id)}. ${[name(d.id), ...d.parts.map(plain)].join(' | ')}`, ...(card.pieces !== null ? pieceLines(card, plain) : []), '');
+  }
+  if (composites.length === 0) out.push('No composite is left to verify.', '');
+  const old = deck.superseded.filter((s) => !verified.has(s.old));
+  if (old.length > 0) {
+    out.push('Superseded by a later round, still pickable:', ...old.map((s) => `${number(s.old)}. ${name(s.old)}, superseded by ${s.next === null ? 'a later composite' : name(s.next)}`), '');
+  }
+  const o = deck.obvious;
+  out.push(o === null ? 'The obvious build: none.' : `The obvious build, the baseline as its card was written: ${[name(o.id), ...o.parts.map(plain)].join(' | ')}`, '');
+  if (o !== null) ref.push(`Obvious build: ${name(o.id)}: ${o.id}`);
+  const plainCards = deck.entries.filter((d) => d.section === 'Cards' && !verified.has(d.id));
+  const all = deck.entries.filter((d) => d.section === 'Cards').length;
+  out.push(`The plain cards (${all}), each can be verified on its own:`, ...(plainCards.length > 0 ? plainCards.map((d) => `${number(d.id)}. ${name(d.id)}: ${plain(d.parts[0] ?? 'no structure given')}`) : ['None left to verify.']), '');
+  const short = lastStage(log, ASSEMBLY_STAGES)?.shortReason;
+  if (text(short)) out.push(`A short round: ${plain(short)}`, '');
+  out.push(INVITE.composites);
+  ref.push(`Deck: ${path.join(dir, 'cards.md')}`);
+  return [...out, ...reference(ref)];
+}
+
 function brainstormDisplay(dir, log) {
   const out = [briefLine(log), ''];
   const deckText = readText(dir, 'cards.md');
   if (deckText === null) return [...out, 'No cards.md in the run folder.'];
   const deck = parseDeck(deckText);
+  if (composes(log, deck)) return compositeDisplay(dir, log, deck);
   const { cards, name, plain } = cardsOf(dir, deck);
   if (text(deck.share)) out.push(`What the cards share: ${plain(deck.share)}`);
   if (text(deck.differ)) out.push(`How they differ: ${plain(deck.differ)}`);
-  out.push("Not confirmed in game: no card has been played yet; each rests on the game's text and PoB's model. A card says so where one of its key links isn't confirmed even by a lookup.", '');
+  out.push(NOT_CONFIRMED, '');
   // Every dealt card not verified yet, numbered, its name and its pitch (D-392).
   const verified = new Set(stagesOf(log).filter((s) => s.stage === 'R1b').map((s) => s.concept));
   const dealt = deck.entries.filter((d) => d.round !== null && !verified.has(d.id));
@@ -1102,7 +1347,7 @@ function brainstormDisplay(dir, log) {
     ref.push(`${k + 1}. ${name(d.id)}: ${d.id}`);
   });
   if (dealt.length === 0) out.push('No dealt card is left to verify.', '');
-  const short = lastStage(log, ['R1a-assemble'])?.shortReason;
+  const short = lastStage(log, ASSEMBLY_STAGES)?.shortReason;
   if (text(short)) out.push(`A short round: ${plain(short)}`, '');
   const notDealt = deck.entries.filter((d) => d.section === 'Not dealt');
   out.push('Not dealt:', ...(notDealt.length > 0 ? notDealt.map((d) => `- ${name(d.id)}: ${plain(d.parts.join('; ') || 'no reason given')}`) : ['None.']), '');
@@ -1286,6 +1531,16 @@ function travelWords(c) {
   return `; travel skill ${t.skill.trim()}, ${uses}`;
 }
 
+/**
+ * D-434, Appendix A: the design display's pieces line, `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)`,
+ * from the D1 gate's `design.pieces {in, scheduled, out, scheduledNames, outNames}`; `none` for an empty list of names.
+ */
+function piecesLine(p) {
+  const count = (v) => (Number.isInteger(v) && v >= 0 ? v : '?');
+  const named = (v) => (Array.isArray(v) && v.some(text) ? v.filter(text).map((x) => x.trim()).join(', ') : 'none');
+  return `- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out (${named(p.outNames)})`;
+}
+
 function designDisplay(dir, log, id) {
   const s = lastStage(log, ['D1-gate'], id);
   if (!s) return [id ? `No D1 gate for ${id} in the run log.` : 'No D1 gate in the run log.'];
@@ -1298,6 +1553,8 @@ function designDisplay(dir, log, id) {
   // D-407: the D1 gate's record (its recordPath) gives each rung's movement speed and the clear skill's no-area flag.
   const record = gateRecord(dir, gate, folder);
   const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${PACE_FIRST}`, ''];
+  // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
+  if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces), '');
   for (const r of objects(gate.design.rungs)) {
     const rec = record?.stages?.[r.stage];
     const measured = rec?.measures?.clearSpeed;
@@ -1353,7 +1610,11 @@ async function finalDisplay(dir, log, id) {
   out.push('What was checked:');
   for (const [s, g] of [[d1, d1gate], [d2, d2gate]]) if (s) out.push(`- ${verdictWords(s.stage, g?.verdict)}`);
   if (v4) out.push(`- The guide's claims, against their sources: ${v4.outcome === 'pass' ? 'every one holds' : "some are still open; they're the known issues below"}.`);
-  out.push(`- The run checker: ${Array.isArray(checker) ? (checker.length === 0 ? 'it found no problem' : `it found ${checker.length} problem(s), listed under For reference`) : "it didn't run"}.`, '');
+  out.push(`- The run checker: ${Array.isArray(checker) ? (checker.length === 0 ? 'it found no problem' : `it found ${checker.length} problem(s), listed under For reference`) : "it didn't run"}.`);
+  // D-435: the checker's warnings, a server build older than its source among them, so a violation may be the stale build's.
+  const warnings = Array.isArray(checker?.warnings) ? checker.warnings.filter(text) : [];
+  if (warnings.length > 0) out.push(`- The run checker also warns: ${warnings.length === 1 ? 'one warning' : `${warnings.length} warnings`}, listed under For reference; a problem it found may come from the warning's cause.`);
+  out.push('');
   // D-369: each endgame rung's figures from the final record, and the design gate's where they moved since.
   const plan = readJson(dir, inFolder(folder, 'plan.json'));
   const record = readJson(dir, inFolder(folder, 'compile-record.json'));
@@ -1404,6 +1665,7 @@ async function finalDisplay(dir, log, id) {
   if (unknown) ref.push('Unknown totals: D-164');
   if (Array.isArray(checker)) ref.push(checker.length === 0 ? 'Run checker: ok' : `Run checker: ${checker.length} violation(s)`, ...checker.map((v) => `  [${v.rule}] ${v.message}`));
   else ref.push(`Run checker: didn't run (${checker?.message ?? checker})`);
+  for (const w of warnings) ref.push(`Run checker warning: ${w}`);
   return [...out, ...reference(ref)];
 }
 

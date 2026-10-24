@@ -1,0 +1,130 @@
+{
+  "recordVersion": 2,
+  "planSchemaVersion": 2,
+  "planSha1": "b5d5c7af5e96e988a3e9345634703e69646f3475",
+  "buildSha1": "6a395e9ac8f851edc570f986a4f0b787d33d1b1a",
+  "compiledAt": "2026-10-23T10:10:00.000Z",
+  "mode": "measure-only",
+  "stagesCompiled": [
+    "r1s1e"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "loadoutWarnings": [],
+  "saveWarnings": [],
+  "pobFile": {
+    "location": "run",
+    "path": "titan-open/2026-10-23-1/probes/r1-s-1/3/compiled-build.xml",
+    "sha1": "a48fbf5999c1f1d92eaa6cdc31aa50b98d40ec74",
+    "bytes": 131
+  },
+  "importCode": "eNrtWV1v2zYUfc-vIPS-FixtureImportCode-probes-r1-s-1-3",
+  "savedLevel": {
+    "level": 95,
+    "autoMode": true
+  },
+  "activeLoadout": "Aftershock Slammer (L90) {r1s1e}",
+  "sets": [],
+  "stages": {
+    "r1s1e": {
+      "loadoutName": "Aftershock Slammer (L90) {r1s1e}",
+      "level": 90,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4600,
+        "TotalDPS": 34400,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 40,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 35,
+        "PhysicalMaximumHitTaken": 5600,
+        "FireMaximumHitTaken": 9800,
+        "ColdMaximumHitTaken": 9700,
+        "LightningMaximumHitTaken": 9600,
+        "ChaosMaximumHitTaken": 3200,
+        "EnergyShield": 0,
+        "TotalEHP": 33000
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 34400
+        }
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 34400,
+            "AverageHit": 15000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Seismic Cry",
+          "statSetLabel": "Cry",
+          "fields": {
+            "TotalDPS": 18000,
+            "AverageHit": 9000
+          }
+        }
+      },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 34400
+          }
+        },
+        "g2s1p1": {
+          "skill": "Seismic Cry",
+          "statSetLabel": "Cry",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 18000
+          }
+        }
+      },
+      "configWritten": {},
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    }
+  },
+  "ledger": {},
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 9000,
+    "checkMs": 300,
+    "finishMs": 200,
+    "exportMs": 400
+  }
+}

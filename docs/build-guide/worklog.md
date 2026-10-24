@@ -5435,3 +5435,20 @@ the `m17` engine at `b76967b`.
   way. Also in the round: the clear measure reads a set-2 clear group's figures from set 2 (it read set 1's), and
   `plan-reference.md` and `record.ts`'s comment corrected. Everything else passed: the set-2 figure equals PoB's own,
   groups without `weaponSet` compile as before, and the merge with WU-103 is clean.
+- **WU-102 done and merged** after one fix round (doer about 530K tokens in all; verifier about 298K in all): the
+  re-check PASSED. A group's weapon slot is the set's main hand when its item grants no skill, else the set's off-hand
+  when that one grants none (an empty slot counts), else the main hand with V1's new `weapon-skill-supports` naming the
+  overstated granted skill (PG-74); Spear Throw keeps its figure beside an empty off-hand or a focus. `list_gems`
+  reads every granted effect (14 Travel gems, Blink and Black Powder Blitz among them). A set-2 clear group's uses a
+  second are set 2's (0.5918, PoB's own; set 1 gave 0.6078). Rebased onto `455fcbc` and fast-forwarded: `270f9d7`,
+  `8f67b01`, `253d87e`. New V1 codes in M-22: `skill-slots`, `empty-weapon-set`, `weapon-skill-supports`; they need a
+  decision row at the next spec fold. Notes: a slotted curse group now has PoB's slot priority (1000 main hand, 4000
+  off-hand) where it had 0; a set-2 main group measured on set 1 still files its supports under the main hand (narrow,
+  in PG-74); `weapon-skill-supports` fails V1 on a spear with a buckler even when nothing reads Spear Throw (rare: it
+  needs a group on that set). Not fixed: `check-run.mjs` doesn't check `bestSwap.weaponSet`.
+- **Found by WU-102's verifier, before M-22:** an item written as a bare base (`Rarity: Normal` and the base name) gets
+  no implicits in PoB, so no granted skill and no ring or amulet implicit; the skill text never asks for them. For the
+  user (a candidate for M-23).
+- **The M-22 wave gate (AC-W78a) PASSED** on `253d87e`: test rc 0 (174 suites, 2,961 tests; the timing step 2 suites,
+  3 tests), build rc 0, both waiver files `[]`. M-22's subagents: about 2.6M tokens (doers 437K, 549K, 530K, 315K;
+  verifiers 222K, 210K, 193K, 298K).

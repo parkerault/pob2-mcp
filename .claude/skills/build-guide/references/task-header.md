@@ -18,7 +18,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
   "findings": [],
   "accepted": [],
   "faults": [],
-  "writes": ["builds/r1-a-2/plan.json"],
+  "writes": ["builds/r1-a-2/plan.json", "builds/r1-a-2/pieces.md"],
   "reference": ".claude/skills/build-guide/references/stages/D1-build.md"
 }
 ```

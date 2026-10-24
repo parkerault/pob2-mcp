@@ -5525,3 +5525,11 @@ the `m17` engine at `b76967b`.
 - **Noted:** fifteen-stage's Earthquake Aftershock radius (`g4s1p2`) flips between 1.8 and 2.4 from one engine process to
   the next, at `520538f` too (1 run in 5); a test comparing it across processes would be flaky.
 - **Wave 2 started early** (no file overlap with WU-108): WU-106 and WU-107 in lanes off `539d907`; each rebases at merge.
+- **WU-107 merged** (`ae7fa33`, rebased onto `fdc3e62`): D1-build asks questions 15–19 again as the design changes,
+  revisits out pieces, measures sets on D-433's three figures, schedules before rejecting, answers question 19 and
+  writes `pieces.md`; D1-finish writes the pieces' reason claims; D1-gate writes the design field's `pieces`; RV asks
+  11–19 under composites; `patterns.md` holds questions 16–19 and the two amended entries (12,646 of 13,000 words; the
+  kits section unchanged at 3,380). Tests: `tests/static/buildGuideDesignPieces.test.ts`. Its verifier PASSED (gate:
+  177 suites, 3,052 tests). The `pieces:` return line sits within the 8 lines every agent returns (D-267); D-434's
+  sentence now says so (this commit). Integration fixes (this commit): the task header's D1-build example writes
+  `pieces.md`; the coordinator's definition names a composite's 8 probes; a test title says questions 11–19.

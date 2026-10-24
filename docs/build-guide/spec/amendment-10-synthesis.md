@@ -243,8 +243,8 @@ D1-build reads the composite's Pieces tables and the deck's `## Pieces not used`
 It writes `<buildFolder>/pieces.md` (Appendix A): the Pieces table as designed, each piece's status and reason, and
 `## Searched`, each question it asked again and what the search found. The file joins the build folder's layout
 (`run-folder.md`, the checker's `BUILD_FILES`) and D1-build's `writes`; a fix round's round copy doesn't take it, and
-`--changed` doesn't list it, since only D1 writes it. Its return keeps its 8 lines and adds one,
-`pieces: <n> in, <n> scheduled, <n> out`. D1-finish writes a `reason` claim for each scheduled piece and each
+`--changed` doesn't list it, since only D1 writes it. Its return adds one line within the spine's 8
+(D-267), `pieces: <n> in, <n> scheduled, <n> out`. D1-finish writes a `reason` claim for each scheduled piece and each
 composite piece left out, from `pieces.md`, so W1 can explain the boss button and the swap; the `left out:` lines
 (D-396) stay for dead gems.
 

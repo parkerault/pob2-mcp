@@ -73,7 +73,7 @@ const field = (body: string, name: string) => {
 };
 
 describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () => {
-  it('asks brainstorm questions 11–15 in their own section after the first ten, and question 9 points to Standard kits', () => {
+  it('asks brainstorm questions 11–19 in their own section after the first ten, and question 9 points to Standard kits', () => {
     const first = h2('Brainstorm questions');
     expect(first).toBeDefined();
     const h2s = headings.filter((h) => h.level === 2);

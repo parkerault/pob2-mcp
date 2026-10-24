@@ -5462,3 +5462,9 @@ the `m17` engine at `b76967b`.
   rare list does (`Modules/Main.lua:170-176`), a range at PoB's 0.5 default; `Implicits: 0` and uniques kept as
   written; a variant amulet base unfilled, V1's `implicit-variant`. WU-108 owns it; AC-P78 tests it; HG-12 granted by
   the direction for this rule only.
+- **The M-22 clean-up:** the user removed the old worktrees and lane branches (M-20's lane originals kept at
+  `refs/archive/lanes/wu-84`…`wu-91`, since older lines here cite them) and moved `m18` to `main` at `c8b8fa7`, rebuilt.
+- **M-23's handoff** (`build-handoff-amendments.md`, its M-23 section): amendment 10 binding, HG-12 only for the
+  base-implicit rule, integration worktree `m23`, waves WU-104/105/108 then WU-106/107 then the live test, each file's
+  owner, V1's `implicit-variant` data, the library's room (about 670 words; the kits section about 120), the fixtures
+  the fill moves, the gate without `rm -rf`. Amendment 10's citations of `77bd695` remapped to `f15b905`.

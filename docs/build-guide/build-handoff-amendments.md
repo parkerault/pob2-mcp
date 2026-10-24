@@ -4,7 +4,66 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-22: amendment 9 §17 and §24, the researchers' lookups, weapon sets, travel skills (read this first)
+## M-23: amendment 10, one build from the whole brainstorm (read this first)
+
+Added 2026-10-23. For this build, this section overrides the M-22 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged, except the gate note below. M-21's and M-22's formats
+stay in force where M-23 doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-10-synthesis.md` (D-429…D-435, §12's owners, §13's criteria AC-W83…AC-W88,
+  AC-P77 and AC-P78, Appendix A's formats) is binding, with amendment 9 §24 as M-22 merged it (the damage-order rule,
+  "Convert into the ailment's type", the corpse-explosion line, the library's 13,000-word cap, a skill on a weapon
+  set). The spine and slices are v1.6 with amendments 8 and 9 built. Read the amendment's Names, your unit's decisions
+  and Appendix A.
+- **Approved:** amendment 10 revision 2 by the user on 2026-10-23 ("Approved, no second re-check"); base implicits
+  added to D-435 by the user's direction the same day ("Add base implicits to M-23's live-test fixes", `c8b8fa7`).
+- **HG-12 is granted only for D-435's base-implicit rule** (the compiler fills a base's implicits on an item written
+  without an `Implicits:` line; V1's `implicit-variant`). `get_node_power`'s `clear_group` mapping is a defect fix of
+  C-55's implementation, its description reworded, not a contract change. No tool is added. Any other tool-contract
+  change is HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m23`, branch `build-guide/m23`, off `main` when the
+  build starts. Lanes `bg-<nn>` on `bg/wu-<nn>`, off the integration head when the unit starts. Never touched: the main
+  checkout and `/home/parker/projects/pob2-mcp-wt/m18` (the live runs'; on `main` at `c8b8fa7`, its `vendor/` the
+  source for a lane's copy).
+- **Waves and owners:** the amendment's §12. Wave 1: WU-104, WU-105 and WU-108 in parallel. Wave 2, after all three
+  merge: WU-106 and WU-107 in parallel. WU-109 is the live test, run by the user with the coordinator, not a doer's
+  unit. The coordinator merges each unit after its verifier passes, and owns the work-log and the spec.
+- **Shared files.** Each file has one owner per wave; a file two units need is edited in wave order, each in its own
+  paragraphs:
+  - WU-104: `R1a.md`, `R1a-synthesize.md` (new), the card template, `references/stages/README.md`,
+    `references/task-header.md`, `references/run-folder.md`, the researcher's and coordinator's definitions, and their
+    pinned assertions in `tests/static/buildGuidePipeline.test.ts`.
+  - WU-105: `run-log.mjs`, `check-run.mjs`, `render-audit.mjs`, `scripts/run-usage.mjs`, `tests/fixtures/pipeline/`,
+    `references/run-log.md`, `references/offline-and-test.md`.
+  - WU-108: `pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, `get_node_power`'s `toolSchemas.ts` entry and
+    the README table, `V4.md`, `pob-api/API/Compile.lua`'s item handling, `src/plan/checks/v1.ts`,
+    `docs/build-guide/plan-reference.md`, and the plan fixtures the base-implicit fill moves.
+  - WU-106: `R1b.md`, `R1b-assemble.md`, the dossier template, `references/checkpoints.md`, `SKILL.md`.
+  - WU-107: `D1-build.md`, `D1-finish.md`, `D1-gate.md`, `RV.md`, `references/patterns.md` (alone).
+  - `tests/static/buildGuidePipeline.test.ts` beyond WU-104's assertions has no owner: put new static checks in new
+    files, and when your text breaks a pinned assertion there, update only that assertion and say so in the report.
+- **Formats fixed before the build:** Appendix A (the key, an Ideas line, the card's Pieces and Pieces measured
+  tables, the deck, `pieces.md`). Also V1's `implicit-variant`, its data `{slot, base, variants, path}`, its message
+  naming the base and asking for the variant's implicit line.
+- **Room left, measured at `c8b8fa7`:**
+  - `patterns.md` is about 12,330 words of its 13,000 (`wc -w`; the tests' count is close). The Standard kits section
+    is about 3,380 words of its own test's 3,500. WU-107's questions 16–19 and two amended entries fit only if they
+    are tight: tighten your own text first; if the library or the kits section can't hold them, stop and report.
+  - `get_node_power`'s description is 1,953 of the 2,048 characters AC-F15 allows; `lookup_game_data`'s is 2,035.
+- **The base-implicit fill** moves recorded figures in fixtures written with bare bases (for example `minion-wolf`'s
+  Wooden Club and Rusted Cuirass, `off-hand-item`'s Felled Greatclub). WU-108 updates each moved value, declares it,
+  and shows it is the implicit's; its verifier checks each one.
+- **Running the gate:** the M-20 bullet's command, unchanged. Keep `rm -rf` out of the `sh -c` script: Claude Code's
+  safety check can refuse a removal inside it, and `mise run test` rebuilds `build/` anyway.
+- **Lane bootstrap:** `git worktree add -b bg/wu-<nn> ../bg-<nn> build-guide/m23`; in the lane,
+  `git config --worktree commit.gpgsign false`, `mise trust`, `cp -a /home/parker/projects/pob2-mcp-wt/m18/vendor ./vendor`,
+  `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **M-22's leftovers, not this build's:** decision rows for V1's `skill-slots`, `empty-weapon-set` and
+  `weapon-skill-supports` wait for the next spec fold; `check-run.mjs` doesn't check `bestSwap.weaponSet`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap.
+
+## M-22: amendment 9 §17 and §24, the researchers' lookups, weapon sets, travel skills (built)
 
 Added 2026-10-23. For this build, this section overrides the M-21 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

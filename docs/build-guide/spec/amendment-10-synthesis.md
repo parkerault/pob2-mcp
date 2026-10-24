@@ -393,7 +393,7 @@ Taken on 2026-10-23, walked through one at a time:
 1. **How many composites:** at most 4 (recommended; taken), or at most 3.
 2. **Leave-one-out probes:** up to 4 pieces per composite (recommended; taken), none, or every piece. The review
    showed they don't fit the old budget, so a composite's cap rises to 8 (D-433).
-3. **The library's cap:** 13,000 words (the user: "Raise the cap"), set in M-22 (amendment 9 §24.1 at `77bd695`).
+3. **The library's cap:** 13,000 words (the user: "Raise the cap"), set in M-22 (amendment 9 §24.1 at `f15b905`).
 4. **The obvious card:** kept as the gate's baseline line (recommended; taken), or dropped once composites exist.
 5. **The order:** M-23 after M-22 merges (recommended; taken), the review running while M-22 builds.
 
@@ -416,7 +416,7 @@ The review (2026-10-23, one reviewer with fresh context, read only, about 398K t
 
 | Finding | Resolved in |
 |---|---|
-| B1 the 13,000 cap isn't binding | The header and §6: amendment 9 §24.1 as revised on M-22's branch (`77bd695`), which the reviewer's `main` lacked |
+| B1 the 13,000 cap isn't binding | The header and §6: amendment 9 §24.1 as revised on M-22's branch (`f15b905`), which the reviewer's `main` lacked |
 | B2 leave-one-out against the 4-probe budget | §8: a composite's cap 8 (the checklist's 4 and 4 leave-one-out); D-292, D-338, `PROBE_CAP` amended; AC-W84 |
 | B3 Full DPS can't see other groups; no ledger in a skeleton | §8: the composite's total from `countedSkillOutputs`, each group's drop; the card's hand estimate for an unmodelled piece |
 | B4 V4 has no Edit | §10: no Edit; a syntax check before the Write, and the checker ignores an empty item |
@@ -440,7 +440,7 @@ The review (2026-10-23, one reviewer with fresh context, read only, about 398K t
 | S17 formats | Appendix A |
 
 The nits: N1 (C-57 and PG-74 dropped) the header; N2 (the research file's citation) §5; N3 (the entry's name, in
-§24.1 at `77bd695`) §6; N4 (D-319) §4; N5 (one paragraph) §7; N6 (the dossier is R1b-assemble's) §8; N7 (the summaries'
+§24.1 at `f15b905`) §6; N4 (D-319) §4; N5 (one paragraph) §7; N6 (the dossier is R1b-assemble's) §8; N7 (the summaries'
 existing row; the deliverable) §10; N8 (R1b's figure includes its assemble) §11; N9 (the baseline judged as written)
 §4.
 

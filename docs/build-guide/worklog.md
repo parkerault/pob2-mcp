@@ -5504,3 +5504,24 @@ the `m17` engine at `b76967b`.
   test near `buildGuidePipeline.test.ts:416-548` reads the D-433 column list; `checkpoints.md` says `first-n:<n>`
   picks the first n composites; a composite whose Structure check is written needs its Pieces measured even when R1b
   failed (rows may say `not measured`).
+- **WU-108 merged** (`c551ed9`, `ba342d4`, rebased onto `539d907`): `get_node_power`'s `clear_group` in the plan's
+  numbering (AC-P77); base implicits on an item text with no `Implicits:` line, ranges at 0.5, `Implicits: 0` and
+  uniques kept, a variant base unfilled with V1's `implicit-variant` (AC-P78; V1 reads `compile_stage`'s
+  `checks.implicitVariants`); V4 checks its report's list syntax before its Write; `plan-reference.md` states the rule.
+  Its verifier PASSED (gate: 178 suites, 2,976 tests) and compared each filled base with PoB's own crafted item.
+- **The group reorder (the user: "Keep it").** Beyond its scope, WU-108 made `compile_stage` move the plan's groups
+  ahead of PoB's granted ones (`plan_groups_first`): with the fill, a staff, shield or spear grants a skill whose
+  group PoB put first, and PoB saves one main group per build, so a loadout whose items differed reloaded with the
+  wrong main skill (`off-hand-fresh` stage 1, `off-hand-shared` stages 1 and 3; and before the fill, `weapon-set-slots`
+  stage `fb` with Spear Throw). The verifier compiled 14 fixtures (49 stages) with and without it: only group
+  positions differ, and every stage reloads with the plan's main skill. D-382's text in `02-plan-compiler.md` and
+  C-55's `clear_group` line in amendment 9 are amended (this commit). Moved fixtures, each declared and checked:
+  `nodePower` AC-P73 and `compilePlanNfr` AC-P37 (the tower shields' Raise Shield groups), `findUpgradesLoadout` AC-K67
+  (the inline rings carry their implicit, as a listing does), `compileMinion` D-382 (the order).
+- **Background summaries (AC-W87):** they are Claude Code's own behaviour; `run-usage.mjs` shows their cache read per
+  `query_source`. The user, after WU-108 proposed an env setting read from Claude Code's binary: "I'd rather not spend
+  time chasing down default claude code behavior". The setting is dropped from `run-settings.example.json` (this
+  commit); nothing more is pursued.
+- **Noted:** fifteen-stage's Earthquake Aftershock radius (`g4s1p2`) flips between 1.8 and 2.4 from one engine process to
+  the next, at `520538f` too (1 run in 5); a test comparing it across processes would be flaky.
+- **Wave 2 started early** (no file overlap with WU-108): WU-106 and WU-107 in lanes off `539d907`; each rebases at merge.

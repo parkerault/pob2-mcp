@@ -371,7 +371,8 @@ The targets are measured after a run, as amendment 4's cap was; no step stops fo
     the main skill when the named source is a single-target skill (D-148). The tool measures the clear entry with
     `clear_group` selected inside the call, on each swap it considers (a few calculations), and restores the
     selection.
-  - `clear_group` (the plan's `role: clear` group, as the compile record numbers it; default the main group);
+  - `clear_group` (the plan's `role: clear` group, as the compile record numbers it; default the main group; for
+    a build not compiled from a plan, its own groups in order, PoB's granted groups numbered after them, D-435);
     `protect_for` (the loadout names of the later rungs, which must be loaded: D-418); `max_distance` (points from
     the tree, default 6, at most 12); `loadout` (the loadout to measure, by name; default the active one); `level`
     (default the `(L<level>)` in the loadout's name, which every compiled loadout carries); `keep` (allocated node ids

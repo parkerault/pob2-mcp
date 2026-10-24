@@ -7,9 +7,8 @@
  * - `docs/build-guide/plan-reference.md` states the base-implicit rule: a text with no `Implicits:` line gets its
  *   base's implicits, at PoB's default roll; `Implicits: 0` and a unique are kept as written; a variant base isn't
  *   filled, and V1 reports `implicit-variant` with `{slot, base, variants, path}`;
- * - `docs/build-guide/run-settings.example.json` records the background-summary finding: Claude Code has no setting
- *   of its own for the background `agent_summary` requests, but turning fork subagents off
- *   (`CLAUDE_CODE_FORK_SUBAGENT=0`) turns them off for the Agent tool's background agents;
+ * - the background-summary finding is the work-log's (2026-10-23): the user chose not to pursue Claude Code's default
+ *   behaviour, so `run-settings.example.json` gains nothing;
  * - `get_node_power`'s `clear_group` says it is the plan's group number, as compile_plan's record numbers it, PoB's
  *   granted groups numbered after the build's own; the tool's description stays within AC-F15's 2,048 characters.
  */
@@ -63,11 +62,11 @@ describe("AC-W87: plan-reference.md states the base-implicit rule (D-435)", () =
   });
 });
 
-describe('AC-W87: run-settings.example.json records the background-summary finding (D-435)', () => {
-  const settings = JSON.parse(read('docs', 'build-guide', 'run-settings.example.json')) as { env?: Record<string, string> };
-
-  it('sets CLAUDE_CODE_FORK_SUBAGENT to 0, which turns off the background agents\' agent_summary requests', () => {
-    expect(settings.env).toEqual({ CLAUDE_CODE_FORK_SUBAGENT: '0' });
+describe('AC-W87: the background-summary finding is the work-log\'s (D-435)', () => {
+  it('records it in the work-log, and run-settings.example.json sets no env', () => {
+    expect(read('docs', 'build-guide', 'worklog.md')).toContain('**Background summaries (AC-W87):**');
+    const settings = JSON.parse(read('docs', 'build-guide', 'run-settings.example.json')) as { env?: Record<string, string> };
+    expect(settings.env).toBeUndefined();
   });
 });
 

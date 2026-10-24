@@ -622,8 +622,14 @@ nothing is done. Creating a run folder and validating a plan are `guide_run`'s m
      its `socketGroupList` index. The plan's groups are the active skill set's groups without a `source`, in
      order (`group_indices`); every use reads PoB's index from that list: `select_minion_skills`,
      `select_main`, `granted_skills` and `stage_gems` (V1's input). `created.index` alone wouldn't do: a reused
-     skill set creates no groups, and a calculation can remove a stale PoB group anywhere in the list. Not
-     changed: PoB's group order, and when PoB calculates.
+     skill set creates no groups, and a calculation can remove a stale PoB group anywhere in the list.
+     **Amended by D-435 (M-23, WU-108; the user, 2026-10-23: "Keep it"):** once a stage's groups are built and
+     calculated, `compile_stage` reorders the active skill set's list in place, the plan's groups first in plan order,
+     then PoB's own (those with a `source`) in PoB's order (`plan_groups_first`). A plan group's PoB index then equals
+     its plan number in every stage, so the build's one saved main group fits each loadout (with base implicits filled,
+     a staff, shield or spear grants a skill whose group PoB put first, and a loadout whose items differed reloaded
+     with the wrong main skill). PoB only appends its own groups and removes stale ones, so the order survives a
+     reload; `group_indices` still finds the plan's groups by `source`. Not changed: when PoB calculates.
    - **A minion's skill** (WU-78, D-377; built). After the stage's groups are built, each group that names
      `minionSkill` is made main for its own selection (so a disabled group works too), and
      `BuildOps.select_minion_skill` resolves the name, case-insensitively, against its minion's live skill list

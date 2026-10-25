@@ -5554,3 +5554,86 @@ the `m17` engine at `b76967b`.
   WU-107 337K, WU-106 401K with its fix round; verifiers 180K, 269K, 279K, 173K, 231K with the re-check).
 - **Signed onto `main`** (`520538f`; `main` hadn't moved, so the rebase was forced to re-sign): 14 commits, all signed;
   the unsigned originals are at `refs/archive/pre-sign-m23-2026-10-23`; 14 cited hashes remapped in this commit.
+
+## 2026-10-24: WU-109's open brief, judged (AC-W88)
+
+- **The run.** "Bleeding as the main source of damage, fast map clear, any ascendancy", in `open-clear/2026-10-24-1`
+  (online, outside this repo). Two brainstorm rounds, five verified cards (one of them the rival), one gate question.
+  Two builds designed and filed by F1, without guides: "Reaping Bonfire Reap Infernalist" (`r2-s-2`, three design
+  attempts) and "Culling Bonfire Reap Infernalist" (`r2-g-1`, two). The user revised both at the design gate: a tree
+  override with a reprice, and Deathblow in place of Aldur's Legacy.
+- **Real conditions from here on.** The run first started on a stale `build/` (before M-22), from the leftover `m18`
+  worktree, and was resumed on a server rebuilt from `main`. The user turned down a restart through the sealed
+  launcher: "What is the value of testing the outputs of a hobbled server? The goal is to see whether it can make good
+  builds, not whether it can make good builds in a hermetically sealed box." Live tests now run as plain `claude` on
+  the everyday server, rebuilt after any change to `main`, with web access and the user's folders.
+- **The user's notes during the run** (queued for one post-run amendment):
+  - the brainstorm gate's `out:` line is a wall of text;
+  - a price that rounds to 0.0 divines should show as seen, in "exalts";
+  - verification showed a bare skeleton's DPS and EHP as the build's, without bleed and ignite. The user: "Could we
+    instead just gate it on 'it compiles and the skills work as expected', and let the user decide?";
+  - names carry the main skill and ascendancy;
+  - top-tier 35% movement-speed boots on every endgame character, except one that moves with a travel skill;
+  - "works" needs saying what it means;
+  - the rival (RV): "Drop it completely";
+  - respecs: "respec when the build changes in a way that scales differently. If the scaling stats don't change, grow
+    the tree." Gates are a level, a gear item, an ascendancy node, a keystone or a notable.
+- **The user's verdict (AC-W88, the open brief):** "Overall, the build was close, just a few tree and gear misses
+  hobbled it. It got probably 90% of the way there on its own, which isn't bad. So yes, in the right range, just a few
+  small misses that would have made a large improvement." The composites drew no verdict of their own beyond the
+  display notes above. The user wants the run's Ritual Pyre Rake card (a self-ignite Ritualist bleed build) in a
+  future run.
+- **The comparison** (`studies/2026-10-24-reap-infernalist-comparison.md`): against the user's reference, GL1TCH3D's
+  Reaper of Souls, on a Pinnacle boss: his 352k Full DPS / 7.7k EHP at level 83; Reaping 268k / 5.9k and Culling
+  222k / 6.6k at level 95. The misses:
+  - Throatseeker (+17% for 5 points, ranked first by both ranking tools), lost to the swap search's limits;
+  - Apron of Emiran's aggravation at the cost of all body defence, where a rare plus Crimson Assault (1 point) costs 9%
+    damage for +17% EHP;
+  - 30% boots;
+  - Culling's 2.72M, a normal-monster figure (91% cull threshold, ×11.1).
+- **Unmodelled mechanics.** The first fix proposed was "no unmeasurable nodes displacing measured ones". The user: "I'm
+  worried that would weaken a build that relies on an unmeasurable mechanic (no PoB support)." It would have here. The
+  pinned PoB has no model of meta-skill Energy, so the level-95 tree's Energy nodes are what move Cast on Critical's
+  in-game rate toward the one PoB assumes. The rule instead: an unmodelled node may replace measured ones when it serves
+  a mechanic the build rests on, and the design gate shows the trade.
+- **Added to the queue:**
+  - a tree search that frees several branches at once, or a rebuild pass;
+  - a boss figure beside every map-monster figure;
+  - defence trades offered at the design gate;
+  - the unmodelled-node rule above.
+- **Cost.** The run: 40 agents; 3.84M output tokens (2.26M thinking), 564M cache read, 12.0M cache write; design 1.59M.
+  The comparison: 435K.
+- **Left for WU-109:** the fixed roll, Gemling Legionnaire with Twister and Frost Wall by Cast on Critical. The user has
+  a guide and a PoB file for it.
+
+## 2026-10-25: amendment 11 drafted; the review waits on the reference builds
+
+- **The user:** "I want to build the amendment before the next run." The fixed-roll half of WU-109 waits for M-24.
+- **Two read-only surveys** of the touch points: the gates, displays, pricing and rival (about 267K tokens), and
+  the design stage, node power, respecs, boots and defences (about 276K). Their findings are cited in the draft by
+  file and line. Throatseeker's miss: on the non-budget rung, `keep` covered all 118 nodes under the user's tree
+  override, and elsewhere one freed branch was too small for a 5-point path. The design gate's damage line was hit
+  damage only. PoB rates a skill Cast on Critical triggers at its hand-cast speed.
+- **The user's choices:**
+  - published guides: "Allowed, cited";
+  - boots: "Any build should always be using the highest movement speed tier for that level. 30% on entering maps,
+    35% on budget and non-budget. Unique boots can bypass this rule if and only if the unique is required to make
+    some other aspect of the build work." The travel-skill exception stands; campaign stages use the highest tier
+    for their level;
+  - the tree search's figure: "Map damage with cull if and only if the build explicitly utilizes culling in its
+    skill rotation. Otherwise, map damage, no cull.";
+  - toughness: "A rung below a set EHP at non-budget gets a defence trade shown", with floors by archetype ("My gut
+    is 8k-10k for ranged, 15k for melee"), set from studies of published builds' PoB files: "Final draft waits on
+    those studies.";
+  - pricing: every item the currency exchange sells is priced from poe.ninja's exchange; the trade site prices
+    uniques, lineage support gems and rares.
+- **Amendment 11 drafted** (`spec/amendment-11-live-test-fixes.md`, D-436…D-446, WU-110…WU-116, M-24): verification
+  checks that the build works, with no figures; one damage figure against map monsters and a Pinnacle boss; respecs
+  where the scaling changes; a wider tree search with unmodelled needs shown as trades; boots by level; defence
+  trades under a floor (open); names, prices and the out line; the rival removed; pricing; cited guides; the fold.
+- **A measurement script for the toughness study** (outside the repo): each build's toughness under the design's
+  own enemy and the non-budget rung's reference hits (area 82: 439 physical, 106 per element), its archetype from
+  its main skill's PoB types, and the design's Arbiter verdict. Bigger hits change EHP only through armour, so one
+  non-budget floor bites armour builds hardest.
+- **The user:** "hold off on the independent review until we've analyzed the reference builds." The user compiled
+  Mobalytics' verified league-starter guides for a reference library.

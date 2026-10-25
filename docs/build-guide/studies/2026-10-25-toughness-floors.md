@@ -111,3 +111,57 @@ for builds that need it for DPS." Amendment 11 §9 (D-441): a non-budget rung un
 | animeprincess-twister-gemling-league-starter | Gemling Legionnaire | 96 | Twister | ranged attack | **17.9k** | 2.0k / 975 / 726 | 3.5k / 13.0k / 7.6k | 721 / 11.0k (51%, 84%) / 0% | ONE-SHOT physical 1.01 | 8 |  |
 | lazyexile-amazon-league-starter | Amazon | 93 | Storm Lance | ranged attack | **7.7k** | 2.2k / 111 / 767 | 2.3k / 9.2k / 8.0k | 350 / 9.3k (47%, 21%) / 0% | ONE-SHOT physical 1.50 | 1 |  |
 | rapid-permafrost-grenade-blast-scorpius | Gemling Legionnaire | 60 | Permafrost Bolts | ranged attack | **1.8k** | 1.6k / 184 / 796 | 2.0k / 1.3k / 1.8k | 490 / 162 (4%, 0%) / 0% | ONE-SHOT lightning 2.91 | 1 | level 60 < 90: enemy level 60 follows character level |
+
+## By engagement distance (added 2026-10-25)
+
+The user, after the targets were set: "it's not so much the skill as how close the character has to be to the
+monsters. A "melee" skill that hits monsters from across the screen can survive with less EHP, and a ranged skill
+with a short range requires more, because the character gets hit by the enemies while attacking." The boss-damage
+study (`2026-10-25-boss-damage.md`) classified each of the 30 builds from its guide: **close** (it deals its damage
+standing in or next to the pack or the boss) or **distance**, each with a reason and, where one exists, a quote.
+
+| Engagement | Builds | Min | 25% | Median | 75% | Max | Under 90% of the target | Over 110% |
+|---|---|---|---|---|---|---|---|---|
+| Close (target 20,000) | 15 | 17k | 21k | 36k | 46k | 338k | 2 (17k, 17k) | 11 |
+| Distance (target 15,000) | 15 | 5k | 16k | 18k | 26k | 96k | 3 (5k, 8k, 13k) | 11 |
+
+- The targets sit near each group's 25th percentile, as they did on the skill-type split.
+- Builds that change group: the grenade and Stormblast Witchhunters and Skadoosh's Decompose Pathfinder are close
+  (the grenades need the boss within a few metres; Close Combat; the corpse cloud), while Woolie's Firebringer
+  (totems), MisoxShiru's Glacial Lance Ritualist and the Amazons' throws are at a distance. Navira's Varashta is close
+  by judgment: the djinn strike where commanded, but the build's presence bonuses keep Kelari near the player.
+- **Over the band:** 22 of 30 published builds are more than 10% above their target, so a damage trade over the band
+  would show for most designs as tough as these.
+
+| Build | Engagement | Why |
+|---|---|---|
+| 0-3-league-start-the-hollowed-one-detailed-league-start-guide-to-endgame-ignatius | close | Tempest Flurry is a melee flurry spammed on the boss and Falling Thunder (with Close Combat II) is slammed from next to it |
+| alkaizer-s-hc-martial-artist-monk-alkaizerx | close | every damage skill is quarterstaff melee: Quarterstaff Strike and Whirling Assault hit around the player, Hollow Form's images appear within 6 m and H |
+| alkaizer-s-ssfhc-melee-gemling-alkaizerx | close | a melee strike (Perfect Strike reaches 3.5 m further on perfect timing, still next to the boss), made tanky with armour |
+| balrog-fire-bear-smith | close | the damage comes from the player's own steps (1.2 m slams), fissures walked over and meteors around the player; the talisman's exposure needs the boss |
+| bear-druid-build-league-starter-to-endgame | close | a melee bear that slams around itself while running next to the boss and over its own totems |
+| coc-balls-invoker-ronarray | close | Flicker Strike teleports onto the boss and strikes it in melee; the pre-buff Infernal Cry needs the boss in its 4 m radius |
+| explosive-witchhunter | close | the grenades are thrown, but the damage needs the boss close: on the realistic config PoB gives 0.31x at 8 m and 0.19x at 12 m (surround notables, acc |
+| facebreakers-hollow-palm-martial-artist-league-starter | close | Flicker Strike teleports onto the target and strikes it (gem text), and Close Combat II, "30% more Attack Damage to enemies within 1 metre", is linked |
+| martial-artist-league-starter-scorpius | close | Whirling Assault is a melee spin in the pack or on the boss; Falling Thunder is a slam in a 4 m cone, and the bells sit on and around the player |
+| martial-artist-monk-build-league-starter-to-endgame | close | Whirling Assault strikes the enemies around the player as it advances (gem text), and the boss tech drops Tempest Bell beside the player and hits it w |
+| naviras-fracturing-varashta-league-starter | close | the damage is Kelari's blast at the commanded spot, but the Late Endgame's presence bonuses (Evergrasping Ring, the sceptre's "Allies in your Presence |
+| ronarray-unarmed-hollow-palm-monk | close | Tempest Flurry flurries in melee next to the boss, and Falling Thunder is a 4 m cone slammed after hitting the boss to daze and blind it |
+| skadoosh-decompose-pathfinder | close | the clouds come from corpses consumed as the character walks, the spectres spawn next to it, and Plague Bearer is a nova around the character |
+| woolie-run-n-gun-witch-hunter | close | a crossbow build, but its single target stands next to the boss for Close Combat II (full 30% more within 1 m); the creator calls it annoying when bos |
+| woolie-wolfman | close | werewolf melee: Shred and Cross Slash are claw strikes on the boss and Moonbeams need a melee hit; the creator relies on the frozen boss not hitting b |
+| alkaizer-s-ssfhc-tactician-mercenary-alkaizerx | distance | crossbow grenades and bolts fired from range, with pinned enemies unable to act |
+| animeprincess-twister-gemling-league-starter | distance | the damage is Twister projectiles cast toward the boss and a wall; Whirling Slash builds stages anywhere first |
+| arc-gemling-path-of-ky | distance | the damage comes from totems placed at the boss that auto-target and chain; the player only places totems and casts Frost Bomb, the curse and Mana Tem |
+| coc-spark-comet-recoup-infernalist-by-ignatius | distance | Spark's projectiles and Comets aimed at a target location deal the damage; the campaign rotation circles the boss rather than standing on it (the endg |
+| firebringer-league-start-woolie | distance | the totems and their fissures do most of the damage, so the player can stand back; footsteps add damage only when walking near the boss, and the guide |
+| fubgun-flameblast-oil-grenade | distance | the ignite does the damage and Oil Grenade, thrown up to full screen, carries it; the player only has to be within Flameblast's nova (about 6 m at 10  |
+| grim-totem-oracle-imexile | distance | the totems deal the damage where they are placed, while the player casts Entangle at a target and stands in the Mana Tempest; nothing asks the player  |
+| ignatius-spark-stormweaver | distance | Spark is a projectile spell whose sparks travel to the boss and the triggered Comets land on it; the boss rotation keeps Spark flying through a Flame  |
+| lazyexile-amazon-league-starter | distance | every damage skill is a thrown spear; Storm Lance's bolts fire from where the spear lodges (2-3 m around it, gem text), not around the player; the cre |
+| misoxshiru-glacial-lance-ritualist | distance | a thrown lance, and the creator stands the boss outside the presence on purpose |
+| plants-lich-deadrabb1t | distance | the damage is placed plants and Bonestorm's spikes fired at the boss; the Temporal Chains slow keeps monsters off the player |
+| ruetoo-tactician-mirage | distance | a crossbow projectile that fragments and chains, fired from range; the Giga variant's bolt skill has no close-range support |
+| spirit-walker-beast-master | distance | the companions deal the damage while the player walks behind them; the optional Parry tech asks the boss to hit the player once |
+| twister-gemling-legionnaire | distance | Twister's projectiles do the damage, fired from range; Parry on bosses needs a hit within 1 to 1.5 m, a brief exception |
+| twister-spirit-walker-snoobae | distance | Twister's projectiles travel and bounce far from the caster; the setup slashes need no contact with the boss |

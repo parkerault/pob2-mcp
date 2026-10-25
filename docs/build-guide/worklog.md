@@ -5671,3 +5671,12 @@ the `m17` engine at `b76967b`.
   to use to get a realistic number. I want to see what the report says before I make any decisions about how and
   what to measure." A pilot covers three builds.
 - **The work-log's boots quote** of 2026-10-25 is restored in full (the review found its last sentence cut).
+- **The boss-damage study** (`studies/2026-10-25-boss-damage.md`): the 30 level-90+ builds, each configured from
+  its guide's own text against a Pinnacle boss (about 2.5M agent tokens: a 346K pilot, then five agents of 345K to
+  436K). PoB reads 2 of 30 builds' boss damage faithfully, 19 partly, 9 not at all; realistic figures run from 5k to
+  25M (median about 0.5M where PoB reads partly or better); creators' own files read 1.34× higher at the median (up
+  to 19.7× with custom modifiers). The mechanics PoB can't read are listed for the PoB gap list.
+- **Engagement distance** (the user: "it's not so much the skill as how close the character has to be to the
+  monsters"): the toughness study gains the close/distance split. Close: median 36k, 25th percentile 21k; distance:
+  median 18k, 25th percentile 16k; the 20k and 15k targets still sit near the 25th percentile. 22 of 30 builds are
+  over 110% of their target.

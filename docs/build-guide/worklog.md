@@ -5618,7 +5618,8 @@ the `m17` engine at `b76967b`.
   - published guides: "Allowed, cited";
   - boots: "Any build should always be using the highest movement speed tier for that level. 30% on entering maps,
     35% on budget and non-budget. Unique boots can bypass this rule if and only if the unique is required to make
-    some other aspect of the build work." The travel-skill exception stands; campaign stages use the highest tier
+    some other aspect of the build work. Movement speed is a premium stat, so whatever the build gets in exchange must
+    be of equal or greater value." The travel-skill exception stands; campaign stages use the highest tier
     for their level;
   - the tree search's figure: "Map damage with cull if and only if the build explicitly utilizes culling in its
     skill rotation. Otherwise, map damage, no cull.";
@@ -5649,3 +5650,24 @@ the `m17` engine at `b76967b`.
   Arbiter one-shots 4, all ranged. **The user's targets:** "Melee 20k, ranged 15k would be a good target, but I think
   there should probably be a little bit of wiggle room, maybe +/- 10%?" Amendment 11 §9 now holds them (a trade under
   90% of the target) and leaves no choice open.
+
+## 2026-10-25: amendment 11 reviewed; revision 1
+
+- **The independent review:** four lenses with fresh context, read only (ground-truth fidelity about 272K tokens,
+  invented decisions 187K, task graph and criteria 203K, completeness and compatibility 246K), about 100 raw findings
+  in 33 clusters; a skeptical verifier (228K) confirmed 19, partly confirmed 8, and refuted or reduced 6. The five
+  blockers: node power's `MainDamage` defined on the clear group (the power pass computes the main group); boots
+  exceptions that could never pass the gate's `v1` part, and old plans' 30% boots failing on a recompile; trades with
+  no channel to the D1 gate; D1-tree's `respec:` return with no route; a pricing retry that triggered nothing.
+  The coordinator re-checked the top three in the code.
+- **The user's answers:** a named damage kind that shows nothing at verification: "Fail it and retry"; campaign
+  respecs: "Include campaign" (lifting the 2026-10-15 deferral); over the toughness band: "Offer a damage trade".
+- **Revision 1** folds every confirmed and partly confirmed finding (§21's table): `bootsException` in the plan with
+  an information-only `boots-exception`; `trades.json`; D1-tree's `respec` and D1-finish's `build` outcomes and
+  routes; the stop limited to trade-site calls, with `retry-pricing` and the re-price pass; `skillRevision` stamped
+  at `resume`; `MainDamage` on the main group by `COUNT_RULE`; `free` for unmodelled needs; criteria one assertion
+  each. The proceed-on assumptions are listed in §20 for the user's read.
+- **The boss-damage study** runs at the user's request: "use the guide text to figure out which skills and settings
+  to use to get a realistic number. I want to see what the report says before I make any decisions about how and
+  what to measure." A pilot covers three builds.
+- **The work-log's boots quote** of 2026-10-25 is restored in full (the review found its last sentence cut).

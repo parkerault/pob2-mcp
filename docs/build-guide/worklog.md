@@ -5637,3 +5637,15 @@ the `m17` engine at `b76967b`.
   non-budget floor bites armour builds hardest.
 - **The user:** "hold off on the independent review until we've analyzed the reference builds." The user compiled
   Mobalytics' verified league-starter guides for a reference library.
+- **The reference library** (private, outside this repo, so third-party text isn't republished): Mobalytics' verified
+  league-starter guides from the user's list, 85 pages, captured one at a time with Playwright. 38 had a PoB code
+  (36 decoded, 12 of them through pobb.in links the user approved fetching; two Paintmaster pobb.in user links wait
+  for a follow-up), 43 build pages had none, 4 were articles. Each guide keeps its page text by variant (gear with
+  mods, gem groups, notable and ascendancy order), its PoB file and its video transcript (31). Each page has one
+  code, the same on every variant tab. About 640K agent tokens (pilot 245K, batches 186K and 126K, measurement
+  script about 260K).
+- **The toughness study** (`studies/2026-10-25-toughness-floors.md`): the 30 level-90+ builds under the design's own
+  non-budget enemy. Melee median 31.3k (lowest 17.3k); ranged attacks 22.7k, casters 19.1k, minions 14.7k; the
+  Arbiter one-shots 4, all ranged. **The user's targets:** "Melee 20k, ranged 15k would be a good target, but I think
+  there should probably be a little bit of wiggle room, maybe +/- 10%?" Amendment 11 §9 now holds them (a trade under
+  90% of the target) and leaves no choice open.

@@ -1,7 +1,7 @@
 # Amendment 11: builds a player would run
 
-**Status: DRAFT, 2026-10-25.** The final draft waits on the user's toughness studies (§9, choice 1); the
-independent review can start on the rest. It carries:
+**Status: DRAFT, 2026-10-25,** with the user's toughness targets from the reference-library study (§9); waiting for
+the independent review. It carries:
 - the user's notes during and after the open-brief half of the live test (WU-109, run `open-clear/2026-10-24-1`),
   the user's choices of 2026-10-24 and 2026-10-25 quoted where they're used;
 - the comparison study (`../studies/2026-10-24-reap-infernalist-comparison.md`, cited as [study]) and the user's
@@ -222,23 +222,32 @@ must be of equal or greater value." The travel-skill exception stands (the user,
 Amends `D1-build.md`'s price queries, `D1-finish.md`, `D2.md`:118, V1's code table (`02-plan-compiler.md`), the
 gate's accepted findings, the worked examples that show 30% boots (`checkpoints.md`:243, `D1-gate.md`:214).
 
-## 9. D-441: a defence trade below the toughness floor (OPEN)
+## 9. D-441: a defence trade below the toughness target
 
 The user (2026-10-25): "A rung below a set EHP at non-budget gets a defence trade shown", and "ranged and melee
 builds should have different EHP floors. My gut is 8k-10k for ranged, 15k for melee… My guess is different
-archetypes will have different average EHP. Final draft waits on those studies."
-- **When:** the non-budget rung's `TotalEHP` (against its reference hits, D-423) is under its archetype's floor.
-  It isn't a gate failure; the gate shows the trade and the user decides.
+archetypes will have different average EHP. Final draft waits on those studies." After the study: "Melee 20k, ranged
+15k would be a good target, but I think there should probably be a little bit of wiggle room, maybe +/- 10%? That
+would get us in the range of "good" defenses and still allow some forgiveness for builds that need it for DPS."
+- **The targets:** the non-budget rung's `TotalEHP`, against its reference hits (D-423), is 20,000 for a melee
+  build and 15,000 for a ranged one. **Melee** means the named source has PoB's `Melee` skill type; everything else
+  (attacks at range, spells, minions, totems) is **ranged**.
+- **The band:** within 10% of the target is good. Under 90% of it (18,000 melee, 13,500 ranged) the design shows a
+  defence trade. Above the band nothing changes. The gate always shows the rung's EHP against its target.
+- **The study** (`../studies/2026-10-25-toughness-floors.md`): 30 published league starters at level 90 or above,
+  from a private reference library of Mobalytics' verified guides, measured under the design's own non-budget enemy.
+  Melee median 31.3k (lowest 17.3k); ranged attacks 22.7k, casters 19.1k, minions 14.7k. Under 90% of these
+  targets fall 1 of 13 melee builds (17.3k) and 3 of 17 ranged ones (4.6k, 7.7k, 12.9k), all three one-shot by the
+  Arbiter.
+- **When:** the rung is under 90% of its target. It isn't a gate failure; the gate shows the trade and the user
+  decides.
 - **What the design measures** (D1-finish, on the non-budget rung):
   - each armour-slot unique with no life or ES and no resistances, against a defensive rare of its slot (life or
     ES and resistances), with the cheapest substitute for the unique's effect when the unique is a need (Crimson
     Assault for the Apron's aggravation, [study] §4.2);
   - node power's best swap ranked by `TotalEHP`, with `MainDamage` allowed to fall.
   Each trade shows its EHP gain and its damage cost (Appendix A).
-- **OPEN (choice 1):** the archetypes (at least melee and ranged, perhaps caster, minion, totem) and their floors,
-  set from the user's studies of published builds' PoB files, measured under the design's own enemy settings
-  (the measurement script, work-log). How the archetype is read: the named source's PoB skill types (`Melee` for
-  melee) unless the studies show a better split.
+- **The record** gains the named source's skill types, so the archetype is read from the record, not guessed.
 
 Amends D-353 (the design gate's toughness lines), `D1-finish.md`, `D1-gate.md`'s design field, `checkpoints.md`'s
 design gate.
@@ -327,7 +336,7 @@ About −30K to −60K on a two-build run. Node power's calls take longer (NFR i
 | Unit | What |
 |---|---|
 | WU-110 | Node power: several branches, the rebuild pass, the max-hit guard, `MainDamage` with `cull`, the coverage check on needs (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, `src/server/toolSchemas.ts`, the README table) |
-| WU-111 | The plan and the record: schema 7 (`skills.cull`, `tree.scales`), the boss measure, `measures.damage`, `measures.cull`, `measures.trigger`, `keyFigureLine`, V1's `movement-tier` (`src/plan/`, `pob-api/API/Compile.lua` where the second measure needs it, `docs/build-guide/plan-reference.md`) |
+| WU-111 | The plan and the record: schema 7 (`skills.cull`, `tree.scales`), the boss measure, `measures.damage`, `measures.cull`, `measures.trigger`, the named source's skill types (D-441), `keyFigureLine`, V1's `movement-tier` (`src/plan/`, `pob-api/API/Compile.lua` where the second measure needs it, `docs/build-guide/plan-reference.md`) |
 | WU-112 | Pricing: the spike on poe.ninja's exchange categories, then the exchange route for every exchange item (`src/handlers/tradeHandlers.ts`, `src/services/`, `src/trade/`, fixtures), `references/pricing.md`'s rule |
 | WU-113 | Scripts: `run-log.mjs` (the verification display, the brainstorm and design displays, D1-build's price outcomes, the stop and the retry, the rival only for old runs), `check-run.mjs` (the dossier columns, the design field, the order rule, `bestSwap.weaponSet`, pieces `in` only, the rival only for old runs), `render-audit.mjs` (the figures, players' currency words), `scripts/run-usage.mjs`, `tests/fixtures/pipeline/`, `references/run-log.md` |
 | WU-114 | Research and verification docs: `R1a.md`, `R1a-synthesize.md`, `R1a-assemble.md` (names, sources), `R1b.md`, `R1b-assemble.md`, the card and dossier templates, `checkpoints.md` (the brainstorm and verification gates only), `SKILL.md`, RV.md's removal, the researcher's and coordinator's definitions, `task-header.md`, `run-folder.md`, `references/stages/README.md`, `pricing.md`'s words and the stop |
@@ -336,8 +345,8 @@ About −30K to −60K on a two-build run. Node power's calls take longer (NFR i
 
 Order: WU-110, WU-111, WU-112 and WU-113 in parallel, the formats fixed by Appendix A; then WU-114 and WU-115
 (they cite the built tool descriptions); then WU-116. `checkpoints.md` is split by section between WU-114 and WU-115
-and merged by rebase. The coordinator writes the decision rows (§14) at integration. D-441's floors wait on choice 1;
-until then WU-115 writes the trade with the floor as one named table in `D1-finish.md` that the coordinator fills.
+and merged by rebase. The coordinator writes the decision rows (§14) at integration. WU-115 writes D-441's targets
+and band as one table in `D1-finish.md`, so a later study changes one place.
 
 ## 17. Acceptance criteria (M-24)
 
@@ -358,6 +367,7 @@ until then WU-115 writes the trade with the floor as one named table in `D1-fini
   - with `skills.cull`, `measures.cull` holds both thresholds and the map figure carries the multiplier; without
     it, neither does;
   - a group with Cast on Critical gives `measures.trigger {by: "Cast on Critical", usesPerSecond}`;
+  - the record holds the named source's PoB skill types (Spark: `Spell`, …; Boneshatter: `Melee`, …);
   - V1's `movement-tier` fires on budget boots with 30% and not with 35%, and on entering-maps boots with 25% and
     not with 30%.
 - **AC-K72 (WU-112).** Fixture-backed: each of the four named items, and one item from every other exchange
@@ -371,6 +381,8 @@ until then WU-115 writes the trade with the floor as one named table in `D1-fini
     eleven still pass;
   - the brainstorm display has no `out:` line; the design pieces line counts out pieces without names;
   - the design display prints both figures, the cull line only with `skills.cull`, the trigger line, and each trade;
+  - the non-budget rung's toughness line names its target; a design field with `band: "under"` and no defence
+    trade fails;
   - a price that rounds to 0.0 prints as seen in exalts; no user-facing line says "exalted";
   - `priceOutcomes` on D1-build is accepted; a retry approved at a gate is recorded and read;
   - an old run with an RV entry still passes; a new run with an `x` card fails;
@@ -398,7 +410,9 @@ until then WU-115 writes the trade with the floor as one named table in `D1-fini
 - **No numbers at verification** means a weak card reaches the design. The user chose that; the design's attempt
   limit and the gate's trades bound the cost.
 - **The boss figure doubles the compile's calcs** on variant stages (no recompile, one config change and a calc).
-- **Floors by archetype** may not separate cleanly; the studies decide (choice 1).
+- **Two toughness targets from 30 builds** is a small sample of league starters only (two minion builds, no
+  totems), and PoB's EHP swings with the defence type (evasion and deflection read high, armour low at
+  non-budget's hits). The 10% band absorbs the spread near a target; a later study can split the ranged target.
 
 ## 19. Migration and compatibility
 
@@ -412,8 +426,8 @@ until then WU-115 writes the trade with the floor as one named table in `D1-fini
 
 ## 20. Choices for the user
 
-1. **The toughness floors (open):** the archetypes and their EHP floors at non-budget, from the user's studies of
-   published builds' PoB files (gut: 8k–10k ranged, 15k melee). D-441 waits on it.
+1. **The toughness targets (taken 2026-10-25):** melee 20,000 and ranged 15,000 at non-budget, with a 10% band; the
+   trade shows under 90% of the target (§9).
 2. **Pricing runes and the like (taken 2026-10-25):** every currency-exchange item from poe.ninja's exchange; the
    trade site for uniques, lineage support gems and rares (§12).
 3. **Campaign stages and movement speed (taken 2026-10-25):** the highest tier for each stage's level (§8).
@@ -458,13 +472,15 @@ Under the cards: `Numbers come at the design gate, measured on the full build.`
 - Passive tree: 56 of 118 points on travel; best swap left: +6.1% damage by moving 5 points from <nodes> to <nodes>
 - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
 - Boots: Trampletoe, 25% movement speed (10% under the tier), for overkill damage hitting nearby enemies.
-- Defence (under the 10,000 floor for ranged): a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
+- Toughness: 6,759 against the 15,000 ranged target, under its band (13,500).
+- Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
 ```
 The pieces line, once per build: `- Pieces: 5 in, 1 scheduled (Seismic Cry), 2 out`.
 
 ### The D1 gate's design field (additions)
 
-Per rung: `damage {map, boss}`, `cull {map, boss} | null`, `trigger {by, usesPerSecond} | null`, and `trades[]`,
+Per rung: `damage {map, boss}`, `cull {map, boss} | null`, `trigger {by, usesPerSecond} | null`, on the non-budget
+rung `toughness {archetype: "melee" | "ranged", target, band: "under" | "within" | "over"}`, and `trades[]`,
 each `{kind: "unmodelled" | "boots" | "defence", what, gain, cost}`, `gain` and `cost` short phrases with their
 numbers. `pieces` loses `outNames`. `dps` stays for old readers.
 

@@ -12,6 +12,7 @@ the agents followed are in `briefs/`.
 - [Navira's Fracturing: our Varashta baseline against Navira's guide](2026-10-17-varashta-comparison.md)
 - [Spud the King's Warcryer against our Wand-and-Shield Warcaller, with his Avatar of Fire video](2026-10-23-spud-warcryer-comparison.md)
 - [GL1TCH3D's Reaper of Souls against our two Bonfire Reap Infernalists](2026-10-24-reap-infernalist-comparison.md)
+- [Toughness targets from published league starters](2026-10-25-toughness-floors.md)
 - [Off-meta build 1: Melting Maelstrom Shaman (Troy Tesko)](2026-10-09-GsLBMXy3tDk-melting-maelstrom-shaman.md)
 - [perra's "Broken Off-Meta Builds" page: index and written guides](2026-10-10-perra-index.md)
 - [Mirage Sniper (J_Macc)](2026-10-10-FUeS6JNqHrw-mirage-sniper.md)

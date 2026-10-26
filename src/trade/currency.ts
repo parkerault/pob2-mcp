@@ -11,9 +11,10 @@
  *   304 renews the entry.
  * - **Failure.** A network error, a non-2xx or an unreadable body gives `null` (callers degrade,
  *   D-11), logged to stderr. `POE_NINJA_DISABLED=true` gives `null` without a request.
- * - **Other exchange categories** (D-387): `getExchange(league, type)` reads one more category of poe.ninja's
- *   currency exchange (`Delirium`: the Distilled Emotions) into the same `Rates` shape, cached the same way per
- *   league and category: each item's value in the primary currency and its display name.
+ * - **Other exchange categories** (D-387, D-444): `getExchange(league, type)` reads any category of poe.ninja's
+ *   currency exchange (`Runes`, `SoulCores`, `Idols`, `Delirium` for the Distilled Emotions, …;
+ *   `src/trade/exchange.ts`) into the same `Rates` shape, cached the same way per league and category: each item's
+ *   value in the primary currency and its display name.
  */
 import { PoeNinjaClient, type CurrencyOverviewResponse } from '../services/poeNinjaClient.js';
 
@@ -132,7 +133,7 @@ export class CurrencyService {
   }
 
   /**
-   * D-387: one category of the league's currency exchange (`Currency`, `Delirium`, …) as `Rates`, or null when
+   * D-387, D-444: one category of the league's currency exchange (`Currency`, `Runes`, `Delirium`, …) as `Rates`, or null when
    * poe.ninja is disabled or unavailable. Concurrent callers share one request.
    */
   getExchange(league: string, type: string): Promise<Rates | null> {

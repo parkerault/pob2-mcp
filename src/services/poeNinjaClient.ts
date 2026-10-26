@@ -2,10 +2,10 @@
  * poe.ninja PoE2 HTTP client: the currency exchange overview, and nothing else.
  *
  * `GET https://poe.ninja/poe2/api/economy/exchange/current/overview?league=<league>&type=<type>`
- * with the D-25 User-Agent: `Currency` for the rates, and (D-387) another exchange category, such as
- * `Delirium` for the Distilled Emotions. The conversion logic lives in `src/trade/currency.ts` (C-12); this
- * module only does the HTTP, including the conditional request (`If-None-Match`; poe.ninja:
- * "ETag-based. Use conditional requests").
+ * with the D-25 User-Agent: `Currency` for the rates, and (D-387, D-444) any other exchange category, such as
+ * `Runes` or `Delirium` for the Distilled Emotions, for `get_item_price`. The conversion logic lives in
+ * `src/trade/currency.ts` (C-12); this module only does the HTTP, including the conditional request
+ * (`If-None-Match`; poe.ninja: "ETag-based. Use conditional requests").
  */
 
 export const POE_NINJA_OVERVIEW_URL = 'https://poe.ninja/poe2/api/economy/exchange/current/overview';

@@ -3093,7 +3093,7 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     expect(text).toMatch(/\*\*An over-target rare keeps its designed item\.\*\* D1-finish may add a fallback/);
     // D-372: which tool, and the call.
     expect(text).toContain('**A rare gear slot or rare tree jewel of `b` or `n`:** `mcp__pob2__find_upgrades`');
-    expect(text).toContain('**A unique, and each Distilled Emotion of an anoint:** `mcp__pob2__get_item_price`');
+    expect(text).toContain('**A unique, and an item the currency exchange sells:** `mcp__pob2__get_item_price`');
     expect(text).toContain('**A magic or normal item, a flask, a charm, and every slot of `m`:** `mcp__pob2__search_trade_items` with `mods`');
     for (const part of [
       '`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title:',

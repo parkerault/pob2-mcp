@@ -223,7 +223,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `restore_snapshot` | core | Restore a build file from one of its snapshots. |
 | `export_build_summary` | core | Generate a clean markdown summary of the loaded build suitable for sharing on Reddit, Discord, or as build documentation |
 | `search_trade_items` | trade | Search the Path of Exile 2 trade site (trade2) for items with filters. |
-| `get_item_price` | trade | Quick price check for a specific item by name on the PoE2 trade site. |
+| `get_item_price` | trade | Quick price check for one item by name: an item the currency exchange sells is priced from poe.ninja's exchange, anything else on the PoE2 trade site. |
 | `get_leagues` | trade | List the PoE2 trade leagues, in the trade site's order, and mark the default league (POE_LEAGUE if set, else the first current league that is not Standard or Hardcore). |
 | `search_stats` | trade | Search the trade site's live stat list for stat ids to use in trade searches (search_trade_items mods[].stat_id). |
 | `find_upgrades` | trade | Find upgrades on the Path of Exile 2 trade site for one item slot of the loaded build, the way Path of Building's trade dialog does it: PoB generates a weighted trade query from the build (sort_stats, default the build's saved trade weights, else Full DPS 1 + Effective Hit Pool 0.5), the server searches and fetches listings (at most 5 searches, 90 s budget), PoB scores every candidate against the build, prices are normalized with poe.ninja rates and filtered by max_price, and the results are ranked by rank_by. |

@@ -1,0 +1,12 @@
+{
+  "query": {
+    "status": {
+      "option": "available"
+    },
+    "filters": {},
+    "type": "Legacy of Deathblow"
+  },
+  "sort": {
+    "price": "asc"
+  }
+}

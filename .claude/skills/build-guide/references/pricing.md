@@ -62,11 +62,13 @@ Before any search, reuse an entry with the same item, query and league from any 
   core or idol in a socket, each Distilled Emotion of an anoint (by the name the record's anoint recipe gives), a
   lineage support gem. **Exchange items from poe.ninja; the trade site for the rest** (D-444): players buy an
   exchange item on the currency exchange, not on the trade site, so the tool prices it from poe.ninja's exchange,
-  by its category, and sends no trade request; only a unique is priced from trade listings. An exchange item's
-  price is its exchange value (D-387): amount and currency from the `Exchange value:` line, `query`
+  by its category, and sends no trade request; only a unique, or an exchange item its category doesn't list
+  (searched by name, and never after pricing stops), is priced from trade listings. An exchange item's price is
+  its exchange value (D-387): amount and currency from the `Exchange value:` line, `query`
   `{"exchange": "<category>", "name": "<item>"}` with the category the result names. A result with an
-  `Unavailable (<category>)` line records no price: the item is `unavailable`, note `not on poe.ninja's exchange
-  (<category>)`. With `--no-ninja`, no exchange item is priced: each is `unavailable`, note `no poe.ninja`.
+  `Unavailable (…)` line records no price: the item is `unavailable`, its note the line's parenthesis (`Runes;
+  trade site: no listings`). With `--no-ninja`, no exchange item is priced: each is `unavailable`, note `no
+  poe.ninja`.
 - **A magic or normal item, a flask, a charm, and every slot of `m`:** `mcp__pob2__search_trade_items` with
   `mods`. `m` is mostly the campaign's own gear.
 

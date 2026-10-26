@@ -28,8 +28,9 @@
  * Not on poe.ninja's exchange: uniques (poe.ninja prices them from trade listings, its `stash` endpoints, with
  * precursor tablets) and rares.
  *
- * An item is recognised by its name alone: its category is fixed before poe.ninja is asked, so an exchange item
- * poe.ninja doesn't list is `unavailable` with the category it tried, never searched on the trade site.
+ * An item is recognised by its name alone: its category is fixed before poe.ninja is asked. One its category doesn't
+ * list is searched on the trade site by name (the user's ruling, 2026-10-25), and is unavailable, naming both routes,
+ * when that finds none too (`get_item_price`, `src/handlers/tradeHandlers.ts`).
  */
 
 /** poe.ninja's PoE2 currency-exchange categories (the overview's `type`). */

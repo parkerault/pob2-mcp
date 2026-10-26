@@ -1,8 +1,10 @@
 /**
- * D-387: `get_item_price` prices a Distilled Emotion from poe.ninja's currency exchange, never from trade
- * listings. An emotion is a currency-exchange item, so a trade search by its name is refused (`invalid_query`,
- * the Varashta run's anoints). In process (startTestServer, C-18); HTTP only via `fixtureFetch`: poe.ninja's
- * Delirium overview (the committed `poeninja/delirium-overview` capture), and every trade route failing the test.
+ * D-387: `get_item_price` prices a Distilled Emotion from poe.ninja's currency exchange, not from trade listings
+ * (D-444: only one the exchange doesn't list goes to the trade site, by its name as the base type). An emotion is
+ * a currency-exchange item, so a trade search by its name as a unique's is refused (`invalid_query`, the Varashta
+ * run's anoints). In process (startTestServer, C-18); HTTP only via `fixtureFetch`: poe.ninja's
+ * Delirium overview (the committed `poeninja/delirium-overview` capture), and every trade route failing the test except
+ * the fallback's search (`trade2/search-empty`).
  */
 import fs from 'fs';
 import path from 'path';
@@ -72,11 +74,21 @@ describe('D-387: a Distilled Emotion is priced from poe.ninja\'s currency exchan
     expect(fixtureValue('Ancient Liquid Envy')).not.toBe(fixtureValue('Liquid Envy'));
   });
 
-  it('says so when the exchange lists no such emotion', async () => {
-    const { res, text } = await price('Liquid Nonsense', { fixture: 'poeninja/delirium-overview' });
+  it('says so when the exchange lists no such emotion, and tries the trade site by its name as the base type (D-444, the user\'s ruling)', async () => {
+    const ff = fixtureFetch([
+      { match: /\/api\/trade2\/data\/stats$/, respond: { fixture: 'trade2/data-stats' } },
+      { match: /\/api\/trade2\/search\//, respond: { fixture: 'trade2/search-empty' } },
+      { match: /poe\.ninja\//, respond: { fixture: 'poeninja/delirium-overview' } },
+    ]);
+    server = await startTestServer({ fetch: ff.fetch, env: ENV });
+    const res = (await server.client.callTool({ name: 'get_item_price', arguments: { item_name: 'Liquid Nonsense', league: LEAGUE } })) as ToolResult;
     expect(res.isError).toBeFalsy();
+    const text = res.content[0].text;
     expect(text).toContain("poe.ninja's currency exchange (Delirium) lists no Liquid Nonsense in Forbidden Rites");
+    expect(text).toContain('Unavailable (Delirium; trade site: no listings)');
     expect(text).not.toContain('Exchange value:');
+    const searches = ff.calls.filter((c) => /\/api\/trade2\/search\//.test(c.url));
+    expect(searches.map((c) => JSON.parse(c.body as string).query)).toEqual([{ status: { option: 'available' }, filters: {}, type: 'Liquid Nonsense' }]);
   });
 
   it('is unavailable, with no trade fallback, when poe.ninja fails or is disabled', async () => {

@@ -1,0 +1,202 @@
+{
+  "result": [
+    {
+      "id": "d357589e92917704b9f2981d36b3aec04f4dffa79611b5ea144452f3dae5d569",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-25T12:00:00Z",
+        "stash": {
+          "name": "tab-1",
+          "x": 0,
+          "y": 0
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 40,
+          "currency": "exalted"
+        },
+        "account": {
+          "name": "seller-1#0001",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "stackSize": 1,
+        "maxStackSize": 10,
+        "league": "Forbidden Rites",
+        "id": "d357589e92917704b9f2981d36b3aec04f4dffa79611b5ea144452f3dae5d569",
+        "name": "",
+        "typeLine": "Legacy of Deathblow",
+        "baseType": "Legacy of Deathblow",
+        "ilvl": 0,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Stack Size",
+            "values": [
+              [
+                "1/10",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 32
+          },
+          {
+            "name": "[Rune|Rune]",
+            "values": [],
+            "displayMode": 0
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Gloves: Culling Strike"
+          }
+        ],
+        "bondedMods": [
+          "[ShamanOnlyMods|Bonded]:",
+          "Gloves:",
+          "Gain 30 Life per enemy killed"
+        ],
+        "frameType": 5,
+        "frameTypeId": "Currency"
+      }
+    },
+    {
+      "id": "9bdf04d0e3b05c9d3e52e74939d75f0e5fbf81d9a1c5c5bb88a3822b18b331eb",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-25T12:00:00Z",
+        "stash": {
+          "name": "tab-2",
+          "x": 1,
+          "y": 0
+        },
+        "price": {
+          "type": "~b/o",
+          "amount": 6,
+          "currency": "chaos"
+        },
+        "account": {
+          "name": "seller-2#0002",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "stackSize": 1,
+        "maxStackSize": 10,
+        "league": "Forbidden Rites",
+        "id": "9bdf04d0e3b05c9d3e52e74939d75f0e5fbf81d9a1c5c5bb88a3822b18b331eb",
+        "name": "",
+        "typeLine": "Legacy of Deathblow",
+        "baseType": "Legacy of Deathblow",
+        "ilvl": 0,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Stack Size",
+            "values": [
+              [
+                "1/10",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 32
+          },
+          {
+            "name": "[Rune|Rune]",
+            "values": [],
+            "displayMode": 0
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Gloves: Culling Strike"
+          }
+        ],
+        "bondedMods": [
+          "[ShamanOnlyMods|Bonded]:",
+          "Gloves:",
+          "Gain 30 Life per enemy killed"
+        ],
+        "frameType": 5,
+        "frameTypeId": "Currency"
+      }
+    },
+    {
+      "id": "c98e4caa29c9b0d21186dc003ec8bfb1f913b00d07348b182dbd8f90e53ff3b6",
+      "listing": {
+        "method": "psapi",
+        "indexed": "2026-10-25T12:00:00Z",
+        "stash": {
+          "name": "tab-3",
+          "x": 2,
+          "y": 0
+        },
+        "price": {
+          "type": "~price",
+          "amount": 1,
+          "currency": "divine"
+        },
+        "account": {
+          "name": "seller-3#0003",
+          "online": null
+        }
+      },
+      "item": {
+        "realm": "poe2",
+        "verified": true,
+        "w": 1,
+        "h": 1,
+        "stackSize": 1,
+        "maxStackSize": 10,
+        "league": "Forbidden Rites",
+        "id": "c98e4caa29c9b0d21186dc003ec8bfb1f913b00d07348b182dbd8f90e53ff3b6",
+        "name": "",
+        "typeLine": "Legacy of Deathblow",
+        "baseType": "Legacy of Deathblow",
+        "ilvl": 0,
+        "identified": true,
+        "properties": [
+          {
+            "name": "Stack Size",
+            "values": [
+              [
+                "1/10",
+                0
+              ]
+            ],
+            "displayMode": 0,
+            "type": 32
+          },
+          {
+            "name": "[Rune|Rune]",
+            "values": [],
+            "displayMode": 0
+          }
+        ],
+        "explicitMods": [
+          {
+            "description": "Gloves: Culling Strike"
+          }
+        ],
+        "bondedMods": [
+          "[ShamanOnlyMods|Bonded]:",
+          "Gloves:",
+          "Gain 30 Life per enemy killed"
+        ],
+        "frameType": 5,
+        "frameTypeId": "Currency"
+      }
+    }
+  ]
+}

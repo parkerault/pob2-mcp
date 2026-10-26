@@ -82,6 +82,15 @@ export class TradeQueryBuilder {
     return this;
   }
 
+  /**
+   * A base type, as given, with no category mapping: a stackable item's name, such as a rune's (trade2 lists one with
+   * `typeLine` = `baseType` = its name; D-444's trade fallback).
+   */
+  withBaseType(type: string): this {
+    this.query.query.type = type;
+    return this;
+  }
+
   /** A generic item type maps to its category; anything else is a base type. */
   withType(type: string): this {
     const category = CATEGORY_MAP[type.trim().toLowerCase()];

@@ -26,7 +26,9 @@ describe('D-444: exchange items from poe.ninja; the trade site for the rest', ()
       '- **A unique, and an item the currency exchange sells:** `mcp__pob2__get_item_price`, by name: a rune, soul core or idol in a socket, each Distilled Emotion of an anoint (by the name the record\'s anoint recipe gives), a lineage support gem. **Exchange items from poe.ninja; the trade site for the rest** (D-444)',
     );
     expect(text).toContain('`query` `{"exchange": "<category>", "name": "<item>"}` with the category the result names');
-    expect(text).toContain("A result with an `Unavailable (<category>)` line records no price: the item is `unavailable`, note `not on poe.ninja's exchange (<category>)`.");
+    // The user's ruling (2026-10-25): an exchange item its category doesn't list goes to the trade site by name.
+    expect(text).toContain('only a unique, or an exchange item its category doesn\'t list (searched by name, and never after pricing stops), is priced from trade listings.');
+    expect(text).toContain("A result with an `Unavailable (…)` line records no price: the item is `unavailable`, its note the line's parenthesis (`Runes; trade site: no listings`).");
     // The emotion-only rule it replaces is gone.
     expect(text).not.toContain('**A unique, and each Distilled Emotion of an anoint:**');
     expect(text).not.toContain('`{"exchange": "Delirium", "name": "<emotion>"}`');
@@ -37,7 +39,7 @@ describe('D-444: exchange items from poe.ninja; the trade site for the rest', ()
     expect(tool).toBeDefined();
     const d = tool!.description as string;
     expect(d.startsWith("Quick price check for one item by name: an item the currency exchange sells is priced from poe.ninja's exchange, anything else on the PoE2 trade site.")).toBe(true);
-    for (const part of ["'Perfect Body Rune'", "'Wolf Idol'", "'Liquid Envy'", 'runes, soul cores, idols', 'lineage support gems', "'Unavailable (<category>)'", 'with no trade request and no fallback to listings', 'Anything else (uniques, bases) is searched on the trade site']) {
+    for (const part of ["'Perfect Body Rune'", "'Wolf Idol'", "'Liquid Envy'", 'runes, soul cores, idols', 'lineage support gems', 'with no trade request; one its category doesn\'t list is searched on the trade site by name instead', "'Unavailable (<category>; trade site: no listings)'", 'Anything else (uniques, bases) is searched on the trade site']) {
       expect({ part, in: d.includes(part) }).toEqual({ part, in: true });
     }
     expect(d.length).toBeLessThanOrEqual(2048);

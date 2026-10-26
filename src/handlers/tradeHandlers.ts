@@ -307,11 +307,77 @@ export function exchangeCategoryOf(itemName: string): ExchangeCategory | null {
   return exchangeKindOf(itemName)?.category ?? null;
 }
 
+/** A trade search's listings, priced: the result's lines after the header, or why there is none. */
+type ListingsPrice = { body: string } | { none: 'no listings' | 'no priced listings' };
+
+/**
+ * One trade search and the fetch of its first 10 listings, priced: each listing's native price and its
+ * primary-currency equivalent, and a summary in the primary currency (C-12).
+ */
+async function priceListings(context: TradeContext, league: string, query: object): Promise<ListingsPrice> {
+  const searchResult = await context.tradeClient.search(league, query, { auth: false });
+  if (searchResult.result.length === 0) return { none: 'no listings' };
+
+  const items = presentEntries(
+    await context.tradeClient.fetch(searchResult.result.slice(0, 10), searchResult.id, { auth: false }),
+  ).filter((l) => l.listing.price);
+  if (items.length === 0) return { none: 'no priced listings' };
+
+  const { rates, values, note } = await normalizePrices(context.currency, league, items);
+
+  let output = `Total Listings: ${searchResult.total} · Priced listings fetched: ${items.length}\n`;
+  if (note) output += `${note}\n`;
+  output += '\nListings (cheapest first, as listed):\n';
+  items.forEach((l, i) => {
+    const price = l.listing.price!;
+    output += `  ${i + 1}. ${l.item.name || l.item.typeLine}: ${nativePrice(price)}`;
+    const v = values[i];
+    if (v !== null && rates) output += ` (≈ ${formatCurrencyValue(v)} ${rates.primary})`;
+    output += '\n';
+  });
+
+  // Per-currency counts, the summary in the primary currency (when rates are known), and the
+  // native price spread per currency (always: it keeps the listed range visible).
+  const byCurrency = new Map<string, number[]>();
+  for (const l of items) {
+    const price = l.listing.price!;
+    if (!byCurrency.has(price.currency)) byCurrency.set(price.currency, []);
+    byCurrency.get(price.currency)!.push(price.amount);
+  }
+  output += `\nListed in: ${[...byCurrency.entries()].map(([c, a]) => `${c} ×${a.length}`).join(', ')}\n`;
+
+  const normalized = values.filter((v): v is number => v !== null);
+  if (rates && normalized.length > 0) {
+    const s = spread(normalized);
+    output += `\nSummary in ${rates.nameOf(rates.primary)} (${rates.primary}), from ${normalized.length} of ${items.length} listings:\n`;
+    output += `  Low: ${formatCurrencyValue(s.low)} ${rates.primary}\n`;
+    output += `  Median: ${formatCurrencyValue(s.median)} ${rates.primary}\n`;
+    output += `  Average: ${formatCurrencyValue(s.average)} ${rates.primary}\n`;
+    output += `  High: ${formatCurrencyValue(s.high)} ${rates.primary}\n`;
+  }
+  for (const [currency, amounts] of byCurrency.entries()) {
+    const s = spread(amounts);
+    output += `\n${currency} (${amounts.length} listings, native prices):\n`;
+    output += `  Low: ${s.low} ${currency}\n`;
+    output += `  Median: ${s.median} ${currency}\n`;
+    output += `  Average: ${fmt2(s.average)} ${currency}\n`;
+    output += `  High: ${s.high} ${currency}\n`;
+  }
+  output += `\n🔗 ${tradeSearchUrl(league, searchResult.id)}\n`;
+  return { body: output };
+}
+
 /**
  * D-444 (amends D-387): an item the currency exchange sells is priced from poe.ninja's exchange, by its category,
- * in the primary currency, dated as every price result is (C-49). No trade request, and no fallback to listings:
- * players buy these on the exchange, and the trade site refuses some of them by name (an emotion: `invalid_query`).
- * One its category doesn't list, or a category poe.ninja can't give, is `Unavailable (<category>)`.
+ * in the primary currency, dated as every price result is (C-49), with no trade request: players buy these on the
+ * exchange. When poe.ninja can't give the category, it is `Unavailable (<category>)`.
+ *
+ * When the category doesn't list the item (the user's ruling, 2026-10-25: "Legacy of …" runes are on no exchange
+ * list), it is priced from trade listings instead, searched by its name as the base type (trade2 lists a rune with
+ * `typeLine` = `baseType` = its name). The trade site having none too gives `Unavailable (<category>; trade site: no
+ * listings)`. That fallback isn't tried once this server has met a trade-site limit (`rate_limited` or `locked_out`),
+ * the server's view of a pricing stop: the item stays `Unavailable (<category>)`. A trade error on the fallback
+ * carries its `[trade:<kind>]` prefix, as every trade error of this tool does (D-218).
  */
 async function exchangePrice(
   context: TradeContext,
@@ -322,18 +388,31 @@ async function exchangePrice(
 ): Promise<TextResult> {
   const name = itemName.trim();
   const { category } = kind;
-  const head = `=== Price Check: ${name} ===\n${datedLines(league, checkedAt)}`;
+  const head = (at: number) => `=== Price Check: ${name} ===\n${datedLines(league, at)}`;
   const what = `${name} is ${kind.label}, a currency-exchange item, not a trade listing: priced from poe.ninja's currency exchange (${category}).`;
   const rates = await context.currency.getExchange(league, category);
   if (!rates) {
-    return text(`${head}${what}\nUnavailable (${category}): poe.ninja's currency exchange is unavailable, so ${name} has no price; trade listings can't price it.\n`);
+    return text(`${head(checkedAt)}${what}\nUnavailable (${category}): poe.ninja's currency exchange is unavailable, so ${name} has no price; the trade site isn't tried for an exchange item.\n`);
   }
   const wanted = foldName(name);
   const found = rates.currencies().find((c) => foldName(c.name) === wanted);
-  if (!found) {
-    return text(`${head}${what}\nUnavailable (${category}): poe.ninja's currency exchange (${category}) lists no ${name} in ${league}.\n`);
+  if (found) {
+    return text(`${head(checkedAt)}${what}\nExchange value: ${found.valueInPrimary} ${rates.primary} (${rates.nameOf(rates.primary)})\n`);
   }
-  return text(`${head}${what}\nExchange value: ${found.valueInPrimary} ${rates.primary} (${rates.nameOf(rates.primary)})\n`);
+
+  const notListed = `poe.ninja's currency exchange (${category}) lists no ${name} in ${league}`;
+  const stop = context.tradeClient.limitStop?.() ?? null;
+  if (stop) {
+    return text(`${head(checkedAt)}${what}\nUnavailable (${category}): ${notListed}, and the trade site isn't tried after its limit stopped pricing (${stop}).\n`);
+  }
+  const query = new TradeQueryBuilder().withBaseType(name).withOnlineStatus('available').withSort('price', 'asc').build();
+  const searchedAt = (context.now ?? Date.now)();
+  const priced = await priceListings(context, league, query);
+  const fallback = `${name} is ${kind.label}, a currency-exchange item, but ${notListed}: priced from trade listings, by its name, instead.`;
+  if ('none' in priced) {
+    return text(`${head(searchedAt)}${fallback}\nUnavailable (${category}; trade site: ${priced.none}): ${notListed}, and the trade site has ${priced.none} for it.\n`);
+  }
+  return text(`${head(searchedAt)}${fallback}\n${priced.body}`);
 }
 
 /**
@@ -353,7 +432,7 @@ export async function handleGetItemPrice(
   return wrapTradeHandler('get item price', async () => {
     const { item_name, item_type, rarity } = args;
     const league = args.league || (await context.resolveLeague());
-    // D-444: an item the currency exchange sells is priced from poe.ninja's exchange, never searched on trade.
+    // D-444: an item the currency exchange sells is priced from poe.ninja's exchange first.
     const kind = exchangeKindOf(item_name);
     if (kind) return exchangePrice(context, league, item_name, kind, (context.now ?? Date.now)());
 
@@ -362,63 +441,13 @@ export async function handleGetItemPrice(
     if (rarity) builder.withRarity(rarity);
 
     const checkedAt = (context.now ?? Date.now)();
-    const searchResult = await context.tradeClient.search(league, builder.build(), { auth: false });
-    if (searchResult.result.length === 0) {
-      return text(`No price data found for "${item_name}" in ${league}.\n${datedLines(league, checkedAt)}`);
+    const priced = await priceListings(context, league, builder.build());
+    if ('none' in priced) {
+      const what = priced.none === 'no listings' ? 'No price data found' : 'No priced listings found';
+      return text(`${what} for "${item_name}" in ${league}.\n${datedLines(league, checkedAt)}`);
     }
-
-    const items = presentEntries(
-      await context.tradeClient.fetch(searchResult.result.slice(0, 10), searchResult.id, { auth: false }),
-    ).filter((l) => l.listing.price);
-    if (items.length === 0) {
-      return text(`No priced listings found for "${item_name}" in ${league}.\n${datedLines(league, checkedAt)}`);
-    }
-
-    const { rates, values, note } = await normalizePrices(context.currency, league, items);
-
-    let output = `=== Price Check: ${item_name} ===\n`;
     // C-49: the date and league come before the listings, so C-1's truncation can't drop them.
-    output += datedLines(league, checkedAt);
-    output += `Total Listings: ${searchResult.total} · Priced listings fetched: ${items.length}\n`;
-    if (note) output += `${note}\n`;
-    output += '\nListings (cheapest first, as listed):\n';
-    items.forEach((l, i) => {
-      const price = l.listing.price!;
-      output += `  ${i + 1}. ${l.item.name || l.item.typeLine}: ${nativePrice(price)}`;
-      const v = values[i];
-      if (v !== null && rates) output += ` (≈ ${formatCurrencyValue(v)} ${rates.primary})`;
-      output += '\n';
-    });
-
-    // Per-currency counts, the summary in the primary currency (when rates are known), and the
-    // native price spread per currency (always: it keeps the listed range visible).
-    const byCurrency = new Map<string, number[]>();
-    for (const l of items) {
-      const price = l.listing.price!;
-      if (!byCurrency.has(price.currency)) byCurrency.set(price.currency, []);
-      byCurrency.get(price.currency)!.push(price.amount);
-    }
-    output += `\nListed in: ${[...byCurrency.entries()].map(([c, a]) => `${c} ×${a.length}`).join(', ')}\n`;
-
-    const normalized = values.filter((v): v is number => v !== null);
-    if (rates && normalized.length > 0) {
-      const s = spread(normalized);
-      output += `\nSummary in ${rates.nameOf(rates.primary)} (${rates.primary}), from ${normalized.length} of ${items.length} listings:\n`;
-      output += `  Low: ${formatCurrencyValue(s.low)} ${rates.primary}\n`;
-      output += `  Median: ${formatCurrencyValue(s.median)} ${rates.primary}\n`;
-      output += `  Average: ${formatCurrencyValue(s.average)} ${rates.primary}\n`;
-      output += `  High: ${formatCurrencyValue(s.high)} ${rates.primary}\n`;
-    }
-    for (const [currency, amounts] of byCurrency.entries()) {
-      const s = spread(amounts);
-      output += `\n${currency} (${amounts.length} listings, native prices):\n`;
-      output += `  Low: ${s.low} ${currency}\n`;
-      output += `  Median: ${s.median} ${currency}\n`;
-      output += `  Average: ${fmt2(s.average)} ${currency}\n`;
-      output += `  High: ${s.high} ${currency}\n`;
-    }
-    output += `\n🔗 ${tradeSearchUrl(league, searchResult.id)}\n`;
-    return text(output);
+    return text(`=== Price Check: ${item_name} ===\n${datedLines(league, checkedAt)}${priced.body}`);
   });
 }
 

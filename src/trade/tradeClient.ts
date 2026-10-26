@@ -108,6 +108,8 @@ export class TradeApiClient {
   private readonly realm: string;
   private readonly now: () => number;
 
+  /** D-444: the first trade-site limit this client met, `rate_limited` or `locked_out`; null until then. */
+  private limitMet: 'rate_limited' | 'locked_out' | null = null;
   private stats: Promise<StatsData> | null = null;
   private leagues: { value: LeagueEntry[]; fetchedAt: number } | null = null;
   private leaguesInFlight: Promise<LeagueEntry[]> | null = null;
@@ -123,19 +125,41 @@ export class TradeApiClient {
     this.now = deps.now ?? Date.now;
   }
 
+  /**
+   * D-444: the first trade-site limit a search or fetch of this client met (`rate_limited`: the trade site answered
+   * 429; `locked_out`: the limiter refused a send during a lockout), or null. It is the server's view of a pricing
+   * stop (D-415, D-422), held for the process: `get_item_price` sends an exchange item's trade fallback only while
+   * it is null.
+   */
+  limitStop(): 'rate_limited' | 'locked_out' | null {
+    return this.limitMet;
+  }
+
+  /** Run a search or fetch, noting the first trade-site limit it meets. */
+  private async noteLimit<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      if (error instanceof TradeError && (error.kind === 'rate_limited' || error.kind === 'locked_out')) this.limitMet ??= error.kind;
+      throw error;
+    }
+  }
+
   /** POST a search. Never cached (D-46). */
   async search(league: string, query: object, opts: TradeRequestOptions): Promise<SearchResponse> {
-    const url = `${this.baseUrl}/search/${this.realm}/${encodeURIComponent(league)}`;
-    const ex = await this.exchange('search', url, { method: 'POST', body: JSON.stringify(query) }, opts);
-    this.throwIfError(ex, hasWeightGroup(query));
-    const parsed = this.parseJson(ex) as Partial<SearchResponse>;
-    return {
-      id: String(parsed.id ?? ''),
-      total: typeof parsed.total === 'number' ? parsed.total : 0,
-      result: Array.isArray(parsed.result) ? parsed.result : [],
-      ...(typeof parsed.complexity === 'number' ? { complexity: parsed.complexity } : {}),
-      ...(typeof parsed.inexact === 'boolean' ? { inexact: parsed.inexact } : {}),
-    };
+    return this.noteLimit(async () => {
+      const url = `${this.baseUrl}/search/${this.realm}/${encodeURIComponent(league)}`;
+      const ex = await this.exchange('search', url, { method: 'POST', body: JSON.stringify(query) }, opts);
+      this.throwIfError(ex, hasWeightGroup(query));
+      const parsed = this.parseJson(ex) as Partial<SearchResponse>;
+      return {
+        id: String(parsed.id ?? ''),
+        total: typeof parsed.total === 'number' ? parsed.total : 0,
+        result: Array.isArray(parsed.result) ? parsed.result : [],
+        ...(typeof parsed.complexity === 'number' ? { complexity: parsed.complexity } : {}),
+        ...(typeof parsed.inexact === 'boolean' ? { inexact: parsed.inexact } : {}),
+      };
+    });
   }
 
   /** GET up to 10 listings of a search. Returns the raw `result` entries, `null`s included. Never cached. */
@@ -143,13 +167,15 @@ export class TradeApiClient {
     if (ids.length < 1 || ids.length > MAX_FETCH_IDS) {
       throw new RangeError(`trade fetch takes 1 to ${MAX_FETCH_IDS} ids, got ${ids.length}`);
     }
-    const url =
-      `${this.baseUrl}/fetch/${ids.map(encodeURIComponent).join(',')}` +
-      `?query=${encodeURIComponent(queryId)}&realm=${encodeURIComponent(this.realm)}`;
-    const ex = await this.exchange('fetch', url, { method: 'GET' }, opts);
-    this.throwIfError(ex, false);
-    const parsed = this.parseJson(ex) as { result?: unknown };
-    return Array.isArray(parsed.result) ? (parsed.result as Array<FetchEntry | null>) : [];
+    return this.noteLimit(async () => {
+      const url =
+        `${this.baseUrl}/fetch/${ids.map(encodeURIComponent).join(',')}` +
+        `?query=${encodeURIComponent(queryId)}&realm=${encodeURIComponent(this.realm)}`;
+      const ex = await this.exchange('fetch', url, { method: 'GET' }, opts);
+      this.throwIfError(ex, false);
+      const parsed = this.parseJson(ex) as { result?: unknown };
+      return Array.isArray(parsed.result) ? (parsed.result as Array<FetchEntry | null>) : [];
+    });
   }
 
   /** `/data/stats`: loaded lazily, cached for the process once it succeeds. */

@@ -1,0 +1,1143 @@
+{
+  "schemaVersion": 6,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Boneshatter"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "stages": [
+    {
+      "id": "1",
+      "loadoutName": "Act 1 Clearfell (L5) {1}",
+      "level": 5,
+      "progress": "q.act-1-clearfell-beira",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          33556
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Act 1 gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nHale Rough Greaves\n+12 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rage I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "multiplierRage",
+            "value": 10,
+            "producer": {
+              "kind": "gem",
+              "name": "Rage I"
+            },
+            "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
+          },
+          {
+            "option": "questAct 1FreythornKing In The Mists",
+            "value": false
+          },
+          {
+            "option": "questAct 1Ogham ManorCandlemass",
+            "value": false
+          },
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s1-life",
+          "text": "Stage 1's maximum life, as PoB computes it at level 5.",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "1.Life"
+          }
+        },
+        {
+          "id": "s1-beira",
+          "text": "Beira's quest reward is +10% to Cold Resistance.",
+          "source": {
+            "kind": "pob-data",
+            "ref": "Data/QuestRewards.lua:7",
+            "patch": "0.5.4"
+          }
+        },
+        {
+          "id": "s1-boneshatter",
+          "text": "Boneshatter carries a Titan through the campaign from Act 1.",
+          "source": {
+            "kind": "external",
+            "ref": "https://maxroll.gg/poe2/build-guides/boneshatter-titan-leveling-guide",
+            "accessed": "2026-10-07",
+            "patch": "0.5.5",
+            "confidence": "M"
+          }
+        },
+        {
+          "id": "s1-roles",
+          "text": "Rolling Slam clears packs; Boneshatter takes rare monsters and bosses.",
+          "source": {
+            "kind": "judgment",
+            "ref": "Rolling Slam's two slams cover an area, while Boneshatter strikes one target",
+            "confidence": "M"
+          }
+        },
+        {
+          "id": "s1-penalty",
+          "text": "Act 1 has no elemental resistance penalty.",
+          "source": "data:campaign/limits.json#resistance-penalty.act1"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "loadoutName": "Act 1 Ogham Manor (L14) {2}",
+      "level": 14,
+      "progress": "q.act-1-ogham-manor-candlemass",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          43164,
+          6529,
+          32416,
+          53443,
+          59767
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Act 1 gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nHale Rough Greaves\n+12 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rage I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "multiplierRage",
+            "value": 20,
+            "producer": {
+              "kind": "gem",
+              "name": "Rage I"
+            },
+            "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
+          },
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "s2-life-gain",
+          "text": "Stage 2 has about N% more maximum life than stage 1.",
+          "source": "ledger:life_gain_pct"
+        },
+        {
+          "id": "s2-greaves",
+          "text": "Rough Greaves with +10 or more to maximum Life cost about 1 Exalted Orb.",
+          "source": "price:rough-greaves-life"
+        },
+        {
+          "id": "s2-candlemass",
+          "text": "Candlemass's quest reward is +20 to maximum Life.",
+          "source": "data:campaign/progress.json#q.act-1-ogham-manor-candlemass.life"
+        },
+        {
+          "id": "s2-rage",
+          "text": "Rage stays near 20 through Ogham Manor's packs.",
+          "source": {
+            "kind": "external-unavailable",
+            "ref": "external source unavailable (offline run)",
+            "confidence": "L"
+          }
+        }
+      ]
+    },
+    {
+      "id": "m",
+      "loadoutName": "Entering maps (L70) {m}",
+      "level": 70,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          43164,
+          6529,
+          32416,
+          53443,
+          59767
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Endgame gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nHale Rough Greaves\n+12 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: Normal\nCrimson Amulet"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rage I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "multiplierRage",
+            "value": 20,
+            "producer": {
+              "kind": "gem",
+              "name": "Rage I"
+            },
+            "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
+          },
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [],
+      "variant": "entering-maps",
+      "ascendancyPoints": 0,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "test level",
+          "confidence": "L"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "test gem levels",
+          "confidence": "L"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "test points",
+          "confidence": "L"
+        }
+      }
+    },
+    {
+      "id": "b",
+      "loadoutName": "Budget (L80) {b}",
+      "level": 80,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          43164,
+          6529,
+          32416,
+          53443,
+          59767
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Endgame gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nHale Rough Greaves\n+12 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: Normal\nCrimson Amulet"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rage I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "multiplierRage",
+            "value": 20,
+            "producer": {
+              "kind": "gem",
+              "name": "Rage I"
+            },
+            "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
+          },
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [],
+      "variant": "budget",
+      "ascendancyPoints": 0,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "test level",
+          "confidence": "L"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "test gem levels",
+          "confidence": "L"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "test points",
+          "confidence": "L"
+        }
+      }
+    },
+    {
+      "id": "n",
+      "loadoutName": "Non-budget (L90) {n}",
+      "level": 90,
+      "progress": "endgame",
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          43164,
+          6529,
+          32416,
+          53443,
+          59767
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ]
+      },
+      "items": {
+        "setTitle": "Non-budget gear",
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Normal\nWooden Club"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Normal\nRusted Cuirass"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Magic\nHale Rough Greaves\n+12 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: Normal\nLesser Life Flask"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: Normal\nCrimson Amulet"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: Normal\nWooden Club"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "drunk when life drops in a fight; active about a third of the time"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Boneshatter",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Boneshatter",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rage I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 3,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1,
+        "setTitle": "Non-budget skills"
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "multiplierRage",
+            "value": 20,
+            "producer": {
+              "kind": "gem",
+              "name": "Rage I"
+            },
+            "uptime": "built by Boneshatter hits through Rage I; held during a pack fight, lost between packs"
+          },
+          {
+            "option": "questAct 2Spires of DesharSisters of Garukhan Shrine",
+            "value": false
+          },
+          {
+            "option": "questAct 3Azak BogIgnagduk",
+            "value": false
+          },
+          {
+            "option": "questAct 3Jiquani's MachinariumBlackjaw",
+            "value": false
+          },
+          {
+            "option": "questAct 4Eye of HinekoraSilent Hall",
+            "value": false
+          },
+          {
+            "option": "questInterlude 2Khari CrossingMolten Shrine",
+            "value": false
+          },
+          {
+            "option": "questInterlude 3Kriar VillageLythara",
+            "value": false
+          }
+        ],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": 0,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.act1"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [],
+      "variant": "non-budget",
+      "ascendancyPoints": 0,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "test level",
+          "confidence": "L"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "test gem levels",
+          "confidence": "L"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "test points",
+          "confidence": "L"
+        }
+      }
+    }
+  ],
+  "ledger": [
+    {
+      "id": "life_gain_pct",
+      "claim": "Stage 2 has about N% more maximum life than stage 1.",
+      "formula": "(2.Life − 1.Life) ÷ 1.Life × per_cent",
+      "inputs": [
+        {
+          "name": "per_cent",
+          "value": 100,
+          "tag": {
+            "kind": "judgment",
+            "ref": "unit conversion: a ratio times 100 is a percentage",
+            "confidence": "H"
+          }
+        }
+      ]
+    },
+    {
+      "id": "n_hit",
+      "claim": "n's Boneshatter hit figure, doubled.",
+      "formula": "n.g1s1p1.TotalDPS × two",
+      "inputs": [
+        {
+          "name": "two",
+          "value": 2,
+          "tag": {
+            "kind": "judgment",
+            "ref": "test",
+            "confidence": "L"
+          }
+        }
+      ]
+    }
+  ],
+  "prices": [
+    {
+      "id": "rough-greaves-life",
+      "item": "Rough Greaves with +10 or more to maximum Life",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "Rough Greaves",
+          "stats": [
+            {
+              "type": "and",
+              "filters": [
+                {
+                  "id": "explicit.stat_3299347043",
+                  "value": {
+                    "min": 10
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": 1,
+      "currency": "exalted",
+      "date": "2026-10-07",
+      "league": "Forbidden Rites",
+      "status": "ok"
+    },
+    {
+      "id": "wooden-club",
+      "item": "Wooden Club",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "Wooden Club"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-07",
+      "league": "Forbidden Rites",
+      "status": "unavailable",
+      "note": "trade search unavailable: no session cookie configured"
+    }
+  ]
+}

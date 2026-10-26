@@ -334,8 +334,13 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
       const line = lines[at + 1];
       const o = s.outputs;
       const dps = s.measures?.dps ?? s.countedOutputs.fields.TotalDPS;
+      // WU-111 (D-437): an endgame variant stage leads with the named source's damage figure against map monsters and a
+      // Pinnacle boss (its measures' `damage`); a campaign stage keeps the headline DPS.
+      const damage = s.measures?.damage;
       const want = [
-        `DPS ${round(dps)}`,
+        damage !== undefined
+          ? `damage ${round(damage.map)} against map monsters, ${round(damage.boss)} against a Pinnacle boss; life `
+          : `DPS ${round(dps)}`,
         `life ${round(o.Life)}`,
         `ES ${round(o.EnergyShield)}`,
         `EHP ${round(o.TotalEHP)}`,

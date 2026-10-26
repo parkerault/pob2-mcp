@@ -186,7 +186,11 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
           // The clear measure: the only group is the clear skill, measured by its minion's area and use rate.
           expect(s.measures!.clearSpeed).toMatchObject({ key: 'g1s1p1', radiusMetres: entry.MinionAreaOfEffectRadiusMetres, usesPerSecond: entry.MinionSpeed });
           // The key-figure line names the minion skill, in compile_plan's reply and in guide_run's stage view.
-          const line = `Key figures: DPS ${Math.round(s.measures!.dps!)} (${fixture.skill}, minion);`;
+          // WU-111 (D-437): a variant stage's line leads with the damage figure, the minion's, named as before.
+          expect(s.measures!.damage!.map).toBe(s.measures!.dps);
+          const line =
+            `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} ` +
+            `against a Pinnacle boss (${fixture.skill}, minion);`;
           expect(text).toContain(line);
           const view = await f.call('guide_run', { view: { plan: planPath, stage: 'b' } });
           expect({ isError: view.isError, has: view.text.includes(line) }).toEqual({ isError: false, has: true });

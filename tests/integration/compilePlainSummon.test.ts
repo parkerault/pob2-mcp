@@ -113,7 +113,11 @@ engineDescribe("WU-80: a plain summon's figure is its minion's (D-397)", () => {
         // the gem's skill, "Skeletal Warrior Minion" (`Data/Skills/act_int.lua`, `SummonSkeletalWarriorsPlayer`), in
         // compile_plan's reply and in guide_run's stage view.
         expect(entry.skill).toBe('Skeletal Warrior Minion');
-        const line = `Key figures: DPS ${Math.round(s.measures!.dps!)} (Skeletal Warrior Minion, minion);`;
+        // WU-111 (D-437): a variant stage's line leads with the damage figure, the minion's, named as before.
+        expect(s.measures!.damage!.map).toBe(s.measures!.dps);
+        const line =
+          `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} ` +
+          `against a Pinnacle boss (Skeletal Warrior Minion, minion);`;
         expect(text).toContain(line);
         expect(view).toContain(line);
         // The player's group beside it: no minion numbers, so its figure stays TotalDPS.
@@ -147,7 +151,9 @@ engineDescribe("WU-80: a plain summon's figure is its minion's (D-397)", () => {
         expect(s.countedSkillOutputs.g2s1p1.count).toBe(1);
         expect(s.measures!.dps).toBe(entry.fields.TotalDPS);
         expect(s.measures!.dps).toBeGreaterThan(0);
-        const line = `Key figures: DPS ${Math.round(s.measures!.dps!)}; life `;
+        // WU-111 (D-437): Boneshatter's damage figure (no ailment here) is its TotalDPS × Count.
+        expect(s.measures!.damage!.map).toBe(s.measures!.dps);
+        const line = `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} against a Pinnacle boss; life `;
         expect(text).toContain(line);
         expect(view).toContain(line);
         expect(text).not.toContain(', minion)');

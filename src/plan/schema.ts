@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 6; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 7; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 6 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 7 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -49,6 +49,21 @@
  * added to version 6 itself (no new version: it is optional and changes nothing when absent), so a plan of version 1
  * to 5 that names it errs at the key. V1 reports a group on a set whose weapon slots are empty (`empty-weapon-set`).
  *
+ * **Builds a player would run** (amendment 11, version 7; WU-111). Five optional fields, each a version-7 addition:
+ * - `skills.cull` (D-437): text naming the culling source and the button that uses it; with it, the record's map damage
+ *   figure carries the named source's `CullMultiplier` and `measures.cull` holds its thresholds.
+ * - `skills.engagement {kind, reason}` (D-441): how close the character stands while it deals its damage, `close` or
+ *   `distance`, which picks the non-budget rung's toughness target; the run checker requires it there, not the schema.
+ * - `skills.boss {entries, note}` (D-447): the boss rotation, each entry `{group, activeSkill, statSet, turns?}`
+ *   selecting one figure as `skills.main` does (`turns: true` on an entry that takes turns with another); an entry
+ *   naming a group the stage doesn't have errs at `stages[n].skills.boss.entries[k]`, as `rolledGroup` does, and the
+ *   compile checks its active skill and stat set against PoB.
+ * - `tree.scales` (D-438): text naming the stats that scale the stage.
+ * - `items.bootsException {kind, reason}` (D-440): why the stage's boots may carry less than their movement-speed tier,
+ *   `travel` or `unique`; V1's `movement-tier` reads it.
+ * A stage's skill and item sets are grouped without these fields (A-P2, `groupingKey` in the compiler): none changes
+ * PoB's sets.
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -66,7 +81,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -135,6 +150,8 @@ const treeSchema = z
       z.object({ node: nodeId, attribute: z.enum(['strength', 'dexterity', 'intelligence']) }).strict(),
     ),
     needs: z.array(needSchema).optional(),
+    // D-438 (schema 7): the stats that scale the stage, one short line.
+    scales: text('scales').optional(),
   })
   .strict()
   .superRefine((tree, ctx) => {
@@ -185,6 +202,10 @@ const anointSchema = z.object({ notable: text('notable'), reason: text('reason')
 /** D-358: the rungs an anoint is allowed on: the budget and non-budget variants (`b`, `n`), never `m` (Q5). */
 export const ANOINT_VARIANTS: readonly PlanVariant[] = ['budget', 'non-budget'];
 
+/** D-440 (schema 7): why the stage's boots may carry less than their movement-speed tier. */
+export const BOOTS_EXCEPTION_KINDS = ['travel', 'unique'] as const;
+const bootsExceptionSchema = z.object({ kind: z.enum(BOOTS_EXCEPTION_KINDS), reason: text('reason') }).strict();
+
 const itemsSchema = z
   .object({
     setTitle: setTitle.optional(),
@@ -193,6 +214,7 @@ const itemsSchema = z
     toggles: z.array(toggleSchema),
     useSecondWeaponSet: z.boolean(),
     anoint: anointSchema.optional(),
+    bootsException: bootsExceptionSchema.optional(),
   })
   .strict()
   .superRefine((items, ctx) => {
@@ -210,6 +232,26 @@ const gemSchema = z
     level: z.number().int().min(1),
     quality: z.number().int().nonnegative(),
     enabled: z.boolean(),
+  })
+  .strict();
+
+/** D-441 (schema 7): how close the character stands while it deals its damage. */
+export const ENGAGEMENT_KINDS = ['close', 'distance'] as const;
+const engagementSchema = z.object({ kind: z.enum(ENGAGEMENT_KINDS), reason: text('reason') }).strict();
+
+/** D-447 (schema 7): one entry of the boss rotation, a figure selected as `skills.main` selects one. */
+const bossEntrySchema = z
+  .object({
+    group: z.number().int().min(1),
+    activeSkill: z.number().int().min(1),
+    statSet: z.number().int().min(1),
+    turns: z.boolean().optional(),
+  })
+  .strict();
+const bossSchema = z
+  .object({
+    entries: z.array(bossEntrySchema).min(1, { message: 'a boss rotation has at least one entry' }),
+    note: text('note'),
   })
   .strict();
 
@@ -256,6 +298,9 @@ const skillsSchema = z
       })
       .strict(),
     rolledGroup: z.number().int().min(1).optional(),
+    cull: text('cull').optional(),
+    engagement: engagementSchema.optional(),
+    boss: bossSchema.optional(),
   })
   .strict();
 
@@ -565,6 +610,36 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     before: 'every group active on both weapon sets',
     uses: (plan) => groupKeyUses(plan, 'weaponSet'),
   },
+  {
+    since: 7,
+    what: "a stage's culling source, skills.cull (D-437)",
+    before: 'no culling in the damage figure',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.skills.cull !== undefined ? [['stages', i, 'skills', 'cull']] : [])),
+  },
+  {
+    since: 7,
+    what: "a stage's engagement, skills.engagement (D-441)",
+    before: 'no engagement',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.skills.engagement !== undefined ? [['stages', i, 'skills', 'engagement']] : [])),
+  },
+  {
+    since: 7,
+    what: "a stage's boss rotation, skills.boss (D-447)",
+    before: 'the named source alone against a boss',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.skills.boss !== undefined ? [['stages', i, 'skills', 'boss']] : [])),
+  },
+  {
+    since: 7,
+    what: "a tree's scaling, tree.scales (D-438)",
+    before: 'no scaling line',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.scales !== undefined ? [['stages', i, 'tree', 'scales']] : [])),
+  },
+  {
+    since: 7,
+    what: "a boots exception, items.bootsException (D-440)",
+    before: 'no boots exception, and no movement-tier check',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.items.bootsException !== undefined ? [['stages', i, 'items', 'bootsException']] : [])),
+  },
 ];
 
 /** The plan schema: C-31's shape, with the cross-reference rules as refinements. */
@@ -654,6 +729,21 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
       );
     }
   });
+
+  // D-447: each boss rotation entry names a group of its stage, as rolledGroup does; the compile checks its active skill
+  // and stat set against PoB. A plan of an earlier version has its one error at skills.boss already.
+  if (plan.schemaVersion >= 7) {
+    plan.stages.forEach((s, i) => {
+      (s.skills.boss?.entries ?? []).forEach((entry, k) => {
+        if (s.skills.groups[entry.group - 1] !== undefined) return;
+        issue(
+          ctx,
+          ['stages', i, 'skills', 'boss', 'entries', k],
+          `group ${entry.group} names no group; the stage has ${s.skills.groups.length} (D-447: an entry selects a figure as skills.main does)`,
+        );
+      });
+    });
+  }
 
   // C-33: ledger ids are unique; each formula parses and its references name an input or a stage.
   const ledgerIds = new Set<string>();

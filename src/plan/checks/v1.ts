@@ -27,6 +27,7 @@
  * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
  * | `weapon-skill-supports` | (WU-102, PG-74) an enabled group (or the main group) with `weaponSet` and an enabled support gem, on a stage where both of that set's weapon slots hold an item that grants a skill, so the compile sockets the group in the main hand (`groupWeaponSlot`) and PoB gives the main hand's granted skill the group's supports, which the game doesn't: the finding names that skill, whose figure PoB overstates (`checkWeaponSkillSupports`) |
  * | `implicit-variant` | (D-435) an item written without an `Implicits:` line whose base's implicit has variants (`variantList`, three amulet bases at the pin): the compile fills every other bare base's implicits, but can't pick a variant, so PoB measures the item with none; the finding names the base and its variants and asks for the variant's implicit line (`checkImplicitVariants`, from `compile_stage`'s `implicitVariants`) |
+ * | `movement-tier` | (WU-111, D-440; schema 7 only) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -38,10 +39,10 @@
  * floor (D-259). A tier-0 gem isn't cut (C1's `skill-tiers` note), so it has no floor; a support gem's level
  * isn't cut either, so neither has one.
  */
-import type { StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
-import type { Finding, Verdict } from '../record.js';
+import type { MovementTier, StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
+import type { Finding, TravelMeasure, Verdict } from '../record.js';
 import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
-import { PLAN_VARIANTS, type Stage } from '../schema.js';
+import { PLAN_VARIANTS, type PlanVariant, type Stage } from '../schema.js';
 import { C1, FactReader, type Trial } from './facts.js';
 
 /** PoB's informational warning (Build.lua:1051-1055): unspent weapon set 2 points are no defect. */
@@ -87,7 +88,16 @@ export interface V1Input {
   outputsSet2?: Record<string, number>;
   /** WU-102 (PG-74): `compile_check`'s weapon slots whose item grants a skill; without them, `weapon-skill-supports` isn't checked. */
   weaponGrants?: WeaponGrants;
+  /** WU-111 (D-440): the plan's schema version; `movement-tier` runs from version 7 only. */
+  schemaVersion?: number;
+  /** WU-111 (D-440): `compile_check`'s boots movement-speed tiers from the game data. */
+  movementTiers?: readonly MovementTier[];
+  /** WU-111 (D-440, D-427): the stage's travel skill (`travelOf`), or null; a `travel` boots exception needs one. */
+  travel?: TravelMeasure | null;
 }
+
+/** The item slot `movement-tier` reads (D-440). */
+const BOOTS_SLOT = 'Boots';
 
 export interface V1Result {
   verdict: Verdict;
@@ -846,6 +856,93 @@ export function checkImplicitVariants(
   }
 }
 
+/**
+ * D-440 (amendment 11 §8): the movement-speed tier the boots of an endgame rung carry, the user's rule (2026-10-25):
+ * "30% on entering maps, 35% on budget and non-budget".
+ */
+export const RUNG_MOVEMENT_TIER: Readonly<Record<PlanVariant, number>> = { 'entering-maps': 30, budget: 35, 'non-budget': 35 };
+
+/** The plan schema version `movement-tier` runs from (D-440): a schema-6 plan's boots aren't checked. */
+export const MOVEMENT_TIER_SINCE = 7;
+
+/** D-440: the stage's movement-speed tier and where it comes from, or null when the stage has none to check. */
+export function movementTierOf(
+  stage: Pick<Stage, 'variant' | 'progress'>,
+  tiers: readonly MovementTier[],
+  facts: FactReader,
+): { tier: number; where: string } | null {
+  if (stage.variant !== undefined) return { tier: RUNG_MOVEMENT_TIER[stage.variant], where: `the ${stage.variant} rung` };
+  // A card skeleton (an endgame stage with no variant) has no rung, so no tier; a campaign stage has its area level's.
+  if (stage.progress === 'endgame') return null;
+  const area = facts.number(C1.progress, `${stage.progress}.area-level`);
+  if (area === null) return null;
+  facts.rely('movement-tier', area.fact);
+  const reached = tiers.filter((t) => t.itemLevel <= area.value);
+  if (reached.length === 0) return null;
+  return { tier: Math.max(...reached.map((t) => t.value)), where: `area level ${area.value} (${stage.progress})` };
+}
+
+/**
+ * `movement-tier` and `boots-exception` (WU-111; amendment 11 §8, D-440). On a schema-7 plan, a stage's boots carry at
+ * least its tier of movement speed: 30% on `entering-maps`, 35% on `budget` and `non-budget`, and on a campaign stage the
+ * highest tier its area level allows (C1's `<progress>.area-level` against the game data's tiers, `compile_check`'s
+ * `movementTiers`); a corruption's extra is never required. The boots' movement speed is PoB's parse of the item
+ * (`checks.items[].movementSpeed`). Boots under the tier are a `movement-tier` finding, naming the boots and the tier,
+ * unless the stage's `items.bootsException` holds: `travel` with a travel skill in the stage (`travel`, the record's,
+ * D-427), or `unique` with unique boots; then the boots are information only, a `boots-exception` note. A stage without
+ * boots, a card skeleton, and a plan before schema 7 are skipped. `data.path` is the boots' text in the stage.
+ */
+export function checkMovementTier(
+  stage: Pick<Stage, 'variant' | 'progress' | 'items'>,
+  checks: Pick<StageChecks, 'items'>,
+  input: { schemaVersion?: number; movementTiers?: readonly MovementTier[]; travel?: TravelMeasure | null },
+  facts: FactReader,
+  findings: Finding[],
+  notes: Finding[],
+): void {
+  if ((input.schemaVersion ?? 0) < MOVEMENT_TIER_SINCE) return;
+  const boots = checks.items.find((i) => i.slot === BOOTS_SLOT);
+  if (boots === undefined) return;
+  const at = movementTierOf(stage, input.movementTiers ?? [], facts);
+  if (at === null) return;
+  const speed = typeof boots.movementSpeed === 'number' && Number.isFinite(boots.movementSpeed) ? boots.movementSpeed : 0;
+  if (speed >= at.tier) return;
+  const k = stage.items.slots.findIndex((s) => s.slot === BOOTS_SLOT);
+  const name = boots.title ?? boots.name;
+  const exception = stage.items.bootsException;
+  const unique = boots.rarity === 'UNIQUE';
+  const valid = exception !== undefined && (exception.kind === 'travel' ? input.travel != null : unique);
+  const what = `the boots (${name}) carry ${speed}% increased movement speed, under the ${at.tier}% tier for ${at.where}`;
+  const data = {
+    slot: BOOTS_SLOT,
+    name,
+    movementSpeed: speed,
+    tier: at.tier,
+    ...(exception !== undefined ? { exception: exception.kind } : {}),
+    path: `items.slots[${k}].text`,
+  };
+  if (valid) {
+    const why = exception.kind === 'travel' ? `the stage moves with its travel skill, ${input.travel!.skill}` : `${name} are unique`;
+    notes.push({
+      code: 'boots-exception',
+      message: `${what}; the stage's bootsException (${exception.kind}: ${exception.reason}) covers it, since ${why} (D-440)`,
+      data,
+    });
+    return;
+  }
+  const refused =
+    exception === undefined
+      ? ''
+      : exception.kind === 'travel'
+        ? `; its bootsException (travel) needs a travel skill in the stage, and the stage has none`
+        : `; its bootsException (unique) needs unique boots, and ${name} aren't unique`;
+  findings.push({
+    code: 'movement-tier',
+    message: `${what} (D-440: the highest tier for the level, a corruption's extra never required)${refused}`,
+    data,
+  });
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -868,5 +965,6 @@ export function checkV1(input: V1Input): V1Result {
   checkWeaponSetGroups(stage, findings);
   checkWeaponSkillSupports(stage, checks, input.weaponGrants, findings);
   checkImplicitVariants(stage, checks, findings);
+  checkMovementTier(stage, checks, input, facts, findings, notes);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

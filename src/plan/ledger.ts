@@ -16,6 +16,13 @@
  * A one-segment REF names one of the entry's inputs. `<stageId>.<Field>` names a stage's main output,
  * and `<stageId>.g<group>s<skill>p<statSet>.<Field>` a field of its per-skill breakdown (C-45).
  *
+ * WU-111 (amendment 11 §9b, D-447; C-33's reference form against a Pinnacle boss): `<stageId>.boss.g<group>s<skill>p<statSet>`
+ * names that boss rotation entry's figure, `….ignite`, `….bleed`, `….poison` or `….usesPerSecond` after it that field of
+ * the entry, and `<stageId>.boss.measured` PoB alone (`measures.damage.boss`). They read the stage's `bossGroups` and
+ * `damageBoss` in the context (the record stage's `measures.bossGroups` and `measures.damage.boss`, which the compiler,
+ * `check-run.mjs` and `render-audit.mjs` fill); a stage without them, an entry its rotation lacks, or a null value is
+ * the usual `unknown-output`.
+ *
  * Validation (`checkLedgerEntry`) fails on `syntax`, `unknown-input` and `unknown-stage` (D-163).
  * Evaluation (`evaluateLedgerEntry`) never throws: `unknown-output`, `stage-not-compiled`,
  * `division-by-zero` and `non-finite` give the entry a null value with the error, and the compile goes
@@ -62,10 +69,34 @@ export type ParseResult =
   | { ok: true; node: FormulaNode; refs: FormulaRef[] }
   | { ok: false; error: { code: 'syntax'; message: string; column: number } };
 
-/** A compiled stage's numbers, as the compile record holds them (C-33). */
+/**
+ * WU-111 (D-447): one boss rotation entry as a stage's `measures.bossGroups` holds it (Appendix A): its selection, its
+ * figure against a Pinnacle boss and the fields a `boss.` reference reads.
+ */
+export interface BossGroupFigures {
+  group: number;
+  activeSkill: number;
+  statSet: number;
+  figure?: number | null;
+  usesPerSecond?: number | null;
+  ignite?: number | null;
+  bleed?: number | null;
+  poison?: number | null;
+}
+
+/** The fields a `<stageId>.boss.g<g>s<s>p<p>.<field>` reference reads (D-447). */
+export const BOSS_ENTRY_FIELDS = ['ignite', 'bleed', 'poison', 'usesPerSecond'] as const;
+
+/**
+ * A compiled stage's numbers, as the compile record holds them (C-33). WU-111 (the ledger's boss context, fixed in the
+ * M-24 handoff): `bossGroups` is the record stage's `measures.bossGroups` and `damageBoss` its `measures.damage.boss`
+ * (a number or null); both optional, and a stage without them can't resolve a `boss.` reference.
+ */
 export interface StageOutputs {
   outputs: Readonly<Record<string, number>>;
   skillOutputs?: Readonly<Record<string, { fields: Readonly<Record<string, number>> }>>;
+  bossGroups?: readonly Readonly<BossGroupFigures>[];
+  damageBoss?: number | null;
 }
 
 export interface LedgerContext {
@@ -85,6 +116,10 @@ const MULTI_REF_RE = /^[A-Za-z0-9_]+(\.[A-Za-z_][A-Za-z0-9_]*)+$/;
 const SINGLE_REF_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const WORD_CHAR_RE = /[A-Za-z0-9_.]/;
 const BREAKDOWN_KEY_RE = /^g\d+s\d+p\d+$/;
+const BREAKDOWN_KEY_PARTS_RE = /^g(\d+)s(\d+)p(\d+)$/;
+/** The segment that starts a boss reference (D-447). */
+const BOSS_SEGMENT = 'boss';
+const BOSS_MEASURED = 'measured';
 
 /** Whether `text` is a REF of two or more segments (a `pob-computed` source ref, C-30). */
 export function isMultiSegmentRef(text: string): boolean {
@@ -263,6 +298,49 @@ class EvalFailure {
   constructor(readonly error: LedgerError) {}
 }
 
+const finiteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * WU-111 (D-447): the value a boss reference names in a stage, its segments after the stage id (`['boss', 'measured']`,
+ * `['boss', 'g1s1p2']`, `['boss', 'g1s1p1', 'ignite']`): `damageBoss`, an entry's figure, or one of its
+ * `BOSS_ENTRY_FIELDS`; undefined when the stage has no such value (no `bossGroups`, no entry with that selection, or a
+ * null).
+ */
+export function bossValue(stage: StageOutputs, rest: readonly string[]): number | undefined {
+  if (rest[0] !== BOSS_SEGMENT) return undefined;
+  if (rest.length === 2 && rest[1] === BOSS_MEASURED) return finiteNumber(stage.damageBoss) ? stage.damageBoss : undefined;
+  const m = rest.length >= 2 && rest.length <= 3 ? BREAKDOWN_KEY_PARTS_RE.exec(rest[1]) : null;
+  if (m === null) return undefined;
+  const [group, activeSkill, statSet] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const entry = (stage.bossGroups ?? []).find((e) => e.group === group && e.activeSkill === activeSkill && e.statSet === statSet);
+  if (entry === undefined) return undefined;
+  if (rest.length === 2) return finiteNumber(entry.figure) ? entry.figure : undefined;
+  const field = rest[2] as (typeof BOSS_ENTRY_FIELDS)[number];
+  if (!(BOSS_ENTRY_FIELDS as readonly string[]).includes(field)) return undefined;
+  const v = entry[field];
+  return finiteNumber(v) ? v : undefined;
+}
+
+/**
+ * The number a reference's segments after the stage id name in a compiled stage: a main output (`<Field>`), a breakdown
+ * field (`g<group>s<skill>p<statSet>.<Field>`) or a boss reference (`bossValue`); undefined when the record holds none.
+ */
+export function stageValue(stage: StageOutputs, rest: readonly string[]): number | undefined {
+  if (rest[0] === BOSS_SEGMENT && rest.length >= 2) return bossValue(stage, rest);
+  if (rest.length === 1 && Object.prototype.hasOwnProperty.call(stage.outputs, rest[0])) {
+    const v = stage.outputs[rest[0]];
+    return typeof v === 'number' ? v : undefined;
+  }
+  if (rest.length === 2 && BREAKDOWN_KEY_RE.test(rest[0])) {
+    const fields = stage.skillOutputs?.[rest[0]]?.fields;
+    if (fields && Object.prototype.hasOwnProperty.call(fields, rest[1])) {
+      const v = fields[rest[1]];
+      return typeof v === 'number' ? v : undefined;
+    }
+  }
+  return undefined;
+}
+
 /** Evaluate one entry against the compiled stages. Never throws: a failure is a null value with its error. */
 export function evaluateLedgerEntry(entry: LedgerEntryInput, ctx: LedgerContext): LedgerResult {
   const parsed = parseFormula(entry.formula);
@@ -289,15 +367,13 @@ export function evaluateLedgerEntry(entry: LedgerEntryInput, ctx: LedgerContext)
     if (!stage) {
       return fail('stage-not-compiled', `"${ref.text}" names stage "${stageId}", which this compile didn't include`, ref.column);
     }
-    let value: number | undefined;
-    if (rest.length === 1 && Object.prototype.hasOwnProperty.call(stage.outputs, rest[0])) {
-      value = stage.outputs[rest[0]];
-    } else if (rest.length === 2 && BREAKDOWN_KEY_RE.test(rest[0])) {
-      const fields = stage.skillOutputs?.[rest[0]]?.fields;
-      if (fields && Object.prototype.hasOwnProperty.call(fields, rest[1])) value = fields[rest[1]];
-    }
+    const value = stageValue(stage, rest);
     if (typeof value !== 'number') {
-      return fail('unknown-output', `"${ref.text}" names no output of stage "${stageId}" in the compile record`, ref.column);
+      const what =
+        rest[0] === BOSS_SEGMENT && rest.length >= 2
+          ? `no boss figure of stage "${stageId}" in the compile record (its measures.bossGroups and measures.damage.boss, D-447)`
+          : `no output of stage "${stageId}" in the compile record`;
+      return fail('unknown-output', `"${ref.text}" names ${what}`, ref.column);
     }
     return finite(value, ref.column, `"${ref.text}"`);
   };

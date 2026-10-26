@@ -61,8 +61,14 @@
 --     `lines` whole (`parsed`), the custom modifier lines its kept modifiers write.
 --     `weaponGrants` (WU-102, PG-74): each stage's weapon slots whose item grants a skill, with the skills' names, as
 --     PoB parses the item (a base's `Grants Skill:` implicit included), for the compiler's pick of a group's slot.
+--     WU-111 (amendment 11): a stage's `bossEntries[{at, group, activeSkill, statSet}]` (its boss rotation, D-447) are
+--     checked as the main selection is: an active skill beyond the group's upper bound, or a stat set beyond the most
+--     any of its active skills has, is a defect naming the entry's path `at`. `movementTiers` (D-440) are the boots'
+--     movement-speed tiers in the game data (the item mods of group MovementVelocity boots roll, Data/ModItem.lua:450-455),
+--     {value, itemLevel}, for V1's `movement-tier`.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
 --         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}, weaponGrants[{stage, slot, skills[]}],
+--         movementTiers[{value, itemLevel}],
 --         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
 --                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}],
 --         companions[{stage, species, id, name, companionReservation, parsed[]}]}
@@ -70,7 +76,7 @@
 --   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
 --                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[],
 --                   minionSkill?, minionStatSet?, weaponSet?, slot?}], main, configSet, config, customMods[], offenseFields[],
---                   itemSlots[], anoint?, companion?{id}}
+--                   itemSlots[], anoint?, companion?{id}, boss?{groups[], fields[]}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
 --     tags and attribute choices (C-40), then the tree jewels. Item, skill and config sets: `reuse` names
@@ -107,8 +113,18 @@
 --     `skillOutputsSet2` is every group's breakdown with set 2 active, keyed as `skillOutputs` (it is `skillOutputs`
 --     itself on a stage measured on set 2). `travelSkills` (D-427) lists each enabled group's active skill whose
 --     granted effect has PoB's Travel skill type, {group, activeSkill, skill}, in the reply's group numbers.
+--     WU-111 (amendment 11 §5, §9b; D-437, D-447): `skillMeta` (and `skillMetaSet2` with `skillOutputsSet2`) gives each
+--     breakdown key's live skill types by name, PoB's own trigger test (`isTriggered`) with the meta gem that triggers it,
+--     and whether its damage over time and each damaging ailment stack (skill_meta). With `boss {groups, fields}` (an
+--     endgame variant stage), the stage is measured once more, last, under its config with only `enemyIsBoss` set to
+--     "Pinnacle": the named groups' breakdown, each on its own weapon set, keyed and read as `skillOutputs`, with each
+--     key's meta, in `boss {skillOutputs, skillMeta}`; the config, the weapon-set flag and the weapon-fit flags are put
+--     back and the build recalculated (measure_boss). Each item in `checks.items` gains `rarity` and `movementSpeed`
+--     (its unconditional increased movement speed, as PoB parses it), for V1's `movement-tier` (D-440).
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, outputsSet2?{}, skillOutputs{}, skillOutputsSet2?{}, travelSkills[{group, activeSkill, skill}],
+--         skillMeta{key: {types[], triggered, triggeredBy?, stacks{dot, ignite, bleed, poison}}}, skillMetaSet2?{},
+--         boss?{skillOutputs{}, skillMeta{}},
 --         skippedToggles[], items{slot: {id, name}}, addedItems{slot: {id, name}},
 --         weaponFlags{giantsBlood, instrumentsOfPower, lordOfTheWilds}, configInputs{option: value},
 --         configSurvivesDrop{option: boolean}, dotCanStack{main, skills{key: boolean}},
@@ -910,6 +926,28 @@ local function check_stage(tree, roll, st, defect)
         activeCounts[mg]))
     end
   end
+  -- WU-111 (amendment 11 §9b, D-447): each boss rotation entry's active skill and stat set, as the main selection's are
+  -- checked: the active skill within the group's upper bound (activeCounts), the stat set within the most any of the
+  -- group's active skills has. `at` is the entry's path in the plan (`stages[n].skills.boss.entries[k]`); its group is
+  -- the schema's check. compile_plan checks the exact selection against PoB's boss measure.
+  for _, entry in ipairs(list(st.bossEntries)) do
+    local g = tonumber(entry.group)
+    if g and g >= 1 and g <= #groups then
+      local a = tonumber(entry.activeSkill)
+      local p = tonumber(entry.statSet) or 1
+      if not a or a < 1 or a > activeCounts[g] then
+        defect(('%s: active skill %s is outside group %d\'s %d active skills'):format(tostring(entry.at),
+          tostring(entry.activeSkill), g, activeCounts[g]))
+      elseif resolved[g] then
+        local most = 0
+        for _, ge in ipairs(group_actives(resolved[g])) do most = math.max(most, #(ge.statSets or {}), 1) end
+        if most > 0 and (p < 1 or p > most) then
+          defect(('%s: stat set %s is beyond every active skill of group %d: the most any has is %d'):format(
+            tostring(entry.at), tostring(entry.statSet), g, most))
+        end
+      end
+    end
+  end
   local opts, err = BuildOps.config_options()
   if not opts then fail(err) end
   for _, entry in ipairs(list(st.config)) do
@@ -1216,6 +1254,27 @@ local function weapon_grants(st, out)
   end
 end
 
+-- WU-111 (amendment 11 §8, D-440): the boots' movement-speed tiers in the game data, {value, itemLevel}, lowest item
+-- level first: the item mods of group MovementVelocity that boots roll (Data/ModItem.lua:450-455: 10% at item level 1
+-- up to 35% at 82), for V1's `movement-tier`.
+local function movement_tiers()
+  local d = game_data()
+  local mods = d and d.itemMods and d.itemMods.Item or {}
+  local out = {}
+  for _, mod in pairs(mods) do
+    if type(mod) == 'table' and mod.group == 'MovementVelocity' and type(mod[1]) == 'string' then
+      local boots = false
+      for i, key in ipairs(mod.weightKey or {}) do
+        if key == 'boots' and (tonumber((mod.weightVal or {})[i]) or 0) > 0 then boots = true end
+      end
+      local value = tonumber(mod[1]:match('^(%d+)%% increased Movement Speed$'))
+      if boots and value and tonumber(mod.level) then out[#out + 1] = { value = value, itemLevel = tonumber(mod.level) } end
+    end
+  end
+  table.sort(out, function(a, b) return a.itemLevel < b.itemLevel or (a.itemLevel == b.itemLevel and a.value < b.value) end)
+  return out
+end
+
 function M.compile_check(params)
   local tree = main and main.LoadTree and main:LoadTree(latestTreeVersion)
   if not tree then fail('passive tree data not available') end
@@ -1239,7 +1298,7 @@ function M.compile_check(params)
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
     configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees,
-    companions = companions, weaponGrants = grants }
+    companions = companions, weaponGrants = grants, movementTiers = movement_tiers() }
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -1584,6 +1643,51 @@ local function main_dot_can_stack()
   return statSet ~= nil and type(statSet.skillFlags) == 'table' and statSet.skillFlags.DotCanStack == true
 end
 
+-- PoB's skill type names by id (the global SkillType, Data/Global.lua), for a skill's live `skillTypes`.
+local skillTypeNames = nil
+local function skill_type_names()
+  if skillTypeNames == nil then
+    skillTypeNames = {}
+    for name, id in pairs(type(SkillType) == 'table' and SkillType or {}) do skillTypeNames[id] = tostring(name) end
+  end
+  return skillTypeNames
+end
+
+-- The damaging ailments PoB caps at one per enemy unless the skill has `<Ailment>CanStack` (each stacks to 1 by
+-- default, Modules/CalcSetup.lua:53-55; Modules/CalcOffence.lua:5065 sets the stat set's `<ailment>CanStack` flag).
+local AILMENTS = { 'ignite', 'bleed', 'poison' }
+
+-- WU-111 (amendment 11 §5, §9b): what the record's measures read of a measured skill beside its fields: its live skill
+-- types by name (the types its supports add included), PoB's own trigger test (`isTriggered`, a global of
+-- Modules/CalcTriggers.lua:40-41: a triggered skill type or flag, an inbuilt trigger, an item's trigger), the meta gem
+-- whose support triggers it (`activeSkill.triggeredBy`, set by a support with `isTrigger`,
+-- Modules/CalcActiveSkill.lua:747-755; nil for an inbuilt or item trigger), and whether its damage over time and each
+-- damaging ailment stack (its stat set's flags, MAIN mode). A minion's ailments are its own skill's.
+local function skill_meta(skill)
+  local statSet = skill.activeEffect and skill.activeEffect.statSet
+  local flags = statSet and type(statSet.skillFlags) == 'table' and statSet.skillFlags or {}
+  local minionSkill = skill.minion and skill.minion.mainSkill
+  local minionSet = minionSkill and minionSkill.activeEffect and minionSkill.activeEffect.statSet
+  local ailmentFlags = minionSet and type(minionSet.skillFlags) == 'table' and minionSet.skillFlags or flags
+  local names = skill_type_names()
+  local types = {}
+  for id, on in pairs(skill.skillTypes or {}) do
+    if on and names[id] then types[#types + 1] = names[id] end
+  end
+  table.sort(types)
+  local triggered = type(isTriggered) == 'function' and isTriggered(skill) and true or false
+  local by = nil
+  local source = triggered and skill.triggeredBy or nil
+  if source then
+    local gem = source.gemData or (source.srcInstance and source.srcInstance.gemData)
+    by = (gem and gem.name) or (source.srcInstance and source.srcInstance.nameSpec) or (source.grantedEffect and source.grantedEffect.name)
+    by = by ~= nil and tostring(by) or nil
+  end
+  local stacks = { dot = flags.DotCanStack == true }
+  for _, ailment in ipairs(AILMENTS) do stacks[ailment] = ailmentFlags[ailment .. 'CanStack'] == true end
+  return { types = types, triggered = triggered, triggeredBy = by, stacks = stacks }
+end
+
 -- C-45's breakdown of every socket group: g<group>s<skill>p<statSet> -> {skill, statSetLabel, fields}; and,
 -- under the same keys, whether each skill and stat set's damage over time stacks (D-293). stats_breakdown
 -- measures each one as the main selection through BuildOps.get_main_output, so while it runs that function
@@ -1591,9 +1695,10 @@ end
 -- <group> is the group's number in the reply (D-382: the plan's groups first), not its index in PoB's list.
 -- D-427 (§24.2): the third value lists each measured active skill whose granted effect has PoB's Travel skill type
 -- (SkillType.Travel, Data/Global.lua), in an enabled group: {group, activeSkill, skill}, for the clear measure's
--- `travel`.
-local function skill_outputs(fields)
-  local out, stacks, travel = {}, {}, {}
+-- `travel`. WU-111: the fourth is each measured key's `skill_meta`, read in the same wrapper; with `only` (a set of
+-- the reply's group numbers), only those groups are measured.
+local function skill_outputs(fields, only)
+  local out, stacks, travel, meta = {}, {}, {}, {}
   local data = build.data or _G.data
   local travelType = type(SkillType) == 'table' and SkillType.Travel or nil
   local own = BuildOps.get_main_output
@@ -1606,29 +1711,33 @@ local function skill_outputs(fields)
     local skill = env and env.player and env.player.mainSkill
     local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
     if group and number[gi] and statSet and skill.socketGroup == group then
-      stacks[('g%ds%dp%d'):format(number[gi], group.mainActiveSkill or 1, statSet.index or 1)] = main_dot_can_stack()
+      local key = ('g%ds%dp%d'):format(number[gi], group.mainActiveSkill or 1, statSet.index or 1)
+      stacks[key] = main_dot_can_stack()
+      meta[key] = skill_meta(skill)
     end
     return output, err
   end
   local ok, err = pcall(function()
     for gi = 1, #(build.skillsTab.socketGroupList or {}) do
       local _, number = group_indices()
-      local res = must('measuring socket group ' .. tostring(number[gi]), BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
-      local group = build.skillsTab.socketGroupList[gi]
-      for _, skill in ipairs(res.skills or {}) do
-        for _, set in ipairs(skill.statSets or {}) do
-          local numbers = {}
-          for k, v in pairs(set.output or {}) do
-            if finite(v) then numbers[k] = v end
+      if only == nil or only[number[gi]] then
+        local res = must('measuring socket group ' .. tostring(number[gi]), BuildOps.stats_breakdown({ groupIndex = gi, fields = fields }))
+        local group = build.skillsTab.socketGroupList[gi]
+        for _, skill in ipairs(res.skills or {}) do
+          for _, set in ipairs(skill.statSets or {}) do
+            local numbers = {}
+            for k, v in pairs(set.output or {}) do
+              if finite(v) then numbers[k] = v end
+            end
+            out[('g%ds%dp%d'):format(number[gi], skill.index, set.index)] = {
+              skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
+            }
           end
-          out[('g%ds%dp%d'):format(number[gi], skill.index, set.index)] = {
-            skill = tostring(skill.name), statSetLabel = tostring(set.label or ''), fields = numbers,
-          }
-        end
-        local ge = data and data.skills and data.skills[skill.grantedEffectId]
-        if travelType ~= nil and group and group.enabled ~= false and type(ge) == 'table' and type(ge.skillTypes) == 'table'
-            and ge.skillTypes[travelType] then
-          travel[#travel + 1] = { group = number[gi], activeSkill = skill.index, skill = tostring(skill.name) }
+          local ge = data and data.skills and data.skills[skill.grantedEffectId]
+          if travelType ~= nil and group and group.enabled ~= false and type(ge) == 'table' and type(ge.skillTypes) == 'table'
+              and ge.skillTypes[travelType] then
+            travel[#travel + 1] = { group = number[gi], activeSkill = skill.index, skill = tostring(skill.name) }
+          end
         end
       end
     end
@@ -1636,9 +1745,12 @@ local function skill_outputs(fields)
   BuildOps.get_main_output = own
   if not ok then error(err, 0) end
   -- Only the measured keys: the wrapper also saw the rebuilds that put the stage's own selection back.
-  local measured = {}
-  for key in pairs(out) do measured[key] = stacks[key] == true end
-  return out, measured, travel
+  local measured, metas = {}, {}
+  for key in pairs(out) do
+    measured[key] = stacks[key] == true
+    if meta[key] ~= nil then metas[key] = meta[key] end
+  end
+  return out, measured, travel, metas
 end
 
 local function allocation()
@@ -1788,8 +1900,20 @@ local function is_activatable(slotName)
   return slotName:match('^Flask %d+$') ~= nil or slotName:match('^Charm %d+$') ~= nil
 end
 
+-- WU-111 (amendment 11 §8, D-440): an item's movement speed as PoB parses it, the sum of its unconditional
+-- `MovementSpeed` INC modifiers (an "N% increased Movement Speed" line, a range at the roll PoB gives it); a
+-- conditional one ("while on full life") isn't counted.
+local function item_movement_speed(item)
+  local total = 0
+  for _, mod in ipairs(item.modList or {}) do
+    if mod.name == 'MovementSpeed' and mod.type == 'INC' and mod[1] == nil and finite(mod.value) then total = total + mod.value end
+  end
+  return total
+end
+
 -- Every item equipped in `slotNames` of the active item set: its slot, names, level requirement, and for
--- a flask or charm its toggle (the slot control's `active`, which the calcs read).
+-- a flask or charm its toggle (the slot control's `active`, which the calcs read). WU-111 (D-440): its rarity (PoB's
+-- `rarity`, `UNIQUE` for a unique) and its movement speed (item_movement_speed), for V1's `movement-tier`.
 local function stage_items(slotNames)
   local itemsTab = build.itemsTab
   local out = {}
@@ -1803,6 +1927,8 @@ local function stage_items(slotNames)
         baseName = tostring(item.baseName or ''),
         levelRequirement = item.requirements and tonumber(item.requirements.level) or 0,
         active = is_activatable(slotName) and slot.active == true or nil,
+        rarity = item.rarity and tostring(item.rarity) or nil,
+        movementSpeed = item_movement_speed(item),
       }
     end
   end
@@ -2019,22 +2145,82 @@ end
 -- weapon-fit flags are cleared for it, so PoB's slot check doesn't unequip a set's off-hand against the other set's
 -- passives (ValidateWeaponSlots runs only when a calculation loses a flag the last one had).
 -- D-426 (§24.2, WU-102): the second value is every group's breakdown with set 2 active, skill_outputs' map in its
--- form and keys (`skillOutputsSet2`), so a group on either set has a figure measured on its own set.
+-- form and keys (`skillOutputsSet2`), so a group on either set has a figure measured on its own set. WU-111: the third
+-- is that breakdown's `skill_meta` per key (`skillMetaSet2`).
 local function measure_set_two(fields)
   local itemsTab = build.itemsTab
   local itemSet = itemsTab.activeItemSet
   local flags = itemsTab.lastWeaponFlagState
   itemSet.useSecondWeaponSet = true
   itemsTab.lastWeaponFlagState = nil
-  local ok, outputs, skills = pcall(function()
+  local ok, outputs, skills, meta = pcall(function()
     local output, err = rebuild()
     local map = output_map(must('measuring the stage with weapon set 2 active', output, err))
-    return map, (skill_outputs(fields))
+    local breakdown, _, _, metas = skill_outputs(fields)
+    return map, breakdown, metas
   end)
   itemSet.useSecondWeaponSet = false
   itemsTab.lastWeaponFlagState = flags
   if not ok then error(outputs, 0) end
-  return outputs, skills
+  return outputs, skills, meta
+end
+
+-- WU-111 (amendment 11 §5, §9b; D-437, D-447): the boss measure. The stage is measured again under its own config with
+-- only `enemyIsBoss` set to "Pinnacle" (the community convention, Modules/ConfigOptions.lua:1964: its apply sets the
+-- Pinnacle boss's placeholders and conditions), the plan's earned conditions and every other listed option as they are.
+-- `boss.groups` are the reply's group numbers to measure (the named source's and the boss rotation's), each with
+-- `boss.fields`, on its own weapon set: a group the plan puts on weapon set 2 with set 2 active (on a stage measured on
+-- set 1), the others as the stage's own measure. Each is read as skill_outputs reads it, so the keys and fields are
+-- `skillOutputs`', with each key's `skill_meta`. The config value, the weapon-set flag and the weapon-fit flags are put
+-- back and the build recalculated however it ends, so the saved build and every later stage are as they would be
+-- without it. Nil without `boss`.
+local BOSS_VALUE = 'Pinnacle'
+local function measure_boss(st)
+  local boss = st.boss
+  if type(boss) ~= 'table' then return nil end
+  local groups = list(st.groups)
+  local own, two, anyTwo = {}, {}, false
+  for _, g in ipairs(list(boss.groups)) do
+    local n = tonumber(g)
+    local group = n and groups[n]
+    if group and tonumber(group.weaponSet) == 2 and st.useSecondWeaponSet ~= true then
+      two[n] = true
+      anyTwo = true
+    elseif n then
+      own[n] = true
+    end
+  end
+  local fields = list(boss.fields)
+  local ct = build.configTab
+  local cs = ct.configSets[ct.activeConfigSetId]
+  if not cs then fail('the boss measure needs the stage\'s config set') end
+  local prior = cs.input.enemyIsBoss
+  local itemsTab = build.itemsTab
+  local itemSet = itemsTab.activeItemSet
+  local priorSet = itemSet.useSecondWeaponSet
+  local flags = itemsTab.lastWeaponFlagState
+  local ok, skills, meta = pcall(function()
+    cs.input.enemyIsBoss = BOSS_VALUE
+    ct:BuildModList()
+    rebuild()
+    local out, _, _, metas = skill_outputs(fields, own)
+    if anyTwo then
+      itemSet.useSecondWeaponSet = true
+      itemsTab.lastWeaponFlagState = nil
+      rebuild()
+      local out2, _, _, metas2 = skill_outputs(fields, two)
+      for k, v in pairs(out2) do out[k] = v end
+      for k, v in pairs(metas2) do metas[k] = v end
+    end
+    return out, metas
+  end)
+  itemSet.useSecondWeaponSet = priorSet
+  itemsTab.lastWeaponFlagState = flags
+  cs.input.enemyIsBoss = prior
+  ct:BuildModList()
+  rebuild()
+  if not ok then error(skills, 0) end
+  return { skillOutputs = skills, skillMeta = meta }
 end
 
 function M.compile_stage(st)
@@ -2086,8 +2272,8 @@ function M.compile_stage(st)
     -- would without it; on a stage measured with set 2 active (useSecondWeaponSet), its own measure is set 2's.
     -- WU-102: with every group's breakdown on set 2 (skillOutputsSet2), keyed as skillOutputs.
     local setTwo = uses_set_two(st)
-    local outputsSet2, skillsSet2
-    if setTwo and st.useSecondWeaponSet ~= true then outputsSet2, skillsSet2 = measure_set_two(list(st.offenseFields)) end
+    local outputsSet2, skillsSet2, metaSet2
+    if setTwo and st.useSecondWeaponSet ~= true then outputsSet2, skillsSet2, metaSet2 = measure_set_two(list(st.offenseFields)) end
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
     local companion = companion_measure(st)
@@ -2109,8 +2295,10 @@ function M.compile_stage(st)
     -- The V1/V2 inputs, before the breakdown changes the main selection and restores it.
     local checks = stage_checks(st, output, configSetId, defer)
     local alloc = allocation()
-    local skills, skillStacks, travelSkills = skill_outputs(list(st.offenseFields))
-    if setTwo and st.useSecondWeaponSet == true then skillsSet2 = skills end
+    local skills, skillStacks, travelSkills, skillMeta = skill_outputs(list(st.offenseFields))
+    if setTwo and st.useSecondWeaponSet == true then skillsSet2, metaSet2 = skills, skillMeta end
+    -- WU-111: the boss measure, last, so nothing above reads the build while it is set for a Pinnacle boss.
+    local boss = measure_boss(st)
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
@@ -2127,6 +2315,9 @@ function M.compile_stage(st)
       configInputs = configInputs,
       configSurvivesDrop = configSurvivesDrop,
       dotCanStack = { main = mainStacks, skills = skillStacks },
+      skillMeta = skillMeta,
+      skillMetaSet2 = metaSet2,
+      boss = boss,
       checks = checks,
       minionSkills = minionSkills,
       companion = companion,

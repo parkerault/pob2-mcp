@@ -66,6 +66,17 @@
  * slots never share a skill set. Every measured stage's clear measure gains `travel`, from `compile_stage`'s
  * `travelSkills` (`travelOf`). V1 reports a group on a set whose weapon slots are empty.
  *
+ * WU-111 (amendment 11 §5, §8, §9b; D-437, D-440, D-447): each endgame variant stage is measured a second time against a
+ * Pinnacle boss (`compile_stage`'s `boss`: the named source's and the boss rotation's groups, with only `enemyIsBoss` set
+ * to `Pinnacle`); a rotation entry whose active skill or stat set PoB's boss measure lacks errs at
+ * `stages[n].skills.boss.entries[k]`, and `compile_check` checks each entry as it checks the main selection. The record's
+ * measures gain `damage`, `cull`, `trigger`, `sourceTypes` and `bossGroups` (`sourceMeasures`), the ledger's context each
+ * stage's `bossGroups` and `damageBoss` (C-33's `boss.` references), and the key-figure line the damage figure. The
+ * measured fields gain `CastRate`, `Cooldown`, `CullPercent` and `CullMultiplier` (`MEASURE_FIELDS`). V1 gains
+ * `movement-tier` (schema 7 only), reading `compile_check`'s movement-speed tiers, each item's movement speed and rarity,
+ * and the stage's travel skill. The plan's new fields (`skills.cull`, `skills.engagement`, `skills.boss`,
+ * `items.bootsException`) don't change PoB's sets, so the sets are grouped without them.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -96,6 +107,8 @@ import { buildSha1 } from './buildHash.js';
 import { evaluateLedger, ledgerErrorText, type StageOutputs } from './ledger.js';
 import {
   ARBITER_FILE,
+  BOSS_MEASURE_FIELDS,
+  bossMeasureGroups,
   MEASURE_ONLY_XML_FILE,
   RECORD_FILE,
   RECORD_VERSION,
@@ -111,6 +124,7 @@ import {
   selectionKey,
   stageMeasures,
   stageRequirements,
+  travelOf,
   unresolvedRefs,
   versionNotes,
   type CompileMode,
@@ -211,14 +225,26 @@ function groupingKey(
   beastOf?: (stageId: string) => string | undefined,
   slotsOf?: (stage: Stage) => (string | null)[],
 ): string {
+  if (kind === 'item') return stableText(setContent(stage).items);
   if (kind !== 'skill') return stableText(CONTENT_OF[kind](stage));
+  const skills = setContent(stage).skills;
   const onSet = slotsOf !== undefined && stage.skills.groups.some((g) => g.weaponSet !== undefined);
-  if (stage.companion === undefined && !onSet) return stableText(stage.skills);
+  if (stage.companion === undefined && !onSet) return stableText(skills);
   return stableText({
-    ...stage.skills,
+    ...skills,
     ...(stage.companion !== undefined ? { companion: beastOf?.(stage.id) ?? stage.companion.species } : {}),
     ...(onSet ? { slots: slotsOf!(stage) } : {}),
   });
+}
+
+/**
+ * WU-111 (schema 7): a stage's items and skills without the fields that don't change PoB's sets (`items.bootsException`,
+ * `skills.cull`, `skills.engagement`, `skills.boss`), so stages differing only in them share a set, as a schema-6 plan's do.
+ */
+function setContent(stage: Stage): { items: Omit<Stage['items'], 'bootsException'>; skills: Omit<Stage['skills'], 'cull' | 'engagement' | 'boss'> } {
+  const { bootsException: _boots, ...items } = stage.items;
+  const { cull: _cull, engagement: _engagement, boss: _boss, ...skills } = stage.skills;
+  return { items, skills };
 }
 
 /**
@@ -459,8 +485,17 @@ function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBas
   }
 }
 
-/** What `compile_check` reads of a stage; with its companion (D-402), the beast's species and lines. */
-export function checkStageOf(stage: Stage, companion?: CompanionPlan): CompileCheckStage {
+/**
+ * What `compile_check` reads of a stage; with its companion (D-402), the beast's species and lines. WU-111 (D-447): with
+ * the stage's index in the plan, its boss rotation's entries, each with its path (`stages[n].skills.boss.entries[k]`).
+ */
+export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?: number): CompileCheckStage {
+  const bossEntries = (stage.skills.boss?.entries ?? []).map((e, k) => ({
+    at: `stages[${planIndex ?? '?'}].skills.boss.entries[${k}]`,
+    group: e.group,
+    activeSkill: e.activeSkill,
+    statSet: e.statSet,
+  }));
   return {
     id: stage.id,
     nodes: stage.tree.nodes,
@@ -478,6 +513,7 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan): CompileCh
     customMods: customModLines(stage),
     ...(stage.items.anoint !== undefined ? { anoint: stage.items.anoint.notable } : {}),
     ...(companion !== undefined ? { companion: companionCheckOf(stage, companion) } : {}),
+    ...(bossEntries.length > 0 ? { bossEntries } : {}),
   };
 }
 
@@ -647,6 +683,13 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * WU-88 (D-407) leaves the line as it was: a card skeleton's pace measures, and every measured stage's
  * `movementSpeed`, are in the record only (the user's HG-12 grant covers the record's fields), so the clear speed is
  * printed where the measures are an endgame variant's, the ones that carry `dps`.
+ *
+ * WU-111 (amendment 11 §5, D-437): on a stage whose measures hold `damage` (an endgame variant), the line leads with the
+ * named source's damage figure, `damage <map> against map monsters, <boss> against a Pinnacle boss` (the measures'
+ * `damage`, PoB alone), the map figure followed by `(culling at <x>%)` when it carries the cull and the boss figure by
+ * the minion's name when a minion deals it; a campaign stage and a card skeleton keep `DPS <n>`.
+ * A named source a meta gem triggers (`measures.trigger`) adds `<skill> is triggered by <gem>: PoB rates it at its
+ * hand-cast speed (<n> a second) and doesn't model Energy`, on a skeleton too.
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
@@ -655,8 +698,14 @@ export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): 
   const ehp = variantMeasures !== undefined ? variantMeasures.ehp : o.TotalEHP;
   const minion = minionSkillOf(rec, main.group);
   const source = figureField(rec, main) === 'MinionTotalDPS' ? (minion?.name ?? rec.skillOutputs[selectionKey(main)]?.skill) : undefined;
+  const minionTag = source !== undefined ? ` (${source}, minion)` : '';
+  const damage = rec.measures?.damage;
+  const cull = rec.measures?.cull;
   const parts = [
-    `DPS ${whole(dps)}${source !== undefined ? ` (${source}, minion)` : ''}`,
+    damage !== undefined
+      ? `damage ${whole(damage.map)} against map monsters${cull !== undefined ? ` (culling at ${whole(cull.map)}%)` : ''}, ` +
+        `${whole(damage.boss)} against a Pinnacle boss${minionTag}`
+      : `DPS ${whole(dps)}${minionTag}`,
     `life ${whole(o.Life)}`,
     `ES ${whole(o.EnergyShield)}`,
     `EHP ${whole(ehp)}`,
@@ -670,6 +719,12 @@ export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): 
     parts.push(`Arbiter ${arbiter.verdict ?? 'unknown'}${at}`);
   }
   if (variantMeasures !== undefined) parts.push(`clear ${variantMeasures.clearSpeed.speed} (rough)`);
+  const trigger = rec.measures?.trigger;
+  if (trigger !== undefined) {
+    const named = rec.skillOutputs[selectionKey(main)]?.skill ?? 'the named source';
+    const rate = trigger.usesPerSecond === null ? 'unknown' : String(Math.round(trigger.usesPerSecond * 100) / 100);
+    parts.push(`${named} is triggered by ${trigger.by}: PoB rates it at its hand-cast speed (${rate} a second) and doesn't model Energy`);
+  }
   return `  Key figures: ${parts.join('; ')}`;
 }
 
@@ -898,11 +953,53 @@ export function stageParams(
     ...(anoint !== undefined ? { anoint } : {}),
     // D-402: the beast compile_check resolved the companion's species to.
     ...(companionId !== undefined ? { companion: { id: companionId } } : {}),
+    // WU-111 (D-437, D-447): an endgame variant stage is measured against a Pinnacle boss too: the named source's group
+    // and the boss rotation's, with the measured fields and a minion's ailments.
+    ...(stage.variant !== undefined ? { boss: { groups: bossMeasureGroups(stage), fields: bossFields(offenseFields) } } : {}),
   };
 }
 
-/** The fields the measures read per skill beside C-45's (D-353): the clear skill's area, or its minion's (D-378). */
-export const MEASURE_FIELDS: readonly string[] = ['AreaOfEffectRadiusMetres', 'MinionAreaOfEffectRadiusMetres'];
+/**
+ * The fields the measures read per skill beside C-45's (D-353): the clear skill's area, or its minion's (D-378). WU-111
+ * (amendment 11 §5, §9b; D-437, D-447): PoB's `CastRate` (a spell's rate before its cooldown caps it,
+ * `CalcOffence.lua`:2843-2863) and `Cooldown` where PoB sets them, since a cooldown skill's `Speed` is capped by its
+ * cooldown and its `Time` is `1 / Speed` after the cap; and the named source's `CullPercent` and `CullMultiplier`
+ * (`CalcOffence.lua`:3903-3911), which `measures.cull` and the culled map figure read.
+ */
+export const MEASURE_FIELDS: readonly string[] = [
+  'AreaOfEffectRadiusMetres',
+  'MinionAreaOfEffectRadiusMetres',
+  'CastRate',
+  'Cooldown',
+  'CullPercent',
+  'CullMultiplier',
+];
+
+/** WU-111 (D-447): the fields the boss measure reads per skill: the stage's, then a minion's ailments. */
+export function bossFields(offenseFields: readonly string[]): string[] {
+  const measured = [...offenseFields, ...MEASURE_FIELDS.filter((f) => !offenseFields.includes(f))];
+  return [...measured, ...BOSS_MEASURE_FIELDS.filter((f) => !measured.includes(f))];
+}
+
+/**
+ * WU-111 (D-447): a stage's boss rotation entries that PoB's boss measure lacks (an active skill or stat set its group
+ * doesn't have), one `stages[n].skills.boss.entries[k] (stage <id>): …` line each, naming the group's measured selections.
+ */
+export function missingBossEntries(stage: Stage, planIndex: number, boss: CompileStageResult['boss']): string[] {
+  const entries = stage.skills.boss?.entries ?? [];
+  if (entries.length === 0) return [];
+  const measured = Object.keys(boss?.skillOutputs ?? {});
+  return entries.flatMap((e, k) => {
+    const key = selectionKey(e);
+    if (boss?.skillOutputs[key] !== undefined) return [];
+    const ofGroup = measured.filter((m) => m.startsWith(`g${e.group}s`)).sort();
+    return [
+      `stages[${planIndex}].skills.boss.entries[${k}] (stage ${stage.id}): group ${e.group} has no active skill ${e.activeSkill} ` +
+        `with stat set ${e.statSet} in PoB's measure (D-447); its selections: ` +
+        (ofGroup.length > 0 ? ofGroup.map((m) => `${m} ${boss!.skillOutputs[m].skill} / ${boss!.skillOutputs[m].statSetLabel}`).join(', ') : 'none'),
+    ];
+  });
+}
 
 const SET_ID_KEY: Record<ContentKind, 'itemSet' | 'skillSet' | 'configSet'> = {
   item: 'itemSet',
@@ -976,7 +1073,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const check = await ctx.client.compileCheck({
     className: checkedPlan.roll.className,
     ascendancy: checkedPlan.roll.ascendancy,
-    stages: preflight.map((s) => checkStageOf(s, companions.get(s.id))),
+    stages: preflight.map((s) => checkStageOf(s, companions.get(s.id), checkedPlan.stages.indexOf(s))),
     producers: producersOf(preflight),
     // D-353: the clear-speed measure reads the measured stages' clear gems' texts, a card skeleton's included (D-407).
     describeGems: [...new Set(preflight.filter(measuredStage).flatMap(clearGemNames))],
@@ -1031,6 +1128,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id)),
     );
     const elapsedMs = env.clock() - t;
+    // D-447: every boss rotation entry is a selection PoB's boss measure has (compile_check bounded it already).
+    const missing = missingBossEntries(stage, plan.stages.indexOf(stage), reply.boss);
+    if (missing.length > 0) throw new CompileError(`Plan ${request.planPath} is invalid; nothing was written:\n${missing.join('\n')}`);
     // D-402: a stage that names a companion has its measured companion (compile_stage fails without one).
     if (companionChecks.has(stage.id) && reply.companion === undefined) {
       throw new CompileError(`PoB measured no companion for stage ${stage.id}'s Tame Beast gem (D-402); nothing was written`);
@@ -1063,6 +1163,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       weaponGrants: grantsOf.get(stage.id) ?? {},
       // D-426: V1's Spirit check reads weapon set 2 too.
       ...(reply.outputsSet2 !== undefined ? { outputsSet2: reply.outputsSet2 } : {}),
+      // D-440 (schema 7): the boots' movement-speed tiers, and the stage's travel skill for a travel exception.
+      schemaVersion: plan.schemaVersion,
+      movementTiers: check.movementTiers ?? [],
+      travel: travelOf(stage, reply, reply.travelSkills),
     });
     const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
     results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
@@ -1143,7 +1247,6 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   /** D-321: the stages measured with custom modifiers present, whose figures carry the mark. */
   const marked = new Set<string>();
   for (const { stage, reply, elapsedMs, checked } of results) {
-    numbers[stage.id] = { outputs: reply.outputs, skillOutputs: reply.skillOutputs };
     // D-293, D-321: the raw figures stay as measured; the counted ones beside them apply each group's Count.
     const counted = countedFigures(stage, reply.outputs, reply.skillOutputs, reply.dotCanStack);
     const customModsWritten = customModLines(stage);
@@ -1186,7 +1289,22 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     };
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
     // D-427: the clear measure's travel skill, from the stage's skills with PoB's Travel type.
-    if (measuredStage(stage)) stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts, reply.travelSkills);
+    // WU-111 (D-437, D-447): with the reply's skill meta and boss measure, the damage figures, trigger and source types.
+    if (measuredStage(stage)) {
+      stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts, reply.travelSkills, {
+        ...(reply.skillMeta !== undefined ? { skillMeta: reply.skillMeta } : {}),
+        ...(reply.skillMetaSet2 !== undefined ? { skillMetaSet2: reply.skillMetaSet2 } : {}),
+        ...(reply.boss !== undefined ? { boss: reply.boss } : {}),
+      });
+    }
+    // C-33, WU-111 (the ledger's boss context): the stage's numbers, with its boss rotation and PoB alone when measured.
+    const measures = stages[stage.id].measures;
+    numbers[stage.id] = {
+      outputs: reply.outputs,
+      skillOutputs: reply.skillOutputs,
+      ...(measures?.bossGroups !== undefined ? { bossGroups: measures.bossGroups } : {}),
+      ...(measures?.damage !== undefined ? { damageBoss: measures.damage.boss } : {}),
+    };
     const anoint = anoints.get(stage.id);
     if (anoint !== undefined) {
       stages[stage.id].anoint = { notable: anoint.notable, node: anoint.node, recipe: [...anoint.recipe], emotions: [...anoint.emotions] };
@@ -1266,12 +1384,12 @@ export async function validatePlanFile(
   const companions = companionPlansOf(loaded.compiled, refData);
   const stages = loaded.compiled.map((s) => {
     const companion = companions.get(s.id);
-    return { stage: withCompanionConditions(s, companion), companion };
+    return { stage: withCompanionConditions(s, companion), companion, index: loaded.plan.stages.indexOf(s) };
   });
   const check = await env.ctx.client.compileCheck({
     className: loaded.plan.roll.className,
     ascendancy: loaded.plan.roll.ascendancy,
-    stages: stages.map((x) => checkStageOf(x.stage, x.companion)),
+    stages: stages.map((x) => checkStageOf(x.stage, x.companion, x.index)),
     producers: producersOf(stages.map((x) => x.stage)),
   });
   if (check.defects.length > 0) {

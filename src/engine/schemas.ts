@@ -1348,10 +1348,16 @@ export const compileCheckReply = baseReply.extend({
       weaponGrants: luaArray(
         z.object({ stage: z.string(), slot: z.string(), skills: luaArray(z.string()) }).passthrough(),
       ),
+      /**
+       * WU-111 (amendment 11 §8, D-440): the boots' movement-speed tiers in the game data (the `MovementVelocity` item
+       * mods boots roll, `Data/ModItem.lua`), each its value and the item level it needs, lowest item level first.
+       */
+      movementTiers: luaArray(z.object({ value: z.number(), itemLevel: z.number() }).passthrough()).optional(),
     })
     .passthrough(),
 });
 export type CompileCheckResult = z.infer<typeof compileCheckReply>['result'];
+export type MovementTier = NonNullable<CompileCheckResult['movementTiers']>[number];
 
 /** One allocated node after a stage's import, with its weapon-set tag (0, 1 or 2). */
 export const allocatedNodeSchema = z.object({ id: z.number().int(), mode: z.number().int() }).passthrough();
@@ -1425,6 +1431,10 @@ export const stageChecksSchema = z
           baseName: z.string(),
           levelRequirement: z.number(),
           active: z.boolean().optional(),
+          /** WU-111 (D-440): PoB's rarity (`UNIQUE` for a unique). */
+          rarity: z.string().optional(),
+          /** WU-111 (D-440): the item's unconditional increased movement speed, as PoB parses it. */
+          movementSpeed: z.number().optional(),
         })
         .passthrough(),
     ),
@@ -1495,6 +1505,22 @@ export const stageTravelSkillSchema = z
   .passthrough();
 export type StageTravelSkill = z.infer<typeof stageTravelSkillSchema>;
 
+/**
+ * WU-111 (amendment 11 §5, §9b): what the record's measures read of a measured skill beside its fields: its live PoB
+ * skill types by name, PoB's own trigger test (`isTriggered`) and the meta gem whose support triggers it (absent for an
+ * inbuilt or item trigger), and whether its damage over time and each damaging ailment stack (a minion's ailments: its
+ * own skill's).
+ */
+export const stageSkillMetaSchema = z
+  .object({
+    types: luaArray(z.string()),
+    triggered: z.boolean(),
+    triggeredBy: z.string().nullable().optional(),
+    stacks: z.object({ dot: z.boolean(), ignite: z.boolean(), bleed: z.boolean(), poison: z.boolean() }).passthrough(),
+  })
+  .passthrough();
+export type StageSkillMeta = z.infer<typeof stageSkillMetaSchema>;
+
 export const compileStageReply = baseReply.extend({
   result: z
     .object({
@@ -1525,6 +1551,19 @@ export const compileStageReply = baseReply.extend({
       configInputs: luaMap(z.union([z.boolean(), z.number(), z.string()])),
       configSurvivesDrop: luaMap(z.boolean()),
       dotCanStack: z.object({ main: z.boolean(), skills: luaMap(z.boolean()) }).passthrough(),
+      /** WU-111: each `skillOutputs` key's meta (`stageSkillMetaSchema`). */
+      skillMeta: luaMap(stageSkillMetaSchema).optional(),
+      /** WU-111: each `skillOutputsSet2` key's meta, with it. */
+      skillMetaSet2: luaMap(stageSkillMetaSchema).optional(),
+      /**
+       * WU-111 (amendment 11 §5, §9b; D-437, D-447): the boss measure, with `boss` in the params: the named groups'
+       * breakdown with only `enemyIsBoss` set to `Pinnacle`, each group on its own weapon set, keyed as `skillOutputs`,
+       * and each key's meta.
+       */
+      boss: z
+        .object({ skillOutputs: luaMap(stageSkillOutputSchema), skillMeta: luaMap(stageSkillMetaSchema) })
+        .passthrough()
+        .optional(),
       checks: stageChecksSchema,
       /** D-377: the resolved minion selection of each group that names a `minionSkill`, in group order. */
       minionSkills: luaArray(stageMinionSkillSchema),
@@ -1736,6 +1775,11 @@ export interface CompileCheckStage {
    * parses each comes back in `companions`), and whether each group is enabled (the Tame Beast gem's must be).
    */
   companion?: { species: string; lines: string[]; groupsEnabled: boolean[] };
+  /**
+   * WU-111 (D-447): the stage's boss rotation entries, each with its path in the plan (`stages[n].skills.boss.entries[k]`),
+   * whose active skill and stat set are checked as the main selection's are.
+   */
+  bossEntries?: Array<{ at: string; group: number; activeSkill: number; statSet?: number }>;
 }
 
 /** A stage's item, skill or config set: `reuse` selects the set an earlier stage created. */
@@ -1793,6 +1837,11 @@ export interface CompileStageParams {
   anoint?: string;
   /** D-402: the stage's companion: the monster id `compile_check` resolved its species to. */
   companion?: { id: string };
+  /**
+   * WU-111 (D-437, D-447): the boss measure, on an endgame variant stage: the groups to measure against a Pinnacle boss
+   * (the reply's numbers: the named source's and the boss rotation's) and the fields read for each skill and stat set.
+   */
+  boss?: { groups: number[]; fields: string[] };
   /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
   __crashForTest?: boolean;
 }

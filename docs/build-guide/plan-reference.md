@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 6)
+# Build plan reference (`plan.json`, schema version 7)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 6`. Versions `1`, `2`, `3`, `4`, `5` and `6` are accepted.
-  Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5, 6]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 5 still validates and compiles, with its
+- **Version first.** A new plan declares `schemaVersion: 7`. Versions `1`, `2`, `3`, `4`, `5`, `6` and `7` are
+  accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
+  `[1, 2, 3, 4, 5, 6, 7]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 6 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -45,6 +45,12 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - a stage's tree needs, `tree.needs` (`stages[].tree.needs`); an earlier plan has none, and the key is an error;
   - (M-22, D-426) a group's weapon set, `weaponSet` (`stages[].skills.groups[]`); in an earlier plan every group is
     active on both weapon sets, and the key is an error.
+
+  Version 7 added (amendment 11; see builds a player would run below):
+  - `skills.cull` (D-437), `skills.engagement` (D-441) and `skills.boss` (D-447) (`stages[].skills`);
+  - `tree.scales` (D-438) and `items.bootsException` (D-440);
+  - V1's `movement-tier`, which checks a schema-7 plan's boots only.
+  In an earlier plan each key is an error at its own path; its record still gains the new measures.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -63,8 +69,9 @@ Some rules are checked at compile time, against PoB, rather than by the schema: 
 node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
 each custom modifier line whole, an anoint's notable (it has a three-emotion recipe, the stage's tree
 doesn't allocate it, and the stage has an amulet), a group's minion skill (its group holds one summon
-whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), and a companion's species and its
-Tame Beast gem (D-402). A missing `countReason` or custom-modifier `reason` isn't a
+whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), a companion's species and its
+Tame Beast gem (D-402), and each boss rotation entry's active skill and stat set (D-447, errors at
+`stages[n].skills.boss.entries[k]`). A missing `countReason` or custom-modifier `reason` isn't a
 schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322), and so is a tree need
 with no `claim`, or one naming no claim of its stage (D-418).
 
@@ -136,6 +143,11 @@ forms:
 - `2.g1s1p1.TotalDPS`, `<stageId>.g<group>s<skill>p<statSet>.<Field>`: a per-skill breakdown field (C-45).
   A minion's figure is an ordinary field of the same forms: `b.MinionTotalDPS`, `b.g1s1p1.MinionTotalDPS`
   (D-376).
+- `n.boss.g1s1p2`, `<stageId>.boss.g<group>s<skill>p<statSet>`: that boss rotation entry's figure against a Pinnacle
+  boss (D-447), from the stage's `measures.bossGroups`; `.ignite`, `.bleed`, `.poison` or `.usesPerSecond` after it reads
+  that field of the entry (`n.boss.g1s1p1.ignite`); `n.boss.measured`, `<stageId>.boss.measured`, is PoB alone, the
+  stage's `measures.damage.boss`. A stage without them, an entry its rotation lacks, or a null value is an
+  `unknown-output` at compile time. A design's hand estimate `boss_<stage>` starts from these.
 
 Validation fails on a syntax error (an unexpected token, a missing `)`, an empty formula), an unknown
 input, or a reference to a stage the plan doesn't have, each with its 0-based column. At compile time, a reference to an output the record doesn't hold, a
@@ -156,6 +168,13 @@ respec, or when `respec.dropped` isn't exactly the dropped set.
   order; within a rung, stages follow plan order. A rung the plan doesn't have is skipped, so without `m`,
   `b` continues from the last campaign stage. In a plan with no campaign stage, the first rung continues from
   none.
+
+**Respec when the scaling changes, otherwise grow** (D-438, schema version 7). Growing is the default: each stage's
+tree holds its predecessor's. A stage names the stats that scale it in `tree.scales`; a stage whose scaling differs from
+the stage before it on its track (a new skill or gem, a gear item, an ascendancy node, a keystone or a notable that
+scales differently) is a respec stage, and its `respec` names the change and its gate in `note`, the prior nodes it no
+longer holds in `dropped`, and its gold cost. On `b` and `n` the gold cost is a note, never a reason to skip a respec;
+on `m` and campaign stages it is weighed. V1's `tree-continuity` check is the same either way.
 
 ### A tree's needs (D-418)
 
@@ -367,6 +386,98 @@ Schema version 3 adds two fields.
 { "id": "b-arbiter", "text": "The budget rung survives the Arbiter's slam.", "kind": "hinge", "source": { "kind": "pob-computed", "ref": "b.PhysicalMaximumHitTaken" } }
 ```
 
+### Builds a player would run (D-437 to D-448, schema version 7)
+
+Schema version 7 (amendment 11) adds five optional fields. None changes PoB's sets: stages that differ only in them share
+their item and skill sets, and a plan without them compiles as a schema-6 plan does.
+
+- **`skills.cull`** (D-437): a short text naming the culling source and the button that uses it ("Legacy of Deathblow's
+  Culling Strike on Detonate Dead"). With it, the stage's map damage figure is multiplied by the named source's own
+  `CullMultiplier` (a global cull, such as a rune's, reaches it), and the record gains `measures.cull`; without it, neither.
+  A cull only another skill carries, or a skill's own incidental cull, isn't counted unless the design states it here.
+- **`skills.engagement {kind, reason}`** (D-441): how close the character stands while it deals its damage, `close` (in
+  or next to the pack or the boss) or `distance` (well away), with why. It picks the non-budget rung's toughness target.
+  The schema keeps it optional; the run checker requires it on the non-budget rung in a run held to amendment 11's rules.
+- **`skills.boss {entries, note}`** (D-447): the boss rotation, what the build presses or procs on a boss. Each entry
+  `{group, activeSkill, statSet, turns?}` selects one figure as `skills.main` does (the record's key
+  `g<group>s<activeSkill>p<statSet>`); a Cast on Critical group names its spell, not the meta gem. A skill's two stat sets
+  are two entries when both happen in one use (a hit and its explosion); `turns: true` marks an entry that takes turns
+  with another (a filler between cooldowns, a charge builder and its finisher). `note` says how the fight goes. Without
+  `skills.boss`, the rotation is the named source alone. Totems and other copies acting at once go in the group's
+  `count`, never here. An entry's group must be one of the stage's groups (an error at
+  `stages[n].skills.boss.entries[k]`, as for `rolledGroup`); the compile checks its active skill and stat set against
+  PoB, with errors at the same path, and nothing is compiled.
+- **`tree.scales`** (D-438): one short line naming the stats that scale the stage ("crit damage, ailment magnitude,
+  physical spell levels"). A stage whose scaling differs from the one before it is a respec stage (see tree tracks).
+- **`items.bootsException {kind, reason}`** (D-440): why the stage's boots may carry less movement speed than their tier:
+  `travel` (the build moves with its travel skill; `reason` names the affix the boots slot gains) or `unique` (the unique
+  boots are required for another of the build's mechanics; `reason` says what they give and why it's worth the speed).
+
+```json
+"skills": {
+  "groups": [ … ],
+  "main": { "group": 1, "activeSkill": 2, "statSet": 1 },
+  "rolledGroup": 1,
+  "cull": "Legacy of Deathblow's Culling Strike on Detonate Dead",
+  "engagement": { "kind": "close", "reason": "Reap and the corpse blasts need the pack next to you" },
+  "boss": {
+    "entries": [{ "group": 1, "activeSkill": 2, "statSet": 1 }, { "group": 2, "activeSkill": 1, "statSet": 1, "turns": true }],
+    "note": "Reap between Detonate Dead's triggers; Reap takes turns with the cast"
+  }
+}
+```
+
+**The damage figure and the boss measure** (D-437, D-447). A group's damage figure is its `TotalDPS` × Count, its
+`TotalDot` × Count only when its damage over time stacks, and its `IgniteDPS`, `BleedDPS` and `PoisonDPS` once (the
+record's Count rule); a minion's is its `MinionTotalDPS` × Count. Each endgame variant stage is measured twice: under
+its own config (map monsters) and again with only `enemyIsBoss` set to `Pinnacle`, the plan's earned conditions and
+every other option as listed; the config is put back after, so the saved build is the plan's. Each group is read on its
+own weapon set: a group with `weaponSet: 2` from set 2's measure. The record's `stages.<id>.measures` gain:
+
+- **`damage {map, boss}`** (variant stages): `map` the named source's damage figure against map monsters, times its
+  `CullMultiplier` when the stage states `skills.cull`; `boss` PoB alone against a Pinnacle boss: the boss rotation's
+  untriggered entries summed, with an ailment that doesn't stack counted once, at its largest entry (as PoB's Full DPS
+  keeps the largest). A triggered entry is listed but not summed, since PoB rates it at its hand-cast speed; when no
+  entry can be summed, `boss` is the named source's figure at its hand-cast speed. `measures.dps` stays as before.
+- **`bossGroups[]`** (variant stages): each rotation entry against a Pinnacle boss, `{group, activeSkill, statSet,
+  figure, usesPerSecond, triggered, triggeredBy, turns, ignite, bleed, poison}`: `figure` its damage figure,
+  `usesPerSecond` its `Speed` (a minion's `MinionSpeed`), `triggered` PoB's own trigger test (`isTriggered`,
+  `Modules/CalcTriggers.lua:40-41`: a triggered skill type or flag, an inbuilt trigger, an item's trigger) and
+  `triggeredBy` the meta gem that triggers it (null for an inbuilt or item trigger), `turns` the plan's, and `ignite`,
+  `bleed` and `poison` its ailment figures when PoB doesn't let that ailment stack (no `<Ailment>CanStack`; each stacks to
+  1 by default), else 0. A spell a totem casts isn't triggered. A minion's ailments (`MinionIgniteDPS` and so on) are
+  listed and take no part in the sum, since its figure holds none.
+- **`cull {map, boss}`** (with `skills.cull`): the named source's `CullPercent`, 0 to 100, under each.
+- **`trigger {by, usesPerSecond}`** (every measured stage, card skeletons included): when the named source's group holds
+  a gem of PoB's skill types `Meta` and `Triggers` (Cast on Critical and its kind), its name and the named source's
+  `Speed` as PoB rates it, its hand-cast speed: PoB doesn't model Energy.
+- **`sourceTypes`** (every measured stage): the named source's PoB skill types, by name, its supports' added types
+  included (`Spell`, `Melee`, `Totem`), from which the design's default engagement is read.
+
+Every measured skill's `fields` also hold PoB's `CastRate` and `Cooldown` where PoB sets them, and `CullPercent` and
+`CullMultiplier`. A cooldown skill's `Speed` is capped by its cooldown and its `Time` is `1 / Speed` after the cap, so
+neither is a use's time: `CastRate` is a spell's rate before the cap.
+
+```json
+"damage": { "map": 2717385, "boss": 222149 },
+"cull": { "map": 91, "boss": 13 },
+"trigger": { "by": "Cast on Critical", "usesPerSecond": 1.46 },
+"sourceTypes": ["Area", "Spell", "Triggerable", "Triggered"],
+"bossGroups": [
+  { "group": 1, "activeSkill": 2, "statSet": 1, "figure": 222149, "usesPerSecond": 1.46, "triggered": true,
+    "triggeredBy": "Cast on Critical", "turns": false, "ignite": 41000, "bleed": 0, "poison": 0 }
+]
+```
+
+**V1's boots check** (D-440). On a schema-7 plan, a stage's boots carry at least their tier of movement speed, as PoB
+parses the item: 30% on `entering-maps`, 35% on `budget` and `non-budget`, and on a campaign stage the highest tier its
+area level allows (C1's `<progress>.area-level` against the game data's tiers: 10% at item level 1, 15% at 16, 20% at
+33, 25% at 46, 30% at 65, 35% at 82). A corruption's extra is never required. Boots under the tier are the V1 finding
+`movement-tier`, its `data` `{slot, name, movementSpeed, tier, exception?, path}`, unless `items.bootsException` holds
+(`travel` with a travel skill in the stage, `clearSpeed.travel`; `unique` with unique boots): then they are a V1 note
+`boots-exception`, information only, and V1 passes. A stage without boots and a card skeleton are skipped, and a plan
+before schema 7 isn't checked, so an old build's boots don't fail a recompile.
+
 ### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
@@ -386,7 +497,8 @@ ledger entry for them: `dps` (the main group's Count-scaled figure: its minion's
 minion skill, else `TotalDPS`; D-294, D-378), `ehp` (`TotalEHP`), on `b` and `n`
 the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit
 (`survives` below 1, else `one-shot`), a rough `clearSpeed` and the player's `movementSpeed`. No ledger entry is
-needed for a reference hit, a kill time or hits to kill.
+needed for a reference hit, a kill time or hits to kill. Amendment 11's measures (`damage`, `bossGroups`, `cull`,
+`trigger`, `sourceTypes`) are described under builds a player would run above.
 
 A card skeleton (R1b's one endgame stage with no `variant`) is measured too, with the pace measures only (D-407):
 its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arbiter rows. A campaign stage has no
@@ -414,10 +526,15 @@ when a minion deals it: `DPS 649 (Navira's Fracturing, minion)`), life, energy s
 fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame variant stage
 also the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. A card skeleton's pace
 measures and every measured stage's movement speed are in the record only. Numbers are rounded to whole numbers.
+On an endgame variant stage (amendment 11, D-437) the line leads with the named source's damage figure in place of the
+headline: `damage <map> against map monsters, <boss> against a Pinnacle boss` (`measures.damage`), the map figure
+followed by `(culling at <x>%)` when it carries the cull, and the minion's name after the boss figure when a minion
+deals it. A named source a meta gem triggers adds `<skill> is triggered by <gem>: PoB rates it at its hand-cast speed
+(<n> a second) and doesn't model Energy`, on a card skeleton too.
 
 ```
 Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
-  Key figures: DPS 5; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
+  Key figures: damage 5 against map monsters, 5 against a Pinnacle boss; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
 ```
 
 ### Weapon set 2's measure (D-426)
@@ -511,7 +628,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5` or `6` | yes | `6` for a new plan; `1` to `5` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6` or `7` | yes | `7` for a new plan; `1` to `6` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -570,6 +687,7 @@ rule may require an optional key in some cases.
 | `stages[].tree.needs[].nodes` | integer[] | yes | At least one. The nodes the need keeps, each in `tree.nodes` (error at `nodes[k]`) | D-418 |
 | `stages[].tree.needs[].stat` | string | no | Non-empty. The node power stat that measures the need, by PoB's id (`ManaRegen`), when PoB has one | D-418 |
 | `stages[].tree.needs[].claim` | string | no | Non-empty. The id of the stage's `reason` claim saying why; set by D1-finish. Missing, or naming no claim of the stage, V1 reports `missing-reason`. Left out of `buildSha1` | D-266, D-418 |
+| `stages[].tree.scales` | string | no | Non-empty. One short line naming the stats that scale the stage; a stage whose scaling differs from the one before it is a respec stage (see tree tracks). Schema version 7 | D-438 |
 | `stages[].respec` | object | no | Present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost | D-144, D-282 |
 | `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |
@@ -597,6 +715,9 @@ rule may require an optional key in some cases.
 | `stages[].items.anoint` | object | no | The notable the stage's amulet is anointed with (see the anoint above). Only on the `budget` and `non-budget` rungs: on `entering-maps` or a campaign stage it errs here. The compile refuses a notable without a three-emotion recipe, one the stage's tree allocates, or a stage without an amulet. Schema version 3 | C-31, D-358 |
 | `stages[].items.anoint.notable` | string | yes | Non-empty. The notable's PoB name, e.g. `Unbending`, matched ignoring case; written as `{enchant}Allocates <notable>` on the amulet | D-358 |
 | `stages[].items.anoint.reason` | string | yes | Non-empty. Why this notable: what it adds, and why it isn't on the tree | D-358 |
+| `stages[].items.bootsException` | object | no | Why the stage's boots may carry less movement speed than their tier; with it V1's `movement-tier` becomes the note `boots-exception` when it holds (see V1's boots check above). Not part of the item set's content. Schema version 7 | D-440 |
+| `stages[].items.bootsException.kind` | `travel` or `unique` | yes | `travel`: the build moves with its travel skill (V1 needs one in the stage); `unique`: the unique boots are required for another mechanic (V1 needs unique boots) | D-440 |
+| `stages[].items.bootsException.reason` | string | yes | Non-empty. For `travel`, the affix the boots slot gains in place of the speed; for `unique`, what the boots give and why it's worth at least the speed they give up | D-440 |
 | `stages[].skills` | object | yes | The skill set. Stages with deep-equal `skills` share one set | C-31, A-P2 |
 | `stages[].skills.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].skills.groups` | object[] | yes | The socket groups, in order; other fields index them from 1 | C-31 |
@@ -618,6 +739,17 @@ rule may require an optional key in some cases.
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |
 | `stages[].skills.main.statSet` | integer | no | At least 1. The active skill's stat set | C-44 |
 | `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`, or naming `roll.skill` as its `minionSkill` (its summon's minion casts it). Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` | D-217, D-293, D-337, D-379 |
+| `stages[].skills.cull` | string | no | Non-empty. The culling source and the button that uses it; with it the map damage figure carries the named source's `CullMultiplier` and the record gains `measures.cull`. Not part of the skill set's content. Schema version 7 | D-437 |
+| `stages[].skills.engagement` | object | no | How close the character stands while it deals its damage, which picks the non-budget toughness target; the run checker requires it on the non-budget rung of a new run. Not part of the skill set's content. Schema version 7 | D-441 |
+| `stages[].skills.engagement.kind` | `close` or `distance` | yes | `close`: in or next to the pack or the boss; `distance`: well away | D-441 |
+| `stages[].skills.engagement.reason` | string | yes | Non-empty. Why, from how the build plays | D-441 |
+| `stages[].skills.boss` | object | no | The boss rotation (see builds a player would run above); without it, the named source alone. Not part of the skill set's content. Schema version 7 | D-447 |
+| `stages[].skills.boss.entries` | object[] | yes | At least one. Every skill the build presses or procs on a boss, each one figure | D-447 |
+| `stages[].skills.boss.entries[].group` | integer | yes | At least 1. One of the stage's groups (error at `entries[k]`) | D-447 |
+| `stages[].skills.boss.entries[].activeSkill` | integer | yes | At least 1. The active skill in that group; a Cast on Critical group names its spell. Checked against PoB at compile (error at `entries[k]`) | D-447 |
+| `stages[].skills.boss.entries[].statSet` | integer | yes | At least 1. The active skill's stat set; checked against PoB at compile (error at `entries[k]`) | D-447 |
+| `stages[].skills.boss.entries[].turns` | boolean | no | `true` when the entry takes turns with another (a filler between cooldowns, a charge builder and its finisher) | D-447 |
+| `stages[].skills.boss.note` | string | yes | Non-empty. How the fight goes: the order, what waits on a cooldown or on charges, what takes turns | D-447 |
 | `stages[].config` | object | yes | The config set: earned player state and scenario inputs. Each option appears once across `earned` and `scenario`. Stages with deep-equal `config` share one set | C-32, A-P2 |
 | `stages[].config.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
 | `stages[].config.earned` | object[] | yes | Earned player state: stacks, charges, conditions, each with what produces it | C-32, D-114 |

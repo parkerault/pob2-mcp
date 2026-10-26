@@ -59,6 +59,11 @@
  * WU-92 (C-55, D-417; AC-B4): `node_power` (`API/NodePower.lua`) replies with node power's lists, the travel count,
  * the swaps tried and the best one; with `upgrades`, get_passive_upgrades' candidates. Both shapes match the schema.
  *
+ * WU-111 (amendment 11; D-440, D-447; AC-B4): `compile_check` takes a stage's `bossEntries` (each with its plan path) and
+ * replies with `movementTiers`, the boots' tiers in the game data; `compile_stage` replies with `skillMeta` (each key's
+ * skill types, trigger test and stacking flags), each item's `rarity` and `movementSpeed`, and with `boss` in its params
+ * the boss measure (`boss {skillOutputs, skillMeta}`; absent without it).
+ *
  * D-398 (M-19; AC-B3, AC-B4): `load_build_xml` replies with `droppedSupports`, the gems PoB dropped from the
  * build's granted groups: each granted group with supports (`granted-supports.xml`: a passive's and an item's) gives
  * one entry with the group, its source, the grantor's name and the gems, a group nothing grants carries
@@ -759,6 +764,58 @@ engineDescribe('AC-E24: every Lua action reply matches its schema on the golden 
       expect(built.result.checks.nodeNames).toContain('Unbending');
       expect(built.result.allocation.nodes.map((n: Json) => n.id)).not.toContain(1352);
       expect((await call('export_build_xml')).xml as string).toMatch(/^\{enchant\}Allocates Unbending$/m);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-B4 (WU-111, D-440, D-447): compile_check replies with the boots\' movement tiers and checks a boss entry; compile_stage replies with each key\'s meta, the boots\' movement speed and, with boss, the boss measure',
+    async () => {
+      await call('load_build_xml', { xml: GOLDEN, name: 'Grenadator' });
+      const base = checkStageOf(TWO_STAGE.stages[0]) as unknown as Json;
+      const at = 'stages[0].skills.boss.entries[0]';
+      const checked = await engine.request(
+        'compile_check',
+        { className: 'Warrior', ascendancy: 'Titan', stages: [{ ...base, bossEntries: [{ at, group: 1, activeSkill: 3, statSet: 1 }] }] },
+        { timeoutMs: 120_000 },
+      );
+      const parsed = replySchemas.compile_check!.safeParse(checked);
+      expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
+      expect(checked.result.defects).toEqual([`stage 1: ${at}: active skill 3 is outside group 1's 1 active skills`]);
+      // Data/ModItem.lua:450-455, the MovementVelocity mods boots roll.
+      expect(checked.result.movementTiers).toEqual([
+        { value: 10, itemLevel: 1 },
+        { value: 15, itemLevel: 16 },
+        { value: 20, itemLevel: 33 },
+        { value: 25, itemLevel: 46 },
+        { value: 30, itemLevel: 65 },
+        { value: 35, itemLevel: 82 },
+      ]);
+
+      await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+      const params = stageOneParams();
+      const built = await engine.request(
+        'compile_stage',
+        { ...params, boss: { groups: [1], fields: params.offenseFields } },
+        { timeoutMs: 120_000 },
+      );
+      const stageParsed = replySchemas.compile_stage!.safeParse(built);
+      expect(stageParsed.success ? [] : stageParsed.error.issues).toEqual([]);
+      const r = built.result;
+      // Each breakdown key's meta: Boneshatter's types, PoB's trigger test, its stacking flags.
+      expect(Object.keys(r.skillMeta).sort()).toEqual(Object.keys(r.skillOutputs).sort());
+      expect(r.skillMeta.g1s1p1).toMatchObject({ triggered: false, stacks: { dot: false, ignite: false, bleed: false, poison: false } });
+      expect(r.skillMeta.g1s1p1.types).toContain('Melee');
+      // The boss measure: group 1 only, keyed as skillOutputs.
+      expect(Object.keys(r.boss.skillOutputs).every((k: string) => k.startsWith('g1s'))).toBe(true);
+      expect(r.boss.skillOutputs.g1s1p1.skill).toBe(r.skillOutputs.g1s1p1.skill);
+      expect(Object.keys(r.boss.skillMeta)).toContain('g1s1p1');
+      // The fixture's boots: magic Hale Rough Greaves, +12 life and no movement speed.
+      expect(r.checks.items.find((i: Json) => i.slot === 'Boots')).toMatchObject({ rarity: 'MAGIC', movementSpeed: 0 });
+      // Without boss, there is none.
+      await call('new_build', { className: TWO_STAGE.roll.className, ascendancy: TWO_STAGE.roll.ascendancy });
+      const plain = await engine.request('compile_stage', params, { timeoutMs: 120_000 });
+      expect(plain.result.boss).toBeUndefined();
     },
     ENGINE_TIMEOUT,
   );

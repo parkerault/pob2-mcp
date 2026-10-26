@@ -62,9 +62,19 @@
  * measure gets `travel` (`travelOf`): the first enabled group other than the clear group whose active skill has PoB's
  * Travel skill type, with its uses per second, or null. The clear measure and `travel` read a group's figures on its
  * own set (`groupFigures`).
+ *
+ * **One damage figure, against map monsters and a boss** (WU-111; amendment 11 §5, §9b; D-437, D-447), additive. Each
+ * variant stage's `measures` gain `damage {map, boss}`: the named source's damage figure (`damageFigure`: `TotalDPS` ×
+ * Count, `TotalDot` × Count only when it stacks, `IgniteDPS`, `BleedDPS` and `PoisonDPS` once; a minion's
+ * `MinionTotalDPS` × Count), read on its own weapon set, the map figure times its `CullMultiplier` when the stage states
+ * `skills.cull`; and `boss`, PoB alone against a Pinnacle boss (`bossDamage`) over `bossGroups`, the boss rotation's
+ * entries (the named source alone without `skills.boss`), each measured with only `enemyIsBoss` set to `Pinnacle`. With
+ * `skills.cull`, `cull {map, boss}` is the named source's `CullPercent` under each. Every measured stage, a card
+ * skeleton's included, gains `sourceTypes` (the named source's PoB skill types) and, when the named source's group holds a
+ * gem of PoB's skill types `Meta` and `Triggers`, `trigger {by, usesPerSecond}`. `measures.dps` stays as written.
  */
-import type { StageChecks } from '../engine/schemas.js';
-import { isMultiSegmentRef, parseFormula, type StageOutputs } from './ledger.js';
+import type { StageChecks, StageSkillMeta } from '../engine/schemas.js';
+import { isMultiSegmentRef, parseFormula, stageValue, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
 import type { Plan, Stage } from './schema.js';
 import type { SourceTag } from './sourceTag.js';
@@ -597,10 +607,277 @@ export function headlineDps(
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
+// ---------------------------------------------------------------------------------------------------
+// One damage figure, against map monsters and a boss (WU-111; amendment 11 §5, §9b; D-437, D-447)
+
+/** The ailments PoB caps at one per enemy unless the skill lets them stack, and each one's field (a minion's too). */
+export const BOSS_AILMENTS = [
+  { key: 'ignite', field: 'IgniteDPS', minion: 'MinionIgniteDPS' },
+  { key: 'bleed', field: 'BleedDPS', minion: 'MinionBleedDPS' },
+  { key: 'poison', field: 'PoisonDPS', minion: 'MinionPoisonDPS' },
+] as const;
+export type BossAilment = (typeof BOSS_AILMENTS)[number]['key'];
+
+/** The fields the boss measure reads per skill beside C-45's and `MEASURE_FIELDS`: a minion's ailments (D-447). */
+export const BOSS_MEASURE_FIELDS: readonly string[] = BOSS_AILMENTS.map((a) => a.minion);
+
+/**
+ * The damage figure (amendment 11's Names, D-437, WU-106's group figure) of one skill and stat set's `fields`, with its
+ * group's `count`: `TotalDPS` × count, `TotalDot` × count only when its damage over time stacks (`dotCanStack`), and
+ * `IgniteDPS`, `BleedDPS` and `PoisonDPS` once, each field PoB gives (`COUNT_RULE`); a minion's (`minion`, D-378,
+ * D-397) is its `MinionTotalDPS` × count. Null when PoB gives none of them.
+ */
+export function damageFigure(
+  fields: Readonly<Record<string, number>> | undefined,
+  count: number,
+  dotCanStack: boolean,
+  minion: boolean,
+): number | null {
+  if (fields === undefined) return null;
+  const num = (f: string): number | null => (typeof fields[f] === 'number' && Number.isFinite(fields[f]) ? fields[f] : null);
+  if (minion) {
+    const v = num('MinionTotalDPS');
+    return v === null ? null : v * count;
+  }
+  const parts: [string, number][] = [
+    ['TotalDPS', count],
+    ['TotalDot', dotCanStack ? count : 1],
+    ['IgniteDPS', 1],
+    ['BleedDPS', 1],
+    ['PoisonDPS', 1],
+  ];
+  let total: number | null = null;
+  for (const [field, scale] of parts) {
+    const v = num(field);
+    if (v !== null) total = (total ?? 0) + v * scale;
+  }
+  return total;
+}
+
+/** `measures.damage` (D-437): the named source's damage figure against map monsters and against a Pinnacle boss. */
+export interface DamageMeasure {
+  /** Against map monsters (the stage's own config); times the named source's `CullMultiplier` with `skills.cull`. */
+  map: number | null;
+  /** PoB alone against a Pinnacle boss (`bossDamage`): the untriggered rotation entries' sum, never culled. */
+  boss: number | null;
+}
+
+/** `measures.cull` (D-437): the named source's `CullPercent` (0–100) against map monsters and a Pinnacle boss. */
+export interface CullMeasure {
+  map: number;
+  boss: number;
+}
+
+/**
+ * `measures.trigger` (D-437): the named source's group holds a gem of PoB's skill types `Meta` and `Triggers` (Cast on
+ * Critical and its kind): `by` is its name, and `usesPerSecond` the named source's `Speed` as PoB rates it, its hand-cast
+ * speed (PoB doesn't model Energy).
+ */
+export interface TriggerMeasure {
+  by: string;
+  usesPerSecond: number | null;
+}
+
+/**
+ * One entry of `measures.bossGroups` (D-447, Appendix A): a boss rotation entry measured against a Pinnacle boss. `figure`
+ * is its damage figure (`damageFigure`, Count applied); `usesPerSecond` its `Speed` (a minion's `MinionSpeed`);
+ * `triggered` PoB's own trigger test (`isTriggered`) and `triggeredBy` the meta gem that triggers it, null for an inbuilt
+ * or item trigger or an untriggered entry; `turns` the plan's; `ignite`, `bleed` and `poison` its ailment figures
+ * (`IgniteDPS` and so on, a minion's `MinionIgniteDPS`) when PoB doesn't let that ailment stack, else 0.
+ */
+export interface BossGroupMeasure {
+  group: number;
+  activeSkill: number;
+  statSet: number;
+  figure: number | null;
+  usesPerSecond: number | null;
+  triggered: boolean;
+  triggeredBy: string | null;
+  turns: boolean;
+  ignite: number;
+  bleed: number;
+  poison: number;
+}
+
+/** PoB's skill types that mark a meta gem that triggers its socketed skills (D-437). */
+export const META_TRIGGER_TYPES: readonly string[] = ['Meta', 'Triggers'];
+
+/** The boss measure `compile_stage` gives with `boss` in its params (D-437, D-447). */
+export interface BossMeasureReply {
+  skillOutputs: StageRecord['skillOutputs'];
+  skillMeta: Readonly<Record<string, StageSkillMeta>>;
+}
+
+/** What the new measures read of `compile_stage`'s reply besides the record (WU-111). */
+export interface MeasureInputs {
+  /** Each `skillOutputs` key's meta. */
+  skillMeta?: Readonly<Record<string, StageSkillMeta>>;
+  /** Each `skillOutputsSet2` key's meta. */
+  skillMetaSet2?: Readonly<Record<string, StageSkillMeta>>;
+  /** The boss measure, on a variant stage. */
+  boss?: BossMeasureReply;
+}
+
+/** The named source's selection, as a rotation entry (stat set 1 when `skills.main` names none). */
+export function namedSource(stage: Pick<Stage, 'skills'>): { group: number; activeSkill: number; statSet: number } {
+  const m = stage.skills.main;
+  return { group: m.group, activeSkill: m.activeSkill, statSet: m.statSet ?? 1 };
+}
+
+/**
+ * WU-111 (D-447): the boss rotation's entries: `skills.boss.entries`, or the named source alone (with `turns` false)
+ * when the stage states none.
+ */
+export function bossRotation(stage: Pick<Stage, 'skills'>): { group: number; activeSkill: number; statSet: number; turns: boolean }[] {
+  const entries = stage.skills.boss?.entries;
+  if (entries === undefined || entries.length === 0) return [{ ...namedSource(stage), turns: false }];
+  return entries.map((e) => ({ group: e.group, activeSkill: e.activeSkill, statSet: e.statSet, turns: e.turns === true }));
+}
+
+/** The plan groups the boss measure reads (D-447): the named source's, then each rotation entry's, each once. */
+export function bossMeasureGroups(stage: Pick<Stage, 'skills'>): number[] {
+  return [...new Set([stage.skills.main.group, ...bossRotation(stage).map((e) => e.group)])];
+}
+
+const finiteOr = <T>(v: unknown, or: T): number | T => (typeof v === 'number' && Number.isFinite(v) ? v : or);
+
+/** A group's Count: the plan's `count`, 1 when it has none. */
+const countOf = (stage: Pick<Stage, 'skills'>, group: number): number => stage.skills.groups[group - 1]?.count ?? 1;
+
+/** Whether a group's figures are its minion's (D-378, D-397): it names a minion skill, or its fields carry `Minion<Field>`s. */
+const minionAt = (rec: Pick<StageRecord, 'minionSkills'>, group: number, fields: Readonly<Record<string, number>> | undefined): boolean =>
+  minionSkillOf(rec, group) !== undefined || summonsMinion(fields);
+
+/** A rotation entry against a Pinnacle boss, with whether its ailments are part of its figure (not a minion's). */
+export type BossGroupInput = BossGroupMeasure & { inFigure: boolean };
+
+/**
+ * One rotation entry against a Pinnacle boss (D-447), from the boss measure: its figure (Count and the boss measure's own
+ * `DotCanStack` applied), uses per second, PoB's trigger test, the plan's `turns`, and each ailment that doesn't stack.
+ * `inFigure` is true when its ailments are part of its figure (not a minion's: a minion's figure is `MinionTotalDPS`).
+ */
+export function bossGroupOf(
+  stage: Pick<Stage, 'skills'>,
+  rec: Pick<StageRecord, 'minionSkills'>,
+  boss: BossMeasureReply,
+  entry: { group: number; activeSkill: number; statSet: number; turns: boolean },
+): BossGroupInput {
+  const key = selectionKey(entry);
+  const fields = boss.skillOutputs[key]?.fields;
+  const meta = boss.skillMeta[key];
+  const minion = minionAt(rec, entry.group, fields);
+  const ailment = (a: (typeof BOSS_AILMENTS)[number]): number =>
+    meta?.stacks[a.key] === true ? 0 : finiteOr(fields?.[minion ? a.minion : a.field], 0);
+  return {
+    group: entry.group,
+    activeSkill: entry.activeSkill,
+    statSet: entry.statSet,
+    figure: damageFigure(fields, countOf(stage, entry.group), meta?.stacks.dot === true, minion),
+    usesPerSecond: finiteOr(fields?.[minion ? 'MinionSpeed' : 'Speed'], null),
+    triggered: meta?.triggered === true,
+    triggeredBy: meta?.triggered === true ? (meta.triggeredBy ?? null) : null,
+    turns: entry.turns,
+    ignite: ailment(BOSS_AILMENTS[0]),
+    bleed: ailment(BOSS_AILMENTS[1]),
+    poison: ailment(BOSS_AILMENTS[2]),
+    inFigure: !minion,
+  };
+}
+
+/**
+ * `measures.damage.boss`, PoB alone (D-447): the untriggered entries' figures summed, an ailment that doesn't stack
+ * counted once, at its largest entry (as PoB's own Full DPS keeps the largest, `Calcs.lua:192-196`): each entry's
+ * non-stacking ailments are taken out of its figure and the largest of each ailment over the entries added back. A
+ * minion's ailments aren't part of its figure (`MinionTotalDPS`), so they are listed and take no part in the sum. A
+ * triggered entry is listed but not summed (PoB rates it at its hand-cast speed). When no entry can be summed, it is
+ * `fallback`, the named source's figure at its hand-cast speed.
+ */
+export function bossDamage(groups: readonly BossGroupInput[], fallback: number | null): number | null {
+  const summed = groups.filter((g) => !g.triggered && g.figure !== null);
+  if (summed.length === 0) return fallback;
+  let total = 0;
+  for (const g of summed) total += g.figure! - (g.inFigure ? g.ignite + g.bleed + g.poison : 0);
+  for (const a of BOSS_AILMENTS) total += Math.max(0, ...summed.filter((g) => g.inFigure).map((g) => g[a.key]));
+  return total;
+}
+
+/**
+ * The named source's figures on its own weapon set (D-437): `skillOutputsSet2` and its meta for a group with
+ * `weaponSet: 2` on a stage that has them, else `skillOutputs` with the counted figures' `DotCanStack`.
+ */
+function sourceFigures(
+  stage: Pick<Stage, 'skills'>,
+  rec: Pick<StageRecord, 'skillOutputs' | 'skillOutputsSet2' | 'countedSkillOutputs'>,
+  pob: MeasureInputs,
+): {
+  fields: Readonly<Record<string, number>> | undefined;
+  meta: StageSkillMeta | undefined;
+  metas: Readonly<Record<string, StageSkillMeta>> | undefined;
+  dotCanStack: boolean;
+  figures: StageRecord['skillOutputs'];
+} {
+  const key = selectionKey(namedSource(stage));
+  if (stage.skills.groups[stage.skills.main.group - 1]?.weaponSet === 2 && rec.skillOutputsSet2 !== undefined) {
+    const meta = pob.skillMetaSet2?.[key];
+    return { fields: rec.skillOutputsSet2[key]?.fields, meta, metas: pob.skillMetaSet2, dotCanStack: meta?.stacks.dot === true, figures: rec.skillOutputsSet2 };
+  }
+  const meta = pob.skillMeta?.[key];
+  return {
+    fields: rec.skillOutputs[key]?.fields,
+    meta,
+    metas: pob.skillMeta,
+    dotCanStack: rec.countedSkillOutputs[key]?.dotCanStack ?? meta?.stacks.dot === true,
+    figures: rec.skillOutputs,
+  };
+}
+
+/**
+ * The new measures of a measured stage (WU-111; D-437, D-441, D-447): on every one, `sourceTypes` and, when the named
+ * source's group holds a gem of PoB's types `Meta` and `Triggers` (one of its active skills has both, at its first stat
+ * set, on the group's weapon set), `trigger`; on a variant stage with the boss measure, `damage`, `bossGroups` and, with
+ * `skills.cull`, `cull`.
+ */
+export function sourceMeasures(
+  stage: Pick<Stage, 'skills' | 'variant'>,
+  rec: Pick<StageRecord, 'skillOutputs' | 'skillOutputsSet2' | 'countedSkillOutputs' | 'minionSkills'>,
+  pob: MeasureInputs,
+): Pick<StageMeasures, 'damage' | 'cull' | 'trigger' | 'sourceTypes' | 'bossGroups'> {
+  const source = namedSource(stage);
+  const { fields, meta, metas, dotCanStack, figures } = sourceFigures(stage, rec, pob);
+  const minion = minionAt(rec, source.group, fields);
+  const out: Pick<StageMeasures, 'damage' | 'cull' | 'trigger' | 'sourceTypes' | 'bossGroups'> = {};
+  const groupKeys = Object.keys(figures)
+    .map((k) => ({ k, m: /^g(\d+)s(\d+)p(\d+)$/.exec(k) }))
+    .filter((x) => x.m !== null && Number(x.m[1]) === source.group && Number(x.m[3]) === 1)
+    .sort((a, b) => Number(a.m![2]) - Number(b.m![2]))
+    .map((x) => x.k);
+  const trigger = groupKeys.find((k) => META_TRIGGER_TYPES.every((t) => metas?.[k]?.types.includes(t)));
+  if (trigger !== undefined) {
+    out.trigger = { by: figures[trigger].skill, usesPerSecond: finiteOr(fields?.[minion ? 'MinionSpeed' : 'Speed'], null) };
+  }
+  out.sourceTypes = [...(meta?.types ?? [])];
+  if (stage.variant === undefined || pob.boss === undefined) return out;
+  const culls = stage.skills.cull !== undefined;
+  const map = damageFigure(fields, countOf(stage, source.group), dotCanStack, minion);
+  const groups = bossRotation(stage).map((e) => bossGroupOf(stage, rec, pob.boss!, e));
+  const bossSource = bossGroupOf(stage, rec, pob.boss, { ...source, turns: false });
+  out.damage = {
+    map: map === null ? null : map * (culls ? finiteOr(fields?.CullMultiplier, 1) : 1),
+    boss: bossDamage(groups, bossSource.figure),
+  };
+  if (culls) {
+    const bossFields = pob.boss.skillOutputs[selectionKey(source)]?.fields;
+    out.cull = { map: finiteOr(fields?.CullPercent, 0), boss: finiteOr(bossFields?.CullPercent, 0) };
+  }
+  out.bossGroups = groups.map(({ inFigure: _inFigure, ...g }) => g);
+  return out;
+}
+
 /**
  * `measures`, per endgame stage (D-353, D-407; `measuredStage`). Every endgame stage, a card skeleton's included, has
  * the pace measures, `clearSpeed` and `movementSpeed`. `dps` and `ehp` are on an endgame variant stage (one with a
- * `variant`) only, and `arbiter` only on the budget and non-budget rungs.
+ * `variant`) only, and `arbiter` only on the budget and non-budget rungs. WU-111 (D-437, D-447): `sourceTypes` and
+ * `trigger` on every one, `damage`, `cull` and `bossGroups` on a variant stage (`sourceMeasures`).
  */
 export interface StageMeasures {
   /** On a variant stage only (D-353): the headline. */
@@ -614,6 +891,16 @@ export interface StageMeasures {
    * action speed as a multiplier, the sidebar's "Movement Speed Modifier" (1.25 is +25%); null when PoB gives none.
    */
   movementSpeed: number | null;
+  /** WU-111 (D-437): on a variant stage, the named source's damage figure against map monsters and a Pinnacle boss. */
+  damage?: DamageMeasure;
+  /** WU-111 (D-437): on a variant stage that states `skills.cull`, the named source's `CullPercent` under each. */
+  cull?: CullMeasure;
+  /** WU-111 (D-437): on any measured stage whose named source's group holds a meta gem that triggers. */
+  trigger?: TriggerMeasure;
+  /** WU-111 (D-437, D-441): the named source's PoB skill types, its live ones (a support's added types included). */
+  sourceTypes?: string[];
+  /** WU-111 (D-447): on a variant stage, the boss rotation's entries against a Pinnacle boss. */
+  bossGroups?: BossGroupMeasure[];
 }
 
 /** The rungs `measures.arbiter` is given on (D-353): `b` and `n`. */
@@ -633,7 +920,8 @@ export function measuredStage(stage: Pick<Stage, 'progress' | 'variant'>): boole
 /**
  * An endgame stage's measures from its record (D-353, D-407): the pace measures on every one; `dps`, `ehp` and, on
  * `b` and `n`, `arbiter`, on a variant stage. D-427 (WU-102): given the stage's travel skills (`compile_stage`'s
- * `travelSkills`), the clear measure carries `travel` (`travelOf`), the travel skill or null.
+ * `travelSkills`), the clear measure carries `travel` (`travelOf`), the travel skill or null. WU-111: given the reply's
+ * skill meta and boss measure (`pob`), the new measures (`sourceMeasures`).
  */
 export function stageMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
@@ -641,6 +929,7 @@ export function stageMeasures(
   arbiterHits: readonly ArbiterHit[],
   gemTexts: Readonly<Record<string, string>>,
   travelSkills?: readonly TravelSkill[],
+  pob?: MeasureInputs,
 ): StageMeasures {
   const ehp = rec.outputs.TotalEHP;
   const move = rec.outputs[MOVEMENT_SPEED_FIELD];
@@ -663,14 +952,17 @@ export function stageMeasures(
     // D-427: the travel skill beside the movement speed (the HG-12 grant for the record's `travel`).
     ...(travelSkills !== undefined ? { travel: travelOf(stage, rec, travelSkills) } : {}),
   };
+  // WU-111 (D-437, D-447): the named source's types and trigger on every measured stage, its figures on a variant one.
+  const added = pob !== undefined ? sourceMeasures(stage, rec, pob) : {};
   // D-407: a card skeleton (no variant) has the pace measures only (the HG-12 grant covers these two fields).
-  if (stage.variant === undefined) return { clearSpeed, movementSpeed };
+  if (stage.variant === undefined) return { clearSpeed, movementSpeed, ...added };
   return {
     dps: headlineDps(stage, rec),
     ehp: typeof ehp === 'number' && Number.isFinite(ehp) ? ehp : null,
     ...(ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiterMeasure(rec.outputs, arbiterHits) } : {}),
     clearSpeed,
     movementSpeed,
+    ...added,
   };
 }
 
@@ -930,19 +1222,15 @@ function sourceTags(plan: Plan): { where: string; tag: SourceTag }[] {
   return out;
 }
 
-/** Whether a `pob-computed` ref names a field of the record: `<stageId>.<Field>` or
- * `<stageId>.g<group>s<skill>p<statSet>.<Field>`. */
+/** Whether a `pob-computed` ref names a field of the record: `<stageId>.<Field>`,
+ * `<stageId>.g<group>s<skill>p<statSet>.<Field>`, or (WU-111, D-447) a boss reference, as the ledger resolves them
+ * (`stageValue`). */
 export function refResolves(ref: string, stages: Readonly<Record<string, StageOutputs>>): boolean {
   if (!isMultiSegmentRef(ref)) return false;
   const [stageId, ...rest] = ref.split('.');
   const stage = Object.prototype.hasOwnProperty.call(stages, stageId) ? stages[stageId] : undefined;
   if (!stage) return false;
-  if (rest.length === 1) return typeof stage.outputs[rest[0]] === 'number';
-  if (rest.length === 2) {
-    const fields = stage.skillOutputs?.[rest[0]]?.fields;
-    return fields !== undefined && typeof fields[rest[1]] === 'number';
-  }
-  return false;
+  return typeof stageValue(stage, rest) === 'number';
 }
 
 /** The `pob-computed` tags whose ref names no field of this record (C-33). */

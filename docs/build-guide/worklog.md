@@ -5713,3 +5713,9 @@ the `m17` engine at `b76967b`.
   23 of 30 builds needed a correction outside §9b's list (the rotation's share of the player's time in 17, a burst over
   its cycle in 9), so §9b needs them for a floor from this study to compare like with like. The Twister corrections
   are kept for the live test (WU-116).
+- **The user's answers after the second study:** the boss floor "250k" at non-budget; below it "Show a damage trade";
+  §9b's corrections widened, "Add them"; no verification pass before deciding ("No, decide now").
+- **Revision 3** of amendment 11: D-448, the floor (`references/boss-floor.json`, the damage trade under it with its
+  EHP allowance, the checker's `under` recompute); §9b widened (turn-taking entries in the rotation, PoB's trigger
+  test for `triggeredBy` so a totem's spell is summed, one non-stacking ailment, `Time` and `Cooldown` in the
+  record, the hand estimate required with a triggered or turn-taking entry, nine corrections). A re-check is next.

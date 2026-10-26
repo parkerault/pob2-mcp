@@ -1,15 +1,18 @@
 # Amendment 11: builds a player would run
 
-**Status: REVISION 2, 2026-10-25.** Revision 1 followed the independent review (§21: four lenses and a skeptical
+**Status: REVISION 3, 2026-10-25.** Revision 1 followed the independent review (§21: four lenses and a skeptical
 verifier) and the user's answers. Revision 2 adds the user's answers after the boss-damage study
 (`../studies/2026-10-25-boss-damage.md`): a boss estimate made the way the guides will make it (§9b, D-447),
-toughness by engagement distance (§9), and the damage trade from 150% of the target. Revision 2 is re-checked and
-folded. The boss floor waits on a second study that estimates the library's builds by §9b's method (§20, item 8);
-then the user's approval. It carries:
+toughness by engagement distance (§9), and the damage trade from 150% of the target; it was re-checked and folded.
+Revision 3 adds the user's answers after the second study (`../studies/2026-10-25-boss-estimate.md`), which
+estimated the library's builds by §9b's method: a boss floor of 250,000 at non-budget with a damage trade below it
+(D-448), and §9b's corrections widened to those the study needed. Waiting for a re-check of revision 3's changes
+and the user's approval. It carries:
 - the user's notes during and after the open-brief half of the live test (WU-109, run `open-clear/2026-10-24-1`),
   the user's choices of 2026-10-24 and 2026-10-25 quoted where they're used;
 - the comparison study (`../studies/2026-10-24-reap-infernalist-comparison.md`, cited as [study]), the toughness
-  study (`../studies/2026-10-25-toughness-floors.md`) and the user's verdict (work-log 2026-10-24);
+  study (`../studies/2026-10-25-toughness-floors.md`), the two boss studies and the user's verdict (work-log
+  2026-10-24);
 - the problems the run's own session recorded at its design gate (cited as [run]);
 - two read-only surveys of the code and docs these changes touch (2026-10-25), cited by file and line;
 - the small items amendment 10 left for the next fold.
@@ -18,7 +21,7 @@ It is written against spec v1.6 and amendments 8 to 10, all built and merged (M-
 repository root, except stage files (`R1b.md` and so on), under `.claude/skills/build-guide/references/stages/`,
 and the skill's other files, under `.claude/skills/build-guide/`. Decisions continue from D-436, work units from
 WU-110, criteria from AC-W89, AC-P79 and AC-K72; the milestone is M-24. C-33 gains one reference form (§9b); no
-PoB gap is added. The plan schema gains version 7 (§5, §6, §8, §9, §9b). Each decision ends with the rows and rules it amends. Appendix A fixes the
+PoB gap is added here (the boss studies' gaps go to `docs/build-guide/pob-gaps.md` separately). The plan schema gains version 7 (§5, §6, §8, §9, §9b). Each decision ends with the rows and rules it amends. Appendix A fixes the
 formats; §20 lists the proceed-on assumptions.
 
 **Names.**
@@ -36,8 +39,11 @@ formats; §20 lists the proceed-on assumptions.
   "Meta Skills gain X% increased Energy" (`vendor/…/Data/ModCache.lua`:6189–6194).
 - **Engagement** is how close the character stands to the enemies while it deals its damage: **close** (in or next to
   the pack or the boss) or **distance** (well away). It decides the toughness target (§9), not the skill's tag.
-- The **boss rotation** is what the build presses on a boss that runs together, each entry one skill and stat set
-  of a group (§9b).
+- The **boss rotation** is what the build presses on a boss, each entry one skill and stat set of a group, and how
+  the entries share the player's time (§9b).
+- The **boss figure** is a rung's boss damage per second as the gates show it: the `boss_<stage>` ledger value when
+  the design estimates one, else the measured `damage.boss` (§9b). The **boss floor** is its minimum at non-budget
+  (D-448).
 
 ## 1. The user's direction
 
@@ -343,51 +349,97 @@ asked about a rung far over its target: "Offer a damage trade."
 Amends D-353 (the design gate's toughness lines), `D1-build.md` (the engagement), `D1-finish.md`, `D1-gate.md`'s
 design field, `checkpoints.md`'s design gate, `check-run.mjs`'s design checks.
 
-## 9b. D-447: the boss estimate
+## 9b. D-447: the boss estimate, and D-448: the boss floor
 
 The user (2026-10-25), shown that PoB reads only 2 of 30 published builds' boss damage faithfully
 (`../studies/2026-10-25-boss-damage.md`), answered: "Estimate DPS the same way you'd do for our guides", meaning
 the library's builds are to be estimated by the same method as our designs, and a floor set from that study (the
 user, correcting the coordinator's reading of "no floor": "we should estimate the boss DPS in the guide library
 the same way we do in our guides so we can set the floor based on that study"). The design estimates its boss
-damage from its own rotation and the conditions its plan earns, and corrects by hand what PoB can't read; the floor
-comes from the second study (§20, item 8).
+damage from its own rotation and the conditions its plan earns, and corrects by hand what PoB can't read. The
+second study (`../studies/2026-10-25-boss-estimate.md`) estimated the same 30 builds that way; 23 of them needed a
+correction outside revision 2's list, which this section now carries. After it the user chose a floor of 250,000
+("250k"), a damage trade below it ("Show a damage trade") and the wider corrections ("Add them").
 - **The rotation.** D1-build names the boss rotation on each endgame rung: `stages[].skills.boss {entries, note}`
   (schema 7). Each entry selects one figure the way `skills.main` does, `{group, activeSkill, statSet}` (the record
-  keys every figure `g<group>s<activeSkill>p<statSet>`, `pob-api/API/Compile.lua`:1614–1626), so a skill's two stat
-  sets per use are two entries, and a Cast on Critical group names its spell, not the meta gem. The entries are what
-  the build presses on a boss and what runs together (procs, both parts of a use, a setup and its payoff); the note
-  says how the fight goes. Without it, the rotation is the named source alone. Totems and other copies acting at once
-  go in the group's `count` with its `countReason` (`plan-reference.md`:190–198), as today, never in the estimate.
-- **The measure.** The compile measures each entry's damage figure against a Pinnacle boss (§5's second measure,
-  the plan's own earned conditions, nothing else; an entry on weapon set 2 from set 2's outputs), into
-  `measures.bossGroups [{group, activeSkill, statSet, figure, usesPerSecond, triggeredBy}]`. `measures.damage.boss`
-  is the sum of the entries whose rate PoB rates itself; an entry a meta gem triggers is listed with `triggeredBy`
-  but not summed (PoB rates it at its hand-cast speed). When no entry can be summed (the rotation is a triggered
-  named source alone), `damage.boss` is the named source's figure at its hand-cast speed, as the study's "largest
-  single" was, and the display says so.
-- **The hand estimate.** Where PoB can't read part of the rotation, D1-finish writes a ledger entry `boss_<stage>`
-  (C-33) whose formula starts from the record's boss figures and applies the correction, each input with its source
-  tag (C-30); its `claim` says, in a few words per correction, what it corrects. The corrections, from the study's
-  list of what PoB can't read: a triggered spell's rate from the gem's energy rules and the build's crit or ailment
-  rate; procs per step or per hit; projectiles, pillars or grenades that all land on a boss; a buff with no stat map.
-  C-33 gains one reference form, `<stageId>.boss.g<group>s<activeSkill>p<statSet>`: that entry's figure against a
-  Pinnacle boss.
+  keys every figure `g<group>s<activeSkill>p<statSet>`, `pob-api/API/Compile.lua`:1614–1626), and a Cast on
+  Critical group names its spell, not the meta gem. The entries are every skill the build presses or procs on a
+  boss: what runs together (procs, both parts of one use, a setup and its payoff) and what takes turns (a filler
+  between cooldowns, a charge builder and its finisher). A skill's two stat sets are two entries when both happen in
+  one use (a hit and its explosion); alternatives (a plain or an infused cast) are entries only if the rotation uses
+  both, and then they take turns. The note says how the fight goes: the order, what waits on a cooldown or on
+  charges, what takes turns. Without it, the rotation is the named source alone. Totems and other copies acting at
+  once go in the group's `count` with its `countReason` (`plan-reference.md`:190–198), as today, never in the
+  estimate.
+- **The measure.** The compile measures each entry against a Pinnacle boss (§5's second measure, the plan's own
+  earned conditions, nothing else; an entry on weapon set 2 from set 2's outputs), into `measures.bossGroups
+  [{group, activeSkill, statSet, figure, usesPerSecond, triggeredBy, ignite, bleed}]`.
+  - An entry is **triggered** when PoB's own trigger test holds for it (`vendor/…/Modules/CalcTriggers.lua`:41, a
+    triggered skill type or flag), `triggeredBy` naming its meta gem. A spell a totem casts isn't (PoB rates the
+    totem's casting), nor is a skill in a meta gem's group that the gem doesn't trigger.
+  - `measures.damage.boss` (**PoB alone**) sums the untriggered entries' figures, counting an ailment that doesn't
+    stack once: an entry's `ignite` and `bleed` are its `IgniteDPS` and `BleedDPS` when PoB doesn't let that ailment
+    stack (no `<Ailment>CanStack` flag, `vendor/…/Modules/CalcOffence.lua`:5065), else 0, and the sum keeps only the
+    largest of each. A triggered entry is listed but not summed (PoB rates it at its hand-cast speed). When no entry
+    can be summed, `damage.boss` is the named source's figure at its hand-cast speed, and the display says so.
+  - PoB alone rates every entry as if it were pressed all the time, so with entries that take turns it reads high
+    (the study's Wolfman: 1.40M summed, 449k estimated); the hand estimate then corrects it.
+  - The record's per-skill fields gain PoB's `Time` (one use's time) and `Cooldown` where PoB sets them
+    (`MEASURE_FIELDS`, `src/plan/compiler.ts`:905): a cooldown skill's `Speed` is its cooldown cap, not its use time
+    (`CalcOffence.lua`:2866–2868).
+- **The hand estimate.** D1-finish writes a ledger entry `boss_<stage>` (C-33) where PoB can't read part of the
+  rotation, and always when the rotation has a triggered entry or entries that take turns. Its formula starts from
+  the record's boss figures and applies the corrections, each input with its source tag (C-30); its `claim` says, in
+  a few words per correction, what it corrects. The figure is sustained damage per second over one cycle of the
+  rotation, not a burst. The corrections, from the two studies (the second lists each with its builds):
+  - **trigger rate:** a triggered spell's rate from its meta gem's energy rules and the build's crit, ailment or hit
+    rate, in place of PoB's hand-cast speed; where two meta gems feed each other, the loop's rate; a gem never
+    refills itself unless its text says so;
+  - **procs:** per step, per hit or per metre; an on-hit proc counts per strike;
+  - **landing:** projectiles, pillars, grenades or fragments that land on one boss beyond what PoB rates, within any
+    cap on copies or hits (a pillar limit, a hit lockout); returning or nova projectiles count about half;
+  - **hits per use:** a strike that hits more than once;
+  - **buff:** a buff PoB has no stat for, applied in the formula as the stat its text grants, times its uptime;
+  - **rotation share:** entries that take turns, each at its use time (PoB's `Time`; a channelled skill's from its
+    gem data) within the cycle, and cooldowns from PoB's `Cooldown`;
+  - **burst over its cycle:** a charged or staged use (charges, stages, a cooldown) once per cycle;
+  - **uptime:** a condition the plan sets whose duration (gem text) the cycle can't keep up;
+  - **one ailment:** an ailment that doesn't stack counts once across the rotation, at its strongest entry, as PoB
+    alone does.
+  A correction lowers the figure as readily as it raises it. A stat no tool exposes (an ignite's stack potential,
+  maximum charges, an ailment chance) is derived from game data as a `pob-data` input, or is a `judgment`. C-33 gains
+  one reference form, `<stageId>.boss.g<group>s<activeSkill>p<statSet>`: that entry's figure against a Pinnacle boss.
 - **The boss figure** shown everywhere (the design and final gates, the audit, the guide's verdict line) is the
   `boss_<stage>` ledger value when the entry exists, else `measures.damage.boss`; the checker compares a guide's or
   audit's figure with the same value (the ledger's evaluated value, `ledgerNow`). The design gate shows `Boss damage:
   about <estimate> per second against a Pinnacle boss (PoB alone: <measured>; estimated: <the entry's claim>)`, or
-  the measured figure alone. The floor, and what a design below it gets, wait on the second study (§20, item 8).
+  the measured figure alone, and on the non-budget rung the floor line (below).
+- **The floor (D-448).** The user (2026-10-25), shown the second study (current builds' 25th percentile 231k to 269k
+  by cut, median 684k), chose "250k", and below it "Show a damage trade". The non-budget rung's boss figure is held to
+  250,000, in one file, `references/boss-floor.json` (Appendix A), which D1-finish and the checker read. One floor
+  serves close and distance builds: the study found no split (25th percentile 218k close, 301k at a distance).
+  - **Under the floor,** D1-finish measures a **damage trade** as §9 does: node power's best swap ranked by
+    `MainDamage`, with `TotalEHP` allowed to fall no lower than the toughness target when the rung is over its band,
+    else no lower than the band's bottom (90% of the target), or by at most 15% when the rung is already under the
+    band (proceed-on, §20). The trade shows its damage change and the boss figure it implies at the same ratio
+    (proceed-on: the boss figure moves with the named source's). With none found, `none found: <why>`.
+  - A rung under the floor and over its toughness band has one damage trade; a rung under the floor and under its
+    band shows both trades, and the user picks.
+  - Neither is a gate failure: the gate shows the trade and the user decides. The gate always shows the non-budget
+    rung's boss figure against the floor.
 - **The checks.** The plan schema errs at `stages[n].skills.boss.entries[k]` for a group, skill or stat set the
   stage doesn't have (as it does for `rolledGroup`, `src/plan/schema.ts`:648). The checker fails a `boss_<stage>`
-  formula with no `boss.` reference or with one outside the stage's rotation, and a design field whose
-  `boss.estimate` differs from the ledger's value. The compiler, the checker and the audit give the ledger's
-  context the record's `bossGroups` (`src/plan/compiler.ts`:1146, `check-run.mjs`:5141, `render-audit.mjs`:254),
-  and the final display reads the record's evaluated `boss_<stage>`.
+  formula with no `boss.` reference or with one outside the stage's rotation; a rotation with a triggered entry and
+  no `boss_<stage>` entry; a design field whose `boss.estimate` differs from the ledger's value; and at non-budget, a
+  design field whose `boss.under` disagrees with the boss figure and the floor file, or a rung under the floor with
+  no damage trade entry. The compiler, the checker and the audit give the ledger's context the record's
+  `bossGroups` (`src/plan/compiler.ts`:1146, `check-run.mjs`:5141, `render-audit.mjs`:254), and the final display
+  reads the record's evaluated `boss_<stage>`.
 
-Amends C-33's reference forms, D-294 and D-353 (the boss figure), the plan schema, `src/plan/ledger.ts`,
-`plan-reference.md`, `D1-build.md`, `D1-finish.md`, `D1-gate.md`'s design field, `checkpoints.md`'s design gate,
-`run-log.mjs`'s final display, `check-run.mjs`, `render-audit.mjs`, the guide and audit templates.
+Amends C-33's reference forms, D-294 and D-353 (the boss figure), the plan schema, `src/plan/compiler.ts`'s measure
+fields, `src/plan/ledger.ts`, `plan-reference.md`, `D1-build.md`, `D1-finish.md`, `D1-gate.md`'s design field,
+`checkpoints.md`'s design gate, `run-log.mjs`'s design and final displays, `check-run.mjs`, `render-audit.mjs`, the
+guide and audit templates.
 
 ## 10. D-442: the gates' words
 
@@ -481,7 +533,9 @@ Estimated changes, for a run with two builds:
 - the boss measure: engine time in the compile, no tokens;
 - D1-finish's trades, when a rung is out of band: about +25K a build;
 - campaign respecs (D2): about +10K a build with a campaign;
-- the boss rotation and its hand estimate (D1-build, D1-finish): about +20K a build.
+- the boss rotation and its hand estimate (D1-build, D1-finish): about +20K a build, more with several corrections
+  (the second study's agents spent about 65K a build working from measured figures and published rotations);
+- the damage trade under the boss floor: about +10K a build when a rung is under it.
 
 About −25K to +45K on a two-build run, depending on trades and a campaign. Node power's calls take longer (the NFR in AC-P79).
 
@@ -490,11 +544,11 @@ About −25K to +45K on a two-build run, depending on trades and a campaign. Nod
 | Unit | What |
 |---|---|
 | WU-110 | Node power: several branches and `branches[]`, the rebuild pass, `free`, the `maxHit` guard, `MainDamage` with `cull`, pool moves on Full DPS (`pob-api/API/NodePower.lua`, `src/handlers/treeHandlers.ts`, its `toolSchemas.ts` entry, the README table, `tests/fixtures/tool-calls.json`, `tests/integration/nodePower*.test.ts`) |
-| WU-111 | The plan and the record: schema 7 (`stages[].skills.cull`, `stages[].skills.engagement`, `stages[].skills.boss`, `stages[].tree.scales`, `stages[].items.bootsException`), the boss measure per rotation entry (set 2 included), `measures.damage`, `measures.bossGroups`, `measures.cull`, `measures.trigger` (skeletons included), `measures.sourceTypes`, C-33's `<stageId>.boss.g<group>s<skill>p<statSet>` reference, the ledger context in `src/plan/compiler.ts` and `ledger.ts`, `keyFigureLine`, V1's `movement-tier` and `boots-exception` (`src/plan/`, `pob-api/API/Compile.lua` where the second measure needs it, `docs/build-guide/plan-reference.md`, their tests) |
+| WU-111 | The plan and the record: schema 7 (`stages[].skills.cull`, `stages[].skills.engagement`, `stages[].skills.boss`, `stages[].tree.scales`, `stages[].items.bootsException`), the boss measure per rotation entry (set 2 included, PoB's trigger test, the ailments that don't stack), `Time` and `Cooldown` in `MEASURE_FIELDS`, `measures.damage`, `measures.bossGroups`, `measures.cull`, `measures.trigger` (skeletons included), `measures.sourceTypes`, C-33's `<stageId>.boss.g<group>s<skill>p<statSet>` reference, the ledger context in `src/plan/compiler.ts` and `ledger.ts`, `keyFigureLine`, V1's `movement-tier` and `boots-exception` (`src/plan/`, `pob-api/API/Compile.lua` where the second measure needs it, `docs/build-guide/plan-reference.md`, their tests) |
 | WU-112 | Pricing: the poe.ninja exchange spike, then the exchange route for every exchange item (`src/handlers/tradeHandlers.ts`, `src/services/`, `src/trade/`, `get_item_price`'s `toolSchemas.ts` entry and README row, fixtures), `references/pricing.md`'s exchange rule |
-| WU-113 | Scripts: `run-log.mjs` (the verification, brainstorm, design and final displays; D1-build's price outcomes; D1-tree's `respec` and D1-finish's `build` outcomes; the pricing stop, the retry answer and their log entries; `skillRevision` at `init` and `resume`; the "drawn from" line; the "damage" swap label; the rival only for old runs), `check-run.mjs` (the dossier columns, Pieces measured, the design field with the band recompute, the engagement, the boss line and trades, the `boss_<stage>` ledger rule, the guide's verdict line, the order table's new routes, `bestSwap.weaponSet` and `branches`, pieces `in` only, `boots-exception` as information, `damage-missing`, run dating by `skillRevision`, the pricing records, the rival only for old runs), `render-audit.mjs` (the figures, campaign rows unchanged, players' currency words, the ledger context with `bossGroups`), the final display's boss estimate, `scripts/league-digest.mjs`'s comment, `tests/fixtures/pipeline/`, `references/run-log.md`, and the script-side assertions of shared static tests |
+| WU-113 | Scripts: `run-log.mjs` (the verification, brainstorm, design and final displays; D1-build's price outcomes; D1-tree's `respec` and D1-finish's `build` outcomes; the pricing stop, the retry answer and their log entries; `skillRevision` at `init` and `resume`; the "drawn from" line; the "damage" swap label; the rival only for old runs), `check-run.mjs` (the dossier columns, Pieces measured, the design field with the band recompute, the engagement, the boss line, the boss floor and trades, the `boss_<stage>` ledger rules, the guide's verdict line, the order table's new routes, `bestSwap.weaponSet` and `branches`, pieces `in` only, `boots-exception` as information, `damage-missing`, run dating by `skillRevision`, the pricing records, the rival only for old runs), `render-audit.mjs` (the figures, campaign rows unchanged, players' currency words, the ledger context with `bossGroups`), the final display's boss estimate, `scripts/league-digest.mjs`'s comment, `tests/fixtures/pipeline/`, `references/run-log.md`, and the script-side assertions of shared static tests |
 | WU-114 | Research and verification docs: `R1a.md`, `R1a-synthesize.md`, `R1a-assemble.md` (names, sources), `R1b.md` (the checks, `damage-missing`, the answers, the verdict file's `pieces[]`), `R1b-assemble.md`, the card and dossier templates, `checkpoints.md` (the interview, brainstorm, verification and final-gate sections and the pre-supplied answers, the retry question), RV.md's removal, the researcher's and coordinator's definitions, `task-header.md`, `run-folder.md`, `references/stages/README.md`, `source-markers.md`, `offline-and-test.md`, `pricing.md` (players' words and the stop), and the tests that pin these |
-| WU-115 | Design docs: `D1-build.md` (with the engagement and the boss rotation), `D1-tree.md`, `D1-finish.md` (with the boss estimate), `D1-gate.md`, `checkpoints.md` (the design gate and revise paths), `gates.md`, `D2.md`, `W1.md`, the guide and audit templates, `patterns.md` (its line 34 included, within 13,000 words), `SKILL.md` (all of it: the rival's rows, the D1 routes, the stop, within 325 lines), `references/toughness-targets.json`, and the tests that pin these |
+| WU-115 | Design docs: `D1-build.md` (with the engagement and the boss rotation), `D1-tree.md`, `D1-finish.md` (with the boss estimate), `D1-gate.md`, `checkpoints.md` (the design gate and revise paths), `gates.md`, `D2.md`, `W1.md`, the guide and audit templates, `patterns.md` (its line 34 included, within 13,000 words), `SKILL.md` (all of it: the rival's rows, the D1 routes, the stop, within 325 lines), `references/toughness-targets.json`, `references/boss-floor.json`, and the tests that pin these |
 | WU-116 | The live test: the fixed roll (Gemling Legionnaire, Twister, Frost Wall by Cast on Critical), the user's, with the coordinator; it also closes WU-109 |
 
 Order: WU-110, WU-111, WU-112 and WU-113 in parallel, the formats fixed by Appendix A; WU-112 rebases onto WU-110
@@ -542,8 +596,11 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
     `boots-exception`;
   - a plan whose `skills.boss` lists two entries of one group's two stat sets records `measures.bossGroups` for both
     and sums them into `damage.boss`; an entry a Cast on Critical gem triggers is listed with `triggeredBy` and not
-    summed; a rotation of a triggered named source alone gives its hand-cast figure; an entry on weapon set 2 is read
-    from set 2;
+    summed; a spell a Spell Totem casts has no `triggeredBy` and is summed; a rotation of a triggered named source
+    alone gives its hand-cast figure; an entry on weapon set 2 is read from set 2;
+  - a rotation of two entries that both ignite, with ignite not stacking, sums their hits and only the larger
+    ignite into `damage.boss`; with poison, both poisons;
+  - a cooldown skill's record fields hold `Time` and `Cooldown`, with `Time` shorter than `1 / Speed`;
   - an entry naming a group, skill or stat set the stage doesn't have errs at `stages[n].skills.boss.entries[k]`;
   - a ledger formula reading `n.boss.g1s1p2` evaluates to that entry's figure against a Pinnacle boss;
   - `skills.engagement` and `skills.boss` are accepted on schema 7 and err at their paths on schema 6.
@@ -573,7 +630,12 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
     without `engagement` fails; a close rung at 31,000 is `over` and needs a damage trade, at 29,000 `within`, at
     17,000 `under`; an out-of-band rung without a trade entry fails, with `none found: …` it passes;
   - the boss line prints "about <estimate>" with its corrections when a `boss_<stage>` entry exists, else the
-    measured figure; a `boss_<stage>` formula with no `boss.g` reference fails;
+    measured figure; a `boss_<stage>` formula with no `boss.g` reference fails; a rotation with a triggered entry and
+    no `boss_<stage>` entry fails;
+  - at non-budget, a boss figure of 240,000 is `under` the floor and needs a damage trade, 260,000 is not; an
+    estimate under the floor over a measured figure above it is `under`; a `boss.under` that disagrees with the
+    record, the ledger and `references/boss-floor.json` fails; an under-floor rung with `none found: …` passes; the
+    design display prints the floor line;
   - a price that rounds to 0.0 prints as seen in exalts; no user-facing line says "exalted";
   - `priceOutcomes` on D1-build is accepted; a pricing step after a stop without an approval fails, after
     `retry-pricing` passes;
@@ -601,9 +663,13 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
   - `D1-tree.md` keeps only serving prior nodes on a respec rung, propagates along grow links only, protects along
     grow links only, runs the rebuild pass, measures unmodelled needs with `free`, writes `trades.json`, and returns
     `respec:`;
-  - `D1-finish.md` reads `references/toughness-targets.json` and measures the defence and damage trades, and writes
-    `boss_<stage>` from the boss-damage study's list of what PoB can't read;
-  - `D1-gate.md`'s design field holds `damage`, `boss` (its estimate from `boss_<stage>`), `cull`, `trigger`,
+  - `D1-finish.md` reads `references/toughness-targets.json` and `references/boss-floor.json`, measures the defence
+    and damage trades (the damage trade under the floor too, with its EHP allowance), and writes `boss_<stage>` with
+    §9b's nine corrections, sustained over the rotation's cycle, whenever the rotation has a triggered entry or
+    entries that take turns;
+  - `D1-build.md` names the boss rotation's turn-taking entries and alternatives as §9b says, with the note;
+  - `D1-gate.md`'s design field holds `damage`, `boss` (its estimate from `boss_<stage>`; at non-budget its `floor` and
+    `under`), `cull`, `trigger`,
     `toughness` and `trades` from `trades.json`;
   - `checkpoints.md`'s design gate shows them, and a respec request routes D1-build first;
   - `D2.md` names campaign scaling and writes campaign respecs, and its boots follow the tiers;
@@ -611,7 +677,7 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
   - `SKILL.md` routes D1-tree's `respec` and D1-finish's `build`, has no rival row, and stays within 325 lines;
     `patterns.md` stays within 13,000 words.
 - **AC-W92 (WU-116).** The live test: the user's judgment of the fixed-roll run, recorded in the work-log, with the
-  decisions the run exercised (a respec, a trade, the boss figure, the boots tier, the verification checks) and those
+  decisions the run exercised (a respec, a trade, the boss figure and floor, the boots tier, the verification checks) and those
   it didn't; it also completes AC-W88.
 
 ## 18. Risks
@@ -626,6 +692,9 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
   recompile).
 - **Hand estimates can flatter a build:** a `boss_<stage>` correction is the designer's arithmetic. Each input carries
   its source tag, the gate shows the correction beside PoB's own figure, and V4 checks the claims.
+- **The boss floor rests on uncertain estimates:** 13 of the study's 30 are low confidence, and six builds' ranges
+  straddle 250,000. A design near the floor is near it within its own estimate's error too; the floor shows a trade,
+  never fails a gate, so a wrong side costs a look, not a build.
 - **Node power's combinations** multiply its calls; the 90-second limit and the baseline in AC-P79 keep it in
   check, below the point where Claude Code backgrounds an MCP call (A-25).
 - **Campaign respecs** add D2 work the user had deferred; the gold cost is still weighed there.
@@ -660,12 +729,16 @@ Taken on 2026-10-25:
 6. **Over the band:** "Offer a damage trade" (§9); after the study, "150% of target".
 7. **Toughness by engagement distance,** 20,000 close and 15,000 at a distance, the design stating which (§9): "Confirm".
 8. **Boss damage:** "Estimate DPS the same way you'd do for our guides" (§9b), then a floor from the library's builds
-   estimated the same way. **Open:** the second study, then the floor and what a design below it gets.
+   estimated the same way. After the second study: the floor at "250k" at non-budget, "Show a damage trade" below
+   it, and §9b's corrections widened, "Add them" (D-448).
 
 Proceed-on assumptions, the coordinator's, for the user's read:
 - the engagement's default from the named source's shape (§9);
 - the boss estimate's corrections through the ledger, and summing only the rotation's entries whose rate PoB rates
   itself (§9b);
+- the second study's working rules in §9b's corrections: on-hit procs per strike, returning or nova projectiles
+  about half, no meta gem refilling itself (§9b);
+- the damage trade's EHP allowance under the boss floor, and its boss figure moving with the named source's (§9b);
 - the 1% lines: a piece "does something" at 1% (the dead-slot audit's precedent) and a prior node "still serves" at
   1% (§4, §6);
 - the tree search's pairs and triples of the 5 weakest branches and `MAX_TRIES` 40 (§7);
@@ -729,6 +802,12 @@ folds both and its should-fixes: entries `{group, activeSkill, statSet}`; one bo
 value when estimated; a triggered named source's hand-cast figure; the ledger contexts; totems through `count`; the
 schema and checker rules for the rotation; `engagement` required by the checker, not the schema.
 
+**Revision 3** (after the second boss study, the same day) adds the floor (D-448: 250,000 at non-budget, a damage
+trade below it) and widens §9b on the user's answers: the rotation includes entries that take turns; PoB's trigger
+test decides `triggeredBy` (a totem's spell isn't triggered); an ailment that doesn't stack counts once; the record
+gains `Time` and `Cooldown`; the hand estimate is required with a triggered or turn-taking entry and carries nine
+corrections. Its re-check is next.
+
 Refuted inside confirmed clusters: NFR-22 failing a stopped run (intended, kept); the named source's cull being 1
 under a rune's Culling Strike (it's global); the `rolledSkill` comparison (D1 picks its field); a second versioning
 field (harmless, kept as `skillRevision`); every tree-only revise running D1-build (only respec requests do).
@@ -771,6 +850,7 @@ Under the cards: `Numbers come at the design gate, measured on the full build.` 
 ```
 - Damage: 2,717,385 per second against map monsters.
 - Boss damage: about 320,000 per second against a Pinnacle boss (PoB alone: 222,149 at Detonate Dead's hand-cast 1.46 a second; estimated: Cast on Critical's rate of 2.1 a second from the crit rate).
+- Boss floor: about 320,000 against the 250,000 floor. (Under it: `about 180,000, under the 250,000 floor`, and a damage trade line.)
 - Culls normal monsters at 91%, bosses at 13%.
 - Detonate Dead is triggered by Cast on Critical: PoB rates it at its hand-cast speed (1.46 a second) and doesn't model Energy.
 - Effective HP: 6,759 (against area 82's map hits: 439 physical).
@@ -779,6 +859,7 @@ Under the cards: `Numbers come at the design gate, measured on the full build.` 
 - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
 - Boots: Trampletoe, 25% movement speed, 10% under the tier, for overkill damage hitting nearby enemies.
 - Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
+- Damage (when under the floor or over the band): moving 4 points from <nodes> to <nodes>: +12% damage (boss about 202,000), −6% EHP.
 ```
 The figures are illustrative. The pieces line, once per build: `- Pieces: 5 in, 1 scheduled (Seismic Cry), 2 out`.
 
@@ -795,7 +876,8 @@ The figures are illustrative. The pieces line, once per build: `- Pieces: 5 in, 
 
 Per rung: `damage {map, boss}`, `cull {map, boss} | null` (percent, 0–100), `trigger {by, usesPerSecond} | null`,
 on the non-budget rung `toughness {engagement: "close" | "distance", reason, target, band: "under" | "within" |
-"over"}`, `boss {measured, estimate | null, corrections: [<short phrase>]}`, and `trades[]` from `trades.json`. `pieces` loses `outNames`. `dps` stays for old readers. `tree.bestSwap` gains
+"over"}`, `boss {measured, estimate | null, corrections: [<short phrase>]}` (on the non-budget rung also `floor` and `under`,
+true when the boss figure is below the floor), and `trades[]` from `trades.json`. `pieces` loses `outNames`. `dps` stays for old readers. `tree.bestSwap` gains
 `branches`.
 
 ### `<buildFolder>/trades.json`
@@ -811,8 +893,10 @@ On each stage it measures: `measures.damage {map, boss}` on variant stages (numb
 cull multiplier when `skills.cull` is set), `measures.cull {map, boss}` (`CullPercent`, 0–100) when it is set,
 `measures.trigger {by, usesPerSecond}` on any stage whose named source a meta gem triggers,
 `measures.sourceTypes` (string array), and on variant stages `measures.bossGroups [{group, figure, usesPerSecond,
-triggeredBy | null, activeSkill, statSet}]` for the boss rotation's entries. C-33's new reference
-`<stageId>.boss.g<group>s<activeSkill>p<statSet>` reads a `bossGroups` figure.
+triggeredBy | null, activeSkill, statSet, ignite, bleed}]` for the boss rotation's entries (`ignite` and `bleed` the
+entry's `IgniteDPS` and `BleedDPS` when that ailment doesn't stack, else 0). Every measured skill's `fields` gain PoB's
+`Time` and `Cooldown` where PoB sets them. C-33's new reference `<stageId>.boss.g<group>s<activeSkill>p<statSet>`
+reads a `bossGroups` figure.
 
 ### The plan (schema 7)
 
@@ -843,3 +927,7 @@ triggeredBy | null, activeSkill, statSet}]` for the boss rotation's entries. C-3
 
 `{"rung": "non-budget", "targets": {"close": 20000, "distance": 15000}, "under": 0.9, "over": 1.5, "source":
 "studies/2026-10-25-toughness-floors.md"}`
+
+### `references/boss-floor.json`
+
+`{"rung": "non-budget", "floor": 250000, "source": "studies/2026-10-25-boss-estimate.md"}`

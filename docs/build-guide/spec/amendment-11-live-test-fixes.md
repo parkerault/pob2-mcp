@@ -2,9 +2,10 @@
 
 **Status: REVISION 2, 2026-10-25.** Revision 1 followed the independent review (§21: four lenses and a skeptical
 verifier) and the user's answers. Revision 2 adds the user's answers after the boss-damage study
-(`../studies/2026-10-25-boss-damage.md`): a boss estimate instead of a floor (§9b, D-447), toughness by engagement
-distance (§9), and the damage trade from 150% of the target. Waiting for a re-check of revision 2's changes and the
-user's approval. It carries:
+(`../studies/2026-10-25-boss-damage.md`): a boss estimate made the way the guides will make it (§9b, D-447),
+toughness by engagement distance (§9), and the damage trade from 150% of the target. Revision 2 is re-checked and
+folded. The boss floor waits on a second study that estimates the library's builds by §9b's method (§20, item 8);
+then the user's approval. It carries:
 - the user's notes during and after the open-brief half of the live test (WU-109, run `open-clear/2026-10-24-1`),
   the user's choices of 2026-10-24 and 2026-10-25 quoted where they're used;
 - the comparison study (`../studies/2026-10-24-reap-infernalist-comparison.md`, cited as [study]), the toughness
@@ -345,9 +346,12 @@ design field, `checkpoints.md`'s design gate, `check-run.mjs`'s design checks.
 ## 9b. D-447: the boss estimate
 
 The user (2026-10-25), shown that PoB reads only 2 of 30 published builds' boss damage faithfully
-(`../studies/2026-10-25-boss-damage.md`), chose no floor: "Estimate DPS the same way you'd do for our guides." The
-design estimates its boss damage the way the study did, from its own rotation and the conditions its plan earns,
-and corrects by hand what PoB can't read.
+(`../studies/2026-10-25-boss-damage.md`), answered: "Estimate DPS the same way you'd do for our guides", meaning
+the library's builds are to be estimated by the same method as our designs, and a floor set from that study (the
+user, correcting the coordinator's reading of "no floor": "we should estimate the boss DPS in the guide library
+the same way we do in our guides so we can set the floor based on that study"). The design estimates its boss
+damage from its own rotation and the conditions its plan earns, and corrects by hand what PoB can't read; the floor
+comes from the second study (§20, item 8).
 - **The rotation.** D1-build names the boss rotation on each endgame rung: `stages[].skills.boss {entries, note}`
   (schema 7). Each entry selects one figure the way `skills.main` does, `{group, activeSkill, statSet}` (the record
   keys every figure `g<group>s<activeSkill>p<statSet>`, `pob-api/API/Compile.lua`:1614–1626), so a skill's two stat
@@ -373,7 +377,7 @@ and corrects by hand what PoB can't read.
   `boss_<stage>` ledger value when the entry exists, else `measures.damage.boss`; the checker compares a guide's or
   audit's figure with the same value (the ledger's evaluated value, `ledgerNow`). The design gate shows `Boss damage:
   about <estimate> per second against a Pinnacle boss (PoB alone: <measured>; estimated: <the entry's claim>)`, or
-  the measured figure alone. There is no floor and no trade: the figure informs the user's choice.
+  the measured figure alone. The floor, and what a design below it gets, wait on the second study (§20, item 8).
 - **The checks.** The plan schema errs at `stages[n].skills.boss.entries[k]` for a group, skill or stat set the
   stage doesn't have (as it does for `rolledGroup`, `src/plan/schema.ts`:648). The checker fails a `boss_<stage>`
   formula with no `boss.` reference or with one outside the stage's rotation, and a design field whose
@@ -655,7 +659,8 @@ Taken on 2026-10-25:
 5. **Campaign respecs:** "Include campaign" (§6).
 6. **Over the band:** "Offer a damage trade" (§9); after the study, "150% of target".
 7. **Toughness by engagement distance,** 20,000 close and 15,000 at a distance, the design stating which (§9): "Confirm".
-8. **Boss damage:** no floor; "Estimate DPS the same way you'd do for our guides" (§9b).
+8. **Boss damage:** "Estimate DPS the same way you'd do for our guides" (§9b), then a floor from the library's builds
+   estimated the same way. **Open:** the second study, then the floor and what a design below it gets.
 
 Proceed-on assumptions, the coordinator's, for the user's read:
 - the engagement's default from the named source's shape (§9);

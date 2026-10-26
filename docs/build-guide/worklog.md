@@ -5694,3 +5694,15 @@ the `m17` engine at `b76967b`.
   the checker compared with the measured figure. It also caught the example's arithmetic (about 320,000, not
   480,000), totems counted twice, the ledger contexts no unit owned, and `engagement` required by a schema old
   campaigns couldn't meet. All folded into revision 2; the user's approval is next.
+
+## 2026-10-25: the boss floor, corrected; the second boss study
+
+- **The user's clarification** before approving revision 2: "You misunderstood my answer on the boss DPS; you wrote
+  (no floor) when I meant we should estimate the boss DPS in the guide library the same way we do in our guides so
+  we can set the floor based on that study." The amendment's status line, §9b and §20 item 8 now say so: the floor,
+  and what a design below it gets, wait on a second study.
+- **The second study:** the same 30 builds, each estimated by §9b's method from the first study's measurements: the
+  boss rotation's entries, PoB's figure for each against a Pinnacle boss, then the hand estimate's corrections
+  (trigger rates from the meta gems' energy rules, procs, projectiles that land, buffs with no stat map), every input
+  sourced. Corrections outside §9b's list are kept apart, to show whether the list needs widening. Five agents,
+  grouped by the correction each build needs most.

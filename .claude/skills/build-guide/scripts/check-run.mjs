@@ -5046,8 +5046,8 @@ export function bandOf(ehp, target, t) {
   if (ehp > t.over * target) return 'over';
   return 'within';
 }
-/** Whether a figure the gate wrote stands for `value`: the rounding rule of the guide's numbers (D-283), or within 0.5%. */
-const sameFigure = (written, value) => isNum(written) && isNum(value) && (matchesWritten(String(Math.round(written) === written ? written : written.toFixed(2)), value) || Math.abs(written - value) <= 0.005 * Math.abs(value));
+/** Whether a figure the gate or D1-finish wrote stands for `value`: within 0.5% of it (or 0.01), whatever its rounding. */
+const sameFigure = (written, value) => isNum(written) && isNum(value) && Math.abs(written - value) <= Math.max(0.005 * Math.abs(value), 0.01);
 
 /**
  * D-439, Appendix A: `<buildFolder>/trades.json`, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter,

@@ -286,12 +286,12 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   - Gear: Apron of Emiran; rare boots, 35% movement speed and resistances
   - Gems: Detonate Dead with Cast on Critical; Reap with Bloodlust
   - Passive tree: 13 of 118 points on travel; best swap left: +3.1% damage by moving 5 points from <nodes> to <nodes>
-  - Kept on the tree: Dexterity for Martial Tempo's requirement
+  - Kept on the tree: the attribute nodes the gems' requirements need
   - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
   - Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
   ```
 
-  Clear speed and movement speed lead, then the boss floor (D-407). The movement line names the rung's travel skill
+  Clear speed and movement speed lead, then the Arbiter line (D-407). The movement line names the rung's travel skill
   and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427). `m` shows no
   Arbiter and no anoint. **The damage lines** (D-437, D-447, D-448): the named source's damage figure against map
   monsters, never PoB's Full DPS, with its cull only when the rung's rotation culls (`skills.cull`); then the boss

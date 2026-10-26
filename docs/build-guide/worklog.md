@@ -5817,3 +5817,14 @@ the `m17` engine at `b76967b`.
   - **Known, not fixed here:** a server restarted during an open pricing stop could send one trade request for an
     exchange item poe.ninja doesn't list (its own limit flag is per process); resuming a pre-amendment-11 run rewrites
     its dossier into the nine columns without saying where an older card's damage kinds come from.
+- **WU-115 (the design docs and SKILL.md) merged** at `86b52ac` (two commits, rebased onto WU-114's merge; the
+  coordinator resolved two shared-test conflicts in `buildGuidePipeline.test.ts` and one comment in
+  `buildGuideDesignPieces.test.ts`, keeping each unit's assertions on its own files). D1-build, D1-tree, D1-finish,
+  D1-gate, D2, W1, `checkpoints.md`'s design gate and revise paths, `gates.md`, the guide and audit templates,
+  `patterns.md` (12,644 words) and SKILL.md (325 lines, no rival, the new routes, both reference files cited). Its
+  verifier (fresh context) passed it, re-running the gate (195 suites, 3,301 tests, rc 0; build rc 0); all 38 of
+  its new tests fail on the base docs. The coordinator fixed two example slips in `checkpoints.md`'s design display
+  (an attribute line naming a gem the example doesn't have; "the boss floor (D-407)", which meant the Arbiter line,
+  now that "Boss floor" is the 250,000 damage floor). Merged doc tests: 45 suites, 1,247 tests, rc 0.
+  - **Left as is:** `D2.md`'s "a respec whose gold the stage can't spare waits for the next one" (a reading of D-282's
+    weighing); `D1-tree.md` doesn't say what to do when a `Free:` move comes back illegal.

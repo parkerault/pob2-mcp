@@ -117,6 +117,11 @@
     "reason": "the combined Offence/Defence view has no stat of its own, so it is refused with the list (C-55)" },
   { "tool": "get_node_power", "args": { "max_distance": 13 }, "expect": "error",
     "reason": "max_distance is at most 12 (C-55)" },
+  { "tool": "get_node_power", "args": { "stats": ["MainDamage", "TotalEHP"], "cull": true, "max_distance": 2, "limit": 3 }, "expect": "ok" },
+  { "tool": "get_node_power", "args": { "stats": ["Life"], "rebuild": true, "max_distance": 2, "limit": 0 }, "expect": "ok" },
+  { "tool": "get_node_power", "args": { "stats": ["FullDPS"], "free": [32976], "max_distance": 2, "limit": 0 }, "expect": "ok" },
+  { "tool": "get_node_power", "args": { "rebuild": true, "free": [32976] }, "expect": "error",
+    "reason": "rebuild and free each replace the swap search, so only one is passed (D-439)" },
 
   { "tool": "select_spec", "args": { "index": 2 }, "expect": "ok",
     "setup": [{ "tool": "create_spec", "args": { "title": "Hygiene spec", "copyFrom": 1, "activate": false } }] },

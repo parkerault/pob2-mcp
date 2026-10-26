@@ -1640,7 +1640,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_node_power",
-      description: "Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. It is PoB's own \"Show node power\" and power report, for 1 to 3 of the stats PoB offers it on, by PoB's id or label (FullDPS, TotalEHP, Life, ManaRegen, Armour, the attributes, the minion stats and the rest; an unknown name, or the combined Offence/Defence view, is refused with the list). One pass of PoB's own calculator measures every node within max_distance points of the tree: each unallocated node alone and with its whole path, ranked by path gain per point on the first stat, and each allocated node with the nodes that depend on it (its branch), ranked by loss per point. It counts travel, the allocated points that give nothing alone on any stat asked for, and searches the best swap: for each of the 5 weakest branches, remove it, then add the best nodes whose new paths fit the freed points, all measured as one change. A swap is returned only when it is legal (every node connected, no more points, no second tree on a start, no weapon-set or ascendancy node added or removed; an added attribute node takes PoB's default choice, which is named) and gains on the first stat with no other stat losing more than max_loss and no loss of movement speed or of the clear skill's radius or uses per second. Each weapon-set pool with nodes also gets a pool move, measured with that set active: its weakest branch swapped for nodes tagged to the same pool, the pool holding no more points; its line is \"Best swap (weapon set <1|2>): ...\". No node moves between pools, or into or out of the main tree. Never removed, with any branch holding them: keep, a node that grants a skill, a weapon-set node (but by its pool's move), and a node a loadout in protect_for builds on. The loadout and level are selected inside the call and put back after, so the build is unchanged. Lists what PoB can't fully measure among the nodes listed.",
+      description: "Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. It is PoB's own \"Show node power\" and power report, for 1 to 3 of the stats PoB offers it on, by PoB's id or label (FullDPS, TotalEHP, Life, ManaRegen, Armour, the attributes, the minion stats and the rest; an unknown name, or the combined Offence/Defence view, is refused with the list). One pass of PoB's own calculator measures every node within max_distance points of the tree: each unallocated node alone and with its whole path, ranked by path gain per point on the first stat, and each allocated node with the nodes that depend on it (its branch), ranked by loss per point. It counts travel, the allocated points that give nothing alone on any stat asked for, and searches the best swap: free the 5 weakest branches, each alone and in pairs and triples, then add the best nodes whose new paths fit the freed points, all measured as one change. A swap is returned only when it is legal (every node connected, no more points, no second tree on a start, no weapon-set or ascendancy node added or removed; an added attribute node takes PoB's default choice, which is named) and gains on the first stat with no other stat losing more than max_loss, no loss of movement speed or of the clear skill's radius or uses per second, and no more than 2% off the lowest maximum hit taken. Each weapon-set pool with nodes also gets a pool move, measured with that set active: its weakest branch swapped for nodes tagged to the same pool, the pool holding no more points; its line is \"Best swap (weapon set <1|2>): ...\". No node moves between pools, or into or out of the main tree. Never removed, with any branch holding them: keep, a node that grants a skill, a weapon-set node (but by its pool's move), and a node a loadout in protect_for builds on. The loadout and level are selected inside the call and put back after, so the build is unchanged. Lists what PoB can't fully measure among the nodes listed.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1649,14 +1649,14 @@ export function getBuildGoalsToolSchemas(): any[] {
             items: { type: "string" },
             minItems: 1,
             maxItems: 3,
-            description: "1 to 3 stats by PoB's id or label; the first ranks (default: [\"FullDPS\", \"TotalEHP\"]).",
+            description: "1 to 3 stats by PoB's id or label; the first ranks (default: [\"FullDPS\", \"TotalEHP\"]). Also MainDamage (\"Main damage\"): the main group's damage figure as compile_plan's record counts it, TotalDPS × Count, TotalDot × Count when its damage over time stacks, IgniteDPS, BleedDPS and PoisonDPS once, or a minion's MinionTotalDPS × Count. A pool move on a weapon set that doesn't hold the main group ranks by Full DPS in its place.",
           },
           max_loss: {
             anyOf: [
               { type: "number", minimum: 0 },
               { type: "object", additionalProperties: { type: "number", minimum: 0 } },
             ],
-            description: "The largest loss in percent a swap may cost: a number for every stat after the first (default 2), or a map by stat id and by guard: movement, clearRadius, clearUses (default 0 each).",
+            description: "The largest loss in percent a swap may cost: a number for every stat after the first (default 2), or a map by stat id and by guard: movement, clearRadius, clearUses (default 0 each), and maxHit, the lowest of PoB's five per-type maximum hits taken (default 2).",
           },
           clear_group: {
             type: "integer",
@@ -1693,6 +1693,20 @@ export function getBuildGoalsToolSchemas(): any[] {
             type: "integer",
             minimum: 0,
             description: "Rows per list (default 15); 0 returns only the best swap and the travel count.",
+          },
+          cull: {
+            type: "boolean",
+            description: "Multiply MainDamage by the main group's CullMultiplier, PoB's culling strike, for a build whose rotation culls; needs MainDamage in stats (default false).",
+          },
+          rebuild: {
+            type: "boolean",
+            description: "In place of the swap search and the pool moves: free every node outside keep, the protected nodes and the paths that connect them to the start, refill the freed points greedily by gain per point from the nodes within max_distance, and judge the result as one swap. Its line is \"Rebuild: ...\" (default false).",
+          },
+          free: {
+            type: "array",
+            items: { type: "integer" },
+            minItems: 1,
+            description: "In place of the swap search and the pool moves: free exactly these allocated main-tree nodes (keep doesn't hold them) and the nodes their removal disconnects, refill the points greedily with other nodes, and report the gain, judged as one swap: what the same points would add elsewhere. Its line is \"Free: ...\". Not with rebuild.",
           },
         },
       },

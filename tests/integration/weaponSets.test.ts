@@ -218,7 +218,8 @@ engineDescribe('WU-101: weapon set 2 measured, Spirit on both sets, and pool mov
       // No swap tried moves a node across pools, or between a pool and the main tree; the main swap moves no tagged node.
       for (const p of r.poolSwaps!) {
         for (const s of p.swaps) {
-          expect({ set: p.set, branch: pool(p.set).includes(s.branch) }).toEqual({ set: p.set, branch: true });
+          // WU-110 (D-439): `branches` in place of `branch`; a pool move stays one branch at a time.
+          expect({ set: p.set, branches: s.branches.length, branch: pool(p.set).includes(s.branches[0].id) }).toEqual({ set: p.set, branches: 1, branch: true });
           for (const n of s.removed ?? []) expect({ set: p.set, node: n.id, tag: before[String(n.id)] }).toEqual({ set: p.set, node: n.id, tag: p.set });
           for (const n of s.added ?? []) expect({ set: p.set, node: n.id, tag: before[String(n.id)] }).toEqual({ set: p.set, node: n.id, tag: undefined });
         }

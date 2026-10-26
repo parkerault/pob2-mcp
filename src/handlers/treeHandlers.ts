@@ -2,7 +2,7 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationChange, PassiveTreeData } from "../types.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
-import type { NodePowerParams, NodePowerResult, PowerPool } from "../engine/schemas.js";
+import type { NodePowerParams, NodePowerResult, PowerPool, PowerSwap } from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
@@ -787,6 +787,9 @@ export interface NodePowerArgs {
   level?: unknown;
   keep?: unknown;
   limit?: unknown;
+  cull?: unknown;
+  rebuild?: unknown;
+  free?: unknown;
 }
 
 /** The default stats (D-417): Full DPS ranks, Effective Hit Pool beside it. */
@@ -798,6 +801,7 @@ const GUARD_LABELS: Record<string, string> = {
   movement: 'movement speed',
   clearRadius: "the clear skill's radius",
   clearUses: "the clear skill's uses per second",
+  maxHit: 'the lowest maximum hit taken',
 };
 
 function wholeNumber(value: unknown, name: string, lo: number, hi?: number): number {
@@ -824,7 +828,7 @@ export function nodePowerParams(args: NodePowerArgs): NodePowerParams {
     else if (loss !== null && typeof loss === 'object' && !Array.isArray(loss) && Object.values(loss).every(pctOk)) {
       params.maxLoss = loss as Record<string, number>;
     } else {
-      throw new Error('max_loss must be a percentage, 0 or more, or a map of percentages by stat id or guard (movement, clearRadius, clearUses)');
+      throw new Error(`max_loss must be a percentage, 0 or more, or a map of percentages by stat id or guard (${Object.keys(GUARD_LABELS).join(', ')})`);
     }
   }
   if (args.clear_group !== undefined) params.clearGroup = wholeNumber(args.clear_group, 'clear_group', 1);
@@ -847,6 +851,23 @@ export function nodePowerParams(args: NodePowerArgs): NodePowerParams {
     params.keep = args.keep as number[];
   }
   if (args.limit !== undefined) params.limit = wholeNumber(args.limit, 'limit', 0);
+  // D-437: cull multiplies MainDamage; D-439: rebuild and free each replace the swap search.
+  for (const key of ['cull', 'rebuild'] as const) {
+    if (args[key] !== undefined) {
+      if (typeof args[key] !== 'boolean') throw new Error(`${key} must be true or false`);
+      params[key] = args[key] as boolean;
+    }
+  }
+  if (params.cull && !stats.some((s) => s.trim().toLowerCase() === 'maindamage' || s.trim().toLowerCase() === 'main damage')) {
+    throw new Error('cull multiplies MainDamage by its CullMultiplier; name MainDamage in stats');
+  }
+  if (args.free !== undefined) {
+    if (!Array.isArray(args.free) || args.free.length === 0 || !args.free.every((n) => typeof n === 'number' && Number.isInteger(n))) {
+      throw new Error('free must list allocated node ids');
+    }
+    if (params.rebuild) throw new Error('rebuild and free each replace the swap search: pass one of them');
+    params.free = args.free as number[];
+  }
   return params;
 }
 
@@ -870,6 +891,45 @@ const nodeRef = (n: { id: number; name: string }) => `${n.name} [${n.id}]`;
 const typeText = (n: { type: string; attribute?: boolean }) => `${n.type}${n.attribute ? ' (attribute)' : ''}`;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** `a`, `a and b`, `a, b and c`. */
+const joinAnd = (items: string[]): string => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
+
+/** The stats a line's figures are of: a pool's own when it names them (D-437: Full DPS for MainDamage), else the call's. */
+const statsOf = (r: NodePowerResult, pool?: PowerPool) => pool?.stats ?? r.stats;
+
+/** A measured move's gains: the first stat's percentage and change, then each other stat's. */
+function gainsText(stats: NodePowerResult['stats'], s: PowerSwap): string {
+  const gains = stats.map((x, i) =>
+    i === 0 ? `${percent(s.gainPercent?.[i])} ${x.label} (${signed(s.gain?.[i])})` : `${x.label} ${percent(s.gainPercent?.[i])} (${signed(s.gain?.[i])})`,
+  );
+  return `${gains[0]}${gains.length > 1 ? `; ${gains.slice(1).join('; ')}` : ''}`;
+}
+
+/** A move's nodes, net: the points removed and the points added, each added attribute node with PoB's default choice. */
+function nodesText(s: PowerSwap): string {
+  const removed = s.removed ?? [];
+  const added = s.added ?? [];
+  const addedText = added.map((n) => `${nodeRef(n)}${n.attributeChoice ? ` (attribute: ${n.attributeChoice})` : ''}`);
+  return `Remove ${plural(removed.length, 'point')}: ${removed.map(nodeRef).join(', ')}. Add ${plural(added.length, 'point')}: ${addedText.join(', ')}.`;
+}
+
+/** The branches a swap freed: one, or D-439's two or three freed together. */
+function branchesText(s: PowerSwap): string {
+  const used = s.used ?? (s.added ?? []).length;
+  const b = s.branches;
+  if (b.length === 1) {
+    return `Searched from branch ${b[0].name} [${b[0].id}]: its new paths use ${used} of the ${plural(s.freed, 'freed point')}, counted after the branch is removed.`;
+  }
+  const list = b.map((x) => `${x.name} [${x.id}] (${plural(x.points, 'point')})`);
+  return (
+    `Searched from branches ${joinAnd(list)}, freed together: their new paths use ${used} of the ${plural(s.freed, 'freed point')}, ` +
+    'counted after the branches are removed.'
+  );
+}
+
+/** A swap tried, in the tried list: its branch, or its branches joined by `+`. */
+const triedLabel = (s: PowerSwap): string => s.branches.map((b) => `${b.name} [${b.id}]`).join(' + ');
+
 /**
  * The best swap, or why there is none, in one paragraph (the compact mode's line). For a pool move (C-55a, D-426),
  * `pool` holds its pool's swaps, and the line names the pool, `Best swap (weapon set <n>): …`, in the same form.
@@ -878,31 +938,39 @@ function swapText(r: NodePowerResult, pool?: PowerPool): string {
   const s = pool ? pool.bestSwap : r.bestSwap;
   const swaps = pool ? pool.swaps : r.swaps;
   const head = pool ? `Best swap (weapon set ${pool.set})` : 'Best swap';
-  const first = r.stats[0];
+  const stats = statsOf(r, pool);
   if (!s) {
-    const others = r.stats.slice(1).map((x) => x.label);
+    const others = stats.slice(1).map((x) => x.label);
     const limits = [
       ...(others.length > 0 ? [`${others.join(' and ')} may lose at most the max_loss (default 2%)`] : []),
       'movement speed and the clear skill\'s radius and uses per second none (default)',
+      'the lowest maximum hit taken 2% (default)',
     ];
     const legal = swaps.filter((s) => s.verdict !== 'illegal').length;
     return (
-      `${head}: none: of the weakest unprotected branches, ${plural(swaps.length, 'was', 'were')} tried (${legal} legal), ` +
-      `and none gains ${first.label} within the limits (${limits.join('; ')}).`
+      `${head}: none: of the weakest unprotected branches${pool ? '' : ', alone and together'}, ${plural(swaps.length, 'was', 'were')} tried (${legal} legal), ` +
+      `and none gains ${stats[0].label} within the limits (${limits.join('; ')}).`
     );
   }
-  const gains = r.stats.map((x, i) =>
-    i === 0 ? `${percent(s.gainPercent?.[i])} ${x.label} (${signed(s.gain?.[i])})` : `${x.label} ${percent(s.gainPercent?.[i])} (${signed(s.gain?.[i])})`,
-  );
-  const removed = s.removed ?? [];
-  const added = s.added ?? [];
-  const addedText = added.map((n) => `${nodeRef(n)}${n.attributeChoice ? ` (attribute: ${n.attributeChoice})` : ''}`);
-  return (
-    `${head}: ${gains[0]}${gains.length > 1 ? `; ${gains.slice(1).join('; ')}` : ''}. ` +
-    `Remove ${plural(removed.length, 'point')}: ${removed.map(nodeRef).join(', ')}. ` +
-    `Add ${plural(added.length, 'point')}: ${addedText.join(', ')}. ` +
-    `Searched from branch ${s.branchName} [${s.branch}]: its new paths use ${s.used ?? added.length} of the ${plural(s.freed, 'freed point')}, counted after the branch is removed.`
-  );
+  return `${head}: ${gainsText(stats, s)}. ${nodesText(s)} ${branchesText(s)}`;
+}
+
+/**
+ * D-439: the rebuild's or the free's one move, judged as a swap, in one paragraph: `Rebuild: …` or `Free: …`, its gains
+ * and nodes when it is legal; else why it isn't, with what it measured; then what was freed and how much the refill used.
+ */
+function moveText(r: NodePowerResult): string {
+  const t = r.swaps[0];
+  const head = r.mode === 'rebuild' ? 'Rebuild' : 'Free';
+  if (!t) return `${head}: none.`;
+  const what =
+    r.mode === 'rebuild'
+      ? `Freed every node outside keep, the protected nodes and their paths to the start: ${plural(t.freed, 'point')}`
+      : `Freed ${joinAnd((r.freeNodes ?? []).map(nodeRef))} and what their removal disconnects: ${plural(t.freed, 'point')}`;
+  const uses = t.used !== undefined ? `; the refill uses ${t.used} of them` : '';
+  if (t.verdict === 'legal') return `${head}: ${gainsText(r.stats, t)}. ${nodesText(t)} ${what}${uses}.`;
+  const measured = t.gain ? ` Measured: ${gainsText(r.stats, t)}. ${nodesText(t)}` : '';
+  return `${head}: none: ${t.verdict}${t.reason ? `: ${t.reason}` : ''}.${measured} ${what}${uses}.`;
 }
 
 /**
@@ -941,11 +1009,12 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
             `${typeof clear.radius === 'number' ? `radius ${figure(clear.radius)} m` : 'no radius'}, ` +
             `${typeof clear.usesPerSecond === 'number' ? `${figure(clear.usesPerSecond)} uses per second` : 'no use rate'}`;
       lines.push(
-        `Base: ${r.stats.map((s, i) => `${s.label} ${figure(r.base[i])}`).join(' | ')} | movement speed ×${figure(r.movement)} | ${clearText}`,
+        `Base: ${r.stats.map((s, i) => `${s.label} ${figure(r.base[i])}`).join(' | ')} | movement speed ×${figure(r.movement)} | ` +
+          `lowest maximum hit taken ${figure(r.maxHit)} | ${clearText}`,
       );
     }
     lines.push(`Travel: ${r.travel} of ${plural(r.points, 'point')} give nothing alone on ${named}.`);
-    lines.push(swapText(r));
+    lines.push(r.mode === 'swap' ? swapText(r) : moveText(r));
     // C-55a (D-426): each weapon-set pool's move, measured with that set active.
     const pools = r.poolSwaps ?? [];
     for (const p of pools) lines.push(swapText(r, p));
@@ -964,7 +1033,8 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
       }
       for (const p of pools) {
         lines.push(
-          `Weapon set ${p.set}: ${plural(p.nodes, 'node')}; with it active, ${r.stats.map((s, i) => `${s.label} ${figure(p.base[i])}`).join(' | ')}.`,
+          `Weapon set ${p.set}: ${plural(p.nodes, 'node')}; with it active, ${statsOf(r, p).map((s, i) => `${s.label} ${figure(p.base[i])}`).join(' | ')}.` +
+            (p.stats ? ' It holds no main group, so Full DPS ranks its move in place of Main damage.' : ''),
         );
       }
       if ((r.heldBranches ?? 0) > 0) {
@@ -973,12 +1043,19 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
             "(a weapon-set node PoB's depends leaves out, or a node a protect_for loadout builds on).",
         );
       }
-      const tried = [...r.swaps.map((s) => ({ s, pool: '' })), ...pools.flatMap((p) => p.swaps.map((s) => ({ s, pool: `(weapon set ${p.set}) ` })))];
-      if (tried.length > 0) {
-        lines.push('', `Swaps tried (the weakest unprotected branches, until 5 legal tries; each pool's within it):`);
-        for (const { s, pool } of tried) {
-          const gain = s.gainPercent?.[0] !== undefined ? ` (${percent(s.gainPercent[0])} ${first.label})` : '';
-          lines.push(`- ${pool}${s.branchName} [${s.branch}], ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);
+      const tried = [
+        ...r.swaps.map((s) => ({ s, pool: '', label: first.label })),
+        ...pools.flatMap((p) => p.swaps.map((s) => ({ s, pool: `(weapon set ${p.set}) `, label: statsOf(r, p)[0].label }))),
+      ];
+      if (r.mode === 'swap' && tried.length > 0) {
+        lines.push(
+          '',
+          'Swaps tried (the weakest unprotected branches, until 5 legal tries, then the pairs and triples of the 5 weakest freed ' +
+            "together, fewest points first; each pool's within it, one branch at a time):",
+        );
+        for (const { s, pool, label } of tried) {
+          const gain = s.gainPercent?.[0] !== undefined ? ` (${percent(s.gainPercent[0])} ${label})` : '';
+          lines.push(`- ${pool}${triedLabel(s)}, ${plural(s.freed, 'point')}: ${s.verdict}${s.reason ? `: ${s.reason}` : ''}${gain}`);
         }
       }
       lines.push('', `## Best unallocated nodes, by path gain per point on ${first.label}`, '');

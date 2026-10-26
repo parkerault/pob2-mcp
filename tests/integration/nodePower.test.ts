@@ -24,6 +24,10 @@
  * - AC-P73 (6): Mana regen ranks alone; an unknown stat and Offence/Defence are refused with the list.
  * - AC-P73 (7): the active loadout, the level and the revision are unchanged by a call, and by a failing one.
  * - AC-P73 (8): `get_passive_upgrades` ranks a notable none of its old keywords matches, with its DPS field.
+ *
+ * WU-110 (D-439; AC-P79): a swap names the branches it frees, `branches` in place of `branch` (one here, or two or
+ * three freed together, `nodePowerSearch.test.ts`); these tests read the single-branch swaps by it. A swap tried on
+ * several branches leaves every node outside them connected too.
  */
 import fs from 'fs';
 import path from 'path';
@@ -81,7 +85,8 @@ interface TextSwap {
   attributes: Record<number, string>;
   used: number;
   freed: number;
-  branch: number;
+  /** The branches it freed: one, or (D-439) two or three freed together. */
+  branches: number[];
 }
 
 function bestSwapOf(text: string): TextSwap | null {
@@ -93,10 +98,17 @@ function bestSwapOf(text: string): TextSwap | null {
   const ids = (t: string) => [...t.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
   const attributes: Record<number, string> = {};
   for (const m of addText.matchAll(/\[(\d+)\] \(attribute: (\w+)\)/g)) attributes[Number(m[1])] = m[2];
-  const tail = /Searched from branch .*? \[(\d+)\]: its new paths use (\d+) of the (\d+) freed points?/.exec(line);
-  expect(tail).not.toBeNull();
-  return { removed: ids(removeText), added: ids(addText), attributes, used: Number(tail![2]), freed: Number(tail![3]), branch: Number(tail![1]) };
+  const one = /Searched from branch .*? \[(\d+)\]: its new paths use (\d+) of the (\d+) freed points?/.exec(line);
+  const several = /Searched from branches (.*), freed together: their new paths use (\d+) of the (\d+) freed points?/.exec(line);
+  expect(one ?? several).not.toBeNull();
+  const branches = one ? [Number(one[1])] : ids(several![1]);
+  const tail = (one ?? several)!;
+  return { removed: ids(removeText), added: ids(addText), attributes, used: Number(tail[2]), freed: Number(tail[3]), branches };
 }
+
+/** The branch ids a swap tried frees; `only(s, id)`: it freed that one branch alone. */
+const branchIds = (s: { branches: Array<{ id: number }> }) => s.branches.map((b) => b.id);
+const only = (s: { branches: Array<{ id: number }> }, id: number) => s.branches.length === 1 && s.branches[0].id === id;
 
 /** A stage's tree with the swap applied: the removed nodes and their choices out, the added nodes and choices in. */
 function applySwap(stage: Json, swap: { removed: number[]; added: number[]; attributes: Record<number, string> }): void {
@@ -348,14 +360,17 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         const r = await power({ loadout: N, limit: 1000 });
         expect(r.heldBranches).toBeGreaterThan(0);
         expect(r.swaps.length).toBeGreaterThan(0);
-        expect(r.swaps.filter((s) => s.verdict === 'illegal').map((s) => s.branch)).toEqual([]);
+        expect(r.swaps.filter((s) => s.verdict === 'illegal').map(branchIds)).toEqual([]);
         if (!r.bestSwap) expect(r.swaps.filter((s) => s.verdict !== 'illegal')).toHaveLength(5);
         expect(r.bestSwap).toBeDefined();
         expect(r.bestSwap!.gain![0]).toBeGreaterThan(0);
         // PoB's own import agrees: removing each tried branch drops nothing else; the branches the search used to waste
         // its tries on (removing them drops weapon-set nodes) are no longer listed.
         const branchOf = new Map(r.weakest.map((w) => [w.id, w.branch]));
-        for (const s of r.swaps) expect({ branch: s.branch, dropped: await droppedWithout(N, branchOf.get(s.branch)!) }).toEqual({ branch: s.branch, dropped: [] });
+        for (const s of r.swaps) {
+          const freed = [...new Set(branchIds(s).flatMap((id) => branchOf.get(id)!))];
+          expect({ branches: branchIds(s), dropped: await droppedWithout(N, freed) }).toEqual({ branches: branchIds(s), dropped: [] });
+        }
         const facts = await specFacts(N);
         const tagged = new Set(facts.tagged);
         for (const id of [16168, 36629, 45916, 5692, 26532]) {
@@ -398,18 +413,18 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         expect([...branch].sort((a, b) => a - b)).toEqual([26532, 41657, 46023]);
         const keep = facts.alloc.filter((id) => !branch.includes(id));
         const strict = await power({ loadout: M, keep, limit: 0 });
-        const whole = strict.swaps.find((s) => s.branch === 26532) as PowerSwap;
+        const whole = strict.swaps.find((s) => only(s, 26532)) as PowerSwap;
         expect(whole.verdict).toBe('over-loss');
         expect(whole.reason).toMatch(/^TotalEHP would fall [\d.]+%, more than 2%$/);
         const loss = -(whole.gainPercent![1] as number);
         expect(loss).toBeGreaterThan(2);
-        expect(strict.bestSwap?.branch).not.toBe(26532);
+        expect(strict.bestSwap && branchIds(strict.bestSwap)).not.toEqual([26532]);
         const text = await ok('get_node_power', { loadout: M, keep, limit: 0 });
-        expect(bestSwapOf(text)?.branch).not.toBe(26532);
+        expect(bestSwapOf(text)?.branches).not.toEqual([26532]);
 
         const loose = await power({ loadout: M, keep, limit: 0, maxLoss: { TotalEHP: Math.ceil(loss) + 1 } });
-        expect(loose.bestSwap?.branch).toBe(26532);
-        expect(loose.bestSwap!.gain![0]).toBeGreaterThan(Math.max(0, ...strict.swaps.filter((s) => s.gain).map((s) => (s.branch === 26532 ? 0 : s.gain![0]!))));
+        expect(loose.bestSwap && branchIds(loose.bestSwap)).toEqual([26532]);
+        expect(loose.bestSwap!.gain![0]).toBeGreaterThan(Math.max(0, ...strict.swaps.filter((s) => s.gain).map((s) => (only(s, 26532) ? 0 : s.gain![0]!))));
       },
       ENGINE_TIMEOUT,
     );
@@ -434,7 +449,7 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         const keep = facts.alloc.filter((id) => id !== AREA);
         const guarded = await power({ loadout: M, keep, clearGroup: 4, limit: 0 });
         expect(guarded.clear).toMatchObject({ group: 4, radius, usesPerSecond: entry.fields.Speed });
-        const tried = guarded.swaps.find((s) => s.branch === AREA) as PowerSwap;
+        const tried = guarded.swaps.find((s) => only(s, AREA)) as PowerSwap;
         expect(tried.gain![0]).toBeGreaterThan(0);
         expect(tried.clear!.radius!).toBeLessThan(radius);
         expect(tried.verdict).toBe('over-loss');
@@ -445,10 +460,10 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
 
         // The same swap passes when the radius may fall, and when the clear group is the main one (no area to lose).
         const allowed = await power({ loadout: M, keep, clearGroup: 4, limit: 0, maxLoss: { clearRadius: 100 } });
-        expect(allowed.bestSwap?.branch).toBe(AREA);
+        expect(allowed.bestSwap && branchIds(allowed.bestSwap)).toEqual([AREA]);
         const mainGroup = await power({ loadout: M, keep, limit: 0 });
         expect(mainGroup.clear.group).toBe(1);
-        expect(mainGroup.bestSwap?.branch).toBe(AREA);
+        expect(mainGroup.bestSwap && branchIds(mainGroup.bestSwap)).toEqual([AREA]);
       },
       ENGINE_TIMEOUT,
     );
@@ -462,7 +477,7 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         expect(facts.depends['24880']).toEqual([24880]);
         const keep = facts.alloc.filter((id) => id !== 24880);
         const guarded = await power({ loadout: M, keep, clearGroup: 4, limit: 0 });
-        const tried = guarded.swaps.find((s) => s.branch === 24880) as PowerSwap;
+        const tried = guarded.swaps.find((s) => only(s, 24880)) as PowerSwap;
         expect(tried.gain![0]).toBeGreaterThan(0);
         expect(tried.clear!.radius).toBe(guarded.clear.radius);
         expect(tried.clear!.usesPerSecond!).toBeLessThan(guarded.clear.usesPerSecond!);
@@ -470,7 +485,7 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         expect(tried.reason).toMatch(/^the clear skill's uses per second would fall [\d.]+%, more than 0%$/);
         expect(guarded.bestSwap).toBeUndefined();
         const allowed = await power({ loadout: M, keep, clearGroup: 4, limit: 0, maxLoss: { clearUses: 100 } });
-        expect(allowed.bestSwap?.branch).toBe(24880);
+        expect(allowed.bestSwap && branchIds(allowed.bestSwap)).toEqual([24880]);
       },
       ENGINE_TIMEOUT,
     );
@@ -633,7 +648,7 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
         // Only the trail and the dead end may go: the branch from the trail's first node is all of them.
         const keep = tree.filter((id) => !added.includes(id));
         const r = await power({ loadout: M, stats: ['EnergyShield'], keep, limit: 0 });
-        const whole = r.swaps.find((s) => s.branch === trail[0]) as PowerSwap;
+        const whole = r.swaps.find((s) => only(s, trail[0])) as PowerSwap;
         expect(whole).toBeDefined();
         expect(whole.freed).toBe(added.length);
         expect(['legal']).toContain(whole.verdict);
@@ -675,14 +690,14 @@ engineDescribe('WU-92: get_node_power and get_passive_upgrades on node power (D-
       expect(facts.move.length).toBeGreaterThan(0);
       const keep = facts.alloc.filter((id) => !facts.branch.includes(id));
       const guarded = await power({ stats: ['TotalEHP'], keep, limit: 0 });
-      const tried = guarded.swaps.find((s) => s.branch === 32564) as PowerSwap;
+      const tried = guarded.swaps.find((s) => only(s, 32564)) as PowerSwap;
       expect(tried.gain![0]).toBeGreaterThan(0);
       expect(tried.movement!).toBeLessThan(guarded.movement!);
       expect(tried.verdict).toBe('over-loss');
       expect(tried.reason).toMatch(/^movement speed would fall [\d.]+%, more than 0%$/);
-      expect(guarded.bestSwap?.branch).not.toBe(32564);
+      expect(guarded.bestSwap && branchIds(guarded.bestSwap)).not.toEqual([32564]);
       const allowed = await power({ stats: ['TotalEHP'], keep, limit: 0, maxLoss: { movement: 100 } });
-      expect(allowed.swaps.find((s) => s.branch === 32564)?.verdict).toBe('legal');
+      expect(allowed.swaps.find((s) => only(s, 32564))?.verdict).toBe('legal');
       expect(allowed.bestSwap).toBeDefined();
     }, ENGINE_TIMEOUT);
 

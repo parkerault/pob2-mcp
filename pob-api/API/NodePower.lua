@@ -2,7 +2,8 @@
 -- Node power (C-55, WU-92, D-417): PoB's own ranking of passive nodes, the tree tab's "Show node power" and its power
 -- report, measured for one to three stats in one pass, with the best legal swap the tree has left (D-418).
 --
---   node_power {stats[], maxDistance?, loadout?, level?, keep[]?, protectFor[]?, clearGroup?, maxLoss?, limit?}
+--   node_power {stats[], maxDistance?, loadout?, level?, keep[]?, protectFor[]?, clearGroup?, maxLoss?, limit?, cull?,
+--               rebuild?, free[]?}
 --   node_power {upgrades {fields[]}, maxDistance?}         (get_passive_upgrades' candidates)
 --
 -- The pass is CalcsTab:PowerBuilder's (vendor Classes/CalcsTab.lua:521-680), run once for every stat asked for:
@@ -21,7 +22,12 @@
 -- Stats are the entries of data.powerStatList that have a `stat` and aren't ignoreForNodes, minion versions included
 -- (Modules/Data.lua:127-232), named by PoB's id or label, case ignored. The combined "Offence/Defence" has no stat:
 -- it gives a node's own offence and defence only, with no path figure and no loss, so it is refused, as is an
--- unknown name, each with the list.
+-- unknown name, each with the list. Beside them, `MainDamage` (D-437): the main group's damage figure, read from each
+-- output by the compile record's Count rule (src/plan/record.ts COUNT_RULE): TotalDPS × Count, TotalDot × Count only
+-- when the skill's damage over time stacks (PoB's DotCanStack), IgniteDPS, BleedDPS and PoisonDPS once; a minion's
+-- is MinionTotalDPS × Count. Count is PoB's own for the main skill (calcs.getActiveSkillCount: the group's
+-- groupCount, which the compile sets to the plan's count). With `cull`, the figure is multiplied by the output's
+-- CullMultiplier (the minion's for a minion's figure).
 --
 -- State (D-176): the call selects the loadout (build:SetActiveLoadout) and sets its level, by default the
 -- "(L<level>)" in the loadout's name; it puts back the previous spec, item, skill and config sets and the level and
@@ -29,7 +35,10 @@
 -- as the main group for its calculations only, and puts back the selection and every gem's fields after.
 --
 -- The best swap (D-418) is searched on a scratch PassiveSpec (built as BuildOps' set_tree builds one), for the weakest
--- unprotected branches in turn until 5 give a legal swap (at most 20 tried): remove the branch,
+-- unprotected branches in turn until 5 give a legal swap (at most 20 tried), then (D-439) for the pairs and triples of
+-- the 5 weakest freed together, fewest points first, so a path longer than any one branch fits (at most 40 tried in
+-- all; a combination that frees the same nodes as a try before it, or whose removal would disconnect a node outside
+-- it, is left out). For each: remove the branch or branches,
 -- import the tree without it so PoB recomputes every path, then add, greedily, the unallocated nodes with the best
 -- gain per point on the first stat whose new paths fit the freed points, counting the union of their path nodes
 -- once (a node's gain is its own measured gain alone; a removed node's, the loss its removal measured). The swap is
@@ -39,8 +48,9 @@
 -- no start holding more trees than before or more than one (D-360 as D-364 states it), no weapon-set or ascendancy
 -- node added or removed. An added attribute node takes PoB's default choice (PassiveSpec:AllocNode switches it to
 -- spec.attributeIndex, else option 1) and is returned with it. The best swap gains most on the first stat with no
--- other stat losing more than its `maxLoss` (default 2%) and no guard losing more than its own (default 0):
--- movement speed (EffectiveMovementSpeedMod) and the clear entry's radius and uses per second, read as
+-- other stat losing more than its `maxLoss` (default 2%) and no guard losing more than its own: movement speed
+-- (EffectiveMovementSpeedMod, default 0), the lowest of PoB's five per-type maximum hits taken (`maxHit`, D-439,
+-- default 2%), and the clear entry's radius and uses per second (default 0 each), read as
 -- src/plan/record.ts reads them (the minion's when the clear skill summons one), measured with `clearGroup`
 -- (default the main group) as the main group. `clearGroup` is the plan's group number, as the compile record numbers
 -- it (D-435): Compile.lua's group_indices, the groups without a `source` in order, then PoB's own, mapped to PoB's
@@ -66,7 +76,17 @@
 -- changes, every node it removes or adds is the pool's, the pool holds no more points than before by PoB's own count
 -- (PassiveSpec:CountAllocNodes, as V1's weapon-set-points reads it), the other pool and the regular points don't grow,
 -- and no start holds a second tree; then it is judged as the main swap is, against that set's own figures. A node
--- never moves between pools, or between a pool and the main tree.
+-- never moves between pools, or between a pool and the main tree. A pool move stays one branch at a time (D-439), and
+-- on a weapon set that doesn't hold the main group (its socket group is in the other set's weapon slot) MainDamage
+-- has no meaning, so that pool ranks and guards by Full DPS in its place (D-437); its entry then names its stats.
+--
+-- Two modes replace the swap search and the pool moves (D-439), each judged as one swap:
+-- - `rebuild`: free every allocated main-tree node outside the protected ones (keep's included) and the paths that
+--   connect them to the start (the shortest within the tree, under the weapon-set rule), then refill the freed points
+--   greedily by gain per point, PoB recomputing every path after each pick, from the nodes the pass measured.
+-- - `free` [ids]: free exactly those allocated, untagged main-tree nodes and the nodes their removal disconnects, then
+--   refill the points greedily (as a swap does) from anything but the named nodes, and report the gain however the
+--   refill is judged.
 --
 -- Registered by one line in Handlers.lua.
 
@@ -91,10 +111,18 @@ end
 local DEFAULT_DISTANCE, MAX_DISTANCE = 6, 12
 local DEFAULT_LIMIT = 15
 local SWAP_BRANCHES = 5
--- The branches tried at most, illegal ones included, while looking for SWAP_BRANCHES legal tries.
-local MAX_TRIES = 20
-local DEFAULT_MAX_LOSS, GUARD_MAX_LOSS = 2, 0
-local GUARDS = { 'movement', 'clearRadius', 'clearUses' }
+-- The single branches tried at most, illegal ones included, while looking for SWAP_BRANCHES legal tries.
+local SINGLE_TRIES = 20
+-- D-439: the swaps tried at most in all, the pairs and triples of the SWAP_BRANCHES weakest branches included.
+local MAX_TRIES = 40
+local DEFAULT_MAX_LOSS = 2
+local GUARDS = { 'movement', 'clearRadius', 'clearUses', 'maxHit' }
+-- Each guard's default limit, in percent: none of movement speed or the clear entry's figures; D-439's maxHit 2%.
+local GUARD_DEFAULTS = { movement = 0, clearRadius = 0, clearUses = 0, maxHit = 2 }
+-- PoB's per-type maximum hits taken (`<Type>MaximumHitTaken`, Modules/CalcDefence.lua), whose lowest maxHit guards.
+local MAX_HIT_TYPES = { 'Physical', 'Fire', 'Cold', 'Lightning', 'Chaos' }
+-- D-437: the main group's damage figure, a stat of node power's own (see the header).
+local MAIN_DAMAGE = { stat = 'MainDamage', label = 'Main damage', main = true }
 -- The node types the tree tab's power report lists (TreeTab:BuildPowerReportList).
 local REPORT_TYPES = { Normal = true, Notable = true, Keystone = true }
 local SCALAR = { number = true, string = true, boolean = true }
@@ -133,11 +161,19 @@ end
 -- Stats
 
 local function power_stats()
-  local out = {}
+  local out = { MAIN_DAMAGE }
   for _, s in ipairs(data.powerStatList or {}) do
     if s.stat and not s.ignoreForNodes then out[#out + 1] = s end
   end
   return out
+end
+
+-- PoB's Full DPS stat, which a pool move on a weapon set without the main group ranks by in MainDamage's place.
+local function full_dps_stat()
+  for _, s in ipairs(data.powerStatList or {}) do
+    if s.stat == 'FullDPS' then return s end
+  end
+  return nil
 end
 
 local function stat_list_text()
@@ -346,7 +382,7 @@ end
 local function loss_limits(v, stats)
   local limits = {}
   for i, s in ipairs(stats) do limits[s.stat] = i == 1 and nil or DEFAULT_MAX_LOSS end
-  for _, g in ipairs(GUARDS) do limits[g] = GUARD_MAX_LOSS end
+  for _, g in ipairs(GUARDS) do limits[g] = GUARD_DEFAULTS[g] end
   if v == nil then return limits end
   if type(v) == 'number' then
     if v < 0 then fail('maxLoss must be 0 or more') end
@@ -383,15 +419,59 @@ local function clear_of(out)
   return { radius = tonumber(src.AreaOfEffectRadiusMetres), uses = tonumber(src.Speed), minion = minion ~= nil }
 end
 
+-- A finite number from an output field, else 0 (a field PoB leaves out, or NaN).
+local function finite(x)
+  x = tonumber(x)
+  if x == nil or x ~= x or x == math.huge or x == -math.huge then return 0 end
+  return x
+end
+
+-- D-437: the main group's damage figure in `out` (see the header); `ctx.figure` holds the main skill's Count, whether
+-- its damage over time stacks and whether its figure is its minion's, read once per call.
+local function main_damage(ctx, out)
+  local f = ctx.figure or { count = 1 }
+  local field = function(key) return finite(BuildOps.output_field(out, key)) end
+  local v
+  if f.minion then
+    v = field('MinionTotalDPS') * f.count
+  else
+    v = field('TotalDPS') * f.count + field('TotalDot') * (f.dotStacks and f.count or 1)
+      + field('IgniteDPS') + field('BleedDPS') + field('PoisonDPS')
+  end
+  if ctx.cull then
+    local m = finite(BuildOps.output_field(out, f.minion and 'MinionCullMultiplier' or 'CullMultiplier'))
+    if m > 0 then v = v * m end
+  end
+  return v
+end
+
+-- D-439: the lowest of PoB's per-type maximum hits taken in `out`, or nil when PoB gives none.
+local function lowest_max_hit(out)
+  local low
+  for _, t in ipairs(MAX_HIT_TYPES) do
+    local x = tonumber(out[t .. 'MaximumHitTaken'])
+    if x and x == x and (low == nil or x < low) then low = x end
+  end
+  return low
+end
+
 -- What the call reads from one output: each stat's change against the base (CalculatePowerStat), each stat's
--- value, the movement speed, the clear entry when the clear group is the main one, and any raw fields asked for.
+-- value, the movement speed, the lowest maximum hit taken, the clear entry when the clear group is the main one,
+-- and any raw fields asked for.
 local function extract(ctx, out, calcBase)
   local v = { delta = {}, value = {} }
+  local base = calcBase or ctx.calcBase
   for i, s in ipairs(ctx.stats) do
-    v.value[i] = data.powerStatList.GetFromOutput(out, s)
-    v.delta[i] = build.calcsTab:CalculatePowerStat(s, out, calcBase or ctx.calcBase)
+    if s.main then
+      v.value[i] = main_damage(ctx, out)
+      v.delta[i] = v.value[i] - main_damage(ctx, base)
+    else
+      v.value[i] = data.powerStatList.GetFromOutput(out, s)
+      v.delta[i] = build.calcsTab:CalculatePowerStat(s, out, base)
+    end
   end
   v.move = tonumber(out.EffectiveMovementSpeedMod)
+  v.maxHit = lowest_max_hit(out)
   if ctx.clearInMain then v.clear = clear_of(out) end
   if ctx.fields then
     v.fields = {}
@@ -427,16 +507,16 @@ local function path_ids(node)
   return out
 end
 
--- A measuring function over `calcFunc` (a misc calculator) against its `calcBase`, caching by key; each calculation
--- counts in ctx.calcs.
-local function measurer(ctx, calcFunc, calcBase)
+-- A measuring function over `calcFunc` (a misc calculator) against its `calcBase`, reading `sctx`'s stats, caching by
+-- key; each calculation counts in counter.calcs.
+local function measurer(counter, sctx, calcFunc, calcBase)
   local cache = {}
   return function(key, override)
     if key and cache[key] then return cache[key] end
-    ctx.calcs = ctx.calcs + 1
-    local ok, out = pcall(calcFunc, override, ctx.useFullDPS)
+    counter.calcs = counter.calcs + 1
+    local ok, out = pcall(calcFunc, override, sctx.useFullDPS)
     local r
-    if ok and type(out) == 'table' then r = extract(ctx, out, calcBase)
+    if ok and type(out) == 'table' then r = extract(sctx, out, calcBase)
     else r = { err = plain(ok and "PoB's calculator returned no output" or out) } end
     if key then cache[key] = r end
     return r
@@ -450,7 +530,7 @@ local function run_pass(ctx)
   ctx.base = extract(ctx, calcBase)
   ctx.granted = (build.calcsTab.mainEnv and build.calcsTab.mainEnv.grantedPassives) or {}
   ctx.calcs = 0
-  ctx.measure = measurer(ctx, calcFunc, calcBase)
+  ctx.measure = measurer(ctx, ctx, calcFunc, calcBase)
   local measure = ctx.measure
   -- PowerBuilder's own order: the nodes bucketed by distance as it buckets them (each bucket a table filled in
   -- pairs(spec.nodes) order, so pairs over it runs in PowerBuilder's order), the buckets nearest first. Its single-node
@@ -628,6 +708,54 @@ local function disconnected(spec, alloc, removed, before)
   return nil
 end
 
+-- D-439's rebuild: the main-tree nodes of `alloc` on the paths that connect each main-tree node of `targets` to the
+-- start, the shortest within `alloc` under the weapon-set rule (a breadth-first walk from the starts unreached
+-- walks, in id order, so the paths don't depend on table order). A target no start reaches adds nothing.
+local function connecting(spec, alloc, targets)
+  local nodes = spec.nodes
+  local parents = {}
+  for mode = 0, 2 do
+    local parent, seen, queue, qi = {}, {}, {}, 1
+    local function seed(id)
+      if not seen[id] then seen[id] = true; queue[#queue + 1] = id end
+    end
+    local classStart = spec.curClass and spec.curClass.startNodeId
+    if classStart and nodes[classStart] then seed(classStart) end
+    for _, id in ipairs(sorted_ids(alloc)) do
+      local n = nodes[id]
+      if n and (n.ascendancyName or is_start(n)) then seed(id) end
+    end
+    while qi <= #queue do
+      local cur = nodes[queue[qi]]; qi = qi + 1
+      if cur and cur.type ~= 'Mastery' then
+        for _, o in ipairs(cur.linked or {}) do
+          if alloc[o.id] and not seen[o.id] and is_main(o) then
+            local m = o.allocMode or 0
+            if m == 0 or m == mode then
+              parent[o.id] = cur.id
+              seed(o.id)
+            end
+          end
+        end
+      end
+    end
+    parents[mode] = parent
+  end
+  local out = {}
+  for _, id in ipairs(sorted_ids(targets)) do
+    local n = nodes[id]
+    if is_main(n) and alloc[id] then
+      local parent = parents[n.allocMode or 0]
+      local cur = parent[id]
+      while cur and is_main(nodes[cur]) and not out[cur] do
+        out[cur] = true
+        cur = parent[cur]
+      end
+    end
+  end
+  return out
+end
+
 -- ---------------------------------------------------------------------------------------------------
 -- The best swap
 
@@ -654,14 +782,21 @@ local function taggable(node)
   return is_main(node) and node.type ~= 'Keystone' and node.type ~= 'Socket' and not node.containJewelSocket
 end
 
--- One swap for the branch `pick` (its node ids as a set): see the header. With `ctx.pool` (C-55a), a pool move: the
--- branch is the pool's, and every node added is tagged to the pool.
+-- One swap for `pick`: `set`, the node ids it frees; `rows`, the branches freed together (each {id, node, points}),
+-- none for a rebuild or a free; see the header. With `ctx.pool` (C-55a), a pool move: the branch is the pool's, and
+-- every node added is tagged to the pool. `pick.only` limits the nodes the refill aims at (its paths may cross
+-- others); `pick.exclude`, nodes the refill never adds, nor a path through them; `pick.dynamic` (the rebuild)
+-- re-imports the tree after each pick, so PoB recomputes every path from the tree as it grows.
 local function try_swap(ctx, scratch, orig, origCounts, pick)
   local spec = build.spec
   local pool = ctx.pool
   local removed = pick.set
   local freed = count(removed)
-  local result = { branch = pick.row.id, branchName = node_name(pick.row.node), freed = freed }
+  local branches = {}
+  for _, row in ipairs(pick.rows or {}) do
+    branches[#branches + 1] = { id = row.id, name = node_name(row.node), points = row.points or count(row.set or {}) }
+  end
+  local result = { branches = branches, freed = freed }
   local keepSet, keepIds = {}, {}
   for id in pairs(orig) do
     if not removed[id] then keepSet[id] = true; keepIds[#keepIds + 1] = id end
@@ -683,12 +818,13 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
   for _, id in ipairs(keepIds) do
     if not scratch.allocNodes[id] then
       result.verdict = 'illegal'
-      result.reason = 'removing the branch disconnects ' .. node_name(spec.nodes[id])
+      result.reason = (#branches > 1 and 'removing the branches disconnects ' or #branches == 1 and 'removing the branch disconnects '
+        or 'freeing them disconnects ') .. node_name(spec.nodes[id])
       return result
     end
   end
 
-  -- The candidates: every unallocated main-tree node PoB paths to from an untagged node within the freed points; for a
+  -- The candidates: every unallocated main-tree node PoB paths to from an untagged node within `limit` points; for a
   -- pool move, also from a node of the pool, and only a node that it and its path can be tagged to the pool.
   local function path_taggable(n)
     for _, p in ipairs(n.path or {}) do
@@ -696,20 +832,32 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     end
     return true
   end
-  local cands = {}
-  for _, id in ipairs(sorted_ids(scratch.nodes)) do
-    local n = scratch.nodes[id]
-    local rootMode = n.pathRoot and (n.pathRoot.allocMode or 0)
-    if not n.alloc and REPORT_TYPES[n.type] and not n.ascendancyName and n.modKey ~= nil and n.modKey ~= ''
-        and not ctx.granted[id] and n.path and #n.path >= 1 and #n.path <= freed
-        and #(n.intuitiveLeapLikesAffecting or {}) == 0 and n.pathRoot
-        and (rootMode == 0 or (pool ~= nil and rootMode == pool)) and (pool == nil or path_taggable(n)) then
-      cands[#cands + 1] = { id = id, path = path_ids(n) }
+  local function path_clear(n)
+    if not pick.exclude then return true end
+    for _, p in ipairs(n.path or {}) do
+      if pick.exclude[p.id] then return false end
     end
+    return true
+  end
+  local function candidates(limit)
+    local cands = {}
+    for _, id in ipairs(sorted_ids(scratch.nodes)) do
+      local n = scratch.nodes[id]
+      local rootMode = n.pathRoot and (n.pathRoot.allocMode or 0)
+      if not n.alloc and REPORT_TYPES[n.type] and not n.ascendancyName and n.modKey ~= nil and n.modKey ~= ''
+          and not ctx.granted[id] and n.path and #n.path >= 1 and #n.path <= limit
+          and #(n.intuitiveLeapLikesAffecting or {}) == 0 and n.pathRoot
+          and (rootMode == 0 or (pool ~= nil and rootMode == pool)) and (pool == nil or path_taggable(n))
+          and (pick.only == nil or pick.only[id]) and path_clear(n) then
+        cands[#cands + 1] = { id = id, path = path_ids(n) }
+      end
+    end
+    return cands
   end
 
   -- Greedy: the best estimated gain per new point on the first stat, the union of paths counted once.
   local chosen, used, banned = {}, 0, {}
+  local cands = candidates(freed)
   while true do
     local best
     for _, c in ipairs(cands) do
@@ -735,6 +883,14 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     if shape_ok(spec, trial, origCounts) then
       for _, pid in ipairs(best.new) do chosen[pid] = true end
       used = used + #best.new
+      if pick.dynamic and used < freed then
+        -- The rebuild: the tree as it now stands, so the next pick's path is PoB's own from it.
+        local ids = {}
+        for id in pairs(trial) do ids[#ids + 1] = id end
+        table.sort(ids)
+        import(scratch, spec, ids, weaponSets, overrides_for(trial))
+        cands = candidates(freed - used)
+      end
     else
       banned[best.c.id] = true
     end
@@ -866,6 +1022,8 @@ local function loss_reason(ctx, swap)
   end
   local why = guard('movement', ctx.base.move, v.move, 'movement speed')
   if why then return why end
+  why = guard('maxHit', ctx.base.maxHit, v.maxHit, 'the lowest maximum hit taken')
+  if why then return why end
   local clearBefore = ctx.baseClear
   local clearAfter = ctx.clearSeparate and swap.clear or v.clear
   if clearBefore and clearAfter and not clearAfter.err then
@@ -897,6 +1055,17 @@ end
 local function measure_call(params, ctx)
   local spec = build.spec
   local nStats = #ctx.stats
+  -- D-439: `free` names allocated, untagged main-tree nodes of the loadout's tree, checked before the pass runs.
+  for _, id in ipairs(ctx.free or {}) do
+    local n = spec.nodes[id]
+    if not spec.allocNodes[id] then
+      fail(('free: %s [%d] isn\'t allocated in this loadout'):format(node_name(n), id))
+    elseif not is_main(n) then
+      fail(('free: %s [%d] is an ascendancy or start node; free takes main-tree nodes'):format(node_name(n), id))
+    elseif (n.allocMode or 0) ~= 0 then
+      fail(('free: %s [%d] is tagged to weapon set %d; free takes untagged nodes'):format(node_name(n), id, n.allocMode))
+    end
+  end
   local unalloc, alloc = run_pass(ctx)
   local result = {
     stats = stats_entry(ctx.stats),
@@ -908,6 +1077,7 @@ local function measure_call(params, ctx)
   }
   for i = 1, nStats do result.base[i] = ctx.base.value[i] end
   result.movement = ctx.base.move
+  result.maxHit = ctx.base.maxHit
 
   -- The clear entry, numbered as the plan numbers its groups (D-435).
   local clear = { group = ctx.clearNumber }
@@ -1107,7 +1277,7 @@ local function measure_call(params, ctx)
     for i = 1, nStats do s.gain[i] = s.measured.delta[i] end
     if gain <= 0 then
       s.verdict = 'no-gain'
-      s.reason = ('it changes %s by %s'):format(ctx.stats[1].stat, tostring(gain))
+      s.reason = ('it changes %s by %s'):format(c.stats[1].stat, tostring(gain))
     else
       local why = loss_reason(c, s)
       if why then
@@ -1117,26 +1287,79 @@ local function measure_call(params, ctx)
     end
   end
 
+  -- An id set's key, to tell the sets a search frees apart.
+  local function set_key(set)
+    return table.concat(sorted_ids(set), ',')
+  end
+
+  -- D-439: the pairs and triples of the SWAP_BRANCHES weakest of `rows`, each freed together as one set, fewest points
+  -- first (then in the rows' order); a set already freed (`seen`: a branch holding the other, or a branch tried alone)
+  -- is left out, and so is one whose removal would disconnect a node outside it, in this tree or a protect_for one.
+  local function combinations(rows, seen)
+    local top = {}
+    for i = 1, math.min(SWAP_BRANCHES, #rows) do top[i] = rows[i] end
+    local out = {}
+    local function add(list)
+      local set = {}
+      for _, e in ipairs(list) do
+        for id in pairs(e.set) do set[id] = true end
+      end
+      local key = set_key(set)
+      if seen[key] then return end
+      seen[key] = true
+      for _, t in ipairs(trees) do
+        if disconnected(t.spec, t.alloc, set, t.before) then return end
+      end
+      out[#out + 1] = { rows = list, set = set, points = count(set), seq = #out + 1 }
+    end
+    for a = 1, #top do
+      for b = a + 1, #top do add({ top[a], top[b] }) end
+    end
+    for a = 1, #top do
+      for b = a + 1, #top do
+        for d = b + 1, #top do add({ top[a], top[b], top[d] }) end
+      end
+    end
+    table.sort(out, function(x, y)
+      if x.points ~= y.points then return x.points < y.points end
+      return x.seq < y.seq
+    end)
+    return out
+  end
+
   -- The branches `rows` in turn, until SWAP_BRANCHES of them give a legal swap to measure (an illegal one doesn't
-  -- count), the list ends, or MAX_TRIES are tried; each swap tried and the best, judged against `c`.
-  local function search(c, rows)
+  -- count), the list ends, or SINGLE_TRIES are tried; then, with `together` (the main swap, D-439), the pairs and
+  -- triples of the weakest, until MAX_TRIES in all. Each swap tried and the best, judged against `c`.
+  local function search(c, rows, together)
     local tried, bestOne = {}, nil
     if #rows == 0 then return tried, nil end
     scratch = scratch or new_scratch(spec)
-    local legalTries = 0
-    for i, e in ipairs(rows) do
-      if legalTries >= SWAP_BRANCHES or i > MAX_TRIES then break end
-      local s = try_swap(c, scratch, orig, origCounts, { row = e, set = e.set })
-      if s.verdict ~= 'illegal' then legalTries = legalTries + 1 end
+    local function attempt(pick)
+      local s = try_swap(c, scratch, orig, origCounts, pick)
       judge(c, s)
       if s.verdict == 'legal' and (not bestOne or s.measured.delta[1] > bestOne.measured.delta[1]) then bestOne = s end
       tried[#tried + 1] = s
+      return s
+    end
+    local legalTries = 0
+    local seen = {}
+    for i, e in ipairs(rows) do
+      if legalTries >= SWAP_BRANCHES or i > SINGLE_TRIES then break end
+      seen[set_key(e.set)] = true
+      local s = attempt({ rows = { e }, set = e.set })
+      if s.verdict ~= 'illegal' then legalTries = legalTries + 1 end
+    end
+    if together then
+      for _, pick in ipairs(combinations(rows, seen)) do
+        if #tried >= MAX_TRIES then break end
+        attempt(pick)
+      end
     end
     return tried, bestOne
   end
 
   local function swap_entry(s, c)
-    local entry = { branch = s.branch, branchName = s.branchName, freed = s.freed, verdict = s.verdict, reason = s.reason }
+    local entry = { branches = s.branches, freed = s.freed, verdict = s.verdict, reason = s.reason }
     if s.gain then
       entry.gain = s.gain
       entry.gainPercent = {}
@@ -1146,6 +1369,7 @@ local function measure_call(params, ctx)
         entry.gainPercent[i] = p
       end
       entry.movement = s.measured.move
+      entry.maxHit = s.measured.maxHit
       local cl = ctx.clearSeparate and s.clear or s.measured.clear
       if cl and not cl.err then entry.clear = { radius = cl.radius, usesPerSecond = cl.uses } end
     end
@@ -1162,11 +1386,60 @@ local function measure_call(params, ctx)
     return entry
   end
 
-  -- The main swap: the weakest unprotected branches.
-  local swaps, bestSwap = search(ctx, weak)
-  result.bestSwap = bestSwap and swap_entry(bestSwap, ctx) or nil
-  result.swaps = {}
-  for _, s in ipairs(swaps) do result.swaps[#result.swaps + 1] = swap_entry(s, ctx) end
+  -- One move judged as a swap, in place of the search (D-439's rebuild and free): the reply's only swap tried, and its
+  -- best swap when it is legal.
+  local function single_move(s)
+    judge(ctx, s)
+    result.swaps = { swap_entry(s, ctx) }
+    result.bestSwap = s.verdict == 'legal' and result.swaps[1] or nil
+  end
+
+  result.mode = ctx.rebuild and 'rebuild' or ctx.free and 'free' or 'swap'
+  result.poolSwaps = {}
+  result.poolCpuSeconds = 0
+  if ctx.rebuild then
+    -- D-439: free every node outside the protected ones and their paths to the start; refill from the pass's nodes.
+    scratch = new_scratch(spec)
+    local fixed = {}
+    for id in pairs(spec.allocNodes) do
+      if prot[id] or not is_main(spec.nodes[id]) or ctx.granted[id] then fixed[id] = true end
+    end
+    for id in pairs(connecting(spec, allocSet, fixed)) do fixed[id] = true end
+    local set = {}
+    for id in pairs(spec.allocNodes) do
+      if not fixed[id] then set[id] = true end
+    end
+    local only = {}
+    for id in pairs(byId) do only[id] = true end
+    local s
+    if next(set) == nil then
+      s = { branches = {}, freed = 0, verdict = 'no-candidate',
+        reason = 'nothing to free: every node is kept, protected or on their paths to the start' }
+    else
+      s = try_swap(ctx, scratch, orig, origCounts, { rows = {}, set = set, only = only, dynamic = true })
+    end
+    single_move(s)
+  elseif ctx.free then
+    -- D-439: free exactly the named nodes and what their removal disconnects; refill from anything but them.
+    local set, exclude = {}, {}
+    result.freeNodes = {}
+    for _, id in ipairs(ctx.free) do
+      if not set[id] then result.freeNodes[#result.freeNodes + 1] = node_entry(spec.nodes[id]) end
+      set[id] = true
+      exclude[id] = true
+    end
+    for d in pairs(unreached(spec, allocSet, set)) do
+      if not trees[1].before[d] then set[d] = true end
+    end
+    scratch = new_scratch(spec)
+    single_move(try_swap(ctx, scratch, orig, origCounts, { rows = {}, set = set, exclude = exclude }))
+  else
+    -- The main swap: the weakest unprotected branches, alone and then together (D-439).
+    local swaps, bestSwap = search(ctx, weak, true)
+    result.bestSwap = bestSwap and swap_entry(bestSwap, ctx) or nil
+    result.swaps = {}
+    for _, s in ipairs(swaps) do result.swaps[#result.swaps + 1] = swap_entry(s, ctx) end
+  end
 
   -- C-55a (D-426): the pool moves, one search per weapon-set pool that has nodes (see the header).
   local pools = { {}, {} }
@@ -1176,17 +1449,42 @@ local function measure_call(params, ctx)
   end
   local itemSet = build.itemsTab.activeItemSet
   local active = itemSet and itemSet.useSecondWeaponSet and 2 or 1
+  -- D-437: the weapon sets that hold the main group: the set of the weapon slot its socket group is in, else both.
+  local mainGroup = build.skillsTab.socketGroupList[build.mainSocketGroup]
+  local mainSlot = mainGroup and mainGroup.slot and build.itemsTab.slots[mainGroup.slot]
+  local mainSet = mainSlot and tonumber(mainSlot.weaponSet) or nil
+  local fullDps = full_dps_stat()
   -- The context of pool m's search: the pass's for the loadout's own set; for the other, PoB's misc calculator built
-  -- with that set active (the caller switches it), its base, clear entry and estimates its own.
+  -- with that set active (the caller switches it), its base, clear entry and estimates its own. On a set that doesn't
+  -- hold the main group, MainDamage is Full DPS (D-437): the stats, limits and estimates are the pool's own.
   local function pool_context(m)
     local c = setmetatable({ pool = m }, { __index = ctx })
-    if m == active then return c end
-    local calcFunc, calcBase = build.calcsTab.calcs.getMiscCalculator(build)
+    local swapped = false
+    if mainSet ~= nil and mainSet ~= m and fullDps then
+      local stats, limits = {}, setmetatable({}, { __index = ctx.limits })
+      for i, s in ipairs(ctx.stats) do
+        if s.main then
+          stats[i] = fullDps
+          swapped = true
+          if i > 1 then limits[fullDps.stat] = ctx.limits[s.stat] end
+        else
+          stats[i] = s
+        end
+      end
+      if swapped then
+        c.stats, c.limits, c.useFullDPS = stats, limits, true
+      end
+    end
+    if m == active and not swapped then return c end
+    local calcFunc, calcBase = ctx.calcFunc, ctx.calcBase
+    if m ~= active then
+      calcFunc, calcBase = build.calcsTab.calcs.getMiscCalculator(build)
+      c.measure_clear = function(s) return ctx.measure_clear(s, calcFunc) end
+    end
     c.calcFunc, c.calcBase = calcFunc, calcBase
-    c.measure = measurer(ctx, calcFunc, calcBase)
-    c.base = extract(ctx, calcBase, calcBase)
-    c.measure_clear = function(s) return ctx.measure_clear(s, calcFunc) end
-    c.baseClear = ctx.clearSeparate and c.measure_clear(nil) or c.base.clear
+    c.measure = measurer(ctx, c, calcFunc, calcBase)
+    c.base = extract(c, calcBase, calcBase)
+    if m ~= active then c.baseClear = ctx.clearSeparate and c.measure_clear(nil) or c.base.clear end
     c.estimate = function(id)
       local node = spec.nodes[id]
       if not node or node.modKey == nil or node.modKey == '' or ctx.granted[id] then return 0 end
@@ -1232,10 +1530,9 @@ local function measure_call(params, ctx)
     end)
     return rows
   end
-  result.poolSwaps = {}
   local tPools = os.clock()
   for m = 1, 2 do
-    if next(pools[m]) ~= nil then
+    if result.mode == 'swap' and next(pools[m]) ~= nil then
       local prior = itemSet and itemSet.useSecondWeaponSet
       local switched = m ~= active and itemSet ~= nil
       local okPool, entry = pcall(function()
@@ -1244,8 +1541,9 @@ local function measure_call(params, ctx)
           if wipeGlobalCache then wipeGlobalCache() end
         end
         local c = pool_context(m)
-        local tried, bestOne = search(c, pool_branches(c, m))
+        local tried, bestOne = search(c, pool_branches(c, m), false)
         local out = { set = m, nodes = count(pools[m]), base = {}, swaps = {} }
+        if rawget(c, 'stats') then out.stats = stats_entry(c.stats) end
         for i = 1, nStats do out.base[i] = c.base.value[i] end
         out.bestSwap = bestOne and swap_entry(bestOne, c) or nil
         for _, s in ipairs(tried) do out.swaps[#out.swaps + 1] = swap_entry(s, c) end
@@ -1353,6 +1651,24 @@ function M.node_power(params)
   ctx.limits = loss_limits(params.maxLoss, ctx.stats)
   ctx.limit = params.limit == nil and DEFAULT_LIMIT or int_arg(params.limit, 'limit', 0, nil)
   ctx.keep = id_list(params.keep, 'keep')
+  -- D-437: `cull` multiplies MainDamage; D-439: `rebuild` and `free` each replace the swap search.
+  local function flag(v, name)
+    if v == nil then return false end
+    if type(v) ~= 'boolean' then fail(name .. ' must be true or false') end
+    return v
+  end
+  ctx.cull = flag(params.cull, 'cull')
+  if ctx.cull then
+    local named = false
+    for _, s in ipairs(ctx.stats) do if s.main then named = true end end
+    if not named then fail('cull multiplies MainDamage by its CullMultiplier; name MainDamage in stats') end
+  end
+  ctx.rebuild = flag(params.rebuild, 'rebuild')
+  if params.free ~= nil then
+    if type(params.free) ~= 'table' or #params.free == 0 then fail('free must list allocated node ids') end
+    ctx.free = id_list(params.free, 'free')
+    if ctx.rebuild then fail('rebuild and free each replace the swap search: pass one of them') end
+  end
 
   -- Everything named is checked before anything changes.
   local target = params.loadout ~= nil and resolve_loadout(params.loadout, 'loadout') or nil
@@ -1377,6 +1693,25 @@ function M.node_power(params)
     end
     build.buildFlag = true
     BuildOps.get_main_output()
+    -- D-437: what MainDamage reads, from the main skill PoB just calculated: its Count (calcs.getActiveSkillCount, the
+    -- group's groupCount), whether its damage over time stacks (DotCanStack on its stat set's flags, as Compile.lua's
+    -- main_dot_can_stack reads it) and whether its figure is its minion's (the main output has the minion's).
+    do
+      local env = build.calcsTab.mainEnv
+      local skill = env and env.player and env.player.mainSkill
+      local n = 1
+      if skill and build.calcsTab.calcs and build.calcsTab.calcs.getActiveSkillCount then
+        local okCount, c = pcall(build.calcsTab.calcs.getActiveSkillCount, skill)
+        if okCount and tonumber(c) and tonumber(c) >= 1 then n = tonumber(c) end
+      end
+      local statSet = skill and skill.activeEffect and skill.activeEffect.statSet
+      local mainOutput = build.calcsTab.mainOutput
+      ctx.figure = {
+        count = n,
+        dotStacks = statSet ~= nil and type(statSet.skillFlags) == 'table' and statSet.skillFlags.DotCanStack == true,
+        minion = type(mainOutput) == 'table' and type(mainOutput.Minion) == 'table',
+      }
+    end
 
     -- D-435 (C-55): `clearGroup` is the plan's group number, as the compile record numbers it, mapped to PoB's index
     -- here, after the loadout's skill set is selected and calculated: Compile.lua's group_indices numbers the groups

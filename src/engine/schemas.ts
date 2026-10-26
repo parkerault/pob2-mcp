@@ -1627,20 +1627,26 @@ export type PowerWeak = z.infer<typeof powerWeakSchema>;
 
 export const POWER_SWAP_VERDICTS = ['legal', 'illegal', 'no-candidate', 'no-gain', 'over-loss', 'error'] as const;
 
+/** D-439: a branch a swap frees: its node (the branch's root), and the points it holds (the node and its dependants). */
+export const powerBranchSchema = z.object({ id: z.number().int(), name: z.string(), points: z.number().int() }).passthrough();
+export type PowerBranch = z.infer<typeof powerBranchSchema>;
+
 /**
- * One swap tried on a branch: its verdict and, once measured, its figures; a legal one carries its nodes (net), `used`
- * (the points its new paths take, counted after the branch is removed) and each added attribute node's choice.
+ * One swap tried: the branches it frees (one, or D-439's two or three freed together; none for a rebuild or a free),
+ * its verdict and, once measured, its figures, the movement speed and the lowest maximum hit taken (D-439); a legal one
+ * carries its nodes (net), `used` (the points its new paths take, counted after the branches are removed) and each
+ * added attribute node's choice.
  */
 export const powerSwapSchema = z
   .object({
-    branch: z.number().int(),
-    branchName: z.string(),
+    branches: luaArray(powerBranchSchema),
     freed: z.number().int(),
     verdict: z.enum(POWER_SWAP_VERDICTS),
     reason: optString,
     gain: powerFiguresSchema.optional(),
     gainPercent: powerFiguresSchema.optional(),
     movement: optNumber,
+    maxHit: optNumber,
     clear: z.object({ radius: optNumber, usesPerSecond: optNumber }).passthrough().optional(),
     used: z.number().int().optional(),
     removed: luaArray(powerNodeSchema).optional(),
@@ -1651,12 +1657,14 @@ export type PowerSwap = z.infer<typeof powerSwapSchema>;
 
 /**
  * C-55a (D-426): the pool moves of one weapon-set pool with nodes: the set, its node count, the base figures with that
- * set active (what its swaps' percentages are of), the swaps tried within the pool and the best one.
+ * set active (what its swaps' percentages are of), the swaps tried within the pool and the best one. D-437: on a set
+ * that doesn't hold the main group, MainDamage is Full DPS, and `stats` names the pool's own stats.
  */
 export const powerPoolSchema = z
   .object({
     set: z.union([z.literal(1), z.literal(2)]),
     nodes: z.number().int(),
+    stats: luaArray(powerStatSchema).optional(),
     base: powerFiguresSchema,
     bestSwap: powerSwapSchema.optional(),
     swaps: luaArray(powerSwapSchema),
@@ -1672,6 +1680,8 @@ const powerResultSchema = z
     maxDistance: z.number().int(),
     base: powerFiguresSchema,
     movement: optNumber,
+    /** D-439: the lowest of PoB's five per-type maximum hits taken, the maxHit guard's base. */
+    maxHit: optNumber,
     measuredNodes: z.number().int(),
     points: z.number().int(),
     travel: z.number().int(),
@@ -1693,6 +1703,10 @@ const powerResultSchema = z
     heldBranches: z.number().int().optional(),
     best: luaArray(powerBestSchema),
     weakest: luaArray(powerWeakSchema),
+    /** D-439: `swap` (the search and the pool moves), `rebuild` or `free` (one move judged as a swap, no pool moves). */
+    mode: z.enum(['swap', 'rebuild', 'free']),
+    /** D-439: with `free`, the nodes named, as they are allocated. */
+    freeNodes: luaArray(powerNodeSchema).optional(),
     bestSwap: powerSwapSchema.optional(),
     swaps: luaArray(powerSwapSchema),
     /** C-55a (D-426): the pool moves, one entry per weapon-set pool with nodes, set 1 first; empty without any. */
@@ -1729,7 +1743,11 @@ export type NodePowerUpgradesResult = z.infer<typeof powerUpgradesResultSchema>;
 /** `node_power`: a power reply, or with `upgrades` the candidates (C-55, D-417). */
 export const nodePowerReply = baseReply.extend({ result: z.union([powerResultSchema, powerUpgradesResultSchema]) });
 
-/** `node_power` params (C-55): the stats by PoB's id or label; `maxLoss` a percentage or a map by stat or guard. */
+/**
+ * `node_power` params (C-55): the stats by PoB's id or label (`MainDamage` among them, D-437); `maxLoss` a percentage or
+ * a map by stat or guard; `cull` multiplies MainDamage by its CullMultiplier; `rebuild` or `free` replaces the swap
+ * search (D-439).
+ */
 export interface NodePowerParams {
   stats: string[];
   maxDistance?: number;
@@ -1740,6 +1758,9 @@ export interface NodePowerParams {
   clearGroup?: number;
   maxLoss?: number | Record<string, number>;
   limit?: number;
+  cull?: boolean;
+  rebuild?: boolean;
+  free?: number[];
 }
 
 /** `node_power` with `upgrades`: `get_passive_upgrades`' candidates and the raw output fields of each path. */

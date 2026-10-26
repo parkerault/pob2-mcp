@@ -338,7 +338,8 @@ engineDescribe('WU-110: get_node_power frees several branches, rebuilds, frees n
         const rebuild = await time({ loadout: M, protect_for: [B, N], limit: 0, rebuild: true });
         console.error(`[WU-110 NFR] swap call ${swap.seconds.toFixed(2)} s, rebuild call ${rebuild.seconds.toFixed(2)} s (baseline swap median 12.66 s)`);
         expect(swap.text).toMatch(/^Best swap: /m);
-        expect(rebuild.text).toMatch(/^Rebuild: /m);
+        // The rebuild refills: with only protect_for's nodes and the protected ones kept, it moves points either way.
+        expect(rebuild.text).toMatch(/^Rebuild: .*Remove [1-9]\d* points: .*\. Add [1-9]\d* points: /m);
         expect(swap.seconds).toBeLessThan(90);
         expect(rebuild.seconds).toBeLessThan(90);
       },
@@ -390,17 +391,37 @@ engineDescribe('WU-110: get_node_power frees several branches, rebuilds, frees n
         expect(cut.isError).toBe(true);
         expect(cut.text).toMatch(/free: removing them disconnects .* \[\d+\], which holds a jewel in this loadout/);
 
-        // The rebuild with nothing kept frees most of the tree, never a socketed socket or the path to one.
+        // The rebuild with nothing kept frees most of the tree, never a socketed socket or the path to one, and refills
+        // it: with every guard loose, a legal move that removes and adds nodes. (The sockets and the 20 weapon-set nodes
+        // are kept, and the core that joins them to the start is one tree, as the tree is.)
         const r = await power({ loadout: M, limit: 0, rebuild: true, maxLoss: { TotalEHP: 100, maxHit: 100, movement: 100, clearRadius: 100, clearUses: 100 } });
         const s = r.swaps[0];
+        expect({ verdict: s.verdict, reason: s.reason }).toEqual({ verdict: 'legal', reason: undefined });
+        expect(r.bestSwap).toBeDefined();
         expect(s.freed).toBeGreaterThan(20);
+        expect(s.removed!.length).toBeGreaterThan(0);
+        expect(s.added!.length).toBeGreaterThan(0);
+        expect(s.gain![0]).toBeGreaterThan(0);
         expect(ids(s.removed).filter((id) => sockets.includes(id))).toEqual([]);
-        // Applied to the plan, the rebuilt tree compiles: every treeJewels node is still in the tree.
+        // Applied to the plan, the rebuilt tree compiles, and PoB holds every socket with its jewel.
         const plan = threeRungPlan();
         plan.stages = plan.stages.filter((st: Json) => st.id === 'm');
+        const jewelsBefore = JSON.stringify(plan.stages[0].items.treeJewels);
         applyMove(plan.stages[0], moveOf(s));
         for (const id of sockets) expect(plan.stages[0].tree.nodes).toContain(id);
-        await compile('np-jewels-rebuilt', plan);
+        expect(JSON.stringify(plan.stages[0].items.treeJewels)).toBe(jewelsBefore);
+        const rebuilt = await compile('np-jewels-rebuilt', plan);
+        expect(rebuilt.record.stages.m).toBeDefined();
+        const after = await lua<number[]>(`
+          local l = build:GetLoadoutByName(${JSON.stringify(M)})
+          local spec = build.treeTab.specList[l.specId]
+          local out = {}
+          for id, item in pairs(spec.jewels or {}) do if item ~= 0 and spec.allocNodes[id] then out[#out + 1] = id end end
+          return out`);
+        expect(sorted(after)).toEqual(sockets);
+        const tree = await specFacts(M);
+        for (const id of [...ids(s.added)]) expect({ id, held: tree.alloc.includes(id) }).toEqual({ id, held: true });
+        for (const id of ids(s.removed)) expect({ id, held: tree.alloc.includes(id) }).toEqual({ id, held: false });
       },
       ENGINE_TIMEOUT,
     );

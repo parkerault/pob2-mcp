@@ -83,9 +83,10 @@
 --
 -- Two modes replace the swap search and the pool moves (D-439), each judged as one swap:
 -- - `rebuild`: free every allocated main-tree node outside the protected ones (keep's and the socketed jewel sockets
---   included) and the paths that
---   connect them to the start (the shortest within the tree, under the weapon-set rule), then refill the freed points
---   greedily by gain per point, PoB recomputing every path after each pick, from the nodes the pass measured.
+--   included) and the tree that connects them to the start (the tree pruned, its least valuable node first, to a
+--   minimal one that keeps them connected under the weapon-set rule and is one tree as the tree is), then refill the
+--   freed points greedily by gain per point, PoB recomputing every path after each pick, from the nodes the pass
+--   measured.
 -- - `free` [ids]: free exactly those allocated, untagged main-tree nodes and the nodes their removal disconnects, then
 --   refill the points greedily (as a swap does) from anything but the named nodes, and report the gain however the
 --   refill is judged. A socketed jewel socket is never freed: naming one, or a node whose removal disconnects one, is
@@ -717,52 +718,34 @@ local function disconnected(spec, alloc, removed, before)
   return nil
 end
 
--- D-439's rebuild: the main-tree nodes of `alloc` on the paths that connect each main-tree node of `targets` to the
--- start, the shortest within `alloc` under the weapon-set rule (a breadth-first walk from the starts unreached
--- walks, in id order, so the paths don't depend on table order). A target no start reaches adds nothing.
-local function connecting(spec, alloc, targets)
-  local nodes = spec.nodes
-  local parents = {}
-  for mode = 0, 2 do
-    local parent, seen, queue, qi = {}, {}, {}, 1
-    local function seed(id)
-      if not seen[id] then seen[id] = true; queue[#queue + 1] = id end
-    end
-    local classStart = spec.curClass and spec.curClass.startNodeId
-    if classStart and nodes[classStart] then seed(classStart) end
-    for _, id in ipairs(sorted_ids(alloc)) do
-      local n = nodes[id]
-      if n and (n.ascendancyName or is_start(n)) then seed(id) end
-    end
-    while qi <= #queue do
-      local cur = nodes[queue[qi]]; qi = qi + 1
-      if cur and cur.type ~= 'Mastery' then
-        for _, o in ipairs(cur.linked or {}) do
-          if alloc[o.id] and not seen[o.id] and is_main(o) then
-            local m = o.allocMode or 0
-            if m == 0 or m == mode then
-              parent[o.id] = cur.id
-              seed(o.id)
-            end
-          end
-        end
-      end
-    end
-    parents[mode] = parent
+-- D-439's rebuild: the core it keeps, `alloc` pruned to a minimal connected tree that holds `fixed`. Every node outside
+-- `fixed` is removed in turn, the least valuable first (`value`, its removal's loss on the first stat, then its id),
+-- whenever no node left loses its connection to the start under the weapon-set rule and no start comes to hold more
+-- trees than `origCounts` allows (shape_ok), until none can go. So the core stays one tree, as the tree was: the paths
+-- it keeps to the protected nodes join, where the shortest path to each, taken alone, can leave from the start apart.
+local function core_of(spec, alloc, fixed, origCounts, value)
+  local set = {}
+  for id in pairs(alloc) do set[id] = true end
+  local before = unreached(spec, set, {})
+  local order = {}
+  for id in pairs(alloc) do
+    if not fixed[id] then order[#order + 1] = { id = id, value = value(id) } end
   end
-  local out = {}
-  for _, id in ipairs(sorted_ids(targets)) do
-    local n = nodes[id]
-    if is_main(n) and alloc[id] then
-      local parent = parents[n.allocMode or 0]
-      local cur = parent[id]
-      while cur and is_main(nodes[cur]) and not out[cur] do
-        out[cur] = true
-        cur = parent[cur]
+  table.sort(order, function(a, b)
+    if a.value ~= b.value then return a.value < b.value end
+    return a.id < b.id
+  end)
+  local changed = true
+  while changed do
+    changed = false
+    for _, e in ipairs(order) do
+      if set[e.id] and not disconnected(spec, set, { [e.id] = true }, before) then
+        set[e.id] = nil
+        if shape_ok(spec, set, origCounts) then changed = true else set[e.id] = true end
       end
     end
   end
-  return out
+  return set
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -1439,16 +1422,20 @@ local function measure_call(params, ctx)
   result.poolSwaps = {}
   result.poolCpuSeconds = 0
   if ctx.rebuild then
-    -- D-439: free every node outside the protected ones and their paths to the start; refill from the pass's nodes.
+    -- D-439: free every node outside the protected ones and the tree that connects them to the start (the core, one
+    -- tree as the tree is); refill from the pass's nodes.
     scratch = new_scratch(spec)
     local fixed = {}
     for id in pairs(spec.allocNodes) do
       if prot[id] or not is_main(spec.nodes[id]) or ctx.granted[id] then fixed[id] = true end
     end
-    for id in pairs(connecting(spec, allocSet, fixed)) do fixed[id] = true end
+    local core = core_of(spec, allocSet, fixed, origCounts, function(id)
+      local v = ctx.estimate(id)
+      return type(v) == 'number' and v == v and v or 0
+    end)
     local set = {}
     for id in pairs(spec.allocNodes) do
-      if not fixed[id] then set[id] = true end
+      if not core[id] then set[id] = true end
     end
     local only = {}
     for id in pairs(byId) do only[id] = true end

@@ -53,11 +53,23 @@ function differences(want: unknown, got: unknown, at = '$', out: string[] = []):
   return out;
 }
 
-/** A saved file's config sets: each set's lines, trimmed and sorted, by title. */
+/**
+ * One line of a saved config set with its attributes in name order: PoB's save orders an element's attributes
+ * differently from one process to the next (the build's known friction), so lines compare in this form.
+ */
+function canonicalLine(line: string): string {
+  const m = /^<(\w+)((?:\s+[\w-]+="[^"]*")*)\s*\/>$/.exec(line.trim());
+  if (m === null) return line.trim();
+  const attrs = [...m[2].matchAll(/([\w-]+)="([^"]*)"/g)].map((a) => `${a[1]}="${a[2]}"`).sort();
+  return `<${m[1]} ${attrs.join(' ')}/>`;
+}
+
+/** A saved file's config sets: each set's lines, attributes in name order, sorted, by the set's title. */
 function configSets(xml: string): Record<string, string[]> {
   const sets: Record<string, string[]> = {};
-  for (const m of xml.matchAll(/<ConfigSet title="([^"]*)" id="(\d+)">([\s\S]*?)<\/ConfigSet>/g)) {
-    sets[m[1]] = m[3].split('\n').map((l) => l.trim()).filter((l) => l !== '').sort();
+  for (const m of xml.matchAll(/<ConfigSet\b([^>]*)>([\s\S]*?)<\/ConfigSet>/g)) {
+    const title = /\btitle="([^"]*)"/.exec(m[1])![1];
+    sets[title] = m[2].split('\n').map((l) => l.trim()).filter((l) => l !== '').map(canonicalLine).sort();
   }
   return sets;
 }
@@ -151,8 +163,10 @@ engineDescribe('WU-111: movement-tier and a schema-6 plan through compile_plan (
     });
 
     it("the saved file's config sets are the same lines as before: the boss measure puts enemyIsBoss back", () => {
-      const before = JSON.parse(fs.readFileSync(path.join(LADDER, 'config-before-schema7.json'), 'utf8')) as Json;
-      expect(configSets(ladderXml)).toEqual(before);
+      const before = JSON.parse(fs.readFileSync(path.join(LADDER, 'config-before-schema7.json'), 'utf8')) as Record<string, string[]>;
+      const want = Object.fromEntries(Object.entries(before).map(([title, lines]) => [title, lines.map(canonicalLine).sort()]));
+      expect(Object.keys(want)).toHaveLength(5);
+      expect(configSets(ladderXml)).toEqual(want);
     });
 
     it('AC-P81: movement-tier never runs on a schema-6 plan (its boots carry no movement speed)', () => {

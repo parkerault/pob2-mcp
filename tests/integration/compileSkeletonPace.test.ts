@@ -165,10 +165,12 @@ engineDescribe('WU-88: clear speed and movement speed on a card skeleton (D-407)
 
   describe('D-407 within the HG-12 grant', () => {
     it("the skeleton's measures are the pace measures only; the same build as a budget rung keeps dps, ehp and arbiter, and gains the same movement speed", () => {
-      expect(Object.keys(quake.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed']);
-      expect(Object.keys(warrior.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed']);
+      // WU-111 (D-437): every measured stage also gains the named source's skill types (and a trigger when a meta gem
+      // triggers it, none here); a variant stage its damage figures and boss rotation.
+      expect(Object.keys(quake.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed', 'sourceTypes']);
+      expect(Object.keys(warrior.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed', 'sourceTypes']);
       const rung = quakeRung.record.stages.b;
-      expect(Object.keys(rung.measures!).sort()).toEqual(['arbiter', 'clearSpeed', 'dps', 'ehp', 'movementSpeed']);
+      expect(Object.keys(rung.measures!).sort()).toEqual(['arbiter', 'bossGroups', 'clearSpeed', 'damage', 'dps', 'ehp', 'movementSpeed', 'sourceTypes']);
       expect(rung.measures!.movementSpeed).toBe(rung.outputs.EffectiveMovementSpeedMod);
       expect(rung.measures!.movementSpeed).toBe(quake.record.stages[SKELETON].measures!.movementSpeed);
       expect(rung.measures!.clearSpeed).toEqual(quake.record.stages[SKELETON].measures!.clearSpeed);

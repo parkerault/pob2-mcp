@@ -5729,14 +5729,14 @@ the `m17` engine at `b76967b`.
 ## 2026-10-25: M-24 (amendment 11) build started
 
 - **Approved:** amendment 11 revision 3 by the user ("Approve and build"). Integration worktree `build-guide/m24` off
-  `main` at `be62237`; the handoff's M-24 section (`381ddfe`, `8bd80a7`) fixes the owners, the network exception for
+  `main` at `be62237`; the handoff's M-24 section (`8bb11f7`, `2400556`) fixes the owners, the network exception for
   WU-112's spike, the room left in the capped files, and the ledger's boss context (`StageOutputs` gains `bossGroups`
   and `damageBoss`; WU-113 rebases onto WU-111 before its gate).
 - **Node power's baseline (AC-P79's NFR):** the AC-P73 swap call (`get_node_power` on the three-rung `fifteen-stage`
-  ladder, loadout `Entering maps (L74) {m}`, `protect_for` b and n, `limit: 0`) at `381ddfe`, five fresh-process runs
+  ladder, loadout `Entering maps (L74) {m}`, `protect_for` b and n, `limit: 0`) at `8bb11f7`, five fresh-process runs
   at `nice -n 19` on an idle 32-CPU machine: 12.64, 12.86, 12.52, 12.79, 12.66 s, **median 12.66 s**. Each printed
   the same best swap (+34.35% Full DPS, 5 points moved).
-- **WU-112 (pricing) merged** at `648a42c` (four commits). Every currency-exchange item is priced from its poe.ninja
+- **WU-112 (pricing) merged** at `e7486b0` (four commits). Every currency-exchange item is priced from its poe.ninja
   exchange category; an exchange-category item poe.ninja doesn't list falls back to the trade site by name. Its
   verifier (fresh context) passed it after one fix round: the carved-idol rule had matched the gear bases Carved
   Greaves and Carved Targe, now pinned to poe.ninja's four carved idols, with a test that every `Data/Bases` name
@@ -5752,13 +5752,13 @@ the `m17` engine at `b76967b`.
     limit or lockout stands in for the run's pricing stop and lasts until the server restarts (so a `retry-pricing`
     answer doesn't re-enable the fallback without a restart); with poe.ninja down there is no fallback; trade disabled
     hides `get_item_price`.
-- **WU-111 (the plan and the record, schema 7) merged** at `496f754` (two commits, rebased onto WU-112's merge
+- **WU-111 (the plan and the record, schema 7) merged** at `db7c9c2` (two commits, rebased onto WU-112's merge
   without conflict). Schema 7's five fields; the second measure against a Pinnacle boss per rotation entry, restored
   after; `measures.damage`, `bossGroups` (with `triggered` from PoB's `isTriggered`, ailments counted once by
   `<Ailment>CanStack`), `cull`, `trigger`, `sourceTypes`; `CastRate`, `Cooldown`, `CullPercent` and `CullMultiplier`
   measured; the ledger's `boss.` references over `bossGroups` and `damageBoss`; V1's `movement-tier` (schema 7 only).
   Its verifier (fresh context) passed it with no blocking defect, re-running the gate (188 suites, 3,154 tests, rc 0;
-  build rc 0) and proving the schema-6 fixture against a compile at `635c30b` (0 differences).
+  build rc 0) and proving the schema-6 fixture against a compile at `afd5e26` (0 differences).
   - **Deviations accepted:** `boots-exception` is a V1 note (`stages.<id>.v1.notes`), so V1 passes; a minion
     entry's ailments are listed but not summed (a minion's figure is `MinionTotalDPS`), which needs a decision row
     since §9b names minion ailments; the key-figure line on variant stages reads `damage <map> against map monsters,
@@ -5766,7 +5766,7 @@ the `m17` engine at `b76967b`.
     included, gets the second measure.
   - **For wave 2:** `D1-build.md`:126 and :320 still call the key-figure line the "headline DPS"; `D1-gate.md` reads
     `boots-exception` from `v1.notes`.
-- **WU-113 (the build-guide scripts) merged** at `d6e26e7` (four commits on `d9b46c3`). The verification, brainstorm,
+- **WU-113 (the build-guide scripts) merged** at `5fa302e` (four commits on `a482086`). The verification, brainstorm,
   design and final displays; the checker's dossier, Pieces measured, design-field, band, engagement, boss line,
   floor, trades, `boss_<stage>`, verdict-line, order, pricing-stop, rival and run-dating rules; the audit's figures and
   players' currency words; `references/toughness-targets.json` and `references/boss-floor.json`. Its verifier (fresh
@@ -5780,7 +5780,7 @@ the `m17` engine at `b76967b`.
     the checker's tree-swap messages still say "Full DPS" (`check-run.mjs`:4124–4125). For wave 2: `pricing.md`'s
     "Reporting the calls" must teach `exchange`; `R1b.md` and `gates.md` name `verdict.damage`; `run-folder.md` lists
     `trades.json`; `SKILL.md` cites the two JSON files and the AC-W1 exemption in `buildGuidePipeline.test.ts` goes.
-- **WU-110 (node power) merged** at `6dca73f` (three commits, rebased onto WU-113's merge without conflict). Several
+- **WU-110 (node power) merged** at `b2b64b4` (three commits, rebased onto WU-113's merge without conflict). Several
   weak branches freed together (`bestSwap.branches`), the `rebuild` pass, `free`, the `max_loss.maxHit` guard (2%),
   `MainDamage` with `cull`, and Full DPS for pool moves on a weapon set without the main group. Its verifier (fresh
   context) passed the first pass (gate 184 suites, 3,104 tests, rc 0) and then failed two fix rounds' worth of
@@ -5799,7 +5799,7 @@ the `m17` engine at `b76967b`.
   verification and design displays read each artifact by its own format (§19), and the checker's tree-swap messages
   say "damage" only for a gate held to amendment 11. Its verifier (WU-113's) passed it; the four new tests fail on the
   old scripts. Gate in the lane: 192 suites, 3,246 tests, rc 0.
-- **Wave 1's gate passed** on `66e12fd` (a fresh verifier, from clean: `build`, `coverage` and Jest's cache cleared):
+- **Wave 1's gate passed** on `e4422fe` (a fresh verifier, from clean: `build`, `coverage` and Jest's cache cleared):
   `mise run test` rc 0 (194 suites, 3,263 tests, none skipped; the timing step 2 suites, 3 tests; node power's
   90-second test at 29.9 s), `pnpm build` rc 0. The seams between the units are crossed by tests (the scripts' `boss.`
   references by WU-111's evaluator, `MainDamage` against `measures.damage.map`, both units' tool entries in the README
@@ -5807,7 +5807,7 @@ the `m17` engine at `b76967b`.
   wherever it appears. Every bullet of AC-P79, AC-P80, AC-P81, AC-K72 (with the user's rulings) and AC-W89 has a named
   passing test; no skipped tests, no stubbed engine, waivers `[]`, dependencies unchanged. The built server starts and
   lists 78 tools with trade and poe.ninja off.
-- **WU-114 (the research and verification docs) merged** at its rebased commit (one commit on `66e12fd`). R1a to
+- **WU-114 (the research and verification docs) merged** at its rebased commit (one commit on `e4422fe`). R1a to
   R1b-assemble, the card and dossier templates, `checkpoints.md`'s interview, pricing question, brainstorm,
   verification and final gates, RV.md deleted, the agent definitions, task header, run folder (`trades.json`),
   source markers, offline and test, and `pricing.md` (every exchange item, the user's rulings, `exchange`, the stop
@@ -5817,7 +5817,7 @@ the `m17` engine at `b76967b`.
   - **Known, not fixed here:** a server restarted during an open pricing stop could send one trade request for an
     exchange item poe.ninja doesn't list (its own limit flag is per process); resuming a pre-amendment-11 run rewrites
     its dossier into the nine columns without saying where an older card's damage kinds come from.
-- **WU-115 (the design docs and SKILL.md) merged** at `86b52ac` (two commits, rebased onto WU-114's merge; the
+- **WU-115 (the design docs and SKILL.md) merged** at `85e7bae` (two commits, rebased onto WU-114's merge; the
   coordinator resolved two shared-test conflicts in `buildGuidePipeline.test.ts` and one comment in
   `buildGuideDesignPieces.test.ts`, keeping each unit's assertions on its own files). D1-build, D1-tree, D1-finish,
   D1-gate, D2, W1, `checkpoints.md`'s design gate and revise paths, `gates.md`, the guide and audit templates,
@@ -5828,7 +5828,7 @@ the `m17` engine at `b76967b`.
   now that "Boss floor" is the 250,000 damage floor). Merged doc tests: 45 suites, 1,247 tests, rc 0.
   - **Left as is:** `D2.md`'s "a respec whose gold the stage can't spare waits for the next one" (a reading of D-282's
     weighing); `D1-tree.md` doesn't say what to do when a `Free:` move comes back illegal.
-- **M-24's gate passed** on `0bc6036` (a fresh verifier, from clean): `mise run test` rc 0 (196 suites, 3,309 tests,
+- **M-24's gate passed** on `6187ada` (a fresh verifier, from clean): `mise run test` rc 0 (196 suites, 3,309 tests,
   none skipped; the timing step 2 suites, 3 tests; node power's 90-second test at 30.1 s), `pnpm build` rc 0. Wave 2's
   docs agree with wave 1's code at five checked places (the boss rotation's schema, the `boss_<stage>` reference
   forms, `get_node_power`'s arguments, R1b's `verdict.damage`, the `priceOutcomes` keys). Every bullet of AC-P79–P81,

@@ -30,8 +30,8 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 
 Ask these after 1–10 (D-409). Navira's Fracturing against our Varashta build showed why: tuning can't find a
 better structure, and the pieces of one sat unused in the research ([comparison] §7.1). Questions 15–19 are the
-synthesis questions (D-431): the synthesis asks them of each composite, D1-build again after a conversion, a keystone
-or a limit named as a con, and the rival. Spud's Warcryer carried six damage layers to our build's two ([spud] §4).
+synthesis questions (D-431): the synthesis asks them of each composite, and D1-build again after a conversion, a
+keystone or a limit named as a con. Spud's Warcryer carried six damage layers to our build's two ([spud] §4).
 
 11. What does the obvious build do, and how is this card faster? Start from its archetype's entry under
     Standard kits. (Navira's Fracturing)

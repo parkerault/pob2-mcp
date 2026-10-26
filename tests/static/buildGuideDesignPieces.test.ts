@@ -7,7 +7,8 @@
  *   the return's `pieces:` line; a custom modifier's node a need (D-418).
  * - `references/stages/D1-finish.md`: a `reason` claim for each scheduled piece and each composite piece left out.
  * - `references/stages/D1-gate.md`: the design field's `pieces {in, scheduled, out, scheduledNames, outNames}`, read
- *   from `pieces.md`, which `run-log.mjs display design` prints: the field is put through the real display.
+ *   from `pieces.md`, which `run-log.mjs display design` prints: the field is put through the real display. Amendment
+ *   11 (WU-115, D-442, Appendix A) drops `outNames`: the design gate counts the out pieces without naming them.
  * - `references/stages/RV.md` (removed by amendment 11, D-443): its block went with it.
  * - `references/patterns.md`: questions 16–19 and the two amended entries, read from the amendment's §6, under the
  *   library's cap; R1a-synthesize's one-line glosses agree with them.
@@ -109,6 +110,9 @@ const SPEC_FIELDS = (() => {
   return m[1].split(',').map((f) => f.trim());
 })();
 const PIECES_HEADER = blockAfter(appendix, "**The card's tables.**").split('\n')[2].trim();
+/** Amendment 11's Appendix A (D-442): the design field's `pieces` loses `outNames`, and the display counts the out pieces. */
+const A11_SPEC = read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-11-live-test-fixes.md'));
+const A11_PIECES_FIELDS = SPEC_FIELDS.filter((f) => f !== 'outNames');
 const PIECES_MD_FORM = folded(between(appendix, '**`pieces.md`**', '\n\n'));
 
 const library = read(path.join(SKILL_DIR, 'references', 'patterns.md'));
@@ -138,10 +142,12 @@ function copyFixture(): string {
   fs.cpSync(FIXTURE, dir, { recursive: true });
   return dir;
 }
-function setPieces(dir: string, pieces: unknown): void {
+function setPieces(dir: string, pieces: unknown, a11 = false): void {
   const file = path.join(dir, 'reports', 'gates', 'D1-gate-r1-a-1-a1.json');
   const gate = JSON.parse(fs.readFileSync(file, 'utf8'));
   gate.design.pieces = pieces;
+  // Amendment 11: a design field written under its rules carries Appendix A's additions (here each rung's trades).
+  if (a11) for (const r of gate.design.rungs) r.trades = [];
   fs.writeFileSync(file, `${JSON.stringify(gate, null, 2)}\n`);
 }
 
@@ -197,7 +203,9 @@ describe('AC-W86: D1-build keeps synthesizing (D-434)', () => {
     expect(pieces).toMatch(/\*\*per second, for clear\*\*, each enabled `clear` group's figure, the named source's Count-scaled one first/);
     expect(pieces).toMatch(/\*\*per corpse\*\*, each on-kill group's \(a corpse explosion's\) hit and its ignite per corpse/);
     expect(pieces).toMatch(/\*\*for bosses\*\*, each enabled `single_target` group's figure/);
-    expect(pieces).toMatch(/the total is the key-figure line's headline DPS/);
+    // Amendment 11 (WU-115, D-437): the total is the named source's damage figure against map monsters, not "headline DPS".
+    expect(pieces).toMatch(/the total is the named source's damage figure against map monsters, the key-figure line's `damage <map> against map monsters` \(`measures\.damage\.map`\)/);
+    expect(pieces).not.toMatch(/headline DPS/);
     expect(pieces).toMatch(/a disabled group's counting as 0/);
     // Leaving a piece out by its kind, as D-433 lists the kinds.
     for (const kind of ['a support removed from its group', "a skill's group disabled", "a unique replaced by the slot's plain base of the same base type", "a rare's mod line or a rune removed from the item", 'a node with the nodes that depend on it', 'a keystone with the custom modifiers that stand for it', 'a config condition turned off']) {
@@ -279,10 +287,12 @@ describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shap
   const gate = folded(gateRaw);
   const example = JSON.parse(blockAfter(gateRaw, '## Writes'));
 
-  it('states the field once for the build, read from pieces.md, with §9\'s names', () => {
-    expect(gate).toMatch(/First `pieces` \(D-434\), once for the build, since pieces belong to the build, not a rung: `\{in, scheduled, out, scheduledNames, outNames\}` from `pieces\.md`'s table, `in`, `scheduled` and `out` its rows counted by Status/);
-    expect(gate).toContain(`\`{${SPEC_FIELDS.join(', ')}}\``);
-    expect(gate).toMatch(/`scheduledNames` and `outNames` the Piece of each `scheduled` and each `out` row, in the table's order/);
+  it('states the field once for the build, read from pieces.md, with §9\'s names less amendment 11\'s outNames', () => {
+    expect(A11_SPEC).toContain('`pieces` loses `outNames`');
+    expect(gate).toMatch(/First `pieces` \(D-434\), once for the build, since pieces belong to the build, not a rung: `\{in, scheduled, out, scheduledNames\}` from `pieces\.md`'s table, `in`, `scheduled` and `out` its rows counted by Status/);
+    expect(gate).toContain(`\`{${A11_PIECES_FIELDS.join(', ')}}\``);
+    expect(gate).toMatch(/`scheduledNames` the Piece of each `scheduled` row, in the table's order; the display prints it as `- Pieces: <n> in, <n> scheduled \(<names>\), <n> out`, counting the out pieces without naming them \(D-442\)/);
+    expect(gate).not.toContain('outNames');
     expect(gate).toMatch(/Leave `pieces` out when the build's folder has no `pieces\.md`/);
     expect(gate).toMatch(/and `<buildFolder>\/pieces\.md`'s table \(D-434\), when the build has one, for step 6/);
     // run-log.mjs reads the same names.
@@ -292,29 +302,29 @@ describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shap
   it('its verdict example carries pieces first, before the rungs, each count matching its names', () => {
     expect(Object.keys(example.design)[0]).toBe('pieces');
     const p = example.design.pieces;
-    expect(Object.keys(p)).toEqual(SPEC_FIELDS);
+    expect(Object.keys(p)).toEqual(A11_PIECES_FIELDS);
     for (const k of ['in', 'scheduled', 'out']) expect({ k, whole: Number.isInteger(p[k]) && p[k] >= 0 }).toEqual({ k, whole: true });
     expect(p.scheduledNames).toHaveLength(p.scheduled);
-    expect(p.outNames).toHaveLength(p.out);
   });
 
   it('the design display prints the example\'s pieces, and the pieces of D1-build\'s pieces.md example, once, before the rungs', () => {
     const dir = copyFixture();
-    setPieces(dir, example.design.pieces);
+    setPieces(dir, example.design.pieces, true);
     const own = example.design.pieces;
     const named = (names: string[]) => (names.length ? names.join(', ') : 'none');
-    const line = `- Pieces: ${own.in} in, ${own.scheduled} scheduled (${named(own.scheduledNames)}), ${own.out} out (${named(own.outNames)})`;
+    // Amendment 11 (D-442): the out pieces are counted, not named.
+    const line = `- Pieces: ${own.in} in, ${own.scheduled} scheduled (${named(own.scheduledNames)}), ${own.out} out`;
     const out = display(dir, 'design', '--build', 'r1-a-1');
     expect(out.filter((l) => l.startsWith('- Pieces:'))).toEqual([line]);
     expect(out.indexOf(line)).toBeLessThan(out.findIndex((l) => /^Entering maps/.test(l)));
 
     // D1-build's example, read into the field by D1-gate's rule, through the same display.
     fs.writeFileSync(path.join(dir, 'builds', 'r1-a-1', 'pieces.md'), `${PIECES_EXAMPLE}\n`);
-    const fromExample = piecesOf(EXAMPLE_ROWS);
-    setPieces(dir, fromExample);
+    const { outNames: _outNames, ...fromExample } = piecesOf(EXAMPLE_ROWS);
+    setPieces(dir, fromExample, true);
     expect(fromExample.scheduled).toBeGreaterThan(0);
     expect(display(dir, 'design', '--build', 'r1-a-1')).toContain(
-      `- Pieces: ${fromExample.in} in, ${fromExample.scheduled} scheduled (${fromExample.scheduledNames.join(', ')}), ${fromExample.out} out (${fromExample.outNames.join(', ')})`,
+      `- Pieces: ${fromExample.in} in, ${fromExample.scheduled} scheduled (${fromExample.scheduledNames.join(', ')}), ${fromExample.out} out`,
     );
   });
 });
@@ -330,7 +340,9 @@ describe('AC-W86: the library holds questions 16–19 and the two amended entrie
   it('asks 16–19 after 15, in one section named for 11–19', () => {
     expect(section?.title).toBe('Brainstorm questions 11–19: the engine and the synthesis');
     expect([...questions.keys()]).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19]);
-    expect(folded(bodyOf(section!))).toMatch(/Questions 15–19 are the synthesis questions \(D-431\): the synthesis asks them of each composite, D1-build again after a conversion, a keystone or a limit named as a con, and the rival/);
+    // Amendment 11 (WU-115, D-443): the rival is removed, so the library's line 34 no longer names it.
+    expect(folded(bodyOf(section!))).toMatch(/Questions 15–19 are the synthesis questions \(D-431\): the synthesis asks them of each composite, and D1-build again after a conversion, a keystone or a limit named as a con\./);
+    expect(folded(bodyOf(section!))).not.toMatch(/\brival/);
     expect(library).not.toMatch(/11–15/);
   });
 

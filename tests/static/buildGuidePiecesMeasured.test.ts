@@ -315,9 +315,10 @@ describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and 
     expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |');
     expect(SKILL).toMatch(/Returns `done` or `infeasible`, with a reason, its `for D1-tree:` line and its `pieces:` line, `pieces\.md`'s rows by status \(D-434\), within its 8 lines/);
     const design = folded(between(rawRef('checkpoints.md'), '## The design gate: judge the endgame build', '## The final gate'));
-    expect(design).toContain("First, once per build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)`");
-    // The display's own line (run-log.mjs, Appendix A).
-    expect(RUN_LOG).toContain('`- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out (${named(p.outNames)})`');
+    // Amendment 11 (WU-115, D-442): the design gate counts the out pieces without naming them.
+    expect(design).toContain("First, once per build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n> scheduled (<names>), <n> out`, the out pieces counted without their names (D-442)");
+    // The display's own line (run-log.mjs, Appendix A), the one a design field held to amendment 11 prints.
+    expect(RUN_LOG).toContain('`- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out`');
   });
 
   it('the brainstorm gate verifies composites or cards, a composite\'s changes adding or dropping pieces, a new card from pieces', () => {

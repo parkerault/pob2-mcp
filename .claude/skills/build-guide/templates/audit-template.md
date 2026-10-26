@@ -37,9 +37,11 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 ## Stage detail
 
-| Loadout | Level | Life | Named source DPS | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |
+| Loadout | Level | Life | Damage, map / boss | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |
 |---|---|---|---|---|---|---|---|
-| <loadoutName> | <level> | <Life> | <the named source's Count-scaled figure, MinionTotalDPS for a group that names a minion skill (D-378); measures.dps on an endgame rung> | <n>/<n>/<n>/<n>% | <n> / <n> | <on an endgame rung, its configWritten hits; — on a campaign stage> | <TotalEHP; measures.ehp on an endgame rung> |
+| <loadoutName> | <level> | <Life> | <on an endgame rung, the named source's damage figure against map monsters, measures.damage.map, then its boss figure against a Pinnacle boss, the plan's boss_<stage> ledger value (its current formula over the record) when it has one, else measures.damage.boss (D-437, D-447); a campaign stage keeps its one figure, the named source's Count-scaled one, MinionTotalDPS for a group that names a minion skill (D-378)> | <n>/<n>/<n>/<n>% | <n> / <n> | <on an endgame rung, its configWritten hits; — on a campaign stage> | <TotalEHP; measures.ehp on an endgame rung> |
+
+[A record from before amendment 11, with no measures.damage, keeps the older column: `| Loadout | Level | Life | Named source DPS | …`, the named source's Count-scaled figure, measures.dps on an endgame rung.]
 
 ## Checks
 

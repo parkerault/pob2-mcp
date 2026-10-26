@@ -18,14 +18,19 @@ findings.
   accepted), `faults` (FI-2, FI-3: offline test runs only), `writes`: the verdict file
   `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` when the re-price pass or
   FI-2 may edit it.
-- **Prompt:** with `--no-ninja`, that there are no currency rates (D-333).
+- **Prompt:** with `--no-ninja`, that there are no currency rates (D-333); after the design gate's `accept` (or
+  `accept:file`) with a `retry-pricing` answer at that visit, that this is **the re-price pass** (D-444): F1 runs
+  after you, and no design gate.
 - **Read**, the independent calls in one response: each rung through `mcp__pob2__guide_run {view: {plan:
   "<plan>", stage: "<id>"}}` (`m`, `b`, `n`: its `tree` with its `needs`, its `loadoutName`, `respec`,
-  `skills.groups` and claims), and Grep `plan.json` for its `prices` entries; `run-log.json` (has pricing stopped
-  in this session, D-415? a `stages[]` entry after the last resume, from index `resumes[<last>].lengths.stages`,
-  or any entry when the log has no resume, whose `priceOutcomes` counts a `locked_out` or `rate_limited` call);
-  `data/economy/prices.json`, the league table and the conversion table; and `<buildFolder>/pieces.md`'s table
-  (D-434), when the build has one, for step 6. After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, and
+  `skills.groups`, `skills.cull`, `skills.engagement`, `skills.boss` and claims), and Grep `plan.json` for its
+  `prices` entries and its `boss_<stage>` ledger entries; `run-log.json` (is pricing stopped, D-444? a
+  `pricing.stops[]` entry with no `retry-pricing` answer in `pricing.retries[]` and no resume,
+  `resumes[].lengths.stages`, after it: `references/run-log.md`, "Pricing stops"); `data/economy/prices.json`,
+  the league table and the conversion table; and `<buildFolder>/pieces.md`'s table (D-434), when the build has
+  one, for step 6, with `<buildFolder>/trades.json` (D-439), when it exists, and the reference files
+  `.claude/skills/build-guide/references/toughness-targets.json` (D-441) and
+  `.claude/skills/build-guide/references/boss-floor.json` (D-448). After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, its ledger values, and
   every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
   `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Grep the record for the fields the text
   lacks; never Read it whole. This page states the parts and codes (`gates.md` holds the same table).
@@ -35,17 +40,19 @@ findings.
 1. **FI-2** (only when the header's `faults` holds it): before anything else, set the first endgame stage's
    (the ladder's first rung: `m`, else `b`) `level` to `1` in `plan.json`, and the `(L<n>)` in its
    `loadoutName` to `(L1)`, so the plan stays valid. Don't undo it in this attempt.
-2. **The final re-price pass** (§9), online only, and only while pricing hasn't stopped: call each
-   `prices[]` entry that is `unavailable` because of a rate limit (note `rate-limited`) once more, and
+2. **The final re-price pass** (§9), online only, and only while pricing isn't stopped: call each
+   `prices[]` entry that is `unavailable` because of a rate limit (note `rate-limited`), or of a stop the user's
+   `retry-pricing` has since lifted (note `pricing stopped`, D-444), once more, and
    update it in `plan.json`; a refusal leaves it `unavailable`. A weighted-search entry (its `query` has a
    `target`) needs its rung loaded: compile measure-only as step 3 does, select the rung's loadout
    (`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<its loadout name>"}`) and call
-   `mcp__pob2__find_upgrades` with the arguments its `query` records; step 3 then compiles the re-priced plan. Count every call by its outcome for your return. Offline, or once pricing has stopped, skip it.
+   `mcp__pob2__find_upgrades` with the arguments its `query` records; step 3 then compiles the re-priced plan. Count every call by its outcome for your return. Offline, or while pricing is stopped, skip it.
    **No trade call once pricing has stopped** (D-422), in any step: no `mcp__pob2__get_leagues`,
    `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` or
-   `mcp__pob2__find_upgrades`. The market's league is the plan's, recorded before the stop, and the market day
-   keeps its computation (step 4). `mcp__pob2__get_currency_rates` reads poe.ninja, not the trade site, and stays
-   allowed (not with `--no-ninja`).
+   `mcp__pob2__find_upgrades`, until a gate's `retry-pricing` lifts the stop (D-444). The market's league is the
+   plan's, recorded before the stop, and the market day keeps its computation (step 4).
+   `mcp__pob2__get_currency_rates` reads poe.ninja, not the trade site, and stays allowed (not with
+   `--no-ninja`), as does `mcp__pob2__get_item_price` for an exchange item.
 3. **Compile** the whole plan measure-only: `mcp__pob2__compile_plan {plan_path: "<plan>",
    measure_only: true}`, with no `stages`; it loads every rung's loadout. A compile error is part `compiled`
    failing (code `compile-error`, the error line as the message, the plan stage it names as `stage`); then every
@@ -59,7 +66,12 @@ findings.
    only the budget may stay `unverified` (D-164), and the tree when `mcp__pob2__get_node_power` fails
    (`tool-error`) or is refused (`tool-refused`, D-421).
    - **v1, v2**: `fail` when any endgame stage's `v1` or `v2` verdict in the record has a finding. Each
-     record finding becomes a gate finding with its record `code`, part `v1` or `v2`, and the plan stage.
+     record finding becomes a gate finding with its record `code`, part `v1` or `v2`, and the plan stage (boots
+     under their tier with no valid exception are V1's `movement-tier`, D-440). **A boots exception** is a V1
+     note, not a finding: read `stages.<id>.v1.notes` for `boots-exception` (the boots under their tier, covered
+     by the stage's `items.bootsException`), report it as a `boots-exception` finding, part `v1`, its message the
+     note's, which is information and fails nothing, as `chaos-exception` is on a passing floor; `v1` stays
+     `pass`.
    - **floor**: per endgame stage, `MissingFireResist`, `MissingColdResist` and `MissingLightningResist`
      are 0, and `MissingChaosResist` is 0 or the stage has a `chaosResistException` (then a
      `chaos-exception` finding on a passing floor names the stage's `ChaosResist` value and the reason);
@@ -77,7 +89,8 @@ findings.
      element; D-256 rounds it to 2 decimals, then up to a whole number, since PoB takes these options as whole
      numbers (96.4789 gives 97, 402.000003 gives 402). `<type>` is lower case (`physical`, `chaos`). The other
      codes: `missing-fire-resist`, `missing-cold-resist`, `missing-lightning-resist`,
-     `missing-chaos-resist`. `chaos-exception` and `over-target` are information, never a failure.
+     `missing-chaos-resist`. `chaos-exception` and `over-target` are information, never a failure, and so is
+     V1's `boots-exception` (D-440).
    - **budget** (D-249, D-281, D-358, D-370, D-371, D-373): for each rung, `m`, `b` and `n`, the stage's filled
      slots **and tree jewels**, and the anoint of `b` and `n` (`b-anoint`, `n-anoint`, priced like a slot), each
      mapped to its `prices[].id`. Online, get the rates with `mcp__pob2__get_currency_rates` (a divine counts 1;
@@ -126,18 +139,24 @@ findings.
      rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the
      rung's first enabled `role: "clear"` group (the `g<N>` of its `skillOutputs` keys), else the main group's
      (the tool's default is the main group); `max_loss: {clearUses: 2}`, as D1-tree passes it (2% on TotalEHP and on the
-     clear skill's uses per second; movement speed and the clear skill's radius at 0); `limit: 0`. Step 3's
+     clear skill's uses per second; movement speed and the clear skill's radius at 0); `limit: 0`; `stats:
+     ["MainDamage", "TotalEHP"]`, with `cull: true` on a rung with `skills.cull` (D-437), so the gate ranks by the
+     figure the design shows; `maxHit` keeps its default 2% (D-439). On a respec rung (one with `respec`, D-438)
+     `keep` holds, of the rung before's nodes, those it still holds, and `protect_for` names only the later rungs
+     that grow from the rung, never one that respecs from it. Step 3's
      compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
-     `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Full
-     DPS (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>
-     points: <Name> [<id>], …`, the nodes by name. **Pool moves** (C-55a, D-426): on a rung with weapon-set
+     `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Main
+     damage (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>
+     points: <Name> [<id>], …`, the nodes by name, and `Searched from branch …` or `branches …`, the branches it
+     freed. **Pool moves** (C-55a, D-426): on a rung with weapon-set
      passives, the reply adds one line per weapon set's pool after it, `Best swap (weapon set <n>): …` in the same
      form, a move within that pool (only its nodes removed, only nodes tagged to it added, the pool within its
-     points) measured with set `<n>` active, so its gain is of that set's Full DPS. A pool move is allowed, as
-     D1-tree applies it; the rung's swap left is the line, main or pool, that gains most. A rung whose best swap gains **5%** Full DPS or more fails the part, one `tree-swap` finding per such
-     rung, its message the swap (`b: +6.2% Full DPS by moving 5 points from Dexterity, Agile Succession to Cold
-     Nature, Rhythm of Ice`), a pool move's naming its set (`b: weapon set 2: +5.4% Full DPS by moving 2 points from
-     Dexterity, Intelligence to Melee Damage`); else the part passes. When a call fails or times out, the part is `unverified`
+     points) measured with set `<n>` active, so its gain is of that set's figure (Full DPS on a set without the
+     main group). A pool move is allowed, as
+     D1-tree applies it; the rung's swap left is the line, main or pool, that gains most. A rung whose best swap gains **5%** damage (`Main damage`) or more fails the part, one `tree-swap` finding per such
+     rung, its message the swap (`b: +6.2% damage by moving 5 points from Dexterity, Agile Succession to Cold
+     Nature, Rhythm of Ice`), a pool move's naming its set (`b: weapon set 2: +5.4% damage by moving 2 points from
+     Dexterity, Intelligence to Melee Damage`; `Full DPS` on a set without the main group); else the part passes. When a call fails or times out, the part is `unverified`
      with one `tool-error` finding, its `stage` the rung and its message the error line, and no `tree-swap`
      finding even on a rung measured at 5% or more: the gate re-runs alone and judges every rung then. A refused
      call (D-421) is `unverified` with `tool-refused`: stop calling, write the verdict file, and return
@@ -147,17 +166,18 @@ findings.
 6. **The design gate's display** (D-362, A-35). Whenever the compile ran, write the verdict file's `design`
    field, compactly: the runner prints it at the design gate and reads no plan or record for it. First
    `pieces` (D-434), once for the build, since pieces belong to the build, not a rung: `{in, scheduled, out,
-   scheduledNames, outNames}` from `pieces.md`'s table, `in`, `scheduled` and `out` its rows counted by Status
-   (whole numbers), `scheduledNames` and `outNames` the Piece of each `scheduled` and each `out` row, in the
-   table's order; the display prints it as `- Pieces: <n> in, <n> scheduled (<names>), <n> out (<names>)`, before
-   the rungs. Leave `pieces` out when the build's folder has no `pieces.md` (a build designed before amendment
-   10). Then one entry per endgame rung in `rungs[]`, in ladder order:
+   scheduledNames}` from `pieces.md`'s table, `in`, `scheduled` and `out` its rows counted by Status
+   (whole numbers), `scheduledNames` the Piece of each `scheduled` row, in the table's order; the display prints
+   it as `- Pieces: <n> in, <n> scheduled (<names>), <n> out`, counting the out pieces without naming them
+   (D-442), before the rungs. Leave `pieces` out when the build's folder has no `pieces.md` (a build designed
+   before amendment 10). Then one entry per endgame rung in `rungs[]`, in ladder order:
    - `stage`; `dps` and `ehp`, the record's `measures.dps` and `measures.ehp`, rounded to whole numbers;
      `arbiter`, on `b` and `n`, the verdict of `measures.arbiter` with its worst hit and ratio (`survives,
      worst physical 0.82`), else `null`; `clearSpeed`, `measures.clearSpeed.speed` (a rough estimate);
+     (`dps` stays for old readers: the display shows `damage`);
    - `ehpHit` (D-423), the hit that `ehp` was measured against, which the display's Effective HP line names:
      the rung's reference hits as the record's `configWritten` holds them, by map tier, area level and the
-     physical hit (`T15 map hits, area 79: 402 physical`), so it compares with the dossier's EHP;
+     physical hit (`T15 map hits, area 79: 402 physical`);
    - `anoint`: the notable and its recipe from the record's `stages.<id>.anoint` (`Unbending: Ire, Guilt,
      Greed`), or `null` (`m`);
    - `gear` and `gems`: one short line each, under 120 characters: the key uniques and rare targets; the named
@@ -165,17 +185,40 @@ findings.
    - `tree` (D-419): `{travel, points, bestSwap, needs}` from the tree part: `travel` and `points`, whole
      numbers, from the rung's `Travel:` line; `bestSwap`, the swap left (the main swap or a pool move, whichever
      gains most), `null` when every line says none, else `{gainPercent,
-     removed: [<names>], added: [<names>]}`, `gainPercent` the swap's Full DPS gain as a number, the names as the
-     reply gives them, and for a pool move `weaponSet`, its pool's set (`1` or `2`), which the display names
+     removed: [<names>], added: [<names>], branches}`, `gainPercent` the swap's damage gain (Main damage; a
+     pool move's on a set without the main group, Full DPS) as a number, the names as the
+     reply gives them, `branches` the branches it freed (D-439), each `{name, points}` as its `Searched from`
+     sentence names it, and for a pool move `weaponSet`, its pool's set (`1` or `2`), which the display names
      (`best swap left (weapon set 2): …`); `needs`, one short line per need of the rung's `tree.needs`, under 120 characters, what
      it keeps and why, from its claim (`Mana on Kill and Mana Regeneration: the howl spam's mana`). The display
      prints the travel and the swap left, then each need, so the user sees why a long branch stays. A rung the
      tool didn't measure (`tool-error`, `tool-refused`): `{"travel": 0, "points": 0, "bestSwap": null, "needs":
-     [...]}`, and an `estimates[]` line saying so.
+     [...]}`, and an `estimates[]` line saying so;
+   - **amendment 11's figures** (D-437, D-447), from the record's `stages.<id>.measures`: `damage {map, boss}`,
+     `measures.damage`, the named source's damage figure against map monsters (with its cull when the rung
+     states `skills.cull`) and PoB alone against a Pinnacle boss; `cull {map, boss}`, `measures.cull`'s two
+     thresholds in percent, only on a rung with `skills.cull`, else `null`; `trigger {by, usesPerSecond}`,
+     `measures.trigger`, when a meta gem triggers the named source, else `null`; `boss {measured, estimate,
+     corrections}`: `measured` the record's `measures.damage.boss`, `estimate` the ledger's `boss_<stage>` value
+     from this compile's reply (`boss_n = …`) when the plan has that entry, else `null`, and `corrections` its
+     claim's phrases, split at `; ` (`[]` without the entry). The rung's **boss figure** is the estimate when
+     there is one, else the measured figure;
+   - `trades[]` (D-439), the rung's entries of `<buildFolder>/trades.json`, copied as the file holds them (`[]`
+     for none, and when the file is absent): D1-tree's `unmodelled` and D1-finish's `boots`, `defence` and
+     `damage`. A gate that re-runs alone reads the same file;
+   - on the non-budget rung only: `toughness {engagement, reason, target, band}` (D-441), `engagement` and `reason`
+     the plan's `n.skills.engagement`, `target` `toughness-targets.json`'s for that kind, and `band` the record's
+     `TotalEHP` against it: `under` below `under` × the target, `over` above `over` × the target, else `within`;
+     and in `boss`, `floor`, `boss-floor.json`'s `floor`, and `under`, `true` when the boss figure is below it
+     (D-448).
 
    Then `estimates[]`, one short line per open estimate the display rests on: a group's Count, a custom
-   modifier, a ledger hand calculation, an `unverified` budget, the rough clear speed once, and a rung whose
-   tree wasn't measured (`b: the passive tree wasn't measured: the node power call failed`).
+   modifier, a ledger hand calculation (a `boss_<stage>` estimate among them), an `unverified` budget, the rough
+   clear speed once, and a rung whose tree wasn't measured (`b: the passive tree wasn't measured: the node power
+   call failed`). The run checker recomputes the band, the estimate, the floor and the trades from the record,
+   the plan, the ledger, the two reference files and `trades.json`, and fails a design field that disagrees, a
+   non-budget rung whose plan has no `skills.engagement`, or a non-budget rung out of its band or under the floor
+   with no trade of its kind.
 
 ## Writes
 
@@ -206,15 +249,31 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
                                                   { "group": 2, "figure": "g2s1p1.TotalDPS" } ] } ]
   },
   "design": {
-    "pieces": { "in": 5, "scheduled": 0, "out": 1, "scheduledNames": [], "outNames": [ "Elemental Focus" ] },
+    "pieces": { "in": 5, "scheduled": 0, "out": 1, "scheduledNames": [] },
     "rungs": [
       { "stage": "b", "dps": 98412, "ehp": 31250, "ehpHit": "T15 map hits, area 79: 402 physical",
         "arbiter": "survives, worst physical 0.82",
         "clearSpeed": "fast", "anoint": "Unbending: Ire, Guilt, Greed",
-        "gear": "Sekhema's Resolve; rare boots, 30% movement speed and resistances",
+        "gear": "Sekhema's Resolve; rare boots, 35% movement speed and resistances",
         "gems": "Blood Hunt with Martial Tempo and Rupture; Herald of Blood",
-        "tree": { "travel": 9, "points": 113, "bestSwap": { "gainPercent": 3.4, "removed": ["Dexterity", "Agile Succession"], "added": ["Cold Nature", "Rhythm of Ice"] },
-                  "needs": [ "Mana on Kill and Mana Regeneration: Blood Hunt's mana in long fights", "Iron Reflexes: the floor's armour" ] } }
+        "tree": { "travel": 9, "points": 113, "bestSwap": { "gainPercent": 3.4, "removed": ["Dexterity", "Agile Succession"], "added": ["Cold Nature", "Rhythm of Ice"],
+                                                         "branches": [ { "name": "Agile Succession", "points": 2 } ] },
+                  "needs": [ "Mana on Kill and Mana Regeneration: Blood Hunt's mana in long fights", "Iron Reflexes: the floor's armour" ] },
+        "damage": { "map": 98412, "boss": 121000 }, "cull": null, "trigger": null,
+        "boss": { "measured": 121000, "estimate": null, "corrections": [] }, "trades": [] },
+      { "stage": "n", "dps": 240100, "ehp": 16900, "ehpHit": "T16 map hits, area 82: 439 physical",
+        "arbiter": "survives, worst physical 0.71",
+        "clearSpeed": "fast", "anoint": "Unbending: Ire, Guilt, Greed",
+        "gear": "Apron of Emiran; a Spiked Spear with physical damage; rare boots, 35% movement speed",
+        "gems": "Blood Hunt with Martial Tempo, Rupture and Bloodlust; Herald of Blood",
+        "tree": { "travel": 12, "points": 120, "bestSwap": null, "needs": [ "Iron Reflexes: the floor's armour" ] },
+        "damage": { "map": 240100, "boss": 180000 }, "cull": null, "trigger": null,
+        "boss": { "measured": 180000, "estimate": null, "corrections": [], "floor": 250000, "under": true },
+        "trades": [ { "stage": "n", "kind": "defence", "what": "a rare body with life and resistances and Crimson Assault",
+                      "ehpChange": 17, "damageChange": -9, "bossAfter": null, "reason": "under the toughness band" },
+                    { "stage": "n", "kind": "damage", "what": "moving 4 points from Bone Breaker to Vicious Bite",
+                      "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor" } ],
+        "toughness": { "engagement": "close", "reason": "Blood Hunt lunges into the pack and the boss", "target": 20000, "band": "under" } }
     ],
     "estimates": [ "b: clear speed is a rough estimate from the skill's area" ]
   },

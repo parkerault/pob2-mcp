@@ -261,48 +261,78 @@ didn't ask for this gate (a final gate's `accept:verification` asks for it once 
 A fourth user gate (D-362), once per build, after its passing D1 gate (or one whose escalation was accepted) and
 before its final compile, F1 (D-413), and its guide: the user judges the endgame build before anything else is
 written. Recorded as checkpoint `design`, with `concept` the build's card id. It runs between the D1 gate and F1
-(SKILL.md step 7b), never in the fix round or a revision.
+(SKILL.md step 7b), never in the fix round or a revision. Numbers come first here, measured on the full build
+(D-436): verification showed none.
 
 - **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `stages/D1-gate.md` step 6):
   you read no plan or record and call no tool for it; `display design --build <id>` prints it. First, once per
   build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n>
-  scheduled (<names>), <n> out (<names>)`; a build with no `pieces.md` has none. Then one block per endgame rung, in
-  ladder order:
+  scheduled (<names>), <n> out`, the out pieces counted without their names (D-442); a build with no `pieces.md`
+  has none. Then one block per endgame rung, in ladder order:
 
   ```
-  Budget endgame (level 92):
+  Non-budget endgame (level 95):
   - Clear speed: fast (rough).
-  - Movement speed: +25% over your base speed; no travel skill.
-  - The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.82 of your max hit).
-  - Damage: 98,412 per second.
-  - Effective HP: 31,250 (against T15 map hits, area 79: 402 physical).
+  - Movement speed: +35% over your base speed; no travel skill.
+  - The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.71 of your max hit).
+  - Damage: 2,717,385 per second against map monsters.
+  - Boss damage: about 320,000 per second against a Pinnacle boss (PoB alone: 222,149 at Detonate Dead's hand-cast 1.46 a second; estimated: trigger rate: Cast on Critical's 2.1 a second from the crit rate).
+  - Boss floor: about 320,000 against the 250,000 floor.
+  - Culls normal monsters at 91%, bosses at 13%.
+  - Detonate Dead is triggered by Cast on Critical: PoB rates it at its hand-cast speed (1.46 a second) and doesn't model Energy.
+  - Effective HP: 16,900 (against T16 map hits, area 82: 439 physical).
+  - Toughness: 16,900 against the 20,000 target for a close build (Reap and the corpse blasts need the pack next to you), under its band (18,000).
   - Anoint: Unbending: Ire, Guilt, Greed
-  - Gear: Sekhema's Resolve; rare boots, 30% movement speed and resistances
-  - Gems: Blood Hunt with Martial Tempo and Rupture; Herald of Blood
-  - Passive tree: 11 of 104 points on travel; best swap left: none
-  - Kept on the tree: mana sustain, Mental Toughness and its path, for Blood Hunt's cost
+  - Gear: Apron of Emiran; rare boots, 35% movement speed and resistances
+  - Gems: Detonate Dead with Cast on Critical; Reap with Bloodlust
+  - Passive tree: 13 of 118 points on travel; best swap left: +3.1% damage by moving 5 points from <nodes> to <nodes>
   - Kept on the tree: Dexterity for Martial Tempo's requirement
+  - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
+  - Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
   ```
 
   Clear speed and movement speed lead, then the boss floor (D-407). The movement line names the rung's travel skill
-  and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427). `m` shows no Arbiter and no anoint. The
-  Effective HP line names the hit it was measured against (the rung's `ehpHit`, D-423), so it compares with the
-  dossier's EHP at the verification gate. The tree lines follow the Gems line (D-419): the points the rung spends
-  on travel, nodes that give the build nothing themselves and only connect it to nodes that do, of its points; the
-  best swap PoB's node power still finds (`+<x>% Full DPS by moving <n> points from <nodes> to <nodes>`, or
-  `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then each need the tree keeps whatever node power says, one line each, so the user sees why a long
-  branch stays. Then the open estimates, one line each from `estimates[]`, the gate's verdict line, and the
-  verdict file's path. Under the display, in your reply, give each `not made:` line D1-tree returned in this design
-  (a tree change the user asked for that it couldn't make, with its why), so the user hears it before deciding.
+  and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427). `m` shows no
+  Arbiter and no anoint. **The damage lines** (D-437, D-447, D-448): the named source's damage figure against map
+  monsters, never PoB's Full DPS, with its cull only when the rung's rotation culls (`skills.cull`); then the boss
+  line, `about <estimate>` with PoB's own figure and what the estimate corrects when D1-finish estimated it by
+  hand (`boss_<stage>`), else the measured figure alone; on the non-budget rung the boss floor line, the boss
+  figure against the 250,000 floor (`references/boss-floor.json`), `under the 250,000 floor` with a damage trade
+  below it; the cull line; and the trigger line when a meta gem triggers the named source. The Effective HP line
+  names the hit it was measured against (the rung's `ehpHit`, D-423). **On the non-budget rung, the toughness
+  line** (D-441): its EHP against its target in `references/toughness-targets.json`, 20,000 for a close build and
+  15,000 at a distance, with the engagement and its reason, so the user can correct it, and its band: under it
+  (below 90%), within it, or over it (above 150%). The tree lines follow the Gems line (D-419): the points the rung
+  spends on travel, nodes that give the build nothing themselves and only connect it to nodes that do, of its
+  points; the best swap PoB's node power still finds (`+<x>% damage by moving <n> points from <nodes> to <nodes>`,
+  or `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then each need
+  the tree keeps whatever node power says, one line each, so the user sees why a long branch stays. **Then the
+  rung's trades** (D-439, D-440, D-441, D-448), each with what it gains and what it costs, for the user to take or
+  leave: a need PoB can't measure, with what the same points would add elsewhere; boots under their tier by an
+  exception, the speed given up and why; a defence trade on a rung under its band; a damage trade on a rung over
+  its band or under the floor, with the boss figure it implies (`boss about <n>`); `none found: <why>` when the
+  design found none. No trade is a gate failure. Then the open estimates, one line each from `estimates[]`, the
+  gate's verdict line, and the verdict file's path. Under the display, in your reply, give each `not made:` line
+  D1-tree returned in this design (a tree change the user asked for that it couldn't make, with its why), so the
+  user hears it before deciding.
+- **Taking a trade** is a revise: the user's words name the trade ("take the defence trade"), and the change
+  goes to the step that owns it, below.
+- **After a pricing stop** (D-444), the gate asks its pricing question before its other questions; after
+  `retry-pricing` at this visit, an `accept` or `accept:file` runs the D1 gate's re-price pass before F1 (a D1
+  gate after the answer, then F1, with no second design gate).
 - **Answers:**
   - **accept**: F1, the final compile (step 8), then the endgame guide, its checks and the build's final gate.
   - **file only** (`accept:file`, D-411): F1 and nothing after it: the build ends `file-only`, its PoB file and no
     guide. A guide can follow in a later session (`guide:<id>` after `--resume`, D-415).
   - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).
     A build change (gear, the gems or the config, with or without the tree) runs D1-build with it, then D1-tree,
-    then D1-finish; a change to the tree alone runs D1-tree with it, then D1-finish (a node the user asks for
-    becomes a need, D-418); a change to the anoint, the prices, the ledger or the claims runs D1-finish alone
-    with it, and when it returns `build: <ids>`, D1-build with those, D1-tree, then D1-finish with its `changed`. Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
+    then D1-finish; **a respec the user asks for runs D1-build first** (D-438), even when only the tree changes,
+    so D1-build marks the rung and D1-tree completes it; any other change to the tree alone runs D1-tree with it,
+    then D1-finish (a node the user asks for becomes a need, D-418); a change to the anoint, the prices, the
+    ledger, the boss estimate, the claims or a trade's measure runs D1-finish alone with it, and when it returns
+    `build: <ids>`, D1-build with those, D1-tree, then D1-finish with its `changed`. Within the attempt, D1-tree's
+    `respec:` return and D1-finish's `build:` return each send it back to D1-build (`gates.md`, "The D1 gate's
+    outcome"). Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
     keeps its 2 counted retries. A change that isn't a revision of the finalized build (a new card, by the rule
     above) isn't a revise: say so, and offer **verification**. There the user's words carry into the
     restatement, as a new card whose `from` is the finalized card.

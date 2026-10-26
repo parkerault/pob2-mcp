@@ -83,9 +83,11 @@ describe('the amendment and the checker agree on the numbers the skill text uses
 describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascendancy order', () => {
   const build = folded(readStage('D1-build'));
 
-  it('writes plan schema 6, in the build\'s folder', () => {
-    expect(build).toContain('at `schemaVersion: 6`');
-    expect(build).not.toContain('`schemaVersion: 5`');
+  // Amendment 11 (WU-115): schema 7 carries the scaling, the cull, the engagement, the boss rotation and the boots
+  // exception (plan-reference.md, "Builds a player would run").
+  it('writes plan schema 7, in the build\'s folder', () => {
+    expect(build).toContain('at `schemaVersion: 7`');
+    expect(build).not.toMatch(/`schemaVersion: [56]`/);
     expect(build).toContain('`writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`');
     expect(build).toMatch(/`<plan>` is `<runFolderRel>\/<buildFolder>\/plan\.json` \(`<runFolderRel>\/plan\.json` when `buildFolder` is `\.`\)/);
   });
@@ -133,9 +135,10 @@ describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascenda
     expect(folded(readStage('D1-tree'))).toMatch(/\*\*Prompt:\*\* D1-build's `for D1-tree:` line/);
   });
 
-  it('calls no trade tool, get_leagues included, once pricing has stopped in the session (D-415, D-422)', () => {
-    expect(build).toMatch(/\*\*once pricing has stopped\*\* \(Read, above\), no trade call at all, `mcp__pob2__get_leagues` included/);
-    expect(build).toMatch(/A `stages\[\]` entry after the last resume \(from index `resumes\[<last>\]\.lengths\.stages`/);
+  // Amendment 11 (WU-115, D-444): the stop lasts until a gate's retry-pricing, read from the run log's pricing record.
+  it('calls no trade tool, get_leagues included, while pricing is stopped, until a gate\'s retry-pricing (D-415, D-422, D-444)', () => {
+    expect(build).toMatch(/\*\*while pricing is stopped\*\* \(Read, above\), no trade call at all, `mcp__pob2__get_leagues` included/);
+    expect(build).toMatch(/A `pricing\.stops\[\]` entry with no `retry-pricing` answer in `pricing\.retries\[\]` and no resume \(`resumes\[\]\.lengths\.stages`\) after it/);
   });
 });
 
@@ -147,7 +150,8 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(raw.split('\n')[0]).toBe('# D1-tree: trees that minimize travel (`build-guide-coordinator`)');
     const h2 = raw.split('\n').filter((l) => l.startsWith('## '));
     expect(h2).toEqual(['## Inputs', '## Work', '## Writes', '## Returns', '## Fault directives']);
-    expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json"\]`/);
+    // Amendment 11 (WU-115, D-439): D1-tree writes the unmodelled needs' trades too.
+    expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json", "<buildFolder>\/trades\.json"\]`/);
     expect(tree).toMatch(/a fresh coordinator step between D1-build \(`D1-build\.md`\) and D1-finish \(`D1-finish\.md`\)/);
     const returns = raw.slice(raw.indexOf('## Returns'), raw.indexOf('## Fault directives'));
     expect(returns).toMatch(/At most 8 lines, counts only/);
@@ -172,7 +176,9 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
   });
 
   it('applies a swap up the ladder and compiles every rung it touches together before measuring again', () => {
-    expect(tree).toMatch(/\*\*Up the ladder\*\* \(D-282\): a change on `m` goes to `b` and `n` too, which contain `m`'s tree, and one on `b` to `n`/);
+    // Amendment 11 (WU-115, D-438): along grow links only; a rung that respecs keeps its tree, its respec.dropped follows.
+    expect(tree).toMatch(/\*\*Up the ladder, along grow links only\*\* \(D-438\): a change on `m` goes to `b` when `b` grows from `m`, and to `n` when `n` grows from `b` too; one on `b` to `n` when `n` grows from `b`/);
+    expect(tree).toMatch(/\*\*A rung that respecs\*\* from the changed rung keeps its tree; its `respec\.dropped` follows the change instead/);
     expect(tree).toMatch(/\*\*Compile every rung it touches together\*\*: `mcp__pob2__compile_plan \{plan_path: "<plan>", measure_only: true, stages: \[<the rung and every later rung>\]\}`, which also loads the later rungs' loadouts that `protect_for` names/);
   });
 
@@ -207,18 +213,20 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
   });
 
   it(`stops at ${LOOP_STOP}% and ${LOOP_CAP} swaps per rung, under the gate's ${GATE_LINE}%`, () => {
-    expect(tree).toContain(`While its best swap gains at least **${LOOP_STOP}%** Full DPS, make it a change`);
+    // Amendment 11 (WU-115, D-437): the loop ranks by the named source's damage figure, node power's MainDamage.
+    expect(tree).toContain(`While its best swap gains at least **${LOOP_STOP}%** Main damage, make it a change`);
     expect(tree).toContain(`after **${LOOP_CAP} swaps** on the rung, an undone one counted`);
     expect(tree).toContain(`The D1 gate fails a rung at ${GATE_LINE}%`);
   });
 
   it('meets a need with a stat by node power on that stat', () => {
-    expect(tree).toMatch(/\*\*A need with a stat\*\* is met by node power on it: for each of the rung's needs with a `stat`, call the tool with `stats: \["<the need's stat>", "FullDPS"\]`/);
+    expect(tree).toMatch(/\*\*A need with a stat\*\* is met by node power on it: for each of the rung's needs with a `stat`, call the tool with `stats: \["<the need's stat>", "MainDamage"\]`/);
   });
 
-  it('makes no respec, and returns counts only: travel before and after, and the swaps', () => {
-    expect(tree).toMatch(/a respec is never the loop's: only a stated `respec\.dropped` with its reason/);
-    expect(tree).toMatch(/no respec\. Validate/);
+  // Amendment 11 (WU-115, D-438): D1-tree completes the respecs D1-build marked, never marks one, and returns respec:.
+  it('completes the respecs D1-build marked and marks none, and returns counts only: travel before and after, and the swaps', () => {
+    expect(tree).toMatch(/You complete the respecs D1-build marked and never mark one yourself: a scaling change it missed is a `respec:` return/);
+    expect(tree).toMatch(/no respec but the ones D1-build marked, which you complete \(step 3\) or follow \(a change up the ladder\)\. Validate/);
     expect(tree).toMatch(/each rung's travel before and after, its swaps and how many were undone/);
     expect(raw).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0');
   });
@@ -294,8 +302,9 @@ describe('D1-finish (AC-W77): the needs\' claims and the ascendancy order\'s cla
     expect(finish).toMatch(/\*\*the reward picks without D2\*\*, in a plan with no campaign stage: one claim on `m` per pick D1-build made, the quest, the option taken and a one-line reason, citing `data:campaign\/progress\.json#q\.<key>\.options\[<i>\]`/);
   });
 
-  it('calls no trade tool once pricing has stopped in the session (D-415, D-422)', () => {
-    expect(finish).toMatch(/Pricing stopped: no call; `unavailable`, note `pricing stopped`, and no tool that sends a trade request at all \(D-422/);
+  // Amendment 11 (WU-115, D-444): exchange items keep their price through a stop; the stop lasts until retry-pricing.
+  it('calls no trade tool while pricing is stopped (D-415, D-422, D-444)', () => {
+    expect(finish).toMatch(/Pricing stopped: no trade-site call; `unavailable`, note `pricing stopped`, and no tool that sends a trade request at all \(D-422, D-444/);
     for (const tool of TRADE_TOOLS) expect({ tool, named: finish.includes(`mcp__pob2__${tool}`) }).toEqual({ tool, named: true });
   });
 });
@@ -313,11 +322,12 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
   });
 
   it(`fails a rung at ${GATE_LINE}% with tree-swap; a tool failure is unverified with tool-error; a refusal tool-refused`, () => {
-    expect(gate).toContain(`A rung whose best swap gains **${GATE_LINE}%** Full DPS or more fails the part, one \`tree-swap\` finding per such rung`);
+    // Amendment 11 (WU-115, D-437): the gate's line is on the named source's damage figure, MainDamage.
+    expect(gate).toContain(`A rung whose best swap gains **${GATE_LINE}%** damage (\`Main damage\`) or more fails the part, one \`tree-swap\` finding per such rung`);
     expect(gate).toMatch(/When a call fails or times out, the part is `unverified` with one `tool-error` finding/);
     expect(gate).toMatch(/A refused call \(D-421\) is `unverified` with `tool-refused`/);
     expect(gate).toMatch(/only the budget may stay `unverified` \(D-164\), and the tree when `mcp__pob2__get_node_power` fails \(`tool-error`\) or is refused \(`tool-refused`, D-421\)/);
-    expect(gates).toContain(`A rung **fails** when its best swap left gains at least **${GATE_LINE}%** Full DPS within \`max_loss\`, with the swap as its finding (code \`tree-swap\`)`);
+    expect(gates).toContain(`A rung **fails** when its best swap left gains at least **${GATE_LINE}%** damage (\`Main damage\`; a pool move on a set without the main group, Full DPS) within \`max_loss\`, with the swap as its finding (code \`tree-swap\`)`);
     for (const row of ['| tree | `tree-swap` |', '| tree | `tool-error` |', '| any part | `tool-refused` |']) {
       expect({ row, listed: ref('gates.md').includes(row) }).toEqual({ row, listed: true });
     }
@@ -329,7 +339,9 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
     const fixtureRung = (JSON.parse(read(path.join(FIXTURE_GATES, 'D1-gate-r1-a-2-a1.json'))) as { design: { rungs: { tree: object }[] } }).design.rungs[0];
     expect(Object.keys(rung.tree)).toEqual(Object.keys(fixtureRung.tree));
     expect(Object.keys(rung.tree)).toEqual(['travel', 'points', 'bestSwap', 'needs']);
-    expect(Object.keys(rung.tree.bestSwap)).toEqual(['gainPercent', 'removed', 'added']);
+    // Amendment 11 (WU-115, D-439): the swap names the branches it freed, as the checker's shape allows.
+    expect(Object.keys(rung.tree.bestSwap)).toEqual(['gainPercent', 'removed', 'added', 'branches']);
+    expect(checker).toMatch(/the branches the swap freed, a non-empty list \(D-439\)/);
     expect(rung.tree.travel).toBeLessThanOrEqual(rung.tree.points);
     expect(rung.tree.bestSwap.gainPercent).toBeLessThan(GATE_LINE);
     expect(checker).toMatch(/each carry `tree: \{travel, points, bestSwap, needs\}`/);

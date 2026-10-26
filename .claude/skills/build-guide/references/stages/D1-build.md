@@ -20,9 +20,11 @@ request (D-411, D-413).
   `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`, `accepted`
   (findings the user accepted at an escalation; they need no fix), and `findings`:
   - on a D1 gate retry, the earlier verdict file and its findings (`{part, code, stage, message}`): fix what
-    each failing one names (an `over-target` or `chaos-exception` finding is information: leave it; a
-    `tree-swap` finding is D1-tree's, which runs after you); a note when an earlier attempt returned without
-    writing;
+    each failing one names (an `over-target`, `chaos-exception` or `boots-exception` finding is information:
+    leave it; a `tree-swap` finding is D1-tree's, which runs after you); a note when an earlier attempt returned
+    without writing;
+  - after D1-tree returned `respec: <stage> needs one: <why>` in the same attempt, that line (`code:
+    "respec"`): mark the rung (step 3);
   - on a guided retry, the escalated verdict's findings, then the user's guidance (`code: "user-guidance"`),
     which you follow;
   - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
@@ -33,8 +35,8 @@ request (D-411, D-413).
 - **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it, and the gate's
   interview notes when the user asked questions there: read them.
 - **Read**, the independent reads in one response:
-  - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its key
-    numbers, prices and league (D-355);
+  - `dossier.md`, the verification gate's comparison table: the card's row (Grep `^| <id> |`), with its damage
+    kinds, its pieces, key prices and league (D-355, D-436). It holds no figure: the design measures them;
   - the card `cards/<id>.md` (its chain, enabler, links, structure check, checklist results and estimates; a
     composite's `### Pieces` and `### Pieces measured` tables), and
     its skeleton `concepts/<id>/plan.json` through `mcp__pob2__guide_run {view: {plan:
@@ -47,9 +49,10 @@ request (D-411, D-413).
   - the facts under `data/`: `data/campaign/limits.json` (`passive-points.max`, `ascendancy.max`,
     `resistance-penalty.endgame`) and `data/enemies/waystones.json` (`area-level.offset`, `area-level.max`); with
     no campaign stage, `data/campaign/progress.json`'s reward choices (step 7);
-  - `run-log.json`, at the run folder's root: has pricing stopped in this session (D-415, D-422)? A `stages[]`
-    entry after the last resume (from index `resumes[<last>].lengths.stages`; every entry when the log has no
-    resume) whose `priceOutcomes` counts a `locked_out` or `rate_limited` call;
+  - `run-log.json`, at the run folder's root: is pricing stopped (D-444)? A `pricing.stops[]` entry with no
+    `retry-pricing` answer in `pricing.retries[]` and no resume (`resumes[].lengths.stages`) after it
+    (`references/run-log.md`, "Pricing stops"): then no trade-site request until a gate's `retry-pricing`;
+  - `.claude/skills/build-guide/references/toughness-targets.json` (D-441), the non-budget rung's toughness targets;
   - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
     and `n` (D-375, step 3), and the rule-changer index (D-401): `data/rules/nodes.md`'s section for the card's
     ascendancy and its `## Keystones`, and Grep `uniques.md`, `gems.md` and `pairs.md` there for the build's
@@ -58,14 +61,15 @@ request (D-411, D-413).
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 6` (`docs/build-guide/plan-reference.md`): its `roll` and `versions`, `prices: []` (step 6
-   adds the rares' entries), and only the endgame stages below. A `plan.json` already in the build's folder belongs to an earlier design and is
+   `schemaVersion: 7` (`docs/build-guide/plan-reference.md`, "Builds a player would run"): its `roll` and
+   `versions`, `prices: []` (step 6 adds the rares' entries), and only the endgame stages below. A `plan.json` already in the build's folder belongs to an earlier design and is
    replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and
-   everything D1-tree and D1-finish wrote that your change doesn't touch.
+   everything D1-tree and D1-finish wrote that your change doesn't touch; a plan at an earlier version goes to 7
+   before you add a schema-7 field.
 2. **League** (C-31, D-233, D-422):
    - offline: `null`;
    - online: `mcp__pob2__get_leagues`' current trade league (not Standard, Hardcore or a private league);
-   - **once pricing has stopped** (Read, above), no trade call at all, `mcp__pob2__get_leagues` included: keep the
+   - **while pricing is stopped** (Read, above), no trade call at all, `mcp__pob2__get_leagues` included: keep the
      league the plan already has, else take the league a price result of this run recorded before the stop (an
      `ok` entry of a card's skeleton);
    - if `mcp__pob2__get_leagues` can't be reached, a league a price result of this run recorded (an `ok` entry of a
@@ -123,7 +127,8 @@ request (D-411, D-413).
        first; **per corpse**, each on-kill group's (a corpse explosion's) hit and its ignite per corpse; **for
        bosses**, each enabled `single_target` group's figure. A group's figure is the record's at the key of its
        main active skill and stat set (`countedSkillOutputs`, else `skillOutputs`; `skillOutputsSet2` for a group
-       on set 2), a disabled group's counting as 0; the total is the key-figure line's headline DPS. A set may pay
+       on set 2), a disabled group's counting as 0; the total is the named source's damage figure against map
+       monsters, the key-figure line's `damage <map> against map monsters` (`measures.damage.map`). A set may pay
        on one figure and not another (Blistering Bond: 5% of the cry, 22% of the boss skill): weigh it on each
        before you leave it out.
      - **Schedule before rejecting** (question 18): a piece that fights another goes on its own button (a
@@ -132,11 +137,22 @@ request (D-411, D-413).
        It is out only when no schedule holds both sides and it is worth less than the piece it fights.
      - **Answer question 19** on every build whose clear skill is limited (a cost, a cooldown, a charge count) or
        shaped for packs: a boss button, or why none is needed, in a `## Searched` line.
-   - **One tree track** (D-282): `m` continues from the campaign's last stage, `b` from `m` and `n` from `b` (`m`
-     from none when the plan has no campaign stage), so each rung's tree contains the one before it, except where
-     its `respec` drops nodes (`respec {dropped, goldCost, note}`, the gold cost a `judgment`, the note naming the
-     dropped nodes as the tool names them, since W1 reads no node ids); V1 checks each rung's respec and its gold
-     cost.
+   - **Respec when the scaling changes, otherwise grow** (D-438). The user's rule (2026-10-24): "respec when the
+     build changes in a way that scales differently. If the scaling stats don't change, grow the tree." Write each
+     rung's `tree.scales`, one short line naming the stats that scale it ("crit damage, ailment magnitude, physical
+     spell levels"). Growing is the default: `m` continues from the campaign's last stage, `b` from `m` and `n`
+     from `b` (`m` from none when the plan has no campaign stage), each rung's tree containing the one before it.
+     A rung whose scaling changes from the rung before it (a level that brings a new skill or gem, a new gear
+     item, an ascendancy node, a keystone or a notable that scales differently) is a **respec rung**: write its
+     `respec {dropped, goldCost, note}`, `note` naming the change and its gate ("the Apron of Emiran: bleeding
+     aggravated, bleed magnitude over hit damage"), `dropped` empty, `goldCost` your estimate (a `judgment`), and
+     its tree as a grow rung's. D1-tree frees the prior nodes that no longer serve, writes them into `dropped` and
+     their names into `note` (W1 reads no node ids), and removes a respec that drops nothing; V1's
+     `tree-continuity` checks each respec and its gold cost. On `b` and `n` the gold is a note, never a reason to
+     skip a respec (the user, 2026-10-24: "By the time the user gets to mid to late endgame, the gold cost for
+     respec is not an obstacle"); on `m` it is weighed as D-282 weighs it. A respec the user asks for (a
+     `revise:` or a gate's `changes`) marks its rung; so does D1-tree's `respec: <stage> needs one: <why>`
+     finding, a scaling change you missed.
    - **The ascendancy order** (D-413): list `m`'s `tree.ascendancyNodes` in the order to take them, each node
      before the one that paths through it, the one the build needs first earliest; `b` and `n` keep that order
      for the nodes they share and add theirs after. D1-finish's claim names them in that order, which the guide
@@ -165,10 +181,43 @@ request (D-411, D-413).
      compares.
    - **Set `skills.main.statSet`** on each variant stage to the named source's stat set whose figure the
      gate compares, `p<statSet>` in `g<group>s<skill>p<statSet>.<Field>` (amendment 1 S7): the PoB file
-     opens on the main stat set, so the guide's headline figure must be that set's. A skill whose damage
+     opens on the main stat set, so the guide's damage figures must be that set's. A skill whose damage
      comes from a later stat set (an explosion after a dash) names that set here. `skills.main.group` is the
      `rolledGroup`, and the rolled figure, or every breakdown field a ledger figure's formula reads, is
      `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`. For a minion skill `statSet` is the summon's (1).
+   - **The damage figure** (D-437) on each rung is the named source's group figure by the record's Count rule
+     (`TotalDPS` × Count, `TotalDot` × Count when its damage over time stacks, `IgniteDPS`, `BleedDPS` and
+     `PoisonDPS` once; a minion's `MinionTotalDPS`), measured against map monsters and again against a Pinnacle
+     boss (`measures.damage {map, boss}`), never PoB's Full DPS. **`skills.cull`**, on a rung whose rotation
+     culls: the user (2026-10-25), "Map damage with cull if and only if the build explicitly utilizes culling in
+     its skill rotation. Otherwise, map damage, no cull." Write it only then, a short text naming the culling
+     source and the button that uses it ("Legacy of Deathblow's Culling Strike on Detonate Dead"); the map figure
+     then carries the named source's `CullMultiplier`. A cull only another skill carries isn't counted, nor a
+     skill's own incidental cull (Reap's) unless you state it here.
+   - **The boss rotation** (D-447), on each rung: `skills.boss {entries, note}`, what the build presses or procs
+     on a boss. Each entry selects one figure as `skills.main` does, `{group, activeSkill, statSet}` (the
+     record's key `g<group>s<activeSkill>p<statSet>`); a Cast on Critical group names its spell, not the meta
+     gem. List every skill the build presses or procs on a boss: what runs together (procs, both parts of one
+     use, a setup and its payoff) and what takes turns (a filler between cooldowns, a charge builder and its
+     finisher). **Write `turns: true` on an entry that takes turns with another.** **A skill's two stat sets**
+     are two entries when both happen in one use (a hit and its explosion); alternatives (a plain or an infused
+     cast) are entries only when the rotation uses both, and then they take turns (`turns: true`). `note` says
+     how the fight goes: the order, what waits on a cooldown or on charges, what takes turns. Without
+     `skills.boss` the rotation is the named source alone. Totems and other copies acting at once go in the
+     group's `count`, never in the rotation. The compile measures each entry against a Pinnacle boss
+     (`measures.bossGroups`, `triggered` by PoB's own trigger test) and sums the untriggered ones into
+     `damage.boss`; D1-finish estimates by hand what PoB can't read (`boss_<stage>`), always for a triggered
+     entry or one with `turns`.
+   - **The engagement** (D-441), on `n`: `skills.engagement {kind, reason}`, how close the character stands to
+     the enemies while it deals its damage, `close` (in or next to the pack or the boss) or `distance` (well
+     away), with the reason from how the build plays ("Reap and the corpse blasts need the pack next to you"). The
+     user (2026-10-25): "it's not so much the skill as how close the character has to be to the monsters." **The
+     default rule**, from the named source's PoB skill types in the record (`measures.sourceTypes`): a minion,
+     totem, trap or mine type, or a projectile skill that travels, is `distance`; a strike, slam or area around
+     the character is `close`; write the other kind only when the build plays otherwise, and say why. It picks
+     the rung's toughness target in `references/toughness-targets.json` (20,000 close, 15,000 distance), which
+     the design gate shows beside the reason, so the user can correct it; the run checker fails a non-budget
+     rung without it.
    - One loadout has a one-click clear and a single-target setup (D-120). Every group has a `role`; every
      gem its level and quality. **No dead gems** (D-396): every gem in a stage's loadout does something at that
      stage, and one whose condition the stage can't meet stays out of it: return it as `left out: <gem> on
@@ -274,6 +323,23 @@ request (D-411, D-413).
        weapon, a skill-levels amulet) may take more, with `"reason"` saying why; `n`'s targets together are at
        most 200.
      A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371).
+   - **Boots carry the best movement speed for the level** (D-440). The user (2026-10-25): "Any build should
+     always be using the highest movement speed tier for that level. 30% on entering maps, 35% on budget and
+     non-budget." The tier per rung: **30% on `m`, 35% on `b` and `n`** (the boots tiers, `Data/ModItem.lua`:
+     30% from item level 65, 35% from 82); a corruption's extra is never required. `b`'s and `n`'s rare boots
+     name the tier's movement speed in `query.required` (`{"affix": "#% increased Movement Speed", "min": 35}`, one
+     of the 3), and D1-finish prices `m`'s boots with it among `mods`. Boots under the tier are V1's
+     `movement-tier` finding, unless the stage carries `items.bootsException {kind, reason}` (schema 7), and
+     only then: `kind: "travel"` when the build moves with its travel skill (the record's
+     `measures.clearSpeed.travel`), `reason` naming the affix the boots slot gains in place of the speed; `kind:
+     "unique"` when unique boots are required for another of the build's mechanics ("Unique boots can bypass
+     this rule if and only if the unique is required to make some other aspect of the build work"), `reason`
+     saying what they give and why it is worth at least the speed they give up ("Movement speed is a premium
+     stat, so whatever the build gets in exchange must be of equal or greater value"). A valid exception is V1's
+     note `boots-exception`, which fails nothing; the design gate shows it as a trade (D1-finish).
+   - **Gear searches** (D-444). You may price a gear choice with `mcp__pob2__find_upgrades` (a loaded rung, its
+     loadout selected) while pricing isn't stopped: count its calls by outcome for your return, which the runner
+     logs as your `priceOutcomes`. Never while pricing is stopped (Read, above); offline, never.
 7. **Config** (C-32, D-114; `config.earned` and `config.scenario`).
    - **Earned state**, `{option, value, producer, uptime}`: every stack, charge, buff or condition the
      numbers rely on, with the producer present in the stage (V2 checks it) and an honest uptime. Every
@@ -317,11 +383,13 @@ request (D-411, D-413).
    resistance needs none.
 9. **Measure.** Validate with `mcp__pob2__guide_run {validate: "<plan>"}` until it reports no
    error, then compile measure-only (`mcp__pob2__compile_plan {plan_path: "<plan>",
-   measure_only: true}`). Its reply gives each stage's key-figure line (the headline DPS, life, energy shield,
-   EHP, the four resistances, the V1 and V2 finding counts, the Arbiter verdict and the rough clear speed) and
-   its V1 and V2 findings: read the floor there, and Grep `compile-record.json` only for what the reply
-   lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`, `countedSkillOutputs`, and on a stage that uses
-   weapon set 2 its `outputsSet2`: the key-figure line is set 1's). Iterate on clear speed and damage
+   measure_only: true}`). Its reply gives each stage's key-figure line (on a rung the named source's damage
+   figure, `damage <map> against map monsters, <boss> against a Pinnacle boss`, and its trigger line when a meta
+   gem triggers it; life, energy shield, EHP, the four resistances, the V1 and V2 finding counts, the Arbiter
+   verdict and the rough clear speed) and its V1 and V2 findings: read the floor there, and Grep
+   `compile-record.json` only for what the reply lacks (`<Type>MaximumHitTaken`, the hits in `configWritten`,
+   `countedSkillOutputs`, `measures.bossGroups` and `measures.sourceTypes`, and on a stage that uses weapon set
+   2 its `outputsSet2`: the key-figure line is set 1's). Iterate on clear speed and damage
    once the floor holds (D-118), with the gear, gems and config: the rough clear speed leads, and bosses are a
    floor (D-407); the tree's points beyond its targets and needs are D1-tree's. A V1 `missing-reason` on a need
    (`tree.needs[<m>].claim`) is expected: D1-finish writes the claims. Never a final compile.
@@ -346,7 +414,9 @@ never write it anew.
    or the config (earned or scenario). Every change you make is one of these, so measure it as step 9 does;
    D1-tree runs after you (it keeps your needs and spends the points you leave), D1-finish then prices and
    claims what moved, and the D1 gate runs after it. A node you add or a need you change is a tree change like
-   any other: write a node the user asked for as a need (step 5).
+   any other: write a node the user asked for as a need (step 5). A respec the user asks for, or D1-tree's
+   `respec:` finding (`code: "respec"`, its stage and why), marks that rung a respec rung (step 3), even when
+   only the tree changes: D1-tree completes it after you.
 2. **Leave the rest to D1-finish.** The anoint, the prices, the ledger and the claims are D1-finish's. A
    change to a ledger entry's formula or inputs needs no recompile: the record's `buildSha1` leaves out the
    ledger, and the run checker re-evaluates the plan's current ledger (D-352).
@@ -397,16 +467,18 @@ checker's `--changed` doesn't list it: only D1-build writes it.
 ## Returns
 
 At most 8 lines: your claim, `done` or `infeasible` with its reason in a sentence; how many
-`mcp__pob2__compile_plan` calls you made; `league unverified` when no league could be verified online (step 2);
+`mcp__pob2__compile_plan` calls you made; your price calls counted by outcome when you made any (`prices: ok
+2`, D-444); `league unverified` when no league could be verified online (step 2);
 each `left out:`, `lever unpulled:` and `override:` line; with findings, the finding ids you fixed and the locations you changed (`plan.json
 stages[3].items`); for D1-tree, which runs after you, one line `for D1-tree:` with each rung's floor (`floor
-holds on m, b, n`, or the rungs where it fails) and its needs counted (`needs m 3, b 2, n 1`); and one line
+holds on m, b, n`, or the rungs where it fails), its needs counted (`needs m 3, b 2, n 1`) and the respec rungs
+(`respec n`, or `respec none`); and one line
 `pieces: <n> in, <n> scheduled, <n> out`, `pieces.md`'s rows counted by Status (D-434).
 
 ```
 D1-build r1-a-2 attempt 1: done
 compiles: 4
-for D1-tree: floor holds on m, b, n; needs m 3, b 2, n 1
+for D1-tree: floor holds on m, b, n; needs m 3, b 2, n 1; respec n
 pieces: 5 in, 0 scheduled, 1 out
 ```
 

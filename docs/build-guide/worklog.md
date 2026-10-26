@@ -5828,3 +5828,9 @@ the `m17` engine at `b76967b`.
   now that "Boss floor" is the 250,000 damage floor). Merged doc tests: 45 suites, 1,247 tests, rc 0.
   - **Left as is:** `D2.md`'s "a respec whose gold the stage can't spare waits for the next one" (a reading of D-282's
     weighing); `D1-tree.md` doesn't say what to do when a `Free:` move comes back illegal.
+- **M-24's gate passed** on `0bc6036` (a fresh verifier, from clean): `mise run test` rc 0 (196 suites, 3,309 tests,
+  none skipped; the timing step 2 suites, 3 tests; node power's 90-second test at 30.1 s), `pnpm build` rc 0. Wave 2's
+  docs agree with wave 1's code at five checked places (the boss rotation's schema, the `boss_<stage>` reference
+  forms, `get_node_power`'s arguments, R1b's `verdict.damage`, the `priceOutcomes` keys). Every bullet of AC-P79–P81,
+  AC-K72 and AC-W89–W91 has a named passing test; no bad artifacts; the built server lists 78 tools with trade and
+  poe.ninja off; `scripts/fresh-clone-check.sh` rc 0. AC-W92 waits on the live test (WU-116).

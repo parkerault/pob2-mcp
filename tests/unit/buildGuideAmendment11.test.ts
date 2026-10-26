@@ -247,10 +247,18 @@ describe("AC-W89 (D-436, §19): the dossier's columns", () => {
     expect(checkRival(copy('run-rival'))).toMatchObject({ code: 0, stderr: '' });
   });
 
-  it("a viable row names its damage kinds; a failed row's cells are —; viable, except goes with a piece that does nothing", () => {
+  it("a viable row names its damage kinds, a triggered source's rated at its hand-cast speed; a failed row's cells are —; viable, except goes with a piece that does nothing", () => {
     const dir = copy('run-a11');
     editText(dir, 'dossier.md', '| Blood Hunt: hit, bleed | — | weapon: unavailable (offline run) | none (offline) | chaos resistance stays low |', '| — | — | weapon: unavailable (offline run) | none (offline) | chaos resistance stays low |');
     expect(lines(check(dir).stderr, 'dossier-sections')).toEqual([expect.stringMatching(/r1-a-1 is viable, but its Damage cell is "—"/)]);
+    // D-436: a skeleton whose named source a meta gem triggers says so in its Damage cell.
+    const triggered = copy('run-a11');
+    editJson(triggered, 'concepts/r1-a-1/compile-record.json', (r) => {
+      for (const st of Object.values(r.stages as Record<string, Json>)) st.measures = { ...(st.measures ?? {}), trigger: { by: 'Cast on Critical', usesPerSecond: 1.2 } };
+    });
+    expect(lines(check(triggered).stderr, 'dossier-sections')).toEqual([expect.stringMatching(/r1-a-1's named source is triggered by a meta gem .* doesn't say PoB rates it at its hand-cast speed/)]);
+    editText(triggered, 'dossier.md', '| Blood Hunt: hit, bleed | — | weapon: unavailable (offline run) | none (offline) | chaos resistance stays low |', '| Blood Hunt: hit, bleed (rated at its hand-cast speed) | — | weapon: unavailable (offline run) | none (offline) | chaos resistance stays low |');
+    expect(lines(check(triggered).stderr, 'dossier-sections')).toEqual([]);
     const except = composite11();
     editText(except, 'dossier.md', 'viable, except Blistering Bond does nothing in PoB', 'viable');
     expect(lines(check(except).stderr, 'dossier-sections')).toEqual([expect.stringMatching(/r1-s-1 is "viable", but its Pieces measured answers no for i1b-1/)]);
@@ -372,10 +380,10 @@ describe('AC-W89 (D-437, D-439…D-441, D-447): the design and final displays', 
     expect(out).toContain('- Damage: 50,000 per second against map monsters.\n- Boss damage: 60,000 per second against a Pinnacle boss.\n- Culls normal monsters at 91%, bosses at 13%.\n');
     expect(out.match(/^- Culls /gm)).toHaveLength(1);
     expect(out).toContain("- Blood Hunt is triggered by Cast on Critical: PoB rates it at its hand-cast speed (1.46 a second) and doesn't model Energy.\n");
-    expect(out).toContain("- Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would give +17% damage.\n");
+    expect(out).toContain("- Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.\n");
     expect(out).toContain('- Boots: Trampletoe, 25% movement speed, 5% under the tier, for overkill damage hitting nearby enemies.\n');
     expect(out).toContain('- Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.\n');
-    expect(out).toContain('- Damage trade: moving 6 points from Bone Breaker to Vicious Bite: +18% damage (boss about 247,800), −12% EHP.\n');
+    expect(out).toContain('- Damage: moving 6 points from Bone Breaker to Vicious Bite: +18% damage (boss about 247,800), −12% EHP.\n');
     expect(out).toContain('- Passive tree: 9 of 98 points on travel; best swap left: +3.2% damage by moving 2 points from Strength, Strength to Cold Nature\n');
     expect(out).toContain('- Toughness: 52,300 against the 20,000 target for a close build (Blood Hunt lunges into the pack and the boss), over its band (30,000).\n');
   });

@@ -1837,12 +1837,13 @@ function tradeLines(r) {
   const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
   return trades.map((t) => {
     const none = /^none found\b/i.test(String(t.what ?? '').trim());
-    if (t.kind === 'unmodelled') return `- Kept for ${stop(t.reason)}, which PoB can't measure: ${stop(t.what)}${isNum(t.damageChange) ? ` would give ${signed(t.damageChange)} damage` : ''}.`;
+    if (t.kind === 'unmodelled') return `- Kept for ${stop(t.reason)}, which PoB can't measure: ${stop(t.what)}${isNum(t.damageChange) ? ` would ${t.damageChange < 0 ? 'cost' : 'add'} ${pct(Math.abs(t.damageChange))}% damage` : ''}.`;
     if (t.kind === 'boots') return `- Boots: ${stop(t.what)}${text(t.reason) ? `, for ${stop(t.reason)}` : ''}.`;
-    if (none) return `- ${t.kind === 'defence' ? 'Defence' : 'Damage trade'}: ${stop(t.what)}.`;
+    // Appendix A: the defence trade's line is `- Defence: …` and the damage trade's `- Damage: …`, after the figures.
+    if (none) return `- ${t.kind === 'defence' ? 'Defence' : 'Damage'}: ${stop(t.what)}.`;
     if (t.kind === 'defence') return `- Defence: ${stop(t.what)}: ${[isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null, isNum(t.damageChange) ? `${signed(t.damageChange)} damage` : null].filter(Boolean).join(', ')}.`;
     const bossAfter = isNum(t.bossAfter) ? t.bossAfter : null;
-    return `- Damage trade: ${stop(t.what)}: ${[`${signed(t.damageChange)} damage${bossAfter !== null ? ` (boss about ${whole(bossAfter)})` : ''}`, isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null].filter(Boolean).join(', ')}.`;
+    return `- Damage: ${stop(t.what)}: ${[`${signed(t.damageChange)} damage${bossAfter !== null ? ` (boss about ${whole(bossAfter)})` : ''}`, isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null].filter(Boolean).join(', ')}.`;
   });
 }
 

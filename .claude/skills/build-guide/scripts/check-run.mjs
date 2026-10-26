@@ -1172,7 +1172,9 @@ export async function checkRun(runFolder) {
     // §19: a dossier written after the run's skill-revision stamp is amendment 11's, with no number column (D-436); one
     // written before it is read by its own header.
     const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
-    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal, composite, a11: lastAssembly >= 0 && lastAssembly >= heldStage, cardOf, composites });
+    // D-436, D-437: a skeleton whose named source a meta gem triggers (its record's `measures.trigger`).
+    const triggered = (id) => Object.values(isObj(readJson(`concepts/${id}/compile-record.json`)?.stages) ? readJson(`concepts/${id}/compile-record.json`).stages : {}).some((x) => isObj(x?.measures?.trigger));
+    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal, composite, a11: lastAssembly >= 0 && lastAssembly >= heldStage, cardOf, composites, triggered });
   }
 
   // ---- Escalations name their verdict files; accepted gate findings (§5.4, D-236) ------------------
@@ -4879,6 +4881,8 @@ function a11Row(r, id, status, columns, ctx, bad) {
   if (!STATUS_A11.test(status)) bad(`:${r.n}: ${id}'s Status is ${show(status)}; it is viable, "viable, except <what>", "failed after <N> attempts: …" (a damage-missing failure among them) or "can't be finalized yet: …" (D-436)`);
   const viable = /^viable\b/i.test(status);
   if (viable && isDash(cell('Damage') ?? '-')) bad(`:${r.n}: ${id} is viable, but its Damage cell is ${show(cell('Damage'))}; it names the named source and the kinds of damage PoB shows for it ("Detonate Dead: hit, bleed, ignite") (D-436)`);
+  // D-436: a source a meta gem triggers is rated by PoB at its hand-cast speed, and the dossier says so.
+  else if (viable && typeof ctx.triggered === 'function' && ctx.triggered(id) && !/hand-cast/i.test(cell('Damage') ?? '')) bad(`:${r.n}: ${id}'s named source is triggered by a meta gem (its skeleton record's measures.trigger), but its Damage cell ${show(cell('Damage'))} doesn't say PoB rates it at its hand-cast speed: "<skill>: <kinds> (rated at its hand-cast speed)" (D-436)`);
   if (!viable && !isDash(cell('Pieces') ?? '-') && /^(failed|can['’]t be finalized)/i.test(status)) bad(`:${r.n}: ${id} is ${show(status.split(/[:;]/)[0])}, but its Pieces cell isn't "—"; a card that failed or can't be finalized yet probed no piece (D-436)`);
   const card = typeof ctx.cardOf === 'function' ? ctx.cardOf(id) : null;
   const composite = ctx.composites?.has?.(id) === true;

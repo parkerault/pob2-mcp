@@ -752,12 +752,18 @@ describe("AC-W89 (C-55a, D-440): the best swap's weapon set, and the boots excep
     passes(two);
   });
 
-  it("a boots-exception finding doesn't fail the gate's v1 part, nor the final record's V1", () => {
+  it("a boots-exception finding doesn't fail the gate's v1 part, nor the final record's V1, whose note it is", () => {
     const dir = copy('run-a11');
     const finding = { part: 'v1', code: 'boots-exception', stage: 'b', message: 'b: Trampletoe, 25% movement speed under the 35% tier; kind unique: overkill damage hits nearby enemies' };
     editJson(dir, GATE, (g) => {
       g.findings.push(finding);
     });
+    // V1 writes it as a note (WU-111); only movement-tier is a finding.
+    editJson(dir, RECORD, (r) => {
+      r.stages.b.v1.notes.push({ code: 'boots-exception', message: finding.message });
+    });
+    passes(dir);
+    // Read as information wherever it stands: the record's findings too.
     editJson(dir, RECORD, (r) => {
       r.stages.b.v1.findings.push({ code: 'boots-exception', message: finding.message });
     });

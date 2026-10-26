@@ -98,7 +98,8 @@
 //    non-budget rung's engagement, the `boss_<stage>` formula's rotation references (`checkBossLedger`); the guide's verdict
 //    line with two figures once the record measures them; `trades.json` in a build's folder (`checkTradesFile`); the
 //    order table's D1-tree `respec` and D1-finish `build` routes to D1-build, and the D1 gate's re-price pass after the
-//    design gate's retry-pricing; `bestSwap.weaponSet` 1 or 2 and `branches`; `boots-exception` information only; the
+//    design gate's retry-pricing; `bestSwap.weaponSet` 1 or 2 and `branches`; the tree part's swap messages in "damage"
+//    (D-437; an older verdict's keep "Full DPS"); `boots-exception` information only; the
 //    pricing stops and retries (`checkPricing`, D-444) and D1-build's `priceOutcomes`; no rival (D-443); and a run dated
 //    amendment-8-or-later by its skill revision, as by its rival. The ledger's context carries each stage's
 //    `bossGroups` and `damageBoss`, for C-33's `<stageId>.boss.…` references.
@@ -126,6 +127,7 @@ import {
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, heldFrom, openStop, stopOutcome, RETRY_ANSWERS, EXCHANGE, referenceJson,
+  swapLabel,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -334,7 +336,7 @@ const GATE_STAGES = ['R1b', 'D1-gate', 'D2-gate'];
 const GATE_PARTS = { R1b: ['compiled'], 'D1-gate': ['compiled', 'v1', 'v2', 'floor', 'budget', 'rolledSkill'], 'D2-gate': ['compiled', 'v1', 'v2'], F1: ['compiled', 'v1', 'v2'] };
 /** D-419: schema 4's D1 gate adds the part `tree`, PoB's node power on each rung (a legacy D1 gate, before it, has none). */
 const D1_PARTS4 = [...GATE_PARTS['D1-gate'], 'tree'];
-/** D-419: a rung fails the tree part when its best swap left gains at least this much Full DPS, in percent. */
+/** D-419: a rung fails the tree part when its best swap left gains at least this much, in percent: Full DPS, or under amendment 11's rules the named source's damage (D-437). */
 const TREE_FAIL_PERCENT = 5;
 /** D-419, D-421: the tree part's codes: a swap left (`tree-swap`), `get_node_power` failing (`tool-error`), a refused call. */
 const TREE_CODES = { fail: ['tree-swap'], unverified: ['tool-error', 'tool-refused'] };
@@ -1151,11 +1153,15 @@ export async function checkRun(runFolder) {
   // D-415: a D1 gate verdict written before a migrated run's first resume is schema 3's, with no `tree` part.
   const loggedAt = new Map(stages.map((s, i) => [`reports/gates/${s.stage}-${s.concept}-a${s.attempt}.json`, i]));
   const legacyGate = (file) => !v4 || (legacy !== null && (loggedAt.get(file) ?? -1) < legacy.stages);
+  // §19, D-437: a verdict logged after the skill-revision stamp (or not logged, in a log that has one) is held to
+  // amendment 11's rules: its tree swap ranks by the named source's damage, and its messages say so.
+  const heldGate = (file) => heldStage !== Infinity && (loggedAt.get(file) ?? Infinity) >= heldStage;
+  const gatePlan = (g) => buildPlans.get(v4 ? builds.find((b) => b.id === g.concept) : builds[0]) ?? null;
   const gateReports = new Map();
   for (const g of gates) {
     const rep = readJson(g.file, 'gate-report');
     if (rep === null) continue;
-    checkGateReport(rep, g, fail, { v4, legacy: legacyGate(g.file) });
+    checkGateReport(rep, g, fail, { v4, legacy: legacyGate(g.file), held: heldGate(g.file), plan: gatePlan(g) });
     if (isObj(rep)) gateReports.set(g.file, rep);
   }
 
@@ -4046,7 +4052,7 @@ function firstDifference(got, want, key = (l) => l.replace(/\s+$/, '')) {
 // Reports (gates.md verdict files, source-markers.md V4 reports)
 // ---------------------------------------------------------------------------------------------------
 
-function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
+function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true, held: false, plan: null }) {
   const bad = (why) => fail('gate-report', `${g.file}: ${why}`);
   if (!isObj(rep)) return bad('is a JSON object');
   if (rep.stage !== g.stage || rep.concept !== g.concept || rep.attempt !== g.attempt) {
@@ -4055,7 +4061,8 @@ function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
   if (!isObj(rep.verdict)) return bad('has no verdict object');
   // D-419: schema 4's D1 gate has the part `tree`; one written before a migrated run's first resume has none.
   const parts = g.stage === 'D1-gate' && opts.v4 && !opts.legacy ? D1_PARTS4 : GATE_PARTS[g.stage];
-  if (g.stage === 'D1-gate' && opts.v4 && !opts.legacy) checkTreePart(rep, bad);
+  // D-437: a verdict held to amendment 11's rules ranks its swaps by the named source's damage, an older one by Full DPS.
+  if (g.stage === 'D1-gate' && opts.v4 && !opts.legacy) checkTreePart(rep, bad, (r, stage) => swapLabel(opts.held === true, r?.tree, opts.plan, stage));
   for (const part of parts) {
     // D-371: the D1 gate's budget is pass or unverified, never fail: a `fail` there is an unknown value.
     const allowed = g.stage === 'D1-gate' && part === 'budget' ? BUDGET_PARTS : PARTS;
@@ -4085,10 +4092,11 @@ function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
  * `tree-swap`, except when the compile didn't pass: then every other part is `unverified` with no finding of its own
  * (gates.md, "Every verdict file"; the WU-96 fix round), the tree included. The `design` field's rungs, when the gate wrote it, each carry `tree: {travel, points, bestSwap, needs}`:
  * travel and points whole numbers, travel at most points, `bestSwap` null or `{gainPercent, removed: [names], added:
- * [names]}`, `needs` the needs' reasons as text; a rung whose best swap gains 5% or more Full DPS is exactly a rung with a
- * `tree-swap` finding.
+ * [names]}`, `needs` the needs' reasons as text; a rung whose best swap gains 5% or more is exactly a rung with a
+ * `tree-swap` finding. `label(rung, stage)` names what the gain is of: "damage" in a verdict held to amendment 11's rules
+ * (D-437, node power's `MainDamage`; a pool move off the main group's weapon set keeps Full DPS), "Full DPS" before them.
  */
-function checkTreePart(rep, bad) {
+function checkTreePart(rep, bad, label = () => 'Full DPS') {
   const v = rep.verdict.tree;
   // A gate whose compile failed, or was refused, never reached node power: its tree is unverified as every part is.
   const compiled = rep.verdict.compiled === 'pass';
@@ -4121,8 +4129,17 @@ function checkTreePart(rep, bad) {
     if (isObj(s) && isNum(s.gainPercent) && s.gainPercent >= TREE_FAIL_PERCENT) failing.add(r.stage);
   }
   if (v === 'unverified') return;
-  for (const stage of failing) if (!swaps.some((f) => f.stage === stage)) bad(`rung ${stage}'s best swap left gains ${list(rep.design.rungs).find((r) => r.stage === stage).tree.bestSwap.gainPercent}% Full DPS, at least ${TREE_FAIL_PERCENT}%, but no tree-swap finding names it: the tree part fails that rung (D-419)`);
-  for (const f of swaps) if (typeof f.stage === 'string' && !failing.has(f.stage)) bad(`has a tree-swap finding on rung ${f.stage}, whose best swap left gains under ${TREE_FAIL_PERCENT}% Full DPS (design.rungs's tree): a rung fails only at ${TREE_FAIL_PERCENT}% or more (D-419)`);
+  const rungOf = (stage) => rungs.find((r) => r.stage === stage);
+  const rule = (l) => (l === 'damage' ? 'D-419, D-437' : 'D-419');
+  for (const stage of failing) {
+    const l = label(rungOf(stage), stage);
+    if (!swaps.some((f) => f.stage === stage)) bad(`rung ${stage}'s best swap left gains ${rungOf(stage).tree.bestSwap.gainPercent}% ${l}, at least ${TREE_FAIL_PERCENT}%, but no tree-swap finding names it: the tree part fails that rung (${rule(l)})`);
+  }
+  for (const f of swaps) {
+    if (typeof f.stage !== 'string' || failing.has(f.stage)) continue;
+    const l = label(rungOf(f.stage), f.stage);
+    bad(`has a tree-swap finding on rung ${f.stage}, whose best swap left gains under ${TREE_FAIL_PERCENT}% ${l} (design.rungs's tree): a rung fails only at ${TREE_FAIL_PERCENT}% or more (${rule(l)})`);
+  }
 }
 
 /** The R1b finding codes that end a card's verification with no compile and no retry (D-334, D-342, D-400, D-408). */

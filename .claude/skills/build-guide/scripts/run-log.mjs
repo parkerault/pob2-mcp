@@ -95,7 +95,10 @@
 //  - `init` writes `skillRevision: 11` and `pricing: {stops: [], retries: []}`; `resume` stamps both on an older log, with
 //    `skillRevisionFrom`, the four lists' lengths at the stamp, so the entries after it are held to amendment 11's rules
 //    and the ones before it to their own (§19). A log without `skillRevision` is an older run's: it keeps the rival's
-//    step RV and its `x` card, and its displays keep their old forms; a log with it refuses RV (D-443);
+//    step RV and its `x` card, and its displays keep their old forms; a log with it refuses RV (D-443). A display reads
+//    each artifact by its own format, so one written before a resume's stamp keeps its old form: the verification
+//    display by the dossier's header (no number column is amendment 11's), the design display by the D1 gate's design
+//    field (Appendix A's additions are amendment 11's), the final display by the record (`measures.damage`);
 //  - D1-tree's outcome `respec` and D1-finish's `build` (§6, §14); D1-build's `priceOutcomes` (D-444), whose key
 //    `exchange` counts the calls priced from poe.ninja's currency exchange, which send no trade request;
 //  - the pricing stop (D-444): a `stage` entry counting a `rate_limited` or `locked_out` call records
@@ -1485,6 +1488,8 @@ function compositeDisplay(dir, log, deck) {
   const composites = deck.entries.filter((d) => d.round !== null && !verified.has(d.id) && !superseded.has(d.id));
   for (const d of composites) {
     const card = cards.get(d.id) ?? parseCard(null);
+    // D-442: the out: line is the gate's words, not a format: a composite's Pieces table is the same before and after
+    // amendment 11, so a display printed in a log held to its rules (any display after a resume's stamp) drops it.
     out.push(`${number(d.id)}. ${[name(d.id), ...d.parts.map(plain)].join(' | ')}`, ...(card.pieces !== null ? pieceLines(card, plain, !held(log)) : []), ...drawnFrom(card, '  '), '');
   }
   if (composites.length === 0) out.push('No composite is left to verify.', '');
@@ -1536,12 +1541,23 @@ function brainstormDisplay(dir, log) {
   return [...out, ...reference(ref)];
 }
 
-/** The dossier's rows (D-355): `{id, cells}` by its columns. */
-function dossierRows(textOrNull) {
-  if (typeof textOrNull !== 'string') return [];
+/**
+ * The number columns every dossier before amendment 11 has (D-355, D-407, D-433), which amendment 11's drops (D-436): a
+ * dossier's form is read by its header (§19), so an older run's dossier keeps its figures after a resume's stamp.
+ */
+const DOSSIER_NUMBERS = ['Named source DPS', 'Life', 'EHP'];
+/**
+ * The dossier's table (D-355): its rows `{id, cell(column)}` by its header's columns, and `a11`, whether that header is
+ * amendment 11's (no number column) rather than an older dossier's (§19, D-436).
+ */
+function dossierTable(textOrNull) {
+  if (typeof textOrNull !== 'string') return { rows: [], a11: false };
   const rows = textOrNull.split('\n').filter((l) => l.trim().startsWith('|')).map((l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()));
   const head = rows[0] ?? [];
-  return rows.slice(2).filter((r) => CARD.test(r[0] ?? '')).map((r) => ({ id: r[0], cell: (col) => r[head.indexOf(col)] ?? '' }));
+  return {
+    rows: rows.slice(2).filter((r) => CARD.test(r[0] ?? '')).map((r) => ({ id: r[0], cell: (col) => r[head.indexOf(col)] ?? '' })),
+    a11: head.length > 0 && !head.some((c) => DOSSIER_NUMBERS.includes(c)),
+  };
 }
 
 /**
@@ -1627,10 +1643,10 @@ function verificationDisplay(dir, log) {
   const { cards, name, plain } = cardsOf(dir);
   const out = [];
   const ref = [];
-  const rows = dossierRows(dossier);
+  const { rows, a11 } = dossierTable(dossier);
   if (dossier === null) out.push('No dossier.md in the run folder.', '');
-  // §19, D-436: a run held to amendment 11 shows each card with no figure; an older run keeps its skeleton's figures.
-  const a11 = held(log);
+  // §19, D-436: a dossier in amendment 11's columns shows each card with no figure; an older dossier, read by its own
+  // header, keeps its skeleton's figures, in a log a resume stamped too.
   rows.forEach((r, k) => {
     const card = cards.get(r.id) ?? parseCard(null);
     if (a11) {
@@ -1765,7 +1781,7 @@ function travelWords(c) {
 function piecesLine(p, a11 = false) {
   const count = (v) => (Number.isInteger(v) && v >= 0 ? v : '?');
   const named = (v) => (Array.isArray(v) && v.some(text) ? v.filter(text).map((x) => x.trim()).join(', ') : 'none');
-  // D-442: a run held to amendment 11 counts its out pieces without naming them.
+  // D-442: a design field written under amendment 11 counts its out pieces without naming them.
   if (a11) return `- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out`;
   return `- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out (${named(p.outNames)})`;
 }
@@ -1848,16 +1864,28 @@ function tradeLines(r) {
 }
 
 /**
- * D-437: the best swap's label: "damage" in a run held to amendment 11 (node power ranks by `MainDamage`), except a pool
- * move on a weapon set that doesn't hold the main group, which keeps Full DPS; "Full DPS" in an older run.
+ * D-437: the best swap's label: "damage" under amendment 11's rules (`a11`; node power ranks by `MainDamage`), except a
+ * pool move on a weapon set that doesn't hold the main group, which keeps Full DPS; "Full DPS" under the older rules. The
+ * design display passes the design field's own form (`designA11`), the run checker whether the D1 gate's entry is held.
  */
-function swapLabel(a11, t, plan, stageId) {
+export function swapLabel(a11, t, plan, stageId) {
   if (!a11) return 'Full DPS';
   const ws = t?.bestSwap?.weaponSet;
   if (ws !== 1 && ws !== 2) return 'damage';
   const st = objects(plan?.stages).find((x) => x.id === stageId);
   const main = objects(st?.skills?.groups)[(st?.skills?.main?.group ?? 1) - 1];
   return (main?.weaponSet === 2 ? 2 : 1) === ws ? 'damage' : 'Full DPS';
+}
+
+/** Appendix A's additions to a D1 gate's design rung (amendment 11): `damage {map, boss}`, `cull`, `trigger`, `boss`, `toughness`, `trades`. */
+const DESIGN_A11_FIELDS = ['damage', 'cull', 'trigger', 'boss', 'toughness', 'trades'];
+/**
+ * §19: whether a D1 gate's design field is amendment 11's, read by its own fields rather than by the log's stamp: a rung
+ * carries one of Appendix A's additions, or its best swap the branches it freed (D-439). A design field written before
+ * the stamp has none of them and keeps its old display ("Full DPS", one figure, the out pieces named).
+ */
+function designA11(design) {
+  return objects(design?.rungs).some((r) => DESIGN_A11_FIELDS.some((k) => k in r) || (isObj(r.tree?.bestSwap) && 'branches' in r.tree.bestSwap));
 }
 
 function designDisplay(dir, log, id) {
@@ -1871,8 +1899,9 @@ function designDisplay(dir, log, id) {
   const { name } = cardsOf(dir);
   // D-407: the D1 gate's record (its recordPath) gives each rung's movement speed and the clear skill's no-area flag.
   const record = gateRecord(dir, gate, folder);
-  // §19: a run held to amendment 11 shows each rung's two figures and its trades, from the design field's new entries.
-  const a11 = held(log);
+  // §19: a design field written under amendment 11 shows each rung's two figures and its trades, from its new entries;
+  // one written before a resume's stamp keeps its old form.
+  const a11 = designA11(gate.design);
   const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
   // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
   if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces, a11), '');

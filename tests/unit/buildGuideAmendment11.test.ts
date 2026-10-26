@@ -9,7 +9,9 @@
  *   a copy and reads the rule it breaks.
  * - a composite run held to amendment 11, made from `run-composite`: its dossier's Damage and Pieces, its card's
  *   `| Key | Left out by | Does something |` table.
- * - older runs: `run-builds` (amendment 9, no rival), `run-rival` (amendment 8) and `run-composite` (amendment 10).
+ * - older runs: `run-builds` (amendment 9, no rival), `run-rival` (amendment 8) and `run-composite` (amendment 10);
+ *   `run-builds` stamped by a resume, its old dossier and design fields read by their own format, the entries after the
+ *   stamp by amendment 11's (§19).
  *
  * The tests that evaluate a `<stage>.boss.…` ledger reference need the server's ledger evaluator with the boss context
  * (WU-111, `build/plan/ledger.js`); `mise run test` builds first.
@@ -809,6 +811,125 @@ describe('AC-W89 (D-443, §11, §19): the rival only in older runs, and the run 
       l.stages.push({ stage: 'RV', attempt: 1, outcome: 'none-found', tried: 'a slam opener' });
     });
     expect(lines(check(dir).stderr, 'rival')).toEqual([expect.stringMatching(new RegExp(`stages\\[${before.stages.length}\\] runs the rival \\(RV\\), which amendment 11 removes`))]);
+  });
+});
+
+describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's displays read each artifact by its own format", () => {
+  /** Amendment 10's design pieces (D-434), the out pieces named; an amendment-11 design field drops `outNames`. */
+  const OLD_PIECES = { in: 4, scheduled: 1, out: 2, scheduledNames: ['Seismic Cry'], outNames: ['Elemental Focus', 'Ruthless'] };
+  /** run-builds, its D1 gates' design fields given OLD_PIECES, and stamped by a real resume when `stamp`. */
+  function oldRun(stamp: boolean): string {
+    const dir = copy('run-builds');
+    for (const id of ['r1-a-1', 'r1-a-2']) {
+      editJson(dir, `reports/gates/D1-gate-${id}-a1.json`, (g) => {
+        g.design.pieces = OLD_PIECES;
+      });
+    }
+    if (stamp) {
+      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 11 from stages\[25\]/) });
+    }
+    return dir;
+  }
+  /** The verification display's cards, its lines before "Builds in this run:". */
+  const cardsPart = (out: string): string[] => {
+    const all = out.split('\n');
+    return all.slice(0, all.indexOf('Builds in this run:'));
+  };
+  const NUMBERS_LATER = 'Numbers come at the design gate, measured on the full build.';
+
+  it('after the stamp, the old dossier keeps its figures, and the old design fields their one figure, "Full DPS" and named out pieces', () => {
+    const before = oldRun(false);
+    const after = oldRun(true);
+    const v = display(after, 'verification');
+    expect(v).toMatchObject({ code: 0, stderr: '' });
+    expect(cardsPart(v.stdout)).toEqual(cardsPart(display(before, 'verification').stdout));
+    expect(v.stdout).toContain('   Damage: 50,000 per second from Blood Hunt, against map monsters (modelled in PoB).\n');
+    expect(v.stdout).toContain("   Toughness: 4,200 life and 31,500 effective HP (PoB's estimate of the damage it takes to kill you).\n");
+    expect(v.stdout).not.toContain(NUMBERS_LATER);
+    for (const id of ['r1-a-1', 'r1-a-2']) {
+      const d = display(after, 'design', id);
+      expect(d).toMatchObject({ code: 0, stderr: '' });
+      expect(d.stdout).toEqual(display(before, 'design', id).stdout);
+      expect(d.stdout).toContain("damage is PoB's damage per second for the main skill;");
+      expect(d.stdout).toContain('- Pieces: 4 in, 1 scheduled (Seismic Cry), 2 out (Elemental Focus, Ruthless)\n');
+      expect(d.stdout).toContain('- Damage: 50,000 per second.\n');
+      expect(d.stdout).toContain('best swap left: +3.2% Full DPS by moving 2 points from Strength, Strength to Cold Nature\n');
+      expect(d.stdout).not.toMatch(/against map monsters|Pinnacle boss|% damage by moving/);
+    }
+    // The checker holds the stamped log's entries before the stamp to their own rules.
+    const stamped = check(after).stderr;
+    expect([...lines(stamped, 'dossier-sections'), ...lines(stamped, 'design-field'), ...lines(stamped, 'gate-report')]).toEqual([]);
+  });
+
+  it('an entry written after the stamp displays in the new form, beside the old entries in the same log', () => {
+    const dir = oldRun(true);
+    // R1b-assemble after the stamp writes the dossier in amendment 11's columns (run-a11's, for the same two cards).
+    fs.copyFileSync(path.join(FIXTURES, 'run-a11', 'dossier.md'), path.join(dir, 'dossier.md'));
+    expect(write(dir, 'stage', { stage: 'R1b-assemble', attempt: 2, outcome: 'done' }).code).toBe(0);
+    const v = display(dir, 'verification').stdout;
+    expect(v).toMatch(/^1\. Blood Hunt bleed burst: works\.$/m);
+    expect(v).toMatch(/^ {3}Damage: Blood Hunt: hit, bleed\.$/m);
+    expect(v).toContain(NUMBERS_LATER);
+    expect(v).not.toMatch(/Toughness:|Clear speed:|per second/);
+    // The checker reads it the same way: written after the stamp, in amendment 11's columns; the old one there fails.
+    expect(lines(check(dir).stderr, 'dossier-sections')).toEqual([]);
+    const oldDossier = path.join(TMP, `stamped-${++copies}`);
+    fs.cpSync(dir, oldDossier, { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, 'run-builds', 'dossier.md'), path.join(oldDossier, 'dossier.md'));
+    expect(lines(check(oldDossier).stderr, 'dossier-sections')).toEqual([expect.stringMatching(/a dossier written under amendment 11's rules \(skillRevision 11\) has \["Card","Round","Status","Synergy","Damage","Pieces","Key prices","League","Main risk"\]/)]);
+    // A D1 gate after the stamp writes amendment 11's design field (run-a11's rungs, its pieces with no outNames).
+    const a11 = readJson(path.join(FIXTURES, 'run-a11'), GATE).design;
+    const first = readJson(dir, 'reports/gates/D1-gate-r1-a-1-a1.json');
+    writeJson(dir, 'reports/gates/D1-gate-r1-a-1-a2.json', { ...first, attempt: 2, design: { ...a11, pieces: { in: 4, scheduled: 1, out: 2, scheduledNames: ['Seismic Cry'] } } });
+    expect(write(dir, 'stage', { stage: 'D1-gate', concept: 'r1-a-1', attempt: 2, outcome: 'pass' }).code).toBe(0);
+    const d = display(dir, 'design', 'r1-a-1').stdout;
+    expect(d).toContain('damage is the main skill\'s damage per second against map monsters and against a Pinnacle boss');
+    expect(d).toContain('- Pieces: 4 in, 1 scheduled (Seismic Cry), 2 out\n');
+    expect(d).toContain('- Damage: 50,000 per second against map monsters.\n- Boss damage: 60,000 per second against a Pinnacle boss.\n');
+    expect(d).toContain('best swap left: +3.2% damage by moving 2 points from Strength, Strength to Cold Nature\n');
+    expect(d).not.toMatch(/Full DPS/);
+    // r1-a-2's D1 gate, logged before the stamp, keeps its form in the same log.
+    const old = display(dir, 'design', 'r1-a-2').stdout;
+    expect(old).toContain('- Pieces: 4 in, 1 scheduled (Seismic Cry), 2 out (Elemental Focus, Ruthless)\n');
+    expect(old).toContain('best swap left: +3.2% Full DPS by moving');
+    expect(old).toMatch(/^- Damage: [\d,]+ per second\.$/m);
+  });
+});
+
+describe("AC-W89 (D-437, §19): the checker's tree-swap messages", () => {
+  /** A D1 gate whose rung b's best swap gains 6% with no tree-swap finding, and with a tree-swap finding on rung m, under 5%. */
+  function swaps(dir: string, file: string, weaponSet?: number): void {
+    editJson(dir, file, (g) => {
+      Object.assign(rung(g, 'b').tree.bestSwap, { gainPercent: 6 }, weaponSet === undefined ? {} : { weaponSet });
+      g.verdict.tree = 'fail';
+      g.findings.push({ part: 'tree', code: 'tree-swap', stage: 'm', message: 'm: moving 2 points gains 1% damage' });
+    });
+  }
+  const said = (file: string, label: string, rules: string): RegExp[] => [
+    new RegExp(`${file.replace(/[.]/g, '\\.')}: rung b's best swap left gains 6% ${label}, at least 5%, but no tree-swap finding names it: the tree part fails that rung \\(${rules}\\)$`),
+    new RegExp(`${file.replace(/[.]/g, '\\.')}: has a tree-swap finding on rung m, whose best swap left gains under 5% ${label} \\(design\\.rungs's tree\\): a rung fails only at 5% or more \\(${rules}\\)$`),
+  ];
+
+  it('a run held to amendment 11 says "damage"; a pool move off the main group\'s weapon set keeps "Full DPS"', () => {
+    const dir = copy('run-a11');
+    swaps(dir, GATE);
+    expect(lines(check(dir).stderr, 'gate-report')).toEqual(said(GATE, 'damage', 'D-419, D-437').map((r) => expect.stringMatching(r)));
+    const pool = copy('run-a11');
+    swaps(pool, GATE, 2);
+    expect(lines(check(pool).stderr, 'gate-report')).toEqual([expect.stringMatching(said(GATE, 'Full DPS', 'D-419')[0]), expect.stringMatching(said(GATE, 'damage', 'D-419, D-437')[1])]);
+  });
+
+  it('an old run keeps "Full DPS", and so does a verdict logged before a resume\'s stamp; one logged after it says "damage"', () => {
+    const old = 'reports/gates/D1-gate-r1-a-2-a1.json';
+    const dir = copy('run-builds');
+    swaps(dir, old);
+    expect(lines(check(dir).stderr, 'gate-report')).toEqual(said(old, 'Full DPS', 'D-419').map((r) => expect.stringMatching(r)));
+    expect(write(dir, 'resume', { noNinja: false }).code).toBe(0);
+    const fresh = 'reports/gates/D1-gate-r1-a-1-a2.json';
+    writeJson(dir, fresh, { ...readJson(dir, 'reports/gates/D1-gate-r1-a-1-a1.json'), attempt: 2 });
+    swaps(dir, fresh);
+    expect(write(dir, 'stage', { stage: 'D1-gate', concept: 'r1-a-1', attempt: 2, outcome: 'fail' }).code).toBe(0);
+    expect(lines(check(dir).stderr, 'gate-report')).toEqual([...said(fresh, 'damage', 'D-419, D-437'), ...said(old, 'Full DPS', 'D-419')].map((r) => expect.stringMatching(r)));
   });
 });
 

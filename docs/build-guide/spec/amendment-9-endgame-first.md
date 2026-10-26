@@ -797,10 +797,18 @@ read-only survey of the server the same day.
   ("after doing more research that turns out not to be the case"; the creator's video in
   `../studies/2026-10-23-spud-warcryer-comparison.md` §5 agrees). PG-72 becomes a closed entry recording that PoB
   matches the game. The library gains the user's damage-order rule (WU-103), in this wording:
-  > **Damage order.** Flat damage is converted first. Increased and more modifiers then apply by the type the damage
-  > ends as, with no Path of Exile 1 double dipping: increased cold does nothing for cold converted to fire.
-  > Gain-as-extra lines apply last, as a share of the hit after its increases and more multipliers. Avatar of Fire
-  > loses gained cold and lightning only through its "Deal no Non-Fire Damage" (the user, 2026-10-23; PoB agrees).
+  > **Damage order.** Flat damage is converted first. The skill's own conversion comes first, then every
+  > other conversion once, on what it left, with no chains. Gain-as-extra lines then add a share of each type's damage after conversion and before
+  > any increase; the gained damage keeps its new type, and no later conversion touches it. Increased and more
+  > modifiers apply last, by the type each part ends as, with no Path of Exile 1 double dipping: increased cold does
+  > nothing for cold converted to fire, or for fire gained from cold. Avatar of Fire loses gained cold and lightning
+  > only through its "Deal no Non-Fire Damage" (the user, 2026-10-23; the gain-as-extra order, the user, 2026-10-26;
+  > PoB agrees).
+  
+  Reworded on 2026-10-26 by the user's ruling: the first wording had gain-as-extra apply last, on the increased hit.
+  PoB takes a gain from the damage after conversion and before any increase (`Modules/CalcOffence.lua`:89–107) and
+  converts in two steps, the skill's own conversion and then every other once (:2319–2376); a creator's in-game test
+  agrees (a gained cold slice unchanged by added chaos increases).
 - **The ailment-conversion lens (the user, 2026-10-23),** a library entry after "Type conversion so another mechanic
   applies" (WU-103), checked against the pin (`Modules/Data.lua:440`, `data.defaultAilmentDamageTypes`;
   `Data/Misc.lua:86-96`), in this wording, `[spud]` a new source key for the 2026-10-23 comparison study:

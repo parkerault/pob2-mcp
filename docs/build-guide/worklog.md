@@ -5680,3 +5680,17 @@ the `m17` engine at `b76967b`.
   monsters"): the toughness study gains the close/distance split. Close: median 36k, 25th percentile 21k; distance:
   median 18k, 25th percentile 16k; the 20k and 15k targets still sit near the 25th percentile. 22 of 30 builds are
   over 110% of their target.
+
+## 2026-10-25: amendment 11 revision 2 (the boss estimate, toughness by engagement)
+
+- **The user's answers after the boss-damage study:** boss damage, "Estimate DPS the same way you'd do for our guides"
+  (no floor); the damage trade over the toughness band, "150% of target"; toughness by engagement distance, "Confirm"
+  (20,000 close, 15,000 at a distance, the design stating which with a reason).
+- **Revision 2** (`50ee07e`): D-447, the boss rotation as plan entries, measured against a Pinnacle boss, with a
+  `boss_<stage>` ledger entry correcting what PoB can't read (C-33 gains a `boss.` reference form); §9 split by
+  engagement; the damage trade from 150%.
+- **The re-check** (one checker, fresh context, about 208K tokens) failed revision 2 on two blockers: the rotation
+  named groups, but every figure is per skill and stat set; and the guide, final gate and audit would show an estimate
+  the checker compared with the measured figure. It also caught the example's arithmetic (about 320,000, not
+  480,000), totems counted twice, the ledger contexts no unit owned, and `engagement` required by a schema old
+  campaigns couldn't meet. All folded into revision 2; the user's approval is next.

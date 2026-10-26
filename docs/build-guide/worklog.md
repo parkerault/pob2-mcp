@@ -5752,3 +5752,17 @@ the `m17` engine at `b76967b`.
     limit or lockout stands in for the run's pricing stop and lasts until the server restarts (so a `retry-pricing`
     answer doesn't re-enable the fallback without a restart); with poe.ninja down there is no fallback; trade disabled
     hides `get_item_price`.
+- **WU-111 (the plan and the record, schema 7) merged** at `496f754` (two commits, rebased onto WU-112's merge
+  without conflict). Schema 7's five fields; the second measure against a Pinnacle boss per rotation entry, restored
+  after; `measures.damage`, `bossGroups` (with `triggered` from PoB's `isTriggered`, ailments counted once by
+  `<Ailment>CanStack`), `cull`, `trigger`, `sourceTypes`; `CastRate`, `Cooldown`, `CullPercent` and `CullMultiplier`
+  measured; the ledger's `boss.` references over `bossGroups` and `damageBoss`; V1's `movement-tier` (schema 7 only).
+  Its verifier (fresh context) passed it with no blocking defect, re-running the gate (188 suites, 3,154 tests, rc 0;
+  build rc 0) and proving the schema-6 fixture against a compile at `635c30b` (0 differences).
+  - **Deviations accepted:** `boots-exception` is a V1 note (`stages.<id>.v1.notes`), so V1 passes; a minion
+    entry's ailments are listed but not summed (a minion's figure is `MinionTotalDPS`), which needs a decision row
+    since §9b names minion ailments; the key-figure line on variant stages reads `damage <map> against map monsters,
+    <boss> against a Pinnacle boss` (its boss figure is PoB alone, unlabelled); every variant stage, schema 6
+    included, gets the second measure.
+  - **For wave 2:** `D1-build.md`:126 and :320 still call the key-figure line the "headline DPS"; `D1-gate.md` reads
+    `boots-exception` from `v1.notes`.

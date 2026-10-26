@@ -418,6 +418,54 @@ the line unmapped or "possibly unmodelled" and no one has read the code; three e
     on set 2 alone reserves no Spirit; PoB presumably counts it (an inference).
   - **Seen in:** the Wolfman Oracle.
 
+## Found in the boss studies (2026-10-25)
+
+The two boss studies (`studies/2026-10-25-boss-damage.md` and `2026-10-25-boss-estimate.md`) measured 30 published
+league starters against a Pinnacle boss and estimated what PoB misses. Amendment 11's boss estimate (§9b) corrects
+these by hand. "Reported (study)" means a study agent found it while measuring and no one has read the code for it;
+the meta gems' trigger rates are PG-9's, the dropped supports in a granted skill's group PG-54's, and Verglas PG-22's.
+
+- **PG-75, rates PoB takes from attack or cast speed.** gap, reported (study).
+  - **Effect:** Falling Thunder is rated at attack speed, not once per charge cycle; Perfect Strike by its release
+    alone; Flicker Strike's chain ignores Excise's cooldown. A cooldown skill's `Speed` is its cooldown cap and its
+    `Time` is `1 / Speed`, so neither is a use's time (`CalcOffence.lua`:2864–2869, :2909–2913).
+  - **Seen in:** the Hollowed One Amazon, Ronarray's Hollow Palm Monk, Alkaizer's melee Gemling, Facebreaker's
+    Flicker Strike.
+  - **Workaround:** the boss estimate's rotation share and burst-over-its-cycle corrections.
+- **PG-76, procs per step, per metre or per hit.** gap, reported (study).
+  - **Effect:** steps per metre walked (Ancestral Cry, Volcanic Steps, Stomping Ground), Forge Hammer's fissure procs
+    (up to 5 a second), Walking Calamity's meteors (every 0.15 s) and bells struck by other skills (Tempest Bell,
+    Hollow Focus) are rated at a hand-cast speed or not at all.
+  - **Seen in:** Woolie's Firebringer, Balrog's Bear Smith, Ronarray's Rampage Bear, the Martial Artists.
+  - **Workaround:** the boss estimate's procs correction.
+- **PG-77, copies and hits PoB counts once.** gap, reported (study).
+  - **Effect:** PoB rates one of several totems, one grenade per throw, none of Cluster Grenade's mini grenades, one
+    pillar per cast, one lodged spear and one projectile of a volley that all land on a boss.
+  - **Seen in:** the Arc and Grim Pillars totem builds, both grenade builds, the LazyExile Amazon, Falling Thunder.
+  - **Workaround:** a group's `count` for copies acting at once; the boss estimate's landing correction for hits.
+- **PG-78, buffs with no stat map.** gap, reported (study).
+  - **Effect:** Elemental Armament III, Mana Tempest's gain as lightning, Rend's gain as lightning (disabling Rend
+    changes nothing, a toggle probe), Walking Calamity's gain as fire, Ice-Tipped Arrows' physical-to-cold
+    conversion and Verglas's gain per Frost Wall crystal's life (PG-22) add nothing; the Unbound and Empowered config
+    options have no effect.
+  - **Seen in:** Woolie's Wolfman, the totem builds, Alkaizer's Martial Artist, the Twister builds.
+  - **Workaround:** the boss estimate's buff correction, from the buff's text.
+- **PG-79, Bonestorm's spike count.** gap, reported (study).
+  - **Effect:** no config option sets `Multiplier:BonestormStage`, so its stage multiplier reads 0 and PoB rates one
+    spike per 0.3 s minimum channel.
+  - **Seen in:** DEADRABB1T's Plants Lich.
+- **PG-80, ailments added or stored by another skill.** gap, reported (study).
+  - **Effect:** Oil Grenade's "adds 150% of this Attack's Fire Damage … to the Ignite" and Plague Bearer's stored
+    poison add nothing; Decompose's share of a consumed corpse's life uses PoB's default monster, not the build's own
+    corpses.
+  - **Seen in:** Fubgun's Flameblast Oil Grenade, Skadoosh's Decompose Pathfinder.
+- **PG-81, monster skills carry no cooldowns.** gap, reported (study).
+  - **Effect:** a companion's slam or special has no rate in PoB's data, so how often it fires is a judgment.
+  - **Seen in:** CaptainLance9's Beast Master.
+- **PG-82, figures our tools don't expose.** ours, reported (study).
+  - **Effect:** `lua_get_stats` gives no ignite stack potential, maximum power or frenzy charges, ailment chance or
+    a Frost Wall crystal's life, so a hand estimate derives them from game data.
+
 ## Data: missing, out of range, or stale
 
 - **PG-41, rolls above PoB's data range.** data, reported. Each has to be typed in:

@@ -380,7 +380,8 @@ correction outside revision 2's list, which this section now carries. After it t
     triggered (PoB rates the totem's casting), nor is a skill in a meta gem's group that the gem doesn't trigger.
   - `measures.damage.boss` (**PoB alone**) sums the untriggered entries' figures, counting an ailment that doesn't
     stack once: an entry's `ignite`, `bleed` and `poison` are its `IgniteDPS`, `BleedDPS` and `PoisonDPS` (a
-    minion's `MinionIgniteDPS` and so on, `src/plan/record.ts`:132–138) when PoB doesn't let that ailment stack (no
+    minion's `MinionIgniteDPS` and so on, `src/plan/record.ts`:132–138, listed but not summed: a minion's figure is
+    `MinionTotalDPS` alone, so a named minion source reads its own figure; built in WU-111) when PoB doesn't let that ailment stack (no
     `<Ailment>CanStack` flag, `vendor/…/Modules/CalcOffence.lua`:5065; each stacks to 1 by default,
     `CalcSetup.lua`:53–55, and PoB's own Full DPS keeps the largest, `Calcs.lua`:192–196), else 0, and the sum keeps
     only the largest of each. A triggered entry is listed but not summed (PoB rates it at its hand-cast speed). When no entry
@@ -439,7 +440,7 @@ correction outside revision 2's list, which this section now carries. After it t
     rung's boss figure against the floor.
 - **The checks.** The plan schema errs at `stages[n].skills.boss.entries[k]` for a group, skill or stat set the
   stage doesn't have (as it does for `rolledGroup`, `src/plan/schema.ts`:648). The checker fails a `boss_<stage>`
-  formula with no `boss.` reference or with one outside the stage's rotation; a rotation with a `triggered` entry or
+  formula with no `boss.g` reference or with one outside the stage's rotation; a rotation with a `triggered` entry or
   an entry with `turns` and no `boss_<stage>` entry; a design field whose `boss.estimate` differs from the ledger's
   value; and at non-budget, a design field whose `boss.floor` differs from the floor file or whose `boss.under`
   disagrees with the boss figure and the floor, or a rung under the floor with no damage trade entry. Like §9's
@@ -510,6 +511,19 @@ run without a rival isn't read as an old one. Amends D-408 and amendment 8 §10.
   the exchange. No pathofexile.com request is needed. Then the route by category, `get_item_price`'s description
   (`src/server/toolSchemas.ts`:1483) and the README table, a `pricing.md` rule ("exchange items from poe.ninja; the
   trade site for the rest"), and fixtures. Amends D-387 and `pricing.md`:22–24 and :56–62.
+- **After the spike (built in WU-112, 2026-10-25).** poe.ninja's exchange lists 14 categories in league Forbidden
+  Rites (Currency, Fragments, Abyss, UncutGems, LineageSupportGems, Essences, SoulCores, Idols, Runes, Ritual,
+  Expedition, Delirium, Breach, Verisium); they are the categories the spike asked for, so another could exist. It
+  lists all 77 lineage support gems with exchange volumes, and no "Legacy of …" rune in either league; non-unique
+  tablets are priced from trade listings. The user's rulings: lineage support gems "From the exchange"; an exchange
+  item poe.ninja doesn't list, "Trade site by name". So `get_item_price` prices an exchange-category item from its
+  category, falls back to the trade site by its name (as a base type) when the category doesn't list it, and is
+  `Unavailable (<category>; trade site: no listings)` only when both have nothing; uniques (gear and tablets),
+  non-unique tablets and rares go to the trade site. Built as accepted deviations: items are recognised by name
+  (`src/trade/exchange.ts`); the server can't see the run's pricing stop, so the trade client's first rate limit or
+  lockout stands in for it and skips the fallback until the server restarts (a `retry-pricing` answer doesn't
+  re-enable the fallback without a restart); with poe.ninja down there is no fallback; trade disabled hides the
+  tool.
 
 Amends D-415 and D-422 (the stop's length and scope), `pricing.md`:188–199, `SKILL.md`:35–40, the gates' answers.
 
@@ -526,7 +540,13 @@ the user named"; the verifier's host rule is unchanged.
 - **V1's codes** `empty-weapon-set` and `weapon-skill-supports` get decision rows here, written by the coordinator
   at integration from `src/plan/checks/v1.ts`:755 and :812; all four codes amendments 9 and 10 added
   (`skill-slots`, `empty-weapon-set`, `weapon-skill-supports`, `implicit-variant`) join slice 02's V1 code table
-  (`02-plan-compiler.md`:915–933), with `movement-tier` and `boots-exception` (§8).
+  (`02-plan-compiler.md`:915–933), with `movement-tier` and `boots-exception` (§8). Done at M-24's integration:
+  - **`empty-weapon-set`** (D-426, WU-102): a group with `weaponSet` on a set whose weapon slots are both empty is
+    a V1 finding, one per group, enabled or not, since PoB enables it only while that set is active.
+  - **`weapon-skill-supports`** (PG-74, WU-102): an enabled group, or the main group, with an enabled support in a
+    weapon slot whose item grants a skill is a V1 finding: PoB gives the granted skill the group's supports, which
+    the game doesn't. The user accepts it at the gate when nothing reads the granted skill.
+  - **`boots-exception`** is a V1 note, written to `v1.notes`, not a finding (built in WU-111): V1 passes.
 - **Pieces measured takes `in` rows only** (D-433's wording): amendment 10's Appendix A example and `R1b.md`:408
   drop their scheduled piece, and the checker rejects a probe on a row that isn't `in` (`check-run.mjs`:4352).
 - **`bestSwap.weaponSet`** is checked: 1 or 2 when present (`check-run.mjs`:3941–3943).
@@ -621,7 +641,8 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
   - `skills.engagement` and `skills.boss` are accepted on schema 7 and err at their paths on schema 6.
 - **AC-K72 (WU-112).** Fixture-backed: each of the four named items, and one item from every other exchange category
   the spike found, is priced from its poe.ninja exchange category with no trade-site request; a unique is still
-  priced on the trade site; an exchange item poe.ninja doesn't list is `unavailable` with the category it tried.
+  priced on the trade site; an exchange item poe.ninja doesn't list goes to the trade site by name (Legacy of
+  Deathblow), and is `unavailable` naming both routes when that has nothing too (the user's ruling, §12).
   The spike's category list, and where it differs from the user's list, is in the work-log.
 - **AC-W89 (WU-113).** Script unit, on fixture runs:
   - the verification display prints no damage, life, EHP, clear-speed or movement-speed figure; it prints "works",
@@ -743,7 +764,8 @@ coordinator writes §14's decision rows and the V1 table, and amendment 10's App
 Taken on 2026-10-25:
 1. **The toughness targets:** 20,000 and 15,000 at non-budget, with a band (§9; split by engagement in item 7).
 2. **Pricing:** every currency-exchange item from poe.ninja's exchange; the trade site for uniques, lineage support
-   gems and rares (§12).
+   gems and rares (§12). After the spike: lineage support gems "From the exchange", and an item the exchange
+   doesn't list, "Trade site by name" (§12).
 3. **Campaign boots:** the highest tier for each stage's level (§8).
 4. **A named damage kind that shows nothing at verification:** "Fail it and retry" (§4).
 5. **Campaign respecs:** "Include campaign" (§6).

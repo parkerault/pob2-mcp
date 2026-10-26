@@ -505,11 +505,11 @@ verification half, after `### Key item prices`:
 | Key | Drops | How |
 |---|---|---|
 | i1b-4 | Seismic Cry (clear) −5%; Shield Wall (boss) −22%; Bellow's explosion (per corpse) 0% | the slot's plain Ruby Ring |
-| cr1-a-3-2 | not measured (the probe's compile failed: <why>) | — |
 ```
 
 `Drops` lists each figure of D-433 that moves, as `<group> (<clear | per corpse | boss>) −<x>%`, or `estimate
-(<reason>)` for a piece PoB doesn't model; pieces not probed are left out of the table.
+(<reason>)` for a piece PoB doesn't model; pieces not probed are left out of the table. Only `in` rows are
+probed (amendment 11 §14, D-446): a scheduled piece has no row here.
 
 **`cards.md`**, H2s in this order:
 

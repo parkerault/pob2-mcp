@@ -1,28 +1,40 @@
 # R1b: card skeleton, measure-only compile, key-item prices, the checklist (`build-guide-coordinator`)
 
-One step per picked card, one at a time, at most 3 per verification round, the rival's card aside (D-408). It
+One step per picked card, one at a time, at most 3 per verification round. It
 checks the card's structure on paper, turns the card into an endgame skeleton plan, compiles it measure-only,
 prices the card's key items, runs the advisory checklist with its probes, and writes the card's verification
 half. On a **composite** (any card with `### Pieces`, whatever its id letter: one R1a-synthesize composed, or one a
 gate made from pieces, D-429, D-432), the skeleton carries every piece the composite takes, and leave-one-out probes
-measure each piece inside it (D-433; "A composite's pieces" below). **Gate:** the skeleton compiled with no compile
-error.
-You write the gate's verdict file yourself. A failed attempt re-runs with your verdict as findings, at most 2
-counted retries; then the card is `failed`, its last verdict the evidence (D-141).
+measure each piece inside it (D-433; "A composite's pieces" below).
+
+**Verification checks that the build works** (D-436): the user's test is "it compiles and the skills work as
+expected", and the user decides which cards to finalize. Numbers come at the design gate, measured on the full
+build, so the card, the dossier and the display carry no damage, life or EHP figure. R1b makes **three checks**:
+1. **It compiles:** `verdict.compiled: "pass"`.
+2. **The named source deals the card's damage:** each kind of damage the card names shows a figure above 0 on the
+   named source's group in the skeleton's record (the damage check, below). A kind that shows nothing is a
+   `damage-missing` finding, and the attempt fails.
+3. **Each piece in does something:** on a composite, each leave-one-out answers `yes`, `no`, `PoB can't see it` or
+   `not measured (<why>)` ("A composite's pieces").
+
+**Gate:** the skeleton compiled with no compile error, and the named source shows every kind of damage the card
+names. You write the gate's verdict file yourself. A failed attempt (a failed compile, or a `damage-missing`
+finding) re-runs with your verdict as findings, at most 2 counted retries; then the card is `failed`, its last
+verdict the evidence (D-141). A card that failed `damage-missing` can still be finalized anyway at the
+verification gate (`checkpoints.md`).
 
 ## Inputs
 
-- **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319; letter `x`
-  for the rival's, D-408), `mode`,
+- **Header:** `stage: "R1b"`, `attempt`, `concept` (the card id, `r<round>-<letter>-<n>`, D-319), `mode`,
   `runFolder`, `runFolderRel`, `compile: "measure-only"`, `findings` (the earlier attempt's verdict file and
   its findings: fix what each names), `faults` (FI-1, offline test runs only), `changes` (a gate's change,
   below), and `writes:
   ["concepts/<id>/plan.json", "reports/gates/R1b-<id>-a<attempt>.json", "cards/<id>.md",
   "probes/<id>/<n>/"]`: the card, for its verification half, and its probes, `n` from 1 to 4 (D-338), to 8 on a
   composite (D-433).
-- **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, whether a
-  gate answer picked a rival's card (the runner relayed it), and how to price in this run (offline; stopped;
-  or paced; and with `--no-ninja`, no currency rates).
+- **Prompt:** the card's id and name, the gate's interview notes when the user asked questions, and how to price
+  in this run (offline; stopped, with only the currency exchange's items still priced; or paced; and with
+  `--no-ninja`, no currency rates).
 - **The card's identity** `{className, ascendancy, skill}`, `skill` its **named damage source** (D-286), is the
   skeleton's `roll`. The named damage source is the main source of damage, never a token role: its group is
   the skeleton's `rolledGroup`. A minion skill's group holds its summon and names it as `minionSkill` (D-379).
@@ -33,9 +45,8 @@ counted retries; then the card is `failed`, its last verdict the evidence (D-141
   names a field, Grep that field's row); the pattern library's "Standard kits" entry for the card's archetype,
   for the structure check (Grep `^#` in `.claude/skills/build-guide/references/patterns.md`, Read that entry);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs and the entries the card
-  cites; `run-log.json` (has pricing stopped in this session? a `stages[]` entry after the last resume whose
-  `priceOutcomes` counts a `locked_out` or `rate_limited` call, step 6); the other plans of this run (`concepts/*/plan.json`), for prices to reuse. On attempt 2
-  or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
+  cites; `run-log.json` (is a pricing stop open? step 6); the other plans of this run (`concepts/*/plan.json`), for
+  prices to reuse. On attempt 2 or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
 
 ## Work
 
@@ -65,13 +76,6 @@ A change that breaks the card (a load-bearing link no lookup confirms, a chain t
 attempt: write only the verdict, `compiled: "fail"`, one finding `{part: "compiled", code: "gate-change",
 message: "<why>"}`, `errors: []`, `compiles: 0`, `recordPath: null`, `faultsApplied: []`. A retry keeps the
 user's words and the line, and fixes only what its findings name, never reworking the change.
-
-**The rival's card, first** (D-408), when `concept` is `r<k>-x-<n>`: no one dealt it, so run R1a-assemble's
-identity check and sniff test on it (`R1a-assemble.md`, steps 2 and 3, the lock included). When either fails,
-write only the verdict, as for a gate change, with the finding `{part: "compiled", code: "not-dealt", message:
-"not dealt: <the check that failed>"}`: terminal, never retried, and the card is `failed`. When both pass, give
-it a name no line of `cards.md` has (Grep it; R1a-assemble's step 7), unless the runner relayed it at a gate (a
-name shown at a gate never changes), and go on past the lock, which step 2 ran.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
 last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
@@ -171,11 +175,9 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
    - `league`: offline, `null`; online, the current trade league from `mcp__pob2__get_leagues`. If trade can't be
      reached, reuse the league of another plan in this run, else `Standard`, and return
      `leagueUnverified: true`. The dossier then marks the league unverified, and **D1 doesn't take its
-     league from a skeleton whose league is unverified**. **Once pricing has stopped** (step 6's test: the prompt
-     says so, or a `run-log.json` `stages[]` entry after the last resume, from index
-     `resumes[<last>].lengths.stages`, counts a `locked_out` or `rate_limited` call in `priceOutcomes`), make no
-     trade call, `mcp__pob2__get_leagues` included (D-422): the league is one a plan of this run recorded before
-     the stop (not one marked unverified); with none, `Standard`, and return `leagueUnverified: true`.
+     league from a skeleton whose league is unverified**. **While a pricing stop is open** (step 6's test), make
+     no trade-site call, `mcp__pob2__get_leagues` included (D-422, D-444): the league is one a plan of this run
+     recorded before the stop (not one marked unverified); with none, `Standard`, and return `leagueUnverified: true`.
    - **One stage**, `id` the card id without its hyphens, then `e` (`r1a2e` for card `r1-a-2`: a stage id
      is letters and digits only, so a dossier ref like `r1a2e.Life` names this card's record),
      `progress: "endgame"`, no `variant`, a `level` the card is meant to play at (90 when the card doesn't
@@ -223,18 +225,24 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
    - **offline:** no price call. Each entry is `unavailable` with note `offline run`, `amount`,
      `currency` and `league` null, dated the run folder's date (the `YYYY-MM-DD` in its last path
      segment).
-   - **pricing stopped** (the prompt says so, or a `run-log.json` `stages[]` entry after the last resume, from
-     index `resumes[<last>].lengths.stages`, every entry when the log has no resume, counts a `locked_out` or
-     `rate_limited` call in its `priceOutcomes`: the stop holds for the session, D-415): no price call; each entry
-     is `unavailable`, note `pricing stopped`.
+   - **a pricing stop is open** (D-444; the prompt says so, or `run-log.json`'s `pricing.stops[]` holds a stop with
+     no `pricing.retries[]` entry answered `retry-pricing` after it and no resume after it, `resumes[].lengths.stages`
+     past its `at`): the stop holds until the user approves a retry at a gate. Make no trade-site call. An item the
+     currency exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem and the rest,
+     `pricing.md`) is still priced from poe.ninja's exchange with `mcp__pob2__get_item_price` (not with
+     `--no-ninja`), which sends no trade request; every other entry (a unique, a base) is `unavailable`, note
+     `pricing stopped`.
    - **online:** reuse an entry with the same item, query and league from any plan of this run first;
-     otherwise one call per item (`mcp__pob2__get_item_price` for a unique), paced by order. An entry is
+     otherwise one call per item, paced by order: `mcp__pob2__get_item_price` for a unique and for an item the
+     currency exchange sells, which it prices from poe.ninja's exchange by its category with no trade request
+     (`query` `{"exchange": "<category>", "name": "<item>"}`, `pricing.md`). An entry is
      `{id, item, query, amount, currency, date, league, status}`: each result's league and its `Checked:` date;
      `unavailable` has `amount` and `currency` null and a `note`. Classify a failed call by its
      `[trade:<kind>]` prefix only: `would_wait` (price others, call it again later; its third refusal makes it
-     `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop pricing for the rest of the session:
-     every remaining item `unavailable`); any other kind, `unavailable`. Count every call by its outcome for
-     your return.
+     `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (pricing stops: no more trade-site calls
+     until the user approves a retry at the next gate, so every remaining item is `unavailable` but the exchange's);
+     any other kind, `unavailable`. Count every call by its outcome for your return, an exchange price as
+     `exchange` (`pricing.md`, "Reporting the calls").
    - **converted for the card** (D-373, D-374): a key price reaches the user as a range at a league day, never
      as a raw number from another market. Get the rates with `mcp__pob2__get_currency_rates` once (not with
      `--no-ninja`), and convert each `ok` price to day 7, when the reader buys the early endgame gear a key item
@@ -243,21 +251,27 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      `conversion.10-or-more.to-day-7`; past day 60 or the league's `end`, the low factor over 4 and the high
      over 2; before day 21, factors 1; a league not in the file, its day unknown, converts as days 21–60. Round
      each end to a whole divine at 10 or more and to one decimal under 10. The plan keeps the price as seen.
+     **A range that rounds to 0.0 divines** is written as seen, with no conversion, in players' words (D-442):
+     `1 exalt (seen 2026-10-24)`, never "0.0–0.0 divines" and never the trade id `exalted` ("exalt" and "exalts",
+     "divine" and "divines", "chaos").
 7. **Validate again** once the prices are written (the schema checks them and the league), so the last
    compile compiles the priced plan and its record's `planSha1` is that plan's.
 8. **The last compile**, of the whole skeleton, measure-only and never with `build_name`:
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. It writes
    `concepts/<id>/compile-record.json` and `concepts/<id>/compiled-build.xml` beside the plan and
    nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
-   verdict. The runner re-runs the step with them as findings. If it succeeds, run the verification
-   checklist (below), on a composite then its leave-one-out probes ("A composite's pieces"), then write the
-   card's verification half (below), before the verdict.
+   verdict. The runner re-runs the step with them as findings. If it succeeds, run the damage check (below);
+   when it passes, the verification checklist (below), on a composite then its leave-one-out probes ("A
+   composite's pieces"), then write the card's verification half (below), before the verdict. When the damage
+   check fails, run no probe (the card's probes count against its cap across attempts): write the verification
+   half with what the check found, every checklist row `not checked`, and on a composite each Pieces measured row
+   `not measured (the damage check failed: <the kind> shows nothing)`.
 9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json`, written last, whatever happened:
 
    ```json
-   { "stage": "R1b", "concept": "r1-a-2", "attempt": 1, "verdict": { "compiled": "pass" }, "findings": [],
-     "errors": [], "compiles": 2, "recordPath": "concepts/r1-a-2/compile-record.json", "faultsApplied": [],
-     "leagueUnverified": false }
+   { "stage": "R1b", "concept": "r1-a-2", "attempt": 1, "verdict": { "compiled": "pass", "damage": "pass" },
+     "findings": [], "errors": [], "compiles": 2, "recordPath": "concepts/r1-a-2/compile-record.json",
+     "faultsApplied": [], "leagueUnverified": false }
    ```
 
    - `verdict.compiled`: whether the last compile (step 8) succeeded. A failure has one finding per error
@@ -265,6 +279,17 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      `errors` lists the lines (the `stage <id>: …` lines, or the schema's `<path>: <message>` lines). An
      error that stopped you before the compile (a validation error you couldn't fix, a refused call) is a
      failure too.
+   - `verdict.damage` (D-436), once the last compile succeeded: `pass` when the named source shows every kind of
+     damage the card names, `fail` when one shows nothing, with one finding per such kind, `{part: "damage",
+     code: "damage-missing", stage: "<stage id>", message: "<kind> shows nothing on <the named source>"}` ("bleed
+     shows nothing on Detonate Dead"). A `damage-missing` finding fails the attempt though the skeleton compiled,
+     and the runner re-runs it within the counted retries; after them the card is `failed` with that finding.
+     Leave `damage` out when the last compile didn't succeed: nothing was measured.
+   - `pieces` (D-436), on a composite whose leave-one-outs ran: `[{key, figure, dropPercent}]`, one entry per
+     figure each probe read for its piece ("A composite's pieces"), `figure` named as the measure names it
+     (`Rolling Slam (clear)`, `Bellow's explosion's ignite (per corpse)`), `dropPercent` the drop to one decimal,
+     negative for a fall (`-18`, `-0.4`). The percentages live here only: the card, the dossier and the displays
+     carry the answers, never a figure. A piece PoB can't see, or a probe that wasn't measured, has no entry.
    - `compiles`: how many `mcp__pob2__compile_plan` calls this attempt made (the bootstrap and the last; at most 2).
    - `recordPath`: the last compile's record, relative to the run folder; `null` when the last compile
      didn't succeed (a record beside the skeleton is then the bootstrap's or an earlier attempt's; never a
@@ -276,13 +301,39 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
 A `possibly unread` line the card depends on goes under what PoB can't verify; D1-build confirms it by
 measurement (two stages, with and without the line, D-243), not R1b.
 
+## The damage check (D-436)
+
+After the last compile succeeds, before the checklist: **does the named source deal the card's damage?** The
+kinds the card names are those its `### Chain` gives its named damage source (its `Damage source:` line, and the
+ailments and damage over time its multipliers and links make on it), on a composite also its `cards.md` round
+line's layers that are the named source's own. Read each kind's field on the named source's group in the
+skeleton's record, by Grep, never the record whole: the key `g<group>s<skill>p<statSet>` of `skills.main` in
+`countedSkillOutputs` (its Count applied by each field's rule), its `fields`:
+
+| Kind the card names | Field above 0 |
+|---|---|
+| a hit | `TotalDPS`, or `AverageDamage` for an on-kill group (a corpse explosion, which fires once per kill) |
+| damage over time (the skill's own) | `TotalDot` |
+| an ignite, a bleed, a poison | `IgniteDPS`, `BleedDPS`, `PoisonDPS` |
+| a minion's damage (a group that names a minion skill, D-378) | `MinionTotalDPS` |
+
+- **Every kind shows a figure above 0:** `verdict.damage: "pass"`. The kinds PoB shows are the card's Damage
+  line (its verification half) and the dossier's Damage cell, in these words: `hit`, `damage over time`,
+  `ignite`, `bleed`, `poison`, `minion damage` (`Detonate Dead: hit, bleed, ignite`).
+- **A kind shows nothing** (its field is 0 or absent): a `damage-missing` finding for it, `verdict.damage:
+  "fail"`, and the attempt fails. A retry fixes what makes the kind show nothing (a support, a conversion, the
+  config condition the ailment reads), never the card's named damage source or its chain.
+- **A source a meta gem triggers** (the record's `measures.trigger {by, usesPerSecond}`: Cast on Critical and its
+  kind) is rated by PoB at its hand-cast speed and PoB doesn't model Energy: the Damage line says `(rated at its
+  hand-cast speed)` after its kinds, and so does the dossier.
+
 ## Verification checklist (advisory, D-292)
 
 Slice 03 §7.7. Run these eight checks on the card's skeleton after the last compile (step 8) and before
 the verdict file (step 9). Write each result into the card's `Checklist results` table
 (`.claude/skills/build-guide/templates/card-template.md`): one of the four words **verified, estimate,
 risk, not checked**, and one line of detail. None is a gate: a result never changes the verdict, and none
-starts a fix round or a retry. If the last compile failed, every check is `not checked`.
+starts a fix round or a retry. If the last compile failed, or the damage check did, every check is `not checked`.
 
 **From the plan and the record (no extra compile):**
 
@@ -335,9 +386,10 @@ verification half ("not compiled: <entry> isn't in the PoB pin" for a `not-in-pi
 
 ## A composite's pieces (D-433)
 
-A composite is one build composed from many pieces, so R1b measures what each piece adds inside it: a probe leaves
-one piece out, and its record says what each figure loses. A piece can pay on one figure and not another: in the
-study behind amendment 10, Blistering Bond was 5% of the warcry's clear and 22% of the boss skill.
+A composite is one build composed from many pieces, so R1b checks that each piece in does something inside it
+(D-436): a probe leaves one piece out, and its record says what each figure loses. A piece can pay on one figure
+and not another: in the study behind amendment 10, Blistering Bond was 5% of the warcry's clear and 22% of the boss
+skill. The card says whether each piece does something; the percentages go in the verdict file's `pieces[]` only.
 
 **The measure: three kinds of figure, never summed across groups.** Read each from the record (the skeleton's,
 then each probe's), at the group's own selection, the record's key `g<group>s<skill>p<statSet>` for the group's
@@ -378,59 +430,67 @@ table's first rows), the least certain value first:
 - a **unique**: the slot's plain base of the same base type (the unique's base, with no modifier);
 - a **rare's mod line**: removed from the item;
 - a **node**: removed with every node that depends on it (the tree still connects); other pieces among them are
-  named in `How`;
+  named in `Left out by`;
 - a **keystone**: removed, with every custom modifier that stands for its mechanic;
 - a **rune**: removed from the item;
 - a **config condition**: turned off.
 
-**A piece PoB doesn't model** (its links row says `not modelled` or `hand calculation`, or
-`mcp__pob2__check_model_coverage` says so; Battershout's detonation shows no DPS): no probe. Its Drops is the
-card's hand estimate, `estimate (<reason>: <the figure it moves, about how much>)`, never a ledger entry: a skeleton
-has no ledger. It takes one of the 4 rows.
+**A piece PoB can't see** (`mcp__pob2__check_model_coverage` calls it unmodelled, or its links row says `not
+modelled`; Battershout's detonation shows no DPS): no probe, and its answer is `PoB can't see it`. It takes one of
+the 4 rows, and it doesn't change the card's status (the dossier's Pieces cell says so).
 
 **The order and the cap:** the checklist's probes 5–8 first, then the leave-one-outs, at most 8 in all. A probe a
-failed compile cuts is `not measured (<why>)`, with `How` `—`: its own compile's failure (`not measured (the probe's
-compile failed: <the error>)`), or the skeleton's, which cuts every row (`not measured (the skeleton didn't compile:
-<the first error>)`, or `not measured (not compiled: <the reason>)` on a card that compiles nothing, D-334, D-400),
-the 4 pieces chosen as above.
+failed compile cuts is `not measured (<why>)`, with `Left out by` `—`: its own compile's failure (`not measured (the
+probe's compile failed: <the error>)`), or the skeleton's, which cuts every row (`not measured (the skeleton didn't
+compile: <the first error>)`, or `not measured (not compiled: <the reason>)` on a card that compiles nothing, D-334,
+D-400), the 4 pieces chosen as above.
 
-**The drop** of a figure is (the probe's − the skeleton's) ÷ the skeleton's, to a whole percent, written
-`<the group's skill> (<clear | per corpse | boss>) −<x>%` (`+<x>%` for a rise; a corpse explosion's two figures
-`<skill>'s hit (per corpse)` and `<skill>'s ignite (per corpse)`). **`### Pieces measured`** (Appendix A), in the
-verification half after `### Key item prices`, one row per piece left out, in the order probed:
+**The drop** of a figure is (the probe's − the skeleton's) ÷ the skeleton's, in percent to one decimal, each figure
+named `<the group's skill> (<clear | per corpse | boss>)` (a corpse explosion's two figures `<skill>'s hit (per
+corpse)` and `<skill>'s ignite (per corpse)`), the verdict file's `pieces[]` entries. **The answer** (D-436):
+- `yes` when leaving the piece out moves any of its figures by 1% or more (the dead-slot audit's line, check 5);
+- `no` when none moves by 1%: the piece does nothing in PoB, and the card is `viable, except <the piece> does
+  nothing in PoB` in the dossier;
+- `PoB can't see it` for a piece PoB doesn't model (above);
+- `not measured (<why>)` when the probe's compile failed, or none ran.
+
+**`### Pieces measured`** (Appendix A), in the verification half after `### Key item prices`, one row per piece
+left out, `in` rows only, in the order probed:
 
 ```
 ### Pieces measured
 
-| Key | Drops | How |
+| Key | Left out by | Does something |
 |---|---|---|
-| i1b-4 | Seismic Cry (clear) −5%; Shield Wall (boss) −22%; Bellow's explosion's ignite (per corpse) 0% | the slot's plain Ruby Ring |
-| cr1-a-3-2 | not measured (the probe's compile failed: <the error>) | — |
+| i1b-4 | the slot's plain Ruby Ring | yes |
+| i1a-2 | Fist of War removed from group 1 | no |
+| i1c-1 | — | PoB can't see it |
+| i1a-5 | — | not measured (the probe's compile failed: <the error>) |
 ```
 
-`Key` is the piece's key in `### Pieces`; `Drops` lists each figure that moves, joined with `; ` (the named source's
-`0%` when none moves), or the estimate, or `not measured (<why>)`; `How` is how the probe left it out. Pieces not
-probed are left out of the table, so it holds at most 4 rows.
+`Key` is the piece's key in `### Pieces`, an `in` row's; `Left out by` is how the probe left it out (`—` for a piece
+PoB can't see, or one not measured); `Does something` is the answer. No figure goes in the table: the drops are the
+verdict file's. Pieces not probed are left out of the table, so it holds at most 4 rows.
 
 ## The card's verification half (C-52)
 
 Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
 (`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
-for a gate's change and the rival's rename (a composite's is R1a-synthesize's, its `### Pieces` included).
+for a gate's change (a composite's is R1a-synthesize's, its `### Pieces` included).
 
-- **Verified:** from the last compile's record, the defences (`Life`, `EnergyShield`, the four
-  `Missing<Elem>Resist`, each `<Type>MaximumHitTaken`, and `TotalEHP`, D-294) and the named source's modelled
-  DPS: its Count-scaled figure, `countedSkillOutputs[g<group>s<skill>p<statSet>].fields.TotalDPS` (the per-copy
-  figure × its group's Count, WU-55; `MinionTotalDPS` for a group that names a minion skill, D-378), with its
-  stat set and group.
+- **Verified** (D-436): the three checks' answers, **no figure** (no damage, life, EHP or clear-speed number:
+  numbers come at the design gate, measured on the full build): that the skeleton compiled, with its stage id;
+  the damage check's line, `Damage: <the named source>: <the kinds PoB shows>` (`Detonate Dead: hit, bleed,
+  ignite`, with `(rated at its hand-cast speed)` for a source a meta gem triggers), or the kind that shows nothing;
+  on a composite, how many of the `in` pieces probed do something, as `### Pieces measured` answers.
 - **Estimates** (D-296): each Count above 1 with its `countReason`, each custom modifier with its reason, and
-  every figure the record marks `computedWithCustomMods`, defences included; the clear and boss figures kept
-  separate, never summed. On a composite, that line names each figure of the measure, group by group: `Clear:
-  <figure, its group>, for each clear group. Per corpse: <hit and ignite, its group>. Boss: <figure, its group>, for
-  each boss group. Kept separate, never summed.`
+  which figures the record marks `computedWithCustomMods`, by name, with no number. On a composite, that line names
+  the groups of each kind of figure in the measure: `Clear: <its groups>. Per corpse: <its groups>. Boss: <its
+  groups>. Kept separate, never summed.`
 - **Checklist results**, from the checklist above; **a fallback ladder**, cheapest first; **key item prices**,
-  from step 6, each converted to a range around day 7 with the price as seen and its date and league day, or
-  `unavailable` with its note (the template's form).
+  from step 6, each converted to a range around day 7 with the price as seen and its date and league day, a range
+  that rounds to 0.0 as seen in players' words (`1 exalt (seen 2026-10-24)`), or `unavailable` with its note (the
+  template's form).
 - **Pieces measured**, on a composite only, after the key item prices: the table of "A composite's pieces" above,
   even when the attempt failed after its structure check (its rows then `not measured (<why>)`). A plain card has
   neither Pieces table.
@@ -452,22 +512,30 @@ writes each compile's record and XML beside its plan.
 
 ## Returns
 
-At most 8 lines: the outcome, the verdict file, the card with its checklist and probe counts (`probes <n>`:
-every probe run, a probe whose compile failed included; on a composite, then its pieces measured, `pieces <n>
-measured (<n> not measured)`), and your price calls counted by outcome (`pricing.md`):
+At most 8 lines: the outcome (`compiled`, with the damage kinds PoB shows; `compiled, damage missing: <the
+finding's message>`, a failed attempt; or `failed: <why>`), the verdict file, the card with its checklist and probe
+counts (`probes <n>`: every probe run, a probe whose compile failed included; on a composite, then its pieces
+measured, `pieces <n> measured (<n> not measured)`), and your price calls counted by outcome (`pricing.md`):
 
 ```
-R1b r1-a-2 attempt 1: compiled
+R1b r1-a-2 attempt 1: compiled; damage: hit, bleed
 reports/gates/R1b-r1-a-2-a1.json
 cards/r1-a-2.md: checklist 8 run (2 not checked), probes 3
 prices: none (offline)
 ```
 
 ```
-R1b r1-s-1 attempt 1: compiled
+R1b r1-s-1 attempt 1: compiled; damage: hit, ignite
 reports/gates/R1b-r1-s-1-a1.json
 cards/r1-s-1.md: checklist 8 run (1 not checked), probes 7, pieces 4 measured (1 not measured)
 prices: none (offline)
+```
+
+```
+R1b r1-a-1 attempt 1: compiled, damage missing: bleed shows nothing on Blood Hunt
+reports/gates/R1b-r1-a-1-a1.json
+cards/r1-a-1.md: checklist 8 run (8 not checked), probes 0
+prices: ok 1, exchange 1
 ```
 
 ## Fault directives

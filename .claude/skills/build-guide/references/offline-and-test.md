@@ -7,7 +7,8 @@
 Started only explicitly, with `--offline`; the run log records `mode: "offline"`. In offline mode:
 
 - **No web and no prices.** No step calls a trade tool, `mcp__pob2__get_currency_rates`, WebSearch or WebFetch, even
-  if one is available. In the M-12 environment those tools are removed, so the rule is enforced, not just
+  if one is available. No published guide is read (D-445 allows them online only), and no pricing stop can open,
+  so no gate asks the pricing question (D-444). In the M-12 environment those tools are removed, so the rule is enforced, not just
   followed.
 - **Research uses only the server's lookup tools and the committed C1/E1 files** (`data/campaign/`,
   `data/enemies/`), not `docs/design/grounding/`. A claim taken from C1/E1 cites its fact as
@@ -117,7 +118,7 @@ persistent FI-2 escalates the D1 gate on its third failure (run B's `c2`). The r
 
 | Id | Applied by, when | Edit | Must then fail |
 |---|---|---|---|
-| FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there. Unless the card already failed the ascendancy lock (`wrong-ascendancy`, D-342) or is `not-a-skill` (D-334), `not-in-pin` (D-400) or the rival's `not-dealt` card (D-408): it then compiles nothing, so FI-1 applies to nothing |
+| FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there. Unless the card already failed the ascendancy lock (`wrong-ascendancy`, D-342) or is `not-a-skill` (D-334) or `not-in-pin` (D-400): it then compiles nothing, so FI-1 applies to nothing. FI-1's compile failure comes before the damage check, so a faulted attempt has no `damage-missing` finding (D-436) |
 | FI-2 | the D1 gate step, before its compile | set the first endgame stage's `level` to 1 in `plan.json`, and its `loadoutName`'s `(L<n>)` to `(L1)` so the plan stays valid (C-31 ties the two) | V1, for that stage: its points and requirements exceed level 1 |
 | FI-3 | the D1 gate step | none: the gate's outcome is forced to `infeasible`, with evidence `FI-3 (injected)` | control flow only: the route back to the verification gate (D-287) |
 

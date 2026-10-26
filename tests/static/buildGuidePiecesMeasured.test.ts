@@ -20,6 +20,11 @@
  *
  * The formats are read from the amendment's Appendix A and the run scripts' own constants, so the skill text is held
  * to the spec and to what the checker accepts; one script check runs the checker on R1b's own example table.
+ *
+ * Amendment 11 (WU-114, D-436, D-442) changes this file's assertions on WU-114's files: the Pieces measured table
+ * answers whether each piece does something (`| Key | Left out by | Does something |`, its drops in R1b's verdict
+ * file), the dossier has amendment 11's nine columns with no figure, the brainstorm gate drops `out:`, and the
+ * script check runs on a run held to amendment 11. Those formats are read from amendment 11's Appendix A.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
@@ -78,8 +83,15 @@ const KINDS = (() => {
   return [...m[1].matchAll(/`([a-z]+)`/g)].map((k) => k[1]);
 })();
 const MEASURED_HEADER = blockAfter(appendix, 'after `### Key item prices`').split('\n').slice(2, 4);
-/** A Drops item in Appendix A's form: `<group> (<clear | per corpse | boss>) −<x>%`. */
-const DROP_ITEM = /^\S.*\((?:clear|per corpse|boss)\) [−+]?\d+%$/;
+/** Amendment 11's Appendix A (D-436): the Pieces measured table's header and its four answers; the dossier's columns. */
+const A11 = read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-11-live-test-fixes.md'));
+const A11_APPENDIX = A11.slice(A11.indexOf('## Appendix A. Formats'));
+const A11_SECTION = (title: string) => between(A11_APPENDIX, `### ${title}`, '\n### ');
+const inlineTable = (text: string) => (/`(\| Card \|[^`]*\||\| Key \|[^`]*\|)`/.exec(text)?.[1] ?? '').slice(1, -1).split('|').map((c) => c.trim());
+const MEASURED_COLUMNS_A11 = inlineTable(A11_SECTION('Pieces measured (the card)'));
+const DOSSIER_COLUMNS_A11 = inlineTable(A11_SECTION('The dossier'));
+/** An answer in amendment 11's Pieces measured: `yes`, `no`, `PoB can't see it` or `not measured (<why>)`. */
+const ANSWER = /^(?:yes|no|PoB can't see it|not measured \(.+\))$/;
 
 const R1B_RAW = rawStage('R1b');
 const R1B = folded(R1B_RAW);
@@ -135,8 +147,8 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
     for (const field of ['CombinedDPS', 'TotalDotDPS']) expect({ field, counted: new RegExp(`\\['${field}', '`).test(record) }).toEqual({ field, counted: false });
     expect(text).toContain('**Never add figures across groups**');
     expect(text).toContain("PoB's Full DPS still counts the named source only (D-337)");
-    // The verification half keeps the figures apart too.
-    expect(R1B).toMatch(/On a composite, that line names each figure of the measure, group by group: `Clear: <figure, its group>, for each clear group\. Per corpse: <hit and ignite, its group>\. Boss: <figure, its group>, for each boss group\. Kept separate, never summed\.`/);
+    // The verification half keeps the figures apart too, naming the groups with no number (amendment 11, D-436).
+    expect(R1B).toMatch(/On a composite, that line names the groups of each kind of figure in the measure: `Clear: <its groups>\. Per corpse: <its groups>\. Boss: <its groups>\. Kept separate, never summed\.`/);
   });
 
   it('leaves each kind of piece out its own way, a skill left out counting as 0', () => {
@@ -156,7 +168,7 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
     expect(Object.keys(BY_KIND).sort()).toEqual([...KINDS].sort());
     for (const [kind, rule] of Object.entries(BY_KIND)) expect({ kind, ruled: text.includes(rule) }).toEqual({ kind, ruled: true });
     expect(text).toMatch(/\*\*A skill left out counts as 0\*\*: the compile measures every group as the main skill, a disabled one included, .* its drop on its own figure is −100%/);
-    expect(text).toMatch(/other pieces among them are named in `How`/);
+    expect(text).toMatch(/other pieces among them are named in `Left out by`/);
   });
 
   it('probes up to 4 pieces in, never the named source or its enabler, the least certain value first', () => {
@@ -176,8 +188,9 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
     expect(text).toMatch(/\*\*The order and the cap:\*\* the checklist's probes 5–8 first, then the leave-one-outs, at most 8 in all\. A probe a failed compile cuts is `not measured \(<why>\)`/);
     expect(text).toContain("`not measured (the probe's compile failed: <the error>)`");
     expect(text).toMatch(/or the skeleton's, which cuts every row \(`not measured \(the skeleton didn't compile: <the first error>\)`/);
-    // Step 8: the leave-one-outs come after the checklist, before the verification half.
-    expect(R1B).toMatch(/run the verification checklist \(below\), on a composite then its leave-one-out probes \("A composite's pieces"\), then write the card's verification half/);
+    // Step 8: the leave-one-outs come after the damage check (amendment 11, D-436) and the checklist, before the
+    // verification half.
+    expect(R1B).toMatch(/run the damage check \(below\); when it passes, the verification checklist \(below\), on a composite then its leave-one-out probes \("A composite's pieces"\), then write the card's verification half/);
   });
 
   it('records a larger clear group as a stronger structure, the last line of `### Structure check`', () => {
@@ -189,21 +202,27 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
     expect(check).toContain('The section has one such line, its last');
   });
 
-  it("marks an unmodelled piece's figure an estimate, never a ledger entry", () => {
+  // Amendment 11 (D-436): an unmodelled piece answers `PoB can't see it`, in place of amendment 10's hand estimate.
+  it("answers `PoB can't see it` for a piece PoB doesn't model, with no probe", () => {
     const text = folded(PIECES_SECTION);
-    expect(text).toMatch(/\*\*A piece PoB doesn't model\*\* .*Battershout's detonation shows no DPS\): no probe\. Its Drops is the card's hand estimate, `estimate \(<reason>: <the figure it moves, about how much>\)`, never a ledger entry: a skeleton has no ledger/);
+    expect(text).toMatch(/\*\*A piece PoB can't see\*\* \(`mcp__pob2__check_model_coverage` calls it unmodelled, .*Battershout's detonation shows no DPS\): no probe, and its answer is `PoB can't see it`/);
   });
 
   it("writes `### Pieces measured` in Appendix A's form, even when the attempt failed after its structure check", () => {
     const example = blockAfter(PIECES_SECTION, '```').split('\n');
     expect(example[0]).toBe('### Pieces measured');
-    expect(example.slice(2, 4)).toEqual(MEASURED_HEADER);
+    // Amendment 11 (D-436): the columns are its Appendix A's, each row an answer, no figure (the drops go in R1b's
+    // verdict file); amendment 10's `| Key | Drops | How |` is an older run's.
+    expect(MEASURED_COLUMNS_A11).toEqual(['Key', 'Left out by', 'Does something']);
+    expect(MEASURED_HEADER).toEqual(['| Key | Drops | How |', '|---|---|---|']);
+    expect(example.slice(2, 4)).toEqual([`| ${MEASURED_COLUMNS_A11.join(' | ')} |`, '|---|---|---|']);
     const rows = example.slice(4).map((l) => l.slice(1, -1).split('|').map((c) => c.trim()));
     expect(rows.length).toBeGreaterThan(1);
-    for (const [, drops] of rows) {
-      const ok = /^not measured \(.+\)$/.test(drops) || /^estimate \(.+\)$/.test(drops) || drops.split('; ').every((d) => DROP_ITEM.test(d));
-      expect({ drops, ok }).toEqual({ drops, ok: true });
-    }
+    for (const [, , answer] of rows) expect({ answer, ok: ANSWER.test(answer) }).toEqual({ answer, ok: true });
+    // Each of the four answers is shown, and no row holds a percentage.
+    expect(['yes', 'no', "PoB can't see it", 'not measured'].map((a) => rows.some((r) => r[2].startsWith(a)))).toEqual([true, true, true, true]);
+    expect(rows.filter((r) => /\d+%/.test(r.join(' ')))).toEqual([]);
+    expect(R1B).toMatch(/`pieces` \(D-436\), on a composite whose leave-one-outs ran: `\[\{key, figure, dropPercent\}\]`/);
     expect(folded(PIECES_SECTION)).toMatch(/\*\*`### Pieces measured`\*\* \(Appendix A\), in the verification half after `### Key item prices`, one row per piece left out/);
     expect(R1B).toMatch(/\*\*Whenever you write a composite's `### Structure check`, write its `### Pieces measured` before the verdict too\*\*, whatever happens after: a piece no probe measured is `not measured \(<why>\)`/);
     expect(R1B).toMatch(/- \*\*Pieces measured\*\*, on a composite only, after the key item prices: .* even when the attempt failed after its structure check/);
@@ -217,25 +236,26 @@ describe('AC-W85 (WU-106, D-433): R1b builds a composite\'s skeleton and measure
   });
 });
 
-describe("AC-W85 (WU-106, D-433): the dossier's twelfth column, `key pieces`, on a composite run only", () => {
+// Amendment 11 (WU-114, D-436) replaces the twelfth column, `key pieces`, with the dossier's nine columns and its
+// Pieces cell: of the in pieces probed, how many do something. The checker keeps the twelve for older runs.
+describe("AC-W85 as amendment 11 amends it (WU-114, D-436): the dossier's nine columns, a composite's Pieces cell", () => {
   const template = read(path.join(SKILL_DIR, 'templates', 'dossier-template.md'));
   const header = (template.split('\n').find((l) => l.startsWith('| Card |')) ?? '').slice(1, -1).split('|').map((c) => c.trim());
   const checker = (name: string): string[] => JSON.parse((new RegExp(`export const ${name} = (\\[[^\\]]*\\]);`).exec(CHECK_RUN)?.[1] ?? '[]').replace(/'/g, '"'));
 
-  it('the template has `key pieces`, last and lower case, the run checker\'s D-433 list; an older run keeps eleven', () => {
-    expect(header[header.length - 1]).toBe('key pieces');
-    expect(header).toEqual(checker('DOSSIER_COLUMNS_D433'));
-    expect(header.slice(0, -1)).toEqual(checker('DOSSIER_COLUMNS_D407'));
-    expect(folded(template)).toContain('A run whose brainstorm rounds R1a-assemble dealt keeps the first eleven columns, with no "key pieces"; the run checker rejects twelve there.');
+  it("the template has amendment 11's nine columns, the run checker's list, and no `key pieces` or figure column", () => {
+    expect(DOSSIER_COLUMNS_A11).toEqual(['Card', 'Round', 'Status', 'Synergy', 'Damage', 'Pieces', 'Key prices', 'League', 'Main risk']);
+    expect(header).toEqual(DOSSIER_COLUMNS_A11);
+    expect(header).toEqual(checker('DOSSIER_COLUMNS_A11'));
+    // The older forms stay the checker's, for older runs.
+    expect(checker('DOSSIER_COLUMNS_D433')[11]).toBe('key pieces');
   });
 
-  it("R1b-assemble writes the twelve on a composite run, eleven on an older one, and each composite's measured pieces with their largest drops", () => {
+  it("R1b-assemble writes the nine, and a composite's Pieces cell from its Pieces measured answers", () => {
     const text = stage('R1b-assemble');
-    expect(text).toMatch(/On a composite run, its twelve columns exactly, in order: .* `Main risk`, `key pieces` \(D-433, in lower case, as written\)\. On a run whose brainstorm rounds R1a-assemble dealt, the first eleven, without `key pieces`: the run checker rejects twelve there/);
-    expect(text).toMatch(/a \*\*composite run\*\* is one whose brainstorm rounds R1a-synthesize composed \(D-429\), its deck `cards\.md` opening with `## What the composites share`/);
-    expect(text).toMatch(/its \*\*key pieces\*\* \(D-433\), from the card's Pieces measured: for a composite, each piece the table holds, by name, with its largest drop and the figure it falls on, `<piece> −<x>% \(<the group's skill>, <clear \| per corpse \| boss>\)`/);
+    expect(text).toContain(`its **nine columns** exactly, in order: ${DOSSIER_COLUMNS_A11.map((c) => `\`${c}\``).join(', ').replace(/, (`Main risk`)$/, ', $1')} (D-436, Appendix A)`);
+    expect(text).toMatch(/\*\*Pieces\*\*, a composite's: of the `in` pieces probed \(its Pieces measured rows\), how many do something, `4 of 4 do something`/);
     expect(text).toContain("A plain card's is `—`.");
-    expect(text).toMatch(/and in its key pieces on a composite run/);
   });
 });
 
@@ -251,14 +271,15 @@ describe('AC-W85 (WU-106, D-432): the brainstorm gate shows composites, takes pi
   it('shows each composite with its pieces in short, then the obvious build\'s line, then every plain card\'s name and structure', () => {
     const order = [
       'then **each composite** not verified yet, numbered',
-      'then its pieces in short, `in:`, `scheduled:` (each with where it goes) and `out:` (each with its reason in a few words)',
+      // Amendment 11 (WU-114, D-442): the display drops the out: line.
+      'then its pieces in short, `in:` and `scheduled:` (each with where it goes), with no `out:` line (D-442',
       "then **the obvious build's line**, the baseline as its card was written (D-403)",
       "then **every plain card's name and structure**, one line each, numbered on",
     ].map((p) => gate.indexOf(p));
     expect(order.every((i) => i > 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // The display's own piece lines (run-log.mjs, Appendix A).
-    for (const line of ['`  in: ${', '`  scheduled: ${', '`  out: ${']) expect({ line, printed: RUN_LOG.includes(line) }).toEqual({ line, printed: true });
+    for (const line of ['`  in: ${', '`  scheduled: ${']) expect({ line, printed: RUN_LOG.includes(line) }).toEqual({ line, printed: true });
   });
 
   it('verify takes 1–3 composites or cards by number or name; changes add or drop pieces; from names cards, composites and piece keys', () => {
@@ -304,17 +325,30 @@ describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and 
   });
 });
 
-describe("AC-W85 (WU-106): the run checker accepts R1b's own Pieces measured example on a composite run (script check)", () => {
+// Amendment 11 (WU-114, D-436): the script check runs on the fixture composite run held to amendment 11's rules
+// (`skillRevision: 11`), its dossier row written by R1b-assemble's rules from R1b's example answers.
+describe("AC-W85 as amendment 11 amends it (WU-114): the run checker accepts R1b's own Pieces measured example on a run held to amendment 11 (script check)", () => {
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'pieces-measured-'));
   afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-  it("R1b.md's example rows, keyed to the fixture composite's pieces, and a larger clear group's stronger-structure line pass check-run", () => {
+  it("R1b.md's example rows, keyed to the fixture composite's in pieces, its verdict's drops, the dossier's row and a larger clear group's stronger-structure line pass check-run", () => {
     const dir = path.join(TMP, 'run-composite');
     fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-composite'), dir, { recursive: true });
+    const json = (rel: string, edit: (v: Record<string, unknown>) => void) => {
+      const file = path.join(dir, rel);
+      const v = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+      edit(v);
+      fs.writeFileSync(file, `${JSON.stringify(v, null, 2)}\n`);
+    };
+    // Held to amendment 11 from its init (§19).
+    json('run-log.json', (l) => {
+      l.skillRevision = 11;
+      l.pricing = { stops: [], retries: [] };
+    });
     const cardFile = path.join(dir, 'cards', 'r1-s-1.md');
     const card = fs.readFileSync(cardFile, 'utf8');
-    // R1b.md's example, its keys mapped onto r1-s-1's Pieces rows (Blistering Bond is i1b-1 there).
-    const example = blockAfter(PIECES_SECTION, '```').replace(/\bi1b-4\b/g, 'i1b-1');
+    // R1b.md's example, its keys mapped onto r1-s-1's in rows (Blistering Bond is i1b-1 there; i1a-1 its fourth in row).
+    const example = blockAfter(PIECES_SECTION, '```').replace(/\bi1b-4\b/g, 'i1b-1').replace(/\bi1a-5\b/g, 'i1a-1');
     const measured = /### Pieces measured\n\n[\s\S]*?(?=\n\n|\n?$)/.exec(card);
     expect(measured).not.toBeNull();
     let edited = card.replace(measured![0], example);
@@ -322,6 +356,28 @@ describe("AC-W85 (WU-106): the run checker accepts R1b's own Pieces measured exa
     expect(structure).not.toBeNull();
     edited = edited.replace(structure![0], `### Structure check\n\n${structure![1]}- A stronger structure? Seismic Cry as the named source\n`);
     fs.writeFileSync(cardFile, edited);
+    // The verdict's drops (R1b.md step 9): a yes moves a figure by 1% or more, a no by less.
+    const rows = example.split('\n').slice(4).map((l) => l.slice(1, -1).split('|').map((c) => c.trim()));
+    json('reports/gates/R1b-r1-s-1-a1.json', (v) => {
+      v.pieces = rows.filter((r) => ['yes', 'no'].includes(r[2])).map((r) => ({ key: r[0], figure: 'Rolling Slam (clear)', dropPercent: r[2] === 'yes' ? -9 : -0.4 }));
+    });
+    // The dossier's row by R1b-assemble's rules: its status, damage kinds and Pieces cell from the answers.
+    const pieceName = new Map([...edited.matchAll(/^\| (i\d[a-c]-\d+|c\S+) \| ([^|]+?) \| /gm)].map((m) => [m[1], m[2]]));
+    const nothing = rows.filter((r) => r[2] === 'no').map((r) => pieceName.get(r[0]));
+    const named = rows.filter((r) => r[2] !== 'yes').map((r) => (r[2] === 'no' ? `${pieceName.get(r[0])} does nothing in PoB` : r[2] === "PoB can't see it" ? `${pieceName.get(r[0])}: PoB can't see it` : `${pieceName.get(r[0])}: not measured`));
+    const yes = rows.filter((r) => r[2] === 'yes').length;
+    const dossierFile = path.join(dir, 'dossier.md');
+    const dossier = fs.readFileSync(dossierFile, 'utf8').split('\n');
+    const at = dossier.findIndex((l) => l.startsWith('| Card |'));
+    const old = dossier[at].slice(1, -1).split('|').map((c) => c.trim());
+    const cells = dossier[at + 2].slice(1, -1).split('|').map((c) => c.trim());
+    const cell = (c: string) => cells[old.indexOf(c)];
+    const row = {
+      Card: 'r1-s-1', Round: cell('Round'), Status: `viable, except ${nothing.map((n) => `${n} does nothing in PoB`).join('; ')}`, Synergy: cell('Synergy'),
+      Damage: 'Rolling Slam: hit, ignite', Pieces: `${yes} of ${rows.length}: ${named.join('; ')}`, 'Key prices': cell('Key prices'), League: cell('League'), 'Main risk': cell('Main risk'),
+    } as Record<string, string>;
+    dossier.splice(at, 3, `| ${DOSSIER_COLUMNS_A11.join(' | ')} |`, `|${DOSSIER_COLUMNS_A11.map(() => '---').join('|')}|`, `| ${DOSSIER_COLUMNS_A11.map((c) => row[c]).join(' | ')} |`);
+    fs.writeFileSync(dossierFile, dossier.join('\n'));
     const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'check-run.mjs'), dir], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
     const violations = String(r.stderr).split('\n').filter((l) => l.startsWith('check-run: ['));
     expect({ violations, code: r.status }).toEqual({ violations: [], code: 0 });

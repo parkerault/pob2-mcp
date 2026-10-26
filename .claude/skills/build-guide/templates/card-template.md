@@ -2,15 +2,16 @@
 
 <!--
 Template for cards/<id>.md (slice 03 section 7.5, spine C-52), one candidate build. The id is
-r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), r<round>-x-<n>
-for the rival's (D-408), or r<round>-s-<n> for a composite, one build composed from the whole brainstorm (D-429).
-R1a (or the rival, RV) writes the brainstorm half, about 250–400 words, from the pattern library
+r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), or r<round>-s-<n>
+for a composite, one build composed from the whole brainstorm (D-429).
+R1a writes the brainstorm half, about 250–400 words, from the pattern library
 (references/patterns.md); R1a-synthesize writes a composite's whole brainstorm half, its Pieces table included
 (stages/R1a-synthesize.md); R1b writes the verification half under it (and first, a gate's change to the
 brainstorm half, stages/R1b.md), a composite's Pieces measured table included. Keep the two H2s and their H3s
 below exactly, in this order, and add no other heading. The H3s "Pieces" and "Pieces measured" are a composite's
 only (D-429, D-433): a card with "### Pieces" is a composite, whatever its id letter, and a plain card (a
-researcher's, the rival's, a gate-made card drawn from cards only) has neither. Replace every <placeholder>, keep
+researcher's, or a gate-made card drawn from cards only) has neither. The verification half carries no damage,
+life or EHP figure: verification checks that the build works, and numbers come at the design gate (D-436). Replace every <placeholder>, keep
 a line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
 
 Status words, used everywhere on the card, exactly as written here, one per link, figure or claim:
@@ -46,7 +47,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Pitch
 
-- Name: <2–4 words, a player's name for the build ("Skeleton Death Engine"), unique in the run>
+- Name: <a few words of the build's own, then its main skill (the named damage source, not a skill that feeds
+  it), then the ascendancy: "Reaping Bonfire Detonate Dead Blood Mage" (D-442); unique in the run>
 - Why pick it: <the hook in player terms, at most two sentences>
 - How it clears: <how a pack dies, which buttons the player presses, how soon it hits a new pack and how fast
   it moves between packs; no "(an estimate)" mark: the gate adds it>
@@ -86,8 +88,9 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Player evidence: <the brief's `popularity` notes on this card's skill, ascendancy or combination,
   quoted and cited as user-supplied ("the user's notes") | no player evidence>
-- Reference build: <the build and what it shows | Seed: <the reference the user named>, on a seed card
-  (D-393) | none>
+- Reference build: <a published build guide the card draws on, by its title, and what it shows, with its marker
+  `external | <url> | accessed: YYYY-MM-DD | confidence: <H|M|L>` (D-445; the brainstorm gate then shows "drawn
+  from <host>") | Seed: <the reference the user named>, on a seed card (D-393) | none>
 
 ### Risks so far
 
@@ -115,11 +118,11 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Verified
 
-- Defences (modelled in PoB): life <`Life`>, energy shield <`EnergyShield`>, resistances <the four
-  `Missing<Elem>Resist` values>, max hit <each `<Type>MaximumHitTaken`>, effective HP <`TotalEHP`>.
-- Modelled DPS: <the named source's Count-scaled figure (`countedSkillOutputs`; `MinionTotalDPS` for a minion
-  skill, D-378), its stat set and group>
-  (modelled in PoB; an estimate when its Count is above 1 or a custom modifier is present).
+- Compiled: <the skeleton compiled, stage <stage id> (modelled in PoB) | didn't compile: <the first error>>.
+- Damage: <the named source>: <the kinds PoB shows for it, of hit, damage over time, ignite, bleed, poison, minion
+  damage>[ (rated at its hand-cast speed), when a meta gem triggers it] | <the kind> shows nothing on <the named
+  source> (damage-missing) (modelled in PoB; no figure: numbers come at the design gate, D-436).
+- [only on a composite] Pieces: <n> of <m> in pieces probed do something, as Pieces measured answers.
 - [only when the damage source isn't a skill] Not compiled: its damage source isn't a skill. Only the
   checklist's read-only checks ran (D-334).
 
@@ -127,9 +130,9 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 - Count: <group> × <n>, because <the reason> (estimate).
 - Custom modifier: "<the line>", because <the reason> (estimate).
-- Computed with a custom modifier present: <each figure, defences included> (estimate: custom modifier
-  present).
-- Clear: <figure, its group>. Boss: <figure, its group>. Kept separate, never summed.
+- Computed with a custom modifier present: <which figures, by name, defences included; no number> (estimate:
+  custom modifier present).
+- Clear: <its groups>. Boss: <its groups>. Kept separate, never summed.
 
 ### Checklist results
 
@@ -151,12 +154,13 @@ Status words, used everywhere on the card, exactly as written here, one per link
 
 ### Key item prices
 
-- <item>: <about <low>–<high> divines around day 7 (seen <amount currency> on YYYY-MM-DD, day <n> of <league>[, late] | <league>, its day unknown) | <amount currency>, seen YYYY-MM-DD, not converted: no currency rates | unavailable (<note>)>
+- <item>: <about <low>–<high> divines around day 7 (seen <amount currency> on YYYY-MM-DD, day <n> of <league>[, late] | <league>, its day unknown) | <amount> <exalt or exalts, divine or divines, chaos> (seen YYYY-MM-DD), when the range rounds to 0.0 divines (D-442) | <amount currency>, seen YYYY-MM-DD, not converted: no currency rates | unavailable (<note>)>
 
 ### Pieces measured
 
-[only on a composite (D-433): this H3 and its table, R1b's leave-one-out probes; a plain card has neither]
+[only on a composite (D-433): this H3 and its table, R1b's leave-one-out probes of `in` pieces; a plain card has
+neither. No figure: the drops go in R1b's verdict file (D-436)]
 
-| Key | Drops | How |
+| Key | Left out by | Does something |
 |---|---|---|
-| <the Pieces row's key> | <each figure that moves, `<group> (<clear \| per corpse \| boss>) −<x>%`, joined with `; ` \| estimate (<reason>), for a piece PoB doesn't model \| not measured (<why>)> | <how the probe left the piece out \| —> |
+| <an `in` Pieces row's key> | <how the probe left the piece out \| —> | <yes, leaving it out moves one of its figures by 1% or more \| no \| PoB can't see it \| not measured (<why>)> |

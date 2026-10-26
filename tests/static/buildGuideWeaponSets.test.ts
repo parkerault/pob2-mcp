@@ -3,7 +3,8 @@
  *
  * - `templates/card-template.md`: the identity's `Weapon sets:` line, with the four uses D-426 names (none, a second
  *   tree, a second weapon, a set-2 buff).
- * - `references/stages/R1a.md` and `RV.md`: each checks a card for its weapon-set use.
+ * - `references/stages/R1a.md`: checks each card for its weapon-set use (`RV.md` did too, until amendment 11
+ *   removed the rival, D-443).
  * - `references/stages/D1-build.md`: every set a card's skills use measured (the record's `outputsSet2`), Spirit
  *   on each set, and a set-2 buff measured on set 2 and carried to set 1 as a custom modifier with its reason.
  * - `references/stages/D1-tree.md` and `D1-gate.md`: the pool moves, by the line the tool gives them
@@ -68,15 +69,13 @@ describe('AC-W80 (WU-101): the skill text for weapon sets (D-426) and PG-71', ()
     expect(line).toMatch(/when the player swaps/);
   });
 
-  it("R1a and RV check each card for its weapon-set use, and R1a names PG-71's overstated support count", () => {
+  // Amendment 11 (WU-114, D-443): RV.md is deleted with the rival, so only R1a's check remains.
+  it("R1a checks each card for its weapon-set use, and names PG-71's overstated support count", () => {
     const r1a = stage('R1a');
     expect(r1a).toMatch(/\*\*Weapon sets\*\* \(D-426\): every card's identity has the line `Weapon sets:`/);
     for (const use of USES) expect({ use, named: r1a.includes(`\`${use}\``) }).toEqual({ use, named: true });
     expect(r1a).toMatch(/Check each card for it before you write `none`/);
     expect(r1a).toMatch(/PG-71/);
-    const rv = stage('RV');
-    expect(rv).toMatch(/\*\*Weapon sets\*\* \(D-426\)\. Weapon set 2 is one of the assumptions to flip/);
-    expect(rv).toMatch(/Your card's identity carries its `Weapon sets:` line, checked as R1a checks it/);
   });
 
   it('D1-build measures every set the skills use, Spirit on each set, and carries a set-2 buff to set 1 as a custom modifier with its reason', () => {

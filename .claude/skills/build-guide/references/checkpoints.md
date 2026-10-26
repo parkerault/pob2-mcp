@@ -89,20 +89,42 @@ overrule your call either way.
 
 - **Recorded:** a revision as `changes: {"<id>": "<the user's words>"}`, keyed by a card the answer picks; a new
   card as `newCards: [{"id": "r<k>-g-<n>", "name", "from": ["<id>"…], "words"}]`, `k` the latest brainstorm
-  round and `n` the run's next gate-made card in it, `from` any cards `cards.md` lists. Propose its name, 2–4
-  words no card of the run has, in the restatement; the user may change it before the yes. Picks and new cards
+  round and `n` the run's next gate-made card in it, `from` any cards `cards.md` lists. Propose its name in the
+  restatement, one no card of the run has, carrying **the main skill and the ascendancy** (D-442): a few words of
+  the build's own, then the main skill (the card's named damage source, not a skill that feeds it), then the
+  ascendancy, like "Reaping Bonfire Detonate Dead Blood Mage"; the user may change it before the yes. Picks and new cards
   together are 1–3; a pick of new cards only is `pick:` or `verify:` with no id. In a run that composes (D-432),
   `from` may also name piece keys, a `### Pieces` row's or an Ideas line's, and a composite's `changes` may add or
   drop pieces (the brainstorm gate, below).
 - **A question that became an idea** can go into brainstorm more as its note; the next round's researchers get
   its answer file.
 
-**A rival on request** (D-408). At any gate the user may ask for a rival: a researcher with fresh context looks
-for a structure that clears faster. Start stage `RV` (`stages/RV.md`), not a gate question step, between the
-display and the answer as a question step runs, with the run's own rival's prompt (the brief and its card id
-`r<k>-x-<n>`), and log it `RV`. Relay its return: the card's name and its five pitch lines in the display's form,
-or that it found no structure that clears faster, with what it tried. That visit's answer or a later one verifies
-its card by id: `pick:` at the brainstorm gate (counted among the 1–3), `verify:` at the verification gate.
+**No rival** (D-443): the rival step is removed, so a request for "a rival" or "a faster structure" is a
+question (a gate question step) or a new card, by the rule above.
+
+## The pricing question (D-444)
+
+After a pricing step hit a rate limit or a lockout (`rate_limited` or `locked_out` in its `priceOutcomes`), trade-site
+pricing stops until the user approves a retry: `run-log.mjs` records the stop in `pricing.stops[]` with that step's
+`stage` entry (`run-log.md`). poe.ninja's exchange stays allowed, so every item the currency exchange sells keeps
+its price. **The next gate asks first**, whichever gate it is: after its display and before its other questions,
+ask `Pricing stopped at <step> after <outcome>: retry?` (`<outcome>` in words: "a rate limit", "a lockout"), and
+log the answer with `run-log.mjs pricing` before anything else of the visit:
+
+```
+node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing - <<'JSON'
+{"checkpoint": "verification", "answer": "retry-pricing"}
+JSON
+```
+
+- **`retry-pricing`**: the stop clears. At the verification gate, the next pricing step prices (R1b, or the build's
+  D1-build and D1-finish); at the design gate, the D1 gate's re-price pass runs before F1 (on `accept`, a D1 gate,
+  then F1, with no second design gate). Say that a second limit stops pricing again.
+- **`no-retry`**: the stop holds; every later step prices only the currency exchange's items, the rest
+  `unavailable`, and the next gate asks again.
+
+Asked only while a stop is open (the script refuses it otherwise), once per gate visit. A resume clears a stop too,
+as before (`pricing.md`).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -126,11 +148,13 @@ checkpoint `brainstorm`.
 
 - **Show** (`display brainstorm`, D-392, D-432) the brief in a line, the deck's header (what the composites share,
   how they differ), then **each composite** not verified yet, numbered: its round line (its name, its structure,
-  its layers, the limit's answer and its under-played label), then its pieces in short, `in:`, `scheduled:` (each
-  with where it goes) and `out:` (each with its reason in a few words); the composites a later round superseded,
-  still pickable; then **the obvious build's line**, the baseline as its card was written (D-403); then **every
-  plain card's name and structure**, one line each, numbered on (the researchers', the gate-made and the rival's
-  cards `## Cards` lists), each one the user can verify too; ids last, under "For reference". A card whose damage
+  its layers, the limit's answer and its under-played label), then its pieces in short, `in:` and `scheduled:`
+  (each with where it goes), with no `out:` line (D-442: the card's `### Pieces` and the build's `pieces.md` keep
+  the out pieces and their reasons); the composites a later round superseded, still pickable; then **the obvious
+  build's line**, the baseline as its card was written (D-403); then **every plain card's name and structure**, one
+  line each, numbered on (the researchers' and the gate-made cards `## Cards` lists), each one the user can verify
+  too; under a card that draws on a published guide (its Evidence's `external | <url>`), `drawn from <host>`, so the
+  user can tell a known build from the pipeline's own (D-445); ids last, under "For reference". A card whose damage
   source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
   resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-429: fewer
   than 2 composites, or none taking a piece marked under-played), say so, with the reason R1a-synthesize gave,
@@ -138,7 +162,8 @@ checkpoint `brainstorm`.
 - **Show, in a run whose first brainstorm round ran R1a-assemble** (`display brainstorm`, D-392): the brief in a
   line, the deck's header, every dealt card not verified yet by name, numbered, with its pitch, the "Not dealt"
   cards with their reasons, and the findings no card used; ids last, under "For reference". The deck's header names
-  each engine with its count (D-405); the obvious card shows its `Obvious build:` line (D-403). A card whose damage
+  each engine with its count (D-405); the obvious card shows its `Obvious build:` line (D-403), and a card that
+  draws on a published guide its `drawn from <host>` line (D-445). A card whose damage
   source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
   resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-339: fewer
   than 6 cards passed, the deck holds fewer than two under-played cards, or one engine filled it, D-405), say so,
@@ -166,27 +191,37 @@ Renamed from checkpoint 1 (D-287). Shown after every verification round's R1b-as
 that was `infeasible` or an escalation sent the run back here, after a final gate's `accept:verification` once the
 queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
 
-- **Show** (`display verification`) R1b-assemble's comparison, the dossier's table: one line per card verified in
-  the run (every verification round, not only the last): its synergy, numbers from its skeleton's record (the
-  named damage source's Count-scaled figure, `Life` and `TotalEHP`, D-294, the EHP naming the hit it was measured
-  against, the rungs' T15 map hits, so it compares with the design gate's, D-423; a minion skill's figure its minion's
-  `MinionTotalDPS`, D-378; the figure labelled `estimate` when its group's Count is above 1 or the stage is
-  `computedWithCustomMods`, D-296), key prices (converted, as ranges with their league day, D-374; or
-  `unavailable`), risks, what PoB can't verify, and its status: `viable`, `failed`, or "can't be finalized yet:
-  its damage source isn't a skill" (D-303, D-334; from its R1b verdict's `not-a-skill` finding). A card whose R1b
-  verdict's finding is `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't own
-  the passive-tree node that grants its skill, the node the finding names. Each card's block leads with its
-  skeleton's measured clear speed and movement speed, then its Bosses line, the boss floor (D-407); a card's
-  `A stronger structure?` line, from its structure check, sits under it, and the user can make a new card from it
-  (D-406). The rival's card is marked as the rival, and a rival that found nothing says so, with what it tried
-  (D-408). A `not-in-pin` card is "can't be finalized yet: waits on the pin" (D-400); the rival's `not-dealt`
-  card is `failed`. Give the dossier's path. After an `infeasible` design or an escalation, show that card's
-  evidence: its last verdict file. With no viable card, show each failed card's last verdict and why it fails
-  (D-141); a card that can't be finalized yet is listed with its status, never as a failure. In a schema-4 run the
-  display then lists every build of the run with its status (D-411), says when PoB's version (the pin's commit)
-  or the league digest changed since the run last ran (D-415: a card verified on the old pin may still be
-  finalized, its skeleton's figures the old pin's, and its design measures afresh), and after a resume names the
-  answers a resume adds.
+- **Show** (`display verification`, D-436) R1b-assemble's comparison, the dossier's table: one block per card
+  verified in the run (every verification round, not only the last), **with no figure**: no damage, life, EHP,
+  clear-speed or movement-speed number. Verification answers "it compiles and the skills work as expected"; the
+  user decides which cards to finalize. Each card's block, by its name (no id, D-392):
+  - its status, in words from the dossier's (D-392): `works` for `viable` (it compiled, and its named damage source
+    shows every kind of damage the card names); `works, except <piece> does nothing in PoB` for `viable, except
+    …`; `failed after <n> tries: <why>` for `failed after <N> attempts: …` (a failed compile, or `damage-missing`
+    after its retries: a kind of damage the card names that shows nothing on its named source); "can't be built
+    yet: …" for "can't be finalized yet: its damage source isn't a skill" (D-303, D-334; from its R1b verdict's
+    `not-a-skill` finding) or "can't be finalized yet: waits on the pin" (a `not-in-pin` card, D-400). A card whose
+    R1b verdict's finding is `wrong-ascendancy` (D-342) is `failed`, shown with that reason: its ascendancy doesn't
+    own the passive-tree node that grants its skill, the node the finding names;
+  - its synergy, and its pitch lines as written (Why pick it, How it clears, Bosses, Needs, The catch), its made
+    and changed lines;
+  - `Damage:` the named source and the kinds PoB shows for it (`Detonate Dead: hit, bleed, ignite`; `(rated at its
+    hand-cast speed)` for a source a meta gem triggers);
+  - `Pieces:` on a composite, how many of its `in` pieces probed do something, and which don't or PoB can't see;
+  - its key prices, converted, as ranges with their league day (D-374), or as seen in players' words when a range
+    rounds to 0.0 (`1 exalt (seen 2026-10-24)`, D-442), or `unavailable`;
+  - its risks, what PoB can't verify, and its structure check's `A stronger structure?` line, from which the user
+    can make a new card (D-406).
+
+  Under the cards, one line: `Numbers come at the design gate, measured on the full build.` Give the dossier's
+  path. After an `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no
+  viable card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
+  listed with its status, never as a failure. In a schema-4 run the display then lists every build of the run with
+  its status (D-411), says when PoB's version (the pin's commit) or the league digest changed since the run last
+  ran (D-415: a card verified on the old pin may still be finalized, and its design measures afresh), and after a
+  resume names the answers a resume adds. **A dossier written before amendment 11** (a resumed older run's, read by
+  its header, §19) keeps its older display: each card's skeleton figures (its clear speed, damage, life and EHP),
+  and an older run's rival card marked as the rival (D-408, removed by D-443).
 - **Answers:**
   - **finalize** 1 to 3 cards (`pick:<id>[,<id>…]`, D-411), in the user's order, each with any revision as
     `changes`, which that build's first D1-build attempt takes as a finding, `code: "user-request"`: a failed card
@@ -194,9 +229,11 @@ queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
     the pin (D-400). A card whose R1b failed `wrong-ascendancy` can't be finalized at all, not even anyway: the
     build it describes can't exist (D-342). Refuse such an answer and ask again. A test config that pre-supplies
     one has given an illegal answer: the run ends `stopped`, recorded as answer `stop` with the test config's
-    `pick:<id>` as its `rule`. The same holds for the rival's card that ended `not-dealt`: it was never dealt
-    (D-408). **A card that already has a build in the run isn't finalized again**: a second design of it is a
-    `revise:` at its design gate, or a new card made from it here (D-391). Each card's identity `{className,
+    `pick:<id>` as its `rule`. The same holds for an older run's rival card that ended `not-dealt`, from before
+    amendment 11 removed the rival (D-408, D-443): it was never dealt. A card that failed `damage-missing` may be
+    finalized anyway: its design measures the full build. **A card that already has a build in the run isn't
+    finalized again**: a second design of it is a `revise:` at its design gate, or a new card made from it here
+    (D-391). Each card's identity `{className,
     ascendancy, skill}` becomes its build's `roll` (D-286), logged with `run-log.mjs build` as `queued`, in
     `builds/<id>/` (D-412), and the builds are designed in turn (below).
   - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 composites or cards from the deck not verified yet, with
@@ -281,9 +318,13 @@ Checkpoint 2, once per build. Shown after the run checker (step 15). Recorded as
 
 - **Show** (`display final --build <id>`, which runs the run checker) the build's guide and `audit.md` paths; the
   PoB file (the verdict's `finalCompile.pobFile` of the build's last final compile, F1's or the D2 gate's); the
-  gate verdicts; each endgame rung's figures from the final compile record, its DPS, EHP, Arbiter verdict with the
-  worst ratio, rough clear speed and travel (the last D1 gate verdict's tree, D-419), with the design gate's
-  beside them where they moved since (D-369); the known issues (the open V4 findings and the accepted gate
+  gate verdicts; each endgame rung's figures from the final compile record (D-437, D-447): `<rung label>: <map>
+  damage per second against map monsters, <boss> against a Pinnacle boss; Effective HP <n>`, the map figure the
+  named source's damage figure (culling counted only when the rung's `skills.cull` says the rotation culls) and the
+  boss figure the record's evaluated `boss_<stage>` ledger value when the design estimated one (`about <n>`), else
+  its measured `damage.boss`; then its Arbiter verdict with the worst ratio, rough clear speed and travel (the last
+  D1 gate verdict's tree, D-419), with the design gate's beside them where they moved since (D-369); a build whose
+  record predates amendment 11 shows its one DPS figure, `measures.dps`; the known issues (the open V4 findings and the accepted gate
   findings); the run checker's result; each rung's total range at its price day against its target, and its
   over-target slots (the D1 gate's last verdict file, D-371, D-374); when any price is `unavailable`, that the
   rung's total isn't known (D-164); and in offline mode, that the guide is from an offline run.
@@ -350,7 +391,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 |---|---|---|
 | unsaved build | `answers.unsavedBuild`: `proceed` or `stop` | none given: `stop`, `default` |
 | brainstorm gate | `answers.brainstorm[]`, one per visit: `pick:<id>[,<id>…]` (1–3 ids), `first-n:<n>`, `more` or `stop` | `first-n:<n>` (`n` 1–3) is the first `n` composites `cards.md`'s `## Round <k>` lines list, not verified yet, in the deck's order, never a superseded composite or a plain card (D-429); in a run that deals (R1a-assemble), the first `n` dealt cards not verified yet; else `stop` |
-| verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>[,<id>…]` (1–3 ids, D-411), `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card not yet finalized in this run, `pick:<id>`, else `stop`; a card that can't be finalized yet is never `viable` |
+| verification gate | `answers.verification[]`, one per visit: `first-viable`, `pick:<id>[,<id>…]` (1–3 ids, D-411), `verify:<id>[,<id>…]`, `more` or `stop` | `first-viable` is the first `viable` card (`viable, except …` included, D-436) not yet finalized in this run, `pick:<id>`, else `stop`; a card that can't be finalized yet is never `viable`, nor is a failed one (`damage-missing` included) |
 | design gate | `answers.design[]`, one per visit: `accept`, `accept:file`, `revise:<text>`, `verification` or `stop` | none left: `stop`, `default`, rule `no design answer left: stop` (D-362), which ends the run |
 | final gate | `answers.final[]`, one per visit: `accept`, `accept:verification`, `campaign`, `not-accept`, `decline:<note>` or `revise:<text>` | `not-accept` resolves to `decline:<note>`, the note saying the test config declined (D-411); none left: `stop`, `default`, which ends the run |
 | escalation | `answers.escalation[]`, one per escalation: `accept`, `retry:<guidance>`, `verification` or `stop` | none left: `stop`, `default`: the build ends `escalated` |
@@ -362,12 +403,16 @@ interview (D-394, `offline-and-test.md`).
 **A pre-supplied answer still prints the display** (D-265). The test config replaces only the question:
 show everything the gate shows the user, then the answer it resolved to. At the brainstorm gate that is the
 brief and the deck, on every visit. At the verification gate that is R1b-assemble's comparison lines, each
-card's status and the dossier's path, on every visit; on a revisit after an `infeasible` design or an
+card's status and the dossier's path, with no figure and the line that numbers come at the design gate (D-436), on
+every visit; on a revisit after an `infeasible` design or an
 escalation, that card's evidence (its last verdict file); with no viable card, each failed card's last
 verdict. At
 the design gate that is every rung's block and the open estimates from the D1 gate's verdict file, on every
 visit. At the final gate and at an escalation, the same holds for their displays: `display <gate>` prints each
 (`--build <id>` at the design and final gates), on every visit.
+
+A test config has no pricing answer: an offline run prices nothing, so no pricing stop opens and the pricing
+question (above) is never asked.
 
 When the `brainstorm`, `verification`, `design` or `final` answers run out, the run ends (recorded as answer
 `stop`, `answeredBy: "default"`), `stopped` unless a build ended `completed` or `file-only` before it: a default

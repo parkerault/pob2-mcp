@@ -78,6 +78,12 @@ const KINDS = (() => {
 const PIECES_BLOCK = blockAfter(appendix, '**The card\'s tables.**');
 const PIECES_HEADER = PIECES_BLOCK.split('\n').slice(2, 4);
 const MEASURED_HEADER = blockAfter(appendix, 'after `### Key item prices`').split('\n').slice(2, 4);
+/** Amendment 11 (D-436, its Appendix A): the Pieces measured table's header, which replaces amendment 10's. */
+const A11_APPENDIX = (() => {
+  const a11 = read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-11-live-test-fixes.md'));
+  return a11.slice(a11.indexOf('## Appendix A. Formats'));
+})();
+const MEASURED_HEADER_A11 = /`(\| Key \|[^`]*\|)`/.exec(between(A11_APPENDIX, '### Pieces measured (the card)', '\n### '))?.[1] ?? '';
 /** Appendix A's deck: its H2s in order, `Round <k>` standing for every round. */
 const DECK_H2 = blockAfter(appendix, '**`cards.md`**')
   .split('\n')
@@ -155,8 +161,9 @@ describe('AC-W83: R1a-synthesize.md (D-429, D-432, Appendix A\'s interface)', ()
     for (const item of ["every card's brainstorm half", '`## Ideas`', '`## Supply search`', '`cards.md`', '`.claude/skills/build-guide/templates/card-template.md`', '`data/rules/vocabulary.md`', '`.claude/skills/build-guide/references/patterns.md` and Read those entries only']) {
       expect({ item, read: readList.includes(item) }).toEqual({ item, read: true });
     }
-    // The rival's and the gate-made cards, and the earlier rounds', are among the cards read.
-    expect(readList).toMatch(/this round's .*, the earlier rounds', the gate-made ones \(`r<j>-g-<n>`\), the rival's \(`r<j>-x-<n>`\)/);
+    // The gate-made cards and the earlier rounds' are among the cards read; amendment 11 (WU-114, D-443) removes the
+    // rival, whose card an older run's resume may still hold.
+    expect(readList).toMatch(/this round's .*, the earlier rounds', the gate-made ones \(`r<j>-g-<n>`\) and the earlier composites \(`r<j>-s-<n>`\)/);
     // Nothing beyond the interface: no dossier, run log, interview notes or plan.
     const allowed = new Set(['cards/', 'research/', 'cards.md', '.claude/skills/build-guide/templates/card-template.md', 'data/rules/vocabulary.md', '.claude/skills/build-guide/references/patterns.md']);
     const paths = [...readList.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((p) => /\/|\.md$|\.json$/.test(p) && !/^r<j>/.test(p));
@@ -226,11 +233,12 @@ describe('AC-W83: R1a-synthesize.md (D-429, D-432, Appendix A\'s interface)', ()
     expect(assemble).toMatch(/^2\. \*\*Check each card's identity\*\*/m);
     expect(folded(between(assemble, "2. **Check each card's identity**", '3. **The sniff test**'))).toMatch(/the ascendancy lock \(D-342\)/);
     expect(assemble).toMatch(/^3\. \*\*The sniff test\*\* \(D-287\)/m);
-    expect(assemble).toMatch(/^7\. \*\*Unique names\*\* \(D-392\)/m);
+    // Amendment 11 (WU-114, D-442): the name rule joins step 7.
+    expect(assemble).toMatch(/^7\. \*\*Unique names\*\* \(D-392, D-442\)/m);
     expect(text).toMatch(/The identity check with its ascendancy lock, the sniff test and unique names are `\.claude\/skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s steps 2, 3 and 7/);
     expect(work).toMatch(/\*\*Check the cards\*\* of each structure you compose, by `R1a-assemble\.md`'s step 2: the identity check, the brief's fixed pieces and the ascendancy lock \(D-342\)/);
     expect(work).toMatch(/\*\*The sniff test\*\*, `R1a-assemble\.md`'s step 3/);
-    expect(work).toMatch(/\*\*Names\*\* \(D-392\), by `R1a-assemble\.md`'s step 7/);
+    expect(work).toMatch(/\*\*Names\*\* \(D-392, D-442\), by `R1a-assemble\.md`'s step 7/);
   });
 
   it("writes Appendix A's deck: its H2s in order, the round, card and obvious-build lines, the capped sections", () => {
@@ -304,7 +312,8 @@ describe('AC-W83: the card template has `### Pieces` and `### Pieces measured` (
   it('puts `### Pieces measured` right after `### Key item prices`, last in the verification half, with Appendix A\'s columns', () => {
     const verification = h3Under('Verification half');
     expect(verification.slice(-2)).toEqual(['Key item prices', 'Pieces measured']);
-    expect(tableUnder('Pieces measured')).toEqual(MEASURED_HEADER);
+    // Amendment 11 (WU-114, D-436): the table's columns are amendment 11's Appendix A's, the answers in place of the drops.
+    expect(tableUnder('Pieces measured')).toEqual([MEASURED_HEADER_A11, '|---|---|---|']);
   });
 
   it('marks both a composite\'s only, and gives a composite the id letter `s`', () => {
@@ -329,7 +338,8 @@ describe('AC-W83: the task header, the stages README, the run folder and the def
     expect(header).toMatch(/letter `s` for a composite, `r<k>-s-<n>`, D-429/);
     expect(header).toMatch(/R1a-synthesize's `cards\.md`, its composites' cards `cards\/r<k>-s-<n>\.md` and the round's cards, for a rename \(D-429, D-392\)/);
     expect(header).toMatch(/`\{visit, name, from, words\}` makes it, `from` the cards it draws on, composites included, and the piece keys \(a Pieces row's key or an Ideas line's id, D-432\)/);
-    expect(header).toMatch(/and D1-build's `<buildFolder>\/pieces\.md` too \(D-434\)/);
+    // Amendment 11 (WU-114): D1-tree's and D1-finish's trades.json follow it.
+    expect(header).toMatch(/, D1-build's `<buildFolder>\/pieces\.md` too \(D-434\)/);
   });
 
   it('stages/README.md lists R1a-synthesize.md beside R1a-assemble.md', () => {
@@ -342,7 +352,8 @@ describe('AC-W83: the task header, the stages README, the run folder and the def
     expect(folder).toMatch(/\| `cards\.md` \| the R1a-synthesize step \(the R1a-assemble step in a run whose first brainstorm round used it\)/);
     expect(folder).toMatch(/`n` from 1 to 4, or to 8 on a composite/);
     expect(folder).toMatch(/\| `builds\/<id>\/pieces\.md` \| D1-build \(D-434\) \|/);
-    expect(folder).toMatch(/a composite R1a-synthesize writes `r<k>-s-<n>` \(D-429\)\. A card holding `### Pieces` is a composite, whatever its letter/);
+    // Amendment 11 (WU-114, D-443): an older run's rival card is named, in parentheses, between them.
+    expect(folder).toMatch(/a composite R1a-synthesize writes `r<k>-s-<n>` \(D-429\)\. .* A card holding `### Pieces` is a composite, whatever its letter/);
   });
 
   it("the coordinator's description and research steps name R1a-synthesize, its stage reference, beside R1a-assemble's", () => {

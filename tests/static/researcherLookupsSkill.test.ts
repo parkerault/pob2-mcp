@@ -4,7 +4,8 @@
  * - `R1a.md`'s discovery calls name each new lookup (the tree distance with `search_tree_nodes`' `from`, a gem's cost
  *   and Spirit by level, `mode: "base"`, `mode: "config"`, `kind: "constant"`), and its Grep rule: PoB's
  *   `vendor/PathOfBuilding-PoE2/src/Modules/` only for how the engine computes something, cited by file and line;
- *   data questions through the tools; no scratch builds (FR-W3). `RV.md` says the same in short.
+ *   data questions through the tools; no scratch builds (FR-W3). (`RV.md` said the same in short, until amendment 11
+ *   removed the rival and its file, D-443.)
  * - The researcher's agent definition and `references/lookups.md` agree: each names the same lookups and the same
  *   rule, and the definition's tool list keeps the lookup set unchanged.
  * - The README tool table is regenerated: its rows for the two tools hold the first sentence of their current
@@ -22,7 +23,6 @@ const read = (p: string) => fs.readFileSync(p, 'utf8');
 const folded = (t: string) => t.replace(/\s+/g, ' ');
 
 const R1A = folded(read(path.join(SKILL, 'references', 'stages', 'R1a.md')));
-const RV = folded(read(path.join(SKILL, 'references', 'stages', 'RV.md')));
 const LOOKUPS = folded(read(path.join(SKILL, 'references', 'lookups.md')));
 const RESEARCHER_RAW = read(path.join(REPO, '.claude', 'agents', 'build-guide', 'build-guide-researcher.md'));
 const RESEARCHER = folded(RESEARCHER_RAW);
@@ -56,16 +56,6 @@ describe('AC-W79 (WU-100, D-425): the researchers\' lookups and the Grep rule in
     expect(R1A).toContain(`You may Grep PoB's ${MODULES} to see how the engine computes something`);
     expect(R1A).toMatch(/cite what you read by file and line \(`Modules\/CalcOffence\.lua:1234`\)/);
     expect(R1A).toMatch(/No scratch builds: the server holds one loaded build \(FR-W3\), and you never load, change or compile one\./);
-  });
-
-  it('RV.md says the same in short: the new lookups, the Grep rule and no scratch builds', () => {
-    const para = RV.slice(RV.indexOf('**Lookups, and PoB\'s source for how only** (D-425)'));
-    expect(para.length).toBeGreaterThan(100);
-    for (const [what, re] of LOOKUPS_NAMED) expect({ what, named: re.test(para) }).toEqual({ what, named: true });
-    expect(para).toContain(`Grep PoB's ${MODULES} only for how the engine computes something, cited by file and line`);
-    expect(para).toMatch(/no scratch builds \(FR-W3\)/);
-    // Not among the rival's reads, which name no shared run file (AC-W76's check keeps that list).
-    expect(RV.indexOf('**Lookups, and PoB\'s source for how only**')).toBeGreaterThan(RV.indexOf('## Work'));
   });
 
   it('lookups.md and the researcher\'s definition agree with R1a: the same lookups and the same Grep rule', () => {

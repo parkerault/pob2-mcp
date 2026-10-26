@@ -8,7 +8,7 @@
  * - `references/stages/D1-finish.md`: a `reason` claim for each scheduled piece and each composite piece left out.
  * - `references/stages/D1-gate.md`: the design field's `pieces {in, scheduled, out, scheduledNames, outNames}`, read
  *   from `pieces.md`, which `run-log.mjs display design` prints: the field is put through the real display.
- * - `references/stages/RV.md`: questions 11–19, the rival under composites, a plain card whose pieces join the pool.
+ * - `references/stages/RV.md` (removed by amendment 11, D-443): its block went with it.
  * - `references/patterns.md`: questions 16–19 and the two amended entries, read from the amendment's §6, under the
  *   library's cap; R1a-synthesize's one-line glosses agree with them.
  *
@@ -319,30 +319,9 @@ describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shap
   });
 });
 
-describe('AC-W86: the rival asks 11–19 and is placed under composites (D-408 as D-429 amends it)', () => {
-  const rv = stage('RV');
-
-  it('asks questions 11–19, 16–19 by name of the rows', () => {
-    expect(rv).toMatch(/its questions 11–19 and its Standard kits are this step's tools/);
-    expect(rv).toMatch(/\*\*Flip their assumptions\.\*\* Ask questions 11–19 of the best rows/);
-    expect(rv).toMatch(/by questions 16–19, a layer no row's buttons start, a limit that caps the fastest row, a conflict a row settles by dropping a piece, and its boss button/);
-    expect(rv).not.toMatch(/11–15/);
-  });
-
-  it('reads the composites\' rows as the structures to beat, still differing from every dossier row', () => {
-    expect(rv).toMatch(/one row per verified card, the composites' rows among them, .* and a composite's key pieces\. These are the structures to beat/);
-    expect(rv).toMatch(/A composite's row \(D-429\) is one build composed from the whole brainstorm, .* beat the composite, not the cards it grew from/);
-    expect(rv).toMatch(/\*\*Pick the flip that clears fastest on paper,\*\* a structure that differs from every dossier row, with the arithmetic/);
-  });
-
-  it('writes a plain card, verified with the checklist\'s probes, whose pieces join the next round\'s pool', () => {
-    expect(rv).toMatch(/Your card is a plain card \(D-429: no Pieces tables\): R1b verifies it with the checklist's probes, and the next brainstorm round's synthesis takes its pieces into the pool/);
-    expect(rv).toMatch(/A plain card: no `### Pieces` and no `### Pieces measured` .*; R1b runs the checklist's 4 probes on it/);
-    expect(rv).toMatch(/Its pieces join the next round's pool \(D-429\): a later brainstorm round's synthesis reads your card, keys the pieces its links table names `c<card id>-<m>`/);
-    // The synthesis does read the rival's card.
-    expect(stage('R1a-synthesize')).toMatch(/the rival's \(`r<j>-x-<n>`\)/);
-  });
-});
+// Amendment 11 (WU-114, D-443) removes the rival and deletes `references/stages/RV.md`, so this file no longer holds
+// its block ("the rival asks 11–19 and is placed under composites"); tests/static/buildGuideAmendment11Research.test.ts
+// checks that RV.md is gone and that no reference runs a rival.
 
 describe('AC-W86: the library holds questions 16–19 and the two amended entries, under its cap (D-431)', () => {
   const section = libraryHeadings.find((h) => h.level === 2 && h.title.startsWith('Brainstorm questions 11–'));

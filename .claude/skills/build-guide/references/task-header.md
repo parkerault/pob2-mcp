@@ -1,7 +1,7 @@
 # The task header
 
 Every agent prompt starts with a fenced `json` block: the task header (slice 03 §5.1, as amendments 1
-to 10 change it). The runner builds it from the run state; the agent reads its job from the header and from the
+to 11 change it). The runner builds it from the run state; the agent reads its job from the header and from the
 stage reference it names, and the rest of the prompt adds nothing the header contradicts.
 
 ````
@@ -26,9 +26,9 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 
 | Field | Content |
 |---|---|
-| `stage` | `R1a`, `R1a-synthesize` (the round's composites, D-429), `R1a-assemble` (in a run whose first brainstorm round used it), `R1b`, `R1b-assemble`, `RV` (the rival, D-408), `D1-build`, `D1-tree`, `D1-finish` (D1's three steps, D-356, D-418), `D1-gate`, `F1` (an endgame-only build's final compile, D-413), `D2`, `D2-gate`, `W1`, `V4` (`V4-campaign` for its campaign pass, D-415), or `Q` (a gate question, D-390) |
+| `stage` | `R1a`, `R1a-synthesize` (the round's composites, D-429), `R1a-assemble` (in a run whose first brainstorm round used it), `R1b`, `R1b-assemble`, `D1-build`, `D1-tree`, `D1-finish` (D1's three steps, D-356, D-418), `D1-gate`, `F1` (an endgame-only build's final compile, D-413), `D2`, `D2-gate`, `W1`, `V4` (`V4-campaign` for its campaign pass, D-415), or `Q` (a gate question, D-390) |
 | `attempt` | this step's attempt for its (stage, concept), from 1: every call counts, retries and re-runs included; a V4 re-check's counts that card's re-checks from 1, apart from its full pass, as the run log's `V4-recheck` entries do (D-368) |
-| `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319; letter `x` for the rival's card, D-408; letter `s` for a composite, `r<k>-s-<n>`, D-429), where the step concerns one card: R1b and every step of the finalization |
+| `concept` | the card id (`r<round>-<letter>-<n>`, `r1-a-2`; D-286, D-319; letter `g` for a card made at a gate, D-391; letter `s` for a composite, `r<k>-s-<n>`, D-429), where the step concerns one card: R1b and every step of the finalization |
 | `check` | V4 only: `full` (step 11: one pass, no lenses, over every hinge claim and every H2 of the guide), `recheck` (step 13: only `findings` and `changed`, D-352) or `campaign` (stage `V4-campaign`: the campaign stages' hinge claims, `findings` and `changed`, D-415) |
 | `mode` | `offline` or `online`, as the run log records it |
 | `runFolder` | the run folder's absolute path, from `mcp__pob2__guide_run {new_run}` |
@@ -41,7 +41,7 @@ stage reference it names, and the rest of the prompt adds nothing the header con
 | `changes` | R1b only, a gate's change to its card (D-391): `{visit, words}` revises it; `{visit, name, from, words}` makes it, `from` the cards it draws on, composites included, and the piece keys (a Pieces row's key or an Ideas line's id, D-432); a card made from pieces is a composite, with the Pieces tables |
 | `accepted` | gate findings the user accepted at an escalation of this build, from its verdict file: a build's steps carry only its own (D-411); an equal finding (same plan stage, part and code) fails no gate of that build. F1's header carries those of the D1 gate's escalations and its own (D-413) |
 | `faults` | offline test mode only: this step's fault directives (`offline-and-test.md`) |
-| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. R1a's are its research file and its cards, `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-synthesize's `cards.md`, its composites' cards `cards/r<k>-s-<n>.md` and the round's cards, for a rename (D-429, D-392); R1a-assemble's `cards.md` and the round's cards, for a rename (D-392); R1b's include its card `cards/<id>.md` and its probes `probes/<id>/<n>/` (D-338); R1b-assemble's `dossier.md`, and `cards.md` for a card made at a gate (D-391); RV's its card `cards/r<k>-x-<n>.md` (D-408); Q's its report `interviews/<gate>-<visit>-q<n>.md`, and a coordinator's variant `probes/q-<gate>-<visit>-<n>/` (D-390); D1-build's, D1-tree's, D1-finish's and D2's `<buildFolder>/plan.json`, and D1-build's `<buildFolder>/pieces.md` too (D-434); a gate step's (D1-gate, F1, D2-gate) its verdict file under `reports/gates/`; W1's are `<buildFolder>/guide.md` and `<buildFolder>/audit.md` (D-278); V4's its own report, `<buildFolder>/reports/V4-<n>.md` (D-352), the build's next number |
+| `writes` | the run-folder paths this step may write, relative to `runFolder`; nothing else. R1a's are its research file and its cards, `cards/r<k>-<letter>-1.md` to `-3.md`; R1a-synthesize's `cards.md`, its composites' cards `cards/r<k>-s-<n>.md` and the round's cards, for a rename (D-429, D-392); R1a-assemble's `cards.md` and the round's cards, for a rename (D-392); R1b's include its card `cards/<id>.md` and its probes `probes/<id>/<n>/` (D-338); R1b-assemble's `dossier.md`, and `cards.md` for a card made at a gate (D-391); Q's its report `interviews/<gate>-<visit>-q<n>.md`, and a coordinator's variant `probes/q-<gate>-<visit>-<n>/` (D-390); D1-build's, D1-tree's, D1-finish's and D2's `<buildFolder>/plan.json`, D1-build's `<buildFolder>/pieces.md` too (D-434), and D1-tree's and D1-finish's `<buildFolder>/trades.json`, each replacing only its own kinds of trade (D-439); a gate step's (D1-gate, F1, D2-gate) its verdict file under `reports/gates/`; W1's are `<buildFolder>/guide.md` and `<buildFolder>/audit.md` (D-278); V4's its own report, `<buildFolder>/reports/V4-<n>.md` (D-352), the build's next number |
 | `reference` | the step's stage reference, under `references/stages/` |
 
 Rules:

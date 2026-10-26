@@ -20,6 +20,12 @@ A tag is `{kind, ref, accessed?, patch?, confidence?}`:
 
 `confidence` is `H`, `M` or `L`; `patch` names the game patch the source describes (`0.5.5`).
 
+**A published build guide** (D-445) is an `external` source: online, an agent may read one on the hosts its
+definition allows, for facts and ideas, and cites it like any page. A card that draws on one names it in its
+Evidence, `Reference build: <the guide's title>, external | <url> | accessed: YYYY-MM-DD | confidence: <H|M|L>`, and
+the brainstorm gate shows `drawn from <host>` under the card, so the user can tell a known build from the
+pipeline's own. A guide's claim is a lead: the link it names is confirmed with a lookup before a card rests on it.
+
 Instead of a tag, a claim may cite:
 
 - `ledger:<id>`: a `ledger[]` entry of the plan (C-33), whose inputs carry their own tags;
@@ -41,7 +47,8 @@ record numbers, ledger values and prices are held already and need none, and so 
 
 `guide.md` carries **no markers** (D-276): it renders the plan, whose claims carry its sources, and the run
 checker fails a `[^`, a confidence label or a finding id anywhere in it. `audit.md` carries none either, nor
-does the dossier, a table of record numbers and price entries found by each row's card id (D-355). In the
+does the dossier, a table of each verified card's status, damage kinds, pieces and price entries, found by each
+row's card id, with no figure (D-355, D-436). In the
 research files, a claim carries one or more footnote markers `[^<id>]`. Each id has **exactly
 one** definition line, and the definitions sit under the file's **last heading**:
 

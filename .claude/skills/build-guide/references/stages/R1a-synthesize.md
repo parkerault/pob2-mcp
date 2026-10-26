@@ -31,7 +31,8 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
   returned without its files, so its cards or its Ideas may be missing or partial.
 - **Read** only these; you read every card, so keep to this list (the independent reads in one response):
   - every card's brainstorm half: this round's (the prompt's `cards`), the earlier rounds', the gate-made ones
-    (`r<j>-g-<n>`), the rival's (`r<j>-x-<n>`) and the earlier composites (`r<j>-s-<n>`). Grep
+    (`r<j>-g-<n>`) and the earlier composites (`r<j>-s-<n>`); in a run resumed from before amendment 11, an older
+    run's rival card (`r<j>-x-<n>`, the rival removed by D-443) is read as a researcher's card. Grep
     `-n "^## Verification half"` across `cards/` for each card's line, and Read each card up to it;
   - each research file's `## Ideas` and `## Supply search` sections: Grep `^- i[0-9]` across `research/` for the
     Ideas lines, and `^## Supply search` with the lines under it;
@@ -47,8 +48,8 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
 
 ## Work
 
-1. **Structures** (D-429). Group the run's cards by structure: this round's, every earlier round's, the gate-made
-   ones and the rival's (D-408). An earlier composite isn't a member, since its pieces are its sources'. A structure
+1. **Structures** (D-429). Group the run's cards by structure: this round's, every earlier round's and the
+   gate-made ones. An earlier composite isn't a member, since its pieces are its sources'. A structure
    is the card's identity `{className, ascendancy, named damage source}`, as its `### Identity` gives it.
    - **Keyed by engine under one identity.** When every card shares one identity (a fixed roll, a brief naming the
      ascendancy and the skill, a skill locked to one ascendancy, or researchers who converged), key the structures by
@@ -60,7 +61,7 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
      split (step 5).
 2. **Which structures this round composes.** Round 1: every structure. **A later round** adds its cards and Ideas
    to the pool, and recomposes only structures that gained pieces: a new card of the structure, or a new piece (an
-   Ideas line, or a piece on this round's card, the rival's, or a gate-made card made since the last synthesis) whose `needs:` the structure meets and that serves its
+   Ideas line, or a piece on this round's card or a gate-made card made since the last synthesis) whose `needs:` the structure meets and that serves its
    damage, its limit or its bosses; a structure or piece the user's note names counts as gained. Any other structure
    keeps its composite as it stands.
 3. **Check the cards** of each structure you compose, by `R1a-assemble.md`'s step 2: the identity check, the brief's
@@ -119,9 +120,12 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
 7. **The obvious card** (D-403), `r1-a-1` when it passes step 3, stays as the baseline: one line under `## The
    obvious build`, never a composite and never edited. It is **judged as written**, before any borrowing: its pieces
    join the pool, and the composite of its own structure says how it beats the card it grew from.
-8. **Names** (D-392), by `R1a-assemble.md`'s step 7: no two cards of the run share a name, composites included.
-   Give each composite a player's name of 2–4 words that no card and no line of `cards.md` has (Grep the `- Name:`
-   lines across `cards/`); a successor's name differs from the composite it supersedes. A card of this round whose
+8. **Names** (D-392, D-442), by `R1a-assemble.md`'s step 7: no two cards of the run share a name, composites
+   included. **A name carries the main skill and the ascendancy**: a few words of the build's own, then the main
+   skill, then the ascendancy, like "Reaping Bonfire Detonate Dead Blood Mage". The main skill is the composite's
+   named damage source, not a skill that feeds it. Give each composite such a name that no card and no line of
+   `cards.md` has (Grep the `- Name:` lines across `cards/`); a successor's name differs from the composite it
+   supersedes. A card of this round whose
    name another card of the run already has is renamed, the later id, with Edit in its `- Name:` line and its H1. A
    name shown at a gate never changes.
 9. **A recomposed structure** (D-429). A composite shown at a gate (every composite `cards.md` lists) is never edited
@@ -189,24 +193,24 @@ blocks between cries. They differ in what the cry feeds on.
 
 ## How they differ
 
-"Ember Quake" (armour-break from on-hit) breaks armour with every cry and adds ignite and bleeding as fire, its cries
-paid with life; "Corpse Quake" (corpse from on-kill) spends the pack's corpses on explosions that clear while the cry
-recovers, with Hammer of the Gods on its own weapon set for bosses.
+"Ember Seismic Cry Titan" (armour-break from on-hit) breaks armour with every cry and adds ignite and bleeding as
+fire, its cries paid with life; "Corpse Seismic Cry Titan" (corpse from on-kill) spends the pack's corpses on
+explosions that clear while the cry recovers, with Hammer of the Gods on its own weapon set for bosses.
 
 ## The obvious build
 
-- r1-a-1 "Seismic Shouter" | the warcry kit: Seismic Cry with its standard supports, on the Titan's intended play
+- r1-a-1 "Shouting Seismic Cry Titan" | the warcry kit: Seismic Cry with its standard supports, on the Titan's intended play
 
 ## Round 1
 
-- r1-s-1 "Ember Quake" | armour-break from on-hit | hit, ignite, bleeding as fire | mana: Blood Magic moves the cries' cost to life | under-played (judgment: cost redirection, rarely paired with warcries)
-- r1-s-2 "Corpse Quake" | corpse from on-kill | hit, corpse explosion, its ignite | the cooldown: the explosions clear while the cry recovers
+- r1-s-1 "Ember Seismic Cry Titan" | armour-break from on-hit | hit, ignite, bleeding as fire | mana: Blood Magic moves the cries' cost to life | under-played (judgment: cost redirection, rarely paired with warcries)
+- r1-s-2 "Corpse Seismic Cry Titan" | corpse from on-kill | hit, corpse explosion, its ignite | the cooldown: the explosions clear while the cry recovers
 
 ## Cards
 
-- r1-a-1 "Seismic Shouter" | armour-break from on-hit | fed: r1-s-1
-- r1-b-2 "Burning Bond" | armour-break from on-hit | seed | fed: r1-s-1, r1-s-2
-- r1-c-1 "Bellow Pyre" | corpse from on-kill | fed: r1-s-2
+- r1-a-1 "Shouting Seismic Cry Titan" | armour-break from on-hit | fed: r1-s-1
+- r1-b-2 "Burning Bond Seismic Cry Titan" | armour-break from on-hit | seed | fed: r1-s-1, r1-s-2
+- r1-c-1 "Bellow Pyre Seismic Cry Titan" | corpse from on-kill | fed: r1-s-2
 
 ## Pieces not used
 
@@ -230,7 +234,8 @@ The example is a fixed roll, so its structures are engines (step 1), and it show
   (D-400) where they apply. A later round keeps every line already in `cards.md`, gate-made ones and superseded ones
   included, and adds its own `## Round <k>` after the last; `None.` when it composed none.
 - **`## Cards`:** every card of the run but this step's composites (`r<j>-s-<n>`), each `- <id> "<name>" |
-  <structure> | seed | fed: <composite ids | none>`: the researchers' cards, the gate-made ones and the rival's;
+  <structure> | seed | fed: <composite ids | none>`: the researchers' cards and the gate-made ones (and an older
+  run's rival card, from before amendment 11);
   `seed` only on the seed card (D-393, the card whose Evidence reads `Reference build: Seed: <the reference>`); `fed:` the composites that take one of its pieces, in or scheduled.
 - **`## Pieces not used`:** at most 10 lines, the strongest first, each `- <key> <piece>: <why no composite takes
   it>`; or `None.`. The research files' `Supply search` lines say why a card left a supplier out.
@@ -248,14 +253,14 @@ composites this round superseded), and for a short round its `short:` line:
 
 ```
 composites: 2
-r1-s-1: Ember Quake
-r1-s-2: Corpse Quake
+r1-s-1: Ember Seismic Cry Titan
+r1-s-2: Corpse Seismic Cry Titan
 cards: 9 listed | not composed: 0 | superseded: 0
 ```
 
 ```
 composites: 1
-r1-s-1: Ember Quake
+r1-s-1: Ember Seismic Cry Titan
 cards: 9 listed | not composed: 1 | superseded: 0
 short: one structure: every other card failed its identity check
 ```

@@ -1,7 +1,8 @@
 # Pricing
 
 How a coordinator step prices items (slice 03 §9; D-112, D-133, D-160, D-164, D-169, D-202, D-218,
-D-370…D-373, D-415, D-422). Only coordinator steps price; no other agent type has a price tool (D-178).
+D-370…D-373, D-415, D-422, D-442, D-444). Only coordinator steps price; no other agent type has a price tool
+(D-178).
 
 ## Never
 
@@ -31,7 +32,8 @@ D-370…D-373, D-415, D-422). Only coordinator steps price; no other agent type 
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
 - `mcp__pob2__get_currency_rates` (poe.ninja's economy endpoints): currency values in divines, for totals. It is
   the one poe.ninja tool: there are no poe.ninja tools beyond the currency rates (D-335). `get_item_price`
-  reads the same currency exchange for every exchange item, by its category (D-387, D-444).
+  reads the same currency exchange for every exchange item, by its category (D-387, D-444), and sends no trade
+  request for one, so an exchange item keeps its price after pricing stops (below).
 
 Each call prices one item; there is no batch mode (D-224). Every price result, `find_upgrades`' included,
 carries two lines (C-49):
@@ -46,6 +48,8 @@ The league is the price's `league`, and the date part of the `Checked:` time is 
 ## Order (D-133)
 
 1. R1b prices each concept's key items.
+   D1-build may price gear with `mcp__pob2__find_upgrades` while it designs a rare (D-444): its calls are price
+   calls, logged and stopped like any pricing step's (below).
 2. D1-finish, D1's last step (D-356, D-418), prices every filled slot **and every tree jewel** (D-249) of the three
    endgame rungs, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), and
    the anoint of `b` and `n` like a slot (`b-anoint`, `n-anoint`, D-358), each with the tool "Which tool"
@@ -181,8 +185,8 @@ after it. A result with a prefix records no price from its listings.
 |---|---|---|
 | `ok` | a dated price | record it |
 | `would_wait` | the limiter refused a wait over 30 s and sent nothing | price other items, then call this one again later |
-| `locked_out` | the account is locked out | stop pricing for the rest of the session ("After pricing stops") |
-| `rate_limited` | the trade site answered 429 | stop pricing for the rest of the session ("After pricing stops") |
+| `locked_out` | the account is locked out | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
+| `rate_limited` | the trade site answered 429 | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
 | `http`, `network`, `timeout`, `no_session`, `disabled`, … | the call failed | the item is `unavailable` |
 | `error` | an error, or a stop, without the prefix | the item is `unavailable` |
 
@@ -192,23 +196,35 @@ The limiter sleeps through a wait of 30 s or less inside the call, and refuses a
 `would_wait`, sending nothing. A coordinator has no clock, so it paces by order: on `would_wait`, price
 other items first and re-call the refused one later. **An item's third refusal makes it `unavailable`**
 (note `rate-limited`), as does the step ending before the item is priced. On `locked_out` or
-`rate_limited`, stop pricing for the rest of the session: every remaining item is `unavailable`, and later
-steps make no trade request ("After pricing stops", below).
+`rate_limited`, trade-site pricing stops until the user approves a retry at the next gate: every remaining item
+the trade site would price is `unavailable`, and later steps make no trade request ("After pricing stops",
+below).
 
-## After pricing stops (D-415, D-422)
+## After pricing stops (D-415, D-422, D-444)
 
-**The stop holds for the session it happened in.** Pricing has stopped when a `stages[]` entry after the last
-resume counts a `locked_out` or `rate_limited` call in its `priceOutcomes`: read `run-log.json`, from index
-`resumes[<last>].lengths.stages` (every entry when the log has no `resumes[]` entry). A stop in an earlier
-session doesn't hold after a resume: the new session prices afresh.
+**The stop holds until the user approves a retry at a gate.** A step whose `priceOutcomes` counts a `locked_out` or
+`rate_limited` call stops trade-site pricing: `run-log.mjs` records the stop in the run log's `pricing.stops[]
+{at, step, outcome}` with that step's `stage` entry. The next gate asks first, "Pricing stopped at <step> after
+<outcome>: retry?", and the runner logs the user's answer with `run-log.mjs pricing` as `pricing.retries[]
+{checkpoint, answer, at}`, `retry-pricing` or `no-retry` (`checkpoints.md`, "The pricing question"). **A stop is
+open** for a step when `run-log.json`'s last `pricing.stops[]` entry has no `retry-pricing` answer after it
+(`retries[].at` past the stop's `at`) and no resume after it (`resumes[].lengths.stages` past its `at`): a resume
+still clears a stop, so the new session prices afresh. Every pricing step reads both lists (and the runner's prompt
+says so) before its first price or league call. After `retry-pricing` at the verification gate, the next pricing step
+prices; at the design gate, the D1 gate's re-price pass runs before F1.
 
-**Once pricing stops, no step calls a tool that sends a trade request:** `mcp__pob2__get_leagues`,
-`mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` and
-`mcp__pob2__find_upgrades`. Two calls stay allowed, since neither sends one: `mcp__pob2__trade_query_options`
-(the trade ids, from the server's own data), and `mcp__pob2__get_item_price` for a Distilled Emotion, which reads
-poe.ninja's currency exchange (D-387), not with `--no-ninja`. With pricing stopped:
-- every item still to price is `unavailable`, note `rate-limited` (or `locked out`), and the rung's total
-  `unverified` (D-164);
+**While a stop is open, no step makes a trade-site request:** `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price`
+for a unique or any item the exchange doesn't sell, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` and
+`mcp__pob2__find_upgrades`. **poe.ninja's exchange stays allowed** (D-422 allows it), so every item the currency
+exchange sells keeps its price: `mcp__pob2__get_item_price` for a rune, soul core, idol, Distilled Emotion, lineage
+support gem or any other exchange item reads poe.ninja's exchange and sends no trade request (not with
+`--no-ninja`), counted as `exchange` ("Reporting the calls"). Pass the plan's `league` in the call, so it asks
+the trade site for no league. An exchange item its category doesn't list (a "Legacy of …" rune) goes to the trade
+site by name, which the server doesn't try after its own limit until it restarts, even after a `retry-pricing`: its
+result is `Unavailable (<category>): …`, and the item is `unavailable`. `mcp__pob2__trade_query_options` (the trade ids, from the server's
+own data) stays allowed too. With a stop open:
+- every item still to price that the trade site would price is `unavailable`, note `rate-limited` (or `locked
+  out`), and the rung's total `unverified` (D-164);
 - the plan's league is the one recorded before the stop: a plan, skeleton or price entry of this run that
   carries it (D-233); never a `get_leagues` call to check it;
 - the D1 gate's final re-price pass is skipped, and its market day keeps its computation from
@@ -219,7 +235,8 @@ poe.ninja's currency exchange (D-387), not with `--no-ninja`. With pricing stopp
 Before the D1 budget verdict is final, the D1 gate step calls each rate-limited `unavailable` entry of
 `plan.json` once more and updates it; a refusal leaves it `unavailable`. A weighted-search entry (its `query` has
 a `target`) needs its rung loaded: compile measure-only, select the rung's loadout, and call `find_upgrades`
-with the entry's arguments. The pass is skipped once pricing has stopped, and in offline mode.
+with the entry's arguments. The pass is skipped while a pricing stop is open, and in offline mode; after the
+design gate's `retry-pricing`, it runs before F1 and prices every `unavailable` entry the stop left.
 
 ## Converting to the price day (D-373)
 
@@ -249,17 +266,31 @@ study, `docs/build-guide/studies/2026-10-16-pricing.md`), by the item's price in
   a whole divine at 10 or more and to one decimal under 10.
 - **A rung's price day** is its target's: `m` and `b` day 7, `n` day 21.
 
+**In players' words** (D-442). Anything the user reads (a card's key prices, the dossier, a display, a guide, the
+audit) names a currency as players do: "exalt" and "exalts", never the trade id `exalted`; "divine" and "divines";
+"chaos". Plans, records and price entries keep the trade ids (`"currency": "exalted"`). **A price whose range rounds
+to 0.0 divines** is shown as seen, with no conversion: `1 exalt (seen 2026-10-24)`, never "0.0–0.0 divines (seen 1
+exalted)". The same holds for a rung's total (the audit's ranges, `render-audit.mjs`) and a "no rate for" line.
+
 `gates.md` ("Price days, targets and ranges") defines the D1 gate's record of this exactly; the run checker
 recomputes it from the plan's prices and `data/economy/prices.json`.
 
 ## Reporting the calls
 
 A coordinator step counts its price-tool calls by outcome and returns the counts in one line,
-`prices: ok 12, would_wait 1` (or `prices: none`). The runner records them as that step's `priceOutcomes`
-in the run log's `stages[]` (`run-log.md`): each key `ok`, `error` or a `[trade:<kind>]` kind. Once any
-step's counts hold a `locked_out` or `rate_limited` call, pricing has stopped for the rest of the session, and
-the runner tells every later coordinator step so ("After pricing stops"). A `find_upgrades` call is a price call; `manage_sets` and
-`trade_query_options` aren't.
+`prices: ok 12, exchange 3, would_wait 1` (or `prices: none`). The runner records them as that step's
+`priceOutcomes` in the run log's `stages[]` (`run-log.md`): each key `ok`, `error` or a `[trade:<kind>]` kind, and
+**`exchange`** for a call `mcp__pob2__get_item_price` answered from poe.ninja's currency exchange: its result says
+the item is "a currency-exchange item … priced from poe.ninja's currency exchange" and has an `Exchange value:`
+line, or an `Unavailable (<category>): …` line saying the trade site isn't tried. Such a call sends no trade
+request. Count an exchange call as `exchange`, never as `ok`: once pricing has stopped, the run checker fails a
+step whose counts hold any key but `exchange` (D-444). An exchange item the server priced from trade listings by
+its name instead (its result says so; `Unavailable (<category>; trade site: …)` when it found none) is a trade
+call, counted by its outcome. The pricing steps are R1b, D1-build (its `find_upgrades`
+calls), D1-finish, the D1 gate and D2. When a step's counts hold a `locked_out` or `rate_limited` call, its `stage`
+entry records the stop, and the runner tells every later coordinator step so until a gate's `retry-pricing` or a
+resume ("After pricing stops"). A `find_upgrades` call is a price call; `manage_sets` and `trade_query_options`
+aren't.
 
 ## Offline mode (D-201, D-233)
 

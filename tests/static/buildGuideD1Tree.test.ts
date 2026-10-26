@@ -371,14 +371,17 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
 });
 
 describe('the rest of WU-96: R1b\'s league rule, the dossier\'s EHP, the library\'s travel rule', () => {
-  it('R1b makes no trade call once pricing has stopped, get_leagues included (D-422)', () => {
+  // Amendment 11 (WU-114, D-444): the stop holds until a gate's retry, not for the session.
+  it('R1b makes no trade call while a pricing stop is open, get_leagues included (D-422, D-444)', () => {
     const r1b = folded(readStage('R1b'));
-    expect(r1b).toMatch(/\*\*Once pricing has stopped\*\* .* make no trade call, `mcp__pob2__get_leagues` included \(D-422\): the league is one a plan of this run recorded before the stop/);
+    expect(r1b).toMatch(/\*\*While a pricing stop is open\*\* \(step 6's test\), make no trade-site call, `mcp__pob2__get_leagues` included \(D-422, D-444\): the league is one a plan of this run recorded before the stop/);
   });
 
-  it('the dossier\'s EHP names the hit it was measured against (D-423)', () => {
-    expect(folded(readStage('R1b-assemble'))).toMatch(/`TotalEHP` as `EHP` \(D-294\), naming the hit it was measured against \(D-423\)/);
-    expect(read(path.join(SKILL_DIR, 'templates', 'dossier-template.md'))).toMatch(/\| <TotalEHP> vs <the hit it was measured against, from the record's configWritten: T15 map hits \(D-423\)/);
+  // Amendment 11 (WU-114, D-436 amends D-423 at verification): the dossier carries no EHP; the design gate's names its hit.
+  it('the dossier has no EHP column: numbers come at the design gate (D-436)', () => {
+    expect(folded(readStage('R1b-assemble'))).toMatch(/No number column: the run checker rejects `Named source DPS`, `Life`, `EHP`, `Clear speed` and `key pieces`/);
+    const header = read(path.join(SKILL_DIR, 'templates', 'dossier-template.md')).split('\n').find((l) => l.startsWith('| Card |')) ?? '';
+    expect(header).not.toMatch(/\bEHP\b/);
   });
 
   it('the pattern library\'s tree advice holds the user\'s rule, cited to the user', () => {

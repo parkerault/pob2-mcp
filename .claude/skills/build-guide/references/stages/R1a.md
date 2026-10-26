@@ -265,7 +265,10 @@ which only a composite has (D-429, D-433).
   a set-2 skill, a link through a per-support modifier (Gem Studded) is followed by a custom modifier or a hand
   calculation, citing PG-71, never `modelled`.
 - **Pitch** (D-392): each field as the template asks, in player terms, its **Name** unique among your cards and
-  the deck's. **How it clears** matters most: players judge a build by its clear speed (damage, area and pace
+  the deck's. **The name carries the main skill and the ascendancy** (D-442): a few words of the build's own, then
+  the main skill, then the ascendancy, like "Reaping Bonfire Detonate Dead Blood Mage". The main skill is the named
+  damage source, not a skill that feeds it: a card whose Reap feeds Detonate Dead is "… Detonate Dead
+  Infernalist", never "… Reap Infernalist". **How it clears** matters most: players judge a build by its clear speed (damage, area and pace
   between packs); bosses are a minimum check. The playstyle tags come from the brief's vocabulary.
 - **Chain, Enabler and Links:** every link of the chain in the links table, with its confirming game text
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
@@ -274,7 +277,13 @@ which only a composite has (D-429, D-433).
   (`R1a-assemble.md`, `R1a-synthesize.md`).
 - **Evidence** (D-335): the brief's `popularity` notes that speak to this card's skill, ascendancy or
   combination, quoted and cited as the user's notes; otherwise "no player evidence". No tool supplies player
-  evidence. A reference build only from one the user named, or a source on an allowed host online.
+  evidence.
+- **Published guides are allowed, and cited** (D-445). Online, you may read published build guides on the hosts
+  your agent definition allows, for facts and ideas. A card that draws on one names it in its Evidence, `Reference
+  build: <the guide's title>, external | <url> | accessed: YYYY-MM-DD | confidence: <H|M|L>`, the `external`
+  marker (`source-markers.md`), and the brainstorm gate shows "drawn from <host>" under the card, so the user can
+  tell a known build from the pipeline's own. A guide's numbers and claims are leads, like the pattern library's:
+  confirm each link with a lookup. Offline, no guide is read.
 - **A seed card** (D-393), when your prompt gives a reference build the user named (a guide page, a video or a
   PoB file; offline, a local file only): one of your 3 cards is written from it, reading only what the user
   named. Its chain, links and pitch are like any card's, and the lookups confirm its links. Its Evidence is
@@ -294,8 +303,8 @@ At most 8 lines: your research file, then each card's id and name, in id order:
 
 ```
 research/p1-r1a-2.md
-r1-b-1: Bleed Burst Lunge
-r1-b-2: Slam and Lunge
+r1-b-1: Bleed Burst Blood Hunt Titan
+r1-b-2: Slam and Lunge Blood Hunt Titan
 ```
 
 The coordinator's R1a-synthesize step then composes the round's builds from every card and your Ideas (D-429); in a

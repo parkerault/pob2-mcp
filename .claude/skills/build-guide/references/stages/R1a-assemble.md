@@ -93,9 +93,12 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
    card: the other two failed their identity check"). So is a round the engine rule fills to 6 (step 5); a
    round short for that and another reason puts the engine's first, `short: <n> cards share one engine;
    <other>`. The runner records it in the run log, and the brainstorm gate says so.
-7. **Unique names** (D-392). No two cards of the run share a name. On a clash with a card already in
-   `cards.md` or another card of the round, rename the newer one (the later id) with Edit, in its `- Name:`
-   line and its H1. A name shown at a gate never changes.
+7. **Unique names** (D-392, D-442). No two cards of the run share a name. **A name carries the main skill and the
+   ascendancy**: a few words of the build's own, then the main skill, then the ascendancy, like "Reaping Bonfire
+   Detonate Dead Blood Mage", the main skill the card's named damage source, not a skill that feeds it. On a clash
+   with a card already in `cards.md` or another card of the round, or a name that lacks its main skill or its
+   ascendancy, rename the newer one (the later id) with Edit, in its `- Name:` line and its H1. A name shown at a
+   gate never changes.
 8. **Write `cards.md`** (below).
 
 ## Writes: `cards.md`
@@ -116,14 +119,14 @@ Three engines: bleed from on-hit (3), bleed from on-crit (2), rage from on-hit (
 
 ## Round 1
 
-- r1-a-1 "Bleed Burst Lunge" | one lunge spends the bleed you built, so rares melt in two presses | engine: bleed from on-hit
-- r1-b-2 "Totem Slam Relay" | totems slam the pack while you lunge | engine: bleed from on-hit | under-played (judgment: a loop shape, rarely paired with Blood Hunt)
+- r1-a-1 "Bleed Burst Blood Hunt Titan" | one lunge spends the bleed you built, so rares melt in two presses | engine: bleed from on-hit
+- r1-b-2 "Totem Relay Blood Hunt Titan" | totems slam the pack while you lunge | engine: bleed from on-hit | under-played (judgment: a loop shape, rarely paired with Blood Hunt)
 
 ## Not dealt
 
-- r1-c-1 "Rage Cycling" | no lookup confirms that rage feeds the burst
-- r1-a-3 "Two-Handed Bleed" | the same build as "Bleed Burst Lunge"
-- r1-b-3 "Spear Bleed Slam" | the round already holds 3 cards on this engine | engine: bleed from on-hit
+- r1-c-1 "Rage Cycling Blood Hunt Titan" | no lookup confirms that rage feeds the burst
+- r1-a-3 "Two-Handed Bleed Blood Hunt Titan" | the same build as "Bleed Burst Blood Hunt Titan"
+- r1-b-3 "Spear Slam Blood Hunt Titan" | the round already holds 3 cards on this engine | engine: bleed from on-hit
 
 ## Found, not used
 

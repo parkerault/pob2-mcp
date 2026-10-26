@@ -2,7 +2,7 @@
 
 One file per step, `<stage>.md`, named by the task header's `stage` (`task-header.md`): `R1a.md`,
 `R1a-synthesize.md` (the round's composites, D-429), `R1a-assemble.md` (the deck, in a run whose first brainstorm
-round used it), `R1b.md`, `R1b-assemble.md`, `RV.md` (the rival, D-408), `D1-build.md`, `D1-tree.md`,
+round used it), `R1b.md`, `R1b-assemble.md`, `D1-build.md`, `D1-tree.md`,
 `D1-finish.md` (D1's three steps, D-356, D-418), `D1-gate.md`, `F1.md` (an endgame-only build's final compile,
 D-413), `D2.md`, `D2-gate.md` (a build's campaign, D-415), `W1.md`, `V4.md` (its campaign pass, stage
 `V4-campaign`, too), and `Q.md` (a gate question, D-390). The runner starts every step with the Agent tool, its

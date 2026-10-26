@@ -44,8 +44,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   whether the plan's build changed since the record's compile; `{view: {plan: "<plan>", claims: true}}` gives
   every claim, one line each. The view's JSON isn't the file's formatting: to anchor an
   Edit, Grep or Read `plan.json` at that place. `mcp__pob2__compile_plan`'s reply gives a key-figure line per
-  stage (the headline DPS, life, energy shield, EHP, resistances, V1 and V2 finding counts; on an endgame
-  stage the Arbiter verdict and the rough clear speed): read those there, not by Grepping the record.
+  stage (the named source's damage, on an endgame rung against map monsters and against a Pinnacle boss, D-437;
+  life, energy shield, EHP, resistances, V1 and V2 finding counts; on an endgame stage the Arbiter verdict and the
+  rough clear speed; a trigger PoB rates at its hand-cast speed): read those there, not by Grepping the record.
 - **Build reads** (`mcp__pob2__lua_get_stats`, `mcp__pob2__analyze_defenses`, `mcp__pob2__suggest_supports`,
   …) read the build the last compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
@@ -53,14 +54,17 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Call
   `mcp__pob2__manage_sets` only as `{set_type: "loadout", action: "select"}`, to load a rung before
   `mcp__pob2__find_upgrades` prices its rares; it changes no file. Before your
-  first price or league call, read `run-log.json`: once a `stages[]` entry after the last resume (from index
-  `resumes[<last>].lengths.stages`; every entry when there is no resume) counts a `locked_out` or
-  `rate_limited` call in its `priceOutcomes`, pricing has stopped for the rest of the session (D-415). **After
-  a stop, no trade request** (D-422): call none of `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an
-  item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`, and every price
-  still to make is `unavailable`. `mcp__pob2__trade_query_options` sends no trade request, and
-  `mcp__pob2__get_item_price` for a Distilled Emotion reads poe.ninja's currency exchange (not with
-  `--no-ninja`), so both stay allowed. Count your price calls by outcome for your return.
+  first price or league call, read `run-log.json`: a **pricing stop is open** when its last `pricing.stops[]`
+  entry has no `pricing.retries[]` answer `retry-pricing` after it and no resume after it (D-444; the runner's
+  prompt says so too). A stop holds until the user approves a retry at a gate. **While one is open, no trade-site
+  request** (D-422): call none of `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for a unique or any item
+  the currency exchange doesn't sell, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` or
+  `mcp__pob2__find_upgrades`, and every such price still to make is `unavailable`.
+  `mcp__pob2__trade_query_options` sends no trade request, and `mcp__pob2__get_item_price` for an item the currency
+  exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem, …) reads poe.ninja's exchange
+  (not with `--no-ninja`), so both stay allowed. Count your price calls by outcome for your return, an exchange
+  price as `exchange`, never `ok` (`pricing.md`, "Reporting the calls"). What the user reads names currencies in
+  players' words ("exalt", "exalts", "divines"), never the trade id `exalted` (D-442).
 - **Never contact pathofexile.com or poe.ninja yourself**, and there are no poe.ninja tools beyond the
   currency rates (`mcp__pob2__get_currency_rates`, D-335): their limits are shared with the user's account,
   and poe.ninja's terms close its builds API, so no tool supplies player evidence. Without `--no-ninja`, the
@@ -94,8 +98,8 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 |---|---|---|
 | `R1a-synthesize` | `.claude/skills/build-guide/references/stages/R1a-synthesize.md` | the round's composites (D-429): the run's cards grouped by structure (by engine when every card shares one identity), one composite per structure, 1 to 4 a round, each from its strongest card and every compatible piece of the cards and the research files' Ideas, in, scheduled or out by the synthesis questions (D-431), with R1a-assemble's identity, lock, sniff and name checks; the deck `cards.md` (D-432), every card listed and the obvious card the baseline |
 | `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | in a run whose first brainstorm round used it (D-429), the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when game text (a lookup, or a league-digest or monster-table entry) confirms its load-bearing links (D-287), at most half a round on one engine (D-405) |
-| `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's structure check on paper, from the pattern library's Standard kits (D-406), its endgame skeleton, its measure-only compile, its key-item prices, the advisory checklist with up to 4 probes (8 on a composite: the checklist's 4, then 4 leave-one-outs, D-433), and the card's verification half; the rival's card first through R1a-assemble's identity and sniff checks (D-408) |
-| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the research files, the cards and the R1b results; a gate-made card's deck line; a second pass for the rival's row |
+| `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's structure check on paper, from the pattern library's Standard kits (D-406), its endgame skeleton, its measure-only compile, its key-item prices, and its three checks (D-436): it compiles, its named source shows every kind of damage the card names (else `damage-missing`, a failed attempt), and on a composite each piece in does something; the advisory checklist with up to 4 probes (8 on a composite: the checklist's 4, then 4 leave-one-outs, D-433), and the card's verification half, with no figure |
+| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the cards and the R1b results: each card's status, synergy, damage kinds, pieces, key prices and main risk, no figure (D-436); a gate-made card's deck line |
 | `Q` | `.claude/skills/build-guide/references/stages/Q.md` | a gate question about a compiled build, measured on a variant if need be; its report, and no plan or card edited |
 
 ## Design steps (slice 03 §5.3)
@@ -135,9 +139,9 @@ The rules every design step keeps:
 - **Count and custom modifiers** (D-293): a group's `count` with its `countReason`, and each `customMods`
   entry with its reason; both are estimates, and the record marks every figure a custom modifier touched.
 - **The league** (D-233): offline, null; online, `mcp__pob2__get_leagues`' trade league, never one a skeleton or the
-  dossier marks unverified and never a guess. With none known, `unverified`, and the step says so. **Once
-  pricing has stopped in the session** (D-415, D-422), make no `mcp__pob2__get_leagues` call or any other trade
-  request: the league is the one recorded before the stop, from a plan, skeleton or price entry of this run.
+  dossier marks unverified and never a guess. With none known, `unverified`, and the step says so. **While a
+  pricing stop is open** (D-422, D-444), make no `mcp__pob2__get_leagues` call or any other trade-site request: the
+  league is the one recorded before the stop, from a plan, skeleton or price entry of this run.
 - **Measure before hand-calculating** (D-243): a `possibly unread` line is confirmed with two stages
   compiled measure-only (`stages`) before a ledger entry stands in for it; PoB applies none of a partly
   parsed line.

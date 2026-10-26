@@ -132,4 +132,15 @@ describe("D-444: an exchange item's category, by its name", () => {
     expect(others.filter((n) => categoryOf(n) !== null).map((n) => `${n} → ${categoryOf(n)}`)).toEqual([]);
     for (const name of ['Darkness Enthroned', 'Deathblow', 'Ruby Ring', 'x', '', 'Liquid Envy Ring']) expect({ name, category: categoryOf(name) }).toEqual({ name, category: null });
   });
+
+  it('no gear base PoB knows is an exchange item (Data/Bases/*.lua: Carved Greaves and Carved Targe included)', () => {
+    const dir = path.join(POB_DATA, 'Bases');
+    const bases = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith('.lua'))
+      .flatMap((f) => [...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^itemBases\["([^"]+)"\] = \{/gm)].map((m) => m[1]));
+    expect(bases.length).toBeGreaterThan(500);
+    expect(bases).toEqual(expect.arrayContaining(['Carved Greaves', 'Carved Targe']));
+    expect(bases.filter((n) => categoryOf(n) !== null).map((n) => `${n} → ${categoryOf(n)}`)).toEqual([]);
+  });
 });

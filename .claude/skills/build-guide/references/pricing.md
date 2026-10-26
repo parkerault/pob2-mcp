@@ -31,7 +31,7 @@ D-370…D-373, D-415, D-422). Only coordinator steps price; no other agent type 
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
 - `mcp__pob2__get_currency_rates` (poe.ninja's economy endpoints): currency values in divines, for totals. It is
   the one poe.ninja tool: there are no poe.ninja tools beyond the currency rates (D-335). `get_item_price`
-  reads the same currency exchange for a Distilled Emotion (D-387).
+  reads the same currency exchange for every exchange item, by its category (D-387, D-444).
 
 Each call prices one item; there is no batch mode (D-224). Every price result, `find_upgrades`' included,
 carries two lines (C-49):

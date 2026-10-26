@@ -141,7 +141,8 @@ const KINDS: readonly KindRule[] = [
   { category: 'SoulCores', label: 'a soul core', test: /^[\w-]+'s thesis$/ },
   { category: 'SoulCores', label: 'a congealed mist', test: names(['Raven-Touched Shard']) },
   { category: 'Idols', label: 'an idol', test: / idol$|^idol of / },
-  { category: 'Idols', label: 'an idol', test: /^carved [a-z]+$/ },
+  // The carved idols, by name: `Carved …` is also a gear base (Carved Greaves, Carved Targe).
+  { category: 'Idols', label: 'an idol', test: names(['Carved Majesty', 'Carved Mischief', 'Carved Tenacity', 'Carved Cunning']) },
   { category: 'Runes', label: 'a rune', test: /\brune\b/ },
   { category: 'Runes', label: 'a rune', test: /^legacy of / },
   { category: 'Runes', label: 'a rune', test: /^[a-z]+ of aldur$|^aldur's legacy$|^emergent [a-z]+$/ },

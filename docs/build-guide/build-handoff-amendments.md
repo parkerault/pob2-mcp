@@ -39,6 +39,13 @@ doesn't change them.
   - `references/toughness-targets.json` and `references/boss-floor.json` are created by WU-113 from Appendix A (its
     checker tests read them); WU-115's docs cite them.
   - `tests/fixtures/pipeline/` is WU-113's.
+- **The ledger's boss context, fixed before the build** (WU-111 implements it, WU-113 passes it): `StageOutputs` in
+  `src/plan/ledger.ts` gains two optional keys, `bossGroups` (the record stage's `measures.bossGroups` array, as
+  Appendix A shapes it) and `damageBoss` (its `measures.damage.boss`, a number or null). The compiler, `check-run.mjs`
+  and `render-audit.mjs` fill them from the record stage; a stage without them can't resolve a `boss.` reference
+  (the evaluator's usual missing-figure error). WU-113's tests that evaluate a `boss.` reference need WU-111's
+  evaluator in `build/plan/ledger.js`: build the rest first, then rebase onto `build-guide/m24` once WU-111 has
+  merged, and run the gate after the rebase.
 - **The pricing spike (WU-112)** is the one unit allowed network, and only poe.ninja's documented economy endpoints
   for the exchange categories: serial requests, a back-off on HTTP 429, nothing fetched twice (save each response
   under the lane's own temp folder and build the fixtures from it). No pathofexile.com request, no cookie, no

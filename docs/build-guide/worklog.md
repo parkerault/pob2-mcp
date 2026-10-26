@@ -5725,3 +5725,14 @@ the `m17` engine at `b76967b`.
   should-fixes (poison stacks to 1 by default like ignite and bleed, `CalcSetup.lua`:53–55; a `triggered` flag for
   inbuilt and item triggers; `turns` on rotation entries so the checker can require the estimate; ledger references
   to an entry's ailments and to PoB alone) and the nits. The user's approval is next.
+
+## 2026-10-25: M-24 (amendment 11) build started
+
+- **Approved:** amendment 11 revision 3 by the user ("Approve and build"). Integration worktree `build-guide/m24` off
+  `main` at `be62237`; the handoff's M-24 section (`381ddfe`, `8bd80a7`) fixes the owners, the network exception for
+  WU-112's spike, the room left in the capped files, and the ledger's boss context (`StageOutputs` gains `bossGroups`
+  and `damageBoss`; WU-113 rebases onto WU-111 before its gate).
+- **Node power's baseline (AC-P79's NFR):** the AC-P73 swap call (`get_node_power` on the three-rung `fifteen-stage`
+  ladder, loadout `Entering maps (L74) {m}`, `protect_for` b and n, `limit: 0`) at `381ddfe`, five fresh-process runs
+  at `nice -n 19` on an idle 32-CPU machine: 12.64, 12.86, 12.52, 12.79, 12.66 s, **median 12.66 s**. Each printed
+  the same best swap (+34.35% Full DPS, 5 points moved).

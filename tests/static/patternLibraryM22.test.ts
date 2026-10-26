@@ -9,7 +9,7 @@
  * - The damage-order rule, "Convert into the ailment's type" (right after "Type conversion so another mechanic
  *   applies") and the corpse-explosion line (the last of the Standard kits preamble), each in §24.1's wording, read
  *   from the spec; `[spud]` defined as the 2026-10-23 comparison study.
- * - The library under the 13,000-word cap (§24.1), which both word-count tests pin.
+ * - The library under its word cap (§24.1's 13,000; 16,000 is provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size), which both word-count tests pin.
  * - `pob-gaps.md`: PG-72 closed, PoB matching the game; PG-73 new, a unique tame's tablet modifier with no line in the
  *   pin, each cited line checked against the pin; PG-71 intact.
  * V1's `skill-slots` is AC-W82's last bullet: `tests/unit/v1SkillSlots.test.ts` and `tests/integration/skillSlots.test.ts`.
@@ -23,7 +23,7 @@ const LIBRARY = path.join(REPO, '.claude', 'skills', 'build-guide', 'references'
 const GAPS = path.join(REPO, 'docs', 'build-guide', 'pob-gaps.md');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-9-endgame-first.md');
 const PIN_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
-const CAP = 13_000;
+const CAP = 16_000;
 
 const read = (f: string) => fs.readFileSync(f, 'utf8');
 const folded = (s: string) => s.replace(/\s*\n\s*/g, ' ').trim();
@@ -151,14 +151,14 @@ describe('AC-W82 (WU-103): the pattern library\'s M-22 additions (D-426, D-427, 
     expect(keys.indexOf('spud')).toBe(keys.indexOf('amendment-9') + 1);
   });
 
-  it('stays under the 13,000-word cap (§24.1), and both word-count tests pin it', () => {
+  it('stays under the word cap (§24.1; 16,000, provisional), and both word-count tests pin it', () => {
     expect(words(text)).toBeLessThan(CAP);
     const pipeline = read(path.join(REPO, 'tests', 'static', 'buildGuidePipeline.test.ts'));
-    expect(pipeline).toMatch(/^const LIBRARY_WORD_CAP = 13_000;$/m);
-    expect(pipeline).toContain("it('is at most 13,000 words, so a researcher reads it whole");
+    expect(pipeline).toMatch(/^const LIBRARY_WORD_CAP = 16_000;$/m);
+    expect(pipeline).toContain("it('is at most 16,000 words, so a researcher reads it whole");
     const engine = read(path.join(REPO, 'tests', 'static', 'patternLibraryEngine.test.ts'));
-    expect(engine).toContain('toBeLessThan(13_000)');
-    expect(engine).toContain("it('stays under 13,000 words");
+    expect(engine).toContain('toBeLessThan(16_000)');
+    expect(engine).toContain("it('stays under 16,000 words");
   });
 });
 

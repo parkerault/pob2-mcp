@@ -1818,14 +1818,15 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
   });
 });
 
-/** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it). */
-const LIBRARY_WORD_CAP = 13_000;
+/** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it); 16,000 is
+ * provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size. */
+const LIBRARY_WORD_CAP = 16_000;
 
 describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () => {
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const hs = headings(text);
-  /** The work-log's ten families ("Off-meta builds 7–30"), in its order. */
+  /** The work-log's ten families ("Off-meta builds 7–30"), in its order, then Defence (the user, 2026-10-26). */
   const FAMILIES = [
     'Loops and relays',
     'State consumers (builder and finisher)',
@@ -1837,6 +1838,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     'Item and slot tricks',
     'Actors',
     'Tree',
+    'Defence',
   ];
   /** Each entry's fields, in order: name and shape, search step, how PoB follows it, examples, cautions. */
   const FIELDS = ['Shape', 'Search', 'PoB', 'Examples', 'Cautions'];
@@ -1880,7 +1882,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     expect(flat).toMatch(/\*\*Maintenance\.\*\* After each study the user supplies, the coordinator proposes entries and the user approves them/);
   });
 
-  it('holds the ten families, in order, and defines the six labels', () => {
+  it('holds the families in order, the work-log\'s ten and Defence, and defines the six labels', () => {
     expect(hs.filter((h) => h.level === 2 && /^\d+\. /.test(h.title)).map((h) => h.title)).toEqual(FAMILIES.map((f, i) => `${i + 1}. ${f}`));
     for (const label of POB_LABELS) expect({ label, defined: text.includes(`**${label}**`) }).toEqual({ label, defined: true });
   });
@@ -1919,7 +1921,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
   });
 
-  it('is at most 13,000 words, so a researcher reads it whole (D-325, D-381, D-410, amendment 9 §24.1)', () => {
+  it('is at most 16,000 words, so a researcher reads it whole (D-325, D-381, D-410, amendment 9 §24.1; provisional)', () => {
     const words = text.split(/\s+/).filter(Boolean).length;
     expect(words).toBeGreaterThan(1000);
     expect(words).toBeLessThanOrEqual(LIBRARY_WORD_CAP);

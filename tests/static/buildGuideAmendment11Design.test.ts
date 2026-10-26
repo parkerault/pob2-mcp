@@ -228,7 +228,7 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(form).toContain('<Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss.');
   });
 
-  it("SKILL.md routes D1-tree's respec and D1-finish's build, has no rival row, and stays within 325 lines; patterns.md stays within 13,000 words", () => {
+  it("SKILL.md routes D1-tree's respec and D1-finish's build, has no rival row, and stays within 325 lines; patterns.md stays within its word cap (provisional 16,000)", () => {
     expect(SKILL).toMatch(/\*\*Two returns send an attempt back to D1-build\*\*, in the same attempt \(D-438, D-446\): D1-tree's `respec: <stage> needs one: <why>`, logged `respec`, .* and D1-finish's `build: <ids>`, logged `build`/);
     // The run checker's order table allows exactly those routes.
     expect(CHECKER_TEXT).toContain("'D1-tree': p?.outcome === 'respec' ? ['D1-build'] : ['D1-finish'],");
@@ -236,7 +236,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     const rows = SKILL_RAW.split('\n').filter((l) => /^\| \d+[a-c]? \|/.test(l));
     expect(rows.some((l) => /\bRV\b|\brival/.test(l))).toBe(false);
     expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(325);
-    expect(words(rawRef('patterns.md'))).toBeLessThanOrEqual(13_000);
+    // 16,000 is provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size.
+    expect(words(rawRef('patterns.md'))).toBeLessThanOrEqual(16_000);
   });
 });
 

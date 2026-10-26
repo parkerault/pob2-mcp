@@ -14,7 +14,8 @@
  * - "A count as a multiplier" beside an unchanged "Filler to satisfy a count", the two pointing to each other.
  * - The four new shapes (supply by family, bank the resource, a tamed rare beast, a rule changer), each in a family
  *   with its search step, how PoB follows it (one of the six labels), examples and cautions.
- * - The library stays under 13,000 words (D-381, raised by D-410 and by amendment 9 §24.1, the user, 2026-10-23).
+ * - The library stays under 16,000 words (D-381, raised by D-410 and by amendment 9 §24.1, the user, 2026-10-23;
+ *   16,000 and the kits' 4,000 are provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size).
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -171,10 +172,10 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
       expect(companions).toMatch(/\*\*Spirit:\*\* a tame reserves 13\.8–56\.1% of maximum Spirit \(32\.7% at the median\), not a flat amount \(the user, \[amendment-8\] §4/);
     });
 
-    it('is about 3,000 words (D-410)', () => {
+    it('is about 3,000 words, under 4,000 (D-410; provisional)', () => {
       const words = bodyOf(kits!).split(/\s+/).filter(Boolean).length;
       expect(words).toBeGreaterThan(2500);
-      expect(words).toBeLessThan(3500);
+      expect(words).toBeLessThan(4000);
     });
   });
 
@@ -240,7 +241,7 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     });
   });
 
-  it('stays under 13,000 words (D-381, D-410, amendment 9 §24.1)', () => {
-    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(13_000);
+  it('stays under 16,000 words (D-381, D-410, amendment 9 §24.1; provisional)', () => {
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(16_000);
   });
 });

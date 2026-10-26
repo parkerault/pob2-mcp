@@ -31,9 +31,10 @@ const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-builds');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'design-pieces-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-/** D-410 and amendment 9 §24.1: the library's word cap; D-410: the Standard kits section's own limit. */
-const LIBRARY_WORD_CAP = 13_000;
-const KITS_WORD_LIMIT = 3_500;
+/** D-410 and amendment 9 §24.1: the library's word cap; D-410: the Standard kits section's own limit. Both are
+ * provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size. */
+const LIBRARY_WORD_CAP = 16_000;
+const KITS_WORD_LIMIT = 4_000;
 
 const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
 /** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
@@ -373,7 +374,7 @@ describe('AC-W86: the library holds questions 16–19 and the two amended entrie
     expect(field(entry('Payoff thief (anti-pattern)'), 'Cautions')).toMatch(/^re-run it whenever a consumer joins\./);
   });
 
-  it('stays under its 13,000 words, the Standard kits under their own limit', () => {
+  it('stays under its word cap, the Standard kits under their own limit (provisional)', () => {
     expect(words(library)).toBeLessThanOrEqual(LIBRARY_WORD_CAP);
     const kits = libraryHeadings.find((h) => h.level === 2 && h.title === 'Standard kits')!;
     expect(words(bodyOf(kits))).toBeLessThan(KITS_WORD_LIMIT);

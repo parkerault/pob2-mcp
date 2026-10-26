@@ -1,5 +1,11 @@
 # Toughness targets from published league starters (2026-10-25)
 
+**Correction (2026-10-26).** Both Witchhunters' energy shield is a custom line standing in for Sorcery Ward, which
+PoB already models, so their EHP below counts the ward twice. Without it they read 205.7k and 157.8k EHP, with a
+physical max hit of 14.8k and 11.6k. Only the ranged-attack 75th percentile (99.0k → 61.1k) and the maxima move; the
+targets, minimums, medians and counts against the band stand. See `2026-10-26-defence-layers.md`, "The Witchhunter
+correction".
+
 **Why.** Amendment 11 shows a defence trade when a design's non-budget rung is too squishy (D-441). The user asked
 for different targets for melee and ranged builds ("My gut is 8k-10k for ranged, 15k for melee"), set from published
 builds rather than guessed: "Final draft waits on those studies."

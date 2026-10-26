@@ -5766,3 +5766,17 @@ the `m17` engine at `b76967b`.
     included, gets the second measure.
   - **For wave 2:** `D1-build.md`:126 and :320 still call the key-figure line the "headline DPS"; `D1-gate.md` reads
     `boots-exception` from `v1.notes`.
+- **WU-113 (the build-guide scripts) merged** at `d6e26e7` (four commits on `d9b46c3`). The verification, brainstorm,
+  design and final displays; the checker's dossier, Pieces measured, design-field, band, engagement, boss line,
+  floor, trades, `boss_<stage>`, verdict-line, order, pricing-stop, rival and run-dating rules; the audit's figures and
+  players' currency words; `references/toughness-targets.json` and `references/boss-floor.json`. Its verifier (fresh
+  context) passed it with no blocking defect, re-running the gate (192 suites, 3,242 tests, rc 0; build rc 0).
+  - **Deviations accepted:** `priceOutcomes` gains an `exchange` key (so a stop can be enforced while poe.ninja stays
+    allowed); the `pricing` log entry writes Appendix A's `{stops, retries}`; `skillRevisionFrom` marks the resume
+    stamp; R1b's verdict gains an optional `damage` part; a `boss_<stage>` formula needs a `boss.g` reference (AC-W89's
+    wording; §9b's body says `boss.`, to fold); extra design-field cross-checks.
+  - **Follow-ups (a small fix unit before the wave gate):** after a resume stamps an old run, the displays switch to
+    the new form by the log's stamp rather than each artifact's own format (§19), so an old dossier loses its figures;
+    the checker's tree-swap messages still say "Full DPS" (`check-run.mjs`:4124–4125). For wave 2: `pricing.md`'s
+    "Reporting the calls" must teach `exchange`; `R1b.md` and `gates.md` name `verdict.damage`; `run-folder.md` lists
+    `trades.json`; `SKILL.md` cites the two JSON files and the AC-W1 exemption in `buildGuidePipeline.test.ts` goes.

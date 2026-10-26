@@ -123,11 +123,11 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   defence follows the class's attributes in 26: every Huntress, Ranger and Monk evades, the Warriors and two of
   three Druids wear armour, and the Mercenaries split, three on armour and five on evasion. Under the non-budget
   enemy, as median EHP and median physical max hit [defence-layers] families: evasion with an energy shield pool,
-  24k and 6.2k (15k with every condition against it); evasion with a life pool, 18k and 3.5k, three of five
-  one-shot, so a pool and deflection come before more evasion; armour with a life pool, 29k and 5.0k, which
-  conditions don't move; a mana pool (Mind over Matter, Eldritch Battery), 17k and 9.0k; energy shield without
-  evasion, 16.5–25k and 10–14k; evasion with Sorcery Ward (two Witchhunters), 158–206k and 12–15k. Capped
-  resistances are worth ×1.30–2.24 in all 30, and all four one-shots fail on the physical hit.
+  24k and 6.2k (15k with every condition against it), where deflection still helps; evasion with a life pool, 18k
+  and 3.5k, three of five one-shot, so a pool and deflection come before more evasion; armour with a life pool, 29k
+  and 5.0k, which conditions don't move; a mana pool (Mind over Matter, Eldritch Battery), 17k and 9.0k; energy
+  shield without evasion, 16.5–25k and 10–14k; evasion with Sorcery Ward (two Witchhunters), 158–206k and 12–15k.
+  Capped resistances are worth ×1.30–2.24 in all 30, and all four one-shots fail on the physical hit.
 - **Every archetype, for clear:** an explosion on kill (a corpse explosion from a warcry, a node or a unique; a
   Herald's) turns each kill into a hit sized by the monster's life, so a pack chain-explodes once the first
   monsters die: one of the strongest and most fun additions to map clear (the user, 2026-10-23). PoB sizes it per
@@ -1334,9 +1334,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 ### Deflection beside evasion
 
-- **Shape:** a build whose main defence is evasion takes as much deflection as its points and gear allow: evasion is
-  all or nothing, safe until a big hit gets through whole, and deflection takes 40% off most of the hits that get
-  through, whatever their size. No cap is required.
+- **Shape:** any build with evasion, pure or hybrid (evasion with energy shield, evasion with armour), takes
+  deflection as far as its points and gear allow: evasion is all or nothing, safe until a big hit gets through
+  whole, and deflection takes 40% off most of the hits that get through, whatever their size. Pure evasion gains
+  most; a hybrid gains less but should still look. No cap is required.
 - **Search:** `tree "Deflection"` (small nodes, 5–8% of evasion as deflection rating), Trained Deflection and
   Enduring Deflection (more prevented share); `mechanic "Deflection Rating equal to"` (mod, unique, passive) for
   gear; `mechanic "increased Deflection Rating"`; Blind on the attackers (Blind as defence).
@@ -1354,9 +1355,11 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   0.6 of the max hit, which the gate doesn't show yet. It doesn't replace a pool: a slam it misses lands whole, so a
   one-shot build still needs life, energy shield or armour for the type it fails. The chance is front-loaded: half
   the cap's rating gives about 70%. It rolls against the attacker's accuracy, so a boss deflects less often than the
-  map enemy the figures use. It is for builds whose main defence is evasion; others take it only where it is cheap.
-  Deflection was buffed heavily in 0.5 (the user, 2026-10-26): a guide from before, or not re-tuned since, may
-  under-use it.
+  map enemy the figures use. A hybrid gains less: it has less evasion to turn into deflection, and its energy shield
+  or armour already holds a big hit better (physical max hit median 6.2k for evasion with an energy shield pool,
+  3.5k with a life pool) [defence-layers] (the user, 2026-10-26). A build without evasion takes it only where it is
+  cheap, such as deflection from armour. Deflection was buffed heavily in 0.5 (the user, 2026-10-26): a guide from
+  before, or not re-tuned since, may under-use it.
 
 ### Blind as defence
 

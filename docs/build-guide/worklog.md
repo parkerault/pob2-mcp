@@ -5799,3 +5799,11 @@ the `m17` engine at `b76967b`.
   verification and design displays read each artifact by its own format (§19), and the checker's tree-swap messages
   say "damage" only for a gate held to amendment 11. Its verifier (WU-113's) passed it; the four new tests fail on the
   old scripts. Gate in the lane: 192 suites, 3,246 tests, rc 0.
+- **Wave 1's gate passed** on `66e12fd` (a fresh verifier, from clean: `build`, `coverage` and Jest's cache cleared):
+  `mise run test` rc 0 (194 suites, 3,263 tests, none skipped; the timing step 2 suites, 3 tests; node power's
+  90-second test at 29.9 s), `pnpm build` rc 0. The seams between the units are crossed by tests (the scripts' `boss.`
+  references by WU-111's evaluator, `MainDamage` against `measures.damage.map`, both units' tool entries in the README
+  table); `boots-exception` is crossed by a fixture in WU-111's shape, and the checker treats the code as information
+  wherever it appears. Every bullet of AC-P79, AC-P80, AC-P81, AC-K72 (with the user's rulings) and AC-W89 has a named
+  passing test; no skipped tests, no stubbed engine, waivers `[]`, dependencies unchanged. The built server starts and
+  lists 78 tools with trade and poe.ninja off.

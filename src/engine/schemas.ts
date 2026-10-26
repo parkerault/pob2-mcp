@@ -1682,6 +1682,8 @@ const powerResultSchema = z
     movement: optNumber,
     /** D-439: the lowest of PoB's five per-type maximum hits taken, the maxHit guard's base. */
     maxHit: optNumber,
+    /** The limits in force, in percent, by stat id (each stat after the first) and by guard (maxLoss's keys). */
+    limits: luaMap(luaNumber).optional(),
     measuredNodes: z.number().int(),
     points: z.number().int(),
     travel: z.number().int(),

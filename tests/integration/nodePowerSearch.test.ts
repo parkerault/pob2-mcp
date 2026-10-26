@@ -22,6 +22,8 @@
  * - AC-P79 (4): a swap that lowers the lowest per-type maximum hit by more than 2% is refused; with
  *   `max_loss: {maxHit: 10}` it passes.
  * - AC-P79 (NFR): a swap call and a rebuild call on the AC-P73 fixture each finish under 90 seconds.
+ * - The fix round's jewel sockets: a jewel socket that holds a jewel (rung m's treeJewels) is never removed, by the
+ *   swap search, the rebuild or `free`, so a returned tree still compiles.
  */
 import fs from 'fs';
 import path from 'path';
@@ -342,6 +344,66 @@ engineDescribe('WU-110: get_node_power frees several branches, rebuilds, frees n
       },
       ENGINE_TIMEOUT,
     );
+
+    it(
+      "a jewel socket holding a jewel is protected: no branch the swap search lists holds one, the rebuild keeps them and its tree compiles, and free refuses one and a node whose removal disconnects one",
+      async () => {
+        // Rung m's socketed sockets, as the plan's treeJewels name them and PoB holds them (spec.jewels).
+        const m = threeRungPlan().stages.find((st: Json) => st.id === 'm');
+        const sockets = sorted((m.items.treeJewels as Json[]).map((j) => j.node as number));
+        expect(sockets.length).toBeGreaterThan(0);
+        const held = await lua<number[]>(`
+          local l = build:GetLoadoutByName(${JSON.stringify(M)})
+          local spec = build.treeTab.specList[l.specId]
+          local out = {}
+          for id, item in pairs(spec.jewels or {}) do if item ~= 0 and spec.allocNodes[id] then out[#out + 1] = id end end
+          return out`);
+        expect(sorted(held)).toEqual(sockets);
+
+        const listed = await power({ loadout: M, limit: 1000 });
+        for (const w of listed.weakest) expect({ id: w.id, sockets: w.branch.filter((id) => sockets.includes(id)) }).toEqual({ id: w.id, sockets: [] });
+        for (const t of listed.swaps) expect({ branches: t.branches.map((b) => b.id), sockets: ids(t.removed).filter((id) => sockets.includes(id)) }).toEqual({ branches: t.branches.map((b) => b.id), sockets: [] });
+        expect(listed.protected['holds a jewel']).toBe(sockets.length);
+
+        // free refuses a socketed socket, and a node whose removal disconnects one (the untagged main-tree node with the
+        // fewest dependants that include a socket, by PoB's depends), naming it.
+        const parent = await lua<number>(`
+          local l = build:GetLoadoutByName(${JSON.stringify(M)})
+          local spec = build.treeTab.specList[l.specId]
+          local sockets = {}
+          for _, id in ipairs({ ${sockets.join(', ')} }) do sockets[id] = true end
+          local best, size
+          for id, n in pairs(spec.allocNodes) do
+            if not sockets[id] and not n.ascendancyName and n.type ~= 'ClassStart' and n.type ~= 'AscendClassStart' and (n.allocMode or 0) == 0 then
+              local holds = false
+              for _, d in ipairs(n.depends or {}) do if sockets[d.id] then holds = true end end
+              local k = #(n.depends or {})
+              if holds and (not best or k < size or (k == size and id < best)) then best, size = id, k end
+            end
+          end
+          return best`);
+        expect(typeof parent).toBe('number');
+        const named = await f.call('get_node_power', { loadout: M, free: [sockets[0]], limit: 0 });
+        expect(named.isError).toBe(true);
+        expect(named.text).toContain(`[${sockets[0]}] holds a jewel in this loadout`);
+        const cut = await f.call('get_node_power', { loadout: M, free: [parent], limit: 0 });
+        expect(cut.isError).toBe(true);
+        expect(cut.text).toMatch(/free: removing them disconnects .* \[\d+\], which holds a jewel in this loadout/);
+
+        // The rebuild with nothing kept frees most of the tree, never a socketed socket or the path to one.
+        const r = await power({ loadout: M, limit: 0, rebuild: true, maxLoss: { TotalEHP: 100, maxHit: 100, movement: 100, clearRadius: 100, clearUses: 100 } });
+        const s = r.swaps[0];
+        expect(s.freed).toBeGreaterThan(20);
+        expect(ids(s.removed).filter((id) => sockets.includes(id))).toEqual([]);
+        // Applied to the plan, the rebuilt tree compiles: every treeJewels node is still in the tree.
+        const plan = threeRungPlan();
+        plan.stages = plan.stages.filter((st: Json) => st.id === 'm');
+        applyMove(plan.stages[0], moveOf(s));
+        for (const id of sockets) expect(plan.stages[0].tree.nodes).toContain(id);
+        await compile('np-jewels-rebuilt', plan);
+      },
+      ENGINE_TIMEOUT,
+    );
   });
 
   describe('on the golden build', () => {
@@ -383,7 +445,9 @@ engineDescribe('WU-110: get_node_power frees several branches, rebuilds, frees n
         expect(tried.verdict).toBe('over-loss');
         expect(tried.reason).toMatch(/^the lowest maximum hit taken would fall [\d.]+%, more than 2%$/);
         expect(guarded.bestSwap).toBeUndefined();
-        expect(await ok('get_node_power', { stats: ['FullDPS'], keep, limit: 0, max_distance: 2, max_loss: { movement: 100 } })).toMatch(/^Best swap: none: /m);
+        // The none line names the limits in force: the call's movement 100%, the default maxHit 2%.
+        const none = /^Best swap: none: .*$/m.exec(await ok('get_node_power', { stats: ['FullDPS'], keep, limit: 0, max_distance: 2, max_loss: { movement: 100 } }))![0];
+        expect(none).toMatch(/\(movement speed 100%; the clear skill's radius 0% and uses per second 0%; the lowest maximum hit taken 2%\)\.$/);
 
         const allowed = await power({ stats: ['FullDPS'], keep, limit: 0, maxDistance: 2, maxLoss: { movement: 100, maxHit: 10 } });
         expect(allowed.bestSwap?.branches.map((b) => b.id)).toEqual([32976]);

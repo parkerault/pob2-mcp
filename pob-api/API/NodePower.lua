@@ -27,7 +27,7 @@
 -- when the skill's damage over time stacks (PoB's DotCanStack), IgniteDPS, BleedDPS and PoisonDPS once; a minion's
 -- is MinionTotalDPS × Count. Count is PoB's own for the main skill (calcs.getActiveSkillCount: the group's
 -- groupCount, which the compile sets to the plan's count). With `cull`, the figure is multiplied by the output's
--- CullMultiplier (the minion's for a minion's figure).
+-- CullMultiplier, the field the compile record's `measures.damage.map` reads.
 --
 -- State (D-176): the call selects the loadout (build:SetActiveLoadout) and sets its level, by default the
 -- "(L<level>)" in the loadout's name; it puts back the previous spec, item, skill and config sets and the level and
@@ -56,7 +56,8 @@
 -- it (D-435): Compile.lua's group_indices, the groups without a `source` in order, then PoB's own, mapped to PoB's
 -- index at call time; the reply's clear entry carries that number.
 --
--- Protected, never removed with any branch containing them: `keep`; a node with a "Grants Skill:" line; a
+-- Protected, never removed with any branch containing them: `keep`; a node with a "Grants Skill:" line; a jewel
+-- socket that holds a jewel in the loadout (the plan's treeJewels name it, so a tree without it can't compile); a
 -- weapon-set node; for each loadout of `protectFor`, every node of this tree whose dependants in that loadout's
 -- spec (node.depends there) include a node outside this tree. A branch whose removal would disconnect any node
 -- outside it, in this tree or a protectFor loadout's (walked under the weapon-set rule, since PoB's depends leaves
@@ -81,12 +82,14 @@
 -- has no meaning, so that pool ranks and guards by Full DPS in its place (D-437); its entry then names its stats.
 --
 -- Two modes replace the swap search and the pool moves (D-439), each judged as one swap:
--- - `rebuild`: free every allocated main-tree node outside the protected ones (keep's included) and the paths that
+-- - `rebuild`: free every allocated main-tree node outside the protected ones (keep's and the socketed jewel sockets
+--   included) and the paths that
 --   connect them to the start (the shortest within the tree, under the weapon-set rule), then refill the freed points
 --   greedily by gain per point, PoB recomputing every path after each pick, from the nodes the pass measured.
 -- - `free` [ids]: free exactly those allocated, untagged main-tree nodes and the nodes their removal disconnects, then
 --   refill the points greedily (as a swap does) from anything but the named nodes, and report the gain however the
---   refill is judged.
+--   refill is judged. A socketed jewel socket is never freed: naming one, or a node whose removal disconnects one, is
+--   refused.
 --
 -- Registered by one line in Handlers.lua.
 
@@ -142,6 +145,12 @@ end
 
 local function node_name(node)
   return tostring(node and (node.dn or node.name) or '?')
+end
+
+-- Whether `spec`'s node `id` is a jewel socket holding a jewel (PassiveSpec.jewels: socket id -> item id, 0 for none).
+local function holds_jewel(spec, id)
+  local item = spec.jewels and spec.jewels[id]
+  return item ~= nil and item ~= 0
 end
 
 local function sorted_ids(set)
@@ -439,7 +448,7 @@ local function main_damage(ctx, out)
       + field('IgniteDPS') + field('BleedDPS') + field('PoisonDPS')
   end
   if ctx.cull then
-    local m = finite(BuildOps.output_field(out, f.minion and 'MinionCullMultiplier' or 'CullMultiplier'))
+    local m = finite(BuildOps.output_field(out, 'CullMultiplier'))
     if m > 0 then v = v * m end
   end
   return v
@@ -985,6 +994,7 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     elseif node.ascendancyName or (node.allocMode or 0) ~= 0 then
       return illegal('it would remove a weapon-set or ascendancy node')
     end
+    if holds_jewel(spec, id) then return illegal(('it would remove %s, which holds a jewel'):format(node_name(node))) end
   end
 
   local v = ctx.measure(nil, { spec = scratch })
@@ -1055,16 +1065,37 @@ end
 local function measure_call(params, ctx)
   local spec = build.spec
   local nStats = #ctx.stats
-  -- D-439: `free` names allocated, untagged main-tree nodes of the loadout's tree, checked before the pass runs.
-  for _, id in ipairs(ctx.free or {}) do
-    local n = spec.nodes[id]
-    if not spec.allocNodes[id] then
-      fail(('free: %s [%d] isn\'t allocated in this loadout'):format(node_name(n), id))
-    elseif not is_main(n) then
-      fail(('free: %s [%d] is an ascendancy or start node; free takes main-tree nodes'):format(node_name(n), id))
-    elseif (n.allocMode or 0) ~= 0 then
-      fail(('free: %s [%d] is tagged to weapon set %d; free takes untagged nodes'):format(node_name(n), id, n.allocMode))
+  -- D-439: `free` names allocated, untagged main-tree nodes of the loadout's tree, none a socketed jewel socket nor one
+  -- whose removal disconnects such a socket; checked, and the set it frees found, before the pass runs.
+  if ctx.free then
+    local set = {}
+    for _, id in ipairs(ctx.free) do
+      local n = spec.nodes[id]
+      if not spec.allocNodes[id] then
+        fail(('free: %s [%d] isn\'t allocated in this loadout'):format(node_name(n), id))
+      elseif not is_main(n) then
+        fail(('free: %s [%d] is an ascendancy or start node; free takes main-tree nodes'):format(node_name(n), id))
+      elseif (n.allocMode or 0) ~= 0 then
+        fail(('free: %s [%d] is tagged to weapon set %d; free takes untagged nodes'):format(node_name(n), id, n.allocMode))
+      elseif holds_jewel(spec, id) then
+        fail(('free: %s [%d] holds a jewel in this loadout, which the plan\'s treeJewels name; free takes nodes without one')
+          :format(node_name(n), id))
+      end
+      set[id] = true
     end
+    local all = {}
+    for id in pairs(spec.allocNodes) do all[id] = true end
+    local before = unreached(spec, all, {})
+    for _, d in ipairs(sorted_ids(unreached(spec, all, set))) do
+      if not before[d] then
+        if holds_jewel(spec, d) then
+          fail(('free: removing them disconnects %s [%d], which holds a jewel in this loadout; free takes nodes whose removal '
+            .. 'leaves every socketed jewel connected'):format(node_name(spec.nodes[d]), d))
+        end
+        set[d] = true
+      end
+    end
+    ctx.freeSet = set
   end
   local unalloc, alloc = run_pass(ctx)
   local result = {
@@ -1078,6 +1109,12 @@ local function measure_call(params, ctx)
   for i = 1, nStats do result.base[i] = ctx.base.value[i] end
   result.movement = ctx.base.move
   result.maxHit = ctx.base.maxHit
+  -- The limits in force, in percent: each stat after the first, and each guard (maxLoss's keys).
+  result.limits = {}
+  for i, s in ipairs(ctx.stats) do
+    if i > 1 then result.limits[s.stat] = ctx.limits[s.stat] end
+  end
+  for _, g in ipairs(GUARDS) do result.limits[g] = ctx.limits[g] end
 
   -- The clear entry, numbered as the plan numbers its groups (D-435).
   local clear = { group = ctx.clearNumber }
@@ -1124,6 +1161,10 @@ local function measure_call(params, ctx)
     if node.ascendancyName or is_start(node) then
       prot[id] = prot[id] or 'ascendancy or start'
       poolProt[id] = poolProt[id] or 'ascendancy or start'
+    end
+    if holds_jewel(spec, id) then
+      prot[id] = prot[id] or 'holds a jewel'
+      poolProt[id] = poolProt[id] or 'holds a jewel'
     end
   end
   for _, lo in ipairs(ctx.protectFor) do
@@ -1421,18 +1462,14 @@ local function measure_call(params, ctx)
     single_move(s)
   elseif ctx.free then
     -- D-439: free exactly the named nodes and what their removal disconnects; refill from anything but them.
-    local set, exclude = {}, {}
+    local exclude = {}
     result.freeNodes = {}
     for _, id in ipairs(ctx.free) do
-      if not set[id] then result.freeNodes[#result.freeNodes + 1] = node_entry(spec.nodes[id]) end
-      set[id] = true
+      if not exclude[id] then result.freeNodes[#result.freeNodes + 1] = node_entry(spec.nodes[id]) end
       exclude[id] = true
     end
-    for d in pairs(unreached(spec, allocSet, set)) do
-      if not trees[1].before[d] then set[d] = true end
-    end
     scratch = new_scratch(spec)
-    single_move(try_swap(ctx, scratch, orig, origCounts, { rows = {}, set = set, exclude = exclude }))
+    single_move(try_swap(ctx, scratch, orig, origCounts, { rows = {}, set = ctx.freeSet, exclude = exclude }))
   else
     -- The main swap: the weakest unprotected branches, alone and then together (D-439).
     local swaps, bestSwap = search(ctx, weak, true)

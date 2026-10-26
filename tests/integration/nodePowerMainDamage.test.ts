@@ -12,9 +12,9 @@
  * Every expected value comes from PoB itself (the compile record's counted fields, PoB's own CullMultiplier, the
  * record's figures with set 2 active, and a Full DPS call's pool moves), never from the tool's own output.
  *
- * - AC-P79 (5): `MainDamage` equals the named source's damage figure in the compile record of the same stage, the
- *   main group's five fields by the record's Count rule (`COUNT_RULE`: the figure `measures.damage.map` is built
- *   from, WU-111), and carries PoB's `CullMultiplier` only with `cull: true`.
+ * - AC-P79 (5): `MainDamage` equals the compile record's `measures.damage.map` on the same stage (the main group's five
+ *   fields by the record's Count rule, `COUNT_RULE`), and carries PoB's `CullMultiplier` only with `cull: true`: with
+ *   it, it equals the map figure of the same stage compiled with `skills.cull` (schema 7), which carries the multiplier.
  * - AC-P79 (6): a pool move on a weapon set without the main group still ranks by Full DPS.
  * - AC-P80: `tool-calls.json` holds `rebuild`, `free` and `MainDamage` samples of get_node_power.
  */
@@ -59,6 +59,14 @@ function cullingPlan(): Json {
       claims: [],
     },
   ];
+  return p;
+}
+
+/** The culling rung at schema 7, stating its cull (`skills.cull`), so the record's map figure carries the multiplier. */
+function cullStatedPlan(): Json {
+  const p = cullingPlan();
+  p.schemaVersion = 7;
+  p.stages[0].skills.cull = "Culling Strike I's Culling Strike on Rolling Slam";
   return p;
 }
 
@@ -138,9 +146,12 @@ engineDescribe('WU-110: get_node_power ranks by MainDamage, with cull, and a poo
     }, ENGINE_TIMEOUT);
 
     it(
-      "AC-P79 (5): MainDamage equals the record's damage figure for the named source, the main group's five fields by COUNT_RULE, and carries PoB's CullMultiplier only with cull: true",
+      "AC-P79 (5): MainDamage equals the record's measures.damage.map on the same stage, the main group's five fields by COUNT_RULE, and carries PoB's CullMultiplier only with cull: true, equal to the map figure of the stage compiled with skills.cull",
       async () => {
+        const map = record.stages.n.measures!.damage!.map!;
+        expect(typeof map).toBe('number');
         const { figure, count, raw } = recordFigure(record, 'n');
+        expect(close(map, figure)).toBe(true);
         expect(count).toBe(2);
         // The Count rule moved the figure: the hit is doubled, the ailments are not.
         expect(figure).toBeGreaterThan(raw);
@@ -151,9 +162,9 @@ engineDescribe('WU-110: get_node_power ranks by MainDamage, with cull, and a poo
           { id: 'MainDamage', label: 'Main damage' },
           { id: 'TotalEHP', label: 'Effective Hit Pool' },
         ]);
-        expect({ base: r.base[0], figure, equal: close(r.base[0], figure) }).toEqual({ base: r.base[0], figure, equal: true });
+        expect({ base: r.base[0], map, equal: close(r.base[0], map) }).toEqual({ base: r.base[0], map, equal: true });
         // Ranked by it: the best swap's first gain is MainDamage's change, a percentage of that base.
-        if (r.bestSwap) expect(close(r.bestSwap.gainPercent![0], (r.bestSwap.gain![0]! / figure) * 100)).toBe(true);
+        if (r.bestSwap) expect(close(r.bestSwap.gainPercent![0], (r.bestSwap.gain![0]! / map) * 100)).toBe(true);
 
         // PoB's own culling multiplier for the main skill, on this rung against its Pinnacle boss.
         const cullMultiplier = await lua<number>(`
@@ -163,7 +174,7 @@ engineDescribe('WU-110: get_node_power ranks by MainDamage, with cull, and a poo
           return build.calcsTab.mainOutput.CullMultiplier`);
         expect(cullMultiplier).toBeGreaterThan(1);
         const culled = await power({ stats: ['MainDamage', 'TotalEHP'], loadout: N, limit: 0, maxDistance: 2, cull: true });
-        expect(close(culled.base[0], figure * cullMultiplier)).toBe(true);
+        expect(close(culled.base[0], map * cullMultiplier)).toBe(true);
         expect(culled.base[1]).toBe(r.base[1]);
 
         const text = await ok('get_node_power', { stats: ['MainDamage', 'TotalEHP'], loadout: N, limit: 3, max_distance: 2, cull: true });
@@ -172,6 +183,13 @@ engineDescribe('WU-110: get_node_power ranks by MainDamage, with cull, and a poo
         const refused = await f.call('get_node_power', { stats: ['FullDPS'], loadout: N, cull: true });
         expect(refused.isError).toBe(true);
         expect(refused.text).toContain('cull multiplies MainDamage by its CullMultiplier; name MainDamage in stats');
+
+        // The same rung compiled with its cull stated: the record's map figure carries the multiplier, as cull: true does.
+        const stated = await compile('np-main-damage-cull', cullStatedPlan());
+        const culledMap = stated.stages.n.measures!.damage!.map!;
+        expect(close(culledMap, map * cullMultiplier)).toBe(true);
+        const again = await power({ stats: ['MainDamage', 'TotalEHP'], loadout: N, limit: 0, maxDistance: 2, cull: true });
+        expect({ base: again.base[0], culledMap, equal: close(again.base[0], culledMap) }).toEqual({ base: again.base[0], culledMap, equal: true });
       },
       ENGINE_TIMEOUT,
     );

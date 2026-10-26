@@ -940,11 +940,18 @@ function swapText(r: NodePowerResult, pool?: PowerPool): string {
   const head = pool ? `Best swap (weapon set ${pool.set})` : 'Best swap';
   const stats = statsOf(r, pool);
   if (!s) {
-    const others = stats.slice(1).map((x) => x.label);
+    // The limits in force (the call's max_loss over the defaults); a pool's Full DPS takes MainDamage's.
+    const limit = (key: string, fallback: number) => {
+      const v = r.limits?.[key];
+      return typeof v === 'number' ? v : fallback;
+    };
+    const statLimit = (i: number) => limit(stats[i].id, limit(r.stats[i]?.id ?? '', 2));
+    const pctText = (v: number) => `${figure(v)}%`;
     const limits = [
-      ...(others.length > 0 ? [`${others.join(' and ')} may lose at most the max_loss (default 2%)`] : []),
-      'movement speed and the clear skill\'s radius and uses per second none (default)',
-      'the lowest maximum hit taken 2% (default)',
+      ...stats.slice(1).map((x, k) => `${x.label} may lose at most ${pctText(statLimit(k + 1))}`),
+      `movement speed ${pctText(limit('movement', 0))}`,
+      `the clear skill's radius ${pctText(limit('clearRadius', 0))} and uses per second ${pctText(limit('clearUses', 0))}`,
+      `the lowest maximum hit taken ${pctText(limit('maxHit', 2))}`,
     ];
     const legal = swaps.filter((s) => s.verdict !== 'illegal').length;
     return (

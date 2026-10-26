@@ -4,7 +4,61 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-23: amendment 10, one build from the whole brainstorm (read this first)
+## M-24: amendment 11, builds a player would run (read this first)
+
+Added 2026-10-25. For this build, this section overrides the M-23 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-23's formats stay in force where M-24
+doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-11-live-test-fixes.md`, revision 3 at `be62237` (D-436…D-448, §16's
+  owners, §17's criteria AC-P79…AC-P81, AC-K72, AC-W89…AC-W92, Appendix A's formats) is binding. The spine and
+  slices are v1.6 with amendments 8 to 10 built. Read the amendment's Names, §19 (which rules a run is held to),
+  your unit's decisions, its criteria and Appendix A.
+- **Approved:** revision 3 by the user on 2026-10-25 ("Approve and build"), after its re-check was folded.
+- **HG-12 is granted only for the tool changes amendment 11 names:** `get_node_power`'s `rebuild`, `free`,
+  `max_loss.maxHit`, the `MainDamage` stat with `cull`, and `bestSwap.branches` (§7, Appendix A), and
+  `get_item_price`'s exchange route by category (§12). No tool is added or removed. Any other tool-contract change
+  is HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m24`, branch `build-guide/m24`, off `main` at
+  `be62237`. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the integration head when the unit starts. Never touched: the
+  main checkout and `/home/parker/projects/pob2-mcp-wt/m18` (detached at `5f023e5`; its `vendor/` is the source for a
+  lane's copy).
+- **Waves and owners:** §16. Wave 1, in parallel: WU-110 (node power), WU-111 (plan and record, schema 7), WU-112
+  (pricing), WU-113 (scripts). WU-112 rebases onto WU-110 for `toolSchemas.ts` and the README table (different
+  entries and rows). Wave 2, after all four merge: WU-114 (research and verification docs) and WU-115 (design docs and
+  SKILL.md), in parallel. WU-116 is the live test, run by the user with the coordinator, not a doer's unit. The
+  coordinator merges each unit after its verifier passes, and owns the work-log, the spec, §14's decision rows, the
+  V1 table and amendment 10's Appendix A example.
+- **Shared files.**
+  - `checkpoints.md` is split by section: WU-114 owns the interview, brainstorm, verification and final-gate
+    sections and the pre-supplied answers; WU-115 the design gate and the revise paths.
+  - The shared static test files (`buildGuidePipeline.test.ts`, `buildGuidePiecesMeasured.test.ts`,
+    `buildGuideDesignPieces.test.ts`) are edited by `describe` block: each unit changes only the assertions on its
+    own files, and says so in its report. Put new static checks in new files.
+  - `references/toughness-targets.json` and `references/boss-floor.json` are created by WU-113 from Appendix A (its
+    checker tests read them); WU-115's docs cite them.
+  - `tests/fixtures/pipeline/` is WU-113's.
+- **The pricing spike (WU-112)** is the one unit allowed network, and only poe.ninja's documented economy endpoints
+  for the exchange categories: serial requests, a back-off on HTTP 429, nothing fetched twice (save each response
+  under the lane's own temp folder and build the fixtures from it). No pathofexile.com request, no cookie, no
+  `POESESSID`. Its category list, and where it differs from the user's list (§12), goes in its report.
+- **Node power's baseline** (AC-P79's NFR) is recorded by the coordinator in the work-log before WU-110 starts.
+- **Room left, measured at `be62237`:**
+  - `SKILL.md` is 325 of its 325 lines: WU-115 makes room by removing the rival's rows before adding anything.
+  - `patterns.md` is 12,646 `wc -w` words of its 13,000.
+  - `get_node_power`'s description is 1,953 of the 2,048 characters AC-F15 allows: describe the new inputs in their
+    parameter schemas, and keep the tool description within the limit. `get_item_price`'s is 528.
+- **Running the gate:** the M-20 bullet's command, unchanged; no `rm -rf` inside its `sh -c` script.
+- **Lane bootstrap:** `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m24`; in the lane,
+  `git config --worktree commit.gpgsign false`, `mise trust`, `cp -a /home/parker/projects/pob2-mcp-wt/m18/vendor ./vendor`,
+  `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **Studies the units cite:** `docs/build-guide/studies/2026-10-25-boss-damage.md` and `2026-10-25-boss-estimate.md`
+  (what PoB can't read, the corrections), `2026-10-25-toughness-floors.md` (the targets). The private guide library
+  they came from is not the build's: never read it, copy from it or name its files in the repository.
+- **No network** beyond GitHub and npm for a worktree's bootstrap, and WU-112's spike as above.
+
+## M-23: amendment 10, one build from the whole brainstorm (built)
 
 Added 2026-10-23. For this build, this section overrides the M-22 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

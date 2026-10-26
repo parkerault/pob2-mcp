@@ -14,6 +14,7 @@ the agents followed are in `briefs/`.
 - [GL1TCH3D's Reaper of Souls against our two Bonfire Reap Infernalists](2026-10-24-reap-infernalist-comparison.md)
 - [Toughness targets from published league starters](2026-10-25-toughness-floors.md)
 - [Boss damage in published league starters](2026-10-25-boss-damage.md)
+- [Boss damage of published league starters, estimated the guides' way](2026-10-25-boss-estimate.md)
 - [Off-meta build 1: Melting Maelstrom Shaman (Troy Tesko)](2026-10-09-GsLBMXy3tDk-melting-maelstrom-shaman.md)
 - [perra's "Broken Off-Meta Builds" page: index and written guides](2026-10-10-perra-index.md)
 - [Mirage Sniper (J_Macc)](2026-10-10-FUeS6JNqHrw-mirage-sniper.md)

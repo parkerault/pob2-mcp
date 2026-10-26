@@ -5706,3 +5706,10 @@ the `m17` engine at `b76967b`.
   (trigger rates from the meta gems' energy rules, procs, projectiles that land, buffs with no stat map), every input
   sourced. Corrections outside §9b's list are kept apart, to show whether the list needs widening. Five agents,
   grouped by the correction each build needs most.
+- **The second boss study** (`studies/2026-10-25-boss-estimate.md`, about 1.94M agent tokens across five agents): the
+  30 builds estimated by §9b's method. Current builds (19): 25th percentile 231k, median 684k; without the three
+  self-found hardcore builds and the 1-divine variant, 487k and 993k. Engagement doesn't split boss damage (25th
+  percentile 218k close, 301k at a distance). The hand estimate moves PoB's figure 0.32× to 12.7× (median 1.40×), and
+  23 of 30 builds needed a correction outside §9b's list (the rotation's share of the player's time in 17, a burst over
+  its cycle in 9), so §9b needs them for a floor from this study to compare like with like. The Twister corrections
+  are kept for the live test (WU-116).

@@ -5780,3 +5780,22 @@ the `m17` engine at `b76967b`.
     the checker's tree-swap messages still say "Full DPS" (`check-run.mjs`:4124–4125). For wave 2: `pricing.md`'s
     "Reporting the calls" must teach `exchange`; `R1b.md` and `gates.md` name `verdict.damage`; `run-folder.md` lists
     `trades.json`; `SKILL.md` cites the two JSON files and the AC-W1 exemption in `buildGuidePipeline.test.ts` goes.
+- **WU-110 (node power) merged** at `6dca73f` (three commits, rebased onto WU-113's merge without conflict). Several
+  weak branches freed together (`bestSwap.branches`), the `rebuild` pass, `free`, the `max_loss.maxHit` guard (2%),
+  `MainDamage` with `cull`, and Full DPS for pool moves on a weapon set without the main group. Its verifier (fresh
+  context) passed the first pass (gate 184 suites, 3,104 tests, rc 0) and then failed two fix rounds' worth of
+  defects it found by probing:
+  - a rebuild could free a socket holding a jewel and return a tree the compile refuses: socketed jewel sockets
+    are now protected in every mode;
+  - a rebuild with little kept never refilled: the kept core, joined from each protected node's shortest path, split
+    the start into two trees, and the one-tree check banned every trial. The core is now made by pruning the tree,
+    least valuable node first, keeping it connected; on the dead-ends fixture a rebuild with nothing kept frees 60
+    points and moves 55. `MainDamage` is now tested against `measures.damage.map` directly.
+  - **AC-P79's NFR:** on the AC-P73 fixture, alone and with the gate lock held, swap 16.5 s and rebuild 15.1 s; in the
+    gate under load, swap 18.7 s and rebuild 15.3 s; the baseline swap was 12.66 s. All under 90 s.
+  - **For the live test:** the description is 2,023 of 2,048 characters; untested paths are a minion's figure and
+    stacking damage over time in `MainDamage`, and `cull` on a minion.
+- **WU-113's follow-up merged** at its rebased commit (lane `bg-113b`): after a resume stamps an old run, the
+  verification and design displays read each artifact by its own format (§19), and the checker's tree-swap messages
+  say "damage" only for a gate held to amendment 11. Its verifier (WU-113's) passed it; the four new tests fail on the
+  old scripts. Gate in the lane: 192 suites, 3,246 tests, rc 0.

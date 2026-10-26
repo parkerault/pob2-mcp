@@ -111,7 +111,7 @@ On a composite:
 
 ```
 dossier.md
-r1-s-1 viable, except Blistering Bond does nothing in PoB: the aftershock hits twice and the slam ignites; Rolling Slam: hit, ignite; pieces 1 of 4: Blistering Bond does nothing in PoB; Titan's slam notables: PoB can't see it; prices unavailable (offline); risk: the ignite rests on Blistering Bond
+r1-s-1 viable, except Blistering Bond does nothing in PoB: the aftershock hits twice and the slam ignites; Rolling Slam: hit, ignite; pieces 3 of 4: Blistering Bond does nothing in PoB; Titan's slam notables: PoB can't see it; prices unavailable (offline); risk: the ignite rests on Blistering Bond
 ```
 
 ## Fault directives

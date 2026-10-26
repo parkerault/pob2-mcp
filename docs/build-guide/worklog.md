@@ -5807,3 +5807,13 @@ the `m17` engine at `b76967b`.
   wherever it appears. Every bullet of AC-P79, AC-P80, AC-P81, AC-K72 (with the user's rulings) and AC-W89 has a named
   passing test; no skipped tests, no stubbed engine, waivers `[]`, dependencies unchanged. The built server starts and
   lists 78 tools with trade and poe.ninja off.
+- **WU-114 (the research and verification docs) merged** at its rebased commit (one commit on `66e12fd`). R1a to
+  R1b-assemble, the card and dossier templates, `checkpoints.md`'s interview, pricing question, brainstorm,
+  verification and final gates, RV.md deleted, the agent definitions, task header, run folder (`trades.json`),
+  source markers, offline and test, and `pricing.md` (every exchange item, the user's rulings, `exchange`, the stop
+  until a gate's retry). Its verifier (fresh context) passed it, re-running the gate (195 suites, 3,271 tests, rc 0;
+  build rc 0); 13 of AC-W90's 14 tests fail on the base docs. The coordinator aligned R1b-assemble's example Pieces
+  cell with Appendix A ("3 of 4": a piece PoB can't see isn't counted as doing nothing).
+  - **Known, not fixed here:** a server restarted during an open pricing stop could send one trade request for an
+    exchange item poe.ninja doesn't list (its own limit flag is per process); resuming a pre-amendment-11 run rewrites
+    its dossier into the nine columns without saying where an older card's damage kinds come from.

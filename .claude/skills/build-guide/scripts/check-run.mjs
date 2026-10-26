@@ -86,6 +86,22 @@
 //    with the twelfth column `key pieces`; `pieces.md` in a build's folder (D-434); `builds[].name` (D-435); an empty
 //    list item in a V4 report ignored; and the result's `warnings`, a server build older than its source under
 //    `src/plan/` (its directory `BUILD_GUIDE_SERVER_BUILD` when set, for tests), the violations still reported.
+//  - amendment 11 (WU-113; D-436…D-448, its Appendix A), for the entries a log is held to its rules (§19: all of them
+//    when init wrote `skillRevision: 11`, those after the stamp when a resume wrote it, none in an older run's log):
+//    the dossier's nine columns (`DOSSIER_COLUMNS_A11`: Damage and Pieces, no number; `viable, except` with a piece that
+//    does nothing), a card's `| Key | Left out by | Does something |` table (`in` rows only, its answers held to R1b's
+//    `pieces[]` drops), an R1b `damage-missing` attempt failing though it compiled; the D1 gate's design field
+//    (`checkDesignField`: the record's two figures, the cull only with `skills.cull`, the trigger, the toughness band
+//    recomputed from the record's TotalEHP, the plan's engagement and references/toughness-targets.json, the boss estimate
+//    the ledger's `boss_<stage>`, the floor references/boss-floor.json's and `under` the boss figure below it, the rung's
+//    trades trades.json's, a trade for a rung out of band or under the floor, a damage trade's `bossAfter`), the
+//    non-budget rung's engagement, the `boss_<stage>` formula's rotation references (`checkBossLedger`); the guide's verdict
+//    line with two figures once the record measures them; `trades.json` in a build's folder (`checkTradesFile`); the
+//    order table's D1-tree `respec` and D1-finish `build` routes to D1-build, and the D1 gate's re-price pass after the
+//    design gate's retry-pricing; `bestSwap.weaponSet` 1 or 2 and `branches`; `boots-exception` information only; the
+//    pricing stops and retries (`checkPricing`, D-444) and D1-build's `priceOutcomes`; no rival (D-443); and a run dated
+//    amendment-8-or-later by its skill revision, as by its rival. The ledger's context carries each stage's
+//    `bossGroups` and `damageBoss`, for C-33's `<stageId>.boss.…` references.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -104,11 +120,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET } from './render-audit.mjs';
+import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET, ledgerStage } from './render-audit.mjs';
 import {
   parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder,
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
+  MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, heldFrom, openStop, stopOutcome, RETRY_ANSWERS, EXCHANGE, referenceJson,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -183,8 +200,15 @@ export const DOSSIER_COLUMNS_D407 = ['Card', 'Round', 'Status', 'Synergy', 'Name
  * pieces`: each measured piece and its largest drop, with the figure it falls on, from the card's Pieces measured.
  */
 export const DOSSIER_COLUMNS_D433 = ['Card', 'Round', 'Status', 'Synergy', 'Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'Main risk', 'key pieces'];
-/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its clear speed, its prices, its league and its key pieces. */
-const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'key pieces'];
+/**
+ * D-436 (amendment 11, Appendix A): a dossier written under amendment 11's rules: no number column; `Damage`, the damage
+ * kinds PoB shows for the named source, and `Pieces`, how many of the `in` pieces probed do something.
+ */
+export const DOSSIER_COLUMNS_A11 = ['Card', 'Round', 'Status', 'Synergy', 'Damage', 'Pieces', 'Key prices', 'League', 'Main risk'];
+/** The dossier cells a failed or not-yet-finalizable card leaves `—`: its numbers, its clear speed, its prices, its league and its key pieces; amendment 11's damage kinds. */
+const DOSSIER_EMPTY_CELLS = ['Named source DPS', 'Life', 'EHP', 'Clear speed', 'Key prices', 'League', 'key pieces', 'Damage'];
+/** D-436 (Appendix A): an amendment-11 dossier's Status: `viable`, `viable, except <what>`, `failed after <N> attempts: …` or `can't be finalized yet: …`. */
+const STATUS_A11 = /^(?:viable|viable, except \S.*|failed after [1-9]\d* attempts?: \S.*|can['’]t be finalized yet: \S.*)$/;
 /** The endgame ladder's rungs in order (D-281, D-282): `m`, `b`, `n`. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
 /** Each rung's guide H2, which holds the H3 `Checks` (§8). */
@@ -218,10 +242,13 @@ const TRADE_KINDS = [
   'no_session', 'session_rejected', 'too_complex', 'invalid_query', 'rate_limited', 'locked_out',
   'would_wait', 'auth', 'http', 'network', 'timeout', 'disabled',
 ];
-/** A `priceOutcomes` key: `ok`, `error` (no prefix) or a trade kind. */
-const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS];
-/** The steps that price (pricing.md): R1b, D1-finish (D1 in schema 2), the D1 gate's re-price pass and D2. */
-const PRICING_STAGES = { 2: ['R1b', 'D1', 'D1-gate', 'D2'], 3: ['R1b', 'D1-finish', 'D1-gate', 'D2'] };
+/** A `priceOutcomes` key: `ok`, `error` (no prefix) or a trade kind; D-444: `exchange`, a call poe.ninja's currency exchange priced. */
+const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS, EXCHANGE];
+/**
+ * The steps that price (pricing.md): R1b, D1-finish (D1 in schema 2), the D1 gate's re-price pass and D2; amendment 11's
+ * D1-build too, for its `find_upgrades` calls (D-444).
+ */
+const PRICING_STAGES = { 2: ['R1b', 'D1', 'D1-gate', 'D2'], 3: ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'] };
 
 /**
  * D-326, D-412: the run-log schema versions the checker reads: 4 (amendment 9), 3 (D-289), and 2 only so recorded runs
@@ -346,13 +373,14 @@ const STAGE_OUTCOMES = {
   // D-408: the rival, `RV`, writes its card (`done`) or finds no faster structure (`none-found`, with what it `tried`).
   3: { ...COMMON_OUTCOMES, 'D1-build': ['done', 'infeasible'], 'D1-finish': ['done', CLAIMS_EDITED], Q: ['done'], RV: ['done', 'none-found'] },
 };
-// Amendment 9 (schema 4): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415).
-STAGE_OUTCOMES[4] = { ...STAGE_OUTCOMES[3], 'D1-tree': ['done'], F1: ['pass', 'fail', 'escalated'], 'V4-campaign': ['pass', 'fail'] };
+// Amendment 9 (schema 4): D1-tree (D-418), F1 (D-413) and V4's campaign pass (D-415). Amendment 11: D1-tree's `respec`
+// (D-438) and D1-finish's `build` (§14), each routing D1-build next in the same attempt.
+STAGE_OUTCOMES[4] = { ...STAGE_OUTCOMES[3], 'D1-tree': ['done', 'respec'], 'D1-finish': ['done', CLAIMS_EDITED, 'build'], F1: ['pass', 'fail', 'escalated'], 'V4-campaign': ['pass', 'fail'] };
 // Amendment 10 (D-429): the brainstorm round's synthesis, which composes its builds in place of R1a-assemble's deal.
 STAGE_OUTCOMES[4]['R1a-synthesize'] = ['done'];
 /** D-421: a step the permission system refused, logged so and re-run alone, uncounted (schema 4). */
 const REFUSED = 'refused';
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED];
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED, 'respec', 'build'];
 /** The D1 steps: schema 3's two (D-356), schema 2's one, and schema 4's tree step (D-418). */
 const D1_STAGES = ['D1', 'D1-build', 'D1-tree', 'D1-finish'];
 /**
@@ -389,8 +417,8 @@ const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
  * hit is its formula's value rounded to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
  */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
-/** Findings that report on a passing part (../references/gates.md): never failures. */
-const INFO_CODES = ['chaos-exception', 'over-target'];
+/** Findings that report on a passing part (../references/gates.md): never failures. D-440: a boots exception, V1's. */
+const INFO_CODES = ['chaos-exception', 'over-target', 'boots-exception'];
 
 /**
  * D-370, D-371: the targets. `m` aims at 5 divines in all (M_TARGET) and each rare of `b` and `n` at its entry's
@@ -951,6 +979,10 @@ export async function checkRun(runFolder) {
   const probeCap = (id) => (composites.has(id) ? COMPOSITE_PROBE_CAP : PROBE_CAP);
   const capWords = (id) => (composites.has(id) ? `a composite has at most ${COMPOSITE_PROBE_CAP}: the checklist's 4, then 4 leave-one-outs (D-433)` : `a card has at most ${PROBE_CAP} (D-292)`);
   checkRunLog(log, fail, schema, { probeCap, capWords });
+  // D-444: the pricing stops and the retries, for the entries held to amendment 11's rules.
+  if (v4) checkPricing(log, fail);
+  /** §19: the stages[] index from which the log is held to amendment 11's rules (Infinity for an older run's log). */
+  const heldStage = heldFrom(log);
   const mode = log.mode;
   const offline = mode === 'offline';
   const stages = list(log.stages);
@@ -966,7 +998,7 @@ export async function checkRun(runFolder) {
 
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
   // D-412: a schema-4 run holds its builds in builds/<id>/; only a migrated run's build stays at the root.
-  const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'rounds'];
+  const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'trades.json', 'rounds'];
   const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
   // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
   for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
@@ -993,6 +1025,11 @@ export async function checkRun(runFolder) {
   }
   // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
   const rivalRan = stages.some((s) => s.stage === 'RV' && s.outcome !== 'missing');
+  // D-443 (amendment 11): the rival is removed; a run held to amendment 11's rules runs none, and an older run's RV
+  // entries, x card and dossier row stay readable (§19).
+  stages.forEach((s, i) => {
+    if (i >= heldStage && s.stage === 'RV') fail('rival', `run-log.json stages[${i}] runs the rival (RV), which amendment 11 removes: a run held to its rules (skillRevision ${SKILL_REVISION}) never runs it (D-443)`);
+  });
   /** D-429: a run whose brainstorm rounds R1a-synthesize composed. */
   const composite = stages.some((s) => s.stage === 'R1a-synthesize');
   if (log.status === 'completed' && !exists('dossier.md')) fail('layout', 'dossier.md is missing; a completed run has its dossier (§2)');
@@ -1132,7 +1169,10 @@ export async function checkRun(runFolder) {
     for (const s of stages.slice(0, lastAssembly + 1)) {
       if (s.stage === 'R1b' && s.outcome !== 'missing') terminal.set(s.concept, s.outcome === 'fail' ? terminalR1b(gateReports.get(`reports/gates/R1b-${s.concept}-a${s.attempt}.json`)) : null);
     }
-    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal, composite });
+    // §19: a dossier written after the run's skill-revision stamp is amendment 11's, with no number column (D-436); one
+    // written before it is read by its own header.
+    const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
+    checkDossier(dossierText, assembled, ID, fail, { rivalRan, terminal, composite, a11: lastAssembly >= 0 && lastAssembly >= heldStage, cardOf, composites });
   }
 
   // ---- Escalations name their verdict files; accepted gate findings (§5.4, D-236) ------------------
@@ -1195,11 +1235,20 @@ export async function checkRun(runFolder) {
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   if (v3) {
     const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
-    checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log), cardOf });
-    // D-429, D-433: each composite's Pieces table, and its Pieces measured once R1b verified it.
-    checkPieceTables(stages, cardIds, cardOf, fail);
+    // §11: a run dates as amendment-8-or-later by its rival or by its skill revision (the rounds dealt after its stamp).
+    checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log), cardOf, heldStage });
+    // D-429, D-433: each composite's Pieces table, and its Pieces measured once R1b verified it; D-436: a card verified
+    // after the stamp writes amendment 11's table, its answers held to its last passing R1b verdict's `pieces[]`.
+    const lastR1b = (id) => stages.reduce((at, s, i) => (s.stage === 'R1b' && s.concept === id && !idle(s) ? i : at), -1);
+    checkPieceTables(stages, cardIds, cardOf, fail, {
+      heldCard: (id) => lastR1b(id) >= 0 && lastR1b(id) >= heldStage,
+      verdictOf: (id) => {
+        const s = stages[lastR1b(id)];
+        return s && s.outcome === 'pass' ? gateReports.get(`reports/gates/R1b-${id}-a${s.attempt}.json`) ?? null : null;
+      },
+    });
     // D-408: each rival step that wrote a card, and that card; D-403, D-406: the obvious card's line, the structure check.
-    checkRivals(stages, cardIds, fail);
+    checkRivals(stages, cardIds, fail, heldStage);
     checkCardLines(log, cardIds, readText, fail);
     // D-389, D-391: the cards changed and made at the gates, and the interview notes, against the checkpoints.
     checkGateCards(log, cardIds, (id) => parseCard(readText(`cards/${id}.md`)), readText('cards.md'), fail);
@@ -1268,7 +1317,7 @@ async function checkBuild(c) {
   if (v4 && folder !== '.') {
     // D-412: a build's folder holds what the root held for the one build: plan.json, the record and its XML, guide.md,
     // audit.md, reports/V4-<n>.md and rounds/<n>/.
-    for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, pieces.md, reports/, rounds/; D-412, D-434)`);
+    for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, pieces.md, trades.json, reports/, rounds/; D-412, D-434, D-439)`);
   }
   if (completed) {
     for (const rel of ['plan.json', 'compile-record.json', 'guide.md', 'audit.md']) {
@@ -1559,7 +1608,7 @@ async function checkBuild(c) {
     }
     // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
     const guideD1 = guideConcept !== null ? gateFor('D1-gate', guideConcept, guideBefore) : undefined;
-    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, schema !== 2);
+    checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, schema !== 2, plan);
     // (l) Known issues by sentence in the guide, with each finding's id in audit.md (D-276, D-283).
     checkKnownIssues(guide, audit, accepted, open, fail);
   }
@@ -1629,6 +1678,19 @@ async function checkBuild(c) {
       if (guideText !== null) for (const f of openFailures) fail(ruleOf(part), `the guide's concept fails the D1 gate's ${part} (${f.code}, stage ${f.stage}): ${f.why}; only a pass, or an unverified budget, proceeds to ${v4 ? 'the final compile' : 'D2'} (§5.3)`);
     }
   }
+  // ---- Amendment 11 (D-439…D-441, D-447, D-448): the design field's figures, toughness, boss line, floor and trades,
+  // and the boss estimate's ledger rules, for a build whose last D1 gate is held to amendment 11's rules (§19) ---------
+  const d1At = d1 ? stages.findLastIndex((s) => s.stage === 'D1-gate' && s.concept === d1.concept && s.attempt === d1.attempt) : -1;
+  const a11Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log);
+  const tradesFile = readJson('trades.json');
+  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail);
+  if (a11Build && isObj(plan)) {
+    // A producer after the gate (a D1 step that compiled, or D2) leaves its design field older than the plan and the record.
+    const fresh = !stages.slice(d1At + 1).some((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED && !idle(s));
+    checkBossLedger(endgame, plan, record, fail);
+    if (isObj(d1rep?.design)) checkDesignField({ file: d1.file, design: d1rep.design, endgame, plan, record, ledgerNow, trades: isObj(tradesFile) ? list(tradesFile.trades) : null, fresh, fail });
+  }
+
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
   // PoB file opens on it.
   for (const s of campaign) {
@@ -1664,7 +1726,8 @@ async function checkBuild(c) {
           fail('record-verdicts', `the final record's stage ${id} has no ${check.toUpperCase()} verdict (D-192)`);
           continue;
         }
-        const openFindings = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !covered({ stage: id, part: check, code: f?.code }));
+        // D-440: an information-only code (a boots exception, `boots-exception`) fails nothing, like the chaos exception.
+        const openFindings = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !INFO_CODES.includes(f?.code) && !covered({ stage: id, part: check, code: f?.code }));
         if (openFindings.length > 0) fail('record-verdicts', `the final record's stage ${id} fails ${check.toUpperCase()}: ${openFindings.map((f) => f?.code).join(', ')}`);
       }
     }
@@ -1755,8 +1818,11 @@ async function checkBuild(c) {
   }
 }
 
-/** D-412: what a build's folder `builds/<id>/` holds (the root's files for its one build); D-434: D1-build's `pieces.md`. */
-const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'reports', 'rounds'];
+/**
+ * D-412: what a build's folder `builds/<id>/` holds (the root's files for its one build); D-434: D1-build's `pieces.md`;
+ * D-439: the trades D1-tree and D1-finish write for the design gate, `trades.json`.
+ */
+const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'trades.json', 'reports', 'rounds'];
 /** The V4 passes a build's reports/V4-<n>.md number: the full pass, a re-check, and schema 4's campaign pass (D-415). */
 const V4_STAGES = ['V4', 'V4-recheck', 'V4-campaign'];
 /** A gate verdict's parts: its stage's, and in schema 4 the D1 gate's `tree` (D-419) when the verdict has it. */
@@ -1850,10 +1916,15 @@ function checkEndgameRewardPicks(endgame, guide, fail) {
 
 /** D-283, D-294: the verdict line's fixed form, as the guide template gives it. */
 const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <n> DPS. Effective HP about <n>.';
+/**
+ * D-437, D-447 (amendment 11, Appendix A): the verdict line's fixed form once the record measures both figures, its damage
+ * part `<Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss.`, `<boss>` the boss figure.
+ */
+const VERDICT_FORM_A11 = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss. Effective HP about <n>.';
 /** D-353: the survival label on the budget and non-budget rungs, in place of solid, watch or risky: the record's Arbiter verdict. */
 const ARBITER_LABEL = "<survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>";
 /** The verdict line's form on a rung: `m` keeps the judgment label; `b` and `n` carry the Arbiter's (D-353). */
-const verdictForm = (variant) => (variant === 'entering-maps' ? VERDICT_FORM : VERDICT_FORM.replace('<solid|watch|risky>', ARBITER_LABEL));
+const verdictForm = (variant, two = false) => ((f) => (variant === 'entering-maps' ? f : f.replace('<solid|watch|risky>', ARBITER_LABEL)))(two ? VERDICT_FORM_A11 : VERDICT_FORM);
 
 /**
  * D-353, templates/guide-template.md: the survival label `measures.arbiter` gives the budget and non-budget rungs:
@@ -1868,9 +1939,14 @@ export function arbiterLabel(arbiter) {
 /** D-326: a schema-2 run's guide predates D-294's Effective HP, so its verdict line may end at the DPS. */
 const EHP_PART = ' Effective HP about <n>.';
 const NUM = '[−-]?\\d[\\d,]*(?:\\.\\d+)?';
+/**
+ * D-437, D-447 (Appendix A): the damage part with two figures, `<Skill> about <map> DPS against map monsters, about
+ * <boss> against a Pinnacle boss.`, in place of `<Skill> about <n> DPS.` (which a guide written from a record before
+ * amendment 11 keeps).
+ */
 const VERDICT_LINE = new RegExp(
   `^[-*] \\*\\*(Entering maps|Budget|Non-budget) \\(L(\\d+)\\): ([^*]+?)\\.\\*\\* Resistances (${NUM})/(${NUM})/(${NUM})/(${NUM})% at [−-]60%\\. ` +
-    `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS\\.` +
+    `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS(?: against map monsters, about (${NUM}) against a Pinnacle boss)?\\.` +
     `(?: Effective HP about (${NUM})\\.)?$`,
 );
 const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
@@ -1887,7 +1963,7 @@ const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
  * run's line always has. The entering-maps label stays judgment (solid, watch or risky); the budget and non-budget
  * labels are the record's `measures.arbiter` verdict (D-353, `arbiterLabel`).
  */
-function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
+function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, plan = null) {
   const h2 = h2Named(guide, SURVIVAL_H2);
   if (!h2) return;
   const { start, end } = guide.sectionOf(h2);
@@ -1901,7 +1977,7 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
     const label = VARIANT_LABEL[s.variant];
     if (!label) continue;
     const mine = lines.filter((l) => l.text.startsWith(`- **${label} (L`));
-    const form = verdictForm(s.variant);
+    const form = verdictForm(s.variant, isObj(record?.stages?.[s.id]?.measures?.damage));
     if (mine.length === 0) {
       fail('verdict-line', `${where} has no verdict line for the ${label} rung, stage ${s.id}: "${form}" (D-283)`);
       continue;
@@ -1922,7 +1998,7 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
       const verdict = st0?.measures?.arbiter?.verdict;
       fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s measures.arbiter verdict is ${show(verdict ?? null)}${verdict === 'one-shot' ? `, its worst hit ${show(st0.measures.arbiter.worst?.type)}` : ''}, so its label is ${show(arbiterLabel(st0?.measures?.arbiter))} (D-353)`);
     }
-    if (v3 && m[14] === undefined) {
+    if (v3 && m[15] === undefined) {
       fail('verdict-line', `${at}: the ${label} verdict line doesn't end with "Effective HP about <n>.", the stage's TotalEHP beside its max hit: "${VERDICT_FORM}" (D-294)`);
     }
     if (Number(m[2]) !== s.level) fail('verdict-line', `${at}: the ${label} verdict line says level ${m[2]}, but stage ${s.id}'s level is ${show(s.level)} (D-283)`);
@@ -1952,7 +2028,19 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
     // figure W1 is told to write, whatever field or ledger figure the D1 gate names (the gate's own recompute
     // reads that). A record from before D-353 has no measures, so its line is read against the gate's figure
     // for the stage's rolledGroup (§5.3), × its Count where the record has a counted copy (D-294, D-340).
-    if (isObj(st?.measures)) {
+    // D-437, D-447 (amendment 11): a record carrying measures.damage gives the line its two figures, the map figure
+    // measures.damage.map and the boss figure the ledger's boss_<stage> (its current formula) when the plan estimates
+    // one, else measures.damage.boss; a guide written from an older record keeps its one figure, measures.dps (§19).
+    const damage = isObj(st?.measures?.damage) ? st.measures.damage : null;
+    if (damage !== null && m[14] === undefined) {
+      fail('verdict-line', `${at}: the ${label} verdict line gives one damage figure, but stage ${s.id}'s record measures it against map monsters and against a Pinnacle boss: "${form}" (D-437, D-447)`);
+    } else if (damage === null && m[14] !== undefined) {
+      fail('verdict-line', `${at}: the ${label} verdict line gives a boss figure, but stage ${s.id}'s record has no measures.damage to compare it with; a guide written from a record before amendment 11 gives one figure, "<Skill> about <n> DPS." (§19)`);
+    } else if (damage !== null) {
+      const estimated = isObj(plan) && list(plan.ledger).some((e) => e.id === `boss_${s.id}`);
+      parts.push(['damage against map monsters', m[13], damage.map, `${s.id}.measures.damage.map`]);
+      parts.push(['damage against a Pinnacle boss', m[14], estimated ? ledgerNow[`boss_${s.id}`]?.value : damage.boss, estimated ? `the ledger's boss_${s.id}, its current formula over the record (D-447)` : `${s.id}.measures.damage.boss`]);
+    } else if (isObj(st?.measures)) {
       parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's figure × its Count)`]);
     } else {
       const fig = list(list(d1rep?.basis?.rolledSkill).find((b) => b.stage === s.id)?.figures).find((f) => f.group === s.skills?.rolledGroup)?.figure;
@@ -1962,7 +2050,7 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3) {
       if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no figure for stage ${s.id}'s named damage source, so the ${label} verdict line's DPS can't be compared (D-283)`);
       else parts.push(['DPS', m[13], read.value, named]);
     }
-    if (m[14] !== undefined) parts.push(['Effective HP', m[14], out.TotalEHP, `${s.id}.TotalEHP`]);
+    if (m[15] !== undefined) parts.push(['Effective HP', m[15], out.TotalEHP, `${s.id}.TotalEHP`]);
     for (const [part, written, value, from] of parts) {
       if (!isNum(value)) fail('verdict-line', `${at}: the ${label} verdict line's ${part} can't be compared: the record has no value for ${from} (D-283)`);
       else if (!matchesWritten(written, value)) {
@@ -2252,6 +2340,27 @@ function checkSchema4Fields(log, bad) {
     if (![null, 'endgame', 'full'].includes(b.guide)) bad(at, `guide is ${show(b.guide)}; null, endgame or full, as the plan decides (D-414)`);
     if (b.pobFile !== null && (typeof b.pobFile !== 'string' || b.pobFile.trim() === '')) bad(at, `pobFile is ${show(b.pobFile)}; the final compile's PoB file path, or null (D-412)`);
   });
+  // §19 (amendment 11): the skill revision init writes, and where a resume stamped it on an older log.
+  if ('skillRevision' in log && log.skillRevision !== SKILL_REVISION) bad('skillRevision', `is ${show(log.skillRevision)}; ${SKILL_REVISION}, which init writes and a resume stamps on an older log (§19)`);
+  if ('skillRevisionFrom' in log) {
+    const f = log.skillRevisionFrom;
+    if (log.skillRevision !== SKILL_REVISION) bad('skillRevisionFrom', `is set, but skillRevision isn't ${SKILL_REVISION}; a resume stamps both together (§19)`);
+    if (!isObj(f) || show(Object.keys(f)) !== show(RESUME_LISTS) || !RESUME_LISTS.every((k) => isInt(f[k]))) bad('skillRevisionFrom', `is ${show(f)}; it is {${RESUME_LISTS.join(', ')}}, the lists' lengths where the resume stamped the skill revision (§19)`);
+    else if (!list(log.resumes).some((r) => isObj(r.lengths) && RESUME_LISTS.every((k) => r.lengths[k] === f[k]))) bad('skillRevisionFrom', `is ${show(f)}, but no resumes[] entry recorded those lengths; a resume stamps the skill revision where it happens (§19)`);
+  }
+  // D-444: the pricing stops and the gates' retry answers, `{stops: [{at, step, outcome}], retries: [{checkpoint, answer, at}]}`.
+  if ('pricing' in log) {
+    const p = log.pricing;
+    if (!isObj(p) || show(Object.keys(p).sort()) !== show(['retries', 'stops']) || !Array.isArray(p.stops) || !Array.isArray(p.retries)) bad('pricing', `is ${show(p)}; it is {stops: [{at, step, outcome}], retries: [{checkpoint, answer, at}]} (D-444)`);
+    else {
+      p.stops.forEach((x, k) => {
+        if (!isObj(x) || show(Object.keys(x)) !== show(['at', 'step', 'outcome']) || !isInt(x.at) || typeof x.step !== 'string' || !['rate_limited', 'locked_out'].includes(x.outcome)) bad(`pricing.stops[${k}]`, `is ${show(x)}; a stop is {at, step, outcome}: the stages[] index of the step that hit it, its stage, and rate_limited or locked_out (D-444)`);
+      });
+      p.retries.forEach((x, k) => {
+        if (!isObj(x) || show(Object.keys(x)) !== show(['checkpoint', 'answer', 'at']) || !DISPLAYED.includes(x.checkpoint) || !RETRY_ANSWERS.includes(x.answer) || !isInt(x.at)) bad(`pricing.retries[${k}]`, `is ${show(x)}; a retry is {checkpoint, answer, at}: the gate that asked, ${RETRY_ANSWERS.join(' or ')}, and the stages[] length when it answered (D-444)`);
+      });
+    }
+  }
   if ('resumes' in log && !Array.isArray(log.resumes)) bad('resumes', 'is a list, one entry per resume (D-415)');
   let before = Object.fromEntries(RESUME_LISTS.map((k) => [k, 0]));
   list(log.resumes).forEach((r, i) => {
@@ -2459,6 +2568,48 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
     // D-260: the import code's one home is compile-record.json (and the guide W1 copies it into).
     if (isObj(o) && 'importCode' in o) bad('outputs', "has importCode; the import code's one home is compile-record.json, which outputs.record names (D-260)");
   }
+}
+
+/**
+ * D-444 (amendment 11), for the entries a log is held to its rules (§19): after a rate limit or a lockout, no step makes
+ * a trade-site request until the user approves a retry at a gate (`retry-pricing`), or a resume clears the stop; poe.ninja's
+ * exchange stays allowed. Each held entry counting a `rate_limited` or `locked_out` call has its `pricing.stops[]`
+ * entry, and each stop names a step that counted it; each retry answers a stop still open when the gate asked; and a
+ * pricing step while a stop is open counts no call but `exchange`, the calls priced from poe.ninja's currency exchange.
+ */
+function checkPricing(log, fail) {
+  const from = heldFrom(log);
+  if (from === Infinity || !Array.isArray(log.stages)) return;
+  const stages = log.stages;
+  const p = isObj(log.pricing) ? log.pricing : { stops: [], retries: [] };
+  const stops = list(p.stops).filter((x) => isInt(x.at));
+  const retries = list(p.retries);
+  const at = (i) => `run-log.json stages[${i}] (${isObj(stages[i]) ? describe(stages[i]) : 'no entry'})`;
+  stops.forEach((x, k) => {
+    const s = stages[x.at];
+    if (!isObj(s) || s.stage !== x.step || !isInt(s.priceOutcomes?.[x.outcome], 1)) fail('pricing', `run-log.json pricing.stops[${k}] names ${x.step} at stages[${x.at}] after ${x.outcome}, but ${at(x.at)} counts no ${x.outcome} call; a stop is recorded at the step whose priceOutcomes hit it (D-444)`);
+  });
+  stages.forEach((s, i) => {
+    if (i < from || !isObj(s)) return;
+    const hit = stopOutcome(s.priceOutcomes);
+    if (hit !== null && !stops.some((x) => x.at === i)) fail('pricing', `${at(i)} counts a ${hit} call, but pricing.stops records no stop at stages[${i}]; run-log.mjs records one with the step's entry, and pricing stops until a gate's retry-pricing (D-444)`);
+  });
+  retries.forEach((r, k) => {
+    if (!isInt(r.at)) return;
+    const last = stops.filter((x) => x.at < r.at).pop();
+    const cleared = last !== undefined && (retries.slice(0, k).some((q) => q.answer === 'retry-pricing' && isInt(q.at) && q.at > last.at)
+      || list(log.resumes).some((x) => isInt(x.lengths?.stages) && x.lengths.stages > last.at && x.lengths.stages <= r.at));
+    if (last === undefined || cleared) fail('pricing', `run-log.json pricing.retries[${k}] answers ${show(r.answer)} at the ${r.checkpoint} gate, but no stop was open then; a gate asks whether to retry pricing only after a stop, before a retry-pricing or a resume cleared it (D-444)`);
+  });
+  stages.forEach((s, i) => {
+    if (i < from || !isObj(s) || !isObj(s.priceOutcomes)) return;
+    const trade = Object.entries(s.priceOutcomes).filter(([k, n]) => k !== EXCHANGE && isInt(n, 1));
+    if (trade.length === 0) return;
+    const stop = openStop(log, i);
+    if (stop !== null) {
+      fail('pricing', `${at(i)} makes ${trade.reduce((a, [, n]) => a + n, 0)} trade-site price call(s) (${trade.map(([k, n]) => `${k} ${n}`).join(', ')}), but pricing stopped at stages[${stop.at}] (${stop.step}, ${stop.outcome}) and no gate's retry-pricing, nor a resume, came after it; until the user approves a retry, a step prices only from poe.ninja's exchange, counted as exchange (D-444)`);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -3317,9 +3468,12 @@ function checkFlow4(log, fail, ctx) {
       if (a === 'accept' || a === 'accept:file') {
         cur.after = a === 'accept' ? 'guide' : 'file';
         if (s === undefined) return 'accept';
+        // D-444 (amendment 11): after a retry-pricing answer at this visit, the D1 gate's re-price pass runs before F1.
+        const reprice = list(log.pricing?.retries).some((r) => r.checkpoint === 'design' && r.answer === 'retry-pricing' && r.at === i);
         // D-413: the accepted design goes to F1, the final compile; a migrated run's schema-3 design went to D2.
-        const want = legacyAt(i) && a === 'accept' ? ['D2', 'F1'] : ['F1'];
-        if (!want.includes(s.stage) || s.concept !== cur.id) illegal(i, `follows the design gate answered ${show(a)}, which goes on to ${cur.id}'s final compile, F1, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-413)`);
+        const want = legacyAt(i) && a === 'accept' ? ['D2', 'F1'] : reprice ? ['D1-gate', 'F1'] : ['F1'];
+        if (!want.includes(s.stage) || s.concept !== cur.id) illegal(i, `follows the design gate answered ${show(a)}, which goes on to ${cur.id}'s final compile, F1${reprice ? ", after the D1 gate's re-price pass the retry-pricing answer asked for (D-444)" : ''}, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-413)`);
+        if (reprice && s.stage === 'D1-gate') cur.reprice = true;
         return 'accept';
       }
       if (a.startsWith('revise:')) {
@@ -3449,7 +3603,8 @@ function checkFlow4(log, fail, ctx) {
       if (choice === 'accept' && p.stage === 'D1-gate' && b && !b.verified) return { gate: 'design' };
       return { escalation: choice };
     }
-    if (p.stage === 'D1-gate' && p.outcome === 'pass' && b && !b.verified) return { gate: 'design' };
+    // D-444: the D1 gate's re-price pass after the design gate's accept and a retry-pricing goes on to F1, not the gate.
+    if (p.stage === 'D1-gate' && p.outcome === 'pass' && b && !b.verified && !b.reprice) return { gate: 'design' };
     if (p.stage === 'F1' && p.outcome === 'pass' && b && b.status === 'file-only') return { end: `${p.concept}'s F1 passed after the design gate's accept:file, which ends the build file-only` };
     if (V4_STAGES.includes(p.stage) && b && cycleDone(b.cycle)) return { gate: 'final' };
     return { table: true };
@@ -3535,8 +3690,10 @@ function checkFlow4(log, fail, ctx) {
           // D-418: D1-build, then D1-tree; a schema-3 design (a migrated run's) and a D1-build claiming infeasible may
           // go on to D1-finish.
           'D1-build': legacy ? ['D1-finish'] : p?.outcome === 'infeasible' ? ['D1-tree', 'D1-finish'] : ['D1-tree'],
-          'D1-tree': ['D1-finish'],
-          'D1-finish': p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : b?.d1 && !b.d1.built ? ['D1-gate', 'D1-build', 'D1-tree'] : ['D1-gate'],
+          // D-438 (amendment 11): D1-tree's `respec` (a scaling change D1-build missed) routes D1-build next, and §14:
+          // D1-finish's `build` (its return `build: <ids>`) routes D1-build next, both in the same attempt.
+          'D1-tree': p?.outcome === 'respec' ? ['D1-build'] : ['D1-finish'],
+          'D1-finish': p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : p?.outcome === 'build' ? ['D1-build'] : b?.d1 && !b.d1.built ? ['D1-gate', 'D1-build', 'D1-tree'] : ['D1-gate'],
           'D1-gate': p?.outcome === 'pass' ? (b?.full ? ['D2', 'D2-gate'] : ['F1'])
             : p?.outcome === 'fail' ? (cls === 'tree' ? ['D1-tree'] : cls === 'toolError' ? ['D1-gate'] : ['D1-build']) : [],
           D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
@@ -3620,7 +3777,9 @@ function checkFlow4(log, fail, ctx) {
     };
     if (b && D1_STAGES.includes(s.stage)) {
       const continues = same && p && ((s.stage === 'D1-tree' && p.stage === 'D1-build') || (s.stage === 'D1-finish' && ['D1-build', 'D1-tree'].includes(p.stage))
-        || (['D1-build', 'D1-tree'].includes(s.stage) && p.stage === 'D1-finish' && p.outcome === 'done' && b.d1 && !b.d1.built));
+        || (['D1-build', 'D1-tree'].includes(s.stage) && p.stage === 'D1-finish' && p.outcome === 'done' && b.d1 && !b.d1.built)
+        // D-438, §14: D1-build after D1-tree's `respec` or D1-finish's `build`, in the same attempt, even after its D1-build.
+        || (s.stage === 'D1-build' && ((p.stage === 'D1-tree' && p.outcome === 'respec') || (p.stage === 'D1-finish' && p.outcome === 'build'))));
       if (!continues) {
         b.d1 = { built: false, infeasible: false };
         if (pf === 'D1-gate' && p.outcome === 'fail' && same) {
@@ -3714,6 +3873,9 @@ function checkFlow4(log, fail, ctx) {
         }
       }
       if (s.stage === 'D1-gate') b.lastD1 = s.outcome === 'pass';
+      // D-444: a re-price pass that doesn't pass returns the build to its design's usual route.
+      if (s.stage === 'D1-gate' && s.outcome !== 'pass') b.reprice = false;
+      if (s.stage === 'F1') b.reprice = false;
       if (s.stage === 'D1-gate' && s.outcome === 'infeasible') endBuild(b, 'dropped');
       if (s.stage === 'F1' && s.outcome === 'pass' && b.after === 'file' && !b.verified) endBuild(b, 'file-only');
       if (s.stage === 'F1' && s.outcome === 'pass' && !(b.after === 'file' && !b.verified)) b.status = 'writing';
@@ -3831,6 +3993,9 @@ function failingFindings(rep, stage, covered) {
  */
 function gateClass(rep, stage, covered) {
   if (rep.forced === 'infeasible') return 'forced';
+  // D-436 (amendment 11): an R1b attempt whose card names a damage kind the named source shows nothing for fails, and
+  // R1b retries within its counted retries, though the skeleton compiled.
+  if (stage === 'R1b' && rep.verdict?.compiled === 'pass' && (rep.verdict.damage === 'fail' || list(rep.findings).some((f) => f.code === DAMAGE_MISSING))) return 'damage';
   const failing = GATE_PARTS[stage].filter((part) => {
     if (part === 'budget') return false;
     const v = rep.verdict[part];
@@ -3842,7 +4007,9 @@ function gateClass(rep, stage, covered) {
   if (failing.some((part) => ['compiled', 'v1', 'v2'].includes(part))) return 'hard';
   return failing.length > 0 ? 'soft' : 'pass';
 }
-const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor or named damage source (rolledSkill)', forced: 'is forced infeasible (FI-3)' })[cls];
+const describeClass = (cls) => ({ pass: 'passes', hard: 'fails its compile, V1 or V2 (or leaves one unverified)', soft: 'fails only its floor or named damage source (rolledSkill)', forced: 'is forced infeasible (FI-3)', damage: `names a damage kind the named source shows nothing for (${DAMAGE_MISSING}, D-436)` })[cls];
+/** D-436: R1b's finding for a damage kind the card names that shows nothing on the named source; the attempt fails. */
+const DAMAGE_MISSING = 'damage-missing';
 
 /**
  * The plan claim a V4 finding's location names, `stages[<i>].claims[<k>] (<id>)` (stages/V4.md), with its source's
@@ -3892,6 +4059,10 @@ function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true }) {
     const allowed = g.stage === 'D1-gate' && part === 'budget' ? BUDGET_PARTS : PARTS;
     if (!allowed.includes(rep.verdict[part])) bad(`verdict.${part} is ${show(rep.verdict[part])}; one of ${allowed.join(', ')}${allowed === BUDGET_PARTS ? ' (the budget never fails, D-371)' : ''}`);
   }
+  // D-436 (amendment 11): R1b's damage check, when its verdict has the part: each kind of damage the card names shows a
+  // figure on the named source, else `damage-missing` fails the attempt.
+  if (g.stage === 'R1b' && 'damage' in rep.verdict && !PARTS.includes(rep.verdict.damage)) bad(`verdict.damage is ${show(rep.verdict.damage)}; one of ${PARTS.join(', ')} (D-436)`);
+  if (g.stage === 'R1b' && rep.verdict.damage === 'fail' && !list(rep.findings).some((f) => f.code === DAMAGE_MISSING)) bad(`says damage: "fail" with no ${DAMAGE_MISSING} finding; a damage kind the card names that shows nothing on the named source is a ${DAMAGE_MISSING} finding (D-436)`);
   if (!Array.isArray(rep.findings)) bad('has no findings list');
   // D-408: only the rival's R1b runs R1a-assemble's identity and sniff checks, and stops not-dealt when they fail.
   if (g.stage === 'R1b' && list(rep.findings).some((f) => f.code === 'not-dealt') && !RIVAL_CARD.test(g.concept)) {
@@ -3941,6 +4112,9 @@ function checkTreePart(rep, bad) {
     const s = t.bestSwap;
     const strings = (x) => Array.isArray(x) && x.length > 0 && x.every((n) => typeof n === 'string' && n.trim() !== '');
     if (s !== null && !(isObj(s) && isNum(s.gainPercent) && strings(s.removed) && strings(s.added))) bad(`${at} tree's bestSwap is ${show(s)}; null, or {gainPercent, removed: [names], added: [names]} (D-419)`);
+    // C-55a, §14: a pool move names its weapon set, 1 or 2; D-439: the branches the swap freed, a list.
+    if (isObj(s) && 'weaponSet' in s && s.weaponSet !== 1 && s.weaponSet !== 2) bad(`${at} tree's bestSwap.weaponSet is ${show(s.weaponSet)}; a pool move is within weapon set 1 or 2 (C-55a, §14)`);
+    if (isObj(s) && 'branches' in s && !(Array.isArray(s.branches) && s.branches.length > 0)) bad(`${at} tree's bestSwap.branches is ${show(s.branches)}; the branches the swap freed, a non-empty list (D-439)`);
     if (!Array.isArray(t.needs) || !t.needs.every((n) => typeof n === 'string' && n.trim() !== '')) bad(`${at} tree's needs are ${show(t.needs)}; the needs' reasons, as text (D-418, D-419)`);
     if (isObj(s) && isNum(s.gainPercent) && s.gainPercent >= TREE_FAIL_PERCENT) failing.add(r.stage);
   }
@@ -4031,6 +4205,9 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
   }
   // D-401, D-405: each engine part's form and words; D-400: a card waiting on the pin can't be finalized yet.
   const vocab = vocabularyWords();
+  // §11: an amendment-8-or-later run is dated by its rival, or by its skill revision (D-443): every round its log deals
+  // from the stamp on (`ctx.heldStage`, 0 for a run init wrote with it) names its engines.
+  const heldStage = typeof ctx.heldStage === 'number' ? ctx.heldStage : Infinity;
   const engineRequired = ctx.rivalRan || deck.entries.some((d) => d.engines.length > 0);
   for (const d of deck.entries) {
     if (d.name === null || d.name.trim() === '') fail('deck', `cards.md:${d.n}: ${show(d.id)}'s line gives no name; a card line is - <card id> "<Name>" | … (D-392)`);
@@ -4078,8 +4255,9 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
     }
     // D-405: no more than half the round's dealt cards on one engine, rounded down.
     const engines = new Map();
+    const dated = r.assembly.i >= heldStage;
     for (const d of dealt) {
-      if (engineRequired && d.engines.length === 0) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id} with no "engine: <family> from <family>"; ${ctx.rivalRan ? 'a run that ran the rival (amendment 8, D-408)' : 'a deck that names an engine'} names one on every dealt card's line (D-405)`);
+      if ((engineRequired || dated) && d.engines.length === 0) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id} with no "engine: <family> from <family>"; ${ctx.rivalRan ? 'a run that ran the rival (amendment 8, D-408)' : dated ? `a run held to amendment 11 (skillRevision ${SKILL_REVISION}), dated amendment-8-or-later by its skill revision (§11)` : 'a deck that names an engine'} names one on every dealt card's line (D-405)`);
       const e = d.engines[0];
       if (!e?.ok || e.consumed === 'none') continue;
       engines.set(e.key, { consumed: e.consumed, n: (engines.get(e.key)?.n ?? 0) + 1 });
@@ -4296,7 +4474,7 @@ const dropsOk = (d) => /^not measured \(.+\)$/.test(d) || /^estimate \(.+\)$/.te
  * | boss>) −<x>%`), an estimate, or `not measured (<why>)`. Before that, it may hold only `Not checked yet.`, as
  * R1a-synthesize writes it. A plain card has neither table.
  */
-function checkPieceTables(stages, cardIds, cardOf, fail) {
+function checkPieceTables(stages, cardIds, cardOf, fail, ctx = { heldCard: () => false, verdictOf: () => null }) {
   const KIND = new RegExp(`^(?:${PIECE_KINDS.join('|')})(?:,\\s*under-played)?$`);
   const KEY = new RegExp(`^${PIECE_KEY}$`);
   for (const id of [...cardIds].sort()) {
@@ -4337,6 +4515,12 @@ function checkPieceTables(stages, cardIds, cardOf, fail) {
       continue;
     }
     if (m.h2 !== 'Verification half') bad(m.line, `"### Pieces measured" is under ${m.h2 === null ? 'no H2' : show(m.h2)}; it is a heading of the card's verification half, after "### Key item prices" (D-433)`);
+    // D-436 (amendment 11, §19): a card verified under amendment 11's rules answers whether each piece does something;
+    // a table written before the stamp is read by its columns.
+    if (m.a11 === true || ctx.heldCard(id)) {
+      a11Measured(id, p, m, keys, ctx.verdictOf(id), bad);
+      continue;
+    }
     if (show(m.header) !== show(MEASURED_COLUMNS) || !m.ruled) {
       bad(m.line, `the Pieces measured table's columns are ${show(m.header)}; they are ${show(MEASURED_COLUMNS)}, in that order, with the |---| row under them (Appendix A)`);
       continue;
@@ -4353,6 +4537,42 @@ function checkPieceTables(stages, cardIds, cardOf, fail) {
       else if (measured.has(r.key)) bad(r.line, `${what} is measured twice; each piece is left out once (D-433)`);
       measured.add(r.key);
       if (!dropsOk(r.drops)) bad(r.line, `${what}'s Drops is ${show(r.drops)}; each figure that moves, "<group> (<clear | per corpse | boss>) −<x>%", separated by "; ", or "estimate (<reason>)" for a piece PoB doesn't model, or "not measured (<why>)" (D-433, Appendix A)`);
+    }
+  }
+}
+
+/**
+ * D-436, D-433 (amendment 11, Appendix A, §14): a Pieces measured table under amendment 11's rules, `| Key | Left out by |
+ * Does something |`: at most 4 rows, each the key of an `in` row of the card's Pieces table (a probe on a scheduled or
+ * out row fails), how the probe left it out, and its answer, `yes`, `no`, `PoB can't see it` or `not measured (<why>)`.
+ * Where its last passing R1b verdict lists the drops (`pieces: [{key, figure, dropPercent}]`), `yes` is a piece one of
+ * whose figures moves by 1% or more, and `no` one whose figures move less.
+ */
+function a11Measured(id, p, m, keys, verdict, bad) {
+  if (show(m.header) !== show(MEASURED_COLUMNS_A11) || !m.ruled) {
+    bad(m.line, `the Pieces measured table's columns are ${show(m.header)}; a card verified under amendment 11's rules (skillRevision ${SKILL_REVISION}) has ${show(MEASURED_COLUMNS_A11)}, in that order, with the |---| row under them; the drops go in R1b's verdict file (D-436, Appendix A)`);
+    return;
+  }
+  if (m.rows.length > LEAVE_ONE_OUT) bad(m.line, `the Pieces measured table holds ${m.rows.length} rows; R1b leaves out at most ${LEAVE_ONE_OUT} pieces, and pieces not probed are left out of the table (D-433)`);
+  const status = new Map(p.rows.map((r) => [r.key, r.status]));
+  const drops = Array.isArray(verdict?.pieces) ? verdict.pieces.filter((x) => isObj(x) && typeof x.key === 'string' && isNum(x.dropPercent)) : [];
+  const measured = new Set();
+  for (const r of m.rows) {
+    const what = `the Pieces measured row ${show(r.key)}`;
+    if (r.cells.length !== MEASURED_COLUMNS_A11.length) {
+      bad(r.line, `${what} has ${r.cells.length} cells; a row has ${MEASURED_COLUMNS_A11.length} (Appendix A)`);
+      continue;
+    }
+    if (!keys.has(r.key)) bad(r.line, `${what} is no key of the card's Pieces table (D-433)`);
+    else if (status.get(r.key) !== 'in') bad(r.line, `${what} probes a ${status.get(r.key)} piece; R1b leaves out only the Pieces table's in rows (D-433, §14)`);
+    if (measured.has(r.key)) bad(r.line, `${what} is measured twice; each piece is left out once (D-433)`);
+    measured.add(r.key);
+    if (!DOES_SOMETHING.test(r.answer)) bad(r.line, `${what}'s answer is ${show(r.answer)}; it is yes (leaving it out moves one of its figures by 1% or more), no, PoB can't see it, or not measured (<why>) (D-436)`);
+    if (emptyCell(r.leftOutBy) && !/^not measured\b/.test(r.answer) && !/^PoB can/.test(r.answer)) bad(r.line, `${what} says nothing in Left out by: how the probe left the piece out (Appendix A)`);
+    const mine = drops.filter((x) => x.key === r.key);
+    if (mine.length > 0 && ['yes', 'no'].includes(r.answer)) {
+      const moves = mine.some((x) => Math.abs(x.dropPercent) >= 1);
+      if ((r.answer === 'yes') !== moves) bad(r.line, `${what} answers ${r.answer}, but R1b's verdict file gives its drops as ${mine.map((x) => `${x.figure ?? '?'} ${x.dropPercent}%`).join(', ')}: a piece does something when leaving it out moves one of its figures by 1% or more (D-436)`);
     }
   }
 }
@@ -4386,12 +4606,16 @@ function rivalCards(stages) {
   return out;
 }
 
-/** D-408: each rival step that wrote its card (`done`) has it, `cards/r<k>-x-<n>.md`, and every rival's card has its step. */
-function checkRivals(stages, cardIds, fail) {
+/**
+ * D-408: each rival step that wrote its card (`done`) has it, `cards/r<k>-x-<n>.md`, and every rival's card has its step.
+ * D-443: a card the rival wrote in the entries held to amendment 11 (from `heldStage` on) is one more than such a run deals.
+ */
+function checkRivals(stages, cardIds, fail, heldStage = Infinity) {
   const written = rivalCards(stages);
   stages.forEach((s, i) => {
     const id = written.get(s);
     if (id !== undefined && !cardIds.has(id)) fail('rival', `run-log.json stages[${i}] (RV attempt ${s.attempt}) wrote the rival's card, but cards/${id}.md doesn't exist; the rival writes one card, cards/r<k>-x-<n>.md, k the latest brainstorm round and n counting the run's rivals in it (D-408)`);
+    if (id !== undefined && i >= heldStage && cardIds.has(id)) fail('rival', `cards/${id}.md is the rival's card, written in the entries held to amendment 11, which never deals an x card (D-443)`);
   });
   const ids = new Set(written.values());
   for (const id of cardIds) {
@@ -4601,17 +4825,21 @@ function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, termin
     if (k === 0 || !body[k - 1].raw.startsWith('|') || body[k - 1].n !== l.n - 1) tables.push([]);
     tables[tables.length - 1].push({ ...l, cells: l.raw.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()) });
   });
+  const wanted = ctx.a11 ? DOSSIER_COLUMNS_A11 : ctx.composite ? DOSSIER_COLUMNS_D433 : DOSSIER_COLUMNS_D407;
   if (tables.length !== 1) {
-    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${(ctx.composite ? DOSSIER_COLUMNS_D433 : DOSSIER_COLUMNS_D407).join(' | ')} (D-355, D-407${ctx.composite ? ', D-433' : ''})`);
+    bad(` holds ${tables.length} tables; it holds one, the verification gate's comparison, with the columns ${wanted.join(' | ')} (D-355, D-407${ctx.a11 ? ', D-436' : ctx.composite ? ', D-433' : ''})`);
     if (tables.length === 0) return;
   }
   const [head, rule, ...rows] = tables[0];
-  // D-433: a composite run's twelve columns, `key pieces` last. D-407: amendment 8's eleven; a dossier from before it (a
-  // run that didn't run the rival) may keep D-355's ten.
-  const columns = ctx.composite ? (show(head.cells) === show(DOSSIER_COLUMNS_D433) ? DOSSIER_COLUMNS_D433 : null)
-    : show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
+  // D-436 (amendment 11, §19): a dossier written under amendment 11's rules has its nine columns, no number among them.
+  // Before it, D-433: a composite run's twelve columns, `key pieces` last. D-407: amendment 8's eleven; a dossier from
+  // before it (a run that didn't run the rival) may keep D-355's ten.
+  const columns = ctx.a11 ? (show(head.cells) === show(DOSSIER_COLUMNS_A11) ? DOSSIER_COLUMNS_A11 : null)
+    : ctx.composite ? (show(head.cells) === show(DOSSIER_COLUMNS_D433) ? DOSSIER_COLUMNS_D433 : null)
+      : show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
   if (columns === null || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
-    if (ctx.composite) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a composite run's comparison has twelve, ${show(DOSSIER_COLUMNS_D433)}, in that order, its last each composite's measured pieces and their largest drops (D-355, D-407, D-433)`);
+    if (ctx.a11) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a dossier written under amendment 11's rules (skillRevision ${SKILL_REVISION}) has ${show(DOSSIER_COLUMNS_A11)}, in that order: no number column, the damage kinds PoB shows and the pieces that do something instead (D-436, §19)`);
+    else if (ctx.composite) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a composite run's comparison has twelve, ${show(DOSSIER_COLUMNS_D433)}, in that order, its last each composite's measured pieces and their largest drops (D-355, D-407, D-433)`);
     else bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS_D407)}, in that order (D-355, D-407)${ctx.rivalRan ? ', in a run that ran the rival (D-408)' : `, or before amendment 8 ${show(DOSSIER_COLUMNS)}`}`);
     return;
   }
@@ -4632,10 +4860,41 @@ function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, termin
     }
     // D-400, D-408: the status of a card whose R1b ended with no compile on an entry the pin lacks, or the rival's checks.
     const code = ctx.terminal?.get(id);
+    if (columns === DOSSIER_COLUMNS_A11) a11Row(r, id, status, columns, ctx, bad);
     if (code === 'not-in-pin' && !/^can['’]t be finalized yet: waits on the pin\b/i.test(status)) bad(`:${r.n}: ${id}'s R1b ended not-in-pin, so its status reads "can't be finalized yet: waits on the pin", not ${show(status)} (D-400)`);
     if (code === 'not-dealt' && !/^failed\b.*\bnot dealt\b/i.test(status)) bad(`:${r.n}: ${id}'s R1b ended not-dealt, so its status reads "failed …: not dealt: <the check it failed>", not ${show(status)} (D-408)`);
   }
   for (const id of assembled) if (!seen.has(id)) bad(` has no row "| ${id} | …" for ${id}, which R1b verified before the last R1b-assemble (§7.2, D-355)`);
+}
+
+/**
+ * D-436 (amendment 11, Appendix A): an amendment-11 dossier row. Its Status is `viable`, `viable, except <what>`,
+ * `failed after <N> attempts: …` or `can't be finalized yet: …`; a viable card's `Damage` names the named source and the
+ * kinds PoB shows, and a failed or not-yet-finalizable card's is `—`; `Pieces` is a composite's count of the `in` pieces
+ * probed that do something (`<n> of <m> do something`, or `<n> of <m>: <the pieces that don't>`) and `—` for a plain
+ * card; and `viable, except` goes with a piece its card's Pieces measured answers `no`, and only with one.
+ */
+function a11Row(r, id, status, columns, ctx, bad) {
+  const cell = (c) => r.cells[columns.indexOf(c)];
+  if (!STATUS_A11.test(status)) bad(`:${r.n}: ${id}'s Status is ${show(status)}; it is viable, "viable, except <what>", "failed after <N> attempts: …" (a damage-missing failure among them) or "can't be finalized yet: …" (D-436)`);
+  const viable = /^viable\b/i.test(status);
+  if (viable && isDash(cell('Damage') ?? '-')) bad(`:${r.n}: ${id} is viable, but its Damage cell is ${show(cell('Damage'))}; it names the named source and the kinds of damage PoB shows for it ("Detonate Dead: hit, bleed, ignite") (D-436)`);
+  if (!viable && !isDash(cell('Pieces') ?? '-') && /^(failed|can['’]t be finalized)/i.test(status)) bad(`:${r.n}: ${id} is ${show(status.split(/[:;]/)[0])}, but its Pieces cell isn't "—"; a card that failed or can't be finalized yet probed no piece (D-436)`);
+  const card = typeof ctx.cardOf === 'function' ? ctx.cardOf(id) : null;
+  const composite = ctx.composites?.has?.(id) === true;
+  const pieces = String(cell('Pieces') ?? '').trim();
+  if (viable && !composite && !isDash(pieces || '-')) bad(`:${r.n}: ${id} is a plain card, but its Pieces cell is ${show(pieces)}; a plain card's is "—" (D-436)`);
+  if (viable && composite) {
+    const m = /^(\d+) of (\d+)(?: do something|: \S.*)$/.exec(pieces);
+    if (!m || Number(m[1]) > Number(m[2])) bad(`:${r.n}: ${id}'s Pieces cell is ${show(pieces)}; it is "<n> of <m> do something", or "<n> of <m>: <piece> does nothing in PoB; <piece>: PoB can't see it", of the in pieces probed (D-436)`);
+  }
+  const table = card?.measured;
+  if (viable && table?.a11 === true) {
+    const nothing = table.rows.filter((x) => x.answer === 'no').map((x) => x.key);
+    const except = /^viable, except\b/i.test(status);
+    if (nothing.length > 0 && !except) bad(`:${r.n}: ${id} is ${show(status)}, but its Pieces measured answers no for ${nothing.join(', ')}; a card with a piece that does nothing in PoB is "viable, except <what>" (D-436)`);
+    if (except && nothing.length === 0) bad(`:${r.n}: ${id} is ${show(status)}, but no row of its Pieces measured answers no; "viable, except" names a piece that does nothing in PoB (D-436)`);
+  }
 }
 
 /** stages/V4.md: a finding's fields, in order; an `unresolved` one adds `reader`. */
@@ -4748,6 +5007,210 @@ function checkV4Report(r, mode, fail, ID) {
 // ---------------------------------------------------------------------------------------------------
 // The D1 gate, recomputed (gates.md; Q3)
 // ---------------------------------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------------------------------
+// Amendment 11's design field, trades and boss estimate (D-437…D-441, D-447, D-448; Appendix A)
+// ---------------------------------------------------------------------------------------------------
+
+/** D-439, Appendix A: a trade's kinds, and its fields in `trades.json`. */
+const TRADE_KINDS_A11 = ['unmodelled', 'boots', 'defence', 'damage'];
+const TRADE_FIELDS = ['stage', 'kind', 'what', 'ehpChange', 'damageChange', 'bossAfter', 'reason'];
+/** D-441: a trade that found nothing says so, `none found: <why>`. */
+const NONE_FOUND = /^none found: \S/;
+const numOrNull = (v) => v === null || isNum(v);
+
+/** The reference files of the skill (Appendix A): the toughness targets (D-441) and the boss floor (D-448); null when unreadable. */
+function targetsOf(fail, where) {
+  const t = referenceJson('toughness-targets.json');
+  if (!isObj(t) || !isObj(t.targets) || !isNum(t.targets.close) || !isNum(t.targets.distance) || !isNum(t.under) || !isNum(t.over)) {
+    fail('toughness', `${where}: references/toughness-targets.json can't be read as {rung, targets: {close, distance}, under, over, source} (D-441, Appendix A)`);
+    return null;
+  }
+  return t;
+}
+function floorOf(fail, where) {
+  const f = referenceJson('boss-floor.json');
+  if (!isObj(f) || !isNum(f.floor)) {
+    fail('boss-floor', `${where}: references/boss-floor.json can't be read as {rung, floor, source} (D-448, Appendix A)`);
+    return null;
+  }
+  return f.floor;
+}
+/** D-441: the band of an EHP against its target: under below `under` × target, over above `over` × target, else within. */
+export function bandOf(ehp, target, t) {
+  if (ehp < t.under * target) return 'under';
+  if (ehp > t.over * target) return 'over';
+  return 'within';
+}
+/** Whether a figure the gate wrote stands for `value`: the rounding rule of the guide's numbers (D-283), or within 0.5%. */
+const sameFigure = (written, value) => isNum(written) && isNum(value) && (matchesWritten(String(Math.round(written) === written ? written : written.toFixed(2)), value) || Math.abs(written - value) <= 0.005 * Math.abs(value));
+
+/**
+ * D-439, Appendix A: `<buildFolder>/trades.json`, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter,
+ * reason}]}`: each trade on an endgame rung of the plan, its kind `unmodelled`, `boots`, `defence` or `damage`, `what` a
+ * short phrase (`none found: <why>` with null changes for a defence or damage trade that found none), its changes in
+ * percent or null, and `bossAfter` a number only on the non-budget rung's damage trade.
+ */
+function checkTradesFile(file, endgame, fail) {
+  const bad = (why) => fail('trades', `trades.json${why}`);
+  if (!isObj(file) || !Array.isArray(file.trades) || Object.keys(file).length !== 1) return bad(` is ${show(file).slice(0, 80)}; it is {"trades": [...]} (D-439, Appendix A)`);
+  const rungs = new Map(endgame.map((s) => [s.id, s.variant]));
+  file.trades.forEach((t, k) => {
+    const at = `'s trades[${k}]`;
+    if (!isObj(t) || show(Object.keys(t).sort()) !== show([...TRADE_FIELDS].sort())) return bad(`${at} is ${show(t)}; a trade is {${TRADE_FIELDS.join(', ')}} (Appendix A)`);
+    if (!rungs.has(t.stage)) bad(`${at} names stage ${show(t.stage)}, which is no endgame rung of the plan (D-439)`);
+    if (!TRADE_KINDS_A11.includes(t.kind)) bad(`${at}'s kind is ${show(t.kind)}; one of ${TRADE_KINDS_A11.join(', ')} (Appendix A)`);
+    if (typeof t.what !== 'string' || t.what.trim() === '') bad(`${at} has no what, the trade in a short phrase (Appendix A)`);
+    if (typeof t.reason !== 'string') bad(`${at}'s reason is ${show(t.reason)}; a short phrase (Appendix A)`);
+    if (!numOrNull(t.ehpChange) || !numOrNull(t.damageChange) || !numOrNull(t.bossAfter)) bad(`${at}'s changes are ${show([t.ehpChange, t.damageChange, t.bossAfter])}; ehpChange and damageChange are percentages or null, bossAfter a number or null (Appendix A)`);
+    const none = NONE_FOUND.test(String(t.what ?? ''));
+    if (none && (t.ehpChange !== null || t.damageChange !== null || t.bossAfter !== null)) bad(`${at} found none (${show(t.what)}), but its changes aren't null (Appendix A)`);
+    if (isNum(t.bossAfter) && !(t.kind === 'damage' && rungs.get(t.stage) === 'non-budget')) bad(`${at} has bossAfter on a ${t.kind} trade of ${t.stage}; only the non-budget rung's damage trade carries it (D-448, Appendix A)`);
+  });
+}
+
+/** D-447: a stage's boss rotation, its entries' record keys: `skills.boss.entries`, else the named source alone. */
+function rotationOf(stage) {
+  const entries = list(stage?.skills?.boss?.entries);
+  if (entries.length > 0) return entries.map((e) => ({ key: `g${e.group}s${e.activeSkill}p${e.statSet ?? 1}`, turns: e.turns === true }));
+  const m = isObj(stage?.skills?.main) ? stage.skills.main : { group: 1, activeSkill: 1, statSet: 1 };
+  return [{ key: `g${m.group}s${m.activeSkill}p${m.statSet ?? 1}`, turns: false }];
+}
+
+/**
+ * D-447 (§9b's checks): the boss estimate's ledger rules on each endgame rung of a build held to amendment 11. A
+ * `boss_<stage>` formula reads the rung's boss rotation, at least one `<stage>.boss.g<g>s<s>p<p>` entry figure, and no
+ * entry outside the rotation (nor another stage's); a rotation with an entry PoB's trigger test calls triggered (the
+ * record's `measures.bossGroups`) or one that takes turns (`turns: true`) has its `boss_<stage>` estimate.
+ */
+function checkBossLedger(endgame, plan, record, fail) {
+  const ledger = new Map(list(plan.ledger).filter((e) => typeof e.id === 'string').map((e) => [e.id, e]));
+  for (const s of endgame) {
+    const rotation = rotationOf(s);
+    const keys = new Set(rotation.map((r) => r.key));
+    const entry = ledger.get(`boss_${s.id}`);
+    const groups = list(record?.stages?.[s.id]?.measures?.bossGroups);
+    const triggered = groups.filter((g) => g.triggered === true).map((g) => `g${g.group}s${g.activeSkill}p${g.statSet}`);
+    const turns = [...rotation.filter((r) => r.turns).map((r) => r.key), ...groups.filter((g) => g.turns === true).map((g) => `g${g.group}s${g.activeSkill}p${g.statSet}`)];
+    if (!entry) {
+      if (triggered.length > 0 || turns.length > 0) {
+        fail('boss-estimate', `stage ${s.id}'s boss rotation has ${triggered.length > 0 ? `an entry PoB rates at its hand-cast speed (triggered: ${[...new Set(triggered)].join(', ')})` : `entries that take turns (${[...new Set(turns)].join(', ')})`}, but plan.json's ledger has no boss_${s.id}; D1-finish estimates the rung's boss damage by hand there, its formula on the rotation's figures (D-447)`);
+      }
+      continue;
+    }
+    const refs = [...String(entry.formula ?? '').matchAll(/(?<![A-Za-z0-9_.])([A-Za-z0-9_]+)\.boss\.([A-Za-z0-9_]+)(?:\.([A-Za-z_][A-Za-z0-9_]*))?/g)].map((m) => ({ stage: m[1], what: m[2], text: m[0] }));
+    if (!refs.some((r) => /^g\d+s\d+p\d+$/.test(r.what))) {
+      fail('boss-estimate', `plan.json's ledger entry boss_${s.id} has the formula ${show(entry.formula)}, which reads no boss rotation entry ${s.id}.boss.g<group>s<skill>p<statSet>; the estimate starts from the record's boss figures (C-33, D-447)`);
+    }
+    for (const r of refs) {
+      const outside = r.stage !== s.id || (/^g\d+s\d+p\d+$/.test(r.what) && !keys.has(r.what));
+      if (outside) fail('boss-estimate', `plan.json's ledger entry boss_${s.id} reads ${r.text}, which is outside stage ${s.id}'s boss rotation (${[...keys].join(', ')}); its formula reads only the rung's own rotation entries and ${s.id}.boss.measured (D-447)`);
+    }
+  }
+}
+
+/**
+ * D-437, D-441, D-447, D-448 (Appendix A, the D1 gate's design field): each rung's `damage {map, boss}`, `cull`,
+ * `trigger`, `boss {measured, estimate, corrections}` and `trades[]`, and on the non-budget rung `toughness {engagement,
+ * reason, target, band}` and the boss's `floor` and `under`. The non-budget rung's plan states its engagement. While the
+ * gate is fresh (no producer ran after it), the band is recomputed from the record's TotalEHP, the plan's engagement and
+ * references/toughness-targets.json; the estimate is the ledger's `boss_<stage>` value (its current formula) and null
+ * without one; the floor is references/boss-floor.json's and `under` the boss figure below it; and the rung's trades are
+ * trades.json's. A rung under its band has a defence trade, one over it or under the floor a damage trade (`none found: …`
+ * counts), and the damage trade's `bossAfter` is the boss figure × (1 + damageChange / 100).
+ */
+function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trades, fresh, fail }) {
+  const bad = (rule, why) => fail(rule, `${file}: ${why}`);
+  const n = endgame.find((s) => s.variant === 'non-budget');
+  const engagement = n?.skills?.engagement;
+  if (n && !(isObj(engagement) && ['close', 'distance'].includes(engagement.kind) && typeof engagement.reason === 'string' && engagement.reason.trim() !== '')) {
+    fail('toughness', `plan.json's non-budget rung ${n.id} has no skills.engagement {kind: "close" | "distance", reason}; in a run held to amendment 11 D1-build states how close the build fights, which sets its toughness target (D-441, §19)`);
+  }
+  const t = targetsOf(fail, file);
+  const floor = floorOf(fail, file);
+  for (const r of list(design.rungs)) {
+    const st = endgame.find((s) => s.id === r.stage);
+    if (!st) continue;
+    const at = `design.rungs's ${show(r.stage)}`;
+    const rec = record?.stages?.[r.stage];
+    const isN = st.variant === 'non-budget';
+    if (!isObj(r.damage) || !isNum(r.damage.map) || !isNum(r.damage.boss)) bad('design-field', `${at} has damage ${show(r.damage)}; it is {map, boss}, the named source's figure against map monsters and against a Pinnacle boss (D-437, Appendix A)`);
+    if (!(r.cull === null || (isObj(r.cull) && isNum(r.cull.map) && isNum(r.cull.boss)))) bad('design-field', `${at} has cull ${show(r.cull)}; null, or {map, boss} in percent (D-437, Appendix A)`);
+    if (!(r.trigger === null || (isObj(r.trigger) && typeof r.trigger.by === 'string' && isNum(r.trigger.usesPerSecond)))) bad('design-field', `${at} has trigger ${show(r.trigger)}; null, or {by, usesPerSecond} (D-437, Appendix A)`);
+    const b = r.boss;
+    if (!isObj(b) || !isNum(b.measured) || !numOrNull(b.estimate) || !Array.isArray(b.corrections) || !b.corrections.every((c) => typeof c === 'string')) {
+      bad('design-field', `${at} has boss ${show(b)}; it is {measured, estimate | null, corrections: [<short phrase>]} (D-447, Appendix A)`);
+      continue;
+    }
+    if (!Array.isArray(r.trades)) bad('design-field', `${at} has trades ${show(r.trades)}; the rung's trades from trades.json, a list (D-439, Appendix A)`);
+    const rungTrades = list(r.trades);
+    // D-447: the boss figure the gate shows, the estimate when there is one.
+    const figure = isNum(b.estimate) ? b.estimate : b.measured;
+    if (fresh) {
+      // D-437: the figures are the record's, the cull only with the plan's `skills.cull`, the trigger the record's.
+      const m = rec?.measures ?? {};
+      if (isObj(r.damage) && isObj(m.damage) && (!sameFigure(r.damage.map, m.damage.map) || !sameFigure(r.damage.boss, m.damage.boss))) bad('design-field', `${at}'s damage is ${show(r.damage)}, but the record's ${r.stage}.measures.damage is ${show(m.damage)} (D-437)`);
+      const culls = typeof st.skills?.cull === 'string' && st.skills.cull.trim() !== '';
+      if (culls !== (r.cull !== null && r.cull !== undefined)) bad('design-field', `${at}'s cull is ${show(r.cull)}, but the plan's ${r.stage} ${culls ? 'states its cull, skills.cull' : 'has no skills.cull'}; the cull is counted, and shown, only when the rotation culls (D-437)`);
+      else if (culls && isObj(r.cull) && isObj(m.cull) && (!sameFigure(r.cull.map, m.cull.map) || !sameFigure(r.cull.boss, m.cull.boss))) bad('design-field', `${at}'s cull is ${show(r.cull)}, but the record's ${r.stage}.measures.cull is ${show(m.cull)} (D-437)`);
+      if (isObj(m.trigger) !== isObj(r.trigger) || (isObj(m.trigger) && isObj(r.trigger) && (m.trigger.by !== r.trigger.by || !sameFigure(r.trigger.usesPerSecond, m.trigger.usesPerSecond)))) bad('design-field', `${at}'s trigger is ${show(r.trigger)}, but the record's ${r.stage}.measures.trigger is ${show(m.trigger ?? null)} (D-437)`);
+      const id = `boss_${r.stage}`;
+      const estimated = list(plan.ledger).some((e) => e.id === id);
+      const value = ledgerNow[id]?.value;
+      if (estimated && !sameFigure(b.estimate, value)) bad('boss-estimate', `${at}'s boss.estimate is ${show(b.estimate)}, but the ledger's ${id} evaluates to ${isNum(value) ? round2(value) : `nothing (${ledgerNow[id]?.error ?? 'no value'})`} over the record; the gate shows the ledger's estimate (D-447)`);
+      if (!estimated && b.estimate !== null) bad('boss-estimate', `${at}'s boss.estimate is ${show(b.estimate)}, but plan.json's ledger has no ${id}; without the estimate the boss figure is PoB alone, measures.damage.boss, and estimate is null (D-447)`);
+      const measured = rec?.measures?.damage?.boss;
+      if (isNum(measured) && !sameFigure(b.measured, measured)) bad('boss-estimate', `${at}'s boss.measured is ${show(b.measured)}, but the record's ${r.stage}.measures.damage.boss is ${measured} (D-447)`);
+      // D-439: the gate reads the rung's trades from trades.json.
+      if (trades !== null && Array.isArray(r.trades)) {
+        const want = trades.filter((x) => x.stage === r.stage).map((x) => canon(x)).sort();
+        const got = rungTrades.map((x) => canon(x)).sort();
+        if (show(want) !== show(got)) bad('trades', `${at}'s trades aren't trades.json's for ${r.stage}: the design field carries ${got.length} and trades.json ${want.length} (D-439)`);
+      }
+    }
+    if (!isN) continue;
+    // D-441: the toughness target, its engagement and its band.
+    const tough = r.toughness;
+    let band = null;
+    if (!isObj(tough) || !['close', 'distance'].includes(tough.engagement) || !isNum(tough.target) || !['under', 'within', 'over'].includes(tough.band) || typeof tough.reason !== 'string') {
+      bad('toughness', `${at} has toughness ${show(tough)}; on the non-budget rung it is {engagement: "close" | "distance", reason, target, band: "under" | "within" | "over"} (D-441, Appendix A)`);
+    } else {
+      band = tough.band;
+      if (fresh && t !== null) {
+        if (isObj(engagement) && tough.engagement !== engagement.kind) bad('toughness', `${at}'s toughness.engagement is ${show(tough.engagement)}, but the plan's ${r.stage}.skills.engagement is ${show(engagement.kind)} (D-441)`);
+        const target = t.targets[isObj(engagement) && ['close', 'distance'].includes(engagement.kind) ? engagement.kind : tough.engagement];
+        if (tough.target !== target) bad('toughness', `${at}'s toughness.target is ${show(tough.target)}, but references/toughness-targets.json gives a ${isObj(engagement) ? engagement.kind : tough.engagement} build ${target} (D-441)`);
+        const ehp = rec?.outputs?.TotalEHP;
+        if (!isNum(ehp)) bad('toughness', `${at}'s band can't be recomputed: the record has no ${r.stage}.TotalEHP (D-441)`);
+        else {
+          const want = bandOf(ehp, target, t);
+          if (tough.band !== want) bad('toughness', `${at}'s toughness.band is ${show(tough.band)}, but the record's TotalEHP ${round2(ehp)} against the ${target} target is ${want} (under ${t.under * target}, over ${t.over * target}; D-441)`);
+          band = want;
+        }
+      }
+    }
+    // D-448: the boss floor, and whether the rung is under it.
+    let under = b.under === true;
+    if (!isNum(b.floor) || typeof b.under !== 'boolean') bad('boss-floor', `${at}'s boss has floor ${show(b.floor)} and under ${show(b.under)}; on the non-budget rung the floor is references/boss-floor.json's and under true when the boss figure is below it (D-448, Appendix A)`);
+    else if (floor !== null) {
+      if (b.floor !== floor) bad('boss-floor', `${at}'s boss.floor is ${show(b.floor)}, but references/boss-floor.json's floor is ${floor} (D-448)`);
+      const boss = fresh ? (list(plan.ledger).some((e) => e.id === `boss_${r.stage}`) ? ledgerNow[`boss_${r.stage}`]?.value : rec?.measures?.damage?.boss) : figure;
+      if (isNum(boss)) {
+        under = boss < floor;
+        if (b.under !== under) bad('boss-floor', `${at}'s boss.under is ${b.under}, but the boss figure ${round2(boss)}${fresh && list(plan.ledger).some((e) => e.id === `boss_${r.stage}`) ? ` (the ledger's boss_${r.stage})` : ''} is ${under ? 'under' : 'at or above'} the ${floor} floor (D-448)`);
+      }
+    }
+    // D-441, D-448: a rung out of its band, or under the floor, shows a trade, `none found: …` when there is none.
+    const has = (kind) => rungTrades.some((x) => x.kind === kind);
+    if (band === 'under' && !has('defence')) fail('trades', `${file}: the non-budget rung ${r.stage} is under its toughness band, but no defence trade is shown for it (a trades.json entry, kind defence; "none found: <why>" when there is none) (D-441)`);
+    if ((band === 'over' || under) && !has('damage')) fail('trades', `${file}: the non-budget rung ${r.stage} is ${[band === 'over' ? 'over its toughness band' : null, under ? 'under the boss floor' : null].filter(Boolean).join(' and ')}, but no damage trade is shown for it (a trades.json entry, kind damage; "none found: <why>" when there is none) (D-441, D-448)`);
+    // D-448: the damage trade's boss figure after it moves with the named source's.
+    for (const x of rungTrades.filter((y) => y.kind === 'damage' && isNum(y.damageChange))) {
+      const want = figure * (1 + x.damageChange / 100);
+      if (!sameFigure(x.bossAfter, want)) fail('trades', `${file}: the non-budget rung ${r.stage}'s damage trade (${show(x.what)}) has bossAfter ${show(x.bossAfter)}; it is the boss figure ${round2(figure)} × (1 + ${x.damageChange} / 100) = ${round2(want)} (D-448, Appendix A)`);
+    }
+  }
+}
 
 function checksText(guide, variant) {
   if (!guide) return null;
@@ -5138,7 +5601,9 @@ function citedValues(side, source) {
 function ledgerResults(ledgerModule, plan, record) {
   if (!isObj(plan) || !Array.isArray(plan.ledger)) return {};
   const stages = isObj(record?.stages) ? record.stages : {};
-  const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} }]));
+  // D-447: each stage's boss rotation (`measures.bossGroups`) and PoB alone (`measures.damage.boss`) join its numbers,
+  // `bossGroups` and `damageBoss`, so a `<stageId>.boss.…` reference evaluates (C-33), as the compiler's context does.
+  const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, ledgerStage(s)]));
   const entries = plan.ledger.filter((e) => isObj(e) && typeof e.id === 'string' && typeof e.formula === 'string').map((e) => ({ id: e.id, formula: e.formula, inputs: list(e.inputs) }));
   const results = ledgerModule.evaluateLedger(entries, { stageIds: list(plan.stages).map((s) => s.id), stages: numbers });
   return Object.fromEntries(entries.map((e) => [e.id, { value: isNum(results[e.id]?.value) ? results[e.id].value : null, error: results[e.id]?.error?.message ?? null }]));

@@ -1,0 +1,321 @@
+{
+  "stage": "D1-gate",
+  "concept": "r1-a-2",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass",
+    "floor": "pass",
+    "budget": "unverified",
+    "rolledSkill": "pass",
+    "tree": "pass"
+  },
+  "findings": [
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "b",
+      "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "m",
+      "message": "MissingChaosResist 65 on stage m, kept by its chaosResistException: no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs"
+    }
+  ],
+  "basis": {
+    "budget": {
+      "rates": [],
+      "market": {
+        "league": null,
+        "day": null,
+        "late": false
+      },
+      "slots": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "priceId": "m-weapon"
+        },
+        {
+          "stage": "m",
+          "slot": "Body Armour",
+          "priceId": "m-body"
+        },
+        {
+          "stage": "m",
+          "slot": "Helmet",
+          "priceId": "m-helmet"
+        },
+        {
+          "stage": "m",
+          "slot": "Boots",
+          "priceId": "m-boots"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 1",
+          "priceId": "m-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "priceId": "b-weapon"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "priceId": "b-body"
+        },
+        {
+          "stage": "b",
+          "slot": "Helmet",
+          "priceId": "b-helmet"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "priceId": "b-boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "priceId": "b-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "priceId": "b-ring2"
+        },
+        {
+          "stage": "b",
+          "jewel": 1001,
+          "priceId": "b-jewel"
+        },
+        {
+          "stage": "b",
+          "slot": "Anoint",
+          "priceId": "b-anoint"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1",
+          "priceId": "n-weapon"
+        },
+        {
+          "stage": "n",
+          "slot": "Body Armour",
+          "priceId": "n-body"
+        },
+        {
+          "stage": "n",
+          "slot": "Helmet",
+          "priceId": "n-helmet"
+        },
+        {
+          "stage": "n",
+          "slot": "Boots",
+          "priceId": "n-boots"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 1",
+          "priceId": "n-ring1"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 2",
+          "priceId": "n-ring2"
+        }
+      ],
+      "totals": [
+        {
+          "stage": "m",
+          "low": null,
+          "high": null,
+          "day": 7
+        },
+        {
+          "stage": "b",
+          "low": null,
+          "high": null,
+          "day": 7
+        },
+        {
+          "stage": "n",
+          "low": null,
+          "high": null,
+          "day": 21
+        }
+      ]
+    },
+    "rolledSkill": [
+      {
+        "stage": "m",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "b",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "n",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      }
+    ]
+  },
+  "recordPath": "builds/r1-a-2/compile-record.json",
+  "faultsApplied": [],
+  "design": {
+    "rungs": [
+      {
+        "stage": "m",
+        "dps": 9000,
+        "ehp": 18400,
+        "arbiter": null,
+        "clearSpeed": "medium",
+        "anoint": null,
+        "gear": "rare boots with lightning resistance; a life and cold-resistance helmet",
+        "gems": "Blood Hunt with Bloodlust and Brutality I",
+        "tree": {
+          "travel": 6,
+          "points": 64,
+          "bestSwap": null,
+          "needs": [
+            "the life wheel keeps the floor: the entering-maps hit needs its life"
+          ]
+        },
+        "damage": {
+          "map": 9000,
+          "boss": 10500
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 10500,
+          "estimate": null,
+          "corrections": []
+        },
+        "trades": []
+      },
+      {
+        "stage": "b",
+        "dps": 50000,
+        "ehp": 31500,
+        "arbiter": "survives, worst physical 0.68",
+        "clearSpeed": "medium",
+        "anoint": "Unbending: Ire, Guilt, Greed",
+        "gear": "a War Spear with increased physical damage; a life and fire-resistance body",
+        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "tree": {
+          "travel": 9,
+          "points": 98,
+          "bestSwap": {
+            "gainPercent": 3.2,
+            "removed": [
+              "Strength",
+              "Strength"
+            ],
+            "added": [
+              "Cold Nature"
+            ]
+          },
+          "needs": [
+            "Unbending holds armour where the tree has none"
+          ]
+        },
+        "damage": {
+          "map": 50000,
+          "boss": 60000
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 60000,
+          "estimate": null,
+          "corrections": []
+        },
+        "trades": []
+      },
+      {
+        "stage": "n",
+        "dps": 140000,
+        "ehp": 52300,
+        "arbiter": "survives, worst physical 0.47",
+        "clearSpeed": "medium",
+        "anoint": null,
+        "gear": "a stronger War Spear and both rings",
+        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "tree": {
+          "travel": 10,
+          "points": 104,
+          "bestSwap": null,
+          "needs": []
+        },
+        "damage": {
+          "map": 140000,
+          "boss": 210000
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 210000,
+          "estimate": null,
+          "corrections": [],
+          "floor": 250000,
+          "under": true
+        },
+        "trades": [
+          {
+            "stage": "n",
+            "kind": "damage",
+            "what": "moving 6 points from Bone Breaker to Vicious Bite",
+            "ehpChange": -12,
+            "damageChange": 18,
+            "bossAfter": 247800,
+            "reason": "over the toughness band and under the boss floor"
+          }
+        ],
+        "toughness": {
+          "engagement": "close",
+          "reason": "Blood Hunt lunges into the pack and the boss",
+          "target": 20000,
+          "band": "over"
+        }
+      }
+    ],
+    "estimates": [
+      "b: Blood Loss stacks are a hand calculation (bleed_bonus)",
+      "clear speed is a rough estimate from the skill's area"
+    ]
+  }
+}

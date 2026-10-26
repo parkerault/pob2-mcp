@@ -31,6 +31,17 @@
 //  - an Estimates value is the plan's current formula evaluated over the record with the server's evaluator, as
 //    the checker's `[ledger]` does (D-365), so a ledger-only fix needs no recompile to show.
 //
+// Amendment 11 (WU-113; D-437, D-442, D-447):
+//  - the stage table's `Named source DPS` is `Damage, map / boss` once a record carries `measures.damage`: each endgame
+//    rung's map figure and its boss figure, the `boss_<stage>` ledger value when the plan estimates one (its current
+//    formula over the record, the boss rotation's figures among the ledger's context), else `measures.damage.boss`; a
+//    campaign row keeps its figure, and a record from before amendment 11 keeps the old column;
+//  - the ledger's context gives each stage the record's `measures.bossGroups` and `measures.damage.boss`, as `bossGroups`
+//    and `damageBoss`, so a `<stageId>.boss.…` reference evaluates (C-33);
+//  - players' words (`playersWords`, D-442): a rung's total, or a fallback, whose range rounds to 0.0 divines is the price
+//    as seen, `3 exalts (seen 2026-10-24)`, with no conversion; a currency is never named by its trade id: "no rate for
+//    exalts".
+//
 // Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js` and the conversion table
 // `data/economy/prices.json`. No network. Exit 0: audit.md written (one line on stdout). Exit 1: an input is
 // missing or unreadable (stderr). Exit 2: usage error.
@@ -112,6 +123,59 @@ export function priceTable() {
 
 /** Step 6: an end of a range, 10 divines or more to a whole divine, under 10 to one decimal. */
 export const roundDivines = (x) => (x >= 10 ? Math.round(x) : Math.round(x * 10) / 10);
+
+// ---------------------------------------------------------------------------------------------------
+// Players' words for prices (D-442)
+// ---------------------------------------------------------------------------------------------------
+
+/**
+ * D-442: a currency in players' words, for `amount` of it: `exalt` and `exalts` (never the trade id `exalted`),
+ * `divine` and `divines`, `chaos`; any other currency as it is written. With no amount, the plural.
+ */
+export function currencyWord(currency, amount) {
+  const c = String(currency ?? '').toLowerCase();
+  const one = Number(amount) === 1;
+  if (/^exalt/.test(c)) return one ? 'exalt' : 'exalts';
+  if (/^divine/.test(c)) return one ? 'divine' : 'divines';
+  if (c === 'chaos') return 'chaos';
+  return String(currency);
+}
+
+/** An amount of a currency as seen, in players' words: `1 exalt`, `40 exalts`. */
+export const seenAmount = (amount, currency) => `${amount} ${currencyWord(currency, amount)}`;
+
+/**
+ * D-442: a text in players' words. A key price whose range rounds to 0.0 divines (`about 0.0–0.0 divines around day 7
+ * (seen 1 exalted on 2026-10-24, …)`) is the price as seen, `1 exalt (seen 2026-10-24)`, with no conversion; every
+ * currency named by its trade id, after an amount (`40 exalted`) or alone, takes players' words (`40 exalts`).
+ */
+export function playersWords(text) {
+  return String(text ?? '')
+    .replace(/(?:about )?(?<![\d.])0(?:\.0)?(?:\s*[–-]\s*0(?:\.0)?)? divines?\b[^()]*\(seen (\d+(?:\.\d+)?) ([A-Za-z_]+)(?: on (\d{4}-\d{2}-\d{2}))?[^)]*\)/g,
+      (m, n, c, d) => `${seenAmount(n, c)}${d ? ` (seen ${d})` : ''}`)
+    .replace(/(?<![\d.])(\d+(?:\.\d+)?) (exalted|divines?|chaos)\b/g, (m, n, c) => seenAmount(n, c))
+    .replace(/\bexalted\b/g, 'exalts');
+}
+
+/**
+ * D-442: a stage's priced slots as seen, when its total rounds to 0.0 divines: each currency's amounts summed over the
+ * slots `budget.slots` names (a shared entry once for each slot, as the total counts it), `3 exalts (seen 2026-10-24)`,
+ * the latest date seen; null when a slot's price isn't `ok`.
+ */
+function seenTotal(s, plan, budget) {
+  const prices = new Map(list(plan?.prices).map((p) => [p.id, p]));
+  const sums = new Map();
+  let date = null;
+  for (const x of list(budget?.slots).filter((y) => y.stage === s.id)) {
+    const p = prices.get(x.priceId);
+    if (!isObj(p) || p.status !== 'ok' || !isNum(p.amount) || typeof p.currency !== 'string') return null;
+    sums.set(p.currency, (sums.get(p.currency) ?? 0) + p.amount);
+    if (ISO_DATE.test(String(p.date)) && (date === null || p.date > date)) date = p.date;
+  }
+  if (sums.size === 0) return null;
+  const parts = [...sums].map(([c, n]) => seenAmount(Math.round(n * 100) / 100, c));
+  return `${parts.join(' and ')}${date ? ` (seen ${date})` : ''}`;
+}
 
 /** The recorded rates by currency (`basis.budget.rates`); a divine counts 1. */
 const ratesOf = (budget) => new Map(list(budget?.rates).filter((r) => isNum(r.divines)).map((r) => [String(r.currency).toLowerCase(), r.divines]));
@@ -248,10 +312,22 @@ export async function loadAuditInputs(runFolder, build) {
   return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
 }
 
+/**
+ * A record stage's numbers as the ledger's context reads them (C-33): its outputs and per-skill breakdown, and, on a
+ * stage the compile measured against a Pinnacle boss (D-447, amendment 11), its boss rotation's figures `bossGroups`
+ * (`measures.bossGroups`) and PoB alone `damageBoss` (`measures.damage.boss`), for the `<stageId>.boss.…` references.
+ */
+export function ledgerStage(s) {
+  const out = { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} };
+  if (Array.isArray(s.measures?.bossGroups)) out.bossGroups = s.measures.bossGroups;
+  if (isObj(s.measures?.damage) && 'boss' in s.measures.damage) out.damageBoss = isNum(s.measures.damage.boss) ? s.measures.damage.boss : null;
+  return out;
+}
+
 /** Each ledger entry's value: its current formula over the record's stages (D-365), null when it errs. */
 export function ledgerValues(ledgerModule, plan, record) {
   const stages = isObj(record?.stages) ? record.stages : {};
-  const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, { outputs: isObj(s.outputs) ? s.outputs : {}, skillOutputs: isObj(s.skillOutputs) ? s.skillOutputs : {} }]));
+  const numbers = Object.fromEntries(Object.entries(stages).filter(([, s]) => isObj(s)).map(([id, s]) => [id, ledgerStage(s)]));
   const entries = list(plan?.ledger).filter((e) => typeof e.id === 'string' && typeof e.formula === 'string').map((e) => ({ id: e.id, formula: e.formula, inputs: list(e.inputs) }));
   const results = ledgerModule.evaluateLedger(entries, { stageIds: list(plan?.stages).map((s) => s.id), stages: numbers });
   return Object.fromEntries(entries.map((e) => [e.id, results[e.id]?.value ?? null]));
@@ -330,20 +406,37 @@ function headlineDps(stage, rec) {
   return rec.countedSkillOutputs?.[key]?.fields?.[field] ?? rec.countedOutputs?.fields?.[field];
 }
 
-function stageDetail({ plan, record }) {
+/**
+ * D-447: an endgame rung's boss figure, as every display shows it: the `boss_<stage>` ledger value when the plan
+ * estimates one (its current formula over the record, `ledger`), else the record's `measures.damage.boss`.
+ */
+export function bossFigure(stageId, plan, rec, ledger) {
+  const id = `boss_${stageId}`;
+  if (list(plan?.ledger).some((e) => e.id === id)) return isNum(ledger?.[id]) ? ledger[id] : null;
+  const boss = rec?.measures?.damage?.boss;
+  return isNum(boss) ? boss : null;
+}
+
+function stageDetail({ plan, record, ledger }) {
+  // D-437: the named source's figure against map monsters and against a Pinnacle boss, once a record carries
+  // `measures.damage`; a record from before amendment 11 keeps its one figure under its old label (§19).
+  const stagesOfPlan = list(plan.stages);
+  const twoFigures = stagesOfPlan.some((s) => typeof s.variant === 'string' && isObj(record.stages?.[s.id]?.measures?.damage));
   const out = [
-    '| Loadout | Level | Life | Named source DPS | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |',
+    `| Loadout | Level | Life | ${twoFigures ? 'Damage, map / boss' : 'Named source DPS'} | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |`,
     '|---|---|---|---|---|---|---|---|',
   ];
-  for (const s of list(plan.stages)) {
+  for (const s of stagesOfPlan) {
     const rec = isObj(record.stages?.[s.id]) ? record.stages[s.id] : {};
     const o = isObj(rec.outputs) ? rec.outputs : {};
     const endgame = typeof s.variant === 'string';
+    const damage = rec.measures?.damage;
+    const figure = !endgame ? num(headlineDps(s, rec)) : isObj(damage) ? `${num(damage.map)} / ${num(bossFigure(s.id, plan, rec, ledger))}` : num(rec.measures?.dps);
     const others = OTHER_TYPES.map((t) => o[`${t}MaximumHitTaken`]).filter(isNum);
     const cw = isObj(rec.configWritten) ? rec.configWritten : {};
     const hits = OTHER_TYPES.map((t) => cw[`enemy${t}Damage`]).filter(isNum);
     const reference = endgame ? `${num(cw.enemyPhysicalDamage)} / ${hits.length > 0 ? num(Math.max(...hits)) : '—'}` : '—';
-    out.push(`| ${cell(rec.loadoutName ?? s.loadoutName)} | ${num(rec.level ?? s.level)} | ${num(o.Life)} | ${num(endgame ? rec.measures?.dps : headlineDps(s, rec))} | ${['Fire', 'Cold', 'Lightning', 'Chaos'].map((t) => num(o[`${t}Resist`])).join('/')}% | ${num(o.PhysicalMaximumHitTaken)} / ${others.length > 0 ? num(Math.min(...others)) : '—'} | ${reference} | ${num(endgame ? rec.measures?.ehp : o.TotalEHP)} |`);
+    out.push(`| ${cell(rec.loadoutName ?? s.loadoutName)} | ${num(rec.level ?? s.level)} | ${num(o.Life)} | ${figure} | ${['Fire', 'Cold', 'Lightning', 'Chaos'].map((t) => num(o[`${t}Resist`])).join('/')}% | ${num(o.PhysicalMaximumHitTaken)} / ${others.length > 0 ? num(Math.min(...others)) : '—'} | ${reference} | ${num(endgame ? rec.measures?.ehp : o.TotalEHP)} |`);
   }
   return out;
 }
@@ -383,7 +476,8 @@ function unavailableWhy(s, plan, budget, known) {
     const p = prices.get(id);
     if (!p) continue;
     if (p.status === 'unavailable') why.push(bare(p.note ?? 'unavailable'));
-    else if (typeof p.currency === 'string' && !/^divine/i.test(p.currency) && !rates.has(p.currency.toLowerCase())) why.push(`no rate for ${p.currency}`);
+    // D-442: the currency in players' words, never its trade id.
+    else if (typeof p.currency === 'string' && !/^divine/i.test(p.currency) && !rates.has(p.currency.toLowerCase())) why.push(`no rate for ${currencyWord(p.currency)}`);
   }
   if (why.length === 0 && !known) why.push("the D1 gate's basis gives no total");
   return [...new Set(why)].join('; ');
@@ -403,7 +497,9 @@ export function budgetLines(s, plan, gate, prices) {
   const budget = isObj(gate?.basis?.budget) ? gate.basis.budget : {};
   const row = list(budget.totals).find((t) => t.stage === s.id);
   const known = isNum(row?.low) && isNum(row?.high);
-  const shown = known ? `about ${rangeText(row.low, row.high)} divines around day ${PRICE_DAY[s.variant]}` : 'unknown';
+  // D-442: a total whose range rounds to 0.0 divines is shown as seen, with no conversion.
+  const seen = known && roundDivines(row.low) === 0 && roundDivines(row.high) === 0 ? seenTotal(s, plan, budget) : null;
+  const shown = seen !== null ? seen : known ? `about ${rangeText(row.low, row.high)} divines around day ${PRICE_DAY[s.variant]}` : 'unknown';
   const over = s.variant === 'entering-maps' ? [] : list(gate?.findings).filter((f) => f.part === 'budget' && f.code === 'over-target' && f.stage === s.id);
   const slots = over.map((f) => `${f.jewel !== undefined ? `Jewel ${f.jewel}` : f.slot} (about ${rangeText(f.low, f.high)}${fallbackText(s, f, plan, budget, prices)})`);
   const lines = [`- Budget: ${shown}, ${TARGET_TEXT[s.variant]}.${slots.length > 0 ? ` Over target: ${slots.join(', ')}.` : ''}`];
@@ -433,6 +529,8 @@ function fallbackText(s, f, plan, budget, prices) {
   if (p === null || table === null) return '; fallback price unknown';
   const market = isObj(budget.market) ? budget.market : marketOf(plan, budget, table);
   const r = rangeAt(p, PRICE_DAY[s.variant], market, table);
+  // D-442: a fallback whose range rounds to 0.0 divines is shown as seen.
+  if (roundDivines(r.low) === 0 && roundDivines(r.high) === 0) return `; fallback ${seenAmount(fallback.amount, fallback.currency)}${ISO_DATE.test(String(fallback.date)) ? ` (seen ${fallback.date})` : ''}`;
   return `; fallback about ${rangeText(roundDivines(r.low), roundDivines(r.high))}`;
 }
 

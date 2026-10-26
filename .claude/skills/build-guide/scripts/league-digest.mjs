@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The league digest (amendment 8, D-400): what one poe2db league or patch section adds, as a committed Markdown file
-// that every R1a researcher and the rival read: data/league/<file slug>.md.
+// that every R1a researcher reads: data/league/<file slug>.md.
 //
 //   node .claude/skills/build-guide/scripts/league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]
 //   node .claude/skills/build-guide/scripts/league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]

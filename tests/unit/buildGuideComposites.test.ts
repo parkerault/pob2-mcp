@@ -407,7 +407,7 @@ describe('AC-W84: pieces.md in a build folder, and the design display\'s pieces 
     ].join('\n'));
     passes(dir);
     fs.writeFileSync(path.join(dir, 'builds/r1-a-1/notes.md'), 'x\n');
-    expect(lines(failing(dir), 'layout')).toEqual([expect.stringMatching(/builds\/r1-a-1: notes\.md isn't part of a build's folder \(plan\.json, compile-record\.json, compiled-build\.xml, guide\.md, audit\.md, pieces\.md, reports\/, rounds\/; D-412, D-434\)/)]);
+    expect(lines(failing(dir), 'layout')).toEqual([expect.stringMatching(/builds\/r1-a-1: notes\.md isn't part of a build's folder \(plan\.json, compile-record\.json, compiled-build\.xml, guide\.md, audit\.md, pieces\.md, trades\.json, reports\/, rounds\/; D-412, D-434, D-439\)/)]);
   });
 
   it("the design display prints the pieces line from the D1 gate's pieces, once, before the rungs", () => {

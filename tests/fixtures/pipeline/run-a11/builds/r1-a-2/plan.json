@@ -1,0 +1,1450 @@
+{
+  "schemaVersion": 7,
+  "roll": {
+    "className": "Warrior",
+    "ascendancy": "Titan",
+    "skill": "Blood Hunt"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": null,
+  "stages": [
+    {
+      "id": "m",
+      "loadoutName": "Entering maps (L65) {m}",
+      "level": 65,
+      "progress": "endgame",
+      "variant": "entering-maps",
+      "ascendancyPoints": 6,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a character that has finished the campaign and runs T1 to T5 maps sits near level 65",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the campaign's uncut gems reach level 16 by its end",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the campaign's trials grant six ascendancy points",
+          "confidence": "M"
+        }
+      },
+      "chaosResistException": {
+        "reason": "no slot within 5 divines can carry chaos resistance without dropping a resistance the floor needs",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every affordable slot that can roll chaos resistance holds a fire, cold or lightning resistance the floor needs",
+          "confidence": "M"
+        }
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 16,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ],
+        "scales": "physical hit damage and bleed magnitude"
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nKeen Spike\nWar Spear\n+40% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nWorn Shell\nRusted Cuirass\n+50 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nDull Crown\nIron Cap\n+40 to maximum Life\n+30% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nMud Track\nRough Greaves\n+30% increased Movement Speed\n+30% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nTwin Loop\nIron Ring\n+20% to Fire Resistance\n+20% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "m-floor",
+          "text": "The entering-maps rung's fire, cold and lightning resistances, as PoB computes them at the endgame penalty.",
+          "kind": "reason",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "m.MissingFireResist"
+          }
+        },
+        {
+          "id": "m-budget",
+          "text": "Players usually finish the campaign with 5 to 10 divines.",
+          "kind": "hinge",
+          "source": {
+            "kind": "external-unavailable",
+            "ref": "external source unavailable (offline run)",
+            "confidence": "M"
+          }
+        },
+        {
+          "id": "m-boots",
+          "text": "Buy the boots first: they carry the only lightning resistance on the rung.",
+          "kind": "hinge",
+          "source": {
+            "kind": "judgment",
+            "ref": "the boots are the rung's one lightning resistance",
+            "confidence": "M"
+          }
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "loadoutName": "Endgame budget (L90) {b}",
+      "level": 90,
+      "progress": "endgame",
+      "variant": "budget",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a budget character reaching T15 maps sits near level 90",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "uncut gems of tier 20 are cheap by endgame",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "external",
+          "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+          "accessed": "2026-10-07",
+          "patch": "0.5.x",
+          "confidence": "M"
+        }
+      },
+      "chaosResistException": {
+        "reason": "no slot can carry chaos resistance without dropping a core item or breaking the budget",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every slot that can roll chaos resistance holds a core damage or life item",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ],
+        "scales": "physical hit damage, bleed magnitude and armour"
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nGale Spike\nWar Spear\n+60% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDread Shell\nRusted Cuirass\n+80 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Crown\nIron Cap\n+60 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nStorm Track\nRough Greaves\n+35% increased Movement Speed\n+35% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nBlood Loop\nIron Ring\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [
+          {
+            "node": 1001,
+            "text": "Rarity: Rare\nGrim Eye\nRuby\n+8% to Fire Resistance\n+12 to maximum Life"
+          }
+        ],
+        "toggles": [],
+        "useSecondWeaponSet": false,
+        "anoint": {
+          "notable": "Unbending",
+          "reason": "about 6% more armour where the tree has none, measured against the plan without it"
+        }
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "b-life",
+          "text": "The budget variant's maximum life, as PoB computes it at level 90.",
+          "kind": "reason",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "b.Life"
+          }
+        },
+        {
+          "id": "b-bloodloss",
+          "text": "Blood Hunt consumes Blood Loss on the target for a burst.",
+          "kind": "hinge",
+          "source": {
+            "kind": "pob-data",
+            "ref": "lookup_game_data gem \"Blood Hunt\"",
+            "patch": "0.5.4"
+          }
+        },
+        {
+          "id": "b-monster-life",
+          "text": "A normal area-79 monster has 24,852 life.",
+          "kind": "hinge",
+          "source": "data:enemies/map-monsters.json#life.by-level[79]"
+        },
+        {
+          "id": "b-helmet-price",
+          "text": "A life and cold-resistance helmet for the budget variant.",
+          "kind": "hinge",
+          "source": "price:b-helmet"
+        },
+        {
+          "id": "b-bleed",
+          "text": "Consuming Blood Loss adds about 7,500 damage per second to Blood Hunt on the budget variant.",
+          "kind": "hinge",
+          "source": "ledger:bleed_bonus"
+        },
+        {
+          "id": "b-meta",
+          "text": "Spear builds clear T15 maps on a budget this league.",
+          "kind": "hinge",
+          "source": {
+            "kind": "external-unavailable",
+            "ref": "external source unavailable (offline run)",
+            "confidence": "L"
+          }
+        }
+      ]
+    },
+    {
+      "id": "n",
+      "loadoutName": "Endgame non-budget (L95) {n}",
+      "level": 95,
+      "progress": "endgame",
+      "variant": "non-budget",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "a geared character pushing area 82 sits near level 95",
+          "confidence": "M"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "uncut gems of tier 20 are cheap by endgame",
+          "confidence": "M"
+        },
+        "ascendancyPoints": {
+          "kind": "external",
+          "ref": "https://maxroll.gg/poe2/getting-started/trials-of-ascendancy",
+          "accessed": "2026-10-07",
+          "patch": "0.5.x",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          3936,
+          46325,
+          13397,
+          38646,
+          33556,
+          55473,
+          39581,
+          6839,
+          5710,
+          1913,
+          4665,
+          61534,
+          7721,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008
+        ],
+        "ascendancyNodes": [],
+        "weaponSetNodes": {
+          "set1": [],
+          "set2": []
+        },
+        "attributeChoices": [
+          {
+            "node": 13397,
+            "attribute": "strength"
+          }
+        ],
+        "scales": "physical hit damage, bleed magnitude and armour"
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: Rare\nGale Spike\nWar Spear\n+60% increased Physical Damage"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: Rare\nDread Shell\nRusted Cuirass\n+80 to maximum Life\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Helmet",
+            "text": "Rarity: Rare\nGrim Crown\nIron Cap\n+60 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: Rare\nStorm Track\nRough Greaves\n+35% increased Movement Speed\n+35% to Lightning Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: Rare\nBlood Loop\nIron Ring\n+30% to Fire Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: Rare\nCold Loop\nIron Ring\n+30% to Cold Resistance"
+          }
+        ],
+        "treeJewels": [],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Blood Hunt",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Blood Hunt",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Bloodlust",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Brutality I",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Rolling Slam",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              {
+                "name": "Rolling Slam",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Blood",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          }
+        ],
+        "main": {
+          "group": 1,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 1,
+        "engagement": {
+          "kind": "close",
+          "reason": "Blood Hunt lunges into the pack and the boss"
+        }
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": [
+        {
+          "id": "n-dps",
+          "text": "The non-budget variant's damage, as PoB computes it at level 95.",
+          "kind": "reason",
+          "source": {
+            "kind": "pob-computed",
+            "ref": "n.TotalDPS"
+          }
+        },
+        {
+          "id": "n-herald",
+          "text": "Herald of Blood reserves spirit.",
+          "kind": "hinge",
+          "source": {
+            "kind": "pob-data",
+            "ref": "lookup_game_data gem \"Herald of Blood\"",
+            "patch": "0.5.4"
+          }
+        }
+      ]
+    }
+  ],
+  "ledger": [
+    {
+      "id": "bleed_bonus",
+      "claim": "The damage per second consuming Blood Loss adds to Blood Hunt on the budget variant, as a share of its DPS",
+      "formula": "b.TotalDPS * share / 100",
+      "inputs": [
+        {
+          "name": "share",
+          "value": 15,
+          "tag": {
+            "kind": "judgment",
+            "ref": "Blood Loss consumed on most lunges against a bleeding rare",
+            "confidence": "L"
+          }
+        }
+      ]
+    }
+  ],
+  "prices": [
+    {
+      "id": "b-weapon",
+      "item": "budget Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-body",
+      "item": "budget Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-helmet",
+      "item": "budget Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-boots",
+      "item": "budget Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-ring1",
+      "item": "budget Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Ring 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-ring2",
+      "item": "budget Ring 2",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-jewel",
+      "item": "budget tree jewel",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "budget tree jewel"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-weapon",
+      "item": "non-budget Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-body",
+      "item": "non-budget Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-helmet",
+      "item": "non-budget Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-boots",
+      "item": "non-budget Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-ring1",
+      "item": "non-budget Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Ring 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-ring2",
+      "item": "non-budget Ring 2",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "non-budget Ring 2"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-weapon",
+      "item": "entering-maps Weapon 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Weapon 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-body",
+      "item": "entering-maps Body Armour",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Body Armour"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-helmet",
+      "item": "entering-maps Helmet",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Helmet"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-boots",
+      "item": "entering-maps Boots",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Boots"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-ring1",
+      "item": "entering-maps Ring 1",
+      "query": {
+        "query": {
+          "status": {
+            "option": "online"
+          },
+          "type": "entering-maps Ring 1"
+        },
+        "sort": {
+          "price": "asc"
+        }
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "b-anoint",
+      "item": "Distilled Ire, Distilled Guilt and Distilled Greed",
+      "query": {
+        "name": "Distilled Ire"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-10-08",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    }
+  ]
+}

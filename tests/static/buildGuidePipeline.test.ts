@@ -191,7 +191,10 @@ describe('AC-W1: the build-guide skill', () => {
       .filter((e) => e.isFile())
       .map((e) => `references/${e.name}`);
     expect(shipped).toContain('references/patterns.md');
-    for (const ref of shipped) expect({ ref, listed: text.includes(ref) }).toEqual({ ref, listed: true });
+    // Amendment 11 (§16): WU-113 ships the toughness targets and the boss floor in wave 1, and WU-115's SKILL.md cites
+    // them in wave 2; WU-115 drops this exemption when it lists them.
+    const citedInWave2 = ['references/toughness-targets.json', 'references/boss-floor.json'];
+    for (const ref of shipped.filter((r) => !citedInWave2.includes(r))) expect({ ref, listed: text.includes(ref) }).toEqual({ ref, listed: true });
   });
 
   it('finds paths the way the existence check reads them', () => {
@@ -2628,7 +2631,8 @@ describe('WU-70 (AC-W53, D-356): D1 is two steps, D1-build and D1-finish', () =>
     expect(folded(skill)).toMatch(/D1 is \*\*three agent steps\*\* \(D-356, D-418\): D1-build, D1-tree, then D1-finish, each a fresh coordinator step\. Every design attempt \(fresh, or a gate retry\) runs all three, in that order/);
     expect(ref('task-header.md')).toContain('`D1-build`, `D1-tree`, `D1-finish` (D1\'s three steps, D-356, D-418)');
     expect(ref('stages/README.md')).toContain('`D1-build.md`, `D1-tree.md`, `D1-finish.md` (D1\'s three steps, D-356, D-418)');
-    expect(ref('run-log.md')).toMatch(/`stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` \(the one full pass, D-352\) or `V4-recheck` \(a re-check\), and `Q`, a gate question step \(D-390\), and `RV`, the rival \(D-408\); and schema 4's `D1-tree` \(D-418\), `F1`, an endgame-only build's final compile \(D-413\), and `V4-campaign`, V4's campaign pass \(D-415\)/);
+    // Amendment 11 (WU-113, D-443): the rival's step RV is gone from a new run's stages; run-log.md keeps it for older runs.
+    expect(ref('run-log.md')).toMatch(/`stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`, `D2`, `D2-gate`, `W1`, `V4` \(the one full pass, D-352\) or `V4-recheck` \(a re-check\), and `Q`, a gate question step \(D-390\); and schema 4's `D1-tree` \(D-418\), `F1`, an endgame-only build's final compile \(D-413\), and `V4-campaign`, V4's campaign pass \(D-415\)/);
     expect(folded(readStage('D1-build'))).toMatch(/D1-finish \(`D1-finish\.md`\), a fresh step, then adds the anoint, the prices, the ledger and the claims/);
     // Amendment 9 (WU-96, D-418): D1 is three steps; D1-finish is the last, after D1-build and D1-tree.
     expect(folded(readStage('D1-finish'))).toMatch(/The last of D1's three steps \(D-356, D-418\), a fresh coordinator step after D1-build/);

@@ -322,8 +322,10 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   it("init writes run-log.md's first write, the run folder given, and never overwrites a log", () => {
     const dir = started();
     // Amendment 9 (WU-94, D-412): schema 4, with noNinja, the pin's commit and the newest league digest.
+    // Amendment 11 (WU-113, §19): the skill revision a new run is held to, and its pricing stops and retries (D-444).
     expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
       schemaVersion: 4,
+      skillRevision: 11,
       runFolder: dir,
       slug: 'titan-blood-hunt',
       brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },
@@ -341,6 +343,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       escalations: [],
       faults: [],
       resumes: [],
+      pricing: { stops: [], retries: [] },
     }, null, 2)}\n`);
     const before = fs.readFileSync(path.join(dir, 'run-log.json'));
     expect(log(dir, 'init', { slug: 'x', brief: {}, mode: 'online', testConfig: 'none', noNinja: false })).toEqual({ code: 1, stdout: '', stderr: 'run-log: run-log.json exists; init writes the first log only\n' });
@@ -387,7 +390,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       ['stage', { stage: 'D1-build', concept: CARD, attempt: 1, outcome: 'claims-edited' }, /a D1-build entry's outcome is done, infeasible, missing, not "claims-edited"/],
       ['stage', { stage: 'D1-build', concept: 'c1', attempt: 0, outcome: 'done' }, /concept "c1" isn't a card id .*; attempt 0 isn't a whole number from 1/],
       ['stage', { stage: 'R1b', concept: CARD, attempt: 1, outcome: 'pass' }, /an R1b entry has probes/],
-      ['stage', { stage: 'W1', concept: CARD, attempt: 1, outcome: 'done', priceOutcomes: { ok: 1 } }, /priceOutcomes is only on R1b, D1-finish, D1-gate, D2/],
+      ['stage', { stage: 'W1', concept: CARD, attempt: 1, outcome: 'done', priceOutcomes: { ok: 1 } }, /priceOutcomes is only on R1b, D1-build, D1-finish, D1-gate, D2/],
       ['stage', { stage: 'W1', concept: CARD, attempt: 1, outcome: 'done', note: 'x' }, /"note" isn't a field of a stage entry/],
       ['checkpoint', { checkpoint: 'design', visit: 1, answer: 'pick:r1-a-1', answeredBy: 'user' }, /"pick:r1-a-1" isn't an answer of the design checkpoint/],
       ['checkpoint', { checkpoint: 'design', visit: 1, answer: 'accept', answeredBy: 'default', rule: 'no design answer left: stop' }, /a default answer is stop/],

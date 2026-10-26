@@ -2052,8 +2052,8 @@ describe('S4, Q5: the slim run log and its per-step price outcomes', () => {
     const stderr = failing(dir);
     expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1finish}\\]\\.priceOutcomes: is \\{<outcome>: <count>\\}`));
     expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.w1}\\]: has priceOutcomes, but W1 doesn't price`));
-    // D-356: D1-build prices nothing; D1-finish does.
-    expect(stderr).toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1}\\]: has priceOutcomes, but D1-build doesn't price`));
+    // D-444 (amendment 11): D1-build prices its find_upgrades calls, so its priceOutcomes is no failure.
+    expect(stderr).not.toMatch(new RegExp(`\\[run-log\\] run-log\\.json stages\\[${ONLINE.d1}\\]: has priceOutcomes`));
   });
 
   it('fails NFR-22 on a rate_limited or locked_out call', () => {

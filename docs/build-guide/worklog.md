@@ -5736,3 +5736,19 @@ the `m17` engine at `b76967b`.
   ladder, loadout `Entering maps (L74) {m}`, `protect_for` b and n, `limit: 0`) at `381ddfe`, five fresh-process runs
   at `nice -n 19` on an idle 32-CPU machine: 12.64, 12.86, 12.52, 12.79, 12.66 s, **median 12.66 s**. Each printed
   the same best swap (+34.35% Full DPS, 5 points moved).
+- **WU-112 (pricing) merged** at `648a42c` (four commits). Every currency-exchange item is priced from its poe.ninja
+  exchange category; an exchange-category item poe.ninja doesn't list falls back to the trade site by name. Its
+  verifier (fresh context) passed it after one fix round: the carved-idol rule had matched the gear bases Carved
+  Greaves and Carved Targe, now pinned to poe.ninja's four carved idols, with a test that every `Data/Bases` name
+  routes to the trade site. Gate in the lane: 185 suites, 3,121 tests, rc 0; build rc 0.
+  - **The spike:** 17 serial requests to poe.ninja's economy endpoints, all HTTP 200 (league Forbidden Rites): 14
+    exchange categories (Currency, Fragments, Abyss, UncutGems, LineageSupportGems, Essences, SoulCores, Idols,
+    Runes, Ritual, Expedition, Delirium, Breach, Verisium). They are the categories the spike asked for, not a list
+    poe.ninja publishes, so another could exist. No "Legacy of …" rune is listed in either league; non-unique tablets
+    are priced from trade listings.
+  - **The user's rulings** (2026-10-25): lineage support gems "From the exchange" (poe.ninja lists all 77);
+    "Legacy of …" runes and any unlisted exchange item "Trade site by name". To fold into §12 and AC-K72.
+  - **Deviations accepted:** items are recognised by name (`src/trade/exchange.ts`); the trade client's first rate
+    limit or lockout stands in for the run's pricing stop and lasts until the server restarts (so a `retry-pricing`
+    answer doesn't re-enable the fallback without a restart); with poe.ninja down there is no fallback; trade disabled
+    hides `get_item_price`.

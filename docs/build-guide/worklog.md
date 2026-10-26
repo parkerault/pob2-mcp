@@ -5719,3 +5719,9 @@ the `m17` engine at `b76967b`.
   EHP allowance, the checker's `under` recompute); §9b widened (turn-taking entries in the rotation, PoB's trigger
   test for `triggeredBy` so a totem's spell is summed, one non-stacking ailment, `Time` and `Cooldown` in the
   record, the hand estimate required with a triggered or turn-taking entry, nine corrections). A re-check is next.
+- **Revision 3's re-check** (one checker, fresh context, about 241K tokens) failed it on one blocker, confirmed in the
+  pinned PoB: `Time` is `1 / Speed` after the cooldown cap (`CalcOffence.lua`:2909–2913), so the record takes
+  `CastRate` (a spell's rate before the cap) and an attack's use time comes from gem or weapon data. Folded with the
+  should-fixes (poison stacks to 1 by default like ignite and bleed, `CalcSetup.lua`:53–55; a `triggered` flag for
+  inbuilt and item triggers; `turns` on rotation entries so the checker can require the estimate; ledger references
+  to an entry's ailments and to PoB alone) and the nits. The user's approval is next.

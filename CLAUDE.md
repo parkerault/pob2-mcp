@@ -40,6 +40,15 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
   politely: serial requests, a back-off on HTTP 429, and nothing fetched twice that a cache could hold. Its
   builds, profiles and character API is closed to third parties by poe.ninja's terms, so no agent or tool
   uses it (build-guide D-297, D-335).
+- **Trade searches go one client at a time, slowly.** With the user's approval, only one agent at a time
+  sends trade requests, through the session's pob2 server. An agent that starts its own server keeps trade
+  off, as `spawnServer` does. Tell the user before a pricing run starts, because their browser shares the
+  limit. Until the limiter enforces a slower pace itself (build-guide amendment 12, B7), ad-hoc pricing
+  (studies, probes) waits at least 45 s between one search's start and the next, using a background `sleep`,
+  never a foreground one. It makes at most 30 searches without asking. On the first 429, `rate_limited` or
+  `locked_out`, stop, report when the lockout ends, and don't retry before then.
+- **The session's pob2 server runs the code built when it started.** After a rebuild, reconnect it with `/mcp`
+  before relying on new tool behaviour.
 - **Spawned test servers use `spawnServer`** (`tests/helpers/spawnServer.ts`). It gives the child an
   explicit safe env: trade and poe.ninja disabled, trade requests pointed at a dead address, temp
   folders. In-process tests use `startTestServer` (`tests/helpers/server.ts`).

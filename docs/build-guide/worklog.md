@@ -5912,3 +5912,21 @@ the `m17` engine at `b76967b`.
   - **B8:** the old refusal case (node 40918) now auto-paths through 15 untagged nodes, PoB's own untagged shortest
     path; a node with no untagged path is still refused. `find_path_to_node` and `update_tree_delta` can pick different
     equal-cost paths (search order); left as is.
+- **WU-123 (the pattern library) merged** (two commits, cherry-picked onto the integration head unchanged).
+  Questions 20–24 in their own section, question 19 for every build, question 2's means, the enemy's side as the
+  twelfth family (Resistance below zero, The damage-taken pool, each with an inversion branch), "A gained slice keeps
+  its type" and "A proxy presses the button", Saturated type count naming Yoke of Suffering, the Attacks kit's global
+  weapon prefixes, the stale deflection lines and §4's floor in the one-shot diagnosis. Its verifier (fresh context)
+  failed the first head on the trim, confirmed: four cuts removed content L1 doesn't allow cutting (the rule to report
+  hidden defences beside EHP and never instead, deflection's 95% cap, Loyalty's 10%, the "Seen in two or more
+  independent builds" summary). The fix round restored them, put back blind's cut to evasion, and reworded "Radius
+  jewel instead of an anoint" for WU-119's B3 fix; the re-verify passed. Gate after the rebase: 201 suites, 3,419
+  tests, rc 0; build rc 0. HG-24 didn't fire.
+  - **The counts (AC-W95)**, as the tests count words:
+
+    | | Library (cap 16,000) | Kits (cap 4,000) |
+    |---|---|---|
+    | Before the additions (`e6dad76`) | 15,684 | 3,647 |
+    | After the additions and corrections | 17,071 | 3,691 |
+    | After the trim | 15,843 | 3,444 |
+    | After the fix round (merged) | 15,943 | 3,451 |

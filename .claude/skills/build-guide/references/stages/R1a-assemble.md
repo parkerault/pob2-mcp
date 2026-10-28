@@ -60,7 +60,9 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
    cites `data \| league/<slug>.md#<id>` or `data \| monsters/monster-mods.md#<id>`, Grep `- Id: <id>` in that
    file and check its block. An index line (`data/rules/`) is a lead, never the confirming text. A load-bearing
    link nothing confirms holds the card back, and "Not dealt" names that link. A hidden clause stated as theory
-   ("from a Hit") doesn't hold a card back by itself, but the link it sits on still needs its text. A card whose
+   ("from a Hit") doesn't hold a card back by itself, but the link it sits on still needs its text. Neither does the
+   card's `Defence:` line (D-451) or a `Means:` line's second means (D-457): they are leads for the design, not links
+   the payoff rests on, and a card written before amendment 12 has neither. A card whose
    named damage source or load-bearing link is a digest entry marked `[not in pin]` passes, dealt as `can't be
    finalized yet: <why> | waits on the pin: <entry>`, the entry by its digest name (D-400).
 4. **Under-played cards** (D-298 as D-335 restates it; D-339). Each researcher built at least one of its 3

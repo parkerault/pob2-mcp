@@ -1730,8 +1730,10 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
         // D-392 (WU-82): a named pitch in player terms; the tags stay, never displayed.
         // D-403 (WU-91): the obvious card's kit, on one card.
         // D-442 (WU-114): the name carries the main skill, then the ascendancy.
-        ['Pitch', ['Name: <a few words of the build\'s own, then its main skill', 'then the ascendancy', 'Why pick it: <', 'How it clears: <', 'Bosses: <', 'Needs: <', 'The catch: <', 'Obvious build: <the kit it follows', 'Playstyle: <tags']],
-        ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by']],
+        // D-451 (WU-124): the defence plan's card line, after The catch, so the display's five lines keep their order.
+        ['Pitch', ['Name: <a few words of the build\'s own, then its main skill', 'then the ascendancy', 'Why pick it: <', 'How it clears: <', 'Bosses: <', 'Needs: <', 'The catch: <', 'Defence: <the base family from the class\'s attributes', 'Obvious build: <the kit it follows', 'Playstyle: <tags']],
+        // D-457 (WU-124): the wall rule's Means line.
+        ['Chain', ['Damage source:', 'reading <what it reads>', 'carried by <the slot>', 'Multipliers:', 'Enablers:', 'Consumes or requires:', 'supplied by', 'Means: <payoff>: <means>; second means <means | none found>']],
         ['Enabler', ['<The item, node or gem>', 'arrives at level', 'by <how to get it', 'Dormant until then:']],
         ['Links', ['| Link | Game text | Lookup | How PoB follows it | Hidden clauses (theory) | Status |', ...POB_LABELS, 'PG ids', '"from a Hit"', '"you use yourself"']],
         // D-335: the brief's `popularity` notes, cited as user-supplied, or "no player evidence"; no tool.

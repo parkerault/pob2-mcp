@@ -91,6 +91,23 @@ before anything else: its brainstorm questions open it, then the shapes, each wi
 follows it and its cautions. A shape is a starting point, never a fact: re-check every use against current
 game data with a lookup, and cite the lookup, not the library.
 
+**Questions 20–24** (D-458), the library's section "Brainstorm questions 20–24: defence, pools and buttons", asked of
+every card after 1–19. Question 19 now asks every card what it presses on a boss: its `Bosses:` line answers it.
+
+- **20, defence layers:** which layers the character gets cheaply (the armour base its attributes allow, what that
+  base feeds, the pool), which figure each moves, and what holds the Arbiter's physical hit. The card's `Defence:`
+  line answers it (below).
+- **21, empty pools:** the multiplier pools (your increases, more multipliers, gain as extra, crit, the enemy's
+  resistance, the enemy's damage taken) and how full each is; the next buy goes in the emptiest. Never reduce
+  resistance on a build that inverts it, or buy it on one that ignores it.
+- **22, ascendancy fit,** for a brief that leaves the ascendancy open: for each candidate ascendancy, which notables
+  feed the card's layers, which only defend, which are dead; a card takes the one that feeds it clearly more.
+  R1a-synthesize asks it again of each composite, with its split or successor rule (its step 5).
+- **23, shared scaling,** for a card with two or more damage skills: the stats every damage group shares; a node that
+  feeds only another group is a need, measured on that group's figure.
+- **24, buttons, upkeep and proxies:** presses per pack and per boss, buffs that need re-casting, and a proxy that
+  could press each, with its cost.
+
 **Then the committed game data** (D-400 to D-402), as each file's head says:
 
 - **The league digest**, `data/league/<slug>.md`, the newest league's: its head whole (Read up to its `## Body`
@@ -269,12 +286,24 @@ which only a composite has (D-429, D-433).
   the main skill, then the ascendancy, like "Reaping Bonfire Detonate Dead Blood Mage". The main skill is the named
   damage source, not a skill that feeds it: a card whose Reap feeds Detonate Dead is "… Detonate Dead
   Infernalist", never "… Reap Infernalist". **How it clears** matters most: players judge a build by its clear speed (damage, area and pace
-  between packs); bosses are a minimum check. The playstyle tags come from the brief's vocabulary.
+  between packs); bosses are a minimum check. The playstyle tags come from the brief's vocabulary. **Needs** names no
+  respec: players respec freely, so each loadout gets its own tree (D-452).
+- **Defence** (D-451): the Pitch's `Defence:` line answers question 20 from the class's attributes. Its base family
+  is the one they allow: strength for armour, dexterity for evasion, intelligence for energy shield, two attributes
+  for a hybrid base (the library's "Every archetype, for defence"; a base's requirements from
+  `mcp__pob2__lookup_game_data {mode: "base", slot: "Body Armour"}`). Then the layers by role (chance, mitigation,
+  pool) and what holds the Arbiter's physical hit, by name only: a card carries no figure (D-436). A family off the
+  class's attributes is allowed: the card's Needs or The catch names its cost (attribute lines on gear, tree points for
+  the bases' requirements), which D1-build counts.
 - **Chain, Enabler and Links:** every link of the chain in the links table, with its confirming game text
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
   clauses stated as theory ("from a Hit", "you use yourself"). A link no lookup confirmed is `not checked yet`:
   the coordinator deals a card, or composes with it, only when every load-bearing link is confirmed
   (`R1a-assemble.md`, `R1a-synthesize.md`).
+- **Means** (D-457, question 2): the Chain's `Means:` lines, one per load-bearing payoff,
+  `<payoff>: <means>; second means <means | none found>`, each payoff named apart from the means that supply it. A
+  second means is another supply of the same payoff that you found; the design searches it first when the means
+  doesn't deliver.
 - **Evidence** (D-335): the brief's `popularity` notes that speak to this card's skill, ascendancy or
   combination, quoted and cited as the user's notes; otherwise "no player evidence". No tool supplies player
   evidence.

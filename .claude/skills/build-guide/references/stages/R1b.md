@@ -342,7 +342,14 @@ starts a fix round or a retry. If the last compile failed, or the damage check d
 2. **The enabler's conditions** at the target level, in numbers, and what they force out of the build
    (Minion Pact needs a minion with at least your maximum life, so your own life is held under it). A forced
    condition gets a permanence check: reservation of at least 1 minus the threshold (life at 75% needs 25%
-   reserved).
+   reserved). **An earned ailment condition** (the enemy ignited, shocked, frozen, electrocuted, bleeding or
+   poisoned; D-456) cites PoB's per-hit chance or buildup against the skeleton's enemy: Grep the record's `outputs`
+   where PoB computes it for the main skill, `<Ailment>ChancePerHit` for ignite, bleed and poison
+   (`Modules/CalcOffence.lua`:4949–5061) and `<Ailment>BuildupAvg` for freeze and electrocute (:5404–5422); else
+   `mcp__pob2__lua_get_stats`; a `judgment` from the gem text only where neither shows it. Give the expected hits to
+   apply it, 100 ÷ that figure in percent, and the enemy it is against. **The 5-hit rule:** more than 5 on the
+   Pinnacle boss is a `risk`, which the design's wall rule takes up (D-457). A skeleton measures only its scenario's
+   enemy, so more than 5 against it is the `risk` here, and the design measures the boss.
 3. **Attribute requirements** at the target level, for the defining items and every gem
    (`mcp__pob2__lookup_game_data {mode: "gem", query}` gives a gem's requirements by level), including after
    a swap that removes a supplier.

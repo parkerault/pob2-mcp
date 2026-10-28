@@ -12,7 +12,7 @@ below exactly, in this order, and add no other heading. The H3s "Pieces" and "Pi
 only (D-429, D-433): a card with "### Pieces" is a composite, whatever its id letter, and a plain card (a
 researcher's, or a gate-made card drawn from cards only) has neither. The verification half carries no damage,
 life or EHP figure: verification checks that the build works, and numbers come at the design gate (D-436). Replace every <placeholder>, keep
-a line marked [only when ...] only when it applies (and drop the marker), and delete this comment.
+a line marked [only when ...] only when it applies, drop every line's [...] marker, and delete this comment.
 
 Status words, used everywhere on the card, exactly as written here, one per link, figure or claim:
 - confirmed in game text: a lookup returned the text;
@@ -53,9 +53,12 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - How it clears: <how a pack dies, which buttons the player presses, how soon it hits a new pack and how fast
   it moves between packs; no "(an estimate)" mark: the gate adds it>
 - Bosses: <its answer to one tough enemy, in one sentence>
-- Needs: <the key items, gems and passives; when it comes online (level or act); a respec, if it takes one;
-  a rough cost, when known>
+- Needs: <the key items, gems and passives; when it comes online (level or act); a rough cost, when known>
 - The catch: <the main risk or cost, in one sentence>
+- Defence: <the base family from the class's attributes: armour, evasion, energy shield, armour/evasion,
+  armour/energy shield or evasion/energy shield>; chance: <evasion, deflection, block | none>; mitigation: <armour,
+  resistances, a physical shift, an enemy-damage curse | none>; pool: <life, energy shield, mana taken first>; the
+  Arbiter's physical hit: <what holds it; names only, no figure (D-451)>
 - [only on the obvious card, r1-a-1; D-403] Obvious build: <the kit it follows: its archetype's standard kit and
   the ascendancy's intended play>
 - [only on an under-played card, at least one of each researcher's 3; D-339] Under-played (judgment): <the
@@ -71,6 +74,7 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Enablers: <each, with the link it makes possible>.
 - Consumes or requires: <what the payoff consumes or requires>, supplied by <the skill, item or minion that
   supplies it | itself>.
+- [one line per load-bearing payoff; D-457] Means: <payoff>: <means>; second means <means | none found>
 
 ### Enabler
 
@@ -139,7 +143,7 @@ Status words, used everywhere on the card, exactly as written here, one per link
 | # | Check | Result | Detail |
 |---|---|---|---|
 | 1 | Pillars for ailments and damage over time | <verified \| estimate \| risk \| not checked> | <base, type-specific scaling, duration, 100% application> |
-| 2 | Enabler's conditions at the target level | <result> | <the numbers; what they force out; permanence> |
+| 2 | Enabler's conditions at the target level | <result> | <the numbers; what they force out; permanence; an earned ailment's per-hit chance or buildup, its expected hits and the enemy> |
 | 3 | Attribute requirements at the target level | <result> | <the defining items and every gem> |
 | 4 | Risks PoB can't show | <result> | <payoff thieves, placement, exposed phase, cooldown dead windows, hidden clauses> |
 | 5 | Dead-slot audit | <result> | <what was removed, the change; activation or payload per support> |

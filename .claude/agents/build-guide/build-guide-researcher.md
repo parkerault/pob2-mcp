@@ -20,8 +20,9 @@ build's own, then the named damage source, then the ascendancy ("Reaping Bonfire
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names
 (`reference`) before anything else and do that step: R1a's has you read the pattern library,
-`.claude/skills/build-guide/references/patterns.md`, first. The rest of the prompt gives the brief, your
-focus and your letter, or the question.
+`.claude/skills/build-guide/references/patterns.md`, first, and ask its brainstorm questions of every card, 20–24
+among them (defence, pools and buttons, D-458), so each card's `Defence:` line follows its class's attributes. The
+rest of the prompt gives the brief, your focus and your letter, or the question.
 
 ## Standing rules
 

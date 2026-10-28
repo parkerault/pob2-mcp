@@ -81,7 +81,8 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    lower id), and take every piece of the pool that fits it: the structure's other cards, the other structures'
    cards, the obvious card, and the research files' Ideas (D-430). Merge the lines that name the same piece and kind
    into one row, listing every source. Each piece is in, scheduled or out, with its reason, by the **synthesis
-   questions**, the pattern library's brainstorm questions 15 to 19 (D-431), in short:
+   questions**, the pattern library's brainstorm questions 15 to 19 (D-431), and question 22 for a brief that leaves
+   the ascendancy open (D-458), in short:
    - **15, climb the chain:** what scales the damage, what scales that, and what scales that.
    - **16, breadth:** what else each button can cause (an ailment, an explosion, a detonation, a skill it triggers,
      a second warcry). Search each layer's payoff by its damage type after conversion, and weigh it by the hit that
@@ -92,7 +93,15 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
      piece out (a clear button and a boss button, a second weapon set); as a last resort, drop the piece the other side
      needs when it is worth less. A payoff thief (the library's anti-pattern) is scheduled, or weighed against the piece
      it robs, before it rules a piece out.
-   - **19, bosses:** when the clear skill is capped by a limit or shaped for packs, what is the boss button?
+   - **19, bosses:** what does the build press on a boss? When the clear skill is capped by a limit or shaped for
+     packs, name the boss button.
+   - **22, ascendancy fit,** only when the prompt's `brief` leaves the ascendancy open: for each candidate ascendancy
+     (`mcp__pob2__get_classes` lists each class's), which notables feed the composite's layers, which only defend,
+     which are dead (`mcp__pob2__search_tree_nodes {ascendancy: <ascendancy>}`); an ascendancy the lock bars from a
+     skill the composite takes isn't a candidate (below). When another feeds clearly more, compose a **split** or a
+     **successor** card on it: a split, a second composite of the structure on that ascendancy beside this one, when
+     both are worth keeping, taking a slot within the 4 (step 4); else a successor, the composite on that ascendancy
+     in place of this one, a composite shown at a gate superseded as step 9 says. With one slot left, the successor.
 
    **A conflict that can't be scheduled splits** the structure into two composites, one per side ("mana engine" and
    "life engine"), each taking a slot within the 4, when both sides are worth keeping (a side clearly worth
@@ -147,13 +156,16 @@ cards' id order: from the card template, its whole brainstorm half, and under `#
 H3s, `### Pieces measured` among them, each with the one line `Not checked yet.`, for R1b.
 
 - **Identity:** its structure's, as its strongest card gives it, with that card's `Granted by:`, `Weapon sets:` and
-  `Can't be finalized yet` lines where they apply.
+  `Can't be finalized yet` lines where they apply. A split's or a successor's ascendancy is question 22's, checked as
+  step 3 checks a card's.
 - **Pitch:** in player terms, as the template asks. Its How it clears says how it clears faster than the obvious
   card, or why it's worth picking anyway; the composite of the obvious card's own structure says instead how it beats
   the card it grew from. Its `Under-played (judgment)` line when it takes a kept label (step 6); no `Obvious build:`
-  line.
+  line. Its `Defence:` line as `R1a.md` writes it, from the class's attributes, names only (D-451); its Needs names no
+  respec (D-452).
 - **Chain, Enabler, Links:** the composite's own, every load-bearing link with its confirming text and the lookup
-  that returned it, from its sources or from the sniff test.
+  that returned it, from its sources or from the sniff test; its `Means:` lines, each payoff apart from its means,
+  with a second means from the pool or `none found` (D-457).
 - **Evidence, Risks so far:** over all its pieces, as the template asks.
 
 **`### Pieces`** (D-433; amendment 10's Appendix A), after `### Risks so far`, one row per piece the composite weighs:

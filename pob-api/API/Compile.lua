@@ -15,7 +15,8 @@
 --     nodes, a node tagged weapon set n also through nodes tagged n: PassiveSpec:CanPathThroughAllocMode,
 --     D-213), unless a radius jewel of the stage frees it (B3, amendment 12 §15: From Nothing's or Controlled
 --     Metamorphosis' "can be Allocated without being connected to your tree", on a socket the stage connects,
---     radius_nodes); a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
+--     radius_nodes) or a jewel on a socket the stage connects grants it (Voices' Sinister Jewel sockets,
+--     granted_sockets), and a socket such a jewel grants that the stage doesn't list; a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
 --     socket); an attribute choice on a node that isn't an attribute node, and an allocated attribute
 --     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket;
 --     an unknown config option or a bad value (BuildOps' own config check); a main group or main active
@@ -82,7 +83,8 @@
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the tree jewels go in, then the nodes through set_tree with
 --     their weapon-set tags and attribute choices (C-40): a radius jewel already socketed keeps the nodes it frees
---     (B3, amendment 12 §15). Item, skill and config sets: `reuse` names
+--     (B3, amendment 12 §15), and a socket a jewel grants (Voices') is left to PoB, which allocates it at the next
+--     calculation. Item, skill and config sets: `reuse` names
 --     a set an earlier stage created, which is only selected (its content is the same); otherwise stage 1
 --     retitles set 1 of that type and every other stage creates a set (Sets.lua, C-39), and the content
 --     goes in: the items, the toggles (a toggle on an empty slot is skipped, for the checks to report)
@@ -476,10 +478,45 @@ local function radius_nodes(tree, jewels, connected)
   return out
 end
 
+-- B3 (amendment 12 §15): a granted passive (a `GrantedPassive` modifier's value) resolved against `tree` by PoB's own
+-- PassiveSpec:ResolveGrantedPassiveNodes (Classes/PassiveSpec.lua:1075-1117): for Voices' {type = "SinisterJewelSockets",
+-- count}, the Sinister Jewel sockets aliased voices_jewel_slot1 to voices_jewel_slot5, the first `count` (at the pin 62152,
+-- 26178, 23960, 39087, 3367).
+local function resolve_granted(tree, passive)
+  local class = type(common) == 'table' and common.classes and common.classes.PassiveSpec
+  if not class or type(class.ResolveGrantedPassiveNodes) ~= 'function' then fail("PoB's granted-passive resolver is not available") end
+  return class.ResolveGrantedPassiveNodes({ tree = tree, nodes = tree.nodes }, passive)
+end
+
+-- B3 (amendment 12 §15): the jewel sockets the stage's jewels grant, socket node id -> the granting jewel's node. A jewel
+-- whose text PoB parses as "Allocates <n> Sinister Jewel sockets" (Voices: `GrantedPassive` {type = "SinisterJewelSockets",
+-- count}, Modules/ModParser.lua:5870), socketed on a node `holds` accepts, grants the sockets resolve_granted names: PoB
+-- allocates each as a free node, with no path and no point, while the jewel sits in an allocated socket
+-- (PassiveSpec:CollectGrantedPassiveNodesFromItems and SetGrantedPassiveNodes, Classes/PassiveSpec.lua:1149-1225;
+-- Modules/CalcSetup.lua:875-883), and only a socket (a node of type "Socket").
+local function granted_sockets(tree, jewels, holds)
+  local out = {}
+  for _, j in ipairs(jewels) do
+    local item = j.item
+    if item and item.type == 'Jewel' and is_jewel_socket(tree.nodes[j.node]) and holds(j.node) then
+      for _, mod in ipairs(item.modList or {}) do
+        if mod.name == 'GrantedPassive' and type(mod.value) == 'table' then
+          for _, node in ipairs(resolve_granted(tree, mod.value)) do
+            if node.type == 'Socket' and out[node.id] == nil then out[node.id] = j.node end
+          end
+        end
+      end
+    end
+  end
+  return out
+end
+
 -- The tree defects of one stage. `st.nodes`, `st.ascendancyNodes`, `st.weaponSets{set1, set2}` and
 -- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31); `jewels` the stage's tree jewels as
 -- parse_jewels reads them. Returns the stage's trees for V1's `tree-shape` (D-360; `tree_shape`), or nil without a
--- resolved roll. B3 (amendment 12 §15): a listed node a radius jewel frees (radius_nodes) needs no path.
+-- resolved roll. B3 (amendment 12 §15): a listed node a radius jewel frees (radius_nodes), or a jewel socket a jewel on a
+-- connected socket grants (granted_sockets: Voices' Sinister sockets), needs no path; a stage lists every socket its jewels
+-- grant, since PoB allocates them all.
 local function check_tree(tree, roll, st, defect, jewels)
   local nodes = tree.nodes
   local mode = {}
@@ -573,16 +610,30 @@ local function check_tree(tree, roll, st, defect, jewels)
     [1] = reach(nodes, mode, starts, function(m) return m == 0 or m == 1 end),
     [2] = reach(nodes, mode, starts, function(m) return m == 0 or m == 2 end),
   }
-  local freed = radius_nodes(tree, jewels or {}, function(id) return mode[id] ~= nil and reached[mode[id]][id] == true end)
+  local function connected(id) return mode[id] ~= nil and reached[mode[id]][id] == true end
+  local freed = radius_nodes(tree, jewels or {}, connected)
+  local granted = granted_sockets(tree, jewels or {}, connected)
   table.sort(listed)
   for _, id in ipairs(listed) do
     local m = mode[id]
-    if not reached[m][id] and not freed[id] then
+    if not reached[m][id] and not freed[id] and granted[id] == nil then
       local how = m == 0 and 'through untagged nodes'
         or ('through untagged nodes and nodes tagged weapon set ' .. m)
-      defect(('node %d (%s)%s is not connected to its start %s'):format(id, tostring(nodes[id].dn),
-        m == 0 and '' or (' (weapon set ' .. m .. ')'), how))
+      defect(('node %d (%s)%s is not connected to its start %s%s'):format(id, tostring(nodes[id].dn),
+        m == 0 and '' or (' (weapon set ' .. m .. ')'), how,
+        nodes[id].sinister and ': a Sinister Jewel socket is allocated only by a jewel that grants it (Voices grants '
+          .. 'voices_jewel_slot1 onward, as many as its "Allocates <n> Sinister Jewel sockets" says)' or ''))
     end
+  end
+  -- PoB allocates every socket a jewel grants, so the stage's tree, which PoB's allocation must equal (D-213), lists each.
+  local missing = {}
+  for id, by in pairs(granted) do
+    if mode[id] == nil then missing[#missing + 1] = { id = id, by = by } end
+  end
+  table.sort(missing, function(a, b) return a.id < b.id end)
+  for _, g in ipairs(missing) do
+    defect(('node %d (%s) is a jewel socket the jewel on node %d grants, which PoB allocates while that jewel is socketed: '
+      .. 'list it in tree.nodes'):format(g.id, tostring(nodes[g.id] and nodes[g.id].dn), g.by))
   end
   return tree_shape(tree, roll, st.id, mainIds, ascIds)
 end
@@ -1491,13 +1542,23 @@ local function build_tree(st)
   -- B3 (amendment 12 §15): the tree jewels go in first, into the new spec's sockets (the slot writes spec.jewels), so
   -- the import keeps the nodes a radius jewel frees: PoB prunes an unconnected node unless a jewel already socketed
   -- holds it (Classes/PassiveSpec.lua:1870-1910), and set_tree's dry run reads the spec's jewels.
+  local socketed, listed = {}, {}
   for _, j in ipairs(list(st.jewels)) do
-    must('socketing the tree jewel on node ' .. tostring(j.node),
+    local res = must('socketing the tree jewel on node ' .. tostring(j.node),
       BuildOps.add_item_text({ text = j.text, slotName = 'Jewel ' .. tostring(j.node) }))
+    socketed[#socketed + 1] = { node = j.node, item = build.itemsTab.items[res.id] }
+  end
+  -- A socket a jewel grants (Voices' Sinister sockets) isn't imported: PoB allocates it itself, as a free node, at the
+  -- next calculation (granted_sockets), and would prune it from the import as unconnected.
+  for _, id in ipairs(nodes) do listed[id] = true end
+  local granted = granted_sockets(spec.tree, socketed, function(id) return listed[id] == true end)
+  local imported = {}
+  for _, id in ipairs(nodes) do
+    if granted[id] == nil then imported[#imported + 1] = id end
   end
   must('importing the tree', BuildOps.set_tree({
     classId = spec.curClassId, ascendClassId = spec.curAscendClassId,
-    secondaryAscendClassId = spec.curSecondaryAscendClassId or 0, nodes = nodes, treeVersion = spec.treeVersion,
+    secondaryAscendClassId = spec.curSecondaryAscendClassId or 0, nodes = imported, treeVersion = spec.treeVersion,
     weaponSets = weaponSets, attributeChoices = choices,
   }))
   return specId

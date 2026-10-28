@@ -252,11 +252,13 @@ record marks what rests on it.
     through `check_model_coverage`, that PoB doesn't model the mechanic it stands for, and its `reason` names that result
     as `coverage: <status>` (`unparsed`, `partly parsed`, `parsed to nothing` or `possibly unread`; a `possibly unread`
     line is measured on a temporary stage too). On a schema-8 plan, V1 reports `custom-defence` for a line whose
-    modifiers, as PoB's parser makes them, include a pool or defence stat (PoB's `Life`, `Mana`, `EnergyShield` or
-    `Ward`, or a name holding `Armour`, `Evasion`, `Evade`, `Deflect`, `Block`, `Resist`, `DamageTaken`,
-    `DamageReduction` or `Defences`, not the enemy's side, armour break or penetration) and whose reason gives no
-    `coverage:` result; `data.path` is the line's `reason`. V1 trusts the marker's text. A companion's lines (D-402) are
-    the compile's, not the plan's, and aren't checked. A damage line never is.
+    modifiers, as PoB's parser makes them, include a pool or defence stat and whose reason gives no `coverage:` result;
+    `data.path` is the line's `reason`. The stats are an explicit list of PoB's modifier names for the player's life,
+    mana, energy shield and ward, armour, evasion, deflection, block, resistances and damage taken (`DEFENCE_MODS` in
+    `src/plan/checks/v1.ts`, `Life`, `EnergyShield`, `PhysicalDamageFromHitsTaken` and so on); a name of the enemy's side
+    ("Hits ignore enemy Fire Resistance", "Your hits can't be evaded"), of sustain, a cost or stun is no defence, so a
+    damage line never is. V1 trusts the marker's text. A companion's lines (D-402) are the compile's, not the plan's, and
+    aren't checked.
   - Every figure of a stage with custom modifiers, defences included, is marked in the compile record, and
     so is every ledger value that reads one. From version 2 on, don't list `customMods` in `earned` or
     `scenario`. A version-1 plan may still list PoB's `customMods` option there, and its stage is marked the
@@ -737,7 +739,7 @@ rule may require an optional key in some cases.
 | `stages[].chaosResistException.tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].chaosResistException.tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].tree` | object | yes | The stage's passive tree | C-31 |
-| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node a radius jewel of the stage frees needs no path: From Nothing's radius around the keystone it names, or Controlled Metamorphosis' around its socket, while the jewel sits in a socket the tree connects (B3); a node hanging on such a node outside the radius still needs one. A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
+| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node a radius jewel of the stage frees needs no path: From Nothing's radius around the keystone it names, or Controlled Metamorphosis' around its socket, while the jewel sits in a socket the tree connects (B3); a node hanging on such a node outside the radius still needs one. A jewel socket a jewel grants needs no path either, and is listed: Voices, in a socket the tree connects, grants the Sinister Jewel sockets 62152, 26178, 23960, 39087 and 3367, in that order, as many as its "Allocates <n> Sinister Jewel sockets" says, and PoB allocates them all (no point), so the stage lists each one it grants and no other Sinister socket (B3). A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
 | `stages[].tree.ascendancyNodes` | integer[] | yes | Every allocated ascendancy node id, without the ascendancy's start node, which PoB allocates itself | C-31 |
 | `stages[].tree.weaponSetNodes` | object | yes | The nodes tagged to weapon set 1 or 2. A tagged node paths only through untagged nodes and nodes of its own set | C-31, D-213 |
 | `stages[].tree.weaponSetNodes.set1` | integer[] | yes | Each node is in `tree.nodes` (error at `set1[n]`) | C-31 |

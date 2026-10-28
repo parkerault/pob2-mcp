@@ -29,7 +29,7 @@
  * | `implicit-variant` | (D-435) an item written without an `Implicits:` line whose base's implicit has variants (`variantList`, three amulet bases at the pin): the compile fills every other bare base's implicits, but can't pick a variant, so PoB measures the item with none; the finding names the base and its variants and asks for the variant's implicit line (`checkImplicitVariants`, from `compile_stage`'s `implicitVariants`) |
  * | `movement-tier` | (WU-111, D-440; schema 7 and later) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
  * | `curse-level-cap` | (WU-119, D-455; schema 8 and later) an enabled gem whose curse, Frost Bomb's exposure or Thunderstorm's Wet stops at a monster level above 0 and below the stage's area level: the rung's (`rungAreaLevel`: 69, 79, 82), a campaign stage's C1 `<progress>.area-level`; a card skeleton is skipped. The cap is PoB's stat at the level PoB calculates the gem at, gear's +levels included (`checks.gems[].curseCap`); PoB never reads it (PG-86) (`checkCurseLevelCap`) |
- * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken; `isDefenceMod`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
+ * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken: PoB's names in `DEFENCE_MODS`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -1046,19 +1046,82 @@ export function checkCurseLevelCap(
   }
 }
 
-/** D-451: PoB's modifier names for a pool a custom line may add: life, mana, energy shield, ward. */
-const POOL_MOD = /^(Life|Mana|EnergyShield|Ward)$/;
-
 /**
- * D-451: PoB's modifier names for a defence: armour, evasion (and evade chance), deflection, block, a resistance, damage
- * taken or its reduction, defences; less the names of the enemy's side and of an attack's (armour break, penetration).
+ * D-451: PoB's modifier names (`vendor/…/Modules/ModParser.lua`, the pin's) for the player's pools and defences, the stats
+ * behind `custom-defence`, by role. An explicit list, not a word match: a name of the enemy's side ("Hits ignore enemy Fire
+ * Resistance", `IgnoreFireResistance`; "Your hits can't be evaded", `CannotBeEvaded`), of sustain (regeneration, leech,
+ * recoup, recharge), of a cost or reservation, of stun, or of a totem's or minion's defences isn't one.
+ * `tests/unit/v1CustomDefenceMods.test.ts` holds it against ModParser's whole name list: each name here is one of
+ * ModParser's, and each ModParser name of a pool or defence word is here or among the test's names left out, so a pin
+ * upgrade's new names are sorted one way or the other.
  */
-const DEFENCE_WORD = /Armour|Evasion|Evade|Deflect|Block|Resist|DamageTaken|DamageReduction|Defences/;
-const NOT_PLAYER_DEFENCE = /^(Enemy|ChanceToIgnoreEnemy|PartialIgnoreEnemy|reduceEnemy)|ArmourBreak|Penetration/;
+export const DEFENCE_MODS: Readonly<Record<string, readonly string[]>> = {
+  // the pools: life, mana, energy shield and ward, what converts to them or changes what an attribute gives, and mana taken before life
+  pool: ['Life', 'Mana', 'EnergyShield', 'Ward', 'EnergyShieldPerLevel', 'WardPerLevel', 'Condition:SorceryWard',
+    'ConvertArmourESToLife', 'ConvertBodyArmourArmourEvasionToWard', 'BodyArmourArmourEvasionToWardPercent',
+    'EnergyShieldToWard', 'EnergyShieldConvertToMana', 'EnergyShieldIncreasedByOvercappedColdRes',
+    'EnergyShieldIncreasedByUncappedColdRes', 'HalvesLifeFromStrength', 'NoStrBonusToLife', 'NoIntBonusToMana',
+    'EternalLife', 'WardNotBreak', 'WardBypass', 'DamageTakenFromManaBeforeLife', 'FireDamageTakenFromManaBeforeLife',
+    'ColdDamageTakenFromManaBeforeLife', 'LightningDamageTakenFromManaBeforeLife',
+    'ChaosDamageTakenFromManaBeforeLife', 'EnergyShieldProtectsMana'],
+  // armour and physical damage reduction
+  armour: ['Armour', 'ArmourAndEnergyShield', 'ArmourAndEvasion', 'EvasionAndEnergyShield', 'Defences',
+    'ArmourDefense', 'ArmourAppliesToPhysicalDamageTaken', 'ArmourAppliesToFireDamageTaken',
+    'ArmourAppliesToColdDamageTaken', 'ArmourAppliesToLightningDamageTaken', 'ArmourAppliesToChaosDamageTaken',
+    'ArmourDoesNotApplyToPhysicalDamageTaken', 'ArmourIncreasedByOvercappedFireRes',
+    'ArmourIncreasedByUncappedFireRes', 'EvasionConvertToArmour', 'PhysicalDamageReduction',
+    'PhysicalDamageReductionWhenHit', 'ElementalDamageReduction', 'DamageReductionMax'],
+  // evasion and the chance to evade
+  evasion: ['Evasion', 'MeleeEvasion', 'ProjectileEvasion', 'EvasionPerLevel', 'EvadeChance', 'EvadeChanceMax',
+    'MeleeEvadeChance', 'ProjectileEvadeChance', 'SpellEvadeChance', 'AlwaysEvade', 'CannotEvade', 'UnluckyEvade',
+    'NoDexBonusToEvasion', 'EvasionAppliesToPhysicalDamageTaken', 'EvasionAppliesToFireDamageTaken',
+    'EvasionAppliesToColdDamageTaken', 'EvasionAppliesToLightningDamageTaken',
+    'EvasionRatingIncreasedByOvercappedColdRes', 'EvasionRatingIncreasedByOvercappedLightningRes',
+    'EvasionRatingIncreasedByUncappedColdRes', 'EvasionRatingIncreasedByUncappedLightningRes'],
+  // deflection
+  deflection: ['DeflectionRating', 'DeflectEffect', 'DeflectIsLucky', 'EvasionGainAsDeflection',
+    'ArmourGainAsDeflection'],
+  // block
+  block: ['BlockChance', 'BlockChanceMax', 'BlockEffect', 'BlockChanceIsLucky', 'BlockChanceIsUnlucky',
+    'SpellBlockChance', 'SpellBlockChanceMax', 'SpellBlockChanceIsBlockChance', 'SpellBlockChanceMaxIsBlockChanceMax',
+    'SpellBlockChanceIsLucky', 'SpellBlockChanceIsUnlucky', 'ProjectileBlockChance', 'ProjectileBlockChanceIsLucky',
+    'ProjectileBlockChanceIsUnlucky', 'ProjectileSpellBlockChance', 'SpellProjectileBlockChanceIsLucky',
+    'SpellProjectileBlockChanceIsUnlucky', 'MaxBlockIfNotBlockedRecently', 'MaxSpellBlockIfNotBlockedRecently',
+    'ReplaceShieldBlock', 'CannotBlockAttacks', 'CannotBlockSpells', 'Condition:NoInherentBlock',
+    'Condition:DoubledInherentDualWieldingBlock', 'MaxBlockChanceModsApplyMaxResist'],
+  // the player's resistances and their maximums
+  resistance: ['FireResist', 'ColdResist', 'LightningResist', 'ChaosResist', 'ElementalResist', 'FireResistMax',
+    'ColdResistMax', 'LightningResistMax', 'ChaosResistMax', 'ElementalResistMax',
+    'ElementalResistMaxIsHighestResistMax', 'SelfIgnoreLightningResistance'],
+  // damage taken: its amount by type and source, from hits, as another type, before you, and energy shield bypass
+  'damage taken': ['DamageTaken', 'DamageTakenWhenHit', 'DamageTakenOverTime', 'AttackDamageTaken', 'SpellDamageTaken',
+    'DamageTakenConsecratedGround', 'TrapMineDamageTaken', 'ReflectedDamageTaken', 'PhysicalReflectedDamageTaken',
+    'ElementalReflectedDamageTaken', 'PhysicalDamageTaken', 'PhysicalDamageTakenWhenHit',
+    'PhysicalDamageTakenOverTime', 'FireDamageTaken', 'FireDamageTakenWhenHit', 'FireDamageTakenOverTime',
+    'ColdDamageTaken', 'ColdDamageTakenWhenHit', 'ColdDamageTakenOverTime', 'LightningDamageTaken',
+    'LightningDamageTakenWhenHit', 'LightningDamageTakenOverTime', 'ChaosDamageTaken', 'ChaosDamageTakenWhenHit',
+    'ChaosDamageTakenOverTime', 'ElementalDamageTaken', 'ElementalDamageTakenWhenHit', 'ElementalDamageTakenOverTime',
+    'PhysicalDamageTakenFromAttacks', 'FireDamageTakenFromAttacks', 'ColdDamageTakenFromAttacks',
+    'LightningDamageTakenFromAttacks', 'ChaosDamageTakenFromAttacks', 'FireDamageTakenFromSpells',
+    'ColdDamageTakenFromSpells', 'LightningDamageTakenFromSpells', 'PhysicalDamageTakenFromProjectileAttacks',
+    'PhysicalDamageFromHitsTaken', 'FireDamageFromHitsTaken', 'ColdDamageFromHitsTaken',
+    'LightningDamageFromHitsTaken', 'ChaosDamageFromHitsTaken', 'ElementalDamageFromHitsTaken',
+    'PhysicalDamageFromHitsTakenAsFire', 'PhysicalDamageFromHitsTakenAsCold', 'PhysicalDamageFromHitsTakenAsLightning',
+    'FireDamageFromHitsTakenAsCold', 'LightningDamageFromHitsTakenAsCold', 'ColdDamageTakenAsLightning',
+    'FireDamageTakenAsLightning', 'LifeLossPrevented', 'LifeLossLost', 'DamageInsteadReservesLife',
+    'TakenFromCompanionBeforeYou', 'TakenFromCompanionBeforeYouFromDeflected', 'TakenFromSpectresBeforeYou',
+    'TakenFromTotemsBeforeYou', 'takenFromRadianceSentinelBeforeYou', 'PhysicalEnergyShieldBypass',
+    'FireEnergyShieldBypass', 'ColdEnergyShieldBypass', 'LightningEnergyShieldBypass', 'ChaosEnergyShieldBypass',
+    'ChaosNotBypassEnergyShield', 'BlockedDamageDoesntBypassES', 'UnblockedDamageDoesBypassES',
+    'EnergyShieldAppliesToPhysicalDamageTaken', 'EnergyShieldAppliesToFireDamageTaken',
+    'EnergyShieldAppliesToColdDamageTaken', 'EnergyShieldAppliesToLightningDamageTaken'],
+};
 
-/** D-451: whether a PoB modifier name is a pool or defence stat (`custom-defence`). */
+const DEFENCE_MOD_NAMES: ReadonlySet<string> = new Set(Object.values(DEFENCE_MODS).flat());
+
+/** D-451: whether a PoB modifier name is one of the player's pool or defence stats (`DEFENCE_MODS`). */
 export function isDefenceMod(name: string): boolean {
-  return POOL_MOD.test(name) || (DEFENCE_WORD.test(name) && !NOT_PLAYER_DEFENCE.test(name));
+  return DEFENCE_MOD_NAMES.has(name);
 }
 
 /**

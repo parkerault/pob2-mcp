@@ -22,6 +22,12 @@
  *   Resolute Technique can be Allocated without being connected to your tree") and Controlled Metamorphosis
  *   (`Data/Uniques/jewel.lua`, Medium Ring) in the socket 26725 above, and the node 17138 (Melee Damage), which lies in
  *   both radii and isn't linked to the stage's tree.
+ * - **Granted sockets** (B3, the fix round): Voices (`Data/Uniques/jewel.lua`, "Allocates 2 Sinister Jewel sockets") in
+ *   26725 grants the Sinister Jewel sockets aliased voices_jewel_slot1 and 2 (`TreeData/0_5/tree.lua`: 62152 and 26178,
+ *   no links), which PoB allocates itself (`Classes/PassiveSpec.lua`:1075-1225); the magic Ruby above sits in 62152.
+ * - **The custom lines** (the fix round): damage lines PoB parses to the enemy's side ("Your hits can't be evaded",
+ *   "Hits ignore enemy Fire Resistance", "Critical Hits ignore Enemy Monster Elemental Resistances") and a damage-taken
+ *   line ("10% reduced Physical Damage from Hits taken").
  */
 import fs from 'fs';
 import path from 'path';
@@ -51,8 +57,15 @@ const FROM_NOTHING =
   'Rarity: Unique\nFrom Nothing\nDiamond\nRadius: Small\nPassives in radius of Resolute Technique can be Allocated without being connected to your tree\nCorrupted';
 const METAMORPHOSIS =
   'Rarity: Unique\nControlled Metamorphosis\nDiamond\nRadius: Variable\nOnly affects Passives in Medium Ring\nPassives in Radius can be Allocated without being connected to your tree\n-10% to all Elemental Resistances';
+const VOICES = 'Rarity: Unique\nVoices\nSapphire\nAllocates 2 Sinister Jewel sockets\nCorrupted';
+const RUBY = 'Rarity: Magic\nClashing Ruby\n10% increased Melee Damage';
+/** The Sinister Jewel sockets aliased voices_jewel_slot1 to 3 at the pin. */
+const SINISTER = [62152, 26178, 23960];
 const CAMPAIGN_KEY = 'q.act-4-isle-of-kin-blind-beast';
 const ES = '+1000 to maximum Energy Shield';
+const HITS_TAKEN = '10% reduced Physical Damage from Hits taken';
+/** Damage lines PoB parses to names of the enemy's side (CannotBeEvaded, IgnoreFireResistance, IgnoreElementalResistances). */
+const DAMAGE_LINES = ["Your hits can't be evaded", 'Hits ignore enemy Fire Resistance', 'Critical Hits ignore Enemy Monster Elemental Resistances'];
 
 /** Every leaf path of `want` whose value `got` doesn't hold equally (a missing key included). */
 function differences(want: unknown, got: unknown, at = '$', out: string[] = []): string[] {
@@ -109,6 +122,8 @@ function treesPlan(version: number): Json {
     { text: ES, reason: 'test fixture: a hand-calculated pool line with no coverage result' },
     { text: ES, reason: 'test fixture: Sorcery Ward, coverage: unparsed' },
     { text: '10% more Damage', reason: 'test fixture: a hand-calculated damage line' },
+    ...DAMAGE_LINES.map((text) => ({ text, reason: 'test fixture: a damage line PoB parses' })),
+    { text: HITS_TAKEN, reason: 'test fixture: a hand-calculated damage-taken line with no coverage result' },
   ];
   return p;
 }
@@ -142,6 +157,18 @@ function radiusStage(id: string, jewel: string | null): Json {
   });
 }
 
+/**
+ * A campaign stage with the path to 26725, `jewel` in it (or none), the Sinister sockets `listed`, and the Ruby in 62152
+ * when `ruby`.
+ */
+function sinisterStage(id: string, jewel: string | null, listed: number[], ruby: boolean): Json {
+  return stageFrom(id, 'campaign', (s) => {
+    s.tree.nodes.push(...SOCKET_PATH, SOCKET, ...listed);
+    for (const n of SOCKET_PATH) s.tree.attributeChoices.push({ node: n, attribute: 'strength' });
+    s.items.treeJewels = [...(jewel === null ? [] : [{ node: SOCKET, text: jewel }]), ...(ruby ? [{ node: SINISTER[0], text: RUBY }] : [])];
+  });
+}
+
 /** The saved file's tree spec titled `<...> {<id>}`: its node ids. */
 function specNodes(xml: string, id: string): number[] {
   for (const m of xml.matchAll(/<Spec\b([^>]*)>/g)) {
@@ -163,6 +190,8 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
   let radius: { record: CompileRecord; xml: string };
   let validated: string;
   let unlinked: string;
+  let voices: CompileRecord;
+  let sinisterRefused: string;
 
   /** A run folder holding `plan`: a plan object, or a fixture file's text as it is (its sha1 is in the record). */
   async function runFolder(slug: string, plan: Json | string): Promise<{ abs: string; planPath: string }> {
@@ -198,6 +227,19 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
     const without = await runFolder('radius-without', planOf(8, [radiusStage('fn', null)]));
     const refused = await f.call('compile_plan', { plan_path: without.planPath, measure_only: true });
     unlinked = refused.isError ? refused.text : `compiled: ${refused.text}`;
+    voices = (
+      await compiled('voices', planOf(8, [sinisterStage('v', VOICES, SINISTER.slice(0, 2), true), sinisterStage('v0', VOICES, SINISTER.slice(0, 2), false)]))
+    ).record;
+    const sinister = await runFolder(
+      'sinister-refused',
+      planOf(8, [
+        sinisterStage('noVoices', null, SINISTER.slice(0, 1), true),
+        sinisterStage('third', VOICES, SINISTER, true),
+        sinisterStage('unlisted', VOICES, SINISTER.slice(0, 1), true),
+      ]),
+    );
+    const out = await f.call('compile_plan', { plan_path: sinister.planPath, measure_only: true });
+    sinisterRefused = out.isError ? out.text : `compiled: ${out.text}`;
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
@@ -266,8 +308,9 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
     it('AC-P82: "+1000 to maximum Energy Shield" whose reason has no coverage: result is custom-defence; with coverage: unparsed it isn\'t; a damage line never is', () => {
       expect(codesOf(trees8, 'n', 'custom-defence').map((x) => x.data)).toEqual([
         { path: 'config.customMods[0].reason', text: ES, stats: ['EnergyShield'] },
+        { path: 'config.customMods[6].reason', text: HITS_TAKEN, stats: ['PhysicalDamageFromHitsTaken'] },
       ]);
-      expect(trees8.stages.n.customModsWritten).toEqual([ES, ES, '10% more Damage']);
+      expect(trees8.stages.n.customModsWritten).toEqual([ES, ES, '10% more Damage', ...DAMAGE_LINES, HITS_TAKEN]);
       // At schema 7 the same lines aren't checked.
       expect(codesOf(trees7, 'n', 'custom-defence')).toEqual([]);
     });
@@ -318,6 +361,22 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
 
     it('AC-P83: the same node without the jewel is refused as before', () => {
       expect(unlinked).toContain(`stage fn: node ${RADIUS_NODE} (Melee Damage) is not connected to its start through untagged nodes`);
+    });
+
+    it('§15: Voices in a connected socket grants its Sinister sockets: listed, they compile, and a jewel in one raises the stage\'s damage', () => {
+      expect(['v', 'v0'].map((id) => ({ id, shape: codesOf(voices, id, 'tree-shape'), points: codesOf(voices, id, 'passive-points') }))).toEqual([
+        { id: 'v', shape: [], points: [] },
+        { id: 'v0', shape: [], points: [] },
+      ]);
+      expect(voices.stages.v.outputs.TotalDPS).toBeGreaterThan(voices.stages.v0.outputs.TotalDPS);
+    });
+
+    it('§15: a Sinister socket without Voices is still refused, and so is one past its count; a socket it grants is listed', () => {
+      expect(sinisterRefused).toContain('stage noVoices: node 62152 (Sinister Jewel Socket) is not connected to its start through untagged nodes');
+      expect(sinisterRefused).toContain('stage third: node 23960 (Sinister Jewel Socket) is not connected to its start through untagged nodes');
+      expect(sinisterRefused).toContain(`stage unlisted: node 26178 (Sinister Jewel Socket) is a jewel socket the jewel on node ${SOCKET} grants`);
+      expect(sinisterRefused).not.toMatch(/stage (third|unlisted): node 62152/);
+      expect(sinisterRefused).not.toMatch(/stage third: node 26178/);
     });
   });
 });

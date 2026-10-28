@@ -52,7 +52,7 @@
 //  - the Checks block's Arbiter line in the label's three forms (`arbiterLabel12`): `survives its hits; its worst, <hit>,
 //    is <ratio> of your max hit.`; `survives <x>% of its <type> hits, by evading or deflecting them; a full one is
 //    <ratio> of your max hit.`; `one-shot by its <hit>, at <ratio> of your max hit; it survives <x>% of them.` (the last
-//    clause only when x is above 0);
+//    clause only when x is above 0; `over a max hit of 0` in place of the ratio when the max hit of the type is 0);
 //  - the stage table's `Damage, map / resisting / boss` on endgame rungs once a record carries
 //    `measures.damage.resisting`, the figure against the map enemy with 40% fire, cold and lightning resistance (D-454).
 //
@@ -582,15 +582,17 @@ export const survivedPercent = (x) => Math.floor(Number(x) + 1e-9);
 export const typeWords = (type) => String(type).split('-').join(' and ');
 
 /**
- * Names and D-449: a rung's reading of the record's `measures.arbiter`. Its deciding row is its one-shot row with the
- * lowest hits survived (ties to the larger ratio), else its row with the largest ratio; it is a one-shot rung when that
- * row is one-shot and survives under the floor (`hitsSurvived / 100 < floor`, unrounded); and a rung that isn't one-shot
- * is measured only when every row has a verdict (a null row is never a pass). Null when the record has no rows.
+ * Names and D-449: a rung's reading of the record's `measures.arbiter`, as the compiler's `decidingRow` reads it
+ * (src/plan/record.ts). Its deciding row is its one-shot row with the lowest hits survived (ties to the larger ratio, a
+ * one-shot row with no ratio, a max hit of 0, counting as the largest), else its row with the largest ratio; it is a
+ * one-shot rung when that row is one-shot and survives under the floor (`hitsSurvived / 100 < floor`, unrounded); and a
+ * rung that isn't one-shot is measured only when every row has a verdict (a null row is never a pass). Null when the
+ * record has no rows.
  */
 export function arbiterReading(arbiter, floor = ARBITER_FLOOR) {
   const rows = list(arbiter?.rows);
   if (rows.length === 0) return null;
-  const ratioOf = (r) => (isNum(r.ratio) ? r.ratio : -Infinity);
+  const ratioOf = (r) => (isNum(r.ratio) ? r.ratio : r.verdict === 'one-shot' ? Infinity : -Infinity);
   const shots = rows.filter((r) => r.verdict === 'one-shot');
   const row = shots.length > 0
     ? [...shots].sort((a, b) => survivedOf(a) - survivedOf(b) || ratioOf(b) - ratioOf(a))[0]
@@ -616,17 +618,18 @@ export function arbiterLabel12(reading) {
 
 /**
  * The Arbiter line on `b` and `n`, from the record's `measures.arbiter` (D-353); D-459: a record whose rows carry hits
- * survived reads its deciding row, in the label's three forms, with the ratio the audit keeps.
+ * survived reads its deciding row, in the label's three forms, with the ratio the audit keeps (a one-shot row with no
+ * ratio is one whose max hit of its type is 0).
  */
 function arbiterLine(arbiter, floor = ARBITER_FLOOR) {
   if (hasHitsSurvived(arbiter)) {
     const r = arbiterReading(arbiter, floor);
-    if (!r || r.row === null || !r.measured || !isNum(r.row.ratio)) return '- The Arbiter of Divinity: not measured.';
+    if (!r || r.row === null || !r.measured) return '- The Arbiter of Divinity: not measured.';
     const x = survivedPercent(r.hitsSurvived);
-    const ratio = r.row.ratio.toFixed(2);
-    if (r.oneShot) return `- The Arbiter of Divinity: one-shot by its ${typeWords(r.row.type)} hit, at ${ratio} of your max hit${x > 0 ? `; it survives ${x}% of them` : ''}.`;
-    if (r.row.verdict === 'one-shot') return `- The Arbiter of Divinity: survives ${x}% of its ${typeWords(r.row.type)} hits, by evading or deflecting them; a full one is ${ratio} of your max hit.`;
-    return `- The Arbiter of Divinity: survives its hits; its worst, ${typeWords(r.row.type)} hit, is ${ratio} of your max hit.`;
+    const ratio = isNum(r.row.ratio) ? r.row.ratio.toFixed(2) : null;
+    if (r.oneShot) return `- The Arbiter of Divinity: one-shot by its ${typeWords(r.row.type)} hit, ${ratio !== null ? `at ${ratio} of your max hit` : 'over a max hit of 0'}${x > 0 ? `; it survives ${x}% of them` : ''}.`;
+    if (r.row.verdict === 'one-shot') return `- The Arbiter of Divinity: survives ${x}% of its ${typeWords(r.row.type)} hits, by evading or deflecting them; a full one is ${ratio !== null ? `${ratio} of your max hit` : 'over a max hit of 0'}.`;
+    return `- The Arbiter of Divinity: survives its hits; its worst, ${typeWords(r.row.type)} hit, is ${ratio ?? '—'} of your max hit.`;
   }
   const worst = arbiter?.worst;
   if (!isObj(arbiter) || !['survives', 'one-shot'].includes(arbiter.verdict) || !isObj(worst) || !isNum(worst.ratio)) return '- The Arbiter of Divinity: not measured.';

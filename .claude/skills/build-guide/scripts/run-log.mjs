@@ -123,9 +123,10 @@
 //    `respec` outcome (D-452: one tree per loadout);
 //  - the design display, read by the D1 gate's design field (a rung with `maxHit` is amendment 12's): on `b` and `n` the
 //    Arbiter line from the deciding row with hits survived and the chances at the Arbiter, `under the 80% floor` on a
-//    one-shot rung, then `Lowest max hit: <n> <type>` and PG-100's note on a stage whose gear gives a companion part of
-//    each deflected hit; per variant rung the resisting figure after the boss lines; on `n` the Effective HP line's
-//    chance-layer share, the conditioned line and its band, the ailment line on a build that deflects, and the warning;
+//    one-shot rung, then `Lowest max hit: <n> <type>` and PG-100's note when the record's `avoid.companionDeflected` says
+//    a companion takes part of each deflected hit; per variant rung the resisting figure after the boss lines; on `n`
+//    the Effective HP line's chance-layer share, the conditioned line and its band, the ailment line on a build that
+//    deflects, and the warning;
 //    the trades' `defence (one-shot)` and `avoidance` lines with their max hit and hits survived;
 //  - the final display's rung lines with three figures (`measures.damage.resisting`) and the verdict label's three forms
 //    (`arbiterWords`), and the design-to-final comparison in the same forms.
@@ -1948,18 +1949,14 @@ function toughnessLines12(r) {
   return out;
 }
 
-/** PG-100: a gear line or custom line that gives a companion part of each deflected hit (the unique body Forgotten Warden's). */
-const COMPANION_DEFLECTED = /damage from deflected hits is taken from .*companion/i;
-/** PG-100: whether a plan stage carries a companion's share of deflected hits, in an item's text or a custom line. */
-export const companionDeflects = (st) => [...objects(st?.items?.slots).map((s) => s.text), ...objects(st?.config?.customMods).map((m) => m.text)].some((t) => COMPANION_DEFLECTED.test(String(t ?? '')));
-
 /**
  * D-449 (amendment 12, Appendix A): a `b` or `n` rung's Arbiter lines on the design display, from the design field's
  * `maxHit` (its deciding row `arbiter`, `oneShot`, `lowest`) and the full hit's ratio from the gate's record: the Arbiter
  * line in its three forms, with hits survived rounded down and the chances at the Arbiter, `under the <floor> floor` on a
- * one-shot rung; then `Lowest max hit: <n> <type>`; then PG-100's note on a stage that carries the line.
+ * one-shot rung; then `Lowest max hit: <n> <type>`; then PG-100's note when the record's `avoid.companionDeflected` says a
+ * companion takes part of each deflected hit (PoB's `TakenFromCompanionBeforeYouFromDeflected`, whatever its source).
  */
-function arbiterLines12(r, rec, st, floor) {
+function arbiterLines12(r, rec, floor) {
   const m = r.maxHit;
   const a = isObj(m.arbiter) ? m.arbiter : null;
   const out = [];
@@ -1967,6 +1964,8 @@ function arbiterLines12(r, rec, st, floor) {
   else {
     const row = objects(rec?.measures?.arbiter?.rows).find((x) => x.type === a.type);
     const ratio = isNum(row?.ratio) ? row.ratio : null;
+    // WU-120: a one-shot row with no ratio is one whose max hit of its type is 0.
+    const zero = ratio === null && row?.verdict === 'one-shot' && row?.maxHit === 0;
     const hit = `${typeWords(a.type)} hit`;
     const x = survivedPercent(isNum(a.hitsSurvived) ? a.hitsSurvived : 0);
     const chance = (v) => (isNum(v) && v > 0 ? Math.round(v) : null);
@@ -1979,7 +1978,7 @@ function arbiterLines12(r, rec, st, floor) {
     const deflected = deflect !== null && isNum(a.deflectedRatio) ? (a.deflectedRatio < 1 ? `a deflected hit is ${a.deflectedRatio.toFixed(2)} of your max hit${optimistic}` : 'a deflected hit kills too, so only evading counts') : null;
     const floorWords = `${Math.round(floor * 100)}%`;
     if (m.oneShot === true) {
-      const head = `- The Arbiter of Divinity: one-shot by its ${hit}${ratio !== null ? ` (${ratio.toFixed(2)} of your max hit)` : ''}`;
+      const head = `- The Arbiter of Divinity: one-shot by its ${hit}${ratio !== null ? ` (${ratio.toFixed(2)} of your max hit)` : zero ? ' (a max hit of 0)' : ''}`;
       out.push(at === null ? `${head}, under the ${floorWords} floor.` : `${head}; survives ${x}% of them by evading or deflecting (${[at, deflected].filter(Boolean).join('; ')}), under the ${floorWords} floor.`);
     } else if (isNum(a.hitsSurvived) && a.hitsSurvived < 100) {
       const inner = [at];
@@ -1991,7 +1990,8 @@ function arbiterLines12(r, rec, st, floor) {
   }
   const lowest = isObj(m.lowest) && isNum(m.lowest.value) && text(m.lowest.type) ? `${whole(m.lowest.value)} ${typeWords(m.lowest.type)}` : 'not measured';
   out.push(`- Lowest max hit: ${lowest}.`);
-  if (companionDeflects(st)) out.push('- Note: a companion takes part of each deflected hit, so hits survived reads high (PG-100).');
+  const companion = rec?.measures?.arbiter?.avoid?.companionDeflected;
+  if (isNum(companion) && companion > 0) out.push('- Note: a companion takes part of each deflected hit, so hits survived reads high (PG-100).');
   return out;
 }
 
@@ -2107,7 +2107,7 @@ function designDisplay(dir, log, id) {
     // D-427: the travel skill beside the movement speed, from the record's clear measure.
     out.push(`- Movement speed: ${moveWords(moveOf(rec))}${travelWords(measured)}.`);
     // D-449 (amendment 12): a b or n rung's Arbiter line from its deciding row, its lowest max hit and PG-100's note.
-    if (a12 && isObj(r.maxHit)) out.push(...arbiterLines12(r, rec, objects(plan?.stages).find((x) => x.id === r.stage), floor));
+    if (a12 && isObj(r.maxHit)) out.push(...arbiterLines12(r, rec, floor));
     else if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
     // D-437, D-447: the named source's figure against map monsters, then the boss figure (§19: a design field from before
     // amendment 11 has `dps` alone).

@@ -18,6 +18,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { validatePlan } from '../../src/plan/schema';
+import { loadReferenceData } from '../../src/plan/referenceData';
+import { treeChangeOf } from '../../src/plan/compiler';
+import { decidingRow, type ArbiterMeasure } from '../../src/plan/record';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -420,21 +424,26 @@ describe("AC-W93 (D-449, D-450, Appendix A): the design display's lines", () => 
     expect(rungBlock(out.stdout, 'Entering maps').join('\n')).not.toMatch(/Lowest max hit|Arbiter/);
   });
 
-  it('prints the ailment line on a deflecting build, and PG-100\'s note on a build whose gear gives a companion part of each deflected hit', () => {
+  it('prints the ailment line on a deflecting build, and PG-100\'s note when the record says a companion takes part of each deflected hit', () => {
     const dir = copy('run-a12');
     editJson(dir, GATE, (g) => {
       rung(g, 'n').toughness.ailmentCut = 34;
     });
-    // Forgotten Warden's line, as the pinned unique data words it (Data/Uniques/body.lua).
-    replan(dir, (p) => {
-      p.stages.find((s: Json) => s.id === 'n').items.slots.find((x: Json) => x.slot === 'Body Armour').text = "Rarity: Unique\nForgotten Warden\nPrimal Markings\nImplicits: 1\nGrants Skill: Level 20 Spirit Vessel\n+85 to Deflection Rating per 50 missing Energy Shield\n250% increased Evasion and Energy Shield\n+25 to Dexterity\nCompanions have 40% increased maximum Life\n12% of Damage from Deflected Hits is taken from Damageable Companion's Life before you";
-    });
-    const out = display(dir, 'design', ID).stdout;
+    // The record's avoid.companionDeflected, PoB's TakenFromCompanionBeforeYouFromDeflected (WU-120): 12% on n.
+    arbiter(dir, 'n', { avoid: { ...CASE_796.avoid, companionDeflected: 12 }, rows: CASE_796.rows, field: { type: 'physical', oneShot: true } });
+    const out = display(copy2(dir), 'design', ID).stdout;
     const n = rungBlock(out, 'Non-budget endgame');
     expect(n).toContain("- Deflection cuts ailment damage from hits by about 34% on average; PoB doesn't apply it.");
     expect(n).toContain('- Note: a companion takes part of each deflected hit, so hits survived reads high (PG-100).');
     expect(n.indexOf('- Note: a companion takes part of each deflected hit, so hits survived reads high (PG-100).')).toBe(n.indexOf('- Lowest max hit: 7,000 chaos.') + 1);
     expect(rungBlock(out, 'Budget endgame').join('\n')).not.toMatch(/Note:/);
+    // The note reads the record's field, not the gear's text: Forgotten Warden's line alone (the pinned data's words,
+    // Data/Uniques/body.lua) with no companionDeflected in the record prints none.
+    const text = copy('run-a12');
+    replan(text, (p) => {
+      p.stages.find((s: Json) => s.id === 'n').items.slots.find((x: Json) => x.slot === 'Body Armour').text = "Rarity: Unique\nForgotten Warden\nPrimal Markings\nImplicits: 1\nGrants Skill: Level 20 Spirit Vessel\n+85 to Deflection Rating per 50 missing Energy Shield\n250% increased Evasion and Energy Shield\n+25 to Dexterity\nCompanions have 40% increased maximum Life\n12% of Damage from Deflected Hits is taken from Damageable Companion's Life before you";
+    });
+    expect(display(text, 'design', ID).stdout).not.toMatch(/Note: a companion/);
   });
 
   it("prints the defence (one-shot) and avoidance trades in Appendix A's forms, a max hit only when the trade moves it", () => {
@@ -725,5 +734,75 @@ describe('AC-W93 (Appendix A): references/toughness-targets.json holds the Arbit
     expect(lines(there, 'arbiter')).toEqual([expect.stringMatching(/maxHit\.oneShot is true, but the record's deciding row \(physical\) is one-shot by its full hit and survives 79\.6% of its hits, at or over the 75% floor/)]);
     // Here, at 0.8, the same field passes.
     expect(lines(check(dir).stderr, 'arbiter')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// The record as WU-119 and WU-120 built it: run-a12 against the server's own code, and the record's null cases
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W93: run-a12 is a run the amended pipeline could write', () => {
+  it("its plan is a valid schema-8 plan, and its record's treeChange is the compiler's treeChangeOf", () => {
+    const text = fs.readFileSync(path.join(FIXTURES, 'run-a12', PLAN), 'utf8');
+    const result = validatePlan(text, loadReferenceData());
+    expect(result.ok ? [] : result.errors).toEqual([]);
+    const plan = JSON.parse(text) as Json;
+    expect(plan.schemaVersion).toBe(8);
+    const rec = readJson(path.join(FIXTURES, 'run-a12'), RECORD);
+    for (const st of plan.stages) expect({ id: st.id, treeChange: rec.stages[st.id].treeChange ?? null }).toEqual({ id: st.id, treeChange: treeChangeOf(plan as Parameters<typeof treeChangeOf>[0], st) });
+  });
+
+  it("the scripts' deciding row is the compiler's decidingRow, a one-shot row with no ratio (a max hit of 0) the largest", () => {
+    const rows = (xs: Json[]): ArbiterMeasure => ({ verdict: 'one-shot', worst: null, rows: xs.map((x) => ({ mixed: false, hitId: x.type, hit: 3000, maxHit: null, deflectedRatio: null, deflectedVerdict: null, ...x })) }) as unknown as ArbiterMeasure;
+    const zero = rows([{ type: 'physical', ratio: 1.4, verdict: 'one-shot', hitsSurvived: 30 }, { type: 'lightning', ratio: null, maxHit: 0, verdict: 'one-shot', hitsSurvived: 30 }]);
+    expect(decidingRow(zero)?.type).toBe('lightning');
+    const dir = copy('run-a12');
+    editJson(dir, RECORD, (r) => {
+      Object.assign(r.stages.n.measures.arbiter, { verdict: 'one-shot', avoid: { accuracy: 3786, evade: 30, deflect: 0, deflectEffect: 40, method: 'pass' } });
+      Object.assign(r.stages.n.measures.arbiter.rows[0], { ratio: 1.4, maxHit: 2490, verdict: 'one-shot', hitsSurvived: 30 });
+      Object.assign(r.stages.n.measures.arbiter.rows[1], { ratio: null, maxHit: 0, verdict: 'one-shot', hitsSurvived: 30 });
+    });
+    editJson(dir, GATE, (g) => {
+      rung(g, 'n').maxHit.arbiter = { type: 'lightning', evade: 30, deflect: 0, hitsSurvived: 30, deflectedRatio: null, method: 'pass' };
+      rung(g, 'n').maxHit.oneShot = true;
+    });
+    expect(lines(check(dir).stderr, 'arbiter')).toEqual([]);
+    expect(rungBlock(display(copy2(dir), 'design', ID).stdout, 'Non-budget endgame')).toContain('- The Arbiter of Divinity: one-shot by its lightning hit (a max hit of 0); survives 30% of them by evading or deflecting (evades 30% at its accuracy of 3,786), under the 80% floor.');
+    expect(node(RENDER, [dir, '--build', ID]).code).toBe(0);
+    expect(fs.readFileSync(path.join(dir, AUDIT), 'utf8')).toContain('- The Arbiter of Divinity: one-shot by its lightning hit, over a max hit of 0; it survives 30% of them.');
+    editText(dir, GUIDE, "**Non-budget (L95): survives the Arbiter's hits.**", "**Non-budget (L95): one-shot by the Arbiter's lightning hit (it survives 30% of them).**");
+    expect(lines(check(dir).stderr, 'survival-label')).toEqual([]);
+  });
+
+  it('a row with no verdict has no hits survived and reads "not measured against the Arbiter"; an immune row survives in full', () => {
+    const dir = copy('run-a12');
+    editJson(dir, RECORD, (r) => {
+      const a = r.stages.n.measures.arbiter;
+      a.verdict = null;
+      Object.assign(a.rows[1], { ratio: null, maxHit: null, verdict: null, hitsSurvived: null });
+      Object.assign(a.rows[2], { ratio: 0, maxHit: null, verdict: 'survives', immune: true, hitsSurvived: 100 });
+    });
+    expect(lines(check(dir).stderr, 'arbiter')).toEqual([]);
+    expect(lines(check(dir).stderr, 'survival-label')).toEqual([expect.stringMatching(/so its label is "not measured against the Arbiter"/)]);
+    expect(node(RENDER, [dir, '--build', ID]).code).toBe(0);
+    expect(fs.readFileSync(path.join(dir, AUDIT), 'utf8')).toMatch(/### Endgame non-budget \(L95\) \{n\}[\s\S]*- The Arbiter of Divinity: not measured\./);
+  });
+
+  it("with nothing getting through (share 1, factor null) the chance-layer share is 100%; a null resisting figure stays null in the field", () => {
+    const dir = copy('run-a12');
+    editJson(dir, RECORD, (r) => {
+      r.stages.n.measures.toughness.chance = { notHit: 100, damage: 100, factor: null, share: 1 };
+      r.stages.m.measures.damage.resisting = null;
+    });
+    editJson(dir, GATE, (g) => {
+      rung(g, 'n').toughness.chanceShare = 100;
+      rung(g, 'm').damage.resisting = null;
+    });
+    expect(rules(check(dir).stderr, 'toughness', 'design-field')).toEqual([]);
+    expect(rungBlock(display(copy2(dir), 'design', ID).stdout, 'Non-budget endgame')).toContain('- Effective HP: 52,300; 100% of it from chance layers (evade, block, deflection).');
+    editJson(dir, GATE, (g) => {
+      rung(g, 'm').damage.resisting = 8100;
+    });
+    expect(lines(check(dir).stderr, 'design-field')).toEqual([expect.stringMatching(/design\.rungs's "m"'s damage\.resisting is 8100, but the record's m\.measures\.damage\.resisting is null/)]);
   });
 });

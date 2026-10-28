@@ -5439,17 +5439,19 @@ function checkArbiterRows(stage, arbiter, fail) {
   const e = isNum(avoid?.evade) ? avoid.evade : 0;
   const d = isNum(avoid?.deflect) ? avoid.deflect : 0;
   for (const row of list(arbiter.rows)) {
-    if (!isNum(row.hitsSurvived) || !isNum(row.ratio)) continue;
+    // A row with no verdict has no hits survived (null); a one-shot row may have no ratio, its max hit of 0 (WU-120).
+    if (!isNum(row.hitsSurvived) || !['survives', 'one-shot'].includes(row.verdict)) continue;
     const at = `compile-record.json's ${stage}.measures.arbiter row ${show(row.type)}`;
-    if (row.ratio < 1 || row.immune === true) {
-      if (Math.abs(row.hitsSurvived - 100) > 0.5) fail('arbiter', `${at} survives its full hit (ratio ${round2(row.ratio)}), but its hitsSurvived is ${row.hitsSurvived}; a row that survives the full hit survives 100% of them (Names, D-449)`);
+    const ratioWords = isNum(row.ratio) ? `ratio ${round2(row.ratio)}` : 'a max hit of 0';
+    if (row.verdict === 'survives' || row.immune === true) {
+      if (Math.abs(row.hitsSurvived - 100) > 0.5) fail('arbiter', `${at} survives its full hit (${ratioWords}), but its hitsSurvived is ${row.hitsSurvived}; a row that survives the full hit survives 100% of them (Names, D-449)`);
       continue;
     }
     const deflectedSurvives = d > 0 && isNum(row.deflectedRatio) && row.deflectedRatio < 1;
     const bound = deflectedSurvives ? e + ((100 - e) * d) / 100 : e;
     if (row.hitsSurvived > bound + 0.5) {
       const why = deflectedSurvives ? `the evade chance ${e}% plus (1 − ${e}%) × the deflect chance ${d}%` : d > 0 && isNum(row.deflectedRatio) ? `its deflected hit kills too (${round2(row.deflectedRatio)} of the max hit), so only the evade chance counts` : 'only the evade chance counts';
-      fail('arbiter', `${at} is one-shot by its full hit (ratio ${round2(row.ratio)}) and survives ${row.hitsSurvived}% of its hits, more than Names' rule gives: ${why}, at most ${round2(bound)}% (Names, D-449)`);
+      fail('arbiter', `${at} is one-shot by its full hit (${ratioWords}) and survives ${row.hitsSurvived}% of its hits, more than Names' rule gives: ${why}, at most ${round2(bound)}% (Names, D-449)`);
     }
   }
 }
@@ -5485,9 +5487,9 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
     const at = `design.rungs's ${show(r.stage)}`;
     const rec = record?.stages?.[r.stage];
     const m = isObj(rec?.measures) ? rec.measures : {};
-    // D-454: the resisting figure on every variant rung.
-    if (!isObj(r.damage) || !isNum(r.damage.resisting)) bad('design-field', `${at} has damage ${show(r.damage)}; a design field written under amendment 12's rules gives {map, resisting, boss}, resisting the figure against the map enemy with 40% fire, cold and lightning resistance (D-454, Appendix A)`);
-    else if (fresh && isNum(m.damage?.resisting) && !sameFigure(r.damage.resisting, m.damage.resisting)) bad('design-field', `${at}'s damage.resisting is ${r.damage.resisting}, but the record's ${r.stage}.measures.damage.resisting is ${m.damage.resisting} (D-454)`);
+    // D-454: the resisting figure on every variant rung (null where the record's is: no resisting measure).
+    if (!isObj(r.damage) || !('resisting' in r.damage) || !numOrNull(r.damage.resisting)) bad('design-field', `${at} has damage ${show(r.damage)}; a design field written under amendment 12's rules gives {map, resisting, boss}, resisting the figure against the map enemy with 40% fire, cold and lightning resistance (D-454, Appendix A)`);
+    else if (fresh && isObj(m.damage) && 'resisting' in m.damage && (isNum(m.damage.resisting) ? !sameFigure(r.damage.resisting, m.damage.resisting) : r.damage.resisting !== null)) bad('design-field', `${at}'s damage.resisting is ${show(r.damage.resisting)}, but the record's ${r.stage}.measures.damage.resisting is ${show(m.damage.resisting)} (D-454)`);
     if (st.variant !== 'budget' && st.variant !== 'non-budget') continue;
     const rungWord = st.variant;
     checkArbiterRows(r.stage, m.arbiter, fail);
@@ -5550,13 +5552,14 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
     // D-449: the non-budget rung's toughness reading. Its shape, then the record's figures while fresh, then the warning.
     const tough = r.toughness;
     if (!isObj(tough)) continue;
+    // The record's chance layers or conditioned read may be missing (no number from PoB): the field's are null then.
     const c = tough.conditioned;
     const cOk = isObj(c) && isNum(c.ehp) && ['under', 'within', 'over'].includes(c.band);
     const w = tough.warning;
     const wOk = w === null || (isObj(w) && ['one-shot', 'conditioned'].includes(w.kind) && typeof w.type === 'string' && w.type !== '' && typeof w.fix === 'string');
     const shape = [
-      isNum(tough.chanceShare) ? null : 'chanceShare (percent)',
-      cOk ? null : 'conditioned {ehp, band: "under" | "within" | "over"}',
+      numOrNull(tough.chanceShare) ? null : 'chanceShare (percent) or null',
+      cOk || c === null ? null : 'conditioned {ehp, band: "under" | "within" | "over"} or null',
       tough.ailmentCut === null || isNum(tough.ailmentCut) ? null : 'ailmentCut (percent) or null',
       wOk ? null : 'warning {kind: "one-shot" | "conditioned", type, fix} or null',
     ].filter(Boolean);
@@ -5569,8 +5572,10 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
       const tm = isObj(m.toughness) ? m.toughness : null;
       if (isNum(rec?.outputs?.TotalEHP)) band = bandOf(rec.outputs.TotalEHP, target, t);
       const share = tm?.chance?.share;
-      if (isNum(share) && isNum(tough.chanceShare) && !near(tough.chanceShare, share * 100, 0.5)) bad('toughness', `${at}'s toughness.chanceShare is ${tough.chanceShare}, but the record's ${r.stage}.measures.toughness.chance.share is ${share}, ${round2(share * 100)}% (D-449)`);
+      if (isNum(share) ? !near(tough.chanceShare, share * 100, 0.5) : tm !== null && tough.chanceShare !== null && tough.chanceShare !== undefined) bad('toughness', `${at}'s toughness.chanceShare is ${show(tough.chanceShare ?? null)}, but the record's ${r.stage}.measures.toughness.chance${isNum(share) ? `.share is ${share}, ${round2(share * 100)}%` : ' is null, so it is null'} (D-449)`);
+      if (tm !== null && !(isObj(tm.conditioned) && isNum(tm.conditioned.ehp)) && c !== null && c !== undefined) bad('toughness', `${at}'s toughness.conditioned is ${show(c)}, but the record's ${r.stage}.measures.toughness has no conditioned EHP, so it is null (D-449)`);
       if (isObj(tm?.conditioned) && isNum(tm.conditioned.ehp)) {
+        if (c === null) bad('toughness', `${at}'s toughness.conditioned is null, but the record's ${r.stage}.measures.toughness.conditioned.ehp is ${tm.conditioned.ehp} (D-449)`);
         condBand = bandOf(tm.conditioned.ehp, target, t);
         condType = isObj(tm.conditioned.lowestMaxHit) ? tm.conditioned.lowestMaxHit.type : null;
         if (cOk && !sameFigure(c.ehp, tm.conditioned.ehp)) bad('toughness', `${at}'s toughness.conditioned.ehp is ${c.ehp}, but the record's ${r.stage}.measures.toughness.conditioned.ehp is ${tm.conditioned.ehp} (D-449)`);

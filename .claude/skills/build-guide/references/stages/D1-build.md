@@ -108,8 +108,9 @@ request (D-411, D-413).
      resource it needs, which +level sources and supports reach the skill, and how its required state fails. A
      shape is a starting point, never a fact: check every use with a lookup and measure it with a measure-only
      compile like any other change. The `reason` that keeps it in the plan (D1-finish's claim) cites the lookup
-     and the measurement, never the library. Questions 20 to 24 (D-458) are the defence plan's (step 8), the empty
-     multiplier pools, the shared scaling (below) and the buttons a proxy could press.
+     and the measurement, never the library. Questions 20 to 24 (D-458): 20 is the defence plan's (step 8), 21 puts
+     the next buy in the emptiest multiplier pool, 22 (the ascendancy's fit) the card already settled, 23 is the
+     shared scaling (below) and 24 the buttons a proxy could press.
    - **The wall rule** (D-457). Name each payoff apart from the means that supply it (question 2), and give each
      load-bearing supply a second means: the card's `Means:` lines, `<payoff>: <means>; second means <means | none
      found>`, are your start. **When a rung fails because a means doesn't deliver** (a supply that runs dry, an

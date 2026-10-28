@@ -322,10 +322,11 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   it("init writes run-log.md's first write, the run folder given, and never overwrites a log", () => {
     const dir = started();
     // Amendment 9 (WU-94, D-412): schema 4, with noNinja, the pin's commit and the newest league digest.
-    // Amendment 11 (WU-113, §19): the skill revision a new run is held to, and its pricing stops and retries (D-444).
+    // Amendment 11 (WU-113, §19): the skill revision a new run is held to, and its pricing stops and retries (D-444);
+    // amendment 12 (WU-121, §22) makes it 12.
     expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
       schemaVersion: 4,
-      skillRevision: 11,
+      skillRevision: 12,
       runFolder: dir,
       slug: 'titan-blood-hunt',
       brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },

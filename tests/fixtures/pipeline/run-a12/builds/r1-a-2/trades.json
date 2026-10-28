@@ -1,0 +1,15 @@
+{
+  "trades": [
+    {
+      "stage": "n",
+      "kind": "damage",
+      "what": "moving 6 points from Bone Breaker to Vicious Bite",
+      "ehpChange": -12,
+      "damageChange": 18,
+      "bossAfter": 247800,
+      "reason": "over the toughness band and under the boss floor",
+      "maxHit": null,
+      "hitsSurvived": null
+    }
+  ]
+}

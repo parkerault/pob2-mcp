@@ -5930,3 +5930,15 @@ the `m17` engine at `b76967b`.
     | After the additions and corrections | 17,071 | 3,691 |
     | After the trim | 15,843 | 3,444 |
     | After the fix round (merged) | 15,943 | 3,451 |
+- **WU-118 (the trade limiter's pace) merged** (three commits, cherry-picked onto the integration head unchanged).
+  Searches go at least 45 s apart, start to start, enforced in the limiter with the wait inside the tool; the limiter's
+  wait cap and `find_upgrades`' search wait are 60 s; `find_upgrades` keeps its fixed 90 s budget from the call's
+  arrival, so at most two searches a call; each 429 is logged to `<stateDir>/trade-429.jsonl` (the last 200, never a
+  cookie or request header); `CLAUDE.md`'s trade paragraph and the README say so. Spawned test servers turn the pace
+  off with `POB_TEST_TRADE_PACE=off`, read only by `src/index.ts`; any other value keeps it on. Its verifier (fresh
+  context) failed the first head on one defect, confirmed: a search waiting behind another call's in-flight first
+  search had no deadline or cap, so a `find_upgrades` call could end about 164 s after it arrived, past A-25's 120 s.
+  The fix round bounds that wait by the deadline and the 60 s cap, refusing up front when it can't fit; the re-verify
+  passed. Gate after the rebase: 202 suites, 3,462 tests, rc 0; build rc 0.
+  - Left for the spec fold: stabilization's `03-trade.md`:738 and :923 still give the old 40 s refusal example (the
+    tests now use 61 s, the first second over the 60 s cap).

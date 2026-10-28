@@ -1,13 +1,13 @@
 # Amendment 11: builds a player would run
 
-**Status: REVISION 3, 2026-10-25.** Revision 1 followed the independent review (§21: four lenses and a skeptical
-verifier) and the user's answers. Revision 2 adds the user's answers after the boss-damage study
-(`../studies/2026-10-25-boss-damage.md`): a boss estimate made the way the guides will make it (§9b, D-447),
-toughness by engagement distance (§9), and the damage trade from 150% of the target; it was re-checked and folded.
-Revision 3 adds the user's answers after the second study (`../studies/2026-10-25-boss-estimate.md`), which
-estimated the library's builds by §9b's method: a boss floor of 250,000 at non-budget with a damage trade below it
-(D-448), and §9b's corrections widened to those the study needed. Waiting for a re-check of revision 3's changes
-and the user's approval. It carries:
+**Status: APPROVED by the user, 2026-10-25** ("Approve and build"), as revision 3, and built as M-24 (work-log).
+Revision 1 followed the independent review (§21: four lenses and a skeptical verifier) and the user's answers;
+revision 2 adds their answers after the boss-damage study (`../studies/2026-10-25-boss-damage.md`): a boss estimate
+made the way the guides will make it (§9b, D-447), toughness by engagement distance (§9), and the damage trade from
+150% of the target; revision 3 adds their answers after the second study (`../studies/2026-10-25-boss-estimate.md`):
+a boss floor of 250,000 at non-budget with a damage trade below it (D-448), and §9b's corrections widened. Its live
+test (WU-116) hasn't run: at amendment 12's approval (2026-10-28) the user ruled that it runs with amendment 12's
+live test (WU-126), after M-25 ("I won't do any live tests until the amendment is built"). It carries:
 - the user's notes during and after the open-brief half of the live test (WU-109, run `open-clear/2026-10-24-1`),
   the user's choices of 2026-10-24 and 2026-10-25 quoted where they're used;
 - the comparison study (`../studies/2026-10-24-reap-infernalist-comparison.md`, cited as [study]), the toughness

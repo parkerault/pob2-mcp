@@ -465,6 +465,132 @@ the meta gems' trigger rates are PG-9's, the dropped supports in a granted skill
 - **PG-82, figures our tools don't expose.** ours, reported (study).
   - **Effect:** `lua_get_stats` gives no ignite stack potential, maximum power or frenzy charges, ailment chance or
     a Frost Wall crystal's life, so a hand estimate derives them from game data.
+  - **From the defence study (2026-10-26):** amendment 12 (D-460) adds to `lua_get_stats`' defence category the
+    chances not to be hit and to take damage, evade by hit kind, deflection's effect, the hits to die, the stun
+    threshold and self-stun chance, and a companion's life. Three defence figures PoB has no single output for stay
+    unexposed: the damage-from-mana-first share, a barrier's size and the physical-taken-as table. The defence study
+    estimated a barrier from the max hit its group adds.
+
+## Found in the defence study (2026-10-26)
+
+The defence study (`studies/2026-10-26-defence-layers.md`) took the toughness study's 30 published league starters
+apart one defence layer at a time, and the sizing study (`studies/2026-10-26-sizing.md`) measured amendment 12's open
+candidates on the same builds; amendment 12 logs what they found (D-462). The kinds and statuses are the studies'
+candidate list's; every `file:line` below was checked against the pin on 2026-10-28. "Reported (coverage)" means
+`check_model_coverage` flagged the line and no one has read the code for it; "video study" and "video frame" mean a
+study of a creator's video read the code or showed the figure. PG-85 (plain block against spells) was dropped, since
+the user trusts PoB's block reading (2026-10-26), and its number is skipped.
+
+- **PG-83, Virtuous Barrier's motes aren't lost to hits.** gap, confirmed in code.
+  - **Where:** PoB counts the buff's motes of each attribute from a base of 3 plus the socketed skill gems that
+    require that attribute (`Modules/CalcSetup.lua:1485`, `:1857-1871`), into the multipliers its life, armour,
+    evasion and energy shield lines read (`:2096-2099`). The skill loses a random mote whenever the character is hit
+    (`Data/Skills/other.lua:19594`), and no config option sets how many are lost.
+  - **Effect:** the buff reads at full motes.
+  - **Seen in:** five Gemlings in the defence study, ×1.01–1.68 EHP (the animeprincess Twister ×1.68).
+  - **Workaround:** treat the figure as an upper bound.
+- **PG-84, Pyromantic Pact's mana replacement is unparsed.** gap, reported (coverage).
+  - **Effect:** the Infernalist notable's line replacing maximum mana with Infernal Flame, and its line that burns the
+    character when the flame fills, read as nothing, so PoB keeps a mana pool the character doesn't have. Node power
+    then offers Mind over Matter at +88.6% EHP a point, a false lead.
+  - **Seen in:** Ignatius's Comet Infernalist.
+  - **Workaround:** a custom line removing the mana, checked by coverage.
+- **PG-86, curses ignore their monster-level cap.** gap, reported (video study; code grep).
+  - **Where:** `skill_curses_cannot_apply_to_targets_above_level` is a per-level stat of the curse skills (Despair,
+    Elemental Weakness, Enfeeble, Temporal Chains and Vulnerability among them), and no file under `Modules/` or
+    `Classes/`, nor `Data/SkillStatMap.lua`, reads it. Elemental Weakness can't curse a monster above level 76 at gem
+    level 16, or above 78 at 17, and has no cap from 18 (`Data/Skills/act_int.lua:6047-6049`).
+  - **Effect:** below gem level 18 a curse counts in PoB against a monster it can't curse in areas 79 and 82; below
+    14, in area 69 too. The same cap, also unread, is on Frost Bomb's exposure (`Data/Skills/act_int.lua:9111`) and
+    Thunderstorm's Wet (`Data/Skills/act_str.lua:19537`), on the same schedule by gem level (the sizing study; Frost
+    Bomb's reads 100 from 18, above any monster). Amendment 12's V1 check `curse-level-cap` (D-455) names such a gem
+    on a schema-8 plan.
+  - **Seen in:** none of the 30: the 10 that curse use gem levels 18–21 (the sizing study).
+  - **Workaround:** gem level 18 or higher for areas 79 and 82.
+- **PG-87, a gain keyed to one type reads it after gear conversions.** bug (possible), reported (video frame).
+  - **Where:** a "gain as extra" from one damage type takes that type's damage left after its conversions to other
+    types, plus what was converted into it (`Modules/CalcOffence.lua:94-104`).
+  - **Effect:** Tul's Stillness (cold damage gained as extra chaos, `Data/Skills/sup_dex.lua:5604`) under Original
+    Sin (all elemental damage converted to chaos, `Data/Uniques/ring.lua:260`) reads 0 extra chaos.
+  - **Workaround:** a custom line.
+- **PG-88, a same-type conversion counts in the over-100% scaling.** bug (possible), reported (video frame). Rare.
+  - **Where:** the sum that scales a damage type's conversions down when they pass 100% runs over every type, the
+    type itself included, so a conversion to its own type counts in it (`Modules/CalcOffence.lua:2262-2289`).
+- **PG-89, Yoke of Suffering counts Path of Exile 1 ailments.** bug, reported (code read in the video study).
+  - **Where:** the amulet's "increased Damage for each Elemental Ailment type among your Ailments" line
+    (`Data/Uniques/amulet.lua:304`) parses to one bonus per enemy condition, eight of them
+    (`Modules/ModParser.lua:3827-3836`), Path of Exile 1's Scorched, Brittle and Sapped among them, against the four
+    elemental ailments of PoB's own list (`Modules/Data.lua:405`: Ignite, Chill, Freeze, Shock).
+  - **Workaround:** tick only the ailments the build applies.
+- **PG-90, our enemies resist every element alike.** ours, confirmed.
+  - **Where:** the map measure's enemy is PoB's "not a boss" (`data/enemies/map-monsters.json#pob-enemy-is-boss`),
+    whose resistances PoB leaves at 0% (`Modules/ConfigOptions.lua:1969-1974`); the boss measure sets only
+    `enemyIsBoss` to `Pinnacle`, whose fire, cold and lightning resistances are all 50% (`:2053-2056`).
+  - **Effect:** a line keyed to the enemy's lowest resistance (Sacred Flame's, `Data/Uniques/sceptre.lua:112`) reads
+    nothing, and penetration reads nothing on the map figure. Amendment 12's resisting figure (D-454) is its pair.
+- **PG-91, the Arbiter verdict credits curses at map strength.** ours, closed (fixed by amendment 12 §4, D-449).
+  - **Where:** the verdict read the stage's own max hits, measured against map monsters, where a curse counts at full
+    effect; PoB halves a curse's effect on a Pinnacle boss (`Modules/ConfigOptions.lua:2043`).
+  - **Effect:** without Enfeeble the three casters' worst Arbiter ratios rise from 0.33, 0.39 and 0.41 to 0.50, 0.59
+    and 0.60; at half strength, by the defence study's estimate, about 0.42, 0.49 and 0.52, so no verdict flips.
+  - **Seen in:** the three Enfeeble casters: the Arc Gemling, the Grim Pillars Oracle, Ignatius's Stormweaver.
+  - **Fixed:** since amendment 12 the verdict reads the max hits of the Pinnacle pass, curses at half effect (D-449).
+- **PG-92, stun chance constants may be stale.** data, reported (video study).
+  - **Where:** PoB's chance to be stunned is 2 × the hit ÷ the stun threshold, dropped to 0 under 20%
+    (`Modules/Data.lua:279-280`, `Modules/CalcDefence.lua:2649-2650`), while the player constants in the pin's game
+    data, 44 and 15 (`Data/Misc.lua:46-47`), suggest another scale and floor.
+  - **Effect:** low priority: neither gate figure reads stun.
+- **PG-93, Immaculate Adherence's Divinity lines are unparsed.** gap, reported (coverage).
+  - **Effect:** the amulet's Divinity lines read as nothing; its damage-from-mana-first line is read.
+- **PG-94, common defence lines PoB doesn't parse.** gap, reported (coverage across the 30 builds).
+  - **Effect:** each build has 2 to 23 defence lines PoB doesn't fully parse (median 9.5). The commonest, by the
+    builds that carry them: Nascent Hope's recharge on use (13), Ghost Dance's two lines (12), Lavianga's Spirits'
+    constant effect (12), reduced slowing potency (10), Olroth's Resolve's guard (4) and Blade Catcher's armour
+    against critical hits (3).
+- **PG-95, Tailwind's deflection line is never read.** bug (possible), confirmed in code.
+  - **Where:** PoB gives 1% increased deflection effect per Tailwind stack (`Modules/CalcSetup.lua:726`), but the
+    prevented share adds up only flat changes (`Modules/CalcDefence.lua:1522`), so the increase is never read. PoB's
+    own Tailwind tooltip (`Modules/ConfigOptions.lua:936`) doesn't list the line, so whether the game has it is
+    unknown.
+  - **Seen in:** none of the 30.
+- **PG-96, the hits-to-die count switches method when no chance layer is left.** bug (possible), measured (the
+  defence study).
+  - **Where:** with no damage-chance layer left (block, deflection or a chance to avoid damage), PoB takes its plain
+    hits-to-die count instead of the scaled one (`Modules/CalcDefence.lua:3311`). With a companion taking a share of
+    each hit, the plain count sits about 3.5% above the scaled one.
+  - **Effect:** knocking out a build's last such layer reads too small: Snoobae's Twister's deflection read ×1.05,
+    where the formula and the reading without its companion give ×1.09. A recoup line forces the scaled count and
+    hides the switch (the Beast Master).
+  - **Seen in:** Snoobae's Twister; the Beast Master.
+  - **Workaround:** measure such a layer by its prevented share at two non-zero values, not by removing it.
+- **PG-97, deflection doesn't cut ailment damage.** gap, reported (the user).
+  - **Where:** PoB sizes the enemy's ignite and poison on the player from the raw hit's damage
+    (`Modules/CalcDefence.lua:2219`, `:4086-4093`) and applies resistance to the damage over time, but never
+    deflection's prevented share.
+  - **Effect:** a deflecting build's ailment damage reads high. Amendment 12's design gate shows deflection's average
+    cut on such a build (D-449).
+  - **Workaround:** scale the ailment figure by 1 − chance × prevented share by hand.
+- **PG-98, enemy bleeding on the player is never modelled.** gap, confirmed in code.
+  - **Where:** PoB lists bleeding among the enemy's ailments but never sets its chance above 0
+    (`Modules/CalcDefence.lua:4000`), so a bleed's damage over time is never counted. Ignite needs an enemy critical
+    hit chance over 10.1% or a set ignite chance (`:3999-4005`), and poison a set poison chance (`:4009`).
+  - **Effect:** our design enemy has neither, so our measurements count no ailment damage on the player at all.
+- **PG-99, crafted jewel effect lines are unread.** gap, reported (sizing study; coverage).
+  - **Where:** the crafted "(40-60)% increased Effect of Prefixes" and "…of Suffixes" lines
+    (`Data/ModJewel.lua:363-364`) read as partly parsed, and nothing in `Classes/Item.lua` scales an item's own
+    affixes.
+  - **Effect:** a jewel copied from the game carries the boosted values and reads right; a jewel a compile crafts
+    reads unboosted. Amendment 12's jewel lines leave the craft out (D-453).
+  - **Workaround:** write the boosted values in.
+- **PG-100, a companion's share of deflected hits makes hits survived read high.** ours, confirmed (an
+  approximation).
+  - **Where:** PoB already puts a companion's share of deflected hits into its max hit, at PoB's own deflect chance
+    (`Modules/CalcDefence.lua:2960-2963`). Amendment 12's hits survived (D-449) then deflects the Arbiter's hit at the
+    chance against the Arbiter, so it counts deflection partly twice and errs optimistic at the 80% floor.
+  - **Seen in:** none of the 30; Forgotten Warden (`Data/Uniques/body.lua:747`) is the only source of the line in the
+    pinned data.
+  - **Workaround:** when a build carries the line, the gate adds one note that its hits survived is optimistic
+    (amendment 12 §4).
 
 ## Data: missing, out of range, or stale
 

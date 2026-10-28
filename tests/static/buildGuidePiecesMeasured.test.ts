@@ -312,8 +312,9 @@ describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and 
   });
 
   it("D1-build writes pieces.md and returns its pieces: line within its 8 (D-434), and the design gate shows the pieces line before the rungs", () => {
-    expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |');
-    expect(SKILL).toMatch(/Returns `done` or `infeasible`, with a reason, its `for D1-tree:` line and its `pieces:` line, `pieces\.md`'s rows by status \(D-434\), within its 8 lines/);
+    // Amendment 12 (WU-125, D-457): its `stronger structure:` lines too.
+    expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |');
+    expect(SKILL).toMatch(/Returns `done` or `infeasible`, with a reason, its `for D1-tree:` line, its `pieces:` line, `pieces\.md`'s rows by status \(D-434\), and any `stronger structure:` line \(D-457\), within its 8 lines/);
     const design = folded(between(rawRef('checkpoints.md'), '## The design gate: judge the endgame build', '## The final gate'));
     // Amendment 11 (WU-115, D-442): the design gate counts the out pieces without naming them.
     expect(design).toContain("First, once per build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n> scheduled (<names>), <n> out`, the out pieces counted without their names (D-442)");

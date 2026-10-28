@@ -23,10 +23,10 @@ It is a game guide, not a design document.
 - The campaign (D-354): per act the support gem order, the tree path, a rough upgrade order with the
   build-specific mods to buy on trade, and a target life. No resistances, max hits or EHP before the endgame,
   and no crafting: the reader buys gear on trade.
-- The endgame measures are the record's: the named source's damage against map monsters and against a Pinnacle
-  boss (the boss figure the plan's boss_<stage> estimate when it has one), Effective HP, the Arbiter verdict and a
-  rough clear speed. No kill
-  time and no hits to kill anywhere (D-353).
+- The endgame measures are the record's: the named source's damage against map monsters, against resisting rares
+  (40% fire, cold and lightning resistance) and against a Pinnacle boss (the boss figure the plan's boss_<stage>
+  estimate when it has one), Effective HP, the Arbiter verdict (its deciding row, with the share of hits survived
+  by evading or deflecting them) and a rough clear speed. No kill time and no hits to kill anywhere (D-353).
 - Never tell the reader to save or use Jeweller's Orbs for a skill a passive grants: they add sockets to items
   only (D-359).
 Replace every <placeholder>. Keep a line marked [only when ...] only when it applies, and a line marked
@@ -65,10 +65,10 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 
 <A one-line legend: the entering-maps label is my judgment of its line against the map hits; the budget and non-budget labels are the Arbiter of Divinity's verdict.>
 
-[one line per endgame rung, in this fixed form, word for word but the placeholders, and no campaign line (D-354); the run checker compares each number with the record by rounding it at its own last digit (D-283). The hits are the record's reference hits (configWritten). <Skill> is the named damage source; <map> is its damage figure against map monsters, the record's measures.damage.map, and <boss> its boss figure against a Pinnacle boss, the plan's boss_<stage> ledger value when it has one (audit.md's Estimates), else measures.damage.boss (D-437, D-447); a record without measures.damage keeps "<Skill> about <n> DPS." with measures.dps; Effective HP is the stage's TotalEHP, beside max hit (D-294). The budget and non-budget label follows the record's measures.arbiter verdict (D-353): "survives the Arbiter's hits", or "one-shot by the Arbiter's <the worst hit>", the worst hit as audit.md's Checks names it]
-- **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss. Effective HP about <n>.
-- **Budget (L<level>): <survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss. Effective HP about <n>.
-- **Non-budget (L<level>): <survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss. Effective HP about <n>.
+[one line per endgame rung, in this fixed form, word for word but the placeholders, and no campaign line (D-354); the run checker compares each number with the record by rounding it at its own last digit (D-283). The hits are the record's reference hits (configWritten). <Skill> is the named damage source; <map> is its damage figure against map monsters, the record's measures.damage.map, <resisting> the same against the map enemy with 40% fire, cold and lightning resistance, measures.damage.resisting (D-454), and <boss> its boss figure against a Pinnacle boss, the plan's boss_<stage> ledger value when it has one (audit.md's Estimates), else measures.damage.boss (D-437, D-447); a record without measures.damage.resisting keeps two figures, "<Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss.", and one without measures.damage keeps "<Skill> about <n> DPS." with measures.dps; Effective HP is the stage's TotalEHP, beside max hit (D-294). The budget and non-budget label follows the record's measures.arbiter by its deciding row (the one-shot row with the lowest hits survived, else the row with the largest ratio) against the 80% floor of references/toughness-targets.json (D-353, D-459), in one of three forms, <x> the row's hits survived rounded down to a whole percent: "survives the Arbiter's hits" (it survives the full hit); "survives <x>% of the Arbiter's <type> hits, by evading or deflecting them" (one-shot by the full hit, at or over the floor); "one-shot by the Arbiter's <type> hit (it survives <x>% of them)" (under the floor; the parenthesis only when x is above 0). A record whose rows carry no hits survived keeps "survives the Arbiter's hits" or "one-shot by the Arbiter's <the worst hit>", the worst hit as audit.md's Checks names it]
+- **Entering maps (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss. Effective HP about <n>.
+- **Budget (L<level>): <survives the Arbiter's hits|survives <x>% of the Arbiter's <type> hits, by evading or deflecting them|one-shot by the Arbiter's <type> hit (it survives <x>% of them)>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss. Effective HP about <n>.
+- **Non-budget (L<level>): <survives the Arbiter's hits|survives <x>% of the Arbiter's <type> hits, by evading or deflecting them|one-shot by the Arbiter's <type> hit (it survives <x>% of them)>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss. Effective HP about <n>.
 
 ## Gem and ascendancy timing
 
@@ -97,7 +97,8 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 ### <loadoutName of the first campaign stage, exactly as compile-record.json has it>
 
 <At most 110 words. Setup: <skill> with <supports, in the order to add them>. Tree: path to <the notables and keystones the stage's path claim names, in its order>. Attributes: <have> of the <need> <attribute> <gem or item> needs. Gear, in my upgrade order: <the slot>, with <the build-specific mods to buy on trade> [optional: , or <the fallback> D2 weighed]. Target life: about <the record's Life for the stage>. Swap to the next loadout when <trigger>.>
-[only when the stage has a respec] Respec: drop <the nodes> for about <gold cost> gold.
+[only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
+[only on a schema-7 plan, when the stage has a respec] Respec: drop <the nodes> for about <gold cost> gold.
 [optional] <a rotation clause, when the stage's damage is a combo>.
 
 ## Campaign route and rewards
@@ -119,6 +120,7 @@ Move here when <the trigger>.
 
 [only when the budget variant has an anoint; this rung has none (D-358)] If you can afford it before maps, anoint your amulet now with the budget variant's <notable> (<its three Distilled Emotions>).
 [optional] <a fallback D1 weighed, where one exists>.
+[only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
 [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
@@ -140,12 +142,13 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
 - **Tree:** <the keystones and notables, each with what it buys>.
 - **Anoint:** <the notable>, from <its three Distilled Emotions, as the record names them> (<its price, or unavailable>): <its reason, as the plan gives it>.
-- [only when the stage has a respec] **Respec from the entering-maps loadout:** <the change its note names>: drop <the nodes> for about <gold cost> gold.
+- [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
+- [only on a schema-7 plan, when the stage has a respec] **Respec from the entering-maps loadout:** <the change its note names>: drop <the nodes> for about <gold cost> gold.
 - [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] **Weapon swap:** swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 7 aiming at about 5 a slot with its over-target slots, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 7 aiming at about 5 a slot with its over-target slots, the Arbiter of Divinity's verdict in its three forms, its rough clear speed and movement speed]
 
 ## Endgame: non-budget
 
@@ -154,12 +157,13 @@ Move here when <the trigger>.
 <About 180 words. The upgrade order from the budget variant:> 1. <the upgrade with the most gain per divine>; 2. <…>. <Affix sources as in the budget variant.>
 
 **Anoint:** <the notable>, from <its three Distilled Emotions> (<its price, or unavailable>): <its reason, as the plan gives it>.
-[only when the stage has a respec] Respec from the budget loadout: <the change its note names>: drop <the nodes> for about <gold cost> gold.
+[only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
+[only on a schema-7 plan, when the stage has a respec] Respec from the budget loadout: <the change its note names>: drop <the nodes> for about <gold cost> gold.
 [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
 
 ### Checks
 
-[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target with its over-target slots, the Arbiter of Divinity's verdict, its rough clear speed and movement speed]
+[this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target with its over-target slots, the Arbiter of Divinity's verdict in its three forms, its rough clear speed and movement speed]
 
 ## How to play it
 
@@ -168,6 +172,8 @@ Move here when <the trigger>.
 - **Clear:** <…>.
 - **Single target:** <…>.
 - [only when <Skill> isn't the clear skill] <Skill> is the single-target skill because <why it can't clear>.
+- **If it stalls:** <the first thing I change when maps start to stall: the lever, piece or defence the plan's claims and trades point to first> (D-459).
+- [optional] **Defence the numbers don't show:** <dodge timing, flasks, a recharge delay, stun risk or blind upkeep, as this build has it>.
 - [optional, up to 4, each confirmed by item text, gem text or PoB] **Trap:** <an interaction that breaks or kills the build>.
 
 ## What PoB can't show
@@ -181,6 +187,12 @@ The headline figures assume <the plan's config they rest on: charges, stacks, co
 [only when the plan estimates a rung's boss figure, boss_<stage> (D-447)] The boss figure is my estimate from the rotation: <what it corrects, from the entry's claim, in plain words>; PoB alone shows about <measures.damage.boss>.
 
 [only when the record's measures.trigger is set (D-437)] PoB rates <Skill> at its hand-cast speed and doesn't model <the meta gem>'s Energy, so <how I read the damage figures>.
+
+[only when the D1 gate's design field gives n a toughness warning (D-449, D-459); one line, in plain words] <The EHP reads fine, but the Arbiter's <type> hit one-shots this build | With every condition against it (unlucky rolls, hit recently, not blinded) the EHP falls under its band, its weakest hit <type>>: <the fix family the warning names, as what I'd change first>.
+
+[only when the build deflects (D-459, PG-97)] Deflection: a big hit that gets past evasion loses <its deflected share, 40% at base> most of the time, which PoB's max hit ignores, and deflection cuts ailment damage from hits by about <the design field's ailmentCut>% on average, which PoB doesn't apply.
+
+[only when the defence leans on recoup, regeneration, leech or recharge (D-459)] Effective HP leaves out <recoup | regeneration | leech | recharge> by PoB's design, so the build holds up better in a long fight than its EHP says.
 
 [only when a skill a passive grants holds supports; said once, here and nowhere else (D-359)] <The skill>'s support count is an estimate, as no source gives it: 3 supports below level 40, 4 from level 40 and 5 from level 60.
 

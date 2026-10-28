@@ -46,9 +46,12 @@ order's among them, measure the trades the design gate shows, and read the plan 
     and no resume, `resumes[].lengths.stages`, after it: `references/run-log.md`, "Pricing stops");
   - the reference files `.claude/skills/build-guide/references/toughness-targets.json` (D-441: the non-budget
     rung's `TotalEHP` targets by engagement, 20,000 close and 15,000 distance, `under` 0.9 and `over` 1.5 of
-    the target) and `.claude/skills/build-guide/references/boss-floor.json` (D-448: the non-budget rung's boss
-    figure floor, 250,000), for step 5, and `<buildFolder>/trades.json` when it exists (D1-tree's `unmodelled`
-    entries);
+    the target; D-449: `arbiter.hitsSurvivedFloor`, 0.8, the share of the Arbiter's hits a rung survives,
+    evading or deflecting them, below which its one-shot row makes it a one-shot rung) and
+    `.claude/skills/build-guide/references/boss-floor.json` (D-448: the non-budget rung's boss figure floor,
+    250,000), for step 5, and `<buildFolder>/trades.json` when it exists (D1-tree's `unmodelled` entries);
+  - `n`'s defence plan, `stages[].defence` (D-451; in its view): an evasion `base`, pure or hybrid, makes the
+    build an evasion build for step 5's avoidance trade;
   - prices to reuse: Grep the run's other plans (`concepts/*/plan.json`, `builds/*/plan.json`) for `"prices"`
     and Read the hits.
 
@@ -64,8 +67,8 @@ order's among them, measure the trades the design gate shows, and read the plan 
    - **Measure it** with a measure-only compile (`mcp__pob2__compile_plan {plan_path:
      "<plan>", measure_only: true, stages: ["b", "n"]}`), against the key-figure lines
      before it. Prefer what the rung lacks: EHP or the Arbiter verdict when the Arbiter one-shots it, else the
-     named source's damage (its `damage <map> against map monsters, <boss> against a Pinnacle boss`). `reason`
-     states what it adds, as measured, and why it isn't on the tree.
+     named source's damage (its `damage <map> against map monsters, <resisting> against resisting rares, <boss>
+     against a Pinnacle boss`). `reason` states what it adds, as measured, and why it isn't on the tree.
    - The record gives its recipe (`stages.<id>.anoint`: the notable, its node id and the three emotions);
      the guide names both, and `m` points ahead to `b`'s.
 2. **Prices.** One `prices[]` entry per filled slot and tree jewel of **every** rung (D-249, D-281), ids
@@ -76,6 +79,12 @@ order's among them, measure the trades the design gate shows, and read the plan 
    share an entry only when their item text is identical. No item-base or mod-tier search serves crafting
    (D-348): the guide names mods to buy on trade. Reuse an entry with the same item, query and league from any
    plan of this run first.
+   - **`n`'s shares, re-split** (D-453), before you price: D1-tree adds a price entry for each tree jewel its
+     socket tests take, so share `n`'s default 150 divines evenly again over its rares and rare tree jewels,
+     keeping any share an entry's `query.target.reason` gives, and write each entry's `target.divines`. An
+     over-target jewel keeps its lines, like any over-target rare (a minion build's `b` jewel among them).
+   - **One trade call at a time** (D-461): the server waits at least 45 s between one search and the next, inside
+     the call, and refuses a wait over 60 s (`would_wait`); calls in parallel queue past it, so never batch them.
    - **The rares of `b` and `n`: the weighted search** (D-372), `mcp__pob2__find_upgrades`, PoB2's "trade for
      these items", from the entry D1-build wrote (`query.slot`, `query.required`, `query.target`). Step 1's
      measure-only compile loaded `b` and `n` (with no step 1 compile, as in a fix round, make it first);
@@ -91,6 +100,11 @@ order's among them, measure the trades the design gate shows, and read the plan 
      its first listing is the cheapest with the required affixes, and its price is the entry's, with the
      `note` `over target`. The entry's `query` keeps `slot`, `required` and `target` and adds the call's
      arguments. With `--no-ninja`, make only the `mcp__pob2__search_trade_items` call.
+   - **Weapons by compile** (D-456): never compare weapons by a listing's DPS. `mcp__pob2__find_upgrades` scores
+     by PoB's Full DPS, which isn't the build's figure (D-437), so re-check its top 3 weapon listings on the
+     build's own damage figure: each on a temporary stage (id `tmp…`, D-453) that copies the rung with that weapon,
+     compiled measure-only with the rung, its map figure read and the stage removed; the entry records the
+     listing that measures best within the budget, and its `note` says it was re-checked by compile.
    - **`max_price`** (D-373) is the target turned into today's market: the target over the midpoint of its
      factors in `data/economy/prices.json`, times the run's exalts per divine, a whole number. The factors are
      the rung's price day's (`conversion.under-10.to-day-<7|21>`; when that puts the budget at 10 divines or
@@ -115,7 +129,8 @@ order's among them, measure the trades the design gate shows, and read the plan 
      trade-site pricing until a gate's `retry-pricing` or a resume, D-444: every remaining item the trade site
      prices `unavailable`, while exchange items keep their price); any other kind, `unavailable`. The
      prefix may stand anywhere in the line: `mcp__pob2__find_upgrades` reads `Stopped early: [trade:<kind>]
-     <reason>.`.
+     <reason>.`. Its stop with no prefix, `Stopped early: the 45 s gap between trade searches cut the loop short
+     after <n> search(es).`, returned the best listings of the searches it ran: price from them (D-461).
    - Offline: no price call; every entry is `unavailable`, note `offline run`, `league` null, dated the run
      folder's date, D1-build's `not priced yet` entries included. Pricing stopped: no trade-site call;
      `unavailable`, note `pricing stopped`, and no tool that sends a trade request at all (D-422, D-444:
@@ -185,7 +200,9 @@ order's among them, measure the trades the design gate shows, and read the plan 
        keep, naming them as `mcp__pob2__search_tree_nodes` names them, and why node power can't see it: sustain,
        an attribute a gem or item requires, area or movement for clear, a boss-only gain, the producer of an
        earned state, the user's request; a need with `stat` `TotalEHP` holds the floor (D1-tree writes one for a
-       swap that failed the floor or V1 when measured). It cites the need's `stat` as a record field
+       swap that failed the floor or V1 when measured); a need with no `stat` that D1-tree's boss guard wrote names
+       the boss-rotation entry it keeps (D-456), not the floor; a deflection or evasion need says what it does for
+       the hits survived (D-451). It cites the need's `stat` as a record field
        (`<stageId>.<stat>`) where it has one, else a lookup or a `judgment`. A need with no `claim`, or one
        naming no claim of its stage, is the D1 gate's V1 finding `missing-reason`; until you set them, every
        compile reports it, as expected;
@@ -224,39 +241,98 @@ order's among them, measure the trades the design gate shows, and read the plan 
      Affix targets are text: no tier labels and no trade links.
    - Offline: a claim that would need an external source is tagged `external-unavailable` (ref exactly
      `external source unavailable (offline run)`, with a confidence).
-5. **The trades** (D-439, D-440, D-441, D-448), which the design gate shows for the user to take or leave: write
-   `<buildFolder>/trades.json` whole (Writes), D1-tree's `unmodelled` entries as they are and your `boots`,
-   `defence` and `damage` entries in place of the old ones. None is a gate failure.
+5. **The trades** (D-439, D-440, D-441, D-448, D-450), which the design gate shows for the user to take or leave:
+   write `<buildFolder>/trades.json` whole (Writes), D1-tree's `unmodelled` entries as they are and your `boots`,
+   `defence`, `damage` and `avoidance` entries in place of the old ones. None is a gate failure.
    - **Boots** (D-440): one `boots` trade for each rung whose `items.bootsException` holds (its V1 note
      `boots-exception`): `what` the boots, their movement speed and how far under the tier ("Trampletoe, 25%
      movement speed, 10% under the tier"), `reason` the exception's, both changes null. Unique boots get this
      trade only, never the defence trade below; a defence trade's rare boots carry the tier's speed.
-   - **The non-budget rung's band and floor.** Compile `n` measure-only (`stages: ["n"]`): its key-figure line
-     gives its EHP (`TotalEHP`), its reply each ledger value (`boss_n = …`). The target is
-     `toughness-targets.json`'s for the plan's `n.skills.engagement.kind`; the rung is **under** its band below
-     `under` × the target (18,000 close, 13,500 distance), **over** it above `over` × the target (30,000 close,
-     22,500 distance), else **within**. Its boss figure is the `boss_n` value when the plan has it, else
-     `measures.damage.boss`; it is **under the floor** below `boss-floor.json`'s `floor`.
-   - **A defence trade**, when the rung is under its band: each armour-slot unique other than boots with no
-     life or energy shield and no resistances, against a defensive rare of its slot (life or energy shield and
-     resistances) with the cheapest substitute for the unique's effect when the unique is a need (Crimson
-     Assault for the Apron of Emiran's aggravation), measured with a temporary stage that copies the rung, both
-     compiled measure-only (`stages` naming them), the temporary stage removed after; and node power's best
-     swap ranked by `TotalEHP`, with **`MainDamage` allowed to fall at most 15%** (the arguments of `D1-tree.md`,
-     "The arguments", with `stats: ["TotalEHP", "MainDamage"]` and `max_loss: {MainDamage: 15, clearUses: 2}`).
+   - **Each trade is measured on a temporary stage** (D-453, D-456): an id `tmp…` that copies the rung with the
+     move made, compiled measure-only with the rung (`stages` naming both) and removed after. Read there its EHP
+     and damage changes, the Arbiter's **deciding row** (below) by Grep of `compile-record.json`'s
+     `measures.arbiter.rows` (its max hit from the Pinnacle pass and its hits survived), and **each boss-rotation
+     entry** of `measures.bossGroups`, triggered entries included. `bossAfter` comes from that measure: the
+     temporary stage's boss figure (`measures.damage.boss`, or on a rung the plan estimates, `boss_<stage>`'s
+     formula read over the temporary stage's entries), never the boss figure × (1 + `damageChange` / 100). A trade
+     that cuts any entry by more than 2% says so at the end of its `reason`, `; cuts <entry> against a boss by
+     <x>%` ("; cuts Hammer of the Gods against a boss by 4%"), which the display prints last in its cost line.
+     Trades stay the user's choice: nothing is undone. Node power's calls in a trade keep the rung's needs only
+     (`D1-tree.md`, "The arguments"; D-450), so a trade on `n` may free nodes the budget rung holds.
+   - **The rungs' readings.** Compile `b` and `n` measure-only (`stages: ["b", "n"]`): each key-figure line gives
+     its EHP (`TotalEHP`), its lowest max hit and its Arbiter verdict, the reply each ledger value (`boss_n = …`).
+     A rung's **deciding row** is its one-shot row with the lowest hits survived, else its row with the largest
+     ratio; the rung is a **one-shot rung** (D-449) when that row is `one-shot` and its `hitsSurvived` / 100 is
+     below `toughness-targets.json`'s `arbiter.hitsSurvivedFloor`, 0.8, read unrounded (79.6% is under it). On
+     `n`, the target is `toughness-targets.json`'s for the plan's `n.skills.engagement.kind`; the rung is
+     **under** its band below `under` × the target (18,000 close, 13,500 distance), **over** it above `over` × the
+     target (30,000 close, 22,500 distance), else **within**. Its boss figure is the `boss_n` value when the plan
+     has it, else `measures.damage.boss`; it is **under the floor** below `boss-floor.json`'s `floor`.
+   - **The defence trade on a one-shot rung** (D-450), `b` or `n`, whatever its band: within the defence trade's
+     allowance (damage may fall at most 15%), measure, each on its temporary stage:
+     1. **pool lines**: the build's pool line (life, energy shield, or mana under damage taken from mana first) on
+        a rare slot that can roll it, at a realistic roll, in place of the slot's least valuable line;
+     2. on a build that evades or deflects, **avoidance sources**: deflection and evasion nodes within reach, a
+        rare slot's deflection or evasion line, more deflected share;
+     3. **tree moves**: node power's best swap ranked by `TotalEHP` and its best unallocated EHP nodes (`stats:
+        ["TotalEHP", "MainDamage"]`, `limit: 15`), up to 5 of them measured for the deciding row's max hit (node
+        power can't rank by it);
+     4. the unique-against-rare comparison below, when the rung has an armour-slot unique with no life, energy
+        shield or resistances.
+
+     Write up to three `defence` entries, in this order: **first every entry that clears the rung** (its deciding
+     row survives the full hit, or reaches the floor), pool lines first among them; then the rest, by hits
+     survived on a build that evades or deflects, else by the deciding row's max hit. A pool line that doesn't
+     clear stays in the list, and a clearing entry is never cut for one that doesn't. Each carries `maxHit {type,
+     before, after}`, the deciding row's max hit, and on a build that evades or deflects `hitsSurvived {before,
+     after}`; its `reason` is `one-shot by the Arbiter's <type> hit`. None found: `none found: <why>`.
+   - **Which max hit.** Every one-shot figure here (the `maxHit` fields, "clears the full hit", the damage trade's
+     rule below) is the deciding row's max hit from the Pinnacle pass, measured on the temporary stage. Node power's
+     `maxHit` guard reads the map measure, so it is only a pre-filter.
+   - **A defence trade on `n` under its band** (D-441), when the rung isn't one-shot (a one-shot rung's trade above
+     serves both): each armour-slot unique other than boots with no life or energy shield and no resistances,
+     against a defensive rare of its slot (life or energy shield and resistances) with the cheapest substitute for
+     the unique's effect when the unique is a need (Crimson Assault for the Apron of Emiran's aggravation), both
+     measured; and node power's best swap ranked by `TotalEHP`, with **`MainDamage` allowed to fall at most 15%**
+     (the arguments of `D1-tree.md`, "The arguments", with `stats: ["TotalEHP", "MainDamage"]` and `max_loss:
+     {MainDamage: 15, clearUses: 2}`). Its `reason` is `under the toughness band`.
    - **A damage trade**, when the rung is over its band or under the floor: node power's best swap ranked by
      `MainDamage` (the same arguments, `stats: ["MainDamage", "TotalEHP"]`), its `TotalEHP` allowance as
      `max_loss: {TotalEHP: <the percent the rung's EHP may fall to it>, clearUses: 2}`, by the rung's band, **the
      three allowances**: over its band, no lower than
      the target; within it, no lower than the band's bottom (90% of the target); already under it, by at most
      15%. A rung under the floor and over its band has one damage trade; one under the floor and under its band
-     shows both trades, and the user picks. Its `bossAfter` is the boss figure × (1 + `damageChange` / 100):
-     the boss figure moves with the named source's.
+     shows both trades, and the user picks. **On a one-shot rung** a damage trade may not lower the deciding
+     row's max hit: measure its move on the temporary stage, pass `maxHit: 0` in `max_loss` as a pre-filter when
+     that type is the lowest max hit, and write its `maxHit` before and after.
+   - **The avoidance trade** (D-450; the user, 2026-10-27, "measure, show, judge"), on `b` and `n` of every
+     evasion build, pure or hybrid (`n`'s `defence.base` includes `evasion`), one-shot or not, so the user sees
+     what more avoidance costs. Two `avoidance` entries, each with its EHP change, damage change and
+     `hitsSurvived` before and after:
+     - **the next avoidance spend**: up to 20 tree points on deflection and evasion nodes within reach
+       (`mcp__pob2__search_tree_nodes`, `mcp__pob2__get_nearby_nodes`), taken by hits survived per point, each
+       cluster with its path measured, the points freed from node power's weakest list (`limit: 50`); fewer
+       points when the sources run out. Its `reason` says what the same points give on node power's best EHP
+       nodes, measured the same way: "the same 20 points on the best EHP nodes: +14% EHP, hits survived 45%";
+     - **a gear line**, at its price and 0 points: the best deflection or evasion line a rare slot can roll
+       (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the stat>, kind: "mod"}`), in place of the slot's
+       least valuable line, its price in `what` ("a rare helmet's deflection rating line (about 2 divines, 0
+       points)"; `price unknown` offline or while pricing is stopped).
+
+     Above the floor the design keeps judging (the user: "80% is the floor, but that doesn't mean the agent
+     shouldn't try to go higher if possible"): these entries say what more costs; none found is `none found:
+     <why>`.
    - Each trade found gives its EHP and damage changes in percent (`ehpChange`, `damageChange`), `what` the move
      ("moving 4 points from <nodes> to <nodes>", "a rare body with life and resistances and Crimson Assault"),
-     `reason` why it is shown ("under the toughness band", "under the boss floor"). When none is found, the
-     trade says so: `what: "none found: <why>"`, its changes and `bossAfter` null. The run checker fails a rung
-     out of its band, or under the floor, with no trade of its kind.
+     `reason` why it is shown ("one-shot by the Arbiter's physical hit", "under the toughness band", "over the
+     toughness band", "under the boss floor"; a defence trade's reason is one of its first two, with the boss cut
+     after it when there is one). In a build held to amendment 12 every entry carries `maxHit` and `hitsSurvived`,
+     `null` where they don't apply (`maxHit` on a one-shot rung's defence and damage entries; `hitsSurvived` on the
+     defence and avoidance entries of a build that evades or deflects). When none is found, the trade says so:
+     `what: "none found: <why>"`, its changes, `bossAfter`, `maxHit` and `hitsSurvived` null. The run checker
+     fails a one-shot rung with no `defence` entry, a damage trade on a one-shot rung whose `maxHit.after` is
+     below `before`, an evasion build's `b` or `n` with no `avoidance` entry, and a rung out of its band, or
+     under the floor, with no trade of its kind.
 6. **Validate** with `mcp__pob2__guide_run {validate: "<plan>"}` until it reports no error.
    No final compile: the D1 gate compiles.
 7. **Claim.** `done`. A price over its target is information for the user (D-371): it never sends the design
@@ -300,10 +376,23 @@ compile). The server writes the record and the XML beside it.
 
 ```json
 {"trades": [
-  {"stage": "n", "kind": "defence", "what": "a rare body with life and resistances and Crimson Assault",
-   "ehpChange": 17, "damageChange": -9, "bossAfter": null, "reason": "under the toughness band"},
+  {"stage": "n", "kind": "defence", "what": "a rare body with +90 life in place of its cold resistance line",
+   "ehpChange": 6, "damageChange": 0, "bossAfter": 180000, "reason": "one-shot by the Arbiter's physical hit",
+   "maxHit": {"type": "physical", "before": 3451, "after": 3520}, "hitsSurvived": {"before": 79.6, "after": 100}},
+  {"stage": "n", "kind": "defence", "what": "12 points into deflection (Freedom of Movement, Agile Succession)",
+   "ehpChange": 4, "damageChange": -3, "bossAfter": 172800,
+   "reason": "one-shot by the Arbiter's physical hit; cuts Hammer of the Gods against a boss by 4%",
+   "maxHit": {"type": "physical", "before": 3451, "after": 3451}, "hitsSurvived": {"before": 79.6, "after": 84.2}},
+  {"stage": "n", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Agile Succession, Sure Footing)",
+   "ehpChange": 6, "damageChange": -8, "bossAfter": 165600,
+   "reason": "the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%",
+   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 90.1}},
+  {"stage": "n", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
+   "ehpChange": 1, "damageChange": 0, "bossAfter": 180000, "reason": "in place of the helmet's least valuable line",
+   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 82.4}},
   {"stage": "n", "kind": "damage", "what": "moving 4 points from Bone Breaker to Vicious Bite",
-   "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor"}
+   "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor",
+   "maxHit": {"type": "physical", "before": 3451, "after": 3451}, "hitsSurvived": null}
 ]}
 ```
 
@@ -311,7 +400,7 @@ compile). The server writes the record and the XML beside it.
 
 At most 8 lines: `done`; how many `mcp__pob2__compile_plan` calls you made; the anoint of `b` and `n`; your
 price calls counted by outcome (`prices: ok 12, exchange 4, would_wait 1`, or `prices: none`); the trades by
-kind (`trades: boots 1, defence 1, damage 1`, or `trades: none`); and in the fix round or a
+kind (`trades: boots 1, defence 2, avoidance 2, damage 1`, or `trades: none`); and in the fix round or a
 revision, `recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed
 (`plan.json stages[3].claims[2]`, `plan.json ledger[4]`), and `build: <ids>` when D1-build must make a change.
 
@@ -320,7 +409,7 @@ D1-finish r1-a-2 attempt 1: done
 compiles: 3
 anoint: b Unbending, n Unbending
 prices: none (offline)
-trades: defence 1, damage 1
+trades: defence 2, avoidance 2, damage 1
 ```
 
 ```

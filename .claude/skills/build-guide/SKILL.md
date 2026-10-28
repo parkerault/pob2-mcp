@@ -40,14 +40,15 @@ card: read a reference only where its card names one.
   `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats`,
   `mcp__pob2__find_upgrades`). `mcp__pob2__trade_query_options` sends none, and `mcp__pob2__get_item_price` for an
   item the currency exchange sells reads poe.ninja's exchange (not with `--no-ninja`), so both stay allowed.
+- **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
+  and that their browser shares the limit; one trade call at a time (`references/pricing.md`, "Pace").
 - **Write only inside the run folder**: the `Known issues` lists (step 14) and the interview notes; by script the
   run log, the round copy and `audit.md`; each agent its header's `writes`.
-- **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and
-  `mcp__pob2__search_tree_nodes` for the brief check (the last for the ascendancy lock, D-342; the last two, with
-  `mcp__pob2__check_model_coverage`, at a gate, D-390), `mcp__pob2__guide_run {new_run}` (FR-W3), and
-  `mcp__pob2__guide_run {resume: <run folder>}` for a resume (D-415): no engine call and nothing written, its reply
-  `Resuming run folder <abs>`, `runFolderRel: <rel>` and `loadedBuildUnsaved: …`. Every compile, engine change and
-  price call is a coordinator step's.
+- **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and `mcp__pob2__search_tree_nodes`
+  for the brief check (the last for the ascendancy lock, D-342; the last two, with `mcp__pob2__check_model_coverage`,
+  at a gate, D-390), `mcp__pob2__guide_run {new_run}` (FR-W3), and `mcp__pob2__guide_run {resume: <run folder>}` for a
+  resume (D-415): no engine call and nothing written, its reply `Resuming run folder <abs>`, `runFolderRel: <rel>` and
+  `loadedBuildUnsaved: …`. Every compile, engine change and price call is a coordinator step's.
 - **Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type`.
 - **Every gate visit prints its display first, in your reply, whoever answers it** (D-265, D-367): the user, a
   pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation.
@@ -128,8 +129,8 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not; a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
 | 4a | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
 | 5 | The verification gate (§3) | you | log | asks the user: finalize 1–3 cards, in their order (step 6a for the first), verify other cards (step 3), brainstorm more (step 2a) or stop; after a resume, a build's guide, campaign or design gate (§7) |
-| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` line |
-| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs' trees, needs and respecs), `trades.json` | `done` or `respec:`, each rung's travel; `unspent:` lines |
+| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |
+| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs' trees, needs, tree jewels and their prices), `trades.json`, `pieces.md`'s jewel lines | `done`, each rung's travel; `unspent:` and `jewel:` lines |
 | 6c | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims), `trades.json` | `done` or `build:`; its price calls by outcome |
 | 7a | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`, with the design display; `plan.json` (FI-2 and the final re-price pass) | one verdict line; route by §4 |
 | 7b | The design gate (§4) | you | log | asks the user: accept (step 8, then the guide), the PoB file only (step 8), revise (D1 again), verification (step 5) or stop |
@@ -212,21 +213,21 @@ run again.
 
 ## 4. Design (steps 6a to 8; `references/gates.md`)
 
-One build at a time, the first queued card's, in its folder. D1 is **three agent steps** (D-356, D-418):
-D1-build, D1-tree, then D1-finish, each a fresh coordinator step. Every design attempt (fresh, or a gate retry)
-runs all three, in that order; a change to the tree alone (the gate's `tree-swap`, the user's tree request) runs
-D1-tree, then D1-finish. **Two returns send an attempt back to D1-build**, in the same attempt (D-438, D-446):
-D1-tree's `respec: <stage> needs one: <why>`, logged `respec`, that line D1-build's finding (`code: "respec"`); and
-D1-finish's `build: <ids>`, logged `build`, those findings D1-build's. D1-tree and D1-finish then run again.
+One build at a time, the first queued card's, in its folder. D1 is **three agent steps** (D-356, D-418): D1-build,
+D1-tree, then D1-finish, each a fresh coordinator step. Every design attempt (fresh, or a gate retry) runs all three,
+in that order; a change to the tree alone (the gate's `tree-swap`, the user's tree request, a respec among them,
+D-452) runs D1-tree, then D1-finish (on a schema-7 plan, D1-build first). **D1-finish's `build: <ids>` sends an
+attempt back to D1-build**, in the same attempt (D-446), logged `build`, its findings D1-build's; D1-tree and
+D1-finish then run again. D1-tree never returns `respec:` (D-452).
 
 - **D1-build** (6a): prompt, write `plan.json` anew (attempt 1 of a fresh design) or edit it; `findings`, the
   last D1 gate verdict on a retry, or a finalize's revision. Returns `done` or `infeasible`, with a reason, its
-  `for D1-tree:` line and its `pieces:` line, `pieces.md`'s rows by status (D-434), within its 8 lines. Log its
-  `priceOutcomes` (D-444).
-- **D1-tree** (6b): prompt, D1-build's `for D1-tree:` line as it returned it, when D1-build ran before it;
-  `findings`, a `tree-swap` verdict or the user's tree request. Returns each rung's travel, `unspent:` lines, and a
-  `not made:` line for each tree change the user asked for that it couldn't make: print those under the design
-  gate's display, so the user hears it.
+  `for D1-tree:` line, its `pieces:` line, `pieces.md`'s rows by status (D-434), and any `stronger structure:`
+  line (D-457), within its 8 lines. Log its `priceOutcomes` (D-444).
+- **D1-tree** (6b): prompt, D1-build's `for D1-tree:` line as returned, when D1-build ran before it; `findings`,
+  a `tree-swap` verdict or the user's tree request. Returns each rung's travel, `unspent:` lines, a `not made:`
+  line for each tree change the user asked for that it couldn't make, and a `jewel:` line per socket taken (D-453):
+  print those and D1-build's `stronger structure:` lines under the design gate's display, so the user hears them.
 - **D1-finish** (6c): prompt, how to price (offline; stopped, Hard rules; or paced), no currency rates when the
   log's `noNinja` is true, D1-tree's `unspent:` lines as it returned them, and D1-build's `left out:` lines, with
   its `lever unpulled:` and `override:` lines (D-406, D-407). Log its `priceOutcomes`.
@@ -238,8 +239,8 @@ D1-finish's `build: <ids>`, logged `build`, those findings D1-build's. D1-tree a
 - **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display, `display design --build <id>`
   (the D1 gate verdict file's `design` field, A-35), whoever answers (Hard rules). Answers (checkpoint `design`,
   `concept` the card id): **accept**, F1 (step 8), then the endgame guide; **file only** (`accept:file`), F1 alone:
-  the build ends `file-only`; **revise** (`revise:<text>`), D1 again from the step the change needs, D1-build
-  first for a respec (`references/checkpoints.md`), with the text as `findings` (`code: "user-request"`), then
+  the build ends `file-only`; **revise** (`revise:<text>`), D1 again from the step the change needs (a respec is a
+  tree request, `references/checkpoints.md`), with the text as `findings` (`code: "user-request"`), then
   the D1 gate and this gate again; **verification**: the build ends `dropped`, step 5; **stop**: the build ends
   `stopped`, the next queued card's design next. A default `stop` (`answers.design[]` used up) ends the run, the
   queued cards `stopped`. After `retry-pricing` here, an accept runs the D1 gate's re-price pass, then F1 (D-444).
@@ -289,15 +290,14 @@ Each build's own: its folder's guide, audit and reports, its V4 reports numbered
 - **Step 14, known issues** (`references/fix-round.md`): replace both `Known issues` lists whole with the last
   report's open findings and W1's accepted-finding lines, reading only the lines you edit.
 - **Step 16, the final gate** (`references/checkpoints.md`). Print its display, `display final --build <id>` (each
-  rung's final figures, D-369, and the checker's result among them), whoever answers (Hard rules); answers
-  (checkpoint `final`, its `concept` the card id): **accept** (`completed`); **accept, then verification**
-  (`accept:verification`: `completed`, and once the queue is empty the verification gate again, for more cards);
-  **campaign** (`campaign`: `completed` with its endgame guide, then its campaign, §7, and back here); **ask for
-  changes**; or **decline** (`decline:<note>`, the build ends `not-accepted`). Asking for changes is a revision
-  (`references/fix-round.md`): the round copy, the owners' chain, then step 13's re-check: **a revision runs no
-  full pass** (D-352). Steps 12 to 16 then follow as after a full pass. Once the build ends: the next queued card's
-  design, else the verification gate when an answer asked for it, else the run's end (§8). A default `stop` ends
-  the run, the queued cards `stopped`.
+  rung's final figures, D-369, and the checker's result among them), whoever answers (Hard rules); answers (checkpoint
+  `final`, its `concept` the card id): **accept** (`completed`); **accept, then verification** (`accept:verification`:
+  `completed`, and once the queue is empty the verification gate again, for more cards); **campaign** (`campaign`:
+  `completed` with its endgame guide, then its campaign, §7, and back here); **ask for changes**; or **decline**
+  (`decline:<note>`, the build ends `not-accepted`). Asking for changes is a revision (`references/fix-round.md`): the
+  round copy, the owners' chain, then step 13's re-check: **a revision runs no full pass** (D-352). Steps 12 to 16
+  then follow as after a full pass. Once the build ends: the next queued card's design, else the verification gate
+  when an answer asked for it, else the run's end (§8). A default `stop` ends the run, the queued cards `stopped`.
 
 ## 7. The campaign, and a resume's answers (steps 9a and 9b; D-415)
 

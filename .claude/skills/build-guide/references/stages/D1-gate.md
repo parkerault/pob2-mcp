@@ -22,14 +22,15 @@ findings.
   `accept:file`) with a `retry-pricing` answer at that visit, that this is **the re-price pass** (D-444): F1 runs
   after you, and no design gate.
 - **Read**, the independent calls in one response: each rung through `mcp__pob2__guide_run {view: {plan:
-  "<plan>", stage: "<id>"}}` (`m`, `b`, `n`: its `tree` with its `needs`, its `loadoutName`, `respec`,
-  `skills.groups`, `skills.cull`, `skills.engagement`, `skills.boss` and claims), and Grep `plan.json` for its
+  "<plan>", stage: "<id>"}}` (`m`, `b`, `n`: its `tree` with its `needs`, its `loadoutName`, `skills.groups`,
+  `skills.cull`, `skills.engagement`, `skills.boss`, `defence` and claims), and Grep `plan.json` for its
   `prices` entries and its `boss_<stage>` ledger entries; `run-log.json` (is pricing stopped, D-444? a
   `pricing.stops[]` entry with no `retry-pricing` answer in `pricing.retries[]` and no resume,
   `resumes[].lengths.stages`, after it: `references/run-log.md`, "Pricing stops"); `data/economy/prices.json`,
   the league table and the conversion table; and `<buildFolder>/pieces.md`'s table (D-434), when the build has
   one, for step 6, with `<buildFolder>/trades.json` (D-439), when it exists, and the reference files
-  `.claude/skills/build-guide/references/toughness-targets.json` (D-441) and
+  `.claude/skills/build-guide/references/toughness-targets.json` (D-441; its `arbiter.hitsSurvivedFloor`, 0.8,
+  D-449) and
   `.claude/skills/build-guide/references/boss-floor.json` (D-448). After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, its ledger values, and
   every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
   `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Grep the record for the fields the text
@@ -134,17 +135,14 @@ findings.
    - **tree** (D-419), PoB's node power on each rung, after the compile loaded them: call
      `mcp__pob2__get_node_power` in compact mode on `m`, `b` and `n`, in that order, with D1-tree's arguments
      (`D1-tree.md`, "The arguments"): `loadout` the rung's loadout name, exactly as the record has it
-     (`stages.<id>.loadoutName`); `keep` the nodes of its `tree.needs`, for `b` and `n` also every node of the
-     rung before's `tree.nodes`, and every node a later rung's `respec.dropped` lists; `protect_for` the later
-     rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the
+     (`stages.<id>.loadoutName`); `keep` the nodes of its `tree.needs`, nothing else, and no `protect_for`
+     (D-452: each loadout's tree is its own, so a swap may touch any node of the rung but its needs); `clear_group`,
+     always, the record's group number of the
      rung's first enabled `role: "clear"` group (the `g<N>` of its `skillOutputs` keys), else the main group's
      (the tool's default is the main group); `max_loss: {clearUses: 2}`, as D1-tree passes it (2% on TotalEHP and on the
      clear skill's uses per second; movement speed and the clear skill's radius at 0); `limit: 0`; `stats:
      ["MainDamage", "TotalEHP"]`, with `cull: true` on a rung with `skills.cull` (D-437), so the gate ranks by the
-     figure the design shows; `maxHit` keeps its default 2% (D-439). On a respec rung (one with `respec`, D-438)
-     `keep` holds, of the rung before's nodes, those it still holds, and `protect_for` names only the later rungs
-     that grow from the rung, never one that respecs from it. Step 3's
-     compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
+     figure the design shows; `maxHit` keeps its default 2% (D-439). Step 3's compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel` and
      `points` (its untagged main-tree nodes), and its `Best swap:` line the swap left: `none: …`, or `+<x>% Main
      damage (+<n>); …`, its gain in percent the first figure, then `Remove <N> points: <Name> [<id>], …` and `Add <M>
      points: <Name> [<id>], …`, the nodes by name, and `Searched from branch …` or `branches …`, the branches it
@@ -204,13 +202,39 @@ findings.
      claim's phrases, split at `; ` (`[]` without the entry). The rung's **boss figure** is the estimate when
      there is one, else the measured figure;
    - `trades[]` (D-439), the rung's entries of `<buildFolder>/trades.json`, copied as the file holds them (`[]`
-     for none, and when the file is absent): D1-tree's `unmodelled` and D1-finish's `boots`, `defence` and
-     `damage`. A gate that re-runs alone reads the same file;
+     for none, and when the file is absent): D1-tree's `unmodelled` and D1-finish's `boots`, `defence`, `damage`
+     and `avoidance`, each with its `maxHit` and `hitsSurvived` in a build held to amendment 12 (D-450). A gate
+     that re-runs alone reads the same file;
    - on the non-budget rung only: `toughness {engagement, reason, target, band}` (D-441), `engagement` and `reason`
      the plan's `n.skills.engagement`, `target` `toughness-targets.json`'s for that kind, and `band` the record's
      `TotalEHP` against it: `under` below `under` × the target, `over` above `over` × the target, else `within`;
      and in `boss`, `floor`, `boss-floor.json`'s `floor`, and `under`, `true` when the boss figure is below it
-     (D-448).
+     (D-448);
+   - **amendment 12's toughness reading and resisting figure** (D-449, D-454), from the record's
+     `stages.<id>.measures` and `references/toughness-targets.json`:
+     - per variant rung, `damage.resisting`: `damage {map, resisting, boss}`, `resisting` the record's
+       `measures.damage.resisting`, the named source's figure against the map enemy with 40% fire, cold and
+       lightning resistance (`null` where the record's is);
+     - per `b` and `n` rung, `maxHit {lowest, immune, arbiter, oneShot}`: `lowest` the record's
+       `measures.toughness.lowestMaxHit` (`{type, value}`, or `null`) and `immune` its `immune` list; `arbiter`
+       the **deciding row** of `measures.arbiter.rows` (the rung's one-shot row with the lowest `hitsSurvived`,
+       else its row with the largest ratio), `{type, evade, deflect, hitsSurvived, deflectedRatio, method}`:
+       `type` the row's, `evade`, `deflect` and `method` the record's `measures.arbiter.avoid` (`0`, `0` and
+       `null` without it), `hitsSurvived` and `deflectedRatio` the row's, unrounded; `null` when no row has a
+       ratio. `oneShot` is `true` when that row is `one-shot` and its `hitsSurvived` / 100 is below the floor,
+       `arbiter.hitsSurvivedFloor` (0.8; 79.6% is under it, though the display shows 79%), else `false`;
+     - on `n`, `toughness` gains `chanceShare`, the record's `measures.toughness.chance.share` × 100, the percent of
+       the EHP that evade, block and deflection make (`null` when the record's is); `conditioned {ehp, band}`, the
+       record's `measures.toughness.conditioned.ehp` (every condition against the build: unlucky rolls, been hit
+       recently, not blinded, Wind Dancer at 0) and its band against the same target, or `null`; `ailmentCut`,
+       deflection's average cut to ailment damage from hits, the record's `DeflectChance` (against the map enemy)
+       × `DeflectEffect` / 100, which PoB doesn't apply (PG-97), `null` when the build deflects nothing; and
+       `warning {kind, type, fix}`, in plain words on the display: **`one-shot`** when the EHP is within or over
+       its band and `n` is a one-shot rung, `type` the deciding row's; else **`conditioned`** when the conditioned
+       EHP is under its band, `type` the conditioned lowest max hit's; else `null`. `fix` is the fix family for
+       the type: "the pool, armour or a physical shift" for `physical`, "the pool, armour, a physical shift or
+       lightning resistance" for `physical-lightning`, else "the pool or <type> resistance" ("the pool or fire
+       resistance"). The display adds PG-100's note itself when the record's `avoid.companionDeflected` is set.
 
    Then `estimates[]`, one short line per open estimate the display rests on: a group's Count, a custom
    modifier, a ledger hand calculation (a `boss_<stage>` estimate among them), an `unverified` budget, the rough
@@ -218,7 +242,10 @@ findings.
    call failed`). The run checker recomputes the band, the estimate, the floor and the trades from the record,
    the plan, the ledger, the two reference files and `trades.json`, and fails a design field that disagrees, a
    non-budget rung whose plan has no `skills.engagement`, or a non-budget rung out of its band or under the floor
-   with no trade of its kind.
+   with no trade of its kind. In a build held to amendment 12 it also recomputes the deciding row, the one-shot
+   rung, the lowest max hit, the chance-layer share, the conditioned band, the ailment cut and the warning, and
+   fails a one-shot rung with no `defence` trade, a damage trade there that lowers the deciding row's max hit,
+   an evasion build's `b` or `n` with no `avoidance` trade, and a schema-8 plan's `n` with no `defence` plan.
 
 ## Writes
 
@@ -252,28 +279,56 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
     "pieces": { "in": 5, "scheduled": 0, "out": 1, "scheduledNames": [] },
     "rungs": [
       { "stage": "b", "dps": 98412, "ehp": 31250, "ehpHit": "T15 map hits, area 79: 402 physical",
-        "arbiter": "survives, worst physical 0.82",
+        "arbiter": "one-shot, worst physical 1.05",
+        "maxHit": { "lowest": { "type": "physical", "value": 3320 }, "immune": [],
+                    "arbiter": { "type": "physical", "evade": 40, "deflect": 70, "hitsSurvived": 82, "deflectedRatio": 0.63, "method": "pass" },
+                    "oneShot": false },
         "clearSpeed": "fast", "anoint": "Unbending: Ire, Guilt, Greed",
         "gear": "Sekhema's Resolve; rare boots, 35% movement speed and resistances",
-        "gems": "Blood Hunt with Martial Tempo and Rupture; Herald of Blood",
+        "gems": "Twister with Martial Tempo and Rupture; Herald of Blood",
         "tree": { "travel": 9, "points": 113, "bestSwap": { "gainPercent": 3.4, "removed": ["Dexterity", "Agile Succession"], "added": ["Cold Nature", "Rhythm of Ice"],
                                                          "branches": [ { "name": "Agile Succession", "points": 2 } ] },
-                  "needs": [ "Mana on Kill and Mana Regeneration: Blood Hunt's mana in long fights", "Iron Reflexes: the floor's armour" ] },
-        "damage": { "map": 98412, "boss": 121000 }, "cull": null, "trigger": null,
-        "boss": { "measured": 121000, "estimate": null, "corrections": [] }, "trades": [] },
-      { "stage": "n", "dps": 240100, "ehp": 16900, "ehpHit": "T16 map hits, area 82: 439 physical",
-        "arbiter": "survives, worst physical 0.71",
+                  "needs": [ "Mana on Kill and Mana Regeneration: Twister's mana in long fights", "Freedom of Movement: deflection for the Arbiter's slam" ] },
+        "damage": { "map": 98412, "resisting": 81000, "boss": 121000 }, "cull": null, "trigger": null,
+        "boss": { "measured": 121000, "estimate": null, "corrections": [] },
+        "trades": [ { "stage": "b", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Sure Footing)",
+                      "ehpChange": 5, "damageChange": -7, "bossAfter": 112500,
+                      "reason": "the same 20 points on the best EHP nodes: +12% EHP, hits survived 82%",
+                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 88.3 } },
+                    { "stage": "b", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
+                      "ehpChange": 1, "damageChange": 0, "bossAfter": 121000, "reason": "in place of the helmet's least valuable line",
+                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 84.1 } } ] },
+      { "stage": "n", "dps": 240100, "ehp": 17900, "ehpHit": "T16 map hits, area 82: 439 physical",
+        "arbiter": "one-shot, worst physical 1.01",
+        "maxHit": { "lowest": { "type": "physical", "value": 3451 }, "immune": [],
+                    "arbiter": { "type": "physical", "evade": 32, "deflect": 70, "hitsSurvived": 79.6, "deflectedRatio": 0.61, "method": "pass" },
+                    "oneShot": true },
         "clearSpeed": "fast", "anoint": "Unbending: Ire, Guilt, Greed",
-        "gear": "Apron of Emiran; a Spiked Spear with physical damage; rare boots, 35% movement speed",
-        "gems": "Blood Hunt with Martial Tempo, Rupture and Bloodlust; Herald of Blood",
-        "tree": { "travel": 12, "points": 120, "bestSwap": null, "needs": [ "Iron Reflexes: the floor's armour" ] },
-        "damage": { "map": 240100, "boss": 180000 }, "cull": null, "trigger": null,
+        "gear": "a Spiked Spear with physical damage; rare boots, 35% movement speed",
+        "gems": "Twister with Martial Tempo, Rupture and Bloodlust; Herald of Blood",
+        "tree": { "travel": 12, "points": 120, "bestSwap": null, "needs": [ "Freedom of Movement: deflection for the Arbiter's slam" ] },
+        "damage": { "map": 240100, "resisting": 198000, "boss": 180000 }, "cull": null, "trigger": null,
         "boss": { "measured": 180000, "estimate": null, "corrections": [], "floor": 250000, "under": true },
-        "trades": [ { "stage": "n", "kind": "defence", "what": "a rare body with life and resistances and Crimson Assault",
-                      "ehpChange": 17, "damageChange": -9, "bossAfter": null, "reason": "under the toughness band" },
+        "trades": [ { "stage": "n", "kind": "defence", "what": "a rare body with +90 life in place of its cold resistance line",
+                      "ehpChange": 6, "damageChange": 0, "bossAfter": 180000, "reason": "one-shot by the Arbiter's physical hit",
+                      "maxHit": { "type": "physical", "before": 3451, "after": 3520 }, "hitsSurvived": { "before": 79.6, "after": 100 } },
+                    { "stage": "n", "kind": "defence", "what": "12 points into deflection (Freedom of Movement, Agile Succession)",
+                      "ehpChange": 4, "damageChange": -3, "bossAfter": 172800,
+                      "reason": "one-shot by the Arbiter's physical hit; cuts Hammer of the Gods against a boss by 4%",
+                      "maxHit": { "type": "physical", "before": 3451, "after": 3451 }, "hitsSurvived": { "before": 79.6, "after": 84.2 } },
+                    { "stage": "n", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Agile Succession, Sure Footing)",
+                      "ehpChange": 6, "damageChange": -8, "bossAfter": 165600,
+                      "reason": "the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%",
+                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 90.1 } },
+                    { "stage": "n", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
+                      "ehpChange": 1, "damageChange": 0, "bossAfter": 180000, "reason": "in place of the helmet's least valuable line",
+                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 82.4 } },
                     { "stage": "n", "kind": "damage", "what": "moving 4 points from Bone Breaker to Vicious Bite",
-                      "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor" } ],
-        "toughness": { "engagement": "close", "reason": "Blood Hunt lunges into the pack and the boss", "target": 20000, "band": "under" } }
+                      "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor",
+                      "maxHit": { "type": "physical", "before": 3451, "after": 3451 }, "hitsSurvived": null } ],
+        "toughness": { "engagement": "distance", "reason": "Twister flies across the screen", "target": 15000, "band": "within",
+                       "chanceShare": 51, "conditioned": { "ehp": 10900, "band": "under" }, "ailmentCut": 34,
+                       "warning": { "kind": "one-shot", "type": "physical", "fix": "the pool, armour or a physical shift" } } }
     ],
     "estimates": [ "b: clear speed is a rough estimate from the skill's area" ]
   },

@@ -229,8 +229,9 @@ describe('AC-W86: D1-build keeps synthesizing (D-434)', () => {
     expect(pieces).toMatch(/It is out only when no schedule holds both sides and it is worth less than the piece it fights/);
   });
 
-  it('answers question 19 on every build whose clear skill is limited or pack-shaped', () => {
-    expect(pieces).toMatch(/\*\*Answer question 19\*\* on every build whose clear skill is limited \(a cost, a cooldown, a charge count\) or shaped for packs: a boss button, or why none is needed, in a `## Searched` line/);
+  // Amendment 12 §13 (WU-125, D-458, P6, AC-W97): question 19 on every build, no longer only a limited clear skill's.
+  it('answers question 19 on every build: the boss button when the clear skill is limited or pack-shaped, else why none is needed', () => {
+    expect(pieces).toMatch(/\*\*Answer question 19 on every build\*\* \(D-458\): what it presses on a boss; when the clear skill is limited \(a cost, a cooldown, a charge count\) or shaped for packs, the boss button, else why none is needed, in a `## Searched` line/);
   });
 
   it('writes pieces.md, Appendix A\'s form with `## Searched`, outside the round copy; the header\'s writes name it as the task header does', () => {
@@ -252,7 +253,8 @@ describe('AC-W86: D1-build keeps synthesizing (D-434)', () => {
     expect(EXAMPLE_ROWS.every((r) => r.length === 7 && (r[3] === 'in' || r[5] !== ''))).toBe(true);
     const searched = lines.slice(lines.indexOf('## Searched') + 1).filter((l) => l.startsWith('- '));
     expect(searched.length).toBeGreaterThan(0);
-    for (const l of searched) expect({ l, form: /^- Q(1[5-9]) after .+: searched .+; found .+$/.test(l) }).toEqual({ l, form: true });
+    // Amendment 12 (D-457): the wall rule's searches are question 2's lines, in the same form; the library asks 1–24.
+    for (const l of searched) expect({ l, form: /^- Q([1-9]|1\d|2[0-4]) after .+: searched .+; found .+$/.test(l) }).toEqual({ l, form: true });
     expect(searched.some((l) => l.startsWith('- Q19 '))).toBe(true);
   });
 

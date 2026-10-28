@@ -13,6 +13,10 @@
  *   and the design gate's lines, put through `run-log.mjs display design`; the codes; the routes.
  * - `references/stages/D2.md`, `references/stages/W1.md`, the guide and audit templates, `SKILL.md`, `patterns.md`.
  *
+ * Amendment 12 (WU-125) supersedes D-438's respec rungs (D-452), the trades' `bossAfter` rule (D-456), the verdict
+ * line's figures and label (D-454, D-459) and the design field's shape (D-449): the assertions on those read the
+ * current text, and `buildGuideAmendment12Design.test.ts` holds AC-W97 and AC-W98.
+ *
  * Numbers and names are read from the amendment (`docs/build-guide/spec/amendment-11-live-test-fixes.md`), the two
  * reference files, the run scripts and the tool's own schema, so the text is held to the spec and to the code that
  * reads it; the examples are put through the real run checker and display.
@@ -109,8 +113,10 @@ const DESIGN_LINES: Record<string, RegExp> = {
   trigger: /^- .+ is triggered by .+: PoB rates it at its hand-cast speed \([\d.]+ a second\) and doesn't model Energy\.$/,
   toughness: /^- Toughness: [\d,]+ against the [\d,]+ target for a (close|distance) build( \(.+\))?, (under its band \([\d,]+\)|over its band \([\d,]+\)|within its band \([\d,]+–[\d,]+\))\.$/,
   unmodelled: /^- Kept for .+, which PoB can't measure: .+ would (add|cost) [\d.]+% damage\.$/,
-  defence: /^- Defence: .+: [+−][\d.]+% EHP(, [+−][\d.]+% damage)?\.$/,
-  damageTrade: /^- Damage: .+: [+−][\d.]+% damage( \(boss about [\d,]+\))?(, [+−][\d.]+% EHP)?\.$/,
+  // Amendment 12 (D-450, run-log.mjs's tradeLines): a defence trade on a one-shot rung reads `Defence (one-shot)`, with
+  // the deciding row's max hit and hits survived before its EHP, and a boss cut over 2% last.
+  defence: /^- Defence( \(one-shot\))?: .+: (.+; )?[+−][\d.]+% EHP(, [+−][\d.]+% damage)?(; cuts .+ against a boss by [\d.]+%)?\.$/,
+  damageTrade: /^- Damage: .+: [+−][\d.]+% damage( \(boss about [\d,]+\))?(, [+−][\d.]+% EHP)?(; .+)?\.$/,
   swap: /^- Passive tree: \d+ of \d+ points on travel; best swap left( \(weapon set [12]\))?: (none|\+[\d.]+% damage by moving \d+ points from .+ to .+)$/,
 };
 
@@ -125,9 +131,11 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
   const gateRaw = rawStage('D1-gate');
   const gate = folded(gateRaw);
 
-  it('D1-build writes tree.scales, marks respec rungs and writes their respec, writes skills.cull, skills.engagement (its reason and the default rule), skills.boss and items.bootsException, and names the boots tier per rung', () => {
+  it('D1-build writes tree.scales (and, under amendment 12, no respec), skills.cull, skills.engagement (its reason and the default rule), skills.boss and items.bootsException, and names the boots tier per rung', () => {
     expect(build).toMatch(/Write each rung's `tree\.scales`, one short line naming the stats that scale it/);
-    expect(build).toMatch(/is a \*\*respec rung\*\*: write its `respec \{dropped, goldCost, note\}`, `note` naming the change and its gate/);
+    // Amendment 12 (WU-125, D-452) retires D-438's respec rungs: a schema-8 plan has no respec.
+    expect(build).toMatch(/\*\*Mark no respec:\*\* a schema-8 plan has no `respec`/);
+    expect(build).not.toMatch(/respec rung\*\*: write its `respec/);
     expect(build).toMatch(/\*\*`skills\.cull`\*\*, on a rung whose rotation culls: the user \(2026-10-25\), "Map damage with cull if and only if the build explicitly utilizes culling in its skill rotation\. Otherwise, map damage, no cull\."/);
     // §9's default rule, as the amendment words it, in D1-build with its kinds as code.
     const rule = /\(proceed-on, §20\): (a minion, totem, trap or mine type, or a projectile skill that travels, is distance; a strike, slam or area around the character is close)\./.exec(SPEC)![1];
@@ -140,14 +148,12 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(build).toContain('The tier per rung: **30% on `m`, 35% on `b` and `n`**');
   });
 
-  it('D1-tree keeps only serving prior nodes on a respec rung, propagates and protects along grow links only, runs the rebuild pass, measures unmodelled needs with free, writes trades.json, and returns respec:', () => {
-    expect(tree).toMatch(/\*\*A respec rung: keep only the prior nodes that still serve\*\* \(D-438\)\. .* A node of the rung before \*\*serves\*\* this rung when it is a need of this rung, or removing its branch \(`Removing the branch:`\) costs 1% or more of the base `Main damage` or `Total EHP`/);
-    expect(tree).toMatch(/\*\*Up the ladder, along grow links only\*\* \(D-438\)/);
-    expect(tree).toMatch(/`protect_for`: .* \*\*along grow links only\*\* \(D-438\): a rung protects nodes for a later rung that grows from it, directly or through rungs that grow, never for one that respecs from it/);
+  it('D1-tree runs the rebuild pass, measures unmodelled needs with free, and writes trades.json; amendment 12 retires its respec rungs, grow links and respec: return', () => {
+    // Amendment 12 (WU-125, D-452): one tree per loadout, so no serving test, no grow links and no `respec:` return.
+    expect(tree).not.toMatch(/A respec rung: keep only|along grow links|`respec: <stage> needs one/);
     expect(tree).toMatch(/Then \*\*the rebuild pass\*\*, once: the same call with `rebuild: true`, .* When its `Rebuild:` line is legal and gains Main damage, it beats the loop's tree: make it a change/);
-    expect(tree).toMatch(/Measure its cost on each rung that holds it with `free: \[<the need's nodes>\]` \(the prior rung's copies freed too/);
+    expect(tree).toMatch(/Measure its cost on each rung that holds it with `free: \[<the need's nodes>\]` \(`free` overrides `keep`\)/);
     expect(tree).toMatch(/`<buildFolder>\/trades\.json` \(D-439, outside `buildSha1`\), the trades the design gate shows: write it whole/);
-    expect(tree).toMatch(/return `respec: <stage> needs one: <why>`: the runner logs your outcome `respec` and runs D1-build next, in the same attempt/);
   });
 
   it('D1-finish reads references/toughness-targets.json and references/boss-floor.json, and states their values', () => {
@@ -194,13 +200,14 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(n.boss.under).toBe((n.boss.estimate ?? n.boss.measured) < FLOOR);
   });
 
-  it("checkpoints.md's design gate shows them, and a respec request routes D1-build first", () => {
+  it("checkpoints.md's design gate shows them, and (amendment 12) a respec request is a tree request", () => {
     const design = between(rawRef('checkpoints.md'), '## The design gate: judge the endgame build', "## The final gate: the build's guide");
     const lines = blockAfter(design, '- **Show**').split('\n').map((l) => l.trim());
     for (const [kind, form] of Object.entries(DESIGN_LINES).filter(([k]) => k !== 'damageTrade')) {
       expect({ kind, shown: lines.some((l) => form.test(l)) }).toEqual({ kind, shown: true });
     }
-    expect(folded(design)).toMatch(/\*\*a respec the user asks for runs D1-build first\*\* \(D-438\), even when only the tree changes/);
+    // Amendment 12 (WU-125, D-452, AC-W98): a respec the user asks for is a tree request, D1-tree then D1-finish.
+    expect(folded(design)).toMatch(/\*\*a respec the user asks for is a tree request\*\* \(D-452: each loadout's tree is its own\), D1-tree then D1-finish/);
   });
 
   it('D2.md names campaign scaling and writes campaign respecs, and its boots follow the tiers', () => {
@@ -213,9 +220,10 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(d2).toContain(TIERS.map((t, i) => `${t.speed}% from ${i === 0 ? 'item level ' : ''}${t.itemLevel}`).join(', '));
   });
 
-  it("the guide templates' verdict lines carry two figures, in the run checker's form", () => {
-    const form = /const VERDICT_FORM_A11 = '([^']*)';/.exec(CHECKER_TEXT)![1];
-    const label = "<survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>";
+  it("the guide templates' verdict lines carry three figures and amendment 12's label forms, in the run checker's form", () => {
+    // Amendment 12 (WU-125, D-454, D-459): the resisting figure between the two, and the label's three forms.
+    const form = /const VERDICT_FORM_A12 = '([^']*)';/.exec(CHECKER_TEXT)![1];
+    const label = /const ARBITER_LABEL_A12 = "([^"]*)";/.exec(CHECKER_TEXT)![1];
     const want = (name: string) => [
       form.replace('<Entering maps|Budget|Non-budget>', 'Entering maps'),
       form.replace('<Entering maps|Budget|Non-budget>', 'Budget').replace('<solid|watch|risky>', label),
@@ -225,12 +233,13 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
       const got = template(name).split('\n').filter((l) => /^- \*\*(Entering maps|Budget|Non-budget) \(L<level>\)/.test(l)).map((l) => ({ name, l }));
       expect(got).toEqual(want(name));
     }
-    expect(form).toContain('<Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss.');
+    expect(form).toContain('<Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss.');
   });
 
-  it("SKILL.md routes D1-tree's respec and D1-finish's build, has no rival row, and stays within 325 lines; patterns.md stays within its word cap (provisional 16,000)", () => {
-    expect(SKILL).toMatch(/\*\*Two returns send an attempt back to D1-build\*\*, in the same attempt \(D-438, D-446\): D1-tree's `respec: <stage> needs one: <why>`, logged `respec`, .* and D1-finish's `build: <ids>`, logged `build`/);
-    // The run checker's order table allows exactly those routes.
+  it("SKILL.md routes D1-finish's build (amendment 12: D1-tree's respec only in an older run), has no rival row, and stays within 325 lines; patterns.md stays within its word cap (provisional 16,000)", () => {
+    expect(SKILL).toMatch(/\*\*D1-finish's `build: <ids>` sends an attempt back to D1-build\*\*, in the same attempt \(D-446\), logged `build`/);
+    expect(SKILL).toMatch(/D1-tree never returns `respec:` \(D-452\)/);
+    // The run checker's order table keeps an older run's routes (amendment 12 §7, "Routes").
     expect(CHECKER_TEXT).toContain("'D1-tree': p?.outcome === 'respec' ? ['D1-build'] : ['D1-finish'],");
     expect(CHECKER_TEXT).toMatch(/'D1-finish': .*p\?\.outcome === 'build' \? \['D1-build'\]/);
     const rows = SKILL_RAW.split('\n').filter((l) => /^\| \d+[a-c]? \|/.test(l));
@@ -258,8 +267,9 @@ describe('D-437 (§5): one damage figure, against map monsters and a boss, ranke
   });
 
   it('D1-build reads the key-figure line as plan-reference.md documents it, and says headline DPS nowhere', () => {
-    expect(read(path.join(REPO, 'docs', 'build-guide', 'plan-reference.md'))).toContain('`damage <map> against map monsters, <boss> against a Pinnacle boss` (`measures.damage`)');
-    expect(stage('D1-build')).toContain('`damage <map> against map monsters, <boss> against a Pinnacle boss`');
+    // Amendment 12 (D-454): the key-figure line gives the resisting figure between the two.
+    expect(folded(read(path.join(REPO, 'docs', 'build-guide', 'plan-reference.md')))).toContain('`damage <map> against map monsters, <resisting> against resisting rares, <boss> against a Pinnacle boss` (`measures.damage`)');
+    expect(stage('D1-build')).toContain('`damage <map> against map monsters, <resisting> against resisting rares, <boss> against a Pinnacle boss`');
     for (const name of ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'W1']) expect({ name, headline: /headline DPS/.test(stage(name)) }).toEqual({ name, headline: false });
   });
 
@@ -275,16 +285,16 @@ describe('D-437 (§5): one damage figure, against map monsters and a boss, ranke
 });
 
 describe('D-438 (§6): respec when the scaling changes, otherwise grow', () => {
-  it('gold is a note on b and n, weighed on m and the campaign; the gates and the D2 gate check each respec', () => {
-    expect(stage('D1-build')).toMatch(/On `b` and `n` the gold is a note, never a reason to skip a respec \(the user, 2026-10-24: "By the time the user gets to mid to late endgame, the gold cost for respec is not an obstacle"\); on `m` it is weighed as D-282 weighs it/);
+  it('gold is a note (amendment 12: on every rung); a schema-7 plan\'s campaign weighs it, and the D2 gate checks each schema-7 respec', () => {
+    expect(stage('D1-build')).toMatch(/Gold is a note, never a reason to keep a node\./);
     expect(stage('D2')).toMatch(/On a campaign stage the gold cost is weighed, as D-282 weighs it/);
-    expect(ref('gates.md')).toMatch(/each respec, a stage whose scaling changes from the one before it, D-438, checked with its gold cost, D-282/);
+    expect(ref('gates.md')).toMatch(/each respec, a stage whose scaling changes from the one before it, D-438, checked with its gold cost, D-282, on a plan at schema 7 or earlier/);
   });
 
-  it("D1-tree writes respec.dropped and the names into the note, removes an empty respec, and a respecting rung's dropped follows a change below it", () => {
+  it("D1-tree writes no respec.dropped: amendment 12 retires the respec rungs (D-452)", () => {
     const tree = stage('D1-tree');
-    expect(tree).toMatch(/write `respec\.dropped` as the prior rung's nodes this rung no longer holds, with their names, as the tool names them, in `respec\.note` after the change it names \(the guide names them\); remove a respec that drops nothing/);
-    expect(tree).toMatch(/each added node it lacks joins `dropped` \(with its name in `note`\), and each removed node leaves `dropped`/);
+    expect(tree).not.toMatch(/respec\.dropped|respec\.note/);
+    expect(tree).toMatch(/no respec \(a schema-8 plan has none\)/);
   });
 
   it('D2 makes m a respec rung when its scaling differs from the last campaign stage\'s', () => {
@@ -307,13 +317,17 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
     expect(stage('D1-tree')).toMatch(/Run `mcp__pob2__check_model_coverage \{nodes: \[<the need's nodes>\]\}` on each need of the rung/);
   });
 
-  it("D1-tree's and D1-finish's trades.json examples are Appendix A's shape, and the run checker accepts them", () => {
+  it("D1-tree's and D1-finish's trades.json examples are Appendix A's shape at revision 12, and the run checker accepts them", () => {
     const fromTree = JSON.parse(blockAfter(rawStage('D1-tree'), '`<buildFolder>/trades.json` (D-439')) as Json;
     const fromFinish = JSON.parse(blockAfter(rawStage('D1-finish'), '## Writes')) as Json;
     const trades = [...fromTree.trades, ...fromFinish.trades];
     expect(TRADE_FIELDS).toEqual(['stage', 'kind', 'what', 'ehpChange', 'damageChange', 'bossAfter', 'reason']);
-    for (const t of trades) expect(Object.keys(t)).toEqual(TRADE_FIELDS);
-    const dir = copyFixture('run-a11');
+    // Amendment 12 (D-450, §22, Appendix A): a build held to revision 12 carries maxHit and hitsSurvived on every
+    // entry, so the examples go through a revision-12 fixture (the 9 fields fail at revision 11).
+    const a12 = folded(read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-12-defence-and-design.md')));
+    expect(a12).toMatch(/In a build held to revision 12 every entry carries `maxHit` and `hitsSurvived`, `null` where they don't apply/);
+    for (const t of trades) expect(Object.keys(t)).toEqual([...TRADE_FIELDS, 'maxHit', 'hitsSurvived']);
+    const dir = copyFixture('run-a12');
     fs.writeFileSync(path.join(dir, 'builds', A11_BUILD, 'trades.json'), `${JSON.stringify({ trades }, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
     expect(r.stderr.split('\n').filter((l) => l.startsWith('check-run: [trades] trades.json'))).toEqual([]);
@@ -345,7 +359,7 @@ describe('D-441 (§9): toughness targets, with trades below and above', () => {
   it('the defence trade lets damage fall at most 15%; the damage trade over the band keeps EHP at the target; none found says so', () => {
     const finish = stage('D1-finish');
     expect(finish).toMatch(/node power's best swap ranked by `TotalEHP`, with \*\*`MainDamage` allowed to fall at most 15%\*\*/);
-    expect(finish).toMatch(/When none is found, the trade says so: `what: "none found: <why>"`, its changes and `bossAfter` null/);
+    expect(finish).toMatch(/When none is found, the trade says so: `what: "none found: <why>"`, its changes, `bossAfter`, `maxHit` and `hitsSurvived` null/);
     expect(CHECKER_TEXT).toContain('const NONE_FOUND = /^none found: \\S/;');
   });
 });
@@ -361,7 +375,8 @@ describe('D-447, D-448 (§9b): the boss estimate and the boss floor', () => {
   });
 
   it("the floor is the floor file's, the damage trade under it carries bossAfter, and gates.md states the checker's rules", () => {
-    expect(stage('D1-finish')).toMatch(/Its `bossAfter` is the boss figure × \(1 \+ `damageChange` \/ 100\)/);
+    // Amendment 12 (D-456): D1-finish measures bossAfter on the trade's temporary stage, no longer boss × (1 + change).
+    expect(stage('D1-finish')).toMatch(/`bossAfter` comes from that measure: the temporary stage's boss figure .*, never the boss figure × \(1 \+ `damageChange` \/ 100\)/);
     expect(ref('gates.md')).toMatch(/\*\*The boss floor\*\* from `references\/boss-floor\.json` \(`floor` 250,000\)/);
     expect(ref('gates.md')).toMatch(/a `boss_<stage>` formula with no `<stage>\.boss\.g<group>s<skill>p<statSet>` reference, or one outside the stage's rotation \(`skills\.boss`\), fails/);
     expect(whole(FLOOR)).toBe('250,000');
@@ -369,7 +384,8 @@ describe('D-447, D-448 (§9b): the boss estimate and the boss floor', () => {
 
   it("the D1 gate example's design field prints, through run-log.mjs, the design gate's lines in Appendix A's forms", () => {
     const example = JSON.parse(blockAfter(rawStage('D1-gate'), '## Writes')) as Json;
-    const dir = copyFixture('run-a11');
+    // Amendment 12 (WU-125): the example is a revision-12 design field, displayed against the revision-12 fixture.
+    const dir = copyFixture('run-a12');
     const file = path.join(dir, A11_GATE);
     const g = JSON.parse(fs.readFileSync(file, 'utf8')) as Json;
     g.design = { ...example.design, rungs: example.design.rungs };
@@ -434,8 +450,11 @@ describe('D-446 (§14): the order rule and the pool move\'s weapon set', () => {
 
 describe('§19: an older record, plan or design keeps its own form', () => {
   it('W1, the templates, the audit template, D2 and the D1 gate keep the old forms for an older record or plan', () => {
-    expect(stage('W1')).toMatch(/A record with no `measures\.damage` \(compiled before amendment 11\) keeps the one-figure form, "<Skill> about <n> DPS\.", its `measures\.dps`/);
-    expect(template('audit-template.md')).toContain('[A record from before amendment 11, with no measures.damage, keeps the older column: `| Loadout | Level | Life | Named source DPS | …`');
+    expect(stage('W1')).toMatch(/one with no `measures\.damage` \(compiled before amendment 11\) the one-figure form, "<Skill> about <n> DPS\.", its `measures\.dps`/);
+    // Amendment 12 (§22): a record with no resisting figure keeps two.
+    expect(stage('W1')).toMatch(/A record with no `damage\.resisting` \(compiled before amendment 12\) keeps the two figures/);
+    // Amendment 12 (§22): a record from before it keeps the two-figure column, one from before amendment 11 the older one.
+    expect(template('audit-template.md')).toContain('[A record from before amendment 12, with no measures.damage.resisting, keeps two figures: `| Loadout | Level | Life | Damage, map / boss | …`. A record from before amendment 11, with no measures.damage, keeps the older column: `| Loadout | Level | Life | Named source DPS | …`');
     expect(stage('D2')).toMatch(/a plan at an earlier version \(a build designed before amendment 11\) keeps its version and takes no schema-7 field/);
     expect(stage('D1-gate')).toMatch(/\(`dps` stays for old readers: the display shows `damage`\)/);
   });
@@ -451,16 +470,19 @@ describe('Appendix A: the formats in the design docs', () => {
   it("the D1 gate's design field additions are Appendix A's keys", () => {
     const example = JSON.parse(blockAfter(rawStage('D1-gate'), '## Writes')) as Json;
     const n = example.design.rungs.find((r: Json) => r.stage === 'n');
-    expect(Object.keys(n.damage)).toEqual(['map', 'boss']);
+    // Amendment 12 (D-454, D-449): damage gains `resisting`, toughness its four additions.
+    expect(Object.keys(n.damage)).toEqual(['map', 'resisting', 'boss']);
     expect(Object.keys(n.boss)).toEqual(['measured', 'estimate', 'corrections', 'floor', 'under']);
-    expect(Object.keys(n.toughness)).toEqual(['engagement', 'reason', 'target', 'band']);
+    expect(Object.keys(n.toughness)).toEqual(['engagement', 'reason', 'target', 'band', 'chanceShare', 'conditioned', 'ailmentCut', 'warning']);
     expect(Object.keys(example.design.pieces)).toEqual(['in', 'scheduled', 'out', 'scheduledNames']);
     expect(SPEC).toMatch(/`toughness \{engagement: "close" \| "distance", reason, target, band: "under" \| "within" \| "over"\}`, `boss \{measured, estimate \| null, corrections: \[<short phrase>\]\}` \(on the non-budget rung also `floor` and `under`/);
   });
 
   it("the run log's routes and outcomes are Appendix A's, in SKILL.md and gates.md", () => {
     expect(SPEC).toContain('Routes: D1-tree(`respec`) → D1-build; D1-finish(`build`) → D1-build, both in the same attempt.');
-    expect(ref('gates.md')).toMatch(/Inside an attempt, two returns send D1 back to D1-build in the same attempt \(D-438, D-446\): D1-tree's `respec: <stage> needs one: <why>` \(logged `respec`\), and D1-finish's `build: <ids>` \(logged `build`\)/);
-    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs and respecs), `trades.json` | `done` or `respec:`');
+    // Amendment 12 (D-452): D1-tree has no respec outcome in a new run; an older run's log keeps its route.
+    expect(ref('gates.md')).toMatch(/Inside an attempt, D1-finish's `build: <ids>` \(logged `build`\) sends D1 back to D1-build in the same attempt \(D-446\)/);
+    expect(ref('gates.md')).toMatch(/An older run's log keeps its routes: there D1-tree's `respec: <stage> needs one: <why>` \(logged `respec`\) sent D1 back to D1-build too \(D-438\)/);
+    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs, tree jewels and their prices), `trades.json`, `pieces.md`\'s jewel lines | `done`, each rung\'s travel; `unspent:` and `jewel:` lines |');
   });
 });

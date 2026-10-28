@@ -48,7 +48,7 @@ names exactly.
 |---|---|---|
 | `R1b` | `compiled`, and `damage` when its verdict has it (D-436) | the skeleton compiled with no compile error (C-36), and no `damage-missing` finding: each kind of damage the card names shows a figure on the named source |
 | `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill`, `tree` | see below |
-| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192: the campaign track, then the endgame ladder `m` → `b` → `n`, each respec, a stage whose scaling changes from the one before it, D-438, checked with its gold cost, D-282); the final compile then succeeded |
+| `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192: the campaign track, then the endgame ladder `m` → `b` → `n`, each respec, a stage whose scaling changes from the one before it, D-438, checked with its gold cost, D-282, on a plan at schema 7 or earlier; a schema-8 plan has no respec and no continuity check, each loadout's tree its own, D-452); the final compile then succeeded |
 | `F1` | `compiled`, `v1`, `v2` | the endgame-only build's final compile (D-413, `stages/F1.md`): the plan is the one the passing D1 gate compiled (its `planSha1`), it compiled measure-only with V1 and V2 passing for every stage, and the final compile then succeeded; its verdict file is `reports/gates/F1-<id>-a<n>.json`, in the D2 gate's shape with `stage: "F1"` |
 
 ## The D1 gate's parts (slice 03 §5.3)
@@ -119,10 +119,9 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   every breakdown field its ledger formula reads, is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
 - **tree**, the passive tree's travel (D-418, D-419). After the compile, which loads every rung, the gate calls
   `mcp__pob2__get_node_power` in compact mode on each rung with D1-tree's arguments: the rung's loadout; `keep`,
-  the nodes of its needs (`tree.needs`), for `b` and `n` every node of the rung before, and every node a later
-  rung's `respec.dropped` lists (on a respec rung, the prior nodes it still holds); `protect_for`, the later
-  rungs' loadouts that grow from the rung (D-438: along grow links only, never a rung that respecs);
-  `clear_group` and `max_loss`; and `stats: ["MainDamage", "TotalEHP"]`, `cull: true` on a rung with
+  the nodes of its needs (`tree.needs`) and nothing else, and no `protect_for` (D-452: one tree per loadout, so a
+  swap may touch any node of the rung but its needs); `clear_group` and `max_loss`; and `stats: ["MainDamage",
+  "TotalEHP"]`, `cull: true` on a rung with
   `skills.cull` (D-437; `stages/D1-tree.md`). Node power frees its weakest branches alone and in pairs and
   triples, and its guards include the lowest maximum hit taken (D-439). A rung **fails** when its best swap
   left gains at least **5%** damage (`Main damage`; a pool move on a set without the main group, Full DPS) within
@@ -152,13 +151,48 @@ shows each trade and the user decides. The run checker holds them to their sourc
   `skills.engagement`. A rung under its band has a `defence` trade, one over it a `damage` trade.
 - **The boss floor** from `references/boss-floor.json` (`floor` 250,000) and the boss figure: a `boss.floor`
   other than the file's, or a `boss.under` that disagrees, fails; a rung under the floor has a `damage` trade,
-  whose `bossAfter` is the boss figure × (1 + `damageChange` / 100).
+  whose `bossAfter` is the boss figure × (1 + `damageChange` / 100) in a build held to amendment 11 (amendment 12
+  measures it, below).
 - **The boss estimate** (D-447): a design field whose `boss.estimate` differs from the ledger's value fails; a
   `boss_<stage>` formula with no `<stage>.boss.g<group>s<skill>p<statSet>` reference, or one outside the stage's
   rotation (`skills.boss`), fails; and a rotation with a `triggered` entry (the record's `measures.bossGroups`)
   or an entry with `turns`, and no `boss_<stage>` entry, fails.
 - **A trade that found nothing** says so, `what: "none found: <why>"` with its changes `null`, and counts as the
   trade shown.
+
+### The toughness reading, the resisting figure and the trades (amendment 12)
+
+In a build whose last D1 gate is held to amendment 12's rules (`skillRevision` 12 from its boundary, §22), the
+design field (`stages/D1-gate.md` step 6) also carries, per variant rung, `damage.resisting` (D-454: the named
+source's figure against the map enemy with 40% fire, cold and lightning resistance); per `b` and `n` rung, `maxHit
+{lowest, immune, arbiter, oneShot}` (D-449); and on `n`, `toughness`'s `chanceShare`, `conditioned {ehp, band}`,
+`ailmentCut` and `warning {kind, type, fix} | null`. None is a gate part, and none fails the gate. The run checker
+recomputes them from the record and `references/toughness-targets.json`:
+- **The deciding row** is a rung's one-shot Arbiter row with the lowest hits survived, else its row with the largest
+  ratio; **a one-shot rung** is one whose deciding row is `one-shot` with `hitsSurvived` / 100 below the targets
+  file's `arbiter.hitsSurvivedFloor`, 0.8, unrounded (79.6% is one-shot, 80% isn't), evasion and deflection counting
+  alike. A design field whose `oneShot`, deciding row, chances, lowest max hit, chance-layer share, conditioned band
+  or ailment cut disagrees fails; so does a record row whose hits survived exceeds Names' rule (100% when it
+  survives the full hit; else the evade chance plus the rest × the deflect chance when its deflected hit survives;
+  else the evade chance).
+- **The warning** (G4, G5 its first case): the one-shot warning when the EHP is within or over its band and `n` is a
+  one-shot rung; else the conditioned warning when the conditioned EHP is under its band; else none. Its `fix` is the
+  fix family of its type: "the pool, armour or a physical shift" (physical), "the pool, armour, a physical shift or
+  lightning resistance" (the physical-lightning mix), else "the pool or <type> resistance".
+- **The trades** (D-450): a one-shot rung (`b` or `n`) has a `defence` trade, its reason `one-shot by the Arbiter's
+  <type> hit`; its defence and damage entries carry `maxHit {type, before, after}`, the deciding row's Pinnacle-pass
+  max hit, and a damage trade there whose `maxHit.after` is below `before` fails; an evasion build's `b` and `n` (its
+  `n`'s `defence.base` includes `evasion`) have an `avoidance` trade. `none found: <why>` counts as the trade shown.
+- **`trades.json` by revision** (§22, Appendix A): every entry of a build held to revision 12 has the 9 fields, `maxHit`
+  and `hitsSurvived` `null` where they don't apply (`maxHit` on a one-shot rung's defence and damage entries,
+  `hitsSurvived` on the defence and avoidance entries of a build that evades or deflects); kinds `unmodelled`,
+  `boots`, `defence`, `damage` and `avoidance`, a defence or avoidance trade on `b` or `n`; a defence
+  trade's `reason` is `one-shot by the Arbiter's <type> hit` or `under the toughness band`, either one followed only
+  by a boss cut, `; cuts <entry> against a boss by <x>%`. `bossAfter` is measured on the trade's temporary stage
+  (D-456), so the checker doesn't recompute it. A build held to 11 keeps the 7 fields and amendment 11's rule for
+  `bossAfter`.
+- **The defence plan** (D-451): a schema-8 plan's `n` has `defence {base, chance, mitigation, pool, physicalHit}`; a
+  schema-7 plan's has none to state.
 
 ### The basis: what the run checker reads from the D1 gate's file
 
@@ -286,6 +320,8 @@ it never fails (D-371).
 | v1 | `movement-tier` | a schema-7 stage's boots carry less movement speed than its tier: 30% on `m`, 35% on `b` and `n`, a campaign stage's the highest its area level allows (D-440); a valid `items.bootsException` makes it the V1 note `boots-exception` instead |
 | v1 | `boots-exception` | the boots under their tier, covered by the stage's `items.bootsException` (a travel skill in the record for `travel`, unique boots for `unique`): read from the record's `stages.<id>.v1.notes`, information on a passing `v1`, never a failure (D-440) |
 | R1b `damage` | `damage-missing` | a kind of damage the card names shows nothing on the named source: the attempt fails, and R1b retries within its counted retries (D-436) |
+| v1 | `curse-level-cap` | a schema-8 plan's gem whose curse (or Frost Bomb's exposure, or Thunderstorm's Wet) stops applying below the stage's area level: its cap, at the gem's level with gear's +levels, above 0 and below 69 on `m`, 79 on `b`, 82 on `n`, or a campaign stage's `area-level`; PoB never reads the cap (D-455, PG-86) |
+| v1 | `custom-defence` | a schema-8 plan's custom modifier line whose parsed mods add a pool or a defence (life, energy shield, mana, ward, armour, evasion, deflection, block, resistance, damage taken) and whose `reason` names no `coverage: <status>` result from `mcp__pob2__check_model_coverage` (D-451) |
 | v1 | `not-granted` | a group whose skill gem, or whose `minionSkill`, a passive grants (`Grants Skill:`), on a stage that allocates none of those passives (D-380): PoB measures the skill anyway, the game doesn't give it. The compile passes (D-192), the `v1` part fails, and D1 or D2 allocates a granting passive from that stage on |
 
 ## The D1 gate's outcome
@@ -311,9 +347,11 @@ and `rolledSkill`, and both before the tree. "D1 re-runs" is its three steps, D1
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
 
 An escalation's option 2 (guidance) after the D1 gate runs D1 from the step the guidance needs (D1-build, or
-D1-tree for the tree alone), then the gate. Inside an attempt, two returns send D1 back to D1-build in the same
-attempt (D-438, D-446): D1-tree's `respec: <stage> needs one: <why>` (logged `respec`), and D1-finish's `build:
-<ids>` (logged `build`); D1-tree and D1-finish then run again.
+D1-tree for the tree alone), then the gate. Inside an attempt, D1-finish's `build: <ids>` (logged `build`) sends
+D1 back to D1-build in the same attempt (D-446); D1-tree and D1-finish then run again. In a run held to amendment
+12's rules D1-tree has no `respec` outcome (D-452): a respec the user asks for is a tree request. An older run's
+log keeps its routes: there D1-tree's `respec: <stage> needs one: <why>` (logged `respec`) sent D1 back to D1-build
+too (D-438).
 
 ## The D2 gate's outcome
 

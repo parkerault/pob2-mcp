@@ -274,47 +274,78 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   Non-budget endgame (level 95):
   - Clear speed: fast (rough).
   - Movement speed: +35% over your base speed; no travel skill.
-  - The Arbiter of Divinity: survives its hits (its worst, a physical hit, is 0.71 of your max hit).
+  - The Arbiter of Divinity: one-shot by its physical hit (1.01 of your max hit); survives 79% of them by evading or deflecting (evades 32%, deflects 70% at its accuracy of 3,786; a deflected hit is 0.61 of your max hit), under the 80% floor.
+  - Lowest max hit: 3,451 physical.
   - Damage: 2,717,385 per second against map monsters.
   - Boss damage: about 320,000 per second against a Pinnacle boss (PoB alone: 222,149 at Detonate Dead's hand-cast 1.46 a second; estimated: trigger rate: Cast on Critical's 2.1 a second from the crit rate).
   - Boss floor: about 320,000 against the 250,000 floor.
+  - Resisting rares: 1,700,000 per second (40% fire, cold and lightning resistance).
   - Culls normal monsters at 91%, bosses at 13%.
   - Detonate Dead is triggered by Cast on Critical: PoB rates it at its hand-cast speed (1.46 a second) and doesn't model Energy.
-  - Effective HP: 16,900 (against T16 map hits, area 82: 439 physical).
-  - Toughness: 16,900 against the 20,000 target for a close build (Reap and the corpse blasts need the pack next to you), under its band (18,000).
+  - Effective HP: 18,900 (against T16 map hits, area 82: 439 physical); 51% of it from chance layers (evade, block, deflection).
+  - Toughness: 18,900 against the 20,000 target for a close build (Reap and the corpse blasts need the pack next to you), within its band (18,000–30,000).
+  - With every condition against it (unlucky rolls, hit recently, not blinded, Wind Dancer at 0): 11,400, under its band (18,000).
+  - Deflection cuts ailment damage from hits by about 34% on average; PoB doesn't apply it.
+  - Warning: the EHP reads within its band, but the Arbiter's physical hit one-shots this build, and 51% of the EHP is chance layers. The fix is the pool, armour or a physical shift.
   - Anoint: Unbending: Ire, Guilt, Greed
   - Gear: Apron of Emiran; rare boots, 35% movement speed and resistances
   - Gems: Detonate Dead with Cast on Critical; Reap with Bloodlust
   - Passive tree: 13 of 118 points on travel; best swap left: +3.1% damage by moving 5 points from <nodes> to <nodes>
   - Kept on the tree: the attribute nodes the gems' requirements need
   - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
-  - Defence: a rare body with life and resistances and Crimson Assault: +17% EHP, −9% damage.
+  - Defence (one-shot): a rare body with +90 life in place of its cold resistance line: the Arbiter's physical max hit (Pinnacle pass) 3,451 → 3,520, survives the full hit, hits survived 79% → 100%; +6% EHP, +0% damage.
+  - Defence (one-shot): 12 points into deflection (<nodes>): hits survived 79% → 84%; +4% EHP, −3% damage; cuts Reap against a boss by 4%.
+  - Avoidance: 20 points into deflection (<nodes>): hits survived 79% → 90%; +6% EHP, −8% damage (the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%).
+  - Avoidance: a rare helmet's deflection rating line (about 2 divines, 0 points): hits survived 79% → 82%; +1% EHP, +0% damage (in place of the helmet's least valuable line).
   ```
 
-  Clear speed and movement speed lead, then the Arbiter line (D-407). The movement line names the rung's travel skill
-  and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427). `m` shows no
-  Arbiter and no anoint. **The damage lines** (D-437, D-447, D-448): the named source's damage figure against map
+  Clear speed and movement speed lead, then the Arbiter lines (D-407, D-449). The movement line names the rung's
+  travel skill and its uses a second (`; travel skill <skill>, <n> uses a second`, or `; no travel skill`; D-427).
+  `m` shows no Arbiter and no anoint. **The Arbiter lines** (D-449), on `b` and `n`, from the rung's deciding row
+  (its one-shot row with the lowest hits survived, else its row with the largest ratio), hits survived rounded down
+  to a whole percent so no figure rounds up across the 80% floor: `survives its hits` with its worst ratio; or
+  `survives <x>% of its <type> hits by evading or deflecting them`, with the chances at the Arbiter's accuracy of
+  3,786 and the deflected and full hits against your max hit; or `one-shot by its <type> hit`, with what it survives
+  and `under the 80% floor`: a one-shot rung. With PoB's formula in place of the measure pass and armour on the
+  build, the deflected part adds `(by formula; optimistic with armour)`; a deflected hit that kills too reads `a
+  deflected hit kills too, so only evading counts`. Then `Lowest max hit: <n> <type>`, the least of PoB's five max
+  hits; and on a build where a companion takes part of each deflected hit, the note that hits survived reads high
+  (PG-100). **The damage lines** (D-437, D-447, D-448, D-454): the named source's damage figure against map
   monsters, never PoB's Full DPS, with its cull only when the rung's rotation culls (`skills.cull`); then the boss
   line, `about <estimate>` with PoB's own figure and what the estimate corrects when D1-finish estimated it by
   hand (`boss_<stage>`), else the measured figure alone; on the non-budget rung the boss floor line, the boss
   figure against the 250,000 floor (`references/boss-floor.json`), `under the 250,000 floor` with a damage trade
-  below it; the cull line; and the trigger line when a meta gem triggers the named source. The Effective HP line
-  names the hit it was measured against (the rung's `ehpHit`, D-423). **On the non-budget rung, the toughness
-  line** (D-441): its EHP against its target in `references/toughness-targets.json`, 20,000 for a close build and
-  15,000 at a distance, with the engagement and its reason, so the user can correct it, and its band: under it
-  (below 90%), within it, or over it (above 150%). The tree lines follow the Gems line (D-419): the points the rung
-  spends on travel, nodes that give the build nothing themselves and only connect it to nodes that do, of its
-  points; the best swap PoB's node power still finds (`+<x>% damage by moving <n> points from <nodes> to <nodes>`,
-  or `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then each need
-  the tree keeps whatever node power says, one line each, so the user sees why a long branch stays. **Then the
-  rung's trades** (D-439, D-440, D-441, D-448), each with what it gains and what it costs, for the user to take or
-  leave: a need PoB can't measure, with what the same points would add elsewhere; boots under their tier by an
-  exception, the speed given up and why; a defence trade on a rung under its band; a damage trade on a rung over
-  its band or under the floor, with the boss figure it implies (`boss about <n>`); `none found: <why>` when the
-  design found none. No trade is a gate failure. Then the open estimates, one line each from `estimates[]`, the
-  gate's verdict line, and the verdict file's path. Under the display, in your reply, give each `not made:` line
-  D1-tree returned in this design (a tree change the user asked for that it couldn't make, with its why), so the
-  user hears it before deciding.
+  below it; **the resisting figure**, the same damage against the map enemy with 40% fire, cold and lightning
+  resistance, where penetration and resistance reduction show (no threshold); the cull line; and the trigger line
+  when a meta gem triggers the named source. The Effective HP line names the hit it was measured against (the
+  rung's `ehpHit`, D-423), and on the non-budget rung the share of it chance layers make. **On the non-budget rung,
+  the toughness line** (D-441): its EHP against its target in `references/toughness-targets.json`, 20,000 for a close
+  build and 15,000 at a distance, with the engagement and its reason, so the user can correct it, and its band: under
+  it (below 90%), within it, or over it (above 150%). Then (D-449) the conditioned read, the EHP with every
+  condition against the build, and its band; on a build that deflects, deflection's average cut to ailment damage,
+  which PoB doesn't apply (PG-97); and **the warning**, in plain words, when the EHP reads within or over its band
+  but the Arbiter one-shots the rung, or the conditioned EHP falls under its band, naming the hit's type and the
+  fix family (the pool, armour or a physical shift for a physical hit). The tree lines follow the Gems line (D-419):
+  the points the rung spends on travel, nodes that give the build nothing themselves and only connect it to nodes
+  that do, of its points; the best swap PoB's node power still finds (`+<x>% damage by moving <n> points from <nodes>
+  to <nodes>`, or `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then
+  each need the tree keeps whatever node power says, one line each, so the user sees why a long branch stays.
+  **Then the rung's trades** (D-439, D-440, D-441, D-448, D-450), each with what it gains and what it costs, for the
+  user to take or leave: a need PoB can't measure, with what the same points would add elsewhere; boots under their
+  tier by an exception, the speed given up and why; **on a one-shot rung, up to three `Defence (one-shot)` trades**,
+  the ones that clear it first, with the deciding row's max hit (Pinnacle pass) and hits survived before and after;
+  a defence trade on a non-budget rung under its band; **on an evasion build's `b` and `n`, the avoidance trades**,
+  the next avoidance spend and a gear line, with hits survived before and after and what the same points give on the
+  best EHP nodes; a damage trade on a rung over its band or under the floor, with the boss figure it implies (`boss
+  about <n>`); a trade that cuts a boss-rotation entry by more than 2% says so last (`cuts <entry> against a boss by
+  <x>%`); `none found: <why>` when the design found none. No trade is a gate failure. Then the open estimates, one
+  line each from `estimates[]`, the gate's verdict line, and the verdict file's path. Under the display, in your
+  reply, give each `not made:` line D1-tree returned in this design (a tree change the user asked for that it
+  couldn't make, with its why), each `jewel:` line it returned (a jewel socket taken on `b` or `n`, its lines and
+  what it adds, D-453), and each `stronger structure: <the means>: <why>` line D1-build returned (D-457) as a
+  choice: the user takes it as a `revise:` when the roll (class, ascendancy, skill) stays; one that changes the roll
+  is a successor card, made at the verification gate (`verification`, a new card whose `from` is this card,
+  D-391). So the user hears them before deciding.
 - **Taking a trade** is a revise: the user's words name the trade ("take the defence trade"), and the change
   goes to the step that owns it, below.
 - **After a pricing stop** (D-444), the gate asks its pricing question before its other questions; after
@@ -326,13 +357,15 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     guide. A guide can follow in a later session (`guide:<id>` after `--resume`, D-415).
   - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).
     A build change (gear, the gems or the config, with or without the tree) runs D1-build with it, then D1-tree,
-    then D1-finish; **a respec the user asks for runs D1-build first** (D-438), even when only the tree changes,
-    so D1-build marks the rung and D1-tree completes it; any other change to the tree alone runs D1-tree with it,
-    then D1-finish (a node the user asks for becomes a need, D-418); a change to the anoint, the prices, the
-    ledger, the boss estimate, the claims or a trade's measure runs D1-finish alone with it, and when it returns
-    `build: <ids>`, D1-build with those, D1-tree, then D1-finish with its `changed`. Within the attempt, D1-tree's
-    `respec:` return and D1-finish's `build:` return each send it back to D1-build (`gates.md`, "The D1 gate's
-    outcome"). Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
+    then D1-finish; a change to the tree alone runs D1-tree with it, then D1-finish (a node the user asks for
+    becomes a need, D-418), and **a respec the user asks for is a tree request** (D-452: each loadout's tree is its
+    own), D1-tree then D1-finish; on a plan still at schema 7 (a build designed before amendment 12), D1-build runs
+    first, to move the plan to schema 8 (proceed-on). A change to the anoint, the prices, the ledger, the boss
+    estimate, the claims or a trade's measure runs D1-finish alone with it, and when it returns `build: <ids>`,
+    D1-build with those, D1-tree, then D1-finish with its `changed`. Within the attempt, D1-finish's `build:`
+    return sends it back to D1-build (`gates.md`, "The D1 gate's outcome"); D1-tree has no `respec:` return in a
+    run held to amendment 12. Taking a `stronger structure:` line that keeps the roll is a revise like any other,
+    D1-build first. Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
     keeps its 2 counted retries. A change that isn't a revision of the finalized build (a new card, by the rule
     above) isn't a revise: say so, and offer **verification**. There the user's words carry into the
     restatement, as a new card whose `from` is the finalized card.
@@ -348,13 +381,18 @@ Checkpoint 2, once per build. Shown after the run checker (step 15). Recorded as
 
 - **Show** (`display final --build <id>`, which runs the run checker) the build's guide and `audit.md` paths; the
   PoB file (the verdict's `finalCompile.pobFile` of the build's last final compile, F1's or the D2 gate's); the
-  gate verdicts; each endgame rung's figures from the final compile record (D-437, D-447): `<rung label>: <map>
-  damage per second against map monsters, <boss> against a Pinnacle boss; Effective HP <n>`, the map figure the
-  named source's damage figure (culling counted only when the rung's `skills.cull` says the rotation culls) and the
-  boss figure the record's evaluated `boss_<stage>` ledger value when the design estimated one (`about <n>`), else
-  its measured `damage.boss`; then its Arbiter verdict with the worst ratio, rough clear speed and travel (the last
-  D1 gate verdict's tree, D-419), with the design gate's beside them where they moved since (D-369); a build whose
-  record predates amendment 11 shows its one DPS figure, `measures.dps`; the known issues (the open V4 findings and the accepted gate
+  gate verdicts; each endgame rung's figures from the final compile record (D-437, D-447, D-454): `<rung label>:
+  <map> damage per second against map monsters, <resisting> against resisting rares, <boss> against a Pinnacle
+  boss; Effective HP <n>`, the map figure the named source's damage figure (culling counted only when the rung's
+  `skills.cull` says the rotation culls), the resisting figure the same against the map enemy with 40% fire, cold
+  and lightning resistance, and the boss figure the record's evaluated `boss_<stage>` ledger value when the design
+  estimated one (`about <n>`), else its measured `damage.boss`; then on `b` and `n` its Arbiter verdict in the guide
+  label's three forms (D-459), from the deciding row against the 80% floor: `survives the Arbiter's hits`,
+  `survives <x>% of the Arbiter's <type> hits, by evading or deflecting them`, or `one-shot by the Arbiter's <type>
+  hit` with `(it survives <x>% of them)` when x is above 0; rough clear speed and travel (the last D1 gate verdict's
+  tree, D-419), with the design gate's beside them, in the same forms, where they moved since (D-369); a build
+  whose record predates amendment 12 shows its two figures and the older label, one that predates amendment 11 its
+  one DPS figure, `measures.dps`; the known issues (the open V4 findings and the accepted gate
   findings); the run checker's result; each rung's total range at its price day against its target, and its
   over-target slots (the D1 gate's last verdict file, D-371, D-374); when any price is `unavailable`, that the
   rung's total isn't known (D-164); and in offline mode, that the guide is from an offline run.

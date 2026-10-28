@@ -10,7 +10,9 @@
  * - `references/stages/D1-tree.md` (new): the ladder order; every call with the rung's loadout, `keep`,
  *   `clear_group`, `protect_for` and `max_loss`; every rung a swap touches compiled together; a swap applied up
  *   the ladder; undone when a floor fails or V1 gains a finding; the undone swap written as a floor need; spare
- *   points; the 3% stop and 8 swaps per rung; the floor first; counts only in its return; no respec.
+ *   points; the 3% stop and 8 swaps per rung; the floor first; counts only in its return; no respec. Amendment 12
+ *   (WU-125, D-452) makes each loadout's tree its own: `keep` is the rung's needs, no `protect_for`, a change stays on
+ *   its rung, and the assertions below read that.
  * - `references/stages/F1.md` (new): the sha1 check against the passing D1 gate, `accepted`, `buildName`, its
  *   verdict file in the D2 gate's shape, its routes and its four escalation options (D-413).
  * - `references/stages/D1-finish.md`: the needs' `reason` claims, and the ascendancy order's claim (D-413).
@@ -83,11 +85,11 @@ describe('the amendment and the checker agree on the numbers the skill text uses
 describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascendancy order', () => {
   const build = folded(readStage('D1-build'));
 
-  // Amendment 11 (WU-115): schema 7 carries the scaling, the cull, the engagement, the boss rotation and the boots
-  // exception (plan-reference.md, "Builds a player would run").
-  it('writes plan schema 7, in the build\'s folder', () => {
-    expect(build).toContain('at `schemaVersion: 7`');
-    expect(build).not.toMatch(/`schemaVersion: [56]`/);
+  // Amendment 12 (WU-125, D-452, §22): schema 8 carries the defence plan and refuses respec (plan-reference.md,
+  // "Defence that holds and one tree per loadout"); an edited plan moves to it.
+  it('writes plan schema 8, in the build\'s folder', () => {
+    expect(build).toContain('at `schemaVersion: 8`');
+    expect(build).not.toMatch(/`schemaVersion: [567]`/);
     expect(build).toContain('`writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`');
     expect(build).toMatch(/`<plan>` is `<runFolderRel>\/<buildFolder>\/plan\.json` \(`<runFolderRel>\/plan\.json` when `buildFolder` is `\.`\)/);
   });
@@ -123,7 +125,9 @@ describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascenda
   });
 
   it("no longer tunes the tree by pathing to targets beyond the skeleton's: that is D1-tree's (D-418)", () => {
-    expect(build).toMatch(/Start from the skeleton's tree, a sketch of the card's targets \(D-418\): keep its targets with their paths, and path to what the needs below require; never path to a further target for damage or clear\. That tuning is D1-tree's/);
+    // Amendment 12 (WU-125, D-452): each rung's tree is seeded from the stage before it; m, with no campaign stage,
+    // from the skeleton's sketch of the card's targets.
+    expect(build).toMatch(/Seed each rung's tree from the stage before it \(step 3\); `m`, with no campaign stage, starts from the skeleton's tree, a sketch of the card's targets \(D-418\)\. Keep the card's targets with their paths, and path to what the needs below require; never path to a further target for damage or clear\. That tuning is D1-tree's/);
     expect(build).toMatch(/D1-tree \(`D1-tree\.md`\), a fresh step, then spends the trees' spare points and shortens their travel/);
   });
 
@@ -131,7 +135,9 @@ describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascenda
     const text = readStage('D1-build');
     const returns = text.slice(text.indexOf('## Returns'), text.indexOf('## Fault directives'));
     expect(folded(returns)).toMatch(/one line `for D1-tree:` with each rung's floor/);
-    expect(returns).toContain('for D1-tree: floor holds on m, b, n; needs m 3, b 2, n 1');
+    // Amendment 12 (WU-125, D-452): no respec rungs; a need is written on every rung that holds it.
+    expect(returns).toContain('for D1-tree: floor holds on m, b, n; needs m 3, b 3, n 2');
+    expect(returns).not.toMatch(/respec/);
     expect(folded(readStage('D1-tree'))).toMatch(/\*\*Prompt:\*\* D1-build's `for D1-tree:` line/);
   });
 
@@ -148,24 +154,28 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
 
   it('is a coordinator stage reference in the others\' form: header, writes, returns at most 8 lines, no fault directive', () => {
     expect(raw.split('\n')[0]).toBe('# D1-tree: trees that minimize travel (`build-guide-coordinator`)');
-    const h2 = raw.split('\n').filter((l) => l.startsWith('## '));
+    // Headings outside fenced blocks: the Writes section shows pieces.md's `## Jewel lines` in a block.
+    const h2 = raw.replace(/```[\s\S]*?```/g, '').split('\n').filter((l) => l.startsWith('## '));
     expect(h2).toEqual(['## Inputs', '## Work', '## Writes', '## Returns', '## Fault directives']);
-    // Amendment 11 (WU-115, D-439): D1-tree writes the unmodelled needs' trades too.
-    expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json", "<buildFolder>\/trades\.json"\]`/);
+    // Amendment 11 (WU-115, D-439): D1-tree writes the unmodelled needs' trades too; amendment 12 (WU-125, D-453):
+    // and pieces.md's jewel lines.
+    expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json", "<buildFolder>\/trades\.json", "<buildFolder>\/pieces\.md"\]` \(`pieces\.md` for its `## Jewel lines` only, D-453\)/);
     expect(tree).toMatch(/a fresh coordinator step between D1-build \(`D1-build\.md`\) and D1-finish \(`D1-finish\.md`\)/);
     const returns = raw.slice(raw.indexOf('## Returns'), raw.indexOf('## Fault directives'));
     expect(returns).toMatch(/At most 8 lines, counts only/);
   });
 
-  it('runs the ladder in order, m, then b, then n, after the floor holds on each rung', () => {
-    expect(tree).toMatch(/the rungs in ladder order, \*\*`m`, then `b`, then `n`\*\*, each to the end before the next/);
+  it('runs the rungs in order, m, then b, then n, after the floor holds on each rung', () => {
+    expect(tree).toMatch(/Then the rungs, \*\*`m`, then `b`, then `n`\*\*, each to the end before the next/);
     expect(tree).toMatch(/\*\*Start: the floor first\.\*\* Compile `m`, `b` and `n` together .* The loop runs only once every rung's floor holds: when any rung's floor fails, change nothing/);
   });
 
-  it('gives every call the rung\'s loadout, keep, protect_for, clear_group and max_loss', () => {
-    expect(tree).toMatch(/Every `mcp__pob2__get_node_power` call on a rung, here and at the D1 gate, comes after a compile that loaded every rung it names \(`mcp__pob2__compile_plan \{stages\}` loads only the named stages: the rung and every later rung\), and has: - `loadout`: the rung's loadout name, exactly as the compile record has it/);
-    expect(tree).toMatch(/- `keep`: the nodes of the rung's `tree\.needs`; for `b` and `n`, also every node of the rung before's `tree\.nodes`, so a swap touches only the nodes the rung adds/);
-    expect(tree).toMatch(/- `protect_for`: the later rungs' loadout names, exactly as the record has them, `m`'s `b` and `n`, `b`'s `n`, none for `n`/);
+  it('gives every call the rung\'s loadout, keep (its needs only), no protect_for, clear_group and max_loss', () => {
+    expect(tree).toMatch(/Every `mcp__pob2__get_node_power` call on a rung, here and at the D1 gate, comes after a compile that loaded the rung \(`mcp__pob2__compile_plan \{stages\}` loads only the named stages\), and has: - `loadout`: the rung's loadout name, exactly as the compile record has it/);
+    // Amendment 12 (WU-125, D-452, AC-W97): one tree per loadout: keep is the rung's needs, no protect_for.
+    expect(tree).toMatch(/- `keep`: the nodes of the rung's `tree\.needs`, and nothing else \(D-452\): no rung keeps the rung before's nodes, so a swap may touch any node of the rung but its needs/);
+    expect(tree).toMatch(/- \*\*no `protect_for`\*\* \(D-452\): the tool keeps the parameter, but no rung protects nodes for another/);
+    expect(tree).not.toMatch(/`protect_for`: the later rungs/);
     // WU-92's verifier: the tool defaults to the main group, so the clear group is always passed.
     expect(tree).toMatch(/- `clear_group`, \*\*always\*\*: the record's group number of the rung's first enabled `role: "clear"` group .* else the main group's/);
     // The coordinator's guard ruling (amendment 9 §23): the clear skill's uses per second may drop up to 2%, as the
@@ -175,15 +185,15 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/`limit: 0`, the compact mode, for a swap/);
   });
 
-  it('applies a swap up the ladder and compiles every rung it touches together before measuring again', () => {
-    // Amendment 11 (WU-115, D-438): along grow links only; a rung that respecs keeps its tree, its respec.dropped follows.
-    expect(tree).toMatch(/\*\*Up the ladder, along grow links only\*\* \(D-438\): a change on `m` goes to `b` when `b` grows from `m`, and to `n` when `n` grows from `b` too; one on `b` to `n` when `n` grows from `b`/);
-    expect(tree).toMatch(/\*\*A rung that respecs\*\* from the changed rung keeps its tree; its `respec\.dropped` follows the change instead/);
-    expect(tree).toMatch(/\*\*Compile every rung it touches together\*\*: `mcp__pob2__compile_plan \{plan_path: "<plan>", measure_only: true, stages: \[<the rung and every later rung>\]\}`, which also loads the later rungs' loadouts that `protect_for` names/);
+  it('applies a change on its rung only, compiled alone, with no ladder propagation (D-452)', () => {
+    // Amendment 12 (WU-125, AC-W97): a change no longer goes up the ladder, and there is no respec to follow it.
+    expect(tree).toMatch(/\*\*On that rung only\*\* \(D-452\): a change goes up no ladder/);
+    expect(tree).toMatch(/\*\*Compile the rung\*\*: `mcp__pob2__compile_plan \{plan_path: "<plan>", measure_only: true, stages: \["<the rung>"\]\}`/);
+    expect(tree).not.toMatch(/Up the ladder|grow links|respec\.dropped|A rung that respecs/);
   });
 
-  it('undoes a swap when a touched rung\'s floor fails or V1 gains a finding, a need\'s missing-reason expected', () => {
-    expect(tree).toMatch(/\*\*Undo\*\* a change on every rung it touched when a compile fails, any touched rung's floor fails, or V1 gains a finding/);
+  it('undoes a change when its rung\'s floor fails or V1 gains a finding, a need\'s missing-reason expected', () => {
+    expect(tree).toMatch(/\*\*Undo\*\* a change when its compile fails, the rung's floor fails, V1 gains a finding, or your own move fails the boss guard/);
     expect(tree).toMatch(/its V1 findings against the last compile's: a code on a stage that it didn't have before is a new finding\. A need's `missing-reason` \(`tree\.needs\[<m>\]\.claim`\) doesn't count/);
   });
 
@@ -197,7 +207,7 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/The tool's `points` count the untagged nodes only, so never take spare points from them on a rung with weapon-set nodes/);
     expect(tree).toMatch(/The \*\*allowance\*\* is V1's: `level` − 1, plus the quests' passive points at `endgame` .* plus PoB's `ExtraPoints`/);
     expect(tree).toMatch(/The Martyr point isn't spare/);
-    expect(tree).toMatch(/a swap can free some: one applied up the ladder \(the rung already held some of the added nodes\), or one whose new paths use fewer points than it freed/);
+    expect(tree).toMatch(/a swap can free some: one whose new paths use fewer points than it freed/);
     expect(tree).toMatch(/Spend them on the rung's best nodes per point: call the tool with `limit: 15` and take its best unallocated nodes in rank order/);
     // V1's own rule, which the count above restates: regular points are allocated less the smaller weapon set.
     const v1 = read(path.join(REPO, 'src', 'plan', 'checks', 'v1.ts'));
@@ -207,7 +217,7 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
 
   it('ends each rung with no unspent regular point, or returns the points left with a reason D1-finish claims', () => {
     expect(tree).toMatch(/\*\*No unspent point\*\*: after the loop, spend the rung's spare points again as step 2 does, so the rung ends with every regular point the level allows spent\. A point left .* is returned with its reason, `unspent: <rung> <k>: <why>`, which D1-finish writes as a `reason` claim on the rung/);
-    expect(tree).toMatch(/and its regular points left unspent \(0 unless step 4 couldn't spend them\)/);
+    expect(tree).toMatch(/and its regular points left unspent \(0 unless step 5 couldn't spend them\)/);
     expect(readStage('D1-tree')).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0');
     expect(folded(readStage('D1-finish'))).toMatch(/D1-tree's `unspent: <rung> <k>: <why>` lines, each a `reason` claim on that rung/);
   });
@@ -223,10 +233,10 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(tree).toMatch(/\*\*A need with a stat\*\* is met by node power on it: for each of the rung's needs with a `stat`, call the tool with `stats: \["<the need's stat>", "MainDamage"\]`/);
   });
 
-  // Amendment 11 (WU-115, D-438): D1-tree completes the respecs D1-build marked, never marks one, and returns respec:.
-  it('completes the respecs D1-build marked and marks none, and returns counts only: travel before and after, and the swaps', () => {
-    expect(tree).toMatch(/You complete the respecs D1-build marked and never mark one yourself: a scaling change it missed is a `respec:` return/);
-    expect(tree).toMatch(/no respec but the ones D1-build marked, which you complete \(step 3\) or follow \(a change up the ladder\)\. Validate/);
+  // Amendment 12 (WU-125, D-452, AC-W97): no respec of any kind, and no `respec:` return.
+  it('writes no respec and returns no respec:, and returns counts only: travel before and after, and the swaps', () => {
+    expect(tree).toMatch(/and no respec \(a schema-8 plan has none\)\. Validate/);
+    expect(tree).not.toMatch(/`respec: <stage> needs one|respec rung|serving test/);
     expect(tree).toMatch(/each rung's travel before and after, its swaps and how many were undone/);
     expect(raw).toContain('m: travel 21 → 8; swaps 4, 1 undone; spare points 0; unspent 0');
   });
@@ -317,8 +327,9 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
 
   it('measures each rung with get_node_power in compact mode, with D1-tree\'s arguments, after the compile', () => {
     expect(gate).toMatch(/- \*\*tree\*\* \(D-419\), PoB's node power on each rung, after the compile loaded them: call `mcp__pob2__get_node_power` in compact mode on `m`, `b` and `n`, in that order, with D1-tree's arguments/);
-    expect(gate).toMatch(/`keep` the nodes of its `tree\.needs`, for `b` and `n` also every node of the rung before's `tree\.nodes`/);
-    expect(gate).toMatch(/`protect_for` the later rungs' loadout names, as the record has them; `clear_group`, always, the record's group number of the rung's first enabled `role: "clear"` group .*; `max_loss: \{clearUses: 2\}`, as D1-tree passes it \(2% on TotalEHP and on the clear skill's uses per second; movement speed and the clear skill's radius at 0\); `limit: 0`/);
+    // Amendment 12 (WU-125, D-452): keep is the rung's needs, and no protect_for.
+    expect(gate).toMatch(/`keep` the nodes of its `tree\.needs`, nothing else, and no `protect_for` \(D-452: each loadout's tree is its own/);
+    expect(gate).toMatch(/`clear_group`, always, the record's group number of the rung's first enabled `role: "clear"` group .*; `max_loss: \{clearUses: 2\}`, as D1-tree passes it \(2% on TotalEHP and on the clear skill's uses per second; movement speed and the clear skill's radius at 0\); `limit: 0`/);
   });
 
   it(`fails a rung at ${GATE_LINE}% with tree-swap; a tool failure is unverified with tool-error; a refusal tool-refused`, () => {
@@ -362,7 +373,8 @@ describe('the D1 gate and gates.md (AC-W77): the tree part, its codes and routes
 
   it('gates.md: the part list, D1 as three steps, and the tree\'s routes', () => {
     expect(ref('gates.md')).toContain('| `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill`, `tree` | see below |');
-    expect(gates).toMatch(/`keep`, the nodes of its needs \(`tree\.needs`\), for `b` and `n` every node of the rung before, and every node a later rung's `respec\.dropped` lists/);
+    // Amendment 12 (WU-125, D-452, AC-W98): the tree part passes the rung's needs only.
+    expect(gates).toMatch(/`keep`, the nodes of its needs \(`tree\.needs`\) and nothing else, and no `protect_for` \(D-452/);
     // A compile that didn't pass leaves the tree unverified with every part after it, no tree finding needed.
     expect(gates).toMatch(/a gate whose compile failed leaves its other parts `unverified`/);
     expect(gates).toMatch(/D1 is three steps, each a fresh coordinator step: D1-build, D1-tree and D1-finish \(D-356, D-418\), then the gate/);

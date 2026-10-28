@@ -96,7 +96,8 @@ describe('AC-W80 (WU-101): the skill text for weapon sets (D-426) and PG-71', ()
     const pool = POOL_LINE.replace('<1|2>', '<n>');
     expect(tree).toContain(`\`${pool}: none: …\``);
     expect(tree).toMatch(/Apply it like a main swap \(a change, below\), with its nodes in the pool's list too/);
-    expect(tree).toMatch(/A pool move goes up the ladder in its pool/);
+    // Amendment 12 (WU-125, D-452): a change stays on its rung, so a pool move changes that rung's pool only.
+    expect(tree).toMatch(/A pool move's removed nodes leave the rung's `weaponSetNodes\.set<n>` too, and its added nodes go into `set<n>` as well as `tree\.nodes`/);
     expect(tree).toMatch(/\*\*Pool moves\*\* run in the same loop/);
     expect(tree).toMatch(/a pool move stays within its pool's points, and V1's `weapon-set-points` checks it/);
     const gate = stage('D1-gate');

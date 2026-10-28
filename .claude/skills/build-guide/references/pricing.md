@@ -1,7 +1,7 @@
 # Pricing
 
 How a coordinator step prices items (slice 03 §9; D-112, D-133, D-160, D-164, D-169, D-202, D-218,
-D-370…D-373, D-415, D-422, D-442, D-444). Only coordinator steps price; no other agent type has a price tool
+D-370…D-373, D-415, D-422, D-442, D-444, D-456, D-461). Only coordinator steps price; no other agent type has a price tool
 (D-178).
 
 ## Never
@@ -87,7 +87,7 @@ three weeks in. So each rung is priced for a league day, against a target:
 |---|---|---|
 | `m`, entering maps | day 7 | 5 divines in all |
 | `b`, budget | day 7 | about 5 divines a rare slot or rare tree jewel |
-| `n`, non-budget | day 21 | 100–200 divines in all. Each rare has its own target, set by D1-build: by default 150 divines shared evenly over `n`'s rares; a slot that carries the build (a weapon, a skill-levels amulet) may take more, with a reason; together at most 200 |
+| `n`, non-budget | day 21 | 100–200 divines in all. Each rare has its own target, set by D1-build: by default 150 divines shared evenly over `n`'s rares and rare tree jewels (D1-finish shares it again once D1-tree's socket tests add jewels, D-453, keeping a reasoned share); a slot that carries the build (a weapon, a skill-levels amulet) may take more, with a reason; together at most 200 |
 
 - Uniques, magic items, flasks, charms and the anoint count toward a rung's total, with no target of their own.
 - A rare's target travels in its entry's `query` as `target: {divines, day}` (on `n`, with `reason` when the
@@ -152,6 +152,12 @@ required, never left to the weights.
 With `--no-ninja` there is no rate for `max_price`: make only the `search_trade_items` call of step 6. Each
 call's league and `Checked:` date are the entry's, as for the other tools.
 
+**Weapons by compile** (D-456). Never compare weapons by a listing's DPS: `find_upgrades` scores a listing by PoB's
+Full DPS, which isn't the build's figure (D-437). For a weapon slot, re-check its top 3 weapon listings on the
+build's own damage figure: each on a temporary stage (id `tmp…`) that copies the rung with that weapon, compiled
+measure-only with the rung, its map figure read and the stage removed. The entry records the listing that measures
+best within the budget, and its `note` says it was re-checked by compile (`fit 85%; re-checked by compile`).
+
 ## Recording a price (C-31, D-237)
 
 Each result becomes a `prices[]` entry in the plan the step writes:
@@ -179,26 +185,40 @@ Each result becomes a `prices[]` entry in the plan the step writes:
 An error from these tools reads `Error: [trade:<kind>] Failed to <action>: <message>`. `find_upgrades` names a
 stop for a trade-site limit as `Stopped early: [trade:<kind>] <reason>.`. Classify a result by the `<kind>` in
 its `[trade:<kind>]` prefix, wherever the prefix appears in the line, and nothing else; never parse the prose
-after it. A result with a prefix records no price from its listings.
+after it. A result with a prefix records no price from its listings. A `find_upgrades` stop that the server's pace
+caused after a search ran, `Stopped early: the 45 s gap between trade searches cut the loop short after <n>
+search(es).` (or the cap of 7 searches in 300 s), has no prefix: the call returned the best listings of the searches
+it ran, so record its first listing as any other (`ok`).
 
 | Outcome | Means | Do |
 |---|---|---|
 | `ok` | a dated price | record it |
-| `would_wait` | the limiter refused a wait over 30 s and sent nothing | price other items, then call this one again later |
+| `would_wait` | the limiter refused a wait over 60 s and sent nothing | price other items, then call this one again later |
 | `locked_out` | the account is locked out | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
 | `rate_limited` | the trade site answered 429 | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
 | `http`, `network`, `timeout`, `no_session`, `disabled`, … | the call failed | the item is `unavailable` |
-| `error` | an error, or a stop, without the prefix | the item is `unavailable` |
+| `error` | an error without the prefix, or a stop without it that returned no listing | the item is `unavailable` |
 
-## Pace (D-160, C-11)
+## Pace (D-160, D-461, C-11)
 
-The limiter sleeps through a wait of 30 s or less inside the call, and refuses a longer one with
-`would_wait`, sending nothing. A coordinator has no clock, so it paces by order: on `would_wait`, price
-other items first and re-call the refused one later. **An item's third refusal makes it `unavailable`**
-(note `rate-limited`), as does the step ending before the item is priced. On `locked_out` or
-`rate_limited`, trade-site pricing stops until the user approves a retry at the next gate: every remaining item
-the trade site would price is `unavailable`, and later steps make no trade request ("After pricing stops",
-below).
+**The server paces trade searches itself** (D-461): it sends a search no sooner than 45 s after the previous
+search's send, at most 7 in any 300 s, beside the trade site's own windows, and waits inside the call: the limiter
+waits up to 60 s and refuses a longer wait with `would_wait`, sending nothing. Listing fetches don't wait on the
+floor. `mcp__pob2__find_upgrades` keeps a fixed 90 s budget from the call's arrival, so a call makes at most two
+searches; when the gap cuts its weight-adjust loop short, it still returns the best listings of the searches it ran
+(above, "Classifying outcomes").
+- **One trade call at a time.** The pricing steps run alone, each making one trade call at a time: calls in
+  parallel queue past the 60 s cap and come back `would_wait`.
+- A coordinator has no clock, so it paces by order: on `would_wait`, price other items first and re-call the
+  refused one later. **An item's third refusal makes it `unavailable`** (note `rate-limited`), as does the step
+  ending before the item is priced. On `locked_out` or `rate_limited`, trade-site pricing stops until the user
+  approves a retry at the next gate: every remaining item the trade site would price is `unavailable`, and later
+  steps make no trade request ("After pricing stops", below).
+- **The pricing notice** (D-461). Before a step that prices on the trade site starts (R1b, D1-build's gear
+  searches, D1-finish, the D1 gate's re-price pass, D2), the runner tells the user that pricing starts, about how
+  many searches it makes (the trade-site items it prices, a weighted search up to two each), that they go at least
+  45 s apart (about <n> minutes), and that the user's browser shares the trade site's limit, so trade there waits
+  too. Offline, and while a pricing stop is open, nothing prices on the trade site, and there is no notice.
 
 ## After pricing stops (D-415, D-422, D-444)
 

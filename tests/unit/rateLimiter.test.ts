@@ -1,12 +1,31 @@
 /**
  * The trade rate limiter (C-11). Unit tests with a fake clock: AC-T4, AC-T5 (NFR-9), AC-T6, AC-T7,
  * AC-T8. Header sets come from the committed trade2 fixtures (A-1, A-2).
+ *
+ * AC-K75 (WU-118, D-461): the server's search pace (the 45 s floor, the 7-in-300 s cap), the 60 s wait
+ * caps, and the 429 log (`<stateDir>/trade-429.jsonl`), through the real limiter, the real trade client
+ * over `fixtureFetch` and the server's real 429 sink, with a fake clock.
  */
-import { describe, it, expect, jest, afterEach } from '@jest/globals';
+import { describe, it, expect, jest, afterAll, afterEach } from '@jest/globals';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
-import { RateLimiter, parseRateLimitHeaders, type Endpoint, type RateWindow } from '../../src/trade/rateLimiter';
+import {
+  DEFAULT_MAX_WAIT_MS,
+  PaceWaitError,
+  RateLimiter,
+  TRADE_SEARCH_PACE,
+  parseRateLimitHeaders,
+  type Endpoint,
+  type RateWindow,
+  type SearchPace,
+  type Trade429Entry,
+} from '../../src/trade/rateLimiter';
 import { TradeError } from '../../src/trade/errors';
+import { TradeApiClient } from '../../src/trade/tradeClient';
+import { SEARCH_MAX_WAIT_MS } from '../../src/trade/findUpgrades';
+import { TRADE_429_LOG, createTrade429Log } from '../../src/server/createServer';
+import { fixtureFetch } from '../helpers/fixtureFetch';
 
 const TRADE2 = path.resolve(__dirname, '..', 'fixtures', 'trade2');
 
@@ -317,17 +336,19 @@ describe('AC-T6 (WU-14): lockouts and long waits', () => {
     expect(limiter.inspect('trade-search-request-limit')!.lockedUntil).toBe(clock.now() + 60_000);
   });
 
-  it('AC-T6: a required wait of 40 s with the default maxWaitMs throws would_wait {waitS: 40} without sleeping', async () => {
+  // D-461 raised the default maxWaitMs from 30 s to 60 s: the 40 s of C-11's example is now waited, so the
+  // refusal is shown at 61 s (AC-K75 below has the 50 s and 61 s pair under both caps).
+  it('AC-T6 (D-461): a required wait of 61 s with the default maxWaitMs throws would_wait {waitS: 61} without sleeping', async () => {
     const clock = manualClock();
     const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep });
-    // max 2 - margin 1 = 1 per 39 s; the next send waits 39 s plus the 1 s guard = 40 s.
-    const headers = { ...base, 'x-rate-limit-ip': '2:39:60' };
+    // max 2 - margin 1 = 1 per 60 s; the next send waits 60 s plus the 1 s guard = 61 s.
+    const headers = { ...base, 'x-rate-limit-ip': '2:60:60' };
     await limiter.run('search', async () => response(headers));
     const send = jest.fn(async () => response(headers));
     const err = await rejection(limiter.run('search', send));
     expect(err).toBeInstanceOf(TradeError);
     expect(err.kind).toBe('would_wait');
-    expect(err.waitS).toBe(40);
+    expect(err.waitS).toBe(61);
     expect(clock.sleep).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
   });
@@ -563,5 +584,388 @@ describe('AC-T8 (WU-14, D-35): adopting higher server hit counts', () => {
     await limiter.run('search', async () => response(headers('3:10:0')), { maxWaitMs: 60_000 });
     const err = await rejection(limiter.run('search', async () => response(headers('3:10:0')), { maxWaitMs: 1_000 }));
     expect(err.kind).toBe('would_wait');
+  });
+});
+
+// -------------------------------------------------------------------------------------------------
+// AC-K75 (WU-118, D-461): the search pace, the 60 s caps and the 429 log
+
+/** Site windows that never hold a send back here (99 per 10 s), under the given policy. */
+const roomy = (policy: string): Record<string, string> => ({
+  'x-rate-limit-policy': policy,
+  'x-rate-limit-rules': 'Ip',
+  'x-rate-limit-ip': '100:10:60',
+  'x-rate-limit-ip-state': '1:10:0',
+});
+const SEARCH_POLICY = 'trade-search-request-limit';
+const FETCH_POLICY = 'trade-fetch-request-limit';
+
+/** A limiter on a manual clock with the given pace; `sends` records each send's endpoint and time. */
+function paced(pace: SearchPace | null) {
+  const clock = manualClock();
+  const limiter = new RateLimiter({ now: clock.now, sleep: clock.sleep, searchPace: pace });
+  const t0 = clock.now();
+  const sends: Array<[string, number]> = [];
+  const sender = (what: string, headers: Record<string, string>) =>
+    jest.fn(async () => {
+      sends.push([what, clock.now() - t0]);
+      return response(headers);
+    });
+  return { clock, limiter, t0, sends, sender };
+}
+
+describe('AC-K75 (WU-118, D-461): the pace floor between searches', () => {
+  it("AC-K75: a search 10 s after another is sent 45 s after the first's send; a fetch isn't held by the floor", async () => {
+    const { clock, limiter, sends, sender } = paced(TRADE_SEARCH_PACE);
+    await limiter.run('search', sender('search 1', roomy(SEARCH_POLICY)));
+    clock.advance(10_000);
+    await limiter.run('fetch', sender('fetch 1', roomy(FETCH_POLICY)));
+    // Either request kind keeps the floor: the second search carries the cookie, the first didn't.
+    await limiter.run('search', sender('search 2', roomy(SEARCH_POLICY)), { auth: true });
+    await limiter.run('fetch', sender('fetch 2', roomy(FETCH_POLICY)));
+    expect(sends).toEqual([
+      ['search 1', 0],
+      ['fetch 1', 10_000],
+      ['search 2', 45_000],
+      ['fetch 2', 45_000],
+    ]);
+    // The one wait is the search's, inside its call.
+    expect(clock.sleep.mock.calls.map((c) => c[0])).toEqual([35_000]);
+  });
+
+  it('AC-K75: the floor holds a search whose class has no policy yet: a first search that failed still sets the gap', async () => {
+    const { clock, limiter, sends, sender } = paced(TRADE_SEARCH_PACE);
+    await expect(
+      limiter.run('search', async () => {
+        sends.push(['search 1 (network error)', 0]);
+        throw new TypeError('fetch failed');
+      }),
+    ).rejects.toThrow('fetch failed');
+    expect(limiter.policyFor('search')).toBeUndefined();
+    clock.advance(5_000);
+    await limiter.run('search', sender('search 2', roomy(SEARCH_POLICY)));
+    expect(sends).toEqual([
+      ['search 1 (network error)', 0],
+      ['search 2', 45_000],
+    ]);
+  });
+
+  it('AC-K75: a floor wait past the wait cap or the deadline is refused as would_wait (a PaceWaitError), without sleeping or sending', async () => {
+    const { clock, limiter, sender } = paced(TRADE_SEARCH_PACE);
+    await limiter.run('search', sender('search 1', roomy(SEARCH_POLICY)));
+    const send = sender('search 2', roomy(SEARCH_POLICY));
+    const capped = await rejection(limiter.run('search', send, { maxWaitMs: 30_000 }));
+    expect(capped).toBeInstanceOf(PaceWaitError);
+    expect(capped.kind).toBe('would_wait');
+    expect(capped.waitS).toBe(45);
+    expect((capped as PaceWaitError).gapMs).toBe(45_000);
+    expect(capped.message).toMatch(/trade searches go at least 45 s apart/);
+    // The send at +45 s would leave 0.5 s before the deadline (D-22: no step with under 1 s left).
+    const late = await rejection(limiter.run('search', send, { deadline: clock.now() + 45_500 }));
+    expect(late).toBeInstanceOf(PaceWaitError);
+    expect(clock.sleep).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+    // The refusals released their reservations: with 1 s to spare, the search goes at +45 s.
+    await limiter.run('search', send, { deadline: clock.now() + 46_000 });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(clock.sleep.mock.calls.map((c) => c[0])).toEqual([45_000]);
+  });
+
+  it('AC-K75: searches sent together queue 45 s apart, and one that would wait past 60 s comes back would_wait', async () => {
+    // A sleep that ends later, not at once, so the two calls are admitted at the same moment.
+    let t = 1_000_000;
+    const sleep = jest.fn((ms: number) => new Promise<void>((resolve) => setImmediate(() => ((t += ms), resolve()))));
+    const limiter = new RateLimiter({ now: () => t, sleep, searchPace: TRADE_SEARCH_PACE });
+    const t0 = t;
+    const sends: Array<[string, number]> = [];
+    const sender = (what: string) => async () => {
+      sends.push([what, t - t0]);
+      return response(roomy(SEARCH_POLICY));
+    };
+    await limiter.run('search', sender('search 1'));
+    t += 1_000;
+    const p2 = limiter.run('search', sender('search 2'));
+    const p3 = rejection(limiter.run('search', sender('search 3')));
+    await p2;
+    const err = await p3;
+    expect(err).toBeInstanceOf(PaceWaitError);
+    expect(err.waitS).toBe(89); // queued behind search 2's reservation at +45 s, so due at +90 s
+    expect(sends).toEqual([
+      ['search 1', 0],
+      ['search 2', 45_000],
+    ]);
+  });
+
+  it("AC-K75 (control): the site's own window refusal stays a plain would_wait, not the pace's", async () => {
+    const { limiter, sender } = paced(null);
+    const tight = { ...roomy(SEARCH_POLICY), 'x-rate-limit-ip': '2:60:60' };
+    await limiter.run('search', sender('search 1', tight));
+    const err = await rejection(limiter.run('search', sender('search 2', tight)));
+    expect(err.kind).toBe('would_wait');
+    expect(err).not.toBeInstanceOf(PaceWaitError);
+  });
+});
+
+describe('AC-K75 (WU-118, D-461): at most 7 searches in any 300 s', () => {
+  it("AC-K75: the server's pace is 45 s between searches and at most 7 in 300 s", () => {
+    expect(TRADE_SEARCH_PACE).toEqual({ gapMs: 45_000, cap: { max: 7, periodMs: 300_000 } });
+  });
+
+  it('AC-K75: with the floor off, 7 searches sent in 300 s hold an 8th until the window admits it', async () => {
+    const { clock, limiter, t0, sends, sender } = paced({ gapMs: 0, cap: { max: 7, periodMs: 300_000 } });
+    for (let i = 0; i < 7; i++) {
+      clock.advance(i === 0 ? 0 : 10_000);
+      await limiter.run('search', sender(`search ${i + 1}`, roomy(SEARCH_POLICY)));
+    }
+    // No floor: the 7 went 10 s apart, without a wait.
+    expect(sends.map(([, t]) => t)).toEqual([0, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]);
+    expect(clock.sleep).not.toHaveBeenCalled();
+    clock.advance(10_000); // +70 s
+    // The 8th is due when the first leaves the 300 s window, at +300 s: a 230 s wait, refused at 60 s.
+    const send8 = sender('search 8', roomy(SEARCH_POLICY));
+    const err = await rejection(limiter.run('search', send8));
+    expect(err).toBeInstanceOf(PaceWaitError);
+    expect(err.waitS).toBe(230);
+    expect(send8).not.toHaveBeenCalled();
+    // Allowed to wait, it goes as the window admits it, and the 9th as the second send leaves.
+    await limiter.run('search', send8, { maxWaitMs: 600_000 });
+    await limiter.run('search', sender('search 9', roomy(SEARCH_POLICY)), { maxWaitMs: 600_000 });
+    expect(sends.slice(7)).toEqual([
+      ['search 8', 300_000],
+      ['search 9', 310_000],
+    ]);
+    expect(clock.now() - t0).toBe(310_000);
+  });
+});
+
+describe('AC-K75 (WU-118, D-461): the 60 s wait caps', () => {
+  const base = { 'x-rate-limit-policy': SEARCH_POLICY, 'x-rate-limit-rules': 'Ip' };
+
+  it.each([
+    ["the limiter's default", undefined],
+    ["find_upgrades' own cap", SEARCH_MAX_WAIT_MS],
+  ])('AC-K75: a needed wait of 50 s is waited under %s; 61 s is would_wait', async (_label, maxWaitMs) => {
+    expect(DEFAULT_MAX_WAIT_MS).toBe(60_000);
+    expect(SEARCH_MAX_WAIT_MS).toBe(60_000);
+    const opts = maxWaitMs === undefined ? {} : { maxWaitMs };
+    // 1 per 49 s (max 2 - margin 1), plus the 1 s guard: 50 s.
+    const fifty = { ...base, 'x-rate-limit-ip': '2:49:60' };
+    const a = manualClock();
+    const waits = new RateLimiter({ now: a.now, sleep: a.sleep });
+    await waits.run('search', async () => response(fifty), opts);
+    const send = jest.fn(async () => response(fifty));
+    await waits.run('search', send, opts);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(a.sleep.mock.calls.map((c) => c[0])).toEqual([50_000]);
+
+    const sixtyOne = { ...base, 'x-rate-limit-ip': '2:60:60' };
+    const b = manualClock();
+    const refuses = new RateLimiter({ now: b.now, sleep: b.sleep });
+    await refuses.run('search', async () => response(sixtyOne), opts);
+    const send2 = jest.fn(async () => response(sixtyOne));
+    const err = await rejection(refuses.run('search', send2, opts));
+    expect(err.kind).toBe('would_wait');
+    expect(err.waitS).toBe(61);
+    expect(send2).not.toHaveBeenCalled();
+    expect(b.sleep).not.toHaveBeenCalled();
+  });
+
+  it("AC-K75: the 45 s gap is waited inside the call under find_upgrades' own cap", async () => {
+    const { limiter, sends, sender } = paced(TRADE_SEARCH_PACE);
+    await limiter.run('search', sender('search 1', roomy(SEARCH_POLICY)), { maxWaitMs: SEARCH_MAX_WAIT_MS });
+    await limiter.run('search', sender('search 2', roomy(SEARCH_POLICY)), { maxWaitMs: SEARCH_MAX_WAIT_MS });
+    expect(sends).toEqual([
+      ['search 1', 0],
+      ['search 2', 45_000],
+    ]);
+  });
+});
+
+describe('AC-K75 (WU-118, D-461): the 429 log', () => {
+  const SENTINEL = 'SENTINEL429c00k1e';
+  const LEAGUE = 'Forbidden Rites';
+  const AT = Date.parse('2026-10-27T14:03:11Z');
+  /** The logged-in search capture's rule shape, as a 429 would carry it (numbers illustrative). */
+  const TOO_MANY: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-rate-limit-policy': SEARCH_POLICY,
+    'x-rate-limit-rules': 'Account,Ip',
+    'x-rate-limit-account': '3:5:60',
+    'x-rate-limit-account-state': '4:5:60',
+    'x-rate-limit-ip': '8:10:60,15:60:120,60:300:1800',
+    'x-rate-limit-ip-state': '9:10:60,15:60:0,19:300:0',
+    'retry-after': '600',
+    // Headers that must never reach the log, the cookie echoed among them.
+    'set-cookie': `POESESSID=${SENTINEL}; path=/; secure`,
+    'x-echo': SENTINEL,
+    'cf-ray': 'a4507add9fbb9e12-IAH',
+  };
+  const OK: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-rate-limit-policy': SEARCH_POLICY,
+    'x-rate-limit-rules': 'Account,Ip',
+    'x-rate-limit-account': '3:5:60',
+    'x-rate-limit-account-state': '1:5:0',
+    'x-rate-limit-ip': '8:10:60,15:60:120,60:300:1800',
+    'x-rate-limit-ip-state': '1:10:0,1:60:0,1:300:0',
+  };
+
+  const made: string[] = [];
+  function tmpDir(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-429-log-'));
+    made.push(dir);
+    return dir;
+  }
+  afterAll(() => {
+    for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** A client and limiter whose 429s go to the server's sink in `stateDir`; the n-th search gets `statuses[n]`. */
+  function tradeWithLog(stateDir: string, statuses: number[], on429?: (e: Trade429Entry) => void) {
+    const clock = manualClock();
+    const start = clock.now();
+    let n = 0;
+    const ff = fixtureFetch([
+      {
+        match: /\/api\/trade2\/search\//,
+        respond: () => {
+          const status = statuses[Math.min(n, statuses.length - 1)];
+          n += 1;
+          return status === 429
+            ? new Response(JSON.stringify({ error: { code: 3, message: 'Rate limit exceeded' } }), { status, headers: TOO_MANY })
+            : new Response(JSON.stringify({ id: `s${n}`, total: 0, result: [] }), { status, headers: OK });
+        },
+      },
+    ]);
+    const limiter = new RateLimiter({
+      now: clock.now,
+      sleep: clock.sleep,
+      // The log's wall clock reads AT when the test starts and moves with the fake clock.
+      on429: on429 ?? createTrade429Log({ stateDir, now: () => AT + (clock.now() - start) }),
+    });
+    const client = new TradeApiClient({
+      fetch: ff.fetch,
+      credentials: () => ({ sessionId: SENTINEL, source: 'dotenv' }),
+      limiter,
+      userAgent: 'pob2-mcp-server/test',
+      now: clock.now,
+    });
+    const search = () => client.search(LEAGUE, { query: { status: { option: 'securable' } } }, { auth: true });
+    return { clock, ff, limiter, search };
+  }
+
+  const logLines = (stateDir: string): string[] =>
+    fs.readFileSync(path.join(stateDir, TRADE_429_LOG), 'utf8').split('\n').filter((l) => l !== '');
+
+  it('AC-K75: a 429 appends one line to <stateDir>/trade-429.jsonl with the rate-limit headers, Retry-After, the counts, the time and the request kind', async () => {
+    const stateDir = path.join(tmpDir(), 'state'); // missing: the sink makes it
+    const { clock, search } = tradeWithLog(stateDir, [200, 429]);
+    await search();
+    clock.advance(1_000);
+    const err = await rejection(search());
+    expect(err.kind).toBe('rate_limited');
+    const lines = logLines(stateDir);
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0])).toEqual({
+      at: '2026-10-27T14:03:12Z',
+      endpoint: 'search',
+      kind: 'auth',
+      status: 429,
+      rules: {
+        account: { limits: '3:5:60', state: '4:5:60' },
+        ip: { limits: '8:10:60,15:60:120,60:300:1800', state: '9:10:60,15:60:0,19:300:0' },
+      },
+      retryAfter: 600,
+      lockoutS: 600,
+      // Both sends counted, raised to the hits the 429's state reports (D-35).
+      counted: [
+        { rule: 'account', period: 5, max: 3, n: 4 },
+        { rule: 'ip', period: 10, max: 8, n: 9 },
+        { rule: 'ip', period: 60, max: 15, n: 15 },
+        { rule: 'ip', period: 300, max: 60, n: 19 },
+      ],
+    });
+  });
+
+  it('AC-K75: a request sent with a sentinel cookie leaves no trace of the sentinel, or of any request header, in the file', async () => {
+    const stateDir = tmpDir();
+    const { ff, search } = tradeWithLog(stateDir, [429]);
+    await rejection(search());
+    // The cookie went out on the request (and came back in the response's headers)...
+    expect(ff.calls[0].headers.cookie).toBe(`POESESSID=${SENTINEL}`);
+    // ...and nothing of it, or of any other header, is in the log.
+    const text = fs.readFileSync(path.join(stateDir, TRADE_429_LOG), 'utf8');
+    expect(text.includes(SENTINEL)).toBe(false);
+    for (const word of ['POESESSID', 'cookie', 'user-agent', 'pob2-mcp-server', 'cf-ray', 'x-echo', 'content-type']) {
+      expect(text.toLowerCase().includes(word.toLowerCase())).toBe(false);
+    }
+    expect(logLines(stateDir)).toHaveLength(1);
+  });
+
+  it('AC-K75: after 205 429s the file holds the last 200', async () => {
+    const stateDir = tmpDir();
+    const { clock, search } = tradeWithLog(stateDir, [429]);
+    const times: string[] = [];
+    for (let i = 0; i < 205; i++) {
+      const err = await rejection(search());
+      expect(err.kind).toBe('rate_limited');
+      times.push(new Date(AT + i * 601_000).toISOString().replace(/\.\d{3}Z$/, 'Z'));
+      clock.advance(601_000); // past the 600 s lockout
+    }
+    const lines = logLines(stateDir);
+    expect(lines).toHaveLength(200);
+    // Appended in order, the oldest 5 trimmed: each line's time tells them apart.
+    expect(lines.map((l) => (JSON.parse(l) as { at: string; status: number }).at)).toEqual(times.slice(5));
+    for (const line of lines) expect((JSON.parse(line) as { status: number }).status).toBe(429);
+    expect(fs.readFileSync(path.join(stateDir, TRADE_429_LOG), 'utf8').endsWith('\n')).toBe(true);
+    expect(fs.readdirSync(stateDir)).toEqual([TRADE_429_LOG]);
+  });
+
+  it("AC-K75: a log that can't be written (or a corrupt one, or a sink that throws) leaves the call's result unchanged", async () => {
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const outcome = async (stateDir: string, on429?: (e: Trade429Entry) => void) => {
+      const { clock, limiter, search } = tradeWithLog(stateDir, [429], on429);
+      const err = await rejection(search());
+      const next = await rejection(search()); // the lockout holds either way
+      return {
+        first: { kind: err.kind, message: err.message, retryAfterS: err.retryAfterS, status: err.status },
+        next: { kind: next.kind, waitS: next.waitS },
+        lockedUntil: limiter.inspect(SEARCH_POLICY)!.lockedUntil - clock.now(),
+      };
+    };
+    const good = tmpDir();
+    const expected = await outcome(good);
+    expect(expected.first.kind).toBe('rate_limited');
+    expect(expected.next.kind).toBe('locked_out');
+    expect(logLines(good)).toHaveLength(1);
+
+    // The state dir's place is taken by a file: no folder can be made, so nothing can be written.
+    const blocked = tmpDir();
+    fs.writeFileSync(path.join(blocked, 'state'), 'not a folder');
+    expect(await outcome(path.join(blocked, 'state'))).toEqual(expected);
+    expect(errors.mock.calls.map((c) => String(c[0])).some((m) => /could not write the 429 log/.test(m))).toBe(true);
+
+    // A folder where the log file should be: it can't be read or appended to.
+    const dirInPlace = tmpDir();
+    fs.mkdirSync(path.join(dirInPlace, TRADE_429_LOG));
+    expect(await outcome(dirInPlace)).toEqual(expected);
+
+    // A corrupt log, its last line cut short: the call is unchanged, the new line is appended on a line of its own.
+    const corrupt = tmpDir();
+    fs.writeFileSync(path.join(corrupt, TRADE_429_LOG), 'garbage\n{"at": "2026-10-27T1');
+    errors.mockClear();
+    expect(await outcome(corrupt)).toEqual(expected);
+    const lines = logLines(corrupt);
+    expect(lines).toHaveLength(3);
+    expect((JSON.parse(lines[2]) as { status: number }).status).toBe(429);
+    expect(errors.mock.calls.map((c) => String(c[0])).some((m) => /2 unreadable line/.test(m))).toBe(true);
+
+    // A sink that throws: the limiter swallows it.
+    expect(
+      await outcome(tmpDir(), () => {
+        throw new Error('sink failed');
+      }),
+    ).toEqual(expected);
+    errors.mockRestore();
   });
 });

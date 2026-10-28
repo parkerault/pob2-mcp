@@ -5,8 +5,8 @@
  * The child's env is the (globalSetup-scrubbed) `process.env` minus the cookie variables, plus:
  * the temp POB_DIRECTORY, XDG_STATE_HOME and POB_GUIDES_DIRECTORY, `POE_TRADE_DISABLED=true`,
  * `POE_NINJA_DISABLED=true`,
- * `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`, then `extraEnv` (an `undefined` value removes a
- * variable). With trade disabled the server never reads `.env` or opens a trade connection.
+ * `POE_TRADE_BASE=http://127.0.0.1:9/api/trade2`, `POB_TEST_TRADE_PACE=off` (the trade search pace
+ * off, D-461), then `extraEnv` (an `undefined` value removes a variable). With trade disabled the server never reads `.env` or opens a trade connection.
  * The cwd is a fresh temp dir unless `opts.cwd` is given: probes never run from the repo root.
  *
  * Every line the server writes to stdout is kept in `stdoutLines` (NFR-8 checks them).
@@ -51,6 +51,7 @@ export function spawnServerEnv(extraEnv: Record<string, string | undefined> = {}
     POE_TRADE_DISABLED: 'true',
     POE_NINJA_DISABLED: 'true',
     POE_TRADE_BASE: 'http://127.0.0.1:9/api/trade2',
+    POB_TEST_TRADE_PACE: 'off',
   });
   Object.assign(merged, extraEnv);
   const env: Record<string, string> = {};

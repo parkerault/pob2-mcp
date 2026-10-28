@@ -14,6 +14,8 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { spawn as nodeSpawn } from "child_process";
+import fs from "fs";
+import path from "path";
 
 import { BuildService } from "../services/buildService.js";
 import { TreeService } from "../services/treeService.js";
@@ -21,7 +23,7 @@ import { WatchService } from "../services/watchService.js";
 import { BuildExportService } from "../services/buildExportService.js";
 import { BuildFileWriter } from "../services/buildFileWriter.js";
 import { TradeApiClient } from "../trade/tradeClient.js";
-import { RateLimiter } from "../trade/rateLimiter.js";
+import { RateLimiter, TRADE_SEARCH_PACE, type SearchPace, type Trade429Entry } from "../trade/rateLimiter.js";
 import { resolveDefaultLeague } from "../trade/league.js";
 import type { Credentials } from "../trade/credentials.js";
 import { userAgent } from "../utils/userAgent.js";
@@ -73,6 +75,73 @@ export interface ServerDeps {
   credentials: () => Credentials;
   /** The clock for deadlines and elapsed time (default: the monotonic `monotonicNow`; tests inject a fake one). */
   now?: () => number;
+  /**
+   * D-461: the trade limiter's search pace, 45 s between searches and at most 7 in 300 s
+   * (`TRADE_SEARCH_PACE`, the default). The entry sets it; test servers turn it off (null) or run it on a
+   * fake `tradeSleep`.
+   */
+  tradePace?: SearchPace | null;
+  /** The trade limiter's sleep (default: a real timer); a test with a fake `now` passes one that advances it. */
+  tradeSleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+}
+
+/** C-16 (D-461): the 429 log in the state dir, one JSON line per 429 the trade site sent. */
+export const TRADE_429_LOG = "trade-429.jsonl";
+/** The 429 log keeps its last this many lines. */
+export const TRADE_429_LOG_KEEP = 200;
+
+/** An ISO time to the second: `2026-10-27T14:03:11Z`. */
+function isoSeconds(ms: number): string {
+  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/**
+ * The 429 sink (D-461): appends `{at, ...entry}` to `<stateDir>/trade-429.jsonl`, creating the state dir
+ * when missing. The file is appended to, never rewritten whole, except to trim it to its last
+ * `TRADE_429_LOG_KEEP` lines once an append takes it past them (a temp file renamed over it). Writes are
+ * synchronous, so one server's 429s can't interleave. Lines that aren't JSON objects are reported on stderr
+ * and left to age out. Any failure (an unwritable folder or file, a folder in the file's place) goes to
+ * stderr: the sink never throws, so the call's result never changes.
+ */
+export function createTrade429Log(opts: { stateDir: string; now?: () => number }): (entry: Trade429Entry) => void {
+  const file = path.join(opts.stateDir, TRADE_429_LOG);
+  const now = opts.now ?? Date.now;
+  return (entry) => {
+    try {
+      const line = JSON.stringify({ at: isoSeconds(now()), ...entry });
+      fs.mkdirSync(opts.stateDir, { recursive: true });
+      let existing = "";
+      try {
+        existing = fs.readFileSync(file, "utf8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+      const lines = existing.split("\n").filter((l) => l.trim() !== "");
+      const unreadable = lines.filter((l) => {
+        try {
+          const v = JSON.parse(l) as unknown;
+          return v === null || typeof v !== "object" || Array.isArray(v);
+        } catch {
+          return true;
+        }
+      }).length;
+      if (unreadable > 0) {
+        console.error(`[RateLimiter] the 429 log ${file} has ${unreadable} unreadable line(s); appending after them`);
+      }
+      if (lines.length + 1 > TRADE_429_LOG_KEEP) {
+        const kept = [...lines.slice(lines.length + 1 - TRADE_429_LOG_KEEP), line];
+        const tmp = `${file}.${process.pid}.tmp`;
+        fs.writeFileSync(tmp, `${kept.join("\n")}\n`, "utf8");
+        fs.renameSync(tmp, file);
+      } else {
+        const sep = existing !== "" && !existing.endsWith("\n") ? "\n" : "";
+        fs.appendFileSync(file, `${sep}${line}\n`, "utf8");
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`[RateLimiter] could not write the 429 log ${file}: ${msg}`);
+    }
+  };
 }
 
 /** The engine handle is the engine session (C-3). */
@@ -184,7 +253,14 @@ export function createServer(deps: ServerDeps): {
   // Cache ages are wall-clock times.
   const currency = new CurrencyService({ fetch: deps.fetch, userAgent: userAgent(), env, now: deps.now ?? Date.now });
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
-  const tradeLimiter = new RateLimiter({ now });
+  // D-461: the search pace (on unless the deps turn it off), and each 429 logged in the state dir
+  // with a wall-clock time.
+  const tradeLimiter = new RateLimiter({
+    now,
+    ...(deps.tradeSleep ? { sleep: deps.tradeSleep } : {}),
+    searchPace: deps.tradePace === undefined ? TRADE_SEARCH_PACE : deps.tradePace,
+    on429: createTrade429Log({ stateDir: deps.stateDir, now: deps.now ?? Date.now }),
+  });
   const tradeClient = new TradeApiClient({
     fetch: deps.fetch,
     credentials: deps.credentials,

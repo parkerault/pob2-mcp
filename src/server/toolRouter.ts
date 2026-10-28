@@ -78,7 +78,11 @@ export interface ToolCallContext {
   now?: () => number;
 }
 
-/** `find_upgrades`' budget from the call's arrival, lock wait included (D-22). */
+/**
+ * `find_upgrades`' budget from the call's arrival, lock wait included (D-22). It stays a fixed 90 s
+ * (D-461): with trade searches at least 45 s apart it fits at most two searches, and the call stays under
+ * the 120 s at which Claude Code backgrounds an MCP call (A-25).
+ */
 export const FIND_UPGRADES_BUDGET_MS = 90_000;
 
 /** A handler's own `isError` result: a failed call for the session (no revision bump, no snapshot). */

@@ -27,14 +27,22 @@
  *   `now + max(active, Retry-After)` seconds; admissions then throw `locked_out`.
  * - **First request per endpoint class.** Until a class has a policy, its first request goes alone
  *   and the others wait until it settles (a response with or without headers, or an error).
- * - **No long sleeps.** A wait past the deadline or past `maxWaitMs` (default 30 s) throws
+ * - **The search pace** (D-461, an option the server sets). Beside the site's windows, a search request
+ *   (either kind) is sent no sooner than `gapMs` (45 s) after the previous search's send, and at most
+ *   `cap.max` (7) searches go in any `cap.periodMs` (300 s). Fetches don't wait on it. Its state is the
+ *   limiter's, across policies and kinds. A wait the pace sets and the limiter refuses is a `PaceWaitError`
+ *   (`would_wait`), so a caller can tell the server's own gap from the site's windows.
+ * - **No long sleeps.** A wait past the deadline or past `maxWaitMs` (default 60 s, D-461) throws
  *   `would_wait` without sleeping.
  * - **No send with under 1 s left** (D-22, risk R-1). A send that has to wait is refused as
  *   `would_wait` when it would go out with less than `MIN_SEND_LEFT_MS` before the deadline, both at
  *   admission and again after the wait (a sleep can overshoot, and waiting on a class's first request
  *   has no known end): a request sure to be cut by the deadline must not spend an account slot.
  * - **A 429 is logged** to stderr with the server's rate-limit headers and the limiter's own counts,
- *   so a refusal the limiter didn't foresee can be traced (no cookie or other header is logged).
+ *   so a refusal the limiter didn't foresee can be traced (no cookie or other header is logged), and
+ *   handed as a `Trade429Entry` to the `on429` sink, which the server appends to
+ *   `<stateDir>/trade-429.jsonl` (D-461, C-16). The limiter never sees a request header: only the
+ *   response's rate-limit headers, as numbers, go into the entry.
  *
  * Admitted requests reserve their send time at admission (in FIFO order per policy), so concurrent
  * admissions see each other.
@@ -131,8 +139,8 @@ export function parseRateLimitHeaders(headers: HeaderSource): ParsedRateLimitHea
 
 /** Default `Retry-After` for a 429 without one (D-50). */
 export const DEFAULT_RETRY_AFTER_S = 60;
-/** Default longest wait the limiter will sleep through (C-11). */
-export const DEFAULT_MAX_WAIT_MS = 30_000;
+/** Default longest wait the limiter will sleep through (C-11, raised from 30 s by D-461). */
+export const DEFAULT_MAX_WAIT_MS = 60_000;
 /**
  * Extra delay after an old send leaves a window before the next send that waited for it (PoB's
  * "extra second ... to avoid problems caused by the low resolution of os.time()",
@@ -152,10 +160,66 @@ interface PolicyState {
   lockedUntil: number;
 }
 
+/** D-461: the server's own pace for search requests, applied beside the site's windows. */
+export interface SearchPace {
+  /** The least time from one search's send to the next search's send, in ms (0: no gap). */
+  gapMs: number;
+  /** At most `max` searches sent in any `periodMs` (null: no cap). */
+  cap: { max: number; periodMs: number } | null;
+}
+
+/** The pace the server runs with (D-461, the user's ruling): 45 s between searches, at most 7 in 300 s. */
+export const TRADE_SEARCH_PACE: SearchPace = { gapMs: 45_000, cap: { max: 7, periodMs: 300_000 } };
+
+/** One 429, as the limiter saw it (D-461's log line, less its time, which the sink stamps). */
+export interface Trade429Entry {
+  endpoint: Endpoint;
+  kind: RequestKind;
+  status: 429;
+  /** Per rule (lower-cased): its windows and state from the headers, as `n:n:n` triples, or null when absent. */
+  rules: Record<string, { limits: string | null; state: string | null }>;
+  /** `Retry-After` in seconds, or null when absent or invalid. */
+  retryAfter: number | null;
+  /** The lockout the limiter applied, in seconds. */
+  lockoutS: number;
+  /** The limiter's own count in each window it admits this kind under. */
+  counted: Array<{ rule: string; period: number; max: number; n: number }>;
+}
+
 export interface RateLimiterOptions {
   now?: () => number;
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   margin?: number;
+  /** D-461: the search pace (default none: only the site's windows hold a search back). */
+  searchPace?: SearchPace | null;
+  /** D-461: receives each 429's entry; a sink that throws is ignored (the call's result never changes). */
+  on429?: (entry: Trade429Entry) => void;
+}
+
+/**
+ * The limiter's `would_wait` when the server's own search pace (D-461), not the site's windows, set the
+ * send time: `gapMs` is the pace's gap, so a caller can say the gap cut it short.
+ */
+export class PaceWaitError extends TradeError {
+  constructor(
+    waitS: number,
+    readonly gapMs: number,
+    readonly cap: SearchPace['cap'],
+    tooLate = false,
+  ) {
+    const gapS = Math.round(gapMs / 1000);
+    const pace =
+      gapMs > 0
+        ? `trade searches go at least ${gapS} s apart`
+        : `at most ${cap?.max} trade searches go in ${Math.round((cap?.periodMs ?? 0) / 1000)} s`;
+    super(
+      'would_wait',
+      tooLate
+        ? `${pace} (the server's pace), and the wait of ${waitS} s left too little time before the deadline; try again later`
+        : `${pace} (the server's pace), so this search would wait ${Number.isFinite(waitS) ? `${waitS} s` : 'an unbounded time'}; try again later`,
+      { waitS },
+    );
+  }
 }
 
 export interface RunOptions {
@@ -223,11 +287,19 @@ export class RateLimiter {
   private readonly classPolicy = new Map<Endpoint, string>();
   /** Endpoint class → the in-flight first request (while the class has no policy). */
   private readonly firstInFlight = new Map<Endpoint, Promise<unknown>>();
+  /** D-461: the search pace, or null when off. */
+  private readonly pace: SearchPace | null;
+  /** D-461: send times (ms) of searches under the pace, ascending; may include reservations in the future. */
+  private readonly searchSends: number[] = [];
+  private readonly on429?: (entry: Trade429Entry) => void;
 
   constructor(opts: RateLimiterOptions = {}) {
     this.now = opts.now ?? Date.now;
     this.sleep = opts.sleep ?? defaultSleep;
     this.margin = opts.margin ?? 1;
+    const pace = opts.searchPace ?? null;
+    this.pace = pace && (pace.gapMs > 0 || pace.cap !== null) ? pace : null;
+    this.on429 = opts.on429;
   }
 
   /**
@@ -245,7 +317,7 @@ export class RateLimiter {
       const inFlight = this.firstInFlight.get(endpoint);
       if (!inFlight) {
         if (waited) this.refuseIfTooLate(opts, this.now() - arrived);
-        return this.runFirst(endpoint, kind, send);
+        return this.runFirst(endpoint, kind, send, opts);
       }
       await untilSettledOrAborted(inFlight, opts.signal);
       waited = true;
@@ -254,7 +326,8 @@ export class RateLimiter {
 
     const policyName = this.classPolicy.get(endpoint)!;
     const policy = this.policy(policyName);
-    const sendAt = this.admit(policy, kind, opts);
+    const { sendAt, paced } = this.admit(endpoint, policy, kind, opts);
+    const counted = endpoint === 'search' && this.pace !== null;
     try {
       const wait = sendAt - this.now();
       if (wait > 0) await this.sleep(wait, opts.signal);
@@ -263,10 +336,11 @@ export class RateLimiter {
       if (now < policy.lockedUntil) {
         throw lockedOut(policy.lockedUntil - now);
       }
-      if (wait > 0) this.refuseIfTooLate(opts, wait);
+      if (wait > 0) this.refuseIfTooLate(opts, wait, paced);
     } catch (error) {
-      // Not sent: release the reservation.
+      // Not sent: release the reservations.
       removeOne(policy.sent, sendAt);
+      if (counted) removeOne(this.searchSends, sendAt);
       throw error;
     }
     const response = await send();
@@ -276,12 +350,14 @@ export class RateLimiter {
 
   /**
    * After a wait of `waitedMs` (> 0), refuse as the deadline's `would_wait` when less than
-   * `MIN_SEND_LEFT_MS` remains: the request would be cut before it could finish (D-22, R-1).
+   * `MIN_SEND_LEFT_MS` remains: the request would be cut before it could finish (D-22, R-1). `paced`:
+   * the search pace set the wait (D-461), so the refusal is a `PaceWaitError`.
    */
-  private refuseIfTooLate(opts: RunOptions, waitedMs: number): void {
+  private refuseIfTooLate(opts: RunOptions, waitedMs: number, paced = false): void {
     if (opts.deadline === undefined) return;
     if (opts.deadline - this.now() >= MIN_SEND_LEFT_MS) return;
     const waitS = Math.max(1, Math.ceil(waitedMs / 1000));
+    if (paced && this.pace) throw new PaceWaitError(waitS, this.pace.gapMs, this.pace.cap, true);
     throw new TradeError(
       'would_wait',
       `the trade site's rate limit needed a wait of ${waitS} s, which left too little time before the deadline; try again later`,
@@ -312,14 +388,47 @@ export class RateLimiter {
 
   // ---------------------------------------------------------------------------------------------
 
-  private async runFirst(endpoint: Endpoint, kind: RequestKind, send: () => Promise<Response>): Promise<Response> {
-    const sentAt = this.now();
-    const exchange = send();
+  /**
+   * A class's first request goes alone. A search still keeps the pace (D-461): when an earlier search
+   * failed before its class had a policy, the next first request waits out the gap from that send.
+   * The wait is part of the in-flight first request, so the class's other requests wait behind it.
+   */
+  private async runFirst(
+    endpoint: Endpoint,
+    kind: RequestKind,
+    send: () => Promise<Response>,
+    opts: RunOptions,
+  ): Promise<Response> {
+    const counted = endpoint === 'search' && this.pace !== null;
+    const now = this.now();
+    let sendAt = now;
+    if (counted) {
+      sendAt = this.pacedTime(now, now);
+      if (sendAt > now) this.refuseWait(sendAt, now, opts, true);
+      insertSorted(this.searchSends, sendAt);
+    }
+    let sent = false;
+    let sentAt = sendAt;
+    const exchange = (async () => {
+      const wait = sendAt - this.now();
+      if (wait > 0) {
+        await this.sleep(wait, opts.signal);
+        if (opts.signal?.aborted) throw opts.signal.reason;
+        this.refuseIfTooLate(opts, wait, true);
+      }
+      sentAt = this.now();
+      sent = true;
+      return send();
+    })();
     this.firstInFlight.set(endpoint, exchange);
     try {
       const response = await exchange;
       this.record(endpoint, kind, response, sentAt);
       return response;
+    } catch (error) {
+      // Not sent: release the pace's reservation (a send that failed still counts).
+      if (counted && !sent) removeOne(this.searchSends, sendAt);
+      throw error;
     } finally {
       this.firstInFlight.delete(endpoint);
     }
@@ -338,25 +447,67 @@ export class RateLimiter {
    * Admission (C-11 steps 1-3): throws `locked_out` or `would_wait`, else reserves and returns the
    * send time.
    */
-  private admit(policy: PolicyState, kind: RequestKind, opts: RunOptions): number {
+  private admit(
+    endpoint: Endpoint,
+    policy: PolicyState,
+    kind: RequestKind,
+    opts: RunOptions,
+  ): { sendAt: number; paced: boolean } {
     const now = this.now();
     if (now < policy.lockedUntil) throw lockedOut(policy.lockedUntil - now);
 
-    const sendAt = this.earliestSendTime(policy, kind, now);
+    // The site's windows first, then the pace (D-461) from there: both only admit more as time
+    // passes, so the later of the two satisfies both.
+    const siteAt = this.earliestSendTime(policy, kind, now);
+    const counted = endpoint === 'search' && this.pace !== null;
+    const sendAt = counted && Number.isFinite(siteAt) ? this.pacedTime(siteAt, now) : siteAt;
+    const paced = sendAt > siteAt;
+    this.refuseWait(sendAt, now, opts, paced);
+    insertSorted(policy.sent, sendAt);
+    if (counted) insertSorted(this.searchSends, sendAt);
+    return { sendAt, paced };
+  }
+
+  /**
+   * C-11 step 3: throw `would_wait` without sleeping when a send at `sendAt` is past the deadline, would
+   * leave under 1 s before it, or needs a wait over `maxWaitMs` (a `PaceWaitError` when `paced`).
+   */
+  private refuseWait(sendAt: number, now: number, opts: RunOptions, paced: boolean): void {
     const wait = sendAt - now;
     const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
     const pastDeadline =
       opts.deadline !== undefined && (sendAt > opts.deadline || (wait > 0 && opts.deadline - sendAt < MIN_SEND_LEFT_MS));
-    if (!Number.isFinite(sendAt) || pastDeadline || wait > maxWaitMs) {
-      const waitS = Number.isFinite(wait) ? Math.ceil(wait / 1000) : Infinity;
-      throw new TradeError(
-        'would_wait',
-        `the trade site's rate limit would need a wait of ${Number.isFinite(waitS) ? `${waitS} s` : 'an unbounded time'}; try again later`,
-        { waitS },
-      );
+    if (Number.isFinite(sendAt) && !pastDeadline && wait <= maxWaitMs) return;
+    const waitS = Number.isFinite(wait) ? Math.ceil(wait / 1000) : Infinity;
+    if (paced && this.pace) throw new PaceWaitError(waitS, this.pace.gapMs, this.pace.cap);
+    throw new TradeError(
+      'would_wait',
+      `the trade site's rate limit would need a wait of ${Number.isFinite(waitS) ? `${waitS} s` : 'an unbounded time'}; try again later`,
+      { waitS },
+    );
+  }
+
+  /**
+   * D-461: the earliest time >= `t` (and >= every search reservation) at which the pace admits one more
+   * search: `gapMs` after the latest search's send, and fewer than `cap.max` sends in the `cap.periodMs`
+   * before it. Old sends are forgotten here.
+   */
+  private pacedTime(t: number, now: number): number {
+    const pace = this.pace;
+    if (!pace) return t;
+    const sends = this.searchSends;
+    const keepMs = Math.max(pace.gapMs, pace.cap?.periodMs ?? 0);
+    while (sends.length > 0 && sends[0] <= now - keepMs) sends.shift();
+    if (sends.length === 0) return t;
+    const last = sends[sends.length - 1];
+    let at = Math.max(t, last + pace.gapMs);
+    if (pace.cap) {
+      const { max, periodMs } = pace.cap;
+      const inWindow = sends.filter((s) => s > at - periodMs);
+      // The oldest send that must leave the window: then `max - 1` remain, and this one makes `max`.
+      if (inWindow.length >= max) at = Math.max(at, inWindow[inWindow.length - max] + periodMs);
     }
-    insertSorted(policy.sent, sendAt);
-    return sendAt;
+    return at;
   }
 
   /**
@@ -441,8 +592,23 @@ export class RateLimiter {
       const seconds = Math.max(active, parsed.retryAfterS ?? DEFAULT_RETRY_AFTER_S);
       policy.lockedUntil = Math.max(policy.lockedUntil, this.now() + seconds * 1000);
       console.error(`[RateLimiter] ${this.describe429(name, kind, policy, response.headers)}`);
+      this.log429(endpoint, kind, policy, response.headers, parsed, seconds);
     }
     return policy;
+  }
+
+  /** What this limiter counted in each window it admits `kind` under, now. */
+  private countedWindows(policy: PolicyState, kind: RequestKind): Trade429Entry['counted'] {
+    const now = this.now();
+    const counted: Trade429Entry['counted'] = [];
+    for (const [rule, windows] of this.admissionRules(policy, kind)) {
+      for (const w of windows) {
+        const spanMs = w.period * 1000 + WINDOW_GUARD_MS;
+        const n = this.windowStamps(policy, rule, w.period).filter((t) => t > now - spanMs && t <= now).length;
+        counted.push({ rule, period: w.period, max: w.max, n });
+      }
+    }
+    return counted;
   }
 
   /**
@@ -455,19 +621,51 @@ export class RateLimiter {
       const r = rule.toLowerCase();
       return `${r} ${get(`x-rate-limit-${r}`) ?? '-'} state ${get(`x-rate-limit-${r}-state`) ?? '-'}`;
     });
-    const now = this.now();
-    const counted: string[] = [];
-    for (const [rule, windows] of this.admissionRules(policy, kind)) {
-      for (const w of windows) {
-        const spanMs = w.period * 1000 + WINDOW_GUARD_MS;
-        const n = this.windowStamps(policy, rule, w.period).filter((t) => t > now - spanMs && t <= now).length;
-        counted.push(`${rule} ${n}/${w.max} per ${w.period} s`);
-      }
-    }
+    const counted = this.countedWindows(policy, kind).map((c) => `${c.rule} ${c.n}/${c.max} per ${c.period} s`);
     return (
       `HTTP 429 on ${name} (${kind} request): server ${server.join('; ') || 'sent no rules'}; ` +
       `Retry-After ${get('retry-after') ?? '-'}; counted ${counted.join(', ') || 'nothing'}`
     );
+  }
+
+  /**
+   * D-461: hand the 429's entry to the sink. Only the rate-limit headers are read, re-joined from their
+   * parsed numbers, so nothing else a response carries can reach the log; the request's headers (the
+   * cookie among them) never reach the limiter at all. Neither building the entry nor the sink can
+   * change the call's result.
+   */
+  private log429(
+    endpoint: Endpoint,
+    kind: RequestKind,
+    policy: PolicyState,
+    headers: HeaderSource,
+    parsed: ParsedRateLimitHeaders,
+    lockoutS: number,
+  ): void {
+    if (!this.on429) return;
+    try {
+      const get = headerGetter(headers);
+      const triples = (value: string | null): string | null => {
+        const t = parseTriples(value);
+        return t.length ? t.map((x) => x.join(':')).join(',') : null;
+      };
+      const rules: Trade429Entry['rules'] = {};
+      for (const rule of splitList(get('x-rate-limit-rules')).map((r) => r.toLowerCase())) {
+        if (!/^[a-z0-9_-]+$/.test(rule)) continue;
+        rules[rule] = { limits: triples(get(`x-rate-limit-${rule}`)), state: triples(get(`x-rate-limit-${rule}-state`)) };
+      }
+      this.on429({
+        endpoint,
+        kind,
+        status: 429,
+        rules,
+        retryAfter: parsed.retryAfterS ?? null,
+        lockoutS,
+        counted: this.countedWindows(policy, kind),
+      });
+    } catch (error) {
+      console.error(`[RateLimiter] the 429 log failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /** Adopt higher server hit counts (D-35) and active penalties from one response. */

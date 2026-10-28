@@ -13,6 +13,7 @@ import path from "path";
 
 import { createServer, type ServerDeps } from "./server/createServer.js";
 import { createCredentialGetter } from "./trade/credentials.js";
+import { TRADE_SEARCH_PACE, type SearchPace } from "./trade/rateLimiter.js";
 import { defaultGuidesDirectory } from "./utils/guidesPath.js";
 import { packageRoot } from "./utils/packageRoot.js";
 
@@ -37,6 +38,15 @@ export function entryDefaults(
   return { pobDirectory, stateDir: path.join(stateHome, "pob2-mcp"), guidesDirectory };
 }
 
+/**
+ * The trade limiter's search pace (D-461): on, 45 s between searches and at most 7 in 300 s. Only a
+ * test's spawned server turns it off, with `POB_TEST_TRADE_PACE=off` (`spawnServer` sets it; its servers
+ * keep trade off anyway).
+ */
+export function entryTradePace(env: Readonly<Record<string, string | undefined>>): SearchPace | null {
+  return env.POB_TEST_TRADE_PACE === "off" ? null : TRADE_SEARCH_PACE;
+}
+
 /** The package.json version (reported as the MCP server version, C-1). */
 export function packageVersion(root: string = packageRoot()): string {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as { version?: unknown };
@@ -56,6 +66,7 @@ async function main(): Promise<void> {
     guidesDirectory,
     fetch: (input, init) => globalThis.fetch(input, init),
     spawn,
+    tradePace: entryTradePace(env),
     // C-9: the trade session cookie, re-read from the env and <packageRoot>/.env on every
     // authenticated trade request (never cached, never logged).
     credentials: createCredentialGetter({ env, dotenvPath: path.join(packageRoot(), ".env") }),

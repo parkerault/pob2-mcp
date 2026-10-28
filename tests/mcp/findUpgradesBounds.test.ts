@@ -12,14 +12,19 @@
  *
  * Clock: only `Date` is faked (timers run in real time). A case moves the fake clock close to the call's
  * 90 s deadline at the session's `start` event (the lock is taken), so the remaining real time is short.
+ *
+ * AC-K75 (WU-118, D-461), the last block: a server with the trade search pace on, its sleep a jump of the
+ * fake clock, so the 45 s gap costs no real time. A call arriving 0.5 s after another call's search makes
+ * one search, 45 s after that one, and its output carries the gap's stop line.
  */
 import path from 'path';
 import { afterAll, afterEach, beforeAll, expect, it, jest } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { goldenWithLevel, killEngine, startSessionFixture, writeBuild, type SessionFixture } from '../helpers/engineSession';
 import { fixtureFetch, type FixtureRoute } from '../helpers/fixtureFetch';
-import { DATA_ROUTES, fetchRoute, readTrade2, searchSequence, type SyntheticResponse } from '../helpers/tradeFixtures';
+import { DATA_ROUTES, fetchRoute, readTrade2, searchResponse, searchSequence, type SyntheticResponse } from '../helpers/tradeFixtures';
 import type { Credentials } from '../../src/trade/credentials';
+import { TRADE_SEARCH_PACE } from '../../src/trade/rateLimiter';
 import { PoBLuaApiClient } from '../../src/pobLuaBridge';
 
 const SENTINEL = 'SENTINEL7f3a';
@@ -240,5 +245,70 @@ engineDescribe('find_upgrades: report_stats checked before any request; deadline
     expect(info.isError).toBe(false);
     expect(info.text.startsWith('Engine restarted; restored the build to its state after `set_character_level`.')).toBe(true);
     expect(info.text).toContain('Level: 42');
+  }, TIMEOUT);
+});
+
+engineDescribe('AC-K75 (WU-118, D-461): find_upgrades through the MCP tool under the 45 s gap between searches', () => {
+  let fx: SessionFixture;
+  let http = fixtureFetch([]);
+  const creds: Credentials = { sessionId: SENTINEL, source: 'dotenv' };
+  /** When each search reached the trade site, on the fake clock. */
+  const searchedAt: number[] = [];
+  const timed =
+    (r: SyntheticResponse) =>
+    (): SyntheticResponse => {
+      searchedAt.push(Date.now());
+      return r;
+    };
+
+  beforeAll(async () => {
+    jest.useFakeTimers(FAKE_DATE as unknown as Parameters<typeof jest.useFakeTimers>[0]);
+    fx = await startSessionFixture({
+      deps: {
+        fetch: ((input: Parameters<typeof fetch>[0], init?: RequestInit) => http.fetch(input, init)) as typeof fetch,
+        credentials: () => creds,
+        now: () => Date.now(),
+        // The server's pace, its waits a jump of the fake clock.
+        tradePace: TRADE_SEARCH_PACE,
+        tradeSleep: async (ms: number) => {
+          jest.setSystemTime(Date.now() + ms);
+        },
+        env: { POE_TRADE_DISABLED: undefined, POE_NINJA_DISABLED: undefined, POE_LEAGUE: LEAGUE },
+      },
+    });
+    const load = await fx.call('lua_load_build', { build_name: 'grenadator.xml' });
+    if (load.isError) throw new Error(`loading the golden build failed: ${load.text}`);
+  }, TIMEOUT);
+
+  afterAll(async () => {
+    if (fx) await fx.close();
+    jest.useRealTimers();
+  }, 60_000);
+
+  it("AC-K75: a call arriving 0.5 s after another call's search makes 1 search, 45 s after it, returns that search's listings though its count called for narrowing, and prints the gap's stop line", async () => {
+    http = fixtureFetch([
+      // The other call's search (2,207 matches: it needs no narrowing), then clipped searches at 10,000.
+      searchSequence([timed(SESSION_SEARCH), timed(searchResponse('s1', 10000)), timed(searchResponse('s2', 10000))]),
+      fetchRoute(),
+      ...DATA_ROUTES,
+      { match: /^https:\/\/poe\.ninja\//, respond: () => new Response(JSON.stringify(NINJA), { status: 200, headers: { 'content-type': 'application/json' } }) },
+    ]);
+    jest.setSystemTime(Date.now() + 4 * 3600_000);
+    const other = await fx.call('find_upgrades', { slot: 'Body Armour' });
+    expect(other.isError).toBe(false);
+    expect(searchedAt).toHaveLength(1);
+
+    jest.setSystemTime(searchedAt[0] + 500);
+    const arrival = Date.now();
+    const out = await fx.call('find_upgrades', { slot: 'Body Armour' });
+    expect(out.isError).toBe(false);
+    expect(searchedAt).toHaveLength(2);
+    const gap = searchedAt[1] - searchedAt[0];
+    expect(gap).toBeGreaterThanOrEqual(45_000);
+    expect(gap).toBeLessThan(46_000);
+    expect(Date.now() - arrival).toBeLessThanOrEqual(BUDGET_MS);
+    expect(out.text).toMatch(/^Stopped early: the 45 s gap between trade searches cut the loop short after 1 search\.$/m);
+    expect(out.text).toMatch(/^Searches 1 · Matches 10000 · Fetched 20 · /m);
+    expect(out.text.split('\n').pop()).toMatch(/^Search on the trade site: https:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\/s1$/);
   }, TIMEOUT);
 });

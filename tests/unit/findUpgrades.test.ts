@@ -22,7 +22,7 @@ jest.mock('../../src/server/toolMeta', () => {
       name === 'find_upgrades' || actual.isToolAvailable(name, env),
   };
 });
-import { RateLimiter } from '../../src/trade/rateLimiter';
+import { RateLimiter, TRADE_SEARCH_PACE } from '../../src/trade/rateLimiter';
 import { TradeApiClient } from '../../src/trade/tradeClient';
 import type { Credentials } from '../../src/trade/credentials';
 import {
@@ -35,7 +35,8 @@ import {
   type UpgradeSearchContext,
   type UpgradeSearchResult,
 } from '../../src/trade/findUpgrades';
-import { routeToolCall, type ToolRouterDependencies } from '../../src/server/toolRouter';
+import { FIND_UPGRADES_BUDGET_MS, routeToolCall, type ToolRouterDependencies } from '../../src/server/toolRouter';
+import { getTradeToolSchemas } from '../../src/server/toolSchemas';
 import { estimateComplexity, prefitQuery, weightedFilterCount, type TradeQueryBody } from '../../src/trade/prefit';
 import { exactItemUrl, tradeQueryUrl, tradeSearchUrl } from '../../src/trade/links';
 import { createEngineSession, type EngineCallContext, type SessionClient } from '../../src/engine/session';
@@ -84,7 +85,7 @@ type TimedCall = RecordedCall & { at: number };
 
 function setup(
   routes: FixtureRoute[],
-  opts: { deadlineInMs?: number; credentials?: () => Credentials; env?: Record<string, string> } = {},
+  opts: { deadlineInMs?: number; credentials?: () => Credentials; env?: Record<string, string>; limiter?: RateLimiter } = {},
 ) {
   const ff = fixtureFetch([...routes, ...DATA_ROUTES]);
   const calls: TimedCall[] = [];
@@ -95,7 +96,7 @@ function setup(
     return p;
   }) as typeof fetch;
   const credentials = opts.credentials ?? SESSION;
-  const trade = new TradeApiClient({ fetch: timedFetch, credentials, limiter: new RateLimiter(), userAgent: 'pob2-mcp-server/test' });
+  const trade = new TradeApiClient({ fetch: timedFetch, credentials, limiter: opts.limiter ?? new RateLimiter(), userAgent: 'pob2-mcp-server/test' });
   const { engine, generate } = fakeEngine();
   const start = Date.now();
   const progress: string[] = [];
@@ -278,13 +279,15 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     'x-rate-limit-account-state': `${hits}:${period}:${active}`,
   });
 
-  it('AC-T34 (a): a required wait of 40 s on the second search -> stoppedEarly "40 s", without sleeping', async () => {
-    // One search per 39 s window (max 2 - margin 1), plus PoB's 1 s guard: the next search is due in 40 s.
-    const first: SyntheticResponse = { status: 200, headers: rule('trade-search-request-limit', 2, 39), body: searchResponse('s1', 5).body };
+  // D-461 raised find_upgrades' wait cap from 30 s to 60 s, so C-14's 40 s example is now waited: the
+  // refusal is shown at 61 s (AC-K75 below has the 50 s wait that is waited).
+  it('AC-T34 (a) (D-461): a required wait of 61 s on the second search -> stoppedEarly "61 s", without sleeping', async () => {
+    // One search per 60 s window (max 2 - margin 1), plus PoB's 1 s guard: the next search is due in 61 s.
+    const first: SyntheticResponse = { status: 200, headers: rule('trade-search-request-limit', 2, 60), body: searchResponse('s1', 5).body };
     const { ctx, calls, start } = setup([searchSequence([first, searchResponse('s2', 50)]), fetchRoute()]);
     const result = searched(await drive(runUpgradeSearch(input(), ctx)));
-    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 40 s", waitS: 40, kind: 'would_wait' });
-    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe("Stopped early: [trade:would_wait] the trade site's rate limit requires waiting 40 s.");
+    expect(result.stoppedEarly).toEqual({ reason: "the trade site's rate limit requires waiting 61 s", waitS: 61, kind: 'would_wait' });
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe("Stopped early: [trade:would_wait] the trade site's rate limit requires waiting 61 s.");
     expect(searches(calls)).toHaveLength(1);
     expect(Date.now() - start).toBeLessThan(1000);
     expect(result.searchUrl).toBe(tradeSearchUrl(LEAGUE, 's1'));
@@ -515,6 +518,96 @@ describe('AC-T34 (WU-17, D-22, NFR-4): the deadline, limiter waits and early sto
     expect(outcome).toBe('caller gave up');
     expect(searches(calls)).toHaveLength(1);
     expect(fetches(calls)).toHaveLength(0);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------
+
+describe("AC-K75 (WU-118, D-461): find_upgrades under the pace floor (the server's pace, fake clock)", () => {
+  const GAP_STOP = (n: number) =>
+    `Stopped early: the 45 s gap between trade searches cut the loop short after ${n} search${n === 1 ? '' : 'es'}.`;
+
+  /**
+   * Another call's search through the same limiter, then the clock moved to `afterMs` past it: the
+   * find_upgrades call arrives then, with the router's deadline (its arrival + the 90 s budget).
+   */
+  async function arriveAfterSearch(ctx: UpgradeSearchContext, calls: TimedCall[], afterMs: number) {
+    await drive(ctx.trade.search(LEAGUE, GENERATED_BODY_ARMOUR_QUERY, { auth: true }));
+    const other = searches(calls)[0].at;
+    await jest.advanceTimersByTimeAsync(afterMs - (Date.now() - other));
+    const arrival = Date.now();
+    expect(arrival - other).toBe(afterMs);
+    return { other, arrival, deadline: arrival + FIND_UPGRADES_BUDGET_MS };
+  }
+
+  it("AC-K75: a call arriving 10 s after another call's search makes 2 searches, 45 s and 90 s after that search, within its deadline", async () => {
+    const limiter = new RateLimiter({ searchPace: TRADE_SEARCH_PACE });
+    // Every search is clipped at 10,000: the loop would narrow up to 5 times.
+    const { ctx, calls } = setup(
+      [searchSequence([searchResponse('other', 2207), ...[1, 2, 3, 4, 5].map((n) => searchResponse(`s${n}`, 10000))]), fetchRoute()],
+      { limiter },
+    );
+    const { other, arrival, deadline } = await arriveAfterSearch(ctx, calls, 10_000);
+    const result = searched(await drive(runUpgradeSearch(input(), { ...ctx, deadline })));
+    expect(searches(calls).slice(1).map((c) => c.at - other)).toEqual([45_000, 90_000]);
+    for (const c of calls) expect(c.at).toBeLessThanOrEqual(deadline);
+    expect(Date.now() - arrival).toBeLessThanOrEqual(FIND_UPGRADES_BUDGET_MS);
+    expect(result.searches).toBe(2);
+    // The best listings of the searches it ran: the narrower second search's best 20.
+    expect(result.entries.map((e) => e.id)).toEqual(syntheticIds('s2', 100).slice(0, 20));
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe(GAP_STOP(2));
+  });
+
+  it('AC-K75: a call arriving 0.5 s after a search makes 1, starts none after its deadline, returns that search\'s best listings though its count called for narrowing, and ends with the stop line naming 1 search and the gap', async () => {
+    const limiter = new RateLimiter({ searchPace: TRADE_SEARCH_PACE });
+    const { ctx, calls } = setup(
+      [searchSequence([searchResponse('other', 2207), searchResponse('s1', 10000), searchResponse('s2', 500)]), fetchRoute()],
+      { limiter },
+    );
+    const { other, arrival, deadline } = await arriveAfterSearch(ctx, calls, 500);
+    const result = searched(await drive(runUpgradeSearch(input(), { ...ctx, deadline })));
+    // One search at +45 s; the next would go at +90 s, 0.5 s before the deadline, so it isn't started.
+    expect(searches(calls).slice(1).map((c) => c.at - other)).toEqual([45_000]);
+    for (const c of calls) expect(c.at).toBeLessThanOrEqual(deadline);
+    expect(Date.now() - arrival).toBeLessThanOrEqual(FIND_UPGRADES_BUDGET_MS);
+    expect(result.searches).toBe(1);
+    // Clipped at 10,000 (the count called for a narrowing search), yet its best 20 come back: the first
+    // page fetched in the loop, the second after it.
+    expect(result.total).toBe(10000);
+    expect(result.entries.map((e) => e.id)).toEqual(syntheticIds('s1', 100).slice(0, 20));
+    expect(fetches(calls).map((c) => parseFetchUrl(c.url))).toEqual([
+      { ids: syntheticIds('s1', 100).slice(0, 10), queryId: 's1' },
+      { ids: syntheticIds('s1', 100).slice(10, 20), queryId: 's1' },
+    ]);
+    expect(result.searchUrl).toBe(tradeSearchUrl(LEAGUE, 's1'));
+    expect(result.stoppedEarly).toEqual({ reason: 'the 45 s gap between trade searches cut the loop short after 1 search' });
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe(GAP_STOP(1));
+  });
+
+  it('AC-K75: a loop that wants 3 searches runs at most 2', async () => {
+    const totals = [5, 8, 50]; // too few, too few, then enough: PoB's loop wants 3 searches
+    const sequence = () => searchSequence(totals.map((total, i) => searchResponse(`s${i + 1}`, total)));
+    // Control: without the pace the loop runs all 3.
+    const free = setup([sequence(), fetchRoute()]);
+    expect(searched(await drive(runUpgradeSearch(input(), free.ctx))).searches).toBe(3);
+
+    const { ctx, calls, start } = setup([sequence(), fetchRoute()], { limiter: new RateLimiter({ searchPace: TRADE_SEARCH_PACE }) });
+    const result = searched(await drive(runUpgradeSearch(input(), ctx)));
+    expect(searches(calls).map((c) => c.at - start)).toEqual([0, 45_000]);
+    expect(result.searches).toBe(2);
+    expect(result.entries.map((e) => e.id)).toEqual(syntheticIds('s2', 8));
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe(GAP_STOP(2));
+    expect(Date.now() - start).toBeLessThanOrEqual(FIND_UPGRADES_BUDGET_MS);
+  });
+
+  it("AC-K75: find_upgrades' description states the 90 s budget, the 45 s gap and at most two searches", () => {
+    const description = getTradeToolSchemas().find((t) => t.name === 'find_upgrades')!.description as string;
+    expect(description).toMatch(/90 s budget/);
+    expect(description).toMatch(/The call has 90 s from its arrival/);
+    expect(description).toMatch(/trade searches go at least 45 s apart/);
+    expect(description).toMatch(/at most two searches, usually two/);
+    expect(description).toMatch(/returns the best listings of the searches it ran/);
+    expect(description.length).toBeLessThanOrEqual(2048);
   });
 });
 

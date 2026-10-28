@@ -109,13 +109,16 @@ with a safety margin, and only makes requests when you call a tool.
 
 ### State folder
 
-Snapshots, backups, exports and config presets live in `~/.local/state/pob2-mcp` (that is,
-`$XDG_STATE_HOME/pob2-mcp`), never in the builds folder, so PoB2's build list doesn't show them:
+Snapshots, backups, exports, config presets and the trade 429 log live in `~/.local/state/pob2-mcp` (that
+is, `$XDG_STATE_HOME/pob2-mcp`), never in the builds folder, so PoB2's build list doesn't show them:
 
 - `snapshots/`: `snapshot_build` copies;
 - `backups/`: the copy of a build file taken before every server write to it;
 - `exports/`: `export_build` copies, unless you name another folder inside the builds or state folder;
-- `presets/`: config presets.
+- `presets/`: config presets;
+- `trade-429.jsonl`: one line per HTTP 429 from the trade site, with its time, the request kind, the
+  site's rate-limit headers and the server's own counts (never the cookie or any request header); the
+  last 200 are kept.
 
 ### Working alongside PoB2
 
@@ -226,7 +229,7 @@ test keeps it equal to the registry. Group `trade` is hidden by `POE_TRADE_DISAB
 | `get_item_price` | trade | Quick price check for one item by name: an item the currency exchange sells is priced from poe.ninja's exchange, anything else on the PoE2 trade site. |
 | `get_leagues` | trade | List the PoE2 trade leagues, in the trade site's order, and mark the default league (POE_LEAGUE if set, else the first current league that is not Standard or Hardcore). |
 | `search_stats` | trade | Search the trade site's live stat list for stat ids to use in trade searches (search_trade_items mods[].stat_id). |
-| `find_upgrades` | trade | Find upgrades on the Path of Exile 2 trade site for one item slot of the loaded build, the way Path of Building's trade dialog does it: PoB generates a weighted trade query from the build (sort_stats, default the build's saved trade weights, else Full DPS 1 + Effective Hit Pool 0.5), the server searches and fetches listings (at most 5 searches, 90 s budget), PoB scores every candidate against the build, prices are normalized with poe.ninja rates and filtered by max_price, and the results are ranked by rank_by. |
+| `find_upgrades` | trade | Find upgrades on the Path of Exile 2 trade site for one item slot of the loaded build, the way Path of Building's trade dialog does it: PoB generates a weighted trade query from the build (sort_stats, default the build's saved trade weights, else Full DPS 1 + Effective Hit Pool 0.5), the server searches and fetches listings (at most two searches, at least 45 s apart, in a 90 s budget), PoB scores every candidate against the build, prices are normalized with poe.ninja rates and filtered by max_price, and the results are ranked by rank_by. |
 | `trade_query_options` | trade | What Path of Building's trade dialog offers for one item slot of the loaded build, for planning an upgrade search: whether PoB can generate a weighted trade search for the slot (and why not), the engine stats an upgrade search can sort by (sort_stats), the build's saved trade weights or PoB's defaults, the required-mod choices with their trade stat ids (required_mods), the currencies and trade statuses, and which slot-specific options (rune sockets, rune and anoint behaviour, jewel type) apply. |
 | `get_currency_rates` | ninja | Get current PoE2 currency exchange rates from poe.ninja. |
 <!-- tools:end -->

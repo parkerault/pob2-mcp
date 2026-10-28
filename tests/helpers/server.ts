@@ -3,8 +3,9 @@
  * `InMemoryTransport`.
  *
  * Defaults: the throwing global `fetch` (tests/setup/env.ts), the real `spawn`, credentials
- * `{sessionId: null, source: null}`, and `env` = a copy of `process.env` with `overrides.env`
- * merged in. `pobDirectory`, `stateDir` and `guidesDirectory` follow the entry's defaults for that env
+ * `{sessionId: null, source: null}`, the trade search pace off (`tradePace: null`, so trade suites
+ * keep their speed; a test of the pace passes `tradePace` and a fake `tradeSleep`, D-461), and `env` =
+ * a copy of `process.env` with `overrides.env` merged in. `pobDirectory`, `stateDir` and `guidesDirectory` follow the entry's defaults for that env
  * (the Jest globalSetup points all three at temp dirs). Callers of slow tools pass `{timeout}` to `callTool`:
  * the SDK client's default is 60 s.
  *
@@ -39,6 +40,7 @@ export async function startTestServer(overrides: Partial<ServerDeps> = {}): Prom
     fetch: globalThis.fetch,
     spawn,
     credentials: () => ({ sessionId: null, source: null }),
+    tradePace: null,
     ...overrides,
     env,
   };

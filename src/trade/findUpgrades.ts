@@ -24,12 +24,14 @@
  *  8. the complexity prefit (D-23);
  *  9. up to 5 searches with PoB's weight-adjust loop (`SearchWithQueryWeightAdjusted`), then the fetch
  *     of the chosen ids in blocks of ≤ 10, reusing entries already fetched; `null` and price-less
- *     entries are dropped and counted (D-56).
+ *     entries are dropped and counted (D-56). Under the limiter's search pace (D-461: searches at least
+ *     45 s apart) the 90 s deadline fits at most two searches; when the pace refuses the next one, the
+ *     loop ends and the call fetches the best listings of the searches it ran, with the gap's stop.
  *
  * Bounds (D-22): every step checks the caller's signal, no step starts with < 1 s left, every engine
  * request's timeout is `min(default, remaining)` and the deadline ends it by abort just before that
  * (`deadlineBound`, D-75), and every trade request carries the deadline (the
- * client clips its timeout, the limiter refuses waits past it or past 30 s). The `/data/leagues` and
+ * client clips its timeout, the limiter refuses waits past it or past 60 s). The `/data/leagues` and
  * `/data/stats` loads take no deadline or signal (they are shared, cached loads), so the flow races them
  * against the caller's signal and a `min(15 s, remaining)` timer instead.
  *
@@ -42,6 +44,7 @@ import { EngineActionError, EngineTimeoutError } from '../pobLuaBridge.js';
 import type { TradeGenerateQueryParams, TradeGenerateQueryResult } from '../engine/schemas.js';
 import type { Credentials } from './credentials.js';
 import { TradeError, type TradeErrorKind } from './errors.js';
+import { PaceWaitError } from './rateLimiter.js';
 import { REQUEST_TIMEOUT_MS, type FetchEntry, type SearchResponse, type TradeApiClient } from './tradeClient.js';
 import { resolveDefaultLeague } from './league.js';
 import { tradeQueryUrl, tradeSearchUrl } from './links.js';
@@ -61,8 +64,11 @@ import {
 export const MIN_STEP_MS = 1_000;
 /** `trade_generate_query`'s default engine timeout (D-47), clipped to the time left. */
 export const GENERATE_TIMEOUT_MS = 60_000;
-/** The longest limiter wait any trade request accepts (C-11). */
-export const SEARCH_MAX_WAIT_MS = 30_000;
+/**
+ * The longest limiter wait any trade request of the call accepts (C-11; 60 s since D-461, so the 45 s
+ * gap between searches is waited inside the call).
+ */
+export const SEARCH_MAX_WAIT_MS = 60_000;
 /** PoB's `maxRecursion` (`TradeQueryRequests.lua:111`): at most 5 searches per call. */
 export const MAX_SEARCHES = 5;
 /** trade2 caps `total` at this many matches. */
@@ -264,6 +270,21 @@ export interface SearchStop {
   waitS?: number;
   /** Set when a trade-site limit caused the stop: the `TradeErrorKind`, which the stop line names (C-49, D-372). */
   kind?: TradeLimitKind;
+}
+
+/**
+ * D-461: the stop when the server's search pace refused the loop's next search after `searches` ran:
+ * `the 45 s gap between trade searches cut the loop short after <n> search(es)`.
+ */
+export function paceStop(searches: number, refusal: PaceWaitError): SearchStop {
+  const ran = `after ${searches} search${searches === 1 ? '' : 'es'}`;
+  if (refusal.gapMs > 0) {
+    return { reason: `the ${Math.round(refusal.gapMs / 1000)} s gap between trade searches cut the loop short ${ran}` };
+  }
+  const cap = refusal.cap;
+  return {
+    reason: `the cap of ${cap?.max} trade searches in ${Math.round((cap?.periodMs ?? 0) / 1000)} s cut the loop short ${ran}`,
+  };
 }
 
 /** The rate-limit stop: `the trade site's rate limit requires waiting <n> s`, with the limit's kind. */
@@ -702,6 +723,8 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
   const fetched = new Map<string, FetchEntry | null>();
   /** The final pick, in trade order. */
   let chosen: string[] | null = null;
+  /** D-461: set when the search pace refused the loop's next search (the call still fetches its pick). */
+  let paceCut: SearchStop | undefined;
 
   const fetchBlock = async (ids: string[], queryId: string): Promise<void> => {
     checkpoint();
@@ -758,6 +781,26 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
     notes,
   });
 
+  /**
+   * The listings to fetch after search `r` (PoB's pick): its best `maxFetch`, or when it found fewer, its
+   * ids then the previous clipped search's (fetched ones first).
+   */
+  const pickAfter = (r: SearchResponse): string[] => {
+    const pick: string[] = [];
+    const add = (id: string) => {
+      if (pick.length < maxFetch && !pick.includes(id)) pick.push(id);
+    };
+    if (previous && r.total < maxFetch) {
+      // Not enough in the last search: fill from the previous clipped search, fetched entries first.
+      for (const id of r.result) add(id);
+      for (const id of previous.fetchedIds) add(id);
+      for (const id of previous.search.result) add(id);
+    } else {
+      for (const id of r.result.slice(0, maxFetch)) add(id);
+    }
+    return pick;
+  };
+
   try {
     // The adjust loop (PoB's SearchWithQueryWeightAdjusted, ≤ 5 searches).
     for (;;) {
@@ -768,6 +811,14 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
         searches += 1;
         r = await ctx.trade.search(leagueName, query, tradeOpts());
       } catch (error) {
+        if (error instanceof PaceWaitError && lastSearch) {
+          // D-461: the gap refused the next search, which wasn't sent. The searches that ran stand: fetch
+          // the best listings of the last one, though its count called for narrowing.
+          searches -= 1;
+          chosen = pickAfter(lastSearch);
+          paceCut = paceStop(searches, error);
+          break;
+        }
         if (error instanceof TradeError && error.kind === 'too_complex') {
           const count = weightedFilterCount(query);
           const drop = tooComplexDropCount(count);
@@ -784,19 +835,7 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
       }
       lastSearch = r;
       if ((r.total > maxFetch && r.total < RESULT_CAP) || searches >= MAX_SEARCHES) {
-        const pick: string[] = [];
-        const add = (id: string) => {
-          if (pick.length < maxFetch && !pick.includes(id)) pick.push(id);
-        };
-        if (previous && r.total < maxFetch) {
-          // Not enough in the last search: fill from the previous clipped search, fetched entries first.
-          for (const id of r.result) add(id);
-          for (const id of previous.fetchedIds) add(id);
-          for (const id of previous.search.result) add(id);
-        } else {
-          for (const id of r.result.slice(0, maxFetch)) add(id);
-        }
-        chosen = pick;
+        chosen = pickAfter(r);
         break;
       }
       if (r.total < maxFetch) {
@@ -843,7 +882,7 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
       await progress(`fetching ${k + 1}/${blocks.length}`);
       await fetchBlock(blocks[k].ids, blocks[k].queryId);
     }
-    return searched(pick);
+    return searched(pick, paceCut);
   } catch (error) {
     if (ctx.signal.aborted) throw ctx.signal.reason ?? error;
     // What was fetched so far: the pick, else the last clipped search's first page.

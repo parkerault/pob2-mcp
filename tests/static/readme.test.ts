@@ -12,6 +12,8 @@
  * - AC-G5: CLAUDE.md carries the tooling cautions.
  * - AC-G6: the hygiene allowlist and the cruft waivers are empty.
  * - AC-P7 (WU-37): the env table has a `POB_GUIDES_DIRECTORY` row stating its default.
+ * - AC-K75 (WU-118, D-461): CLAUDE.md's trade paragraph states the server's 45 s floor and keeps the
+ *   user's other rules, with no background-sleep pacing; the README's state-folder list names the 429 log.
  *
  * The tool-table test runs the generator, which reads the compiled registry under build/: run
  * `pnpm build` first (`mise run test` does).
@@ -333,5 +335,50 @@ describe('WU-37: README env table (AC-P7)', () => {
     expect(defaultCell).toContain('~/Documents/Path of Building (PoE2)/Guides');
     expect(what).toMatch(/guide runs/);
     expect(what).toMatch(/outside the folder PoB2 browses/);
+  });
+});
+
+/** CLAUDE.md's trade paragraph: the bullet that starts "Trade searches go", up to the next bullet. */
+function claudeMdTradeParagraph(): string {
+  const raw = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
+  const start = raw.indexOf('- **Trade searches go');
+  expect(start).toBeGreaterThanOrEqual(0);
+  const end = raw.indexOf('\n- **', start + 1);
+  expect(end).toBeGreaterThan(start);
+  // Without Markdown emphasis and line breaks, case-insensitively.
+  return raw.slice(start, end).replace(/\*\*/g, '').replace(/\s+/g, ' ').toLowerCase();
+}
+
+describe("WU-118: CLAUDE.md's trade rule and the README's state folder (AC-K75)", () => {
+  it("AC-K75: CLAUDE.md's trade paragraph has the server's 45 s floor, the user's approval, one trade client at a time, telling the user before pricing starts, the 30-search cap and the stop on the first refusal, and no background-sleep rule", () => {
+    const text = claudeMdTradeParagraph();
+    const required = [
+      // the server's floor (and its cap), waited inside the call
+      'the server paces trade searches itself: at least 45 s between one search\'s start and the next',
+      'at most 7 in any 5 minutes',
+      // the user's approval
+      "with the user's approval",
+      // one trade client at a time
+      'trade searches go one client at a time',
+      'only one agent at a time sends trade requests',
+      'make one trade call at a time',
+      // telling the user before pricing starts
+      'tell the user before a pricing run starts',
+      // the 30-search cap
+      'at most 30 searches without asking',
+      // the stop on the first refusal
+      'on the first 429, `rate_limited` or `locked_out`, stop',
+    ];
+    expect(required.filter((r) => !text.includes(r))).toEqual([]);
+    // The interim pacing is gone: no sleeping between searches, no "until the limiter" clause.
+    expect(text).not.toMatch(/sleep/);
+    expect(text).not.toMatch(/until the limiter/);
+  });
+
+  it("AC-K75 (D-461, C-16): the README's state-folder list names trade-429.jsonl, its 200 lines and that it never holds the cookie", () => {
+    const section = README_FLAT.slice(README_FLAT.indexOf('### State folder'), README_FLAT.indexOf('### Working alongside PoB2'));
+    expect(section).toContain('- `trade-429.jsonl`: one line per HTTP 429 from the trade site');
+    expect(section).toContain('never the cookie or any request header');
+    expect(section).toContain('the last 200 are kept');
   });
 });

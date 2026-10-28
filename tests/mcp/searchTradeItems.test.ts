@@ -8,14 +8,24 @@
  * - `categoryMap` covers the PoE2 categories; `min_rune_sockets` writes
  *   `equipment_filters.filters.rune_sockets.min`; no body has a `socket_filters` group.
  * - A static check: the schema's property names equal the names the handler reads.
+ *
+ * AC-K75 (WU-118, D-461), in process: the server deps set the trade limiter's search pace (on in the
+ * entry and by default, off in the test helpers), so a second `search_trade_items` call waits out the
+ * 45 s gap inside the call (on a fake clock); a 429 lands in the state dir's `trade-429.jsonl`, and a
+ * log that can't be written leaves the tool's result unchanged.
  */
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import ts from 'typescript';
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import { startTestServer, type TestServer } from '../helpers/server';
+import { spawnServerEnv } from '../helpers/spawnServer';
 import { fixtureFetch, type RecordedCall } from '../helpers/fixtureFetch';
 import { getTradeToolSchemas } from '../../src/server/toolSchemas';
+import { TRADE_429_LOG } from '../../src/server/createServer';
+import { TRADE_SEARCH_PACE, type SearchPace } from '../../src/trade/rateLimiter';
+import { entryTradePace } from '../../src/index';
 
 type ToolResult = { content: Array<{ type: string; text: string }>; isError?: boolean };
 
@@ -171,5 +181,146 @@ describe('AC-T18 (WU-15): schema and handler agree (static)', () => {
     );
     expect(schemaNames).not.toContain('min_links');
     expect(schema.inputSchema.properties.mods.items.properties).toHaveProperty('stat_id');
+  });
+});
+
+describe('AC-K75 (WU-118, D-461): the server sets the search pace and logs each 429', () => {
+  const made: string[] = [];
+  const tmpDir = (): string => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-pace-'));
+    made.push(dir);
+    return dir;
+  };
+  afterAll(() => {
+    for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const ARGS = { league: 'Runes of Aldur', item_type: 'ring', limit: 1 };
+  /** The ring search, with a roomy search policy so only the pace can hold a search back. */
+  const ROOMY = {
+    'content-type': 'application/json',
+    'x-rate-limit-policy': 'trade-search-request-limit',
+    'x-rate-limit-rules': 'Ip',
+    'x-rate-limit-ip': '100:10:60',
+    'x-rate-limit-ip-state': '1:10:0',
+  };
+
+  /** An in-process server on a fake clock whose trade sleep advances it; records each search's time. */
+  async function pacedServer(deps: { tradePace?: SearchPace | null; stateDir?: string; status?: number }) {
+    let t = 5_000_000;
+    const sleeps: number[] = [];
+    const sent: number[] = [];
+    const ff = fixtureFetch([
+      { match: /\/api\/trade2\/data\/stats$/, respond: { fixture: 'trade2/data-stats' } },
+      {
+        match: SEARCH,
+        respond: () => {
+          sent.push(t);
+          return deps.status === 429
+            ? new Response(JSON.stringify({ error: { code: 3, message: 'Rate limit exceeded' } }), {
+                status: 429,
+                headers: { ...ROOMY, 'x-rate-limit-ip-state': '100:10:60', 'retry-after': '60' },
+              })
+            : new Response(JSON.stringify(RING_SEARCH), { status: 200, headers: ROOMY });
+        },
+      },
+      { match: /\/api\/trade2\/fetch\//, respond: { fixture: 'trade2/fetch-ring-divine' } },
+      { match: /poe\.ninja\//, respond: { fixture: 'poeninja/currency-overview' } },
+    ]);
+    const server = await startTestServer({
+      fetch: ff.fetch,
+      env: ENV,
+      now: () => t,
+      tradeSleep: async (ms: number) => {
+        sleeps.push(ms);
+        t += ms;
+      },
+      ...('tradePace' in deps ? { tradePace: deps.tradePace } : {}),
+      ...(deps.stateDir ? { stateDir: deps.stateDir } : {}),
+    });
+    const call = async () => (await server.client.callTool({ name: 'search_trade_items', arguments: ARGS })) as ToolResult;
+    return {
+      server,
+      call,
+      sleeps,
+      sent,
+      advance: (ms: number) => {
+        t += ms;
+      },
+    };
+  }
+
+  it('AC-K75: with the pace on, a second search_trade_items call 10 s after the first waits inside the call and is sent 45 s after it', async () => {
+    const s = await pacedServer({ tradePace: TRADE_SEARCH_PACE });
+    try {
+      expect((await s.call()).isError).toBeFalsy();
+      s.advance(10_000);
+      const second = await s.call();
+      expect(second.isError).toBeFalsy();
+      expect(s.sent.map((x) => x - s.sent[0])).toEqual([0, 45_000]);
+      expect(s.sleeps).toEqual([35_000]);
+    } finally {
+      await s.server.close();
+    }
+  });
+
+  it("AC-K75: the pace is on by default in createServer and in the entry; the test helpers turn it off", async () => {
+    // createServer's default (no tradePace in the deps) is the pace.
+    const byDefault = await pacedServer({ tradePace: undefined });
+    try {
+      await byDefault.call();
+      await byDefault.call();
+      expect(byDefault.sent.map((x) => x - byDefault.sent[0])).toEqual([0, 45_000]);
+    } finally {
+      await byDefault.server.close();
+    }
+    // startTestServer's default: off, so trade suites keep their speed.
+    const helper = await pacedServer({});
+    try {
+      await helper.call();
+      await helper.call();
+      expect(helper.sent.map((x) => x - helper.sent[0])).toEqual([0, 0]);
+      expect(helper.sleeps).toEqual([]);
+    } finally {
+      await helper.server.close();
+    }
+    // The entry: on, unless a test's spawned server turns it off; spawnServer does.
+    expect(entryTradePace({})).toEqual(TRADE_SEARCH_PACE);
+    expect(entryTradePace({ POB_TEST_TRADE_PACE: 'on' })).toEqual(TRADE_SEARCH_PACE);
+    expect(entryTradePace({ POB_TEST_TRADE_PACE: 'off' })).toBeNull();
+    expect(spawnServerEnv().POB_TEST_TRADE_PACE).toBe('off');
+  });
+
+  it("AC-K75: a 429 from a tool call is logged in the state dir's trade-429.jsonl; a log that can't be written leaves the tool's result unchanged", async () => {
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const good = path.join(tmpDir(), 'state');
+      const a = await pacedServer({ stateDir: good, status: 429 });
+      const expected = await a.call();
+      await a.server.close();
+      expect(expected.isError).toBe(true);
+      expect(expected.content[0].text).toMatch(/rate limited by the trade site; retry after 60 s/);
+      const lines = fs.readFileSync(path.join(good, TRADE_429_LOG), 'utf8').split('\n').filter((l) => l !== '');
+      expect(lines).toHaveLength(1);
+      expect(JSON.parse(lines[0])).toMatchObject({
+        endpoint: 'search',
+        kind: 'anon',
+        status: 429,
+        rules: { ip: { limits: '100:10:60', state: '100:10:60' } },
+        retryAfter: 60,
+        lockoutS: 60,
+      });
+
+      // The state dir's place is taken by a file: the log can't be written, and the result is the same.
+      const blocked = tmpDir();
+      fs.writeFileSync(path.join(blocked, 'state'), 'not a folder');
+      const b = await pacedServer({ stateDir: path.join(blocked, 'state'), status: 429 });
+      const result = await b.call();
+      await b.server.close();
+      expect(result).toEqual(expected);
+      expect(errors.mock.calls.map((c) => String(c[0])).some((m) => /could not write the 429 log/.test(m))).toBe(true);
+    } finally {
+      errors.mockRestore();
+    }
   });
 });

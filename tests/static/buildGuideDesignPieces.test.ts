@@ -397,9 +397,9 @@ describe('AC-W86: the library holds questions 16–19 and the two amended entrie
       [16, "Search each layer's payoff by its damage type after conversion, and weigh it by the hit that starts it: an ailment pays on a big, slow hit more than on a fast one"],
       [17, 'what removes the cap rather than feeding it'],
       [18, 'Schedule the conflict before leaving a piece out'],
-      // Amendment 12 §13 rewrote question 19 ("name the boss button" on every build); the synthesis gloss and the
-      // library still share its condition.
-      [19, 'when the clear skill is capped by a limit or shaped for packs'],
+      // Amendment 12 §13 rewrote question 19 ("name the boss button" on every build); WU-124 brought the synthesis
+      // gloss to its full text, read from the amendment without its "Bosses." label and its example.
+      [19, A12_QUESTION_19.replace(/^Bosses\. /, '').replace(/\s*\([^)]*\)$/, '')],
     ];
     for (const [n, gloss] of glosses) {
       expect({ n, gloss, synthesis: synth.toLowerCase().includes(gloss.toLowerCase()), library: (questions.get(n) ?? '').toLowerCase().includes(gloss.toLowerCase()) }).toEqual({ n, gloss, synthesis: true, library: true });

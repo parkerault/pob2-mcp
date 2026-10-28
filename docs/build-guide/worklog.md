@@ -5942,3 +5942,21 @@ the `m17` engine at `b76967b`.
   passed. Gate after the rebase: 202 suites, 3,462 tests, rc 0; build rc 0.
   - Left for the spec fold: stabilization's `03-trade.md`:738 and :923 still give the old 40 s refusal example (the
     tests now use 61 s, the first second over the 60 s cap).
+- **WU-121 (the run scripts) merged** (three commits, cherry-picked onto the integration head unchanged; built in
+  wave 1 against Appendix A, then rebased onto WU-119 and WU-120 with its drift fixed). `run-log.mjs`, `check-run.mjs`
+  and `render-audit.mjs` carry §4's floor and deciding row, the defence and avoidance trades' checks, the warning, the
+  design and final displays, the resisting figure, the three verdict forms, revisions compared by order with
+  `skillRevision` 12 and one boundary per revision, the schema-8 checks (`defence`, no respec route, `treeChange`'s
+  line) and `toughness-targets.json`'s `arbiter.hitsSurvivedFloor` 0.8. Its verifier (fresh context) passed it,
+  re-running the gate (202 suites, 3,445 tests, rc 0; build rc 0), and ran a record from the real compiler through the
+  scripts: a schema-8 `n` with evasion, deflection and a companion line read evade 54, deflect 13, hits survived
+  59.98%, labelled "one-shot by the Arbiter's lightning hit (it survives 59% of them)", with PG-100's note from
+  `companionDeflected`; every record field the scripts read is one the compiler writes. Merged doc and script tests: 47
+  suites, 1,313 tests, rc 0.
+  - At revision 12 a trade's boss cut rides at the end of its `reason` (`; cuts <entry> against a boss by <x>%`), and
+    amendment 11's `bossAfter = boss × (1 + damageChange/100)` check is dropped (§11). PG-100's note reads the record's
+    `avoid.companionDeflected`.
+  - **Known, not fixed here:** a rung where one Arbiter row has no verdict (PoB gave no max hit for that type) and the
+    rest survive gets the guide label "not measured against the Arbiter", but the design-field check doesn't look at
+    the missing verdict, so the design field can still say it survives its hits (rare); failure messages print the
+    unrounded hits survived ("59.980000000000004%").

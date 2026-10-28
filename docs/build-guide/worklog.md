@@ -5840,12 +5840,12 @@ the `m17` engine at `b76967b`.
 - **Approved:** amendment 12 revision 2 by the user ("The amendment is approved, start the build. I won't do any live
   tests until the amendment is built."), committed at `80bc542` and pushed with the M-25 handoff (`a49d2d3`). So the
   build doesn't wait for amendment 11's live test (WU-116): one live test after M-25 (WU-126) covers both. Integration
-  worktree `build-guide/m25` off `main` at `a49d2d3`; the handoff's M-25 section (`a49d2d3`, `2ac662c`) fixes the
+  worktree `build-guide/m25` off `main` at `a49d2d3`; the handoff's M-25 section (`a49d2d3`, `494aac2`) fixes the
   waves, the merge order inside wave 1, the room left in the capped files, and the only reads of the user's private
   guide library (B1's repro for WU-117, the candidate list's PoB gaps for WU-122).
 - **Baseline gate** on `a49d2d3`: `mise run test` rc 0 (196 suites, 3,309 tests; the timing step 2 suites, 3 tests),
   `pnpm build` rc 0.
-- **WU-122 (the PoB gaps) merged** at `d26712d` (two commits). `pob-gaps.md` gains the section "Found in the defence
+- **WU-122 (the PoB gaps) merged** at `bf105a5` (two commits). `pob-gaps.md` gains the section "Found in the defence
   study (2026-10-26)": PG-83, PG-84 and PG-86 to PG-100, no PG-85, with PG-82's three figures no tool exposes;
   amendment 11's status says it was approved and built, and that its live test runs with WU-126. Its verifier (fresh
   context) passed it, re-running the gate (197 suites, 3,329 tests, rc 0; build rc 0); 18 of the 20 new tests fail on
@@ -5855,7 +5855,7 @@ the `m17` engine at `b76967b`.
   - The coordinator also made amendment 11's status quote the user's words rather than call the pairing of the live
     tests a ruling (the pairing is §19's plan), and said in `pob-gaps.md`'s intro that PG-91's and PG-100's kinds and
     statuses come from §17.
-- **WU-119 (plan schema 8 and V1) merged** at `6964995` (two commits on `e6dad76`). Schema 8: `stages[].defence`,
+- **WU-119 (plan schema 8 and V1) merged** at `b3e7bc7` (two commits on `7fecbc7`). Schema 8: `stages[].defence`,
   `respec` refused, `tree-continuity` on schema 7 and earlier only, `predecessorOf` skipping `tmp` stages, `treeChange`,
   V1's `curse-level-cap` and `custom-defence` (rows in `02-plan-compiler.md`'s V1 table; `movement-tier`'s row now says
   schema 7 and later, as the code ran), and radius jewels in the connection check. Its verifier (fresh context) failed
@@ -5864,7 +5864,7 @@ the `m17` engine at `b76967b`.
   The fix round reads an explicit list of 178 PoB mod names, checked by a test against ModParser's 1,243, and handles
   Voices; the re-verify passed. Gate after the rebase: 201 suites, 3,371 tests, rc 0; build rc 0.
   - **B3's test compile (AC-P83, R-50):** a Warrior two-stage stage with From Nothing in socket 26725 and node 17138
-    (Melee Damage) in its radius with no path. At `2ac662c` `compile_check` refused it ("not connected to its start
+    (Melee Damage) in its radius with no path. At `494aac2` `compile_check` refused it ("not connected to its start
     through untagged nodes"). With only the check fixed, the tree import failed ("would no longer be allocated"),
     because the jewel was socketed after the tree. With the jewels socketed first, it compiles and the node raises DPS.
   - **Voices** ("Allocates N Sinister Jewel sockets") becomes `GrantedPassive {SinisterJewelSockets, N}`; PoB's
@@ -5872,7 +5872,7 @@ the `m17` engine at `b76967b`.
     3367 at the pin), the first N, as free nodes it allocates while calculating and doesn't save. A plan lists every
     socket the jewel grants; a jewel in one applies (a "+200 to maximum Life" jewel raised life from 708 to 908).
     §15's citation lines for Voices are From Nothing's code; the fold corrects them.
-- **WU-120 (the compiler's measures) merged** at `46e20b3` (two commits, rebased onto WU-119 by the doer and
+- **WU-120 (the compiler's measures) merged** at `3d702f2` (two commits, rebased onto WU-119 by the doer and
   cherry-picked onto the integration head unchanged). `measures.toughness` with the conditioned read on `n`, the
   Arbiter's rows from the Pinnacle pass with `avoid` and hits survived per row, the immune types,
   `measures.damage.resisting`, and the key-figure line. Its verifier (fresh context) passed it on the rebased head,
@@ -5890,7 +5890,7 @@ the `m17` engine at `b76967b`.
     ms, `n` 503 and 467 ms (the verifier's run: `b` 369, `n` 459 ms). Each far under 20 s.
   - Appendix A gains `avoid.companionDeflected` (for PG-100's note), the percent units of `evade` and `deflect`, and
     the null cases, as built.
-- **WU-117 (tool fixes) merged** at `30a37d3` (two commits, cherry-picked onto the integration head unchanged).
+- **WU-117 (tool fixes) merged** at `40c44c1` (two commits, cherry-picked onto the integration head unchanged).
   The engine's contract error names each union member's failing path; B1, B2, B4, B5, B6 and B8 (with
   `find_path_to_node`). Its verifier (fresh context) failed the first head on one defect, confirmed: B6's checkbox
   reset sat in the shared config writer, so `set_config` and the compile's config check also reset a checkbox given
@@ -5898,7 +5898,7 @@ the `m17` engine at `b76967b`.
   asks for it (a reserved key no tool call, plan or preset file can set); the re-verify passed. Gate after the
   rebase: 202 suites, 3,393 tests, rc 0; build rc 0. B8's change to the auto-path output adds `autoPathedNames` to
   `update_tree_delta`'s engine reply and one line of `pob-api/API/Handlers.lua`, which §19's list lacks.
-  - **B1's repro (AC-K73):** all 8 failing builds of the defence study reproduced at `2ac662c` with the new error. The
+  - **B1's repro (AC-K73):** all 8 failing builds of the defence study reproduced at `494aac2` with the new error. The
     failing field: weapon set 2's pool moves, `result.poolSwaps[1].swaps[k].clear` and `.bestSwap.clear`, value `[]`.
     When the main skill can't use set 2's weapons, the clear entry has no radius and no speed, and dkjson writes the
     empty table as `[]` (a known engine quirk). Before the fix: "engine reply for "node_power" does not match its
@@ -5906,7 +5906,7 @@ the `m17` engine at `b76967b`.
     received array; …". The schema now accepts `[]`; all 8 return results. The fixture is the unit's own
     (`weapon-set-2-unarmed`, from the committed `weapon-sets` plan), failing the same way before the fix. HG-26 didn't
     fire.
-  - **B2:** not reproduced at `2ac662c`; both queries parse. The failure appears only against the reply schema from
+  - **B2:** not reproduced at `494aac2`; both queries parse. The failure appears only against the reply schema from
     before `5554cb1` (WU-100), which lacked the `constant` kind, so the study's server was likely built before WU-100
     while running newer Lua (plausible, not proven). No code change; the test guards it.
   - **B8:** the old refusal case (node 40918) now auto-paths through 15 untagged nodes, PoB's own untagged shortest
@@ -5926,7 +5926,7 @@ the `m17` engine at `b76967b`.
 
     | | Library (cap 16,000) | Kits (cap 4,000) |
     |---|---|---|
-    | Before the additions (`e6dad76`) | 15,684 | 3,647 |
+    | Before the additions (`7fecbc7`) | 15,684 | 3,647 |
     | After the additions and corrections | 17,071 | 3,691 |
     | After the trim | 15,843 | 3,444 |
     | After the fix round (merged) | 15,943 | 3,451 |
@@ -5969,7 +5969,7 @@ the `m17` engine at `b76967b`.
   buildup (`<Ailment>BuildupAvg` for freeze and electrocute) and flags more than 5 expected hits as a `risk`, against
   the skeleton's own enemy, since a skeleton has no Pinnacle pass. Its verifier (fresh context) passed it, re-running
   the gate (203 suites, 3,452 tests, rc 0; build rc 0); 14 doc mutations each failed their test.
-- **WU-125 (the design docs, the gates, the guide and SKILL.md) merged** at `697b980` (three commits). D1-build's
+- **WU-125 (the design docs, the gates, the guide and SKILL.md) merged** at `d22d670` (three commits). D1-build's
   defence step, schema 8, seeded trees, needs on every rung, `tmp` stages, the wall rule and `stronger structure:`,
   questions 19 and 23, Wither, the levers, ailment uptime and the curse cap line; D1-tree's needs-only keep, no ladder,
   jewel sockets and lines with their prices, and the boss guard; D1-finish's one-shot defence trade, the avoidance
@@ -5984,7 +5984,7 @@ the `m17` engine at `b76967b`.
   mutation, and named D1-tree as a writer of `pieces.md`'s jewel lines in `task-header.md` and `run-folder.md`; the
   re-verify passed. Gate on the first head: 205 suites, 3,572 tests, rc 0; build rc 0; targeted after the fix: 49
   suites, 1,379 tests.
-- **M-25's gate passed** on `6acf2bd` (a fresh verifier, from clean): `mise run test` rc 0 (205 suites, 3,572 tests,
+- **M-25's gate passed** on `9a25e43` (a fresh verifier, from clean): `mise run test` rc 0 (205 suites, 3,572 tests,
   none skipped; the timing step 2 suites, 4 tests), `pnpm build` rc 0. Every criterion but AC-W99 maps to a named
   passing test or the work-log row the test strategy names; spot checks against the pin (Elemental Weakness's cap, the
   evade and deflect formulas, the conditioned read's options, B4's 19 fields, PG-100's lines) held; a broken trade in a

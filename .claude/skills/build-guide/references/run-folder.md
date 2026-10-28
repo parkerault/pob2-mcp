@@ -69,7 +69,7 @@ asked once per resume (`checkpoints.md`).
 | `dossier.md` | the R1b-assemble step | the dossier, the verification gate's comparison table (slice 03 §7.2, D-355): each verified card's status, synergy, damage kinds, pieces, key prices, league and main risk, no figure (D-436) |
 | `builds/<id>/` | the build's steps, one folder per finalized card (D-412) | everything that is one build's: the rows below |
 | `builds/<id>/plan.json` | D1's three steps (D1-build, D1-tree, D1-finish) and D2; the D1 gate step only to apply FI-2 and the final re-price pass | the build's plan (C-31) |
-| `builds/<id>/trades.json` | D1-tree (its `unmodelled` trades) and D1-finish (its `boots`, `defence` and `damage` trades), each replacing only its own kinds' entries (D-439) | the design's trades, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter, reason}]}` (amendment 11, Appendix A): what each measured option gains and costs, which the D1 gate reads into its design field and the design gate shows; outside the record's `buildSha1`; a build designed before amendment 11 has none |
+| `builds/<id>/trades.json` | D1-tree (its `unmodelled` trades) and D1-finish (its `boots`, `defence` and `damage` trades), each replacing only its own kinds' entries (D-439) | the design's trades, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter, reason}]}` (amendment 11, Appendix A): what each measured option gains and costs, which the D1 gate reads into its design field and the design gate shows; outside the record's `buildSha1`; a build designed before amendment 11 has none. In a build held to amendment 12 (D-450, §22) D1-finish also writes its `avoidance` trades (on `b` and `n`), defence trades may be on `b` or `n`, and every entry carries `maxHit {type, before, after}` (a one-shot rung's defence and damage entries: the deciding row's Pinnacle-pass max hit) and `hitsSurvived {before, after}` (the defence and avoidance entries of a build that evades or deflects), `null` where they don't apply; a build held to 11 keeps the 7 fields |
 | `builds/<id>/pieces.md` | D1-build (D-434) | the build's pieces as designed: its Pieces table (the card's columns), each piece's status and reason, then `## Searched`, each synthesis question asked again and what it found; no round copy takes it |
 | `builds/<id>/compile-record.json`, `builds/<id>/compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of the build's plan; after its final compile (F1's, or the D2 gate's for its campaign) it names the PoB file and holds `importCode` |
 | `builds/<id>/guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276): the endgame guide, or the full guide once the build has its campaign (D-414) |
@@ -137,7 +137,14 @@ one stderr line `check-run: [<rule>] <message>`.
   `viable`, `viable, except <what>` (only with a piece its card's Pieces measured answers `no`), `failed after <N>
   attempts: …` or `can't be finalized yet: …`; a composite's Pieces measured `| Key | Left out by | Does something |`,
   `in` rows only, each answer held to its R1b verdict's `pieces[]` drops; an R1b attempt with a `damage-missing`
-  finding a failure though it compiled (D-436); a build's `trades.json` in its shape (D-439). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
+  finding a failure though it compiled (D-436); a build's `trades.json` in its shape (D-439). **In a build held to
+  amendment 12** (its last D1 gate at or after 12's boundary, §22): `trades.json` in its 9 fields; a schema-8 plan's `n`
+  with its defence plan, `defence {base, chance, mitigation, pool, physicalHit}` (D-451); the D1 gate's design field with
+  `maxHit` on `b` and `n` (its deciding row and `oneShot` by `references/toughness-targets.json`'s floor of hits survived,
+  0.8), `damage.resisting` on each rung, and on `n` `toughness`'s `chanceShare`, `conditioned`, `ailmentCut` and `warning`,
+  each recomputed from the record while the gate is fresh (D-449, D-454); the record's Arbiter rows within Names' rule; a
+  defence trade on a one-shot rung, a damage trade there that keeps its max hit, and an avoidance trade on `b` and `n` of
+  an evasion build (D-450). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
   step priced.
 - **The reader layer** (D-276, D-283, D-414). The guide's template is its plan's: the endgame guide's 12 H2s
   for a plan with no campaign stage, at most 2,300 words, its `Switching over` naming each reward pick; else the
@@ -157,6 +164,13 @@ one stderr line `check-run: [<rule>] <message>`.
   `MinionTotalDPS` when it names a minion skill (D-378). The budget and non-budget labels are the record's
   `measures.arbiter` verdict, in the template's words ("survives the Arbiter's hits", "one-shot by the Arbiter's
   <type> hit", "not measured against the Arbiter"); the entering-maps label stays solid, watch or risky (D-353).
+  Amendment 12: once the record measures the resisting figure, the damage part has three, `<Skill> about <map> DPS
+  against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss.` (D-454); once
+  its Arbiter rows carry hits survived, the label is the deciding row's in three forms, "survives the Arbiter's hits",
+  "survives <x>% of the Arbiter's <type> hits, by evading or deflecting them" and "one-shot by the Arbiter's <type> hit
+  (it survives <x>% of them)", read against the floor (D-459); and each stage whose record carries `treeChange` with a
+  point refunded has one line, `Respec: refund <n> points and allocate <m>; respeccing costs gold.`, its counts the
+  record's (D-452).
   Each rung's `Checks` block is its block in the render, copied verbatim (D-355). Every campaign reward choice
   the campaign passes is picked, the same pick on every stage after it, the endgame stages included, and the
   guide's `Campaign route and rewards` names each pick by its first line (D-265); a plan with no campaign stage
@@ -201,7 +215,8 @@ one stderr line `check-run: [<rule>] <message>`.
 - **The run log and the control flow** (`run-log.md`, schema 4): the fields and their values, `builds[]` in
   finalize order with each build's end, the stage names `R1a-synthesize` (a run keeps the brainstorm step its first round used, D-429), `D1-build`,
   `D1-tree`, `D1-finish`, `F1`, `V4`, `V4-recheck` and `V4-campaign` (`RV` only in an older run's entries, before
-  amendment 11 removed the rival, D-443); `skillRevision` and the pricing stops and retries (D-444); steps in a legal order per build, each gate visit's answer followed (D-411): the
+  amendment 11 removed the rival, D-443); `skillRevision` (11 or 12, compared by order, each revision's rules from its own
+  boundary in `skillRevisionFrom`; no D1-tree `respec` from 12's on, D-452) and the pricing stops and retries (D-444); steps in a legal order per build, each gate visit's answer followed (D-411): the
   queued cards designed in turn; in the design, D1-build, D1-tree, D1-finish, the D1 gate, then the design gate;
   F1 only after a `design` visit answered `accept` or `accept:file` (D-362, D-413), a `revise:` running D1 again,
   its gate and the design gate, and `verification` the verification gate; D2 only for a campaign; entries after a

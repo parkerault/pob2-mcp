@@ -6,17 +6,19 @@ through `scripts/run-log.mjs` (D-356, "Writing it" below), never with Write or E
 (`run-folder.md`). This page is **schema version 4** (D-412), the run log of the three phases and their gates
 with one build per finalized card (D-411); `run-log.mjs <runFolder> migrate` rewrites a schema-3 log as schema 4
 (D-415), and the run checker also reads schemas 3 and 2, so runs recorded before amendments 9 and 3 still check
-(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 11` (amendment 11,
-§19): `init` writes it, and a resume stamps it on an older log, so the entries after the stamp are held to the new rules
-and the ones before it to their own ("Runs before amendment 11", below).
+(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 12` (amendment 12, §22;
+`11` in a log written under amendment 11's rules): `init` writes it, and a resume stamps it on an older log with one
+boundary per revision, so the entries after a revision's boundary are held to its rules and the ones before it to their
+own. Revisions compare by order: amendment 11's rules hold from 11's boundary, amendment 12's from 12's ("Runs before
+amendment 11" and "Runs before amendment 12", below).
 
 ## Fields
 
 | Field | Content |
 |---|---|
 | `schemaVersion` | `4` |
-| `skillRevision` | `11`: the run is held to amendment 11's rules (§19). `init` writes it; `resume` stamps it on a log without it |
-| `skillRevisionFrom` | only on a log a resume stamped: `{stages, checkpoints, escalations, displays}`, the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from there on are held to amendment 11's rules, the ones before it to their own |
+| `skillRevision` | `12`: the run is held to amendment 12's rules and amendment 11's (§22). `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 11's rules has `11` |
+| `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
 | `runFolder` | the absolute path `mcp__pob2__guide_run {new_run}` returned |
 | `slug` | the run's slug, from the brief (`run-folder.md`, D-285) |
 | `brief` | the parsed brief (below, C-51); `{}` for an empty brief, "surprise me" |
@@ -103,7 +105,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
     for D1-build claiming it and for a D1 gate routed so;
   - `respec` for a D1-tree that returned `respec: <stage> needs one: <why>`, a scaling change D1-build missed (D-438),
     and `build` for a D1-finish that returned `build: <ids>` (§14): each routes D1-build next, in the same attempt, even
-    when the attempt already ran D1-build;
+    when the attempt already ran D1-build. In a run held to amendment 12 (`skillRevision` 12) D1-tree has no `respec`:
+    each loadout's tree is its own (D-452), and a user's respec request is a tree request, D1-tree then D1-finish;
   - `claims-edited` for a D1-finish or D2 of the fix round or a revision that returned `recompiled: no` with no
     gate after it: it edited claims in place and compiled nothing (D-264). A D1-finish after D1-build, and a D2
     after a recompiled D1, are `done` whatever they return: their gate follows. The run checker
@@ -286,13 +289,14 @@ JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
 ```
 
-- `init` writes the first log (below): `skillRevision` 11, `runFolder` the folder given, `noNinja` the run's
+- `init` writes the first log (below): `skillRevision` 12, `runFolder` the folder given, `noNinja` the run's
   `--no-ninja` (`true` or `false`, required), the pin's commit and the newest digest as the script reads them,
   `dossier` null, the lists empty, `pricing` with no stop or retry, `status` `running`, or `stopped` with a refused
   test config. It never overwrites a log.
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
   `escalations[]`. A `stage` entry counting a `rate_limited` or `locked_out` call also records its stop in
-  `pricing.stops[]` (D-444). A log with `skillRevision` refuses a stage `RV`: the rival is removed (D-443).
+  `pricing.stops[]` (D-444). A log with `skillRevision` refuses a stage `RV`: the rival is removed (D-443); a log at 12
+  refuses a D1-tree `respec` (D-452).
 - `pricing` (D-444) logs the user's answer to a gate's pricing question, `{"checkpoint", "answer"}`, `answer`
   `retry-pricing` or `no-retry`, as `pricing.retries[]` with `at` the `stages[]` length; refused when no stop is open,
   or before that gate visit's display printed. After a stop, at the design gate, before that visit's `checkpoint`
@@ -309,8 +313,11 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   build keeps its card's identity.
 - `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
   `noNinja` (its `--no-ninja`) and the four lists' lengths, sets the top-level `noNinja` to this session's flag, and
-  sets `status` `running`. On a log without `skillRevision` it stamps `skillRevision` 11, with `skillRevisionFrom` its
-  resume's lengths, and adds `pricing` (§19). It runs once per resume,
+  sets `status` `running`. On a log below `skillRevision` 12, or without it, it stamps `skillRevision` 12 and writes a
+  boundary in `skillRevisionFrom`, its resume's lengths, for every revision above the log's old one: a log at 11 keeps
+  11's boundary (its flat form read as `"11"`) and gains `"12"`; a log without `skillRevision` gains `"11"` and `"12"` at
+  the same lengths, so its earlier entries are held to neither amendment's rules; it adds `pricing` (§19, amendment 12
+  §22). It runs once per resume,
   before the resume's unsaved-build question and verification visit.
 - `migrate` (D-415), with no JSON, rewrites a schema-3 log as schema 4: its finalized card becomes `builds[0]` with
   `folder: "."` (its files stay at the root), its status from the old `status` and last answer, `guide` from
@@ -339,6 +346,17 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   D-441, D-447, D-448); and the final display prints each rung's two figures, its boss figure the record's evaluated
   `boss_<stage>` when the plan estimates one (`about <n>`). Every run's brainstorm display says `drawn from <host>`
   under a card that cites a published guide (`external | <url>`, D-445).
+  A D1 gate's design field written under amendment 12's rules (a rung with `maxHit` or `damage.resisting`, Appendix A)
+  adds to the design display, on `b` and `n`, the Arbiter line from the deciding row, its hits survived rounded down to a
+  whole percent with the chances at the Arbiter's accuracy, `under the 80% floor` on a one-shot rung, then `- Lowest max
+  hit: <n> <type>.` and, on a stage whose gear gives a companion part of each deflected hit, PG-100's note; on each rung,
+  after the boss lines, `- Resisting rares: <n> per second (40% fire, cold and lightning resistance).`; on `n`, the Effective
+  HP line's chance-layer share, the conditioned line and its band, the ailment line on a build that deflects and the
+  warning; and the trades' `- Defence (one-shot): …` and `- Avoidance: …` lines with their max hit and hits survived
+  (D-449, D-450, D-454). A record with `measures.damage.resisting` gives the final display three figures, `<map> damage per
+  second against map monsters, <resisting> against resisting rares, <boss> against a Pinnacle boss`, and a record whose
+  Arbiter rows carry hits survived gives the verdict label's three forms there and in the design-to-final comparison
+  (D-459).
 - `set` replaces `status`, `dossier` (once R1b-assemble wrote it) or `faults` (`SKILL.md` §8).
 - An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
   written. The run checker checks the whole log and the flow it records.
@@ -351,7 +369,7 @@ the pin's commit and newest digest as `run-log.mjs` reads them from the reposito
 ```json
 {
   "schemaVersion": 4,
-  "skillRevision": 11,
+  "skillRevision": 12,
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "slug": "titan-blood-hunt",
   "brief": { "ascendancy": "Titan", "skill": "Blood Hunt" },
@@ -376,7 +394,7 @@ the pin's commit and newest digest as `run-log.mjs` reads them from the reposito
 ## Runs before amendment 11
 
 A log without `skillRevision` is a run recorded before amendment 11 (§19), held to the rules it ran under; a log a
-resume stamped holds its entries before `skillRevisionFrom` to those rules, and an artifact written before the stamp is
+resume stamped holds its entries before 11's boundary in `skillRevisionFrom` to those rules, and an artifact written before the stamp is
 read by its own format (the dossier by its header, a card's Pieces measured table by its columns). Such a run may
 hold the rival (D-408, removed by D-443), which the scripts still read: its step `RV`, `done` when it wrote its card
 `r<k>-x-<n>` or `none-found` with `tried`, what it tried in a sentence (only there), run once after the first
@@ -385,6 +403,14 @@ gate the user asked at; its card's R1b outside its round's cap of 3, and `not-de
 identity or sniff check: `failed`, never finalized, with `compiles: 0`); and its dossier row. Its displays keep their
 older forms. A run with `skillRevision` is dated amendment-8-or-later, as a run that ran the rival is: every round it
 deals from its stamp on names each card's engine (D-405).
+
+## Runs before amendment 12
+
+A log at `skillRevision` 11 is a run recorded under amendment 11's rules, held to them throughout and to amendment 12's
+nowhere; a log a resume stamped at 12 holds its entries before 12's boundary to their own rules, and an artifact written
+before it is read by its own format: its `respec` routes (D-438), its two-figure verdict lines and labels, its design
+fields without `maxHit` and its 7-field trades (`trades.json`, `run-folder.md`). A build is held to the rules of its last
+D1 gate.
 
 ## Schema 3: runs recorded before amendment 9
 

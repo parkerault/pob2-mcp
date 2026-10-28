@@ -103,6 +103,18 @@
 //    pricing stops and retries (`checkPricing`, D-444) and D1-build's `priceOutcomes`; no rival (D-443); and a run dated
 //    amendment-8-or-later by its skill revision, as by its rival. The ledger's context carries each stage's
 //    `bossGroups` and `damageBoss`, for C-33's `<stageId>.boss.…` references.
+//  - amendment 12 (WU-121; D-449…D-454, D-459, its §22 and Appendix A): revisions compare by order, not equality, each
+//    one's rules from its own boundary (`skillRevision` 11 or 12; `skillRevisionFrom` amendment 11's flat lengths on a
+//    log at 11, one boundary per revision on a log at 12), a build held to the rules of its last D1 gate. For a build
+//    whose last D1 gate is held to 12 (`checkDesignField12`): the design field's `maxHit` on `b` and `n` (the deciding
+//    row, `oneShot` by the floor in references/toughness-targets.json, the lowest max hit), `damage.resisting` on each
+//    variant rung, and on `n` the toughness reading (`chanceShare`, `conditioned` and its band, `ailmentCut`, the
+//    warning), each recomputed from the record while the gate is fresh; the record's rows' hits survived within Names'
+//    rule; a one-shot rung's defence trade, a damage trade there that keeps its max hit, an evasion build's avoidance
+//    trade on `b` and `n`; `trades.json` in its revision's fields (9 at 12, 7 before: `TRADE_FIELDS`); a schema-8 plan's
+//    `n` with its defence plan; no D1-tree `respec` from 12's boundary on. By the record, whatever the revision: the
+//    guide's verdict line with three figures once the record measures the resisting figure, its label in the three
+//    forms once the record's rows carry hits survived, and its tree-change line against `treeChange`.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -121,12 +133,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET, ledgerStage } from './render-audit.mjs';
+import {
+  loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET, ledgerStage,
+  arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedOf, typeWords,
+} from './render-audit.mjs';
 import {
   parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder,
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
-  MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, heldFrom, openStop, stopOutcome, RETRY_ANSWERS, EXCHANGE, referenceJson,
+  MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, REVISIONS, heldFrom, openStop, stopOutcome, RETRY_ANSWERS, EXCHANGE, referenceJson,
   swapLabel,
 } from './run-log.mjs';
 
@@ -1030,7 +1045,13 @@ export async function checkRun(runFolder) {
   // D-443 (amendment 11): the rival is removed; a run held to amendment 11's rules runs none, and an older run's RV
   // entries, x card and dossier row stay readable (§19).
   stages.forEach((s, i) => {
-    if (i >= heldStage && s.stage === 'RV') fail('rival', `run-log.json stages[${i}] runs the rival (RV), which amendment 11 removes: a run held to its rules (skillRevision ${SKILL_REVISION}) never runs it (D-443)`);
+    if (i >= heldStage && s.stage === 'RV') fail('rival', `run-log.json stages[${i}] runs the rival (RV), which amendment 11 removes: a run held to its rules (skillRevision ${A11}) never runs it (D-443)`);
+  });
+  // D-452 (amendment 12, Appendix A): one tree per loadout, so the entries held to amendment 12 have no D1-tree `respec`;
+  // an older run's respec route stays readable (§22).
+  const held12 = heldFrom(log, 'stages', 12);
+  stages.forEach((s, i) => {
+    if (i >= held12 && s.stage === 'D1-tree' && s.outcome === 'respec') fail('respec', `run-log.json stages[${i}] (${s.stage} ${s.concept ?? ''} attempt ${s.attempt}) is a respec, which amendment 12 removes: in a run held to its rules (skillRevision 12) each loadout's tree is its own, D1-tree never returns respec, and a respec request is a tree request, D1-tree then D1-finish (D-452)`);
   });
   /** D-429: a run whose brainstorm rounds R1a-synthesize composed. */
   const composite = stages.some((s) => s.stage === 'R1a-synthesize');
@@ -1617,6 +1638,8 @@ async function checkBuild(c) {
     // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
     const guideD1 = guideConcept !== null ? gateFor('D1-gate', guideConcept, guideBefore) : undefined;
     checkVerdictLines(guide, endgame, record, guideD1 ? gateReports.get(guideD1.file) : null, ledgerNow, fail, schema !== 2, plan);
+    // D-452 (amendment 12): each schema-8 stage's tree-change line, its counts the record's treeChange.
+    checkTreeChangeLines(guide, planStages, record, fail);
     // (l) Known issues by sentence in the guide, with each finding's id in audit.md (D-276, D-283).
     checkKnownIssues(guide, audit, accepted, open, fail);
   }
@@ -1690,13 +1713,20 @@ async function checkBuild(c) {
   // and the boss estimate's ledger rules, for a build whose last D1 gate is held to amendment 11's rules (§19) ---------
   const d1At = d1 ? stages.findLastIndex((s) => s.stage === 'D1-gate' && s.concept === d1.concept && s.attempt === d1.attempt) : -1;
   const a11Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log);
+  // Amendment 12 (§22): a build held to revision 12's rules by its last D1 gate, logged at or after 12's boundary.
+  const a12Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log, 'stages', 12);
   const tradesFile = readJson('trades.json');
-  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail);
+  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build);
   if (a11Build && isObj(plan)) {
     // A producer after the gate (a D1 step that compiled, or D2) leaves its design field older than the plan and the record.
     const fresh = !stages.slice(d1At + 1).some((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED && !idle(s));
     checkBossLedger(endgame, plan, record, fail);
-    if (isObj(d1rep?.design)) checkDesignField({ file: d1.file, design: d1rep.design, endgame, plan, record, ledgerNow, trades: isObj(tradesFile) ? list(tradesFile.trades) : null, fresh, fail });
+    const trades = isObj(tradesFile) ? list(tradesFile.trades) : null;
+    if (isObj(d1rep?.design)) checkDesignField({ file: d1.file, design: d1rep.design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12: a12Build });
+    if (a12Build) {
+      checkDefencePlan(plan, endgame, fail);
+      if (isObj(d1rep?.design)) checkDesignField12({ file: d1.file, design: d1rep.design, endgame, plan, record, fresh, fail });
+    }
   }
 
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
@@ -1929,10 +1959,26 @@ const VERDICT_FORM = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|w
  * part `<Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss.`, `<boss>` the boss figure.
  */
 const VERDICT_FORM_A11 = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <boss> against a Pinnacle boss. Effective HP about <n>.';
+/**
+ * D-454 (amendment 12, Appendix A): the verdict line's fixed form once the record measures the resisting figure, its
+ * damage part `<Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss>
+ * against a Pinnacle boss.`
+ */
+const VERDICT_FORM_A12 = '- **<Entering maps|Budget|Non-budget> (L<level>): <solid|watch|risky>.** Resistances <fire>/<cold>/<lightning>/<chaos>% at −60%. Max hit <n> physical against about <hit>, and at least <n> elemental or chaos against about <hit>. <Skill> about <map> DPS against map monsters, about <resisting> against resisting rares, about <boss> against a Pinnacle boss. Effective HP about <n>.';
 /** D-353: the survival label on the budget and non-budget rungs, in place of solid, watch or risky: the record's Arbiter verdict. */
 const ARBITER_LABEL = "<survives the Arbiter's hits|one-shot by the Arbiter's <the worst hit>>";
+/**
+ * D-459 (amendment 12, Appendix A): the label's three forms once the record's Arbiter rows carry hits survived, from the
+ * deciding row: `<x>` its hits survived rounded down to a whole percent, the parenthesis only when x is above 0.
+ */
+const ARBITER_LABEL_A12 = "<survives the Arbiter's hits|survives <x>% of the Arbiter's <type> hits, by evading or deflecting them|one-shot by the Arbiter's <type> hit (it survives <x>% of them)>";
 /** The verdict line's form on a rung: `m` keeps the judgment label; `b` and `n` carry the Arbiter's (D-353). */
-const verdictForm = (variant, two = false) => ((f) => (variant === 'entering-maps' ? f : f.replace('<solid|watch|risky>', ARBITER_LABEL)))(two ? VERDICT_FORM_A11 : VERDICT_FORM);
+const verdictForm = (variant, two = false, three = false, label = ARBITER_LABEL) => ((f) => (variant === 'entering-maps' ? f : f.replace('<solid|watch|risky>', label)))(three ? VERDICT_FORM_A12 : two ? VERDICT_FORM_A11 : VERDICT_FORM);
+/**
+ * D-353, D-459: the survival label a record's `measures.arbiter` gives: in the three forms (render-audit.mjs's
+ * `arbiterLabel12`) when its rows carry hits survived, read against `floor`; else amendment 11's (`arbiterLabel`).
+ */
+const labelOf = (arbiter, floor) => (hasHitsSurvived(arbiter) ? arbiterLabel12(arbiterReading(arbiter, floor)) : arbiterLabel(arbiter));
 
 /**
  * D-353, templates/guide-template.md: the survival label `measures.arbiter` gives the budget and non-budget rungs:
@@ -1954,7 +2000,7 @@ const NUM = '[−-]?\\d[\\d,]*(?:\\.\\d+)?';
  */
 const VERDICT_LINE = new RegExp(
   `^[-*] \\*\\*(Entering maps|Budget|Non-budget) \\(L(\\d+)\\): ([^*]+?)\\.\\*\\* Resistances (${NUM})/(${NUM})/(${NUM})/(${NUM})% at [−-]60%\\. ` +
-    `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS(?: against map monsters, about (${NUM}) against a Pinnacle boss)?\\.` +
+    `Max hit (${NUM}) physical against about (${NUM}), and at least (${NUM}) elemental or chaos against about (${NUM})\\. (.+?) about (${NUM}) DPS(?: against map monsters,(?: about (${NUM}) against resisting rares,)? about (${NUM}) against a Pinnacle boss)?\\.` +
     `(?: Effective HP about (${NUM})\\.)?$`,
 );
 const OTHER_TYPES = ['Fire', 'Cold', 'Lightning', 'Chaos'];
@@ -1978,6 +2024,8 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
   const lines = guide.lines.slice(start + 1, end).map((text, k) => ({ text: text.trim(), n: start + k + 2 }));
   const where = `guide.md's "${SURVIVAL_H2}"`;
   const labels = new Set(endgame.map((s) => VARIANT_LABEL[s.variant]).filter(Boolean));
+  // D-459 (amendment 12): the floor the three label forms read, from references/toughness-targets.json.
+  const floor = arbiterFloor() ?? ARBITER_FLOOR;
   for (const label of Object.values(VARIANT_LABEL)) {
     if (!labels.has(label) && lines.some((l) => l.text.startsWith(`- **${label} (L`))) fail('verdict-line', `${where} has a verdict line for the ${label} rung, but the plan has no such rung (D-283)`);
   }
@@ -1985,7 +2033,9 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
     const label = VARIANT_LABEL[s.variant];
     if (!label) continue;
     const mine = lines.filter((l) => l.text.startsWith(`- **${label} (L`));
-    const form = verdictForm(s.variant, isObj(record?.stages?.[s.id]?.measures?.damage));
+    const st0 = isObj(record?.stages) ? record.stages[s.id] : undefined;
+    const three = isNum(st0?.measures?.damage?.resisting);
+    const form = verdictForm(s.variant, isObj(st0?.measures?.damage), three, hasHitsSurvived(st0?.measures?.arbiter) ? ARBITER_LABEL_A12 : ARBITER_LABEL);
     if (mine.length === 0) {
       fail('verdict-line', `${where} has no verdict line for the ${label} rung, stage ${s.id}: "${form}" (D-283)`);
       continue;
@@ -1998,15 +2048,22 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
       continue;
     }
     // D-353: the survival label. The entering-maps rung's is judgment; the budget and non-budget rungs' is the
-    // record's Arbiter verdict, in the template's words.
-    const st0 = isObj(record?.stages) ? record.stages[s.id] : undefined;
+    // record's Arbiter verdict, in the template's words. D-459 (amendment 12): a record whose rows carry hits survived
+    // gives the deciding row's label in its three forms, read against the floor.
     if (s.variant === 'entering-maps') {
       if (!['solid', 'watch', 'risky'].includes(m[3])) fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}; the entering-maps rung's label is solid, watch or risky (D-283)`);
+    } else if (hasHitsSurvived(st0?.measures?.arbiter)) {
+      const want = labelOf(st0.measures.arbiter, floor);
+      if (plainTypography(m[3]) !== want) {
+        const r = arbiterReading(st0.measures.arbiter, floor);
+        const row = r?.row;
+        fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s deciding Arbiter row is ${row ? `the ${typeWords(row.type)} row (ratio ${isNum(row.ratio) ? round2(row.ratio) : '—'}, hits survived ${isNum(row.hitsSurvived) ? row.hitsSurvived : '—'}%)` : 'none'}${r?.oneShot ? `, under the ${Math.round(floor * 100)}% floor` : ''}, so its label is ${show(want)} (D-353, D-459)`);
+      }
     } else if (plainTypography(m[3]) !== arbiterLabel(st0?.measures?.arbiter)) {
       const verdict = st0?.measures?.arbiter?.verdict;
       fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s measures.arbiter verdict is ${show(verdict ?? null)}${verdict === 'one-shot' ? `, its worst hit ${show(st0.measures.arbiter.worst?.type)}` : ''}, so its label is ${show(arbiterLabel(st0?.measures?.arbiter))} (D-353)`);
     }
-    if (v3 && m[15] === undefined) {
+    if (v3 && m[16] === undefined) {
       fail('verdict-line', `${at}: the ${label} verdict line doesn't end with "Effective HP about <n>.", the stage's TotalEHP beside its max hit: "${VERDICT_FORM}" (D-294)`);
     }
     if (Number(m[2]) !== s.level) fail('verdict-line', `${at}: the ${label} verdict line says level ${m[2]}, but stage ${s.id}'s level is ${show(s.level)} (D-283)`);
@@ -2039,15 +2096,22 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
     // D-437, D-447 (amendment 11): a record carrying measures.damage gives the line its two figures, the map figure
     // measures.damage.map and the boss figure the ledger's boss_<stage> (its current formula) when the plan estimates
     // one, else measures.damage.boss; a guide written from an older record keeps its one figure, measures.dps (§19).
+    // D-454 (amendment 12): a record carrying measures.damage.resisting gives the line its third figure, between the two;
+    // a guide written from an older record keeps its two (§22).
     const damage = isObj(st?.measures?.damage) ? st.measures.damage : null;
-    if (damage !== null && m[14] === undefined) {
+    if (damage !== null && m[15] === undefined) {
       fail('verdict-line', `${at}: the ${label} verdict line gives one damage figure, but stage ${s.id}'s record measures it against map monsters and against a Pinnacle boss: "${form}" (D-437, D-447)`);
-    } else if (damage === null && m[14] !== undefined) {
+    } else if (damage !== null && three && m[14] === undefined) {
+      fail('verdict-line', `${at}: the ${label} verdict line gives two damage figures, but stage ${s.id}'s record measures it against resisting rares too (measures.damage.resisting): "${form}" (D-454)`);
+    } else if (damage !== null && !three && m[14] !== undefined) {
+      fail('verdict-line', `${at}: the ${label} verdict line gives a figure against resisting rares, but stage ${s.id}'s record has no measures.damage.resisting to compare it with; a guide written from a record before amendment 12 gives two figures (§22)`);
+    } else if (damage === null && m[15] !== undefined) {
       fail('verdict-line', `${at}: the ${label} verdict line gives a boss figure, but stage ${s.id}'s record has no measures.damage to compare it with; a guide written from a record before amendment 11 gives one figure, "<Skill> about <n> DPS." (§19)`);
     } else if (damage !== null) {
       const estimated = isObj(plan) && list(plan.ledger).some((e) => e.id === `boss_${s.id}`);
       parts.push(['damage against map monsters', m[13], damage.map, `${s.id}.measures.damage.map`]);
-      parts.push(['damage against a Pinnacle boss', m[14], estimated ? ledgerNow[`boss_${s.id}`]?.value : damage.boss, estimated ? `the ledger's boss_${s.id}, its current formula over the record (D-447)` : `${s.id}.measures.damage.boss`]);
+      if (three) parts.push(['damage against resisting rares', m[14], damage.resisting, `${s.id}.measures.damage.resisting`]);
+      parts.push(['damage against a Pinnacle boss', m[15], estimated ? ledgerNow[`boss_${s.id}`]?.value : damage.boss, estimated ? `the ledger's boss_${s.id}, its current formula over the record (D-447)` : `${s.id}.measures.damage.boss`]);
     } else if (isObj(st?.measures)) {
       parts.push(['DPS', m[13], st.measures.dps, `${s.id}.measures.dps (the main group's figure × its Count)`]);
     } else {
@@ -2058,12 +2122,50 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
       if (fig === undefined) fail('verdict-line', `${at}: the D1 gate's verdict names no figure for stage ${s.id}'s named damage source, so the ${label} verdict line's DPS can't be compared (D-283)`);
       else parts.push(['DPS', m[13], read.value, named]);
     }
-    if (m[15] !== undefined) parts.push(['Effective HP', m[15], out.TotalEHP, `${s.id}.TotalEHP`]);
+    if (m[16] !== undefined) parts.push(['Effective HP', m[16], out.TotalEHP, `${s.id}.TotalEHP`]);
     for (const [part, written, value, from] of parts) {
       if (!isNum(value)) fail('verdict-line', `${at}: the ${label} verdict line's ${part} can't be compared: the record has no value for ${from} (D-283)`);
       else if (!matchesWritten(written, value)) {
         fail('verdict-line', `${at}: the ${label} verdict line says ${part} ${written}, but ${from} is ${value}, which doesn't round to it at that number's last significant digit (D-283)`);
       }
+    }
+  }
+}
+
+/** D-452 (amendment 12, Appendix A): the guide's tree-change line, `Respec: refund <n> points and allocate <m>; respeccing costs gold.` */
+const TREE_CHANGE = /\bRespec: refund ([\d,]+) points? and allocate ([\d,]+)\b/;
+
+/**
+ * D-452 (Appendix A): on each stage whose record carries `treeChange {from, refunded, added}` (a schema-8 plan's stage
+ * with a stage before it), its guide section (a rung's `Endgame: …` H2, a campaign stage's Leveling H3 by its loadout
+ * name) has one tree-change line when `refunded` is above 0, its counts the record's, and none when it is 0; a stage
+ * without `treeChange` has none. The counts only: no gold figure (A-32).
+ */
+function checkTreeChangeLines(guide, planStages, record, fail) {
+  const leveling = h2Named(guide, 'Leveling');
+  const h3s = leveling ? h3sUnder(guide, leveling) : [];
+  for (const s of planStages) {
+    const rec = isObj(record?.stages) ? record.stages[s.id] : undefined;
+    const heading = typeof s.variant === 'string' ? h2Named(guide, VARIANT_H2[s.variant] ?? '') : h3s.find((h) => h.title === (rec?.loadoutName ?? s.loadoutName)) ?? null;
+    if (!heading) continue;
+    const { start, end } = guide.sectionOf(heading);
+    const found = guide.lines.slice(start + 1, end).map((l, k) => ({ m: TREE_CHANGE.exec(l), n: start + k + 2 })).filter((x) => x.m);
+    const where = `guide.md's "${heading.title}"`;
+    const tc = rec?.treeChange;
+    if (!isObj(tc) || !isInt(tc.refunded) || !isInt(tc.added)) {
+      for (const f of found) fail('tree-change', `guide.md:${f.n}: ${where} has a tree-change line, but the record's stage ${s.id} has no treeChange to state; the line goes on a schema-8 stage with a stage before it whose treeChange.refunded is above 0 (D-452)`);
+      continue;
+    }
+    if (tc.refunded === 0) {
+      for (const f of found) fail('tree-change', `guide.md:${f.n}: ${where} has a tree-change line, but stage ${s.id}'s treeChange refunds no point (refunded 0, added ${tc.added}); the line goes only where a point is refunded (D-452, Appendix A)`);
+      continue;
+    }
+    const line = `Respec: refund ${tc.refunded} points and allocate ${tc.added}; respeccing costs gold.`;
+    if (found.length === 0) fail('tree-change', `${where} has no tree-change line for stage ${s.id}, whose treeChange from ${show(tc.from)} refunds ${tc.refunded} points and allocates ${tc.added}: "${line}" (D-452, Appendix A)`);
+    else if (found.length > 1) fail('tree-change', `${where} has ${found.length} tree-change lines for stage ${s.id}; one (D-452)`);
+    for (const f of found) {
+      const [refunded, added] = [Number(f.m[1].replace(/,/g, '')), Number(f.m[2].replace(/,/g, ''))];
+      if (refunded !== tc.refunded || added !== tc.added) fail('tree-change', `guide.md:${f.n}: ${where}'s tree-change line refunds ${refunded} points and allocates ${added}, but stage ${s.id}'s treeChange from ${show(tc.from)} is refunded ${tc.refunded}, added ${tc.added}: "${line}" (D-452)`);
     }
   }
 }
@@ -2348,13 +2450,33 @@ function checkSchema4Fields(log, bad) {
     if (![null, 'endgame', 'full'].includes(b.guide)) bad(at, `guide is ${show(b.guide)}; null, endgame or full, as the plan decides (D-414)`);
     if (b.pobFile !== null && (typeof b.pobFile !== 'string' || b.pobFile.trim() === '')) bad(at, `pobFile is ${show(b.pobFile)}; the final compile's PoB file path, or null (D-412)`);
   });
-  // §19 (amendment 11): the skill revision init writes, and where a resume stamped it on an older log.
-  if ('skillRevision' in log && log.skillRevision !== SKILL_REVISION) bad('skillRevision', `is ${show(log.skillRevision)}; ${SKILL_REVISION}, which init writes and a resume stamps on an older log (§19)`);
+  // §19 (amendment 11), amendment 12's §22 and Appendix A: the skill revision init writes, and where a resume stamped
+  // each revision on an older log. A log at 11 (amendment 11's) keeps its flat boundary; a log at 12 has one boundary per
+  // revision a resume stamped, `{"11": {…}, "12": {…}}`, in order, each a resume's lengths.
+  if ('skillRevision' in log && !REVISIONS.includes(log.skillRevision)) bad('skillRevision', `is ${show(log.skillRevision)}; ${REVISIONS.join(' or ')}: ${SKILL_REVISION}, which init writes and a resume stamps on an older log, or ${A11}, a log written under amendment 11's rules (§19, amendment 12 §22)`);
   if ('skillRevisionFrom' in log) {
     const f = log.skillRevisionFrom;
-    if (log.skillRevision !== SKILL_REVISION) bad('skillRevisionFrom', `is set, but skillRevision isn't ${SKILL_REVISION}; a resume stamps both together (§19)`);
-    if (!isObj(f) || show(Object.keys(f)) !== show(RESUME_LISTS) || !RESUME_LISTS.every((k) => isInt(f[k]))) bad('skillRevisionFrom', `is ${show(f)}; it is {${RESUME_LISTS.join(', ')}}, the lists' lengths where the resume stamped the skill revision (§19)`);
-    else if (!list(log.resumes).some((r) => isObj(r.lengths) && RESUME_LISTS.every((k) => r.lengths[k] === f[k]))) bad('skillRevisionFrom', `is ${show(f)}, but no resumes[] entry recorded those lengths; a resume stamps the skill revision where it happens (§19)`);
+    const lengthsOk = (x) => isObj(x) && show(Object.keys(x)) === show(RESUME_LISTS) && RESUME_LISTS.every((k) => isInt(x[k]));
+    const resumed = (x) => list(log.resumes).some((r) => isObj(r.lengths) && RESUME_LISTS.every((k) => r.lengths[k] === x[k]));
+    if (!REVISIONS.includes(log.skillRevision)) bad('skillRevisionFrom', `is set, but skillRevision isn't ${REVISIONS.join(' or ')}; a resume stamps both together (§19)`);
+    else if (log.skillRevision === A11) {
+      // Amendment 11's form: the lists' lengths where the resume stamped revision 11.
+      if (!lengthsOk(f)) bad('skillRevisionFrom', `is ${show(f)}; on a log at ${A11} it is {${RESUME_LISTS.join(', ')}}, the lists' lengths where the resume stamped the skill revision (§19)`);
+      else if (!resumed(f)) bad('skillRevisionFrom', `is ${show(f)}, but no resumes[] entry recorded those lengths; a resume stamps the skill revision where it happens (§19)`);
+    } else if (!isObj(f) || Object.keys(f).length === 0 || !Object.keys(f).every((k) => REVISIONS.some((r) => String(r) === k && r <= log.skillRevision))) {
+      bad('skillRevisionFrom', `is ${show(f)}; on a log at ${log.skillRevision} it holds one boundary per revision a resume stamped, {${REVISIONS.filter((r) => r <= log.skillRevision).map((r) => `"${r}": {${RESUME_LISTS.join(', ')}}`).join(', ')}}, each for a revision up to the log's (Appendix A)`);
+    } else {
+      let prev = null;
+      for (const r of REVISIONS.filter((x) => String(x) in f)) {
+        const x = f[String(r)];
+        if (!lengthsOk(x)) bad('skillRevisionFrom', `"${r}" is ${show(x)}; it is {${RESUME_LISTS.join(', ')}}, the lists' lengths where a resume stamped revision ${r} (Appendix A)`);
+        else if (!resumed(x)) bad('skillRevisionFrom', `"${r}" is ${show(x)}, but no resumes[] entry recorded those lengths; a resume stamps each revision where it happens (Appendix A)`);
+        else if (prev !== null && RESUME_LISTS.some((k) => x[k] < prev[k])) bad('skillRevisionFrom', `"${r}" is ${show(x)}, before the boundary of an earlier revision; a later revision is stamped at the same resume or after it (Appendix A)`);
+        if (lengthsOk(x)) prev = x;
+      }
+      // A log stamped from below 11 gains 11's boundary with 12's; one that holds 11's boundary with no 12's isn't at 12.
+      if (!(String(log.skillRevision) in f)) bad('skillRevisionFrom', `is ${show(f)}, with no boundary for ${log.skillRevision}, the log's revision; a resume that stamps ${log.skillRevision} writes its boundary (Appendix A)`);
+    }
   }
   // D-444: the pricing stops and the gates' retry answers, `{stops: [{at, step, outcome}], retries: [{checkpoint, answer, at}]}`.
   if ('pricing' in log) {
@@ -4276,7 +4398,7 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
     const engines = new Map();
     const dated = r.assembly.i >= heldStage;
     for (const d of dealt) {
-      if ((engineRequired || dated) && d.engines.length === 0) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id} with no "engine: <family> from <family>"; ${ctx.rivalRan ? 'a run that ran the rival (amendment 8, D-408)' : dated ? `a run held to amendment 11 (skillRevision ${SKILL_REVISION}), dated amendment-8-or-later by its skill revision (§11)` : 'a deck that names an engine'} names one on every dealt card's line (D-405)`);
+      if ((engineRequired || dated) && d.engines.length === 0) fail('deck', `cards.md:${d.n}: round ${r.k} deals ${d.id} with no "engine: <family> from <family>"; ${ctx.rivalRan ? 'a run that ran the rival (amendment 8, D-408)' : dated ? `a run held to amendment 11 (skillRevision ${A11}), dated amendment-8-or-later by its skill revision (§11)` : 'a deck that names an engine'} names one on every dealt card's line (D-405)`);
       const e = d.engines[0];
       if (!e?.ok || e.consumed === 'none') continue;
       engines.set(e.key, { consumed: e.consumed, n: (engines.get(e.key)?.n ?? 0) + 1 });
@@ -4569,7 +4691,7 @@ function checkPieceTables(stages, cardIds, cardOf, fail, ctx = { heldCard: () =>
  */
 function a11Measured(id, p, m, keys, verdict, bad) {
   if (show(m.header) !== show(MEASURED_COLUMNS_A11) || !m.ruled) {
-    bad(m.line, `the Pieces measured table's columns are ${show(m.header)}; a card verified under amendment 11's rules (skillRevision ${SKILL_REVISION}) has ${show(MEASURED_COLUMNS_A11)}, in that order, with the |---| row under them; the drops go in R1b's verdict file (D-436, Appendix A)`);
+    bad(m.line, `the Pieces measured table's columns are ${show(m.header)}; a card verified under amendment 11's rules (skillRevision ${A11}) has ${show(MEASURED_COLUMNS_A11)}, in that order, with the |---| row under them; the drops go in R1b's verdict file (D-436, Appendix A)`);
     return;
   }
   if (m.rows.length > LEAVE_ONE_OUT) bad(m.line, `the Pieces measured table holds ${m.rows.length} rows; R1b leaves out at most ${LEAVE_ONE_OUT} pieces, and pieces not probed are left out of the table (D-433)`);
@@ -4857,7 +4979,7 @@ function checkDossier(text, assembled, ID, fail, ctx = { rivalRan: false, termin
     : ctx.composite ? (show(head.cells) === show(DOSSIER_COLUMNS_D433) ? DOSSIER_COLUMNS_D433 : null)
       : show(head.cells) === show(DOSSIER_COLUMNS_D407) ? DOSSIER_COLUMNS_D407 : !ctx.rivalRan && show(head.cells) === show(DOSSIER_COLUMNS) ? DOSSIER_COLUMNS : null;
   if (columns === null || !rule?.cells.every((c) => /^:?-+:?$/.test(c))) {
-    if (ctx.a11) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a dossier written under amendment 11's rules (skillRevision ${SKILL_REVISION}) has ${show(DOSSIER_COLUMNS_A11)}, in that order: no number column, the damage kinds PoB shows and the pieces that do something instead (D-436, §19)`);
+    if (ctx.a11) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a dossier written under amendment 11's rules (skillRevision ${A11}) has ${show(DOSSIER_COLUMNS_A11)}, in that order: no number column, the damage kinds PoB shows and the pieces that do something instead (D-436, §19)`);
     else if (ctx.composite) bad(`:${head.n}: the table's columns are ${show(head.cells)}; a composite run's comparison has twelve, ${show(DOSSIER_COLUMNS_D433)}, in that order, its last each composite's measured pieces and their largest drops (D-355, D-407, D-433)`);
     else bad(`:${head.n}: the table's columns are ${show(head.cells)}; the comparison's are ${show(DOSSIER_COLUMNS_D407)}, in that order (D-355, D-407)${ctx.rivalRan ? ', in a run that ran the rival (D-408)' : `, or before amendment 8 ${show(DOSSIER_COLUMNS)}`}`);
     return;
@@ -5067,27 +5189,83 @@ export function bandOf(ehp, target, t) {
 const sameFigure = (written, value) => isNum(written) && isNum(value) && Math.abs(written - value) <= Math.max(0.005 * Math.abs(value), 0.01);
 
 /**
+ * Amendment 12 (D-450, Appendix A): a trade's kinds and fields in a build held to revision 12: the avoidance trade, and
+ * `maxHit` and `hitsSurvived` on every entry, `null` where they don't apply.
+ */
+const TRADE_KINDS_A12 = [...TRADE_KINDS_A11, 'avoidance'];
+const TRADE_FIELDS_A12 = [...TRADE_FIELDS, 'maxHit', 'hitsSurvived'];
+/** D-450: a defence trade's reason names why it fires: a one-shot rung, or a rung under its toughness band (D-441). */
+const DEFENCE_REASON = /^(?:one-shot by the Arbiter's [a-z][a-z -]* hit|under the toughness band)(?:; cuts .+ against a boss by [\d.]+%)?$/;
+
+/**
  * D-439, Appendix A: `<buildFolder>/trades.json`, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter,
  * reason}]}`: each trade on an endgame rung of the plan, its kind `unmodelled`, `boots`, `defence` or `damage`, `what` a
  * short phrase (`none found: <why>` with null changes for a defence or damage trade that found none), its changes in
- * percent or null, and `bossAfter` a number only on the non-budget rung's damage trade.
+ * percent or null, and `bossAfter` a number only on the non-budget rung's damage trade. Amendment 12 (D-450, §22): a build
+ * held to revision 12 (`a12`) has the 9 fields, `maxHit {type, before, after}` on a defence or damage entry and
+ * `hitsSurvived {before, after}` on a defence or avoidance entry, each else null; the kind `avoidance`, and the defence
+ * and avoidance trades on `b` or `n` only, a defence trade's reason `one-shot by the Arbiter's <type> hit` or `under the
+ * toughness band`; `bossAfter`, measured on the trade's temporary stage (D-456), on a defence, damage or avoidance entry.
+ * A build held to 11 keeps the 7 fields.
  */
-function checkTradesFile(file, endgame, fail) {
+function checkTradesFile(file, endgame, fail, a12 = false) {
   const bad = (why) => fail('trades', `trades.json${why}`);
   if (!isObj(file) || !Array.isArray(file.trades) || Object.keys(file).length !== 1) return bad(` is ${show(file).slice(0, 80)}; it is {"trades": [...]} (D-439, Appendix A)`);
   const rungs = new Map(endgame.map((s) => [s.id, s.variant]));
+  const [fields, kinds] = a12 ? [TRADE_FIELDS_A12, TRADE_KINDS_A12] : [TRADE_FIELDS, TRADE_KINDS_A11];
   file.trades.forEach((t, k) => {
     const at = `'s trades[${k}]`;
-    if (!isObj(t) || show(Object.keys(t).sort()) !== show([...TRADE_FIELDS].sort())) return bad(`${at} is ${show(t)}; a trade is {${TRADE_FIELDS.join(', ')}} (Appendix A)`);
+    if (!isObj(t) || show(Object.keys(t).sort()) !== show([...fields].sort())) return bad(`${at} is ${show(t)}; a trade is {${fields.join(', ')}}${a12 ? ' in a build held to revision 12, maxHit and hitsSurvived null where they don\'t apply (D-450, §22)' : ' (Appendix A)'}`);
     if (!rungs.has(t.stage)) bad(`${at} names stage ${show(t.stage)}, which is no endgame rung of the plan (D-439)`);
-    if (!TRADE_KINDS_A11.includes(t.kind)) bad(`${at}'s kind is ${show(t.kind)}; one of ${TRADE_KINDS_A11.join(', ')} (Appendix A)`);
+    if (!kinds.includes(t.kind)) bad(`${at}'s kind is ${show(t.kind)}; one of ${kinds.join(', ')} (Appendix A)`);
     if (typeof t.what !== 'string' || t.what.trim() === '') bad(`${at} has no what, the trade in a short phrase (Appendix A)`);
     if (typeof t.reason !== 'string') bad(`${at}'s reason is ${show(t.reason)}; a short phrase (Appendix A)`);
     if (!numOrNull(t.ehpChange) || !numOrNull(t.damageChange) || !numOrNull(t.bossAfter)) bad(`${at}'s changes are ${show([t.ehpChange, t.damageChange, t.bossAfter])}; ehpChange and damageChange are percentages or null, bossAfter a number or null (Appendix A)`);
     const none = NONE_FOUND.test(String(t.what ?? ''));
-    if (none && (t.ehpChange !== null || t.damageChange !== null || t.bossAfter !== null)) bad(`${at} found none (${show(t.what)}), but its changes aren't null (Appendix A)`);
-    if (isNum(t.bossAfter) && !(t.kind === 'damage' && rungs.get(t.stage) === 'non-budget')) bad(`${at} has bossAfter on a ${t.kind} trade of ${t.stage}; only the non-budget rung's damage trade carries it (D-448, Appendix A)`);
+    if (none && (t.ehpChange !== null || t.damageChange !== null || t.bossAfter !== null || (a12 && (t.maxHit !== null || t.hitsSurvived !== null)))) bad(`${at} found none (${show(t.what)}), but its changes aren't null (Appendix A)`);
+    if (!a12) {
+      if (isNum(t.bossAfter) && !(t.kind === 'damage' && rungs.get(t.stage) === 'non-budget')) bad(`${at} has bossAfter on a ${t.kind} trade of ${t.stage}; only the non-budget rung's damage trade carries it (D-448, Appendix A)`);
+      return;
+    }
+    const bn = ['budget', 'non-budget'].includes(rungs.get(t.stage));
+    if (['defence', 'avoidance'].includes(t.kind) && rungs.has(t.stage) && !bn) bad(`${at} is a ${t.kind} trade on ${t.stage}; defence and avoidance trades are on b or n (D-450, Appendix A)`);
+    if (t.kind === 'defence' && typeof t.reason === 'string' && !DEFENCE_REASON.test(t.reason.trim())) bad(`${at}'s reason is ${show(t.reason)}; a defence trade's reason is "one-shot by the Arbiter's <type> hit" or "under the toughness band" (D-450, Appendix A)`);
+    if (isNum(t.bossAfter) && !['defence', 'damage', 'avoidance'].includes(t.kind)) bad(`${at} has bossAfter on a ${t.kind} trade; D1-finish measures it on a defence, damage or avoidance trade's temporary stage (D-456, Appendix A)`);
+    const mh = t.maxHit;
+    if (!(mh === null || (isObj(mh) && typeof mh.type === 'string' && mh.type !== '' && isNum(mh.before) && isNum(mh.after) && Object.keys(mh).length === 3))) bad(`${at}'s maxHit is ${show(mh)}; null, or {type, before, after}, the deciding row's Pinnacle-pass max hit (D-450, Appendix A)`);
+    else if (mh !== null && !['defence', 'damage'].includes(t.kind)) bad(`${at} has maxHit on a ${t.kind} trade; it is set on a one-shot rung's defence and damage entries only (Appendix A)`);
+    const hs = t.hitsSurvived;
+    const pctOk = (v) => isNum(v) && v >= 0 && v <= 100;
+    if (!(hs === null || (isObj(hs) && pctOk(hs.before) && pctOk(hs.after) && Object.keys(hs).length === 2))) bad(`${at}'s hitsSurvived is ${show(hs)}; null, or {before, after}, each 0–100 (D-450, Appendix A)`);
+    else if (hs !== null && !['defence', 'avoidance'].includes(t.kind)) bad(`${at} has hitsSurvived on a ${t.kind} trade; it is set on the defence and avoidance entries of a build that evades or deflects (Appendix A)`);
   });
+}
+
+/** D-449 (§4; proceed-on, §25): the fix family a warning names for the type of a hit. */
+export function fixFamily(type) {
+  if (type === 'physical') return 'the pool, armour or a physical shift';
+  if (type === 'physical-lightning') return 'the pool, armour, a physical shift or lightning resistance';
+  return `the pool or ${typeWords(type)} resistance`;
+}
+
+/** §6, Appendix A: the defence plan's base families, those of the bases' attributes. */
+const DEFENCE_BASES = ['armour', 'evasion', 'energy shield', 'armour/evasion', 'armour/energy shield', 'evasion/energy shield'];
+/** D-450 (proceed-on, §25): an evasion build, pure or hybrid, read from `n`'s `defence.base`. */
+const evasionBase = (base) => typeof base === 'string' && base.split('/').includes('evasion');
+
+/**
+ * D-451 (§6, §22, Appendix A): in a build held to revision 12, a schema-8 plan's non-budget rung states its defence plan
+ * beside `skills.engagement`, `stages[].defence {base, chance, mitigation, pool, physicalHit}`, `base` a family of the
+ * bases' attributes and the others short texts; a schema-7 plan has none to state.
+ */
+function checkDefencePlan(plan, endgame, fail) {
+  if (!(isInt(plan.schemaVersion) && plan.schemaVersion >= 8)) return;
+  const n = endgame.find((s) => s.variant === 'non-budget');
+  if (!n) return;
+  const d = n.defence;
+  const texts = ['chance', 'mitigation', 'pool', 'physicalHit'];
+  if (!isObj(d)) fail('defence-plan', `plan.json's non-budget rung ${n.id} has no defence {base, chance, mitigation, pool, physicalHit}; in a run held to amendment 12 a schema-8 plan states its defence plan on n, as it states its engagement (D-451, §22)`);
+  else if (!DEFENCE_BASES.includes(d.base) || !texts.every((k) => typeof d[k] === 'string' && d[k].trim() !== '')) fail('defence-plan', `plan.json's non-budget rung ${n.id} has defence ${show(d)}; base is one of ${DEFENCE_BASES.join(', ')}, and chance, mitigation, pool and physicalHit short texts (D-451, Appendix A)`);
 }
 
 /** D-447: a stage's boss rotation, its entries' record keys: `skills.boss.entries`, else the named source alone. */
@@ -5138,9 +5316,10 @@ function checkBossLedger(endgame, plan, record, fail) {
  * references/toughness-targets.json; the estimate is the ledger's `boss_<stage>` value (its current formula) and null
  * without one; the floor is references/boss-floor.json's and `under` the boss figure below it; and the rung's trades are
  * trades.json's. A rung under its band has a defence trade, one over it or under the floor a damage trade (`none found: …`
- * counts), and the damage trade's `bossAfter` is the boss figure × (1 + damageChange / 100).
+ * counts), and the damage trade's `bossAfter` is the boss figure × (1 + damageChange / 100), except in a build held to
+ * amendment 12 (`a12`), where D1-finish measures it on the trade's temporary stage (D-456).
  */
-function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trades, fresh, fail }) {
+function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12 = false }) {
   const bad = (rule, why) => fail(rule, `${file}: ${why}`);
   const n = endgame.find((s) => s.variant === 'non-budget');
   const engagement = n?.skills?.engagement;
@@ -5225,10 +5404,195 @@ function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trad
     const has = (kind) => rungTrades.some((x) => x.kind === kind);
     if (band === 'under' && !has('defence')) fail('trades', `${file}: the non-budget rung ${r.stage} is under its toughness band, but no defence trade is shown for it (a trades.json entry, kind defence; "none found: <why>" when there is none) (D-441)`);
     if ((band === 'over' || under) && !has('damage')) fail('trades', `${file}: the non-budget rung ${r.stage} is ${[band === 'over' ? 'over its toughness band' : null, under ? 'under the boss floor' : null].filter(Boolean).join(' and ')}, but no damage trade is shown for it (a trades.json entry, kind damage; "none found: <why>" when there is none) (D-441, D-448)`);
-    // D-448: the damage trade's boss figure after it moves with the named source's.
-    for (const x of rungTrades.filter((y) => y.kind === 'damage' && isNum(y.damageChange))) {
+    // D-448: the damage trade's boss figure after it moves with the named source's; D-456 (amendment 12) measures it.
+    for (const x of rungTrades.filter((y) => !a12 && y.kind === 'damage' && isNum(y.damageChange))) {
       const want = figure * (1 + x.damageChange / 100);
       if (!sameFigure(x.bossAfter, want)) fail('trades', `${file}: the non-budget rung ${r.stage}'s damage trade (${show(x.what)}) has bossAfter ${show(x.bossAfter)}; it is the boss figure ${round2(figure)} × (1 + ${x.damageChange} / 100) = ${round2(want)} (D-448, Appendix A)`);
+    }
+  }
+}
+
+/**
+ * D-449 (Appendix A): the shape of a `b` or `n` rung's `maxHit {lowest, immune, arbiter, oneShot}` in a design field
+ * written under amendment 12's rules; null when it is right, else what it should be.
+ */
+function maxHitProblem(mh) {
+  const isText = (v) => typeof v === 'string' && v.trim() !== '';
+  if (!isObj(mh)) return 'on b and n it is {lowest, immune, arbiter, oneShot}';
+  if (!(mh.lowest === null || (isObj(mh.lowest) && isText(mh.lowest.type) && isNum(mh.lowest.value)))) return 'its lowest is null or {type, value}, the lowest of the five max hits';
+  if (!Array.isArray(mh.immune) || !mh.immune.every(isText)) return 'its immune is a list of the types PoB makes the build immune to';
+  const a = mh.arbiter;
+  if (!(a === null || (isObj(a) && isText(a.type) && numOrNull(a.evade) && numOrNull(a.deflect) && isNum(a.hitsSurvived) && numOrNull(a.deflectedRatio) && [null, undefined, 'pass', 'formula'].includes(a.method)))) return 'its arbiter is null or the deciding row, {type, evade, deflect, hitsSurvived, deflectedRatio, method}';
+  if (typeof mh.oneShot !== 'boolean') return 'its oneShot is true or false, by the floor';
+  return null;
+}
+
+/**
+ * Names, D-449: each row of a record's `measures.arbiter` (on `b` and `n`) survives no more of its hits than Names' rule
+ * gives its full hit: 100% when the full hit survives; else the evade chance plus (1 − the evade chance) × the deflect
+ * chance when the deflected hit survives; else the evade chance alone (a deflected hit that kills too counts only the evade
+ * chance). Less is allowed, since a row keeps the least over its type's hits (an unevadable one among them).
+ */
+function checkArbiterRows(stage, arbiter, fail) {
+  if (!hasHitsSurvived(arbiter)) return;
+  const avoid = isObj(arbiter.avoid) ? arbiter.avoid : null;
+  const e = isNum(avoid?.evade) ? avoid.evade : 0;
+  const d = isNum(avoid?.deflect) ? avoid.deflect : 0;
+  for (const row of list(arbiter.rows)) {
+    if (!isNum(row.hitsSurvived) || !isNum(row.ratio)) continue;
+    const at = `compile-record.json's ${stage}.measures.arbiter row ${show(row.type)}`;
+    if (row.ratio < 1 || row.immune === true) {
+      if (Math.abs(row.hitsSurvived - 100) > 0.5) fail('arbiter', `${at} survives its full hit (ratio ${round2(row.ratio)}), but its hitsSurvived is ${row.hitsSurvived}; a row that survives the full hit survives 100% of them (Names, D-449)`);
+      continue;
+    }
+    const deflectedSurvives = d > 0 && isNum(row.deflectedRatio) && row.deflectedRatio < 1;
+    const bound = deflectedSurvives ? e + ((100 - e) * d) / 100 : e;
+    if (row.hitsSurvived > bound + 0.5) {
+      const why = deflectedSurvives ? `the evade chance ${e}% plus (1 − ${e}%) × the deflect chance ${d}%` : d > 0 && isNum(row.deflectedRatio) ? `its deflected hit kills too (${round2(row.deflectedRatio)} of the max hit), so only the evade chance counts` : 'only the evade chance counts';
+      fail('arbiter', `${at} is one-shot by its full hit (ratio ${round2(row.ratio)}) and survives ${row.hitsSurvived}% of its hits, more than Names' rule gives: ${why}, at most ${round2(bound)}% (Names, D-449)`);
+    }
+  }
+}
+
+/**
+ * Amendment 12 (D-449, D-450, D-454; Appendix A, the D1 gate's design field), for a build whose last D1 gate is held to
+ * revision 12: each variant rung's `damage.resisting`; each `b` and `n` rung's `maxHit {lowest, immune, arbiter,
+ * oneShot}`, `arbiter` the deciding row and `oneShot` by the floor in references/toughness-targets.json; and on `n`,
+ * `toughness`'s `chanceShare`, `conditioned {ehp, band}`, `ailmentCut` and `warning {kind, type, fix} | null`. While the
+ * gate is fresh, each is recomputed from the record: the deciding row and the one-shot rung from `measures.arbiter`
+ * (hits survived unrounded), the lowest max hit from `measures.toughness`, the chance-layer share from its `chance.share`,
+ * the conditioned band from `conditioned.ehp`, the ailment cut from PoB's `DeflectChance` × `DeflectEffect`; the warning,
+ * from the field's own values when it isn't fresh, is the one-shot warning when the EHP is within or over its band on a
+ * one-shot rung, else the conditioned one when the conditioned EHP is under its band, else none (G5 as G4's first case).
+ * The trades (D-450): a one-shot rung has a defence trade (`none found: …` counts), its defence and damage entries carry
+ * `maxHit`, and its damage trade doesn't lower it; an evasion build (`n`'s `defence.base`) has an avoidance trade on `b`
+ * and `n`. The record's rows hold to Names' rule (`checkArbiterRows`).
+ */
+function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }) {
+  const bad = (rule, why) => fail(rule, `${file}: ${why}`);
+  const t = referenceJson('toughness-targets.json');
+  const read = arbiterFloor();
+  if (read === null) fail('arbiter', `${file}: references/toughness-targets.json gives no arbiter.hitsSurvivedFloor, the floor of hits survived a rung needs not to be one-shot (D-449, Appendix A)`);
+  const floor = read ?? ARBITER_FLOOR;
+  const floorWords = `${Math.round(floor * 100)}%`;
+  const n = endgame.find((s) => s.variant === 'non-budget');
+  const evasion = evasionBase(n?.defence?.base);
+  const engagement = n?.skills?.engagement;
+  const near = (x, y, tol) => isNum(x) && isNum(y) && Math.abs(x - y) <= tol;
+  for (const r of list(design.rungs)) {
+    const st = endgame.find((s) => s.id === r.stage);
+    if (!st) continue;
+    const at = `design.rungs's ${show(r.stage)}`;
+    const rec = record?.stages?.[r.stage];
+    const m = isObj(rec?.measures) ? rec.measures : {};
+    // D-454: the resisting figure on every variant rung.
+    if (!isObj(r.damage) || !isNum(r.damage.resisting)) bad('design-field', `${at} has damage ${show(r.damage)}; a design field written under amendment 12's rules gives {map, resisting, boss}, resisting the figure against the map enemy with 40% fire, cold and lightning resistance (D-454, Appendix A)`);
+    else if (fresh && isNum(m.damage?.resisting) && !sameFigure(r.damage.resisting, m.damage.resisting)) bad('design-field', `${at}'s damage.resisting is ${r.damage.resisting}, but the record's ${r.stage}.measures.damage.resisting is ${m.damage.resisting} (D-454)`);
+    if (st.variant !== 'budget' && st.variant !== 'non-budget') continue;
+    const rungWord = st.variant;
+    checkArbiterRows(r.stage, m.arbiter, fail);
+    // D-449: the deciding row and the one-shot rung.
+    const mh = r.maxHit;
+    let oneShot = null;
+    let decidingType = null;
+    const problem = maxHitProblem(mh);
+    if (problem !== null) bad('design-field', `${at} has maxHit ${show(mh)}; ${problem} (D-449, Appendix A)`);
+    else {
+      oneShot = mh.oneShot;
+      decidingType = isObj(mh.arbiter) ? mh.arbiter.type : null;
+      if (fresh) {
+        const tm = isObj(m.toughness) ? m.toughness : null;
+        if (tm !== null) {
+          const lowest = isObj(tm.lowestMaxHit) ? tm.lowestMaxHit : null;
+          if ((lowest === null) !== (mh.lowest === null) || (lowest !== null && (mh.lowest.type !== lowest.type || !sameFigure(mh.lowest.value, lowest.value)))) bad('arbiter', `${at}'s maxHit.lowest is ${show(mh.lowest)}, but the record's ${r.stage}.measures.toughness.lowestMaxHit is ${show(lowest)} (D-449)`);
+          const immune = Array.isArray(tm.immune) ? [...tm.immune].sort() : [];
+          if (show([...mh.immune].sort()) !== show(immune)) bad('arbiter', `${at}'s maxHit.immune is ${show(mh.immune)}, but the record's ${r.stage}.measures.toughness.immune is ${show(tm.immune ?? [])} (D-449)`);
+        }
+        const reading = hasHitsSurvived(m.arbiter) ? arbiterReading(m.arbiter, floor) : null;
+        if (reading !== null) {
+          const row = reading.row;
+          const avoid = isObj(m.arbiter.avoid) ? m.arbiter.avoid : null;
+          if (row === null) {
+            if (mh.arbiter !== null) bad('arbiter', `${at}'s maxHit.arbiter is ${show(mh.arbiter)}, but the record's ${r.stage}.measures.arbiter has no row with a ratio to decide (D-449)`);
+          } else if (!isObj(mh.arbiter) || mh.arbiter.type !== row.type) {
+            bad('arbiter', `${at}'s maxHit.arbiter is the ${show(mh.arbiter?.type ?? null)} row, but the record's deciding row is ${show(row.type)}: a rung's one-shot row with the lowest hits survived, else its row with the largest ratio (Names, D-449)`);
+          } else {
+            const a = mh.arbiter;
+            if (!near(a.hitsSurvived, survivedOf(row), 0.05)) bad('arbiter', `${at}'s maxHit.arbiter.hitsSurvived is ${a.hitsSurvived}, but the record's ${row.type} row survives ${survivedOf(row)}% of its hits (D-449)`);
+            const dr = isNum(row.deflectedRatio) ? row.deflectedRatio : null;
+            if (dr === null ? a.deflectedRatio !== null : !near(a.deflectedRatio, dr, 0.005)) bad('arbiter', `${at}'s maxHit.arbiter.deflectedRatio is ${show(a.deflectedRatio)}, but the record's ${row.type} row has ${show(dr)} (D-449)`);
+            const [ev, de] = [isNum(avoid?.evade) ? avoid.evade : 0, isNum(avoid?.deflect) ? avoid.deflect : 0];
+            if (!near(a.evade ?? 0, ev, 0.05) || !near(a.deflect ?? 0, de, 0.05)) bad('arbiter', `${at}'s maxHit.arbiter chances are evade ${show(a.evade)}, deflect ${show(a.deflect)}, but the record's ${r.stage}.measures.arbiter.avoid gives evade ${ev}, deflect ${de} at the Arbiter's accuracy (D-449)`);
+            if ((a.method ?? null) !== (avoid?.method ?? null)) bad('arbiter', `${at}'s maxHit.arbiter.method is ${show(a.method ?? null)}, but the record's avoid.method is ${show(avoid?.method ?? null)} (D-449)`);
+          }
+          if (mh.oneShot !== reading.oneShot) {
+            const how = row === null ? 'has no deciding row' : row.verdict === 'one-shot' ? `is one-shot by its full hit and survives ${survivedOf(row)}% of its hits, ${reading.oneShot ? 'under' : 'at or over'} the ${floorWords} floor` : 'survives its full hit';
+            bad('arbiter', `${at}'s maxHit.oneShot is ${mh.oneShot}, but the record's deciding row ${row ? `(${row.type}) ` : ''}${how} (references/toughness-targets.json; D-449)`);
+          }
+          oneShot = reading.oneShot;
+          decidingType = row?.type ?? null;
+        }
+      }
+    }
+    // D-450: the defence trade on a one-shot rung, the damage trade's max hit there, and an evasion build's avoidance trade.
+    const rungTrades = list(r.trades);
+    const has = (kind) => rungTrades.some((x) => x.kind === kind);
+    if (oneShot === true && !has('defence')) fail('trades', `${file}: the ${rungWord} rung ${r.stage} is a one-shot rung (the Arbiter's ${decidingType === null ? 'deciding' : typeWords(decidingType)} hit, under the ${floorWords} floor), but no defence trade is shown for it (a trades.json entry, kind defence; "none found: <why>" when there is none) (D-450)`);
+    if (oneShot === true) {
+      for (const x of rungTrades.filter((y) => ['defence', 'damage'].includes(y.kind) && !NONE_FOUND.test(String(y.what ?? '')))) {
+        const mx = x.maxHit;
+        if (!isObj(mx) || !isNum(mx.before) || !isNum(mx.after)) fail('trades', `${file}: the one-shot rung ${r.stage}'s ${x.kind} trade (${show(x.what)}) carries no maxHit {type, before, after}, the deciding row's Pinnacle-pass max hit before and after it (D-450, Appendix A)`);
+        else if (x.kind === 'damage' && mx.after < mx.before) fail('trades', `${file}: the one-shot rung ${r.stage}'s damage trade (${show(x.what)}) lowers the deciding row's max hit, ${mx.before} → ${mx.after}; a damage trade on a one-shot rung may not lower it (D-450)`);
+      }
+    }
+    if (evasion && !has('avoidance')) fail('trades', `${file}: the ${rungWord} rung ${r.stage} of an evasion build (the non-budget rung's defence base ${show(n.defence.base)}) shows no avoidance trade, the next avoidance spend and the best gear line (a trades.json entry, kind avoidance; "none found: <why>" when there is none) (D-450)`);
+    if (st.variant !== 'non-budget') continue;
+    // D-449: the non-budget rung's toughness reading. Its shape, then the record's figures while fresh, then the warning.
+    const tough = r.toughness;
+    if (!isObj(tough)) continue;
+    const c = tough.conditioned;
+    const cOk = isObj(c) && isNum(c.ehp) && ['under', 'within', 'over'].includes(c.band);
+    const w = tough.warning;
+    const wOk = w === null || (isObj(w) && ['one-shot', 'conditioned'].includes(w.kind) && typeof w.type === 'string' && w.type !== '' && typeof w.fix === 'string');
+    const shape = [
+      isNum(tough.chanceShare) ? null : 'chanceShare (percent)',
+      cOk ? null : 'conditioned {ehp, band: "under" | "within" | "over"}',
+      tough.ailmentCut === null || isNum(tough.ailmentCut) ? null : 'ailmentCut (percent) or null',
+      wOk ? null : 'warning {kind: "one-shot" | "conditioned", type, fix} or null',
+    ].filter(Boolean);
+    if (shape.length > 0) bad('design-field', `${at}'s toughness is ${show(tough)}; under amendment 12 it gains ${shape.join(', ')} (D-449, Appendix A)`);
+    const target = isNum(tough.target) ? tough.target : t?.targets?.[engagement?.kind];
+    let band = tough.band;
+    let condBand = cOk ? c.band : null;
+    let condType = null;
+    if (fresh && isObj(t) && isNum(t.under) && isNum(t.over) && isNum(target)) {
+      const tm = isObj(m.toughness) ? m.toughness : null;
+      if (isNum(rec?.outputs?.TotalEHP)) band = bandOf(rec.outputs.TotalEHP, target, t);
+      const share = tm?.chance?.share;
+      if (isNum(share) && isNum(tough.chanceShare) && !near(tough.chanceShare, share * 100, 0.5)) bad('toughness', `${at}'s toughness.chanceShare is ${tough.chanceShare}, but the record's ${r.stage}.measures.toughness.chance.share is ${share}, ${round2(share * 100)}% (D-449)`);
+      if (isObj(tm?.conditioned) && isNum(tm.conditioned.ehp)) {
+        condBand = bandOf(tm.conditioned.ehp, target, t);
+        condType = isObj(tm.conditioned.lowestMaxHit) ? tm.conditioned.lowestMaxHit.type : null;
+        if (cOk && !sameFigure(c.ehp, tm.conditioned.ehp)) bad('toughness', `${at}'s toughness.conditioned.ehp is ${c.ehp}, but the record's ${r.stage}.measures.toughness.conditioned.ehp is ${tm.conditioned.ehp} (D-449)`);
+        if (cOk && c.band !== condBand) bad('toughness', `${at}'s toughness.conditioned.band is ${show(c.band)}, but the conditioned EHP ${round2(tm.conditioned.ehp)} against the ${target} target is ${condBand} (D-441, D-449)`);
+      }
+      const [dc, de] = [rec?.outputs?.DeflectChance, rec?.outputs?.DeflectEffect];
+      const cut = isNum(dc) && dc > 0 && isNum(de) ? (dc * de) / 100 : null;
+      if (cut === null ? tough.ailmentCut !== null && tough.ailmentCut !== undefined : !near(tough.ailmentCut, cut, 0.5)) bad('toughness', `${at}'s toughness.ailmentCut is ${show(tough.ailmentCut ?? null)}, but ${cut === null ? 'the build deflects nothing against the map enemy (no DeflectChance), so it is null' : `PoB's DeflectChance ${dc} × DeflectEffect ${de} / 100 is ${round2(cut)}`} (PG-97, D-449)`);
+    }
+    // G4, with G5 as its first case: the one-shot warning, else the conditioned one, else none.
+    const want = (band === 'within' || band === 'over') && oneShot === true ? { kind: 'one-shot', type: decidingType } : condBand === 'under' ? { kind: 'conditioned', type: condType } : null;
+    if (!wOk) continue;
+    if (want === null) {
+      if (w !== null) bad('toughness', `${at}'s toughness.warning is ${show(w)}, but no warning applies: the EHP is ${band ?? 'unknown'} its band${oneShot === true ? '' : ' and the rung is not one-shot'}, and the conditioned EHP is ${condBand ?? 'unknown'} its band (D-449)`);
+    } else if (w === null) {
+      bad('toughness', `${at}'s toughness.warning is null, but ${want.kind === 'one-shot' ? `the EHP reads ${band} its band while the Arbiter's ${typeWords(want.type ?? 'deciding')} hit one-shots the rung` : 'with every condition against it the EHP falls under its band'}: the warning is {kind: "${want.kind}", type${want.type ? ` "${want.type}"` : ''}, fix} (D-449)`);
+    } else if (w.kind !== want.kind) {
+      bad('toughness', `${at}'s toughness.warning is the ${w.kind} warning, but the ${want.kind} warning applies (G5, the one-shot rung within or over its band, before the conditioned EHP under it; D-449)`);
+    } else if (want.type !== null && w.type !== want.type) {
+      bad('toughness', `${at}'s ${w.kind} warning names the ${show(w.type)} hit, but ${want.kind === 'one-shot' ? "the deciding row's type" : "the conditioned lowest max hit's type"} is ${show(want.type)} (D-449)`);
+    } else if (w.fix !== fixFamily(w.type)) {
+      bad('toughness', `${at}'s ${w.kind} warning's fix is ${show(w.fix)}; for a ${typeWords(w.type)} hit the fix family is "${fixFamily(w.type)}" (D-449)`);
     }
   }
 }

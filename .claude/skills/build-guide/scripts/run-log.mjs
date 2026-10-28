@@ -92,8 +92,8 @@
 // display prints the run checker's `warnings` (D-435).
 //
 // Amendment 11 (WU-113; D-436…D-448, its Appendix A):
-//  - `init` writes `skillRevision: 11` and `pricing: {stops: [], retries: []}`; `resume` stamps both on an older log, with
-//    `skillRevisionFrom`, the four lists' lengths at the stamp, so the entries after it are held to amendment 11's rules
+//  - `init` writes `skillRevision` (11 then; 12 from amendment 12) and `pricing: {stops: [], retries: []}`; `resume` stamps
+//    both on an older log, with `skillRevisionFrom`, the four lists' lengths at the stamp, so the entries after it are held to amendment 11's rules
 //    and the ones before it to their own (§19). A log without `skillRevision` is an older run's: it keeps the rival's
 //    step RV and its `x` card, and its displays keep their old forms; a log with it refuses RV (D-443). A display reads
 //    each artifact by its own format, so one written before a resume's stamp keeps its old form: the verification
@@ -113,6 +113,23 @@
 //    "+<x>% damage" swaps, the trades from `trades.json` (a damage trade's `bossAfter`), and the pieces line counting
 //    its out pieces; the final display prints both figures, the boss figure the record's evaluated `boss_<stage>`.
 //
+// Amendment 12 (WU-121; D-449…D-454, D-459, its §22 and Appendix A):
+//  - `init` writes `skillRevision: 12`; `resume` stamps 12 on an older log, with one boundary per revision in
+//    `skillRevisionFrom`, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}}`: a boundary, at the same
+//    lengths, for every revision above the log's old one, so a log from before amendment 11 gains both and a revision-11
+//    log keeps 11's (its flat `skillRevisionFrom` reads as `{"11": …}`) and gains 12's. A revision `init` wrote has no
+//    boundary and holds from the start. The scripts compare revisions by order, not equality (`heldFrom(log, list,
+//    revision)`): amendment 11's rules hold from 11's boundary, this amendment's from 12's. A log at 12 refuses D1-tree's
+//    `respec` outcome (D-452: one tree per loadout);
+//  - the design display, read by the D1 gate's design field (a rung with `maxHit` is amendment 12's): on `b` and `n` the
+//    Arbiter line from the deciding row with hits survived and the chances at the Arbiter, `under the 80% floor` on a
+//    one-shot rung, then `Lowest max hit: <n> <type>` and PG-100's note on a stage whose gear gives a companion part of
+//    each deflected hit; per variant rung the resisting figure after the boss lines; on `n` the Effective HP line's
+//    chance-layer share, the conditioned line and its band, the ailment line on a build that deflects, and the warning;
+//    the trades' `defence (one-shot)` and `avoidance` lines with their max hit and hits survived;
+//  - the final display's rung lines with three figures (`measures.damage.resisting`) and the verdict label's three forms
+//    (`arbiterWords`), and the design-to-final comparison in the same forms.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview. What needs the deck (a new card's `from`
 // and its name) is checked when the gate's checkpoint is written.
@@ -122,7 +139,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { playersWords, bossFigure } from './render-audit.mjs';
+import { playersWords, bossFigure, arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedPercent, typeWords } from './render-audit.mjs';
 
 /**
  * A card id (D-319): `r<round>-<letter>-<n>`, the letters a to c a brainstorm round's researchers', g a card made at a
@@ -181,8 +198,17 @@ const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q'
 const PRICING = ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'];
 /** D-444: a `priceOutcomes` key for the calls priced from poe.ninja's currency exchange, which send no trade request. */
 export const EXCHANGE = 'exchange';
-/** §19: the skill revision `init` writes and `resume` stamps; a log without it is held to the rules before amendment 11. */
-export const SKILL_REVISION = 11;
+/**
+ * §19, amendment 12's §22: the skill revision `init` writes and `resume` stamps; a log without it is held to the rules
+ * before amendment 11.
+ */
+export const SKILL_REVISION = 12;
+/** Amendment 11's revision (§19): its rules hold from its boundary in every log at 11 or later. */
+export const A11 = 11;
+/** Appendix A (amendment 12): the revisions a log can be held to, in order; each one's rules hold from its own boundary. */
+export const REVISIONS = [11, 12];
+/** A log's skill revision, a whole number, or null for a log without one (an older run's). */
+export const revisionOf = (log) => (isObj(log) && Number.isInteger(log.skillRevision) ? log.skillRevision : null);
 /** D-444: the outcomes that stop trade-site pricing until the user approves a retry at a gate (or a resume clears it). */
 export const STOP_OUTCOMES = ['rate_limited', 'locked_out'];
 /** D-444: the answer to a gate's pricing question, asked only after a stop. */
@@ -483,7 +509,8 @@ export function writeLog(runFolder, kind, entry) {
   let log;
   if (kind === 'init') {
     if (fs.existsSync(file)) throw new Error('run-log.json exists; init writes the first log only');
-    // §19: a new run is held to amendment 11's rules from its start; D-444: its pricing stops and retries.
+    // §19, amendment 12's §22: a new run is held to the current revision's rules from its start (no boundary); D-444: its
+    // pricing stops and retries.
     log = {
       schemaVersion: 4, skillRevision: SKILL_REVISION, runFolder: path.resolve(runFolder), slug: entry.slug, brief: entry.brief, status: entry.status ?? 'running',
       mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: newestDigest(),
@@ -508,8 +535,13 @@ export function writeLog(runFolder, kind, entry) {
       throw new Error(`stage entry refused: this run's brainstorm rounds use ${used}, as its first round did; a run whose first round used R1a-assemble keeps it for every later round, and a run that composes keeps R1a-synthesize (D-429)`);
     }
     // D-443: a run held to amendment 11's rules runs no rival; an older run's RV entries stay readable.
-    if (kind === 'stage' && entry.stage === 'RV' && log.skillRevision === SKILL_REVISION) {
-      throw new Error('stage entry refused: the rival (RV) is removed; a run held to amendment 11 (skillRevision 11) never runs it, and only an older run\'s log keeps its RV entries (D-443)');
+    if (kind === 'stage' && entry.stage === 'RV' && revisionOf(log) >= A11) {
+      throw new Error('stage entry refused: the rival (RV) is removed; a run held to amendment 11 (skillRevision 11 or later) never runs it, and only an older run\'s log keeps its RV entries (D-443)');
+    }
+    // D-452 (amendment 12, Appendix A): one tree per loadout, so D1-tree has no `respec` outcome in a log at 12; an older
+    // run's respec entries stay readable.
+    if (kind === 'stage' && entry.stage === 'D1-tree' && entry.outcome === 'respec' && revisionOf(log) >= 12) {
+      throw new Error("stage entry refused: a run held to amendment 12 (skillRevision 12) has no respec: each loadout's tree is its own, so D1-tree never returns respec, and a user's respec request is a tree request, D1-tree then D1-finish (D-452)");
     }
     const list = { stage: 'stages', checkpoint: 'checkpoints', escalation: 'escalations' }[kind];
     const fields = (schema === 4 ? FIELDS4 : FIELDS)[kind];
@@ -517,7 +549,7 @@ export function writeLog(runFolder, kind, entry) {
       if (!Array.isArray(log[list])) log[list] = [];
       log[list].push(Object.fromEntries(fields.filter((k) => entry[k] !== undefined).map((k) => [k, entry[k]])));
       // D-444: a step that hit a rate limit or a lockout stops trade-site pricing until a gate's retry-pricing (or a resume).
-      const stop = kind === 'stage' && log.skillRevision === SKILL_REVISION ? stopOutcome(entry.priceOutcomes) : null;
+      const stop = kind === 'stage' && revisionOf(log) >= A11 ? stopOutcome(entry.priceOutcomes) : null;
       if (stop !== null) {
         if (!isObj(log.pricing)) log.pricing = { stops: [], retries: [] };
         if (!Array.isArray(log.pricing.stops)) log.pricing.stops = [];
@@ -542,15 +574,23 @@ export function writeLog(runFolder, kind, entry) {
       // entry keeps its own session's record (a migrated run's null, or init's flag, is replaced here).
       log.noNinja = entry.noNinja;
       log.status = 'running';
-      // §19: a resume stamps an older log with the skill revision, the lists' lengths where the new rules start.
-      const stamped = log.skillRevision !== SKILL_REVISION;
+      // §19, Appendix A (amendment 12): a resume stamps an older log with the skill revision, and writes a boundary, the
+      // lists' lengths where that revision's rules start, for every revision above the log's old one; the boundaries it
+      // had stay (a revision-11 log's flat one read as 11's).
+      const old = revisionOf(log);
+      const added = REVISIONS.filter((r) => old === null || r > old);
+      const stamped = added.length > 0;
       if (stamped) {
+        const lengths = log.resumes[log.resumes.length - 1].lengths;
+        const from = { ...boundariesOf(log) };
+        for (const r of added) from[String(r)] = { ...lengths };
         log.skillRevision = SKILL_REVISION;
-        log.skillRevisionFrom = { ...log.resumes[log.resumes.length - 1].lengths };
+        log.skillRevisionFrom = from;
       }
       if (!isObj(log.pricing)) log.pricing = { stops: [], retries: [] };
       saveLog(file, log);
-      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${log.skillRevisionFrom.stages}]` : ''}`;
+      const at = stamped ? log.skillRevisionFrom[String(SKILL_REVISION)].stages : null;
+      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${at}]${added.length > 1 ? ` (the rules of amendments ${added.join(' and ')})` : ''}` : ''}`;
     } else Object.assign(log, entry);
   }
   saveLog(file, log);
@@ -566,14 +606,27 @@ export function stopOutcome(priceOutcomes) {
 }
 
 /**
- * §19: where a log's entries start being held to amendment 11's rules, as an index into `list` (stages[] by default):
- * 0 for a log `init` wrote with `skillRevision`, the stamp's recorded length for a log a resume stamped
- * (`skillRevisionFrom`), and Infinity for a log without `skillRevision`, which is held to the older rules throughout.
+ * Appendix A (amendment 12): a log's boundaries by revision, `{"11": {stages, checkpoints, escalations, displays}, "12":
+ * {…}}`, each the lists' lengths where a resume stamped that revision. A revision-11 log's flat `skillRevisionFrom`
+ * (`{stages, …}`, amendment 11's form) reads as `{"11": …}`; a log without one has none.
  */
-export function heldFrom(log, list = 'stages') {
-  if (!isObj(log) || log.skillRevision !== SKILL_REVISION) return Infinity;
-  const from = log.skillRevisionFrom;
-  return isObj(from) && isInt(from[list], 0) ? from[list] : 0;
+export function boundariesOf(log) {
+  const f = isObj(log) ? log.skillRevisionFrom : undefined;
+  if (!isObj(f)) return {};
+  return Object.keys(f).every((k) => /^[1-9]\d*$/.test(k)) ? f : { [String(A11)]: f };
+}
+
+/**
+ * §19, amendment 12's §22: where a log's entries start being held to `revision`'s rules (amendment 11's by default), as
+ * an index into `list` (stages[] by default). Revisions compare by order: a log at `revision` or later is held from that
+ * revision's boundary when a resume stamped it, and from 0 when `init` wrote it (no boundary); a log below `revision`, or
+ * without `skillRevision`, is never held to it (Infinity).
+ */
+export function heldFrom(log, list = 'stages', revision = A11) {
+  const r = revisionOf(log);
+  if (r === null || r < revision) return Infinity;
+  const b = boundariesOf(log)[String(revision)];
+  return isObj(b) && isInt(b[list], 0) ? b[list] : 0;
 }
 /** §19: whether a log is held to amendment 11's rules from some entry on (it has `skillRevision`). */
 export const held = (log) => heldFrom(log) !== Infinity;
@@ -597,7 +650,7 @@ export function openStop(log, i) {
  */
 function pricingAgainstRun(log, entry) {
   const bad = [];
-  if (log.skillRevision !== SKILL_REVISION) bad.push('pricing stops and retries are amendment 11\'s (skillRevision 11); this log is an older run\'s: resume it first (§19)');
+  if (!(revisionOf(log) >= A11)) bad.push('pricing stops and retries are amendment 11\'s (skillRevision 11 or later); this log is an older run\'s: resume it first (§19)');
   const at = Array.isArray(log.stages) ? log.stages.length : 0;
   if (openStop(log, at) === null) bad.push(`no stop is open: the gate asks whether to retry pricing only after a step hit a rate limit or a lockout (pricing.stops[]), and before a retry-pricing answer or a resume cleared it (D-444)`);
   const visit = objects(log.checkpoints).filter((c) => c.checkpoint === entry.checkpoint).length + 1;
@@ -1273,8 +1326,27 @@ function cardsOf(dir, deck = parseDeck(readText(dir, 'cards.md'))) {
   return { cards, name, plain };
 }
 
-/** The Arbiter's verdict in words: the record's `measures.arbiter`, or the D1 gate's text ("survives, worst physical 0.68"). */
-function arbiterWords(a) {
+/**
+ * D-459 (amendment 12, Appendix A): the verdict label's three forms from a D1 gate's design field `maxHit` (its deciding
+ * row `arbiter` and `oneShot`), as the record's reading gives them (render-audit.mjs's `arbiterLabel12`).
+ */
+function fieldLabel(m) {
+  const a = m.arbiter;
+  if (!isObj(a) || !text(a.type)) return 'not measured against the Arbiter';
+  const x = survivedPercent(isNum(a.hitsSurvived) ? a.hitsSurvived : 0);
+  if (m.oneShot === true) return `one-shot by the Arbiter's ${typeWords(a.type)} hit${x > 0 ? ` (it survives ${x}% of them)` : ''}`;
+  if (isNum(a.hitsSurvived) && a.hitsSurvived < 100) return `survives ${x}% of the Arbiter's ${typeWords(a.type)} hits, by evading or deflecting them`;
+  return "survives the Arbiter's hits";
+}
+
+/**
+ * The Arbiter's verdict in words: the record's `measures.arbiter`, or the D1 gate's text ("survives, worst physical 0.68").
+ * D-459 (amendment 12): a record whose rows carry hits survived, and a design field's `maxHit`, read in the verdict
+ * label's three forms, from the deciding row and the floor.
+ */
+function arbiterWords(a, floor = ARBITER_FLOOR) {
+  if (hasHitsSurvived(a)) return arbiterLabel12(arbiterReading(a, floor));
+  if (isObj(a) && 'oneShot' in a) return fieldLabel(a);
   let verdict;
   let type;
   let ratio;
@@ -1299,6 +1371,10 @@ const PACE_FIRST = "Clear speed is a rough estimate from the main skill's area; 
 const PACE_FIRST_A11 = "Clear speed is a rough estimate from the main skill's area; movement speed is PoB's, over your base speed; damage is the main skill's damage per second against map monsters and against a Pinnacle boss, the boss figure an estimate where PoB can't read the rotation; effective HP is PoB's estimate of the damage it takes to kill you.";
 /** D-437: the final display's, with the two figures. */
 const FIGURES_MEAN_A11 = "Damage is the main skill's damage per second against map monsters and against a Pinnacle boss (about, where estimated by hand); effective HP is PoB's estimate of the damage it takes to kill you; clear speed is a rough estimate from the main skill's area.";
+/** D-449, D-454 (amendment 12): the design gate's, with the resisting figure, hits survived and the Pinnacle pass. */
+const PACE_FIRST_A12 = "Clear speed is a rough estimate from the main skill's area; movement speed is PoB's, over your base speed; damage is the main skill's damage per second against map monsters, against resisting rares (40% fire, cold and lightning resistance) and against a Pinnacle boss, the boss figure an estimate where PoB can't read the rotation; effective HP is PoB's estimate of the damage it takes to kill you; the Arbiter's figures use PoB's Pinnacle boss settings, and hits survived is the share of its hits the build survives in full or by evading or deflecting them, rounded down.";
+/** D-454 (amendment 12): the final display's, with the three figures. */
+const FIGURES_MEAN_A12 = "Damage is the main skill's damage per second against map monsters, against resisting rares (40% fire, cold and lightning resistance) and against a Pinnacle boss (about, where estimated by hand); effective HP is PoB's estimate of the damage it takes to kill you; clear speed is a rough estimate from the main skill's area.";
 /**
  * D-407: the player's movement speed, a multiplier: the record's `measures.movementSpeed`, else PoB's
  * `EffectiveMovementSpeedMod` in its outputs (a record from before WU-88); null when neither is a number.
@@ -1324,20 +1400,23 @@ function clearPhrase(c) {
 /**
  * A rung's figures in words (D-392): damage, effective HP, the Arbiter on `b` and `n`, and the rough clear speed.
  * Amendment 11 (D-437, D-447; Appendix A): with `two` (`{map, boss, about}`), the damage against map monsters and
- * against a Pinnacle boss (`about` when the boss figure is the hand estimate), then `Effective HP <n>`.
+ * against a Pinnacle boss (`about` when the boss figure is the hand estimate), then `Effective HP <n>`. Amendment 12
+ * (D-454, Appendix A): with `two.resisting` a number, the resisting figure between them, `<map> damage per second against
+ * map monsters, <resisting> against resisting rares, <boss> against a Pinnacle boss; Effective HP <n>`.
  */
-function rungWords(r) {
+function rungWords(r, floor = ARBITER_FLOOR) {
   if (isObj(r.two)) {
+    const resisting = isNum(r.two.resisting) ? `, ${whole(r.two.resisting)} against resisting rares` : '';
     return [
-      `${whole(r.two.map)} damage per second against map monsters, ${r.two.about ? 'about ' : ''}${whole(r.two.boss)} against a Pinnacle boss; Effective HP ${whole(r.ehp)}`,
-      ...(r.arbiter !== null && r.arbiter !== undefined ? [arbiterWords(r.arbiter)] : []),
+      `${whole(r.two.map)} damage per second against map monsters${resisting}, ${r.two.about ? 'about ' : ''}${whole(r.two.boss)} against a Pinnacle boss; Effective HP ${whole(r.ehp)}`,
+      ...(r.arbiter !== null && r.arbiter !== undefined ? [arbiterWords(r.arbiter, floor)] : []),
       clearWords(r.clearSpeed),
     ].join(', ');
   }
   return [
     `${whole(r.dps)} damage per second`,
     `${whole(r.ehp)} effective HP`,
-    ...(r.arbiter !== null && r.arbiter !== undefined ? [arbiterWords(r.arbiter)] : []),
+    ...(r.arbiter !== null && r.arbiter !== undefined ? [arbiterWords(r.arbiter, floor)] : []),
     clearWords(r.clearSpeed),
   ].join(', ');
 }
@@ -1828,38 +1907,140 @@ function damageLines(r, skill) {
     const figure = `${estimated ? 'about ' : ''}${whole(estimated ? b.estimate : b.measured)}`;
     out.push(b.under === true ? `- Boss floor: ${figure}, under the ${whole(b.floor)} floor.` : `- Boss floor: ${figure} against the ${whole(b.floor)} floor.`);
   }
+  // D-454 (amendment 12, Appendix A): the resisting figure, after the boss lines, on every variant rung that carries it.
+  if (isNum(r.damage.resisting)) out.push(`- Resisting rares: ${whole(r.damage.resisting)} per second (40% fire, cold and lightning resistance).`);
   if (isObj(r.cull)) out.push(`- Culls normal monsters at ${pct(r.cull.map)}%, bosses at ${pct(r.cull.boss)}%.`);
   if (t) out.push(`- ${skill} is triggered by ${t.by}: PoB rates it at its hand-cast speed (${rate(t.usesPerSecond)} a second) and doesn't model Energy.`);
   return out;
 }
 
+/** D-441: a band in words, as the toughness and the conditioned lines write it. */
+function bandWords(band, target) {
+  const targets = referenceJson('toughness-targets.json');
+  const [under, over] = [isNum(targets?.under) ? targets.under : 0.9, isNum(targets?.over) ? targets.over : 1.5];
+  return band === 'under' ? `under its band (${whole(target * under)})` : band === 'over' ? `over its band (${whole(target * over)})` : `within its band (${whole(target * under)}–${whole(target * over)})`;
+}
+
 /** D-441 (Appendix A): the non-budget rung's toughness line, its EHP against its target, the engagement and the band. */
 function toughnessLine(r) {
   const t = r.toughness;
-  const targets = referenceJson('toughness-targets.json');
-  const [under, over] = [isNum(targets?.under) ? targets.under : 0.9, isNum(targets?.over) ? targets.over : 1.5];
-  const band = t.band === 'under' ? `under its band (${whole(t.target * under)})` : t.band === 'over' ? `over its band (${whole(t.target * over)})` : `within its band (${whole(t.target * under)}–${whole(t.target * over)})`;
-  return `- Toughness: ${whole(r.ehp)} against the ${whole(t.target)} target for a ${t.engagement} build${text(t.reason) ? ` (${t.reason.trim()})` : ''}, ${band}.`;
+  return `- Toughness: ${whole(r.ehp)} against the ${whole(t.target)} target for a ${t.engagement} build${text(t.reason) ? ` (${t.reason.trim()})` : ''}, ${bandWords(t.band, t.target)}.`;
 }
+
+/**
+ * D-449 (amendment 12, Appendix A): the non-budget rung's lines after its toughness line, from the design field's
+ * `toughness`: the conditioned read and its band, deflection's average cut to ailment damage on a build that deflects
+ * (PG-97), and the warning, in plain words, naming its type and the fix family.
+ */
+function toughnessLines12(r) {
+  const t = r.toughness;
+  const out = [];
+  const c = t.conditioned;
+  if (isObj(c) && isNum(c.ehp)) out.push(`- With every condition against it (unlucky rolls, hit recently, not blinded, Wind Dancer at 0): ${whole(c.ehp)}, ${bandWords(c.band, t.target)}.`);
+  if (isNum(t.ailmentCut) && t.ailmentCut > 0) out.push(`- Deflection cuts ailment damage from hits by about ${Math.round(t.ailmentCut)}% on average; PoB doesn't apply it.`);
+  const w = t.warning;
+  if (isObj(w) && w.kind === 'one-shot') {
+    const share = isNum(t.chanceShare) ? `, and ${Math.round(t.chanceShare)}% of the EHP is chance layers` : '';
+    out.push(`- Warning: the EHP reads ${t.band === 'over' ? 'over' : 'within'} its band, but the Arbiter's ${typeWords(w.type)} hit one-shots this build${share}. The fix is ${String(w.fix ?? '').trim().replace(/\.+$/, '')}.`);
+  } else if (isObj(w) && w.kind === 'conditioned') {
+    out.push(`- Warning: with every condition against it the EHP falls under its band; its weakest hit is ${typeWords(w.type)}. The fix is ${String(w.fix ?? '').trim().replace(/\.+$/, '')}.`);
+  }
+  return out;
+}
+
+/** PG-100: a gear line or custom line that gives a companion part of each deflected hit (the unique body Forgotten Warden's). */
+const COMPANION_DEFLECTED = /damage from deflected hits is taken from .*companion/i;
+/** PG-100: whether a plan stage carries a companion's share of deflected hits, in an item's text or a custom line. */
+export const companionDeflects = (st) => [...objects(st?.items?.slots).map((s) => s.text), ...objects(st?.config?.customMods).map((m) => m.text)].some((t) => COMPANION_DEFLECTED.test(String(t ?? '')));
+
+/**
+ * D-449 (amendment 12, Appendix A): a `b` or `n` rung's Arbiter lines on the design display, from the design field's
+ * `maxHit` (its deciding row `arbiter`, `oneShot`, `lowest`) and the full hit's ratio from the gate's record: the Arbiter
+ * line in its three forms, with hits survived rounded down and the chances at the Arbiter, `under the <floor> floor` on a
+ * one-shot rung; then `Lowest max hit: <n> <type>`; then PG-100's note on a stage that carries the line.
+ */
+function arbiterLines12(r, rec, st, floor) {
+  const m = r.maxHit;
+  const a = isObj(m.arbiter) ? m.arbiter : null;
+  const out = [];
+  if (a === null || !text(a.type)) out.push('- The Arbiter of Divinity: not measured.');
+  else {
+    const row = objects(rec?.measures?.arbiter?.rows).find((x) => x.type === a.type);
+    const ratio = isNum(row?.ratio) ? row.ratio : null;
+    const hit = `${typeWords(a.type)} hit`;
+    const x = survivedPercent(isNum(a.hitsSurvived) ? a.hitsSurvived : 0);
+    const chance = (v) => (isNum(v) && v > 0 ? Math.round(v) : null);
+    const [evade, deflect] = [chance(a.evade), chance(a.deflect)];
+    const accuracy = isNum(rec?.measures?.arbiter?.avoid?.accuracy) ? rec.measures.arbiter.avoid.accuracy : 3786;
+    const chances = [evade !== null ? `evades ${evade}%` : null, deflect !== null ? `deflects ${deflect}%` : null].filter(Boolean);
+    const at = chances.length > 0 ? `${chances.join(', ')} at its accuracy of ${whole(accuracy)}` : null;
+    // With PoB's formula in place of a measure pass, a deflected hit reads optimistic when the build has armour (R-49).
+    const optimistic = a.method === 'formula' && isNum(rec?.outputs?.Armour) && rec.outputs.Armour > 0 ? ' (by formula; optimistic with armour)' : '';
+    const deflected = deflect !== null && isNum(a.deflectedRatio) ? (a.deflectedRatio < 1 ? `a deflected hit is ${a.deflectedRatio.toFixed(2)} of your max hit${optimistic}` : 'a deflected hit kills too, so only evading counts') : null;
+    const floorWords = `${Math.round(floor * 100)}%`;
+    if (m.oneShot === true) {
+      const head = `- The Arbiter of Divinity: one-shot by its ${hit}${ratio !== null ? ` (${ratio.toFixed(2)} of your max hit)` : ''}`;
+      out.push(at === null ? `${head}, under the ${floorWords} floor.` : `${head}; survives ${x}% of them by evading or deflecting (${[at, deflected].filter(Boolean).join('; ')}), under the ${floorWords} floor.`);
+    } else if (isNum(a.hitsSurvived) && a.hitsSurvived < 100) {
+      const inner = [at];
+      if (deflected !== null && a.deflectedRatio < 1) inner.push(`${deflected}${ratio !== null ? `, a full one ${ratio.toFixed(2)}` : ''}`);
+      else inner.push(deflected, ratio !== null ? `a full one is ${ratio.toFixed(2)} of your max hit` : null);
+      const words = inner.filter(Boolean);
+      out.push(`- The Arbiter of Divinity: survives ${x}% of its ${typeWords(a.type)} hits by evading or deflecting them${words.length > 0 ? ` (${words.join('; ')})` : ''}.`);
+    } else out.push(`- The Arbiter of Divinity: survives its hits${ratio !== null ? ` (its worst, a ${hit}, is ${ratio.toFixed(2)} of your max hit)` : ''}.`);
+  }
+  const lowest = isObj(m.lowest) && isNum(m.lowest.value) && text(m.lowest.type) ? `${whole(m.lowest.value)} ${typeWords(m.lowest.type)}` : 'not measured';
+  out.push(`- Lowest max hit: ${lowest}.`);
+  if (companionDeflects(st)) out.push('- Note: a companion takes part of each deflected hit, so hits survived reads high (PG-100).');
+  return out;
+}
+
+/**
+ * Appendix A (amendment 12): a trade's reason may end with the boss cut D1-finish measured on the trade's temporary stage,
+ * `; cuts <entry> against a boss by <x>%` (a cut over 2% to a boss-rotation entry, D-456), which its line prints last.
+ */
+const BOSS_CUT = /(?:^|;\s*)(cuts .+ against a boss by [\d.]+%)\s*$/;
 
 /**
  * D-439, D-440, D-441, D-448 (Appendix A): a rung's trades from `trades.json`, as the design field carries them: an
  * unmodelled need's cost, the boots' exception, the defence trade and the damage trade, the latter with its boss figure
- * after (`bossAfter`, the boss figure × (1 + damageChange / 100)) on the non-budget rung.
+ * after (`bossAfter`) on the non-budget rung. Amendment 12 (D-450, Appendix A): a trade with `maxHit` or `hitsSurvived`
+ * (a build held to revision 12) prints them (the max hit when the trade moves it), a defence trade on a one-shot rung as
+ * `Defence (one-shot)`, and the avoidance trade, `- Avoidance: <what>: hits survived <x>% → <y>%; <EHP>, <damage>
+ * (<reason>).`; a reason ending `; cuts <entry> against a boss by <x>%` prints that cut last; each kind in rank order.
  */
-function tradeLines(r) {
-  const order = ['unmodelled', 'boots', 'defence', 'damage'];
+function tradeLines(r, rec = null) {
+  const order = ['unmodelled', 'boots', 'defence', 'avoidance', 'damage'];
   const trades = objects(r.trades).filter((t) => order.includes(t.kind)).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
+  const rows = objects(rec?.measures?.arbiter?.rows);
   return trades.map((t) => {
     const none = /^none found\b/i.test(String(t.what ?? '').trim());
     if (t.kind === 'unmodelled') return `- Kept for ${stop(t.reason)}, which PoB can't measure: ${stop(t.what)}${isNum(t.damageChange) ? ` would ${t.damageChange < 0 ? 'cost' : 'add'} ${pct(Math.abs(t.damageChange))}% damage` : ''}.`;
     if (t.kind === 'boots') return `- Boots: ${stop(t.what)}${text(t.reason) ? `, for ${stop(t.reason)}` : ''}.`;
+    const a12 = 'maxHit' in t || 'hitsSurvived' in t;
+    const reason = stop(t.reason);
+    const cut = a12 ? BOSS_CUT.exec(reason)?.[1] ?? null : null;
+    const why = cut === null ? reason : reason.slice(0, reason.length - cut.length).replace(/[;\s]+$/, '');
+    const label = t.kind === 'defence' ? (a12 && /^one-shot\b/i.test(why) ? 'Defence (one-shot)' : 'Defence') : t.kind === 'avoidance' ? 'Avoidance' : 'Damage';
     // Appendix A: the defence trade's line is `- Defence: …` and the damage trade's `- Damage: …`, after the figures.
-    if (none) return `- ${t.kind === 'defence' ? 'Defence' : 'Damage'}: ${stop(t.what)}.`;
-    if (t.kind === 'defence') return `- Defence: ${stop(t.what)}: ${[isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null, isNum(t.damageChange) ? `${signed(t.damageChange)} damage` : null].filter(Boolean).join(', ')}.`;
+    if (none) return `- ${label}: ${stop(t.what)}.`;
+    const ehp = isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null;
+    const damage = isNum(t.damageChange) ? `${signed(t.damageChange)} damage` : null;
+    // The deciding row's max hit shows when the trade moves it (a deflection trade leaves it, Appendix A's second line).
+    const mh = isObj(t.maxHit) && isNum(t.maxHit.before) && isNum(t.maxHit.after) && t.maxHit.after !== t.maxHit.before ? t.maxHit : null;
+    const top = mh ? rows.find((x) => x.type === mh.type)?.hit : undefined;
+    const maxHitPart = mh ? `the Arbiter's ${typeWords(mh.type)} max hit (Pinnacle pass) ${whole(mh.before)} → ${whole(mh.after)}${isNum(top) && mh.after > top ? ', survives the full hit' : ''}` : null;
+    const hs = isObj(t.hitsSurvived) && isNum(t.hitsSurvived.before) && isNum(t.hitsSurvived.after) ? `hits survived ${survivedPercent(t.hitsSurvived.before)}% → ${survivedPercent(t.hitsSurvived.after)}%` : null;
+    const groups = (...g) => g.filter((x) => typeof x === 'string' && x !== '').join('; ');
+    if (t.kind === 'defence') {
+      if (!a12) return `- Defence: ${stop(t.what)}: ${[ehp, damage].filter(Boolean).join(', ')}.`;
+      return `- ${label}: ${stop(t.what)}: ${groups([maxHitPart, hs].filter(Boolean).join(', '), [ehp, damage].filter(Boolean).join(', '), cut)}.`;
+    }
+    if (t.kind === 'avoidance') return `- Avoidance: ${stop(t.what)}: ${groups(hs, [ehp, damage].filter(Boolean).join(', '), cut)}${why !== '' ? ` (${why})` : ''}.`;
     const bossAfter = isNum(t.bossAfter) ? t.bossAfter : null;
-    return `- Damage: ${stop(t.what)}: ${[`${signed(t.damageChange)} damage${bossAfter !== null ? ` (boss about ${whole(bossAfter)})` : ''}`, isNum(t.ehpChange) ? `${signed(t.ehpChange)} EHP` : null].filter(Boolean).join(', ')}.`;
+    const changes = [`${signed(t.damageChange)} damage${bossAfter !== null ? ` (boss about ${whole(bossAfter)})` : ''}`, ehp].filter(Boolean).join(', ');
+    return `- Damage: ${stop(t.what)}: ${a12 ? groups(changes, maxHitPart, cut) : changes}.`;
   });
 }
 
@@ -1887,6 +2068,13 @@ const DESIGN_A11_FIELDS = ['damage', 'cull', 'trigger', 'boss', 'toughness', 'tr
 function designA11(design) {
   return objects(design?.rungs).some((r) => DESIGN_A11_FIELDS.some((k) => k in r) || (isObj(r.tree?.bestSwap) && 'branches' in r.tree.bestSwap));
 }
+/**
+ * Amendment 12 (§22, Appendix A): whether a D1 gate's design field is amendment 12's, read by its own fields: a rung
+ * carries `maxHit` or `damage.resisting`. One written under amendment 11's rules keeps amendment 11's display.
+ */
+export function designA12(design) {
+  return objects(design?.rungs).some((r) => 'maxHit' in r || (isObj(r.damage) && 'resisting' in r.damage));
+}
 
 function designDisplay(dir, log, id) {
   const s = lastStage(log, ['D1-gate'], id);
@@ -1902,7 +2090,11 @@ function designDisplay(dir, log, id) {
   // §19: a design field written under amendment 11 shows each rung's two figures and its trades, from its new entries;
   // one written before a resume's stamp keeps its old form.
   const a11 = designA11(gate.design);
-  const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
+  // Amendment 12 (§22): a design field with `maxHit` or the resisting figure shows the Arbiter's deciding row, the lowest
+  // max hit, the resisting figure, the non-budget rung's toughness reading and the new trades; the floor from the targets file.
+  const a12 = designA12(gate.design);
+  const floor = arbiterFloor() ?? ARBITER_FLOOR;
+  const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a12 ? PACE_FIRST_A12 : a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
   // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
   if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces, a11), '');
   for (const r of objects(gate.design.rungs)) {
@@ -1914,21 +2106,25 @@ function designDisplay(dir, log, id) {
     out.push(`- Clear speed: ${noArea(measured) ? clearPhrase(measured) : `${speedOf(typeof r.clearSpeed === 'string' ? r.clearSpeed : measured)} (rough)`}.`);
     // D-427: the travel skill beside the movement speed, from the record's clear measure.
     out.push(`- Movement speed: ${moveWords(moveOf(rec))}${travelWords(measured)}.`);
-    if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
+    // D-449 (amendment 12): a b or n rung's Arbiter line from its deciding row, its lowest max hit and PG-100's note.
+    if (a12 && isObj(r.maxHit)) out.push(...arbiterLines12(r, rec, objects(plan?.stages).find((x) => x.id === r.stage), floor));
+    else if (r.arbiter !== null && r.arbiter !== undefined) out.push(`- The Arbiter of Divinity: ${arbiterWords(r.arbiter).replace(/^survives the Arbiter of Divinity's hits/, 'survives its hits').replace(/^one-shot by the Arbiter of Divinity's /, 'one-shot by its ')}.`);
     // D-437, D-447: the named source's figure against map monsters, then the boss figure (§19: a design field from before
     // amendment 11 has `dps` alone).
     if (isObj(r.damage)) out.push(...damageLines(r, sourceSkill(plan, rec, r.stage)));
     else out.push(`- Damage: ${whole(r.dps)} per second.`);
     // D-423: the Effective HP line names the hit it was measured against (the rung's `ehpHit`), so it compares with
-    // the dossier's EHP at the verification gate.
-    out.push(`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}.`);
-    // D-441: the non-budget rung's EHP against its target, with the engagement and the band.
-    if (isObj(r.toughness) && isNum(r.toughness.target)) out.push(toughnessLine(r));
+    // the dossier's EHP at the verification gate. D-449: on n, the share of it chance layers make.
+    if (!(a12 && isNum(r.toughness?.chanceShare))) out.push(`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}.`);
+    else out.push(`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}; ${Math.round(r.toughness.chanceShare)}% of it from chance layers (evade, block, deflection).`);
+    // D-441: the non-budget rung's EHP against its target, with the engagement and the band; D-449, then its
+    // conditioned read, the ailment line and the warning.
+    if (isObj(r.toughness) && isNum(r.toughness.target)) out.push(toughnessLine(r), ...(a12 ? toughnessLines12(r) : []));
     for (const [k, label] of [['anoint', 'Anoint'], ['gear', 'Gear'], ['gems', 'Gems'], ['tree', 'Passive tree']]) if (text(r[k])) out.push(`- ${label}: ${r[k]}`);
     // D-419: schema 4's tree is the node-power summary, its needs one line each.
     if (isObj(r.tree)) out.push(...treeLines(r.tree, swapLabel(a11, r.tree, plan, r.stage)));
-    // D-439…D-441, D-448: the trades the user may take or leave.
-    out.push(...tradeLines(r));
+    // D-439…D-441, D-448, D-450: the trades the user may take or leave.
+    out.push(...tradeLines(r, rec));
     out.push('');
   }
   // An estimate the gate wrote for one rung (`b: …`) names the rung in words.
@@ -1976,9 +2172,13 @@ async function finalDisplay(dir, log, id) {
   const plan = readJson(dir, inFolder(folder, 'plan.json'));
   const record = readJson(dir, inFolder(folder, 'compile-record.json'));
   const atDesign = new Map(objects(d1gate?.design?.rungs).map((r) => [r.stage, r]));
-  // D-437: a record carrying `measures.damage` gives each rung its two figures; an older record its one (§19).
+  // D-437: a record carrying `measures.damage` gives each rung its two figures; an older record its one (§19). D-454
+  // (amendment 12): one carrying `measures.damage.resisting` gives the resisting figure between them.
   const twoFigures = objects(plan?.stages).some((x) => typeof x.variant === 'string' && isObj(record?.stages?.[x.id]?.measures?.damage));
-  out.push(`The endgame, from the final build. ${twoFigures ? FIGURES_MEAN_A11 : FIGURES_MEAN}`);
+  const threeFigures = objects(plan?.stages).some((x) => typeof x.variant === 'string' && isNum(record?.stages?.[x.id]?.measures?.damage?.resisting));
+  out.push(`The endgame, from the final build. ${threeFigures ? FIGURES_MEAN_A12 : twoFigures ? FIGURES_MEAN_A11 : FIGURES_MEAN}`);
+  // D-459: the verdict label's three forms read the deciding row against the floor in the targets file.
+  const floor = arbiterFloor() ?? ARBITER_FLOOR;
   const rungIds = [];
   for (const variant of RUNGS) {
     const st = objects(plan?.stages).find((x) => x.variant === variant);
@@ -1988,16 +2188,18 @@ async function finalDisplay(dir, log, id) {
     const m = rec?.measures ?? {};
     // D-447: the boss figure is the record's evaluated `boss_<stage>` when the plan estimates one, else PoB alone.
     const estimate = objects(plan?.ledger).some((e) => e.id === `boss_${st.id}`);
-    const two = isObj(m.damage) ? { map: m.damage.map, boss: estimate ? record?.ledger?.[`boss_${st.id}`]?.value : bossFigure(st.id, plan, rec, {}), about: estimate } : null;
-    const now = rungWords({ dps: m.dps, ehp: m.ehp, two, arbiter: variant === 'entering-maps' ? null : (m.arbiter ?? 'not measured'), clearSpeed: m.clearSpeed });
+    const two = isObj(m.damage) ? { map: m.damage.map, resisting: m.damage.resisting, boss: estimate ? record?.ledger?.[`boss_${st.id}`]?.value : bossFigure(st.id, plan, rec, {}), about: estimate } : null;
+    const now = rungWords({ dps: m.dps, ehp: m.ehp, two, arbiter: variant === 'entering-maps' ? null : (m.arbiter ?? 'not measured'), clearSpeed: m.clearSpeed }, floor);
     // D-419: each rung's travel beside its figures, from the last D1 gate verdict file.
     const tree = atDesign.get(st.id)?.tree;
     out.push(`- ${rungLabel(plan, st.id)}: ${now}${isObj(tree) && isNum(tree.travel) ? `, ${tree.travel} of ${isNum(tree.points) ? tree.points : '?'} passive points on travel` : ''}.`);
     const then = atDesign.get(st.id);
     if (then) {
       const b = isObj(then.boss) ? then.boss : null;
-      const thenTwo = isObj(then.damage) ? { map: then.damage.map, boss: isNum(b?.estimate) ? b.estimate : (b?.measured ?? then.damage.boss), about: isNum(b?.estimate) } : null;
-      const was = rungWords({ ...then, two: thenTwo, arbiter: variant === 'entering-maps' ? null : then.arbiter });
+      const thenTwo = isObj(then.damage) ? { map: then.damage.map, resisting: then.damage.resisting, boss: isNum(b?.estimate) ? b.estimate : (b?.measured ?? then.damage.boss), about: isNum(b?.estimate) } : null;
+      // D-459: a design field written under amendment 12 gives its Arbiter by its deciding row, `maxHit`.
+      const arbiter = variant === 'entering-maps' ? null : isObj(then.maxHit) ? then.maxHit : then.arbiter;
+      const was = rungWords({ ...then, two: thenTwo, arbiter }, floor);
       if (was !== now) out.push(`  At the design gate: ${was}.`);
     }
   }

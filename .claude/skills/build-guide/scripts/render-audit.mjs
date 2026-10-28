@@ -42,6 +42,20 @@
 //    as seen, `3 exalts (seen 2026-10-24)`, with no conversion; a currency is never named by its trade id: "no rate for
 //    exalts".
 //
+// Amendment 12 (WU-121; D-449, D-454, D-459, its Appendix A), read by the record, so a record from before it keeps its
+// lines:
+//  - the Arbiter's reading (`arbiterReading`, shared with run-log.mjs and check-run.mjs): a record whose
+//    `measures.arbiter.rows` carry `hitsSurvived` is read by its deciding row (the one-shot row with the lowest hits
+//    survived, else the row with the largest ratio), a one-shot rung being one whose one-shot row survives under the
+//    floor, `references/toughness-targets.json`'s `arbiter.hitsSurvivedFloor` (0.8). Hits survived show rounded down
+//    to a whole percent (79.6% is 79%), so no figure rounds up across the floor; the checks use the unrounded value;
+//  - the Checks block's Arbiter line in the label's three forms (`arbiterLabel12`): `survives its hits; its worst, <hit>,
+//    is <ratio> of your max hit.`; `survives <x>% of its <type> hits, by evading or deflecting them; a full one is
+//    <ratio> of your max hit.`; `one-shot by its <hit>, at <ratio> of your max hit; it survives <x>% of them.` (the last
+//    clause only when x is above 0);
+//  - the stage table's `Damage, map / resisting / boss` on endgame rungs once a record carries
+//    `measures.damage.resisting`, the figure against the map enemy with 40% fire, cold and lightning resistance (D-454).
+//
 // Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js` and the conversion table
 // `data/economy/prices.json`. No network. Exit 0: audit.md written (one line on stdout). Exit 1: an input is
 // missing or unreadable (stderr). Exit 2: usage error.
@@ -419,11 +433,13 @@ export function bossFigure(stageId, plan, rec, ledger) {
 
 function stageDetail({ plan, record, ledger }) {
   // D-437: the named source's figure against map monsters and against a Pinnacle boss, once a record carries
-  // `measures.damage`; a record from before amendment 11 keeps its one figure under its old label (§19).
+  // `measures.damage`; a record from before amendment 11 keeps its one figure under its old label (§19). D-454
+  // (amendment 12): the resisting figure between them, once a record carries `measures.damage.resisting`.
   const stagesOfPlan = list(plan.stages);
   const twoFigures = stagesOfPlan.some((s) => typeof s.variant === 'string' && isObj(record.stages?.[s.id]?.measures?.damage));
+  const threeFigures = twoFigures && stagesOfPlan.some((s) => typeof s.variant === 'string' && isNum(record.stages?.[s.id]?.measures?.damage?.resisting));
   const out = [
-    `| Loadout | Level | Life | ${twoFigures ? 'Damage, map / boss' : 'Named source DPS'} | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |`,
+    `| Loadout | Level | Life | ${threeFigures ? 'Damage, map / resisting / boss' : twoFigures ? 'Damage, map / boss' : 'Named source DPS'} | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |`,
     '|---|---|---|---|---|---|---|---|',
   ];
   for (const s of stagesOfPlan) {
@@ -431,7 +447,8 @@ function stageDetail({ plan, record, ledger }) {
     const o = isObj(rec.outputs) ? rec.outputs : {};
     const endgame = typeof s.variant === 'string';
     const damage = rec.measures?.damage;
-    const figure = !endgame ? num(headlineDps(s, rec)) : isObj(damage) ? `${num(damage.map)} / ${num(bossFigure(s.id, plan, rec, ledger))}` : num(rec.measures?.dps);
+    const middle = threeFigures ? ` / ${num(damage?.resisting)}` : '';
+    const figure = !endgame ? num(headlineDps(s, rec)) : isObj(damage) ? `${num(damage.map)}${middle} / ${num(bossFigure(s.id, plan, rec, ledger))}` : num(rec.measures?.dps);
     const others = OTHER_TYPES.map((t) => o[`${t}MaximumHitTaken`]).filter(isNum);
     const cw = isObj(rec.configWritten) ? rec.configWritten : {};
     const hits = OTHER_TYPES.map((t) => cw[`enemy${t}Damage`]).filter(isNum);
@@ -448,6 +465,8 @@ function stageDetail({ plan, record, ledger }) {
 export function checksBlocks({ plan, record, gate, prices }) {
   const stages = list(plan.stages);
   const blocks = [];
+  // D-449: the floor of hits survived, read once (a record without hits survived never needs it).
+  const floor = arbiterFloor() ?? ARBITER_FLOOR;
   for (const variant of RUNGS) {
     const s = stages.find((x) => x.variant === variant);
     if (!s) continue;
@@ -455,7 +474,7 @@ export function checksBlocks({ plan, record, gate, prices }) {
     const lines = [];
     if (isObj(s.chaosResistException)) lines.push(`- Chaos resistance stays at ${num(rec.outputs?.ChaosResist)}% because ${sentence(s.chaosResistException.reason)}`);
     lines.push(...budgetLines(s, plan, gate, prices));
-    if (variant !== 'entering-maps') lines.push(arbiterLine(rec.measures?.arbiter));
+    if (variant !== 'entering-maps') lines.push(arbiterLine(rec.measures?.arbiter, floor));
     lines.push(clearLine(rec));
     blocks.push({ variant, stage: s.id, loadoutName: rec.loadoutName ?? s.loadoutName, lines });
   }
@@ -534,8 +553,81 @@ function fallbackText(s, f, plan, budget, prices) {
   return `; fallback about ${rangeText(roundDivines(r.low), roundDivines(r.high))}`;
 }
 
-/** The Arbiter line on `b` and `n`, from the record's `measures.arbiter` (D-353). */
-function arbiterLine(arbiter) {
+// ---------------------------------------------------------------------------------------------------
+// Amendment 12's reading of the Arbiter (D-449, D-459; Appendix A), shared with run-log.mjs and check-run.mjs
+// ---------------------------------------------------------------------------------------------------
+
+/** D-449: the floor of hits survived when references/toughness-targets.json can't give it; the checker fails then. */
+export const ARBITER_FLOOR = 0.8;
+/**
+ * D-449, Appendix A: the floor of hits survived, a fraction, from `references/toughness-targets.json`'s
+ * `arbiter.hitsSurvivedFloor`; null when the file or the field can't be read.
+ */
+export function arbiterFloor() {
+  try {
+    const t = JSON.parse(fs.readFileSync(path.join(SCRIPT_DIR, '..', 'references', 'toughness-targets.json'), 'utf8'));
+    const f = t?.arbiter?.hitsSurvivedFloor;
+    return isNum(f) && f > 0 && f <= 1 ? f : null;
+  } catch {
+    return null;
+  }
+}
+/** Whether a record's `measures.arbiter` is amendment 12's: its rows carry `hitsSurvived` (D-449). */
+export const hasHitsSurvived = (arbiter) => isObj(arbiter) && list(arbiter.rows).some((r) => 'hitsSurvived' in r);
+/** A row's hits survived, 0–100: the record's, else 100 for a row that survives the full hit and 0 for any other. */
+export const survivedOf = (row) => (isNum(row?.hitsSurvived) ? row.hitsSurvived : row?.verdict === 'survives' ? 100 : 0);
+/** Hits survived as every display writes them: rounded down to a whole percent, 79.6% as 79% (D-449). */
+export const survivedPercent = (x) => Math.floor(Number(x) + 1e-9);
+/** A hit's type in words: a mixed hit's types joined by " and " (`physical and lightning`). */
+export const typeWords = (type) => String(type).split('-').join(' and ');
+
+/**
+ * Names and D-449: a rung's reading of the record's `measures.arbiter`. Its deciding row is its one-shot row with the
+ * lowest hits survived (ties to the larger ratio), else its row with the largest ratio; it is a one-shot rung when that
+ * row is one-shot and survives under the floor (`hitsSurvived / 100 < floor`, unrounded); and a rung that isn't one-shot
+ * is measured only when every row has a verdict (a null row is never a pass). Null when the record has no rows.
+ */
+export function arbiterReading(arbiter, floor = ARBITER_FLOOR) {
+  const rows = list(arbiter?.rows);
+  if (rows.length === 0) return null;
+  const ratioOf = (r) => (isNum(r.ratio) ? r.ratio : -Infinity);
+  const shots = rows.filter((r) => r.verdict === 'one-shot');
+  const row = shots.length > 0
+    ? [...shots].sort((a, b) => survivedOf(a) - survivedOf(b) || ratioOf(b) - ratioOf(a))[0]
+    : [...rows].filter((r) => isNum(r.ratio)).sort((a, b) => ratioOf(b) - ratioOf(a))[0] ?? null;
+  const oneShot = row !== null && row.verdict === 'one-shot' && survivedOf(row) / 100 < floor;
+  const measured = oneShot || rows.every((r) => r.verdict === 'survives' || r.verdict === 'one-shot');
+  return { row, oneShot, measured, hitsSurvived: row === null ? null : survivedOf(row) };
+}
+
+/**
+ * D-459 (Appendix A): the verdict label on `b` and `n`, from the deciding row, in its three forms: `survives the Arbiter's
+ * hits`; `survives <x>% of the Arbiter's <type> hits, by evading or deflecting them` (a one-shot row at or over the floor);
+ * `one-shot by the Arbiter's <type> hit`, with ` (it survives <x>% of them)` when x is above 0. `not measured against the
+ * Arbiter` for a reading with no deciding row, or a row with no verdict on a rung that isn't one-shot.
+ */
+export function arbiterLabel12(reading) {
+  if (!reading || reading.row === null || !reading.measured) return 'not measured against the Arbiter';
+  const x = survivedPercent(reading.hitsSurvived);
+  if (reading.oneShot) return `one-shot by the Arbiter's ${typeWords(reading.row.type)} hit${x > 0 ? ` (it survives ${x}% of them)` : ''}`;
+  if (reading.row.verdict === 'one-shot') return `survives ${x}% of the Arbiter's ${typeWords(reading.row.type)} hits, by evading or deflecting them`;
+  return "survives the Arbiter's hits";
+}
+
+/**
+ * The Arbiter line on `b` and `n`, from the record's `measures.arbiter` (D-353); D-459: a record whose rows carry hits
+ * survived reads its deciding row, in the label's three forms, with the ratio the audit keeps.
+ */
+function arbiterLine(arbiter, floor = ARBITER_FLOOR) {
+  if (hasHitsSurvived(arbiter)) {
+    const r = arbiterReading(arbiter, floor);
+    if (!r || r.row === null || !r.measured || !isNum(r.row.ratio)) return '- The Arbiter of Divinity: not measured.';
+    const x = survivedPercent(r.hitsSurvived);
+    const ratio = r.row.ratio.toFixed(2);
+    if (r.oneShot) return `- The Arbiter of Divinity: one-shot by its ${typeWords(r.row.type)} hit, at ${ratio} of your max hit${x > 0 ? `; it survives ${x}% of them` : ''}.`;
+    if (r.row.verdict === 'one-shot') return `- The Arbiter of Divinity: survives ${x}% of its ${typeWords(r.row.type)} hits, by evading or deflecting them; a full one is ${ratio} of your max hit.`;
+    return `- The Arbiter of Divinity: survives its hits; its worst, ${typeWords(r.row.type)} hit, is ${ratio} of your max hit.`;
+  }
   const worst = arbiter?.worst;
   if (!isObj(arbiter) || !['survives', 'one-shot'].includes(arbiter.verdict) || !isObj(worst) || !isNum(worst.ratio)) return '- The Arbiter of Divinity: not measured.';
   const hit = `${String(worst.type).split('-').join(' and ')} hit`;

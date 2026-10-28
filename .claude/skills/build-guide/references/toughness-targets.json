@@ -1,1 +1,4 @@
-{"rung": "non-budget", "targets": {"close": 20000, "distance": 15000}, "under": 0.9, "over": 1.5, "source": "studies/2026-10-25-toughness-floors.md"}
+{"rung": "non-budget", "targets": {"close": 20000, "distance": 15000}, "under": 0.9, "over": 1.5,
+ "source": "studies/2026-10-25-toughness-floors.md",
+ "arbiter": {"hitsSurvivedFloor": 0.8, "accuracyFact": "enemies/arbiter-of-divinity.json#base.accuracy",
+             "source": "the user, 2026-10-27; studies/2026-10-26-sizing.md"}}

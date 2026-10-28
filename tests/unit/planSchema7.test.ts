@@ -79,8 +79,8 @@ function errorsOf(input: unknown): PlanError[] {
 }
 
 describe('WU-111: plan schema 7 (Appendix A, AC-P81)', () => {
-  it('schema 7 is the current version; 1 to 6 stay accepted', () => {
-    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  it('schema 7 stays accepted beside 1 to 6, and schema 8 (amendment 12) follows it', () => {
+    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it.each(FIELDS.map((f) => [f.name, f] as const))('AC-P81: %s is accepted on schema 7, with its value kept', (_name, field) => {

@@ -19,15 +19,17 @@
  * | `resistance-penalty` | the stage lists `resistancePenalty` with a value other than C1's at its progress point (at a region's last key, also the next region's entry value, D-251) |
  * | `pob-warning` | a PoB warning line other than the informational "Weapon set 2 passives available", and PoB's "too many passive points" when the stage spends the Martyr point PoB doesn't know, and other than the skill-slot line below; and (D-426) PoB's Spirit warning on weapon set 2, from the stage's set-2 measure (`checkSetTwoSpirit`) |
  * | `skill-slots` | (D-428) PoB's warning past its skill slots (`SKILL_SLOTS_WARNING`): more groups that no item or passive grants than its 9 slots plus one per "Grants 1 additional Skill Slot"; the message names the Unset Ring as the remedy. PoB's own count, no new one; the line stays in `pobWarnings.kept` |
- * | `tree-continuity` | the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it |
+ * | `tree-continuity` | (schema 7 and earlier; D-452) the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it. A schema-8 plan has no respec (each loadout's tree is its own), so it isn't checked |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. Also (D-418, schema 6) a `tree.needs` entry with no `claim`, or whose `claim` names no claim id of the stage: a need keeps nodes node power may call weak, so the plan says why. One finding per group, entry or need; `data.path` is the missing field's path in the stage |
- * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`) |
+ * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`). A group that leaves by no start, the nodes a radius jewel frees (B3, amendment 12 §15), breaks no rule |
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
  * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
  * | `weapon-skill-supports` | (WU-102, PG-74) an enabled group (or the main group) with `weaponSet` and an enabled support gem, on a stage where both of that set's weapon slots hold an item that grants a skill, so the compile sockets the group in the main hand (`groupWeaponSlot`) and PoB gives the main hand's granted skill the group's supports, which the game doesn't: the finding names that skill, whose figure PoB overstates (`checkWeaponSkillSupports`) |
  * | `implicit-variant` | (D-435) an item written without an `Implicits:` line whose base's implicit has variants (`variantList`, three amulet bases at the pin): the compile fills every other bare base's implicits, but can't pick a variant, so PoB measures the item with none; the finding names the base and its variants and asks for the variant's implicit line (`checkImplicitVariants`, from `compile_stage`'s `implicitVariants`) |
- * | `movement-tier` | (WU-111, D-440; schema 7 only) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
+ * | `movement-tier` | (WU-111, D-440; schema 7 and later) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
+ * | `curse-level-cap` | (WU-119, D-455; schema 8 and later) an enabled gem whose curse, Frost Bomb's exposure or Thunderstorm's Wet stops at a monster level above 0 and below the stage's area level: the rung's (`rungAreaLevel`: 69, 79, 82), a campaign stage's C1 `<progress>.area-level`; a card skeleton is skipped. The cap is PoB's stat at the level PoB calculates the gem at, gear's +levels included (`checks.gems[].curseCap`); PoB never reads it (PG-86) (`checkCurseLevelCap`) |
+ * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken; `isDefenceMod`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -42,7 +44,7 @@
 import type { MovementTier, StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
 import type { Finding, TravelMeasure, Verdict } from '../record.js';
 import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
-import { PLAN_VARIANTS, type PlanVariant, type Stage } from '../schema.js';
+import { isTemporaryStage, PLAN_VARIANTS, RESPEC_UNTIL, type PlanVariant, type Stage } from '../schema.js';
 import { C1, FactReader, type Trial } from './facts.js';
 
 /** PoB's informational warning (Build.lua:1051-1055): unspent weapon set 2 points are no defect. */
@@ -94,6 +96,16 @@ export interface V1Input {
   movementTiers?: readonly MovementTier[];
   /** WU-111 (D-440, D-427): the stage's travel skill (`travelOf`), or null; a `travel` boots exception needs one. */
   travel?: TravelMeasure | null;
+  /**
+   * WU-119 (D-455): on an endgame variant stage, its rung's area level (`rungAreaLevel`) and the facts it rests on;
+   * `curse-level-cap` reads it. Without it a rung isn't checked.
+   */
+  rungAreaLevel?: { level: number; facts: readonly ResolvedFact[] };
+  /**
+   * WU-119 (D-451): how many of the stage's `config.customMods` the plan wrote; the compile appends a companion's lines
+   * after them (D-402), which `custom-defence` doesn't read. Absent: every line is the plan's.
+   */
+  planCustomMods?: number;
 }
 
 /** The item slot `movement-tier` reads (D-440). */
@@ -114,18 +126,24 @@ export interface V1Result {
  * stage continues from the campaign's end, the last campaign stage in the plan wherever the rung is listed
  * (D-281: `m` sits between the campaign's end and `b`), and from no stage when the plan has no campaign
  * stage. This replaces A-P3's per-variant tracks, where `n` continued from the campaign rather than from `b`.
+ *
+ * WU-119 (D-452, D-453): a temporary stage (`isTemporaryStage`, an id starting `tmp`) is no stage's predecessor: a
+ * design step measures a piece on it and removes it, so a `tmpb1` copying `b` leaves `n` continuing from `b`. A
+ * temporary stage's own predecessor is found as any stage's is. On schema 8 the order serves the record's `treeChange`;
+ * on schema 7 and earlier, `tree-continuity` too.
  */
 export function predecessorOf(stages: readonly Stage[], index: number): Stage | null {
   const stage = stages[index];
+  const counts = (s: Stage, i: number) => i === index || !isTemporaryStage(s.id);
   const lastCampaignBefore = (at: number): Stage | null => {
-    for (let i = at - 1; i >= 0; i--) if (stages[i].variant === undefined) return stages[i];
+    for (let i = at - 1; i >= 0; i--) if (stages[i].variant === undefined && counts(stages[i], i)) return stages[i];
     return null;
   };
   if (stage.variant === undefined) return lastCampaignBefore(index);
   const rung = (s: Stage) => PLAN_VARIANTS.indexOf(s.variant!);
   const ladder = stages
     .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.variant !== undefined)
+    .filter(({ s, i }) => s.variant !== undefined && counts(s, i))
     .sort((a, b) => rung(a.s) - rung(b.s) || a.i - b.i);
   const at = ladder.findIndex(({ i }) => i === index);
   return at > 0 ? ladder[at - 1].s : lastCampaignBefore(stages.length);
@@ -943,6 +961,147 @@ export function checkMovementTier(
   });
 }
 
+/** The plan schema version `curse-level-cap` and `custom-defence` run from (D-455, D-451): an older plan isn't checked. */
+export const DEFENCE_CHECKS_SINCE = 8;
+
+/** D-455: each debuff a level cap stops, as V1's message names it. */
+const CAPPED_DEBUFF: Readonly<Record<'curse' | 'exposure' | 'wet', string>> = {
+  curse: 'curse',
+  exposure: 'exposure',
+  wet: 'Wet',
+};
+
+/**
+ * D-455: the area level a stage meets monsters at, and where it comes from: a rung's (`rungAreaLevel`, given by the
+ * compiler), a campaign stage's C1 `<progress>.area-level`; null for a card skeleton (an endgame stage with no
+ * variant) and a rung the compiler gave none.
+ */
+export function stageAreaLevel(
+  stage: Pick<Stage, 'variant' | 'progress'>,
+  rung: V1Input['rungAreaLevel'],
+  facts: FactReader,
+  code: string,
+): { level: number; where: string } | null {
+  if (stage.variant !== undefined) {
+    if (rung === undefined) return null;
+    for (const f of rung.facts) facts.rely(code, f);
+    return { level: rung.level, where: `the ${stage.variant} rung` };
+  }
+  if (stage.progress === 'endgame') return null;
+  const area = facts.number(C1.progress, `${stage.progress}.area-level`);
+  if (area === null) return null;
+  facts.rely(code, area.fact);
+  return { level: area.value, where: stage.progress };
+}
+
+/**
+ * `curse-level-cap` (WU-119; amendment 12 §10, D-455). A curse stops at a monster level its gem level sets
+ * (`skill_curses_cannot_apply_to_targets_above_level`: 72 at gem level 14, 78 at 17, none from 18), as do Frost Bomb's
+ * exposure and Thunderstorm's Wet, and PoB never reads the cap (PG-86), so PoB's figures count a debuff the game doesn't
+ * apply. On a schema-8 plan, an enabled gem of an enabled group (or of the main group) whose cap (`checks.gems[].curseCap`,
+ * PoB's stat at the level it calculates the gem at, gear's +levels included) is above 0 and below the stage's area level
+ * (`stageAreaLevel`) is a finding naming the gem, its level, the debuff, the cap and the area level. A card skeleton is
+ * skipped; `data.path` is the gem's level in the stage.
+ */
+export function checkCurseLevelCap(
+  stage: Pick<Stage, 'variant' | 'progress' | 'skills'>,
+  checks: Pick<StageChecks, 'gems'>,
+  input: Pick<V1Input, 'schemaVersion' | 'rungAreaLevel'>,
+  facts: FactReader,
+  findings: Finding[],
+): void {
+  if ((input.schemaVersion ?? 0) < DEFENCE_CHECKS_SINCE) return;
+  const capped = checks.gems.filter((g) => g.curseCap != null && g.curseCap.cap > 0);
+  const used = capped.filter((g) => {
+    const group = stage.skills.groups[g.group - 1];
+    if (group === undefined || (!group.enabled && stage.skills.main.group !== g.group)) return false;
+    return group.gems[g.index - 1]?.enabled !== false;
+  });
+  if (used.length === 0) return;
+  const area = stageAreaLevel(stage, input.rungAreaLevel, facts, 'curse-level-cap');
+  if (area === null) return;
+  for (const g of used) {
+    const { cap, of, level } = g.curseCap!;
+    if (cap >= area.level) continue;
+    const debuff = CAPPED_DEBUFF[of];
+    const levels = level === g.level ? `gem level ${level}` : `gem level ${level} (${g.level} socketed, ${level > g.level ? '+' : ''}${level - g.level} from the build)`;
+    findings.push({
+      code: 'curse-level-cap',
+      message:
+        `${g.name} (skill group ${g.group} gem ${g.index}) at ${levels} doesn't apply its ${debuff} to monsters above level ${cap}, ` +
+        `under the area level ${area.level} of ${area.where} (D-455): PoB doesn't read the cap (PG-86), so its figures count a ` +
+        `${debuff} the game doesn't apply there. Raise the gem's level until its cap is ${area.level} or more, or it has none`,
+      data: {
+        gem: g.name,
+        group: g.group,
+        index: g.index,
+        level,
+        socketedLevel: g.level,
+        of,
+        cap,
+        areaLevel: area.level,
+        path: `skills.groups[${g.group - 1}].gems[${g.index - 1}].level`,
+      },
+    });
+  }
+}
+
+/** D-451: PoB's modifier names for a pool a custom line may add: life, mana, energy shield, ward. */
+const POOL_MOD = /^(Life|Mana|EnergyShield|Ward)$/;
+
+/**
+ * D-451: PoB's modifier names for a defence: armour, evasion (and evade chance), deflection, block, a resistance, damage
+ * taken or its reduction, defences; less the names of the enemy's side and of an attack's (armour break, penetration).
+ */
+const DEFENCE_WORD = /Armour|Evasion|Evade|Deflect|Block|Resist|DamageTaken|DamageReduction|Defences/;
+const NOT_PLAYER_DEFENCE = /^(Enemy|ChanceToIgnoreEnemy|PartialIgnoreEnemy|reduceEnemy)|ArmourBreak|Penetration/;
+
+/** D-451: whether a PoB modifier name is a pool or defence stat (`custom-defence`). */
+export function isDefenceMod(name: string): boolean {
+  return POOL_MOD.test(name) || (DEFENCE_WORD.test(name) && !NOT_PLAYER_DEFENCE.test(name));
+}
+
+/**
+ * D-451: the marker a custom line's reason carries for the `check_model_coverage` result that shows PoB doesn't model the
+ * mechanic it stands for: `coverage: <status>`, one of the statuses that leave a line to the plan.
+ */
+export const COVERAGE_MARKER = /coverage:\s*(unparsed|partly parsed|parsed to nothing|possibly unread)\b/i;
+
+/**
+ * `custom-defence` (WU-119; amendment 12 §6, D-451). No custom line for a layer PoB models (G6): on a schema-8 plan, a
+ * custom modifier line of the plan whose modifiers, as PoB's parser makes them (`checks.customMods[].modNames`), include a
+ * pool or defence stat (`isDefenceMod`), and whose `reason` gives no `coverage: <status>` result (`COVERAGE_MARKER`), is a
+ * finding naming the line and its stats. V1 trusts the marker's text (V4 re-runs the coverage check). Only the plan's own
+ * lines (`planCustomMods`): a companion's, which the compile writes after them for what PoB has no model of (D-402,
+ * PG-56), aren't the plan's. A line whose parse the reply doesn't hold is skipped; `data.path` is its reason in the stage.
+ */
+export function checkCustomDefence(
+  stage: Pick<Stage, 'config'>,
+  checks: Pick<StageChecks, 'customMods'>,
+  input: Pick<V1Input, 'schemaVersion' | 'planCustomMods'>,
+  findings: Finding[],
+): void {
+  if ((input.schemaVersion ?? 0) < DEFENCE_CHECKS_SINCE) return;
+  const lines = stage.config.customMods ?? [];
+  const own = Math.min(lines.length, input.planCustomMods ?? lines.length);
+  for (let k = 0; k < own; k++) {
+    const line = lines[k];
+    const parsed = checks.customMods?.[k];
+    if (parsed === undefined || parsed.text !== line.text) continue;
+    const stats = [...new Set(parsed.modNames.filter(isDefenceMod))];
+    if (stats.length === 0 || COVERAGE_MARKER.test(line.reason ?? '')) continue;
+    findings.push({
+      code: 'custom-defence',
+      message:
+        `custom modifier ${k + 1} ("${line.text}") adds ${stats.join(', ')}, a pool or defence, and its reason gives no coverage ` +
+        `result: a custom line stands only for a layer PoB doesn't model (D-451). Run check_model_coverage on the mechanic it ` +
+        `stands for and put its status in the reason as "coverage: <status>" (unparsed, partly parsed, parsed to nothing or ` +
+        `possibly unread; measure a possibly unread line on a temporary stage too), or take the line out`,
+      data: { path: `config.customMods[${k}].reason`, text: line.text, stats },
+    });
+  }
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -957,7 +1116,8 @@ export function checkV1(input: V1Input): V1Result {
   checkResistancePenalty(stage, facts, findings, notes);
   const pobWarnings = checkWarnings(checks, martyrSpent, findings);
   checkSetTwoSpirit(stage, input.outputsSet2, findings, pobWarnings.kept);
-  checkContinuity(stage, input.predecessor, findings);
+  // D-452: a schema-8 plan has no respec, each loadout's tree its own; tree-continuity is schema 7's and earlier's.
+  if ((input.schemaVersion ?? 0) <= RESPEC_UNTIL) checkContinuity(stage, input.predecessor, findings);
   checkReasons(stage, findings);
   checkTreeShape(input.trees, findings);
   checkSupportSockets(stage, checks, facts, findings);
@@ -966,5 +1126,7 @@ export function checkV1(input: V1Input): V1Result {
   checkWeaponSkillSupports(stage, checks, input.weaponGrants, findings);
   checkImplicitVariants(stage, checks, findings);
   checkMovementTier(stage, checks, input, facts, findings, notes);
+  checkCurseLevelCap(stage, checks, input, facts, findings);
+  checkCustomDefence(stage, checks, input, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

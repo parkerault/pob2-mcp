@@ -1132,6 +1132,13 @@ export interface StageRecord {
    * (`stageRequirements`). Absent from records written before amendment 9.
    */
   requirements?: StageRequirements;
+  /**
+   * WU-119 (amendment 12 §7, D-452): on each stage of a schema-8 plan with a stage before it (`predecessorOf`, which skips
+   * temporary stages), what its tree changes from that stage's: `from` its id, `refunded` how many nodes that stage holds
+   * and this one doesn't, `added` the reverse, regular and ascendancy nodes alike (`treeChangeOf`). The guide's respec line
+   * gives the counts. Absent from a plan of version 7 or earlier, whose `respec` says it, and from records before M-25.
+   */
+  treeChange?: { from: string; refunded: number; added: number };
 }
 
 export interface CompileRecord {

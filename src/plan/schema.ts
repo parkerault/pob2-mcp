@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 7; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 8; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 7 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 8 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -64,6 +64,15 @@
  * A stage's skill and item sets are grouped without these fields (A-P2, `groupingKey` in the compiler): none changes
  * PoB's sets.
  *
+ * **Defence that holds and one tree per loadout** (amendment 12, version 8; WU-119):
+ * - `stages[].defence {base, chance, mitigation, pool, physicalHit}` (D-451): the stage's defence plan, `base` the bases'
+ *   attribute family (`DEFENCE_BASES`), the others short texts naming the layers by role and what holds the Arbiter's
+ *   physical hit. Optional in the schema; the run checker requires it on the non-budget rung of a revision-12 run.
+ * - `stages[].respec` is refused (D-452): each loadout's tree is its own, so a schema-8 plan errs at every stage's
+ *   `respec`; a plan of version 7 or earlier keeps it, and V1's `tree-continuity` with it.
+ * - A temporary stage (D-453) has an id starting `tmp` (`isTemporaryStage`), letters and digits like every id (`tmpb1`):
+ *   the design's steps measure a piece on one and remove it, and no stage's tree continues from it (`predecessorOf`).
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -81,7 +90,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -95,6 +104,15 @@ export type PlanVariant = (typeof PLAN_VARIANTS)[number];
 export const OFFLINE_PRICE_NOTE = 'offline run';
 
 const STAGE_ID_RE = /^[A-Za-z0-9]+$/;
+
+/** D-453 (amendment 12 §8): a temporary stage's id starts with this, then letters and digits like every id (`tmpb1`). */
+export const TEMPORARY_STAGE_PREFIX = 'tmp';
+
+/** D-453: whether a stage id names a temporary stage, one a design step measures a piece on and removes (`tmpb1`). */
+export function isTemporaryStage(id: string): boolean {
+  return id.startsWith(TEMPORARY_STAGE_PREFIX);
+}
+
 const LEDGER_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PRICE_ID_RE = /^[A-Za-z0-9_-]+$/;
 const ENEMY_IS_BOSS = 'enemyIsBoss';
@@ -390,6 +408,30 @@ const companionSchema = z
     });
   });
 
+/** D-451 (schema 8): the defence bases, by the attribute families of the item bases (armour, evasion, energy shield). */
+export const DEFENCE_BASES = [
+  'armour',
+  'evasion',
+  'energy shield',
+  'armour/evasion',
+  'armour/energy shield',
+  'evasion/energy shield',
+] as const;
+
+/**
+ * D-451 (schema 8): the stage's defence plan: its base family, and its layers by role (the chance layers, the
+ * mitigation, the pool) and what holds the Arbiter's physical hit, each a short text naming them.
+ */
+const defenceSchema = z
+  .object({
+    base: z.enum(DEFENCE_BASES),
+    chance: text('chance'),
+    mitigation: text('mitigation'),
+    pool: text('pool'),
+    physicalHit: text('physicalHit'),
+  })
+  .strict();
+
 const VARIANT_FIELDS = ['variant', 'ascendancyPoints', 'variantBasis'] as const;
 
 const stageSchema = z
@@ -414,6 +456,8 @@ const stageSchema = z
     config: configSchema,
     claims: z.array(claimSchema),
     companion: companionSchema.optional(),
+    // D-451 (schema 8): the stage's defence plan.
+    defence: defenceSchema.optional(),
   })
   .strict()
   .superRefine((s, ctx) => {
@@ -640,7 +684,16 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     before: 'no boots exception, and no movement-tier check',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.items.bootsException !== undefined ? [['stages', i, 'items', 'bootsException']] : [])),
   },
+  {
+    since: 8,
+    what: "a stage's defence plan, stages[].defence (D-451)",
+    before: 'no defence plan',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.defence !== undefined ? [['stages', i, 'defence']] : [])),
+  },
 ];
+
+/** D-452: the last plan schema version that has `stages[].respec`, and V1's `tree-continuity` with it. */
+export const RESPEC_UNTIL = 7;
 
 /** The plan schema: C-31's shape, with the cross-reference rules as refinements. */
 export const planSchema = planObject.superRefine((plan, ctx) => {
@@ -658,6 +711,15 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
           `whose plans have ${added.before} (D-320, D-332)`,
       );
     }
+  }
+
+  // D-452: from version 8 each loadout's tree is its own, so no stage carries a respec.
+  if (plan.schemaVersion > RESPEC_UNTIL) {
+    plan.stages.forEach((s, i) => {
+      if (s.respec !== undefined) {
+        issue(ctx, ['stages', i, 'respec'], `a schema-${plan.schemaVersion} plan has no respec: each loadout's tree is its own (D-452)`);
+      }
+    });
   }
 
   // D-293: from version 2, the compiler writes PoB's customMods option from config.customMods, each entry with

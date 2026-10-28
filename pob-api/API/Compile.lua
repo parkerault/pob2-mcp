@@ -13,7 +13,9 @@
 --     the Oracle's The Unseen Path unlocks 197 nodes); a node that doesn't connect to its start through the
 --     stage's listed nodes under PoB's weapon-set rule (an untagged node paths only through untagged
 --     nodes, a node tagged weapon set n also through nodes tagged n: PassiveSpec:CanPathThroughAllocMode,
---     D-213); a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
+--     D-213), unless a radius jewel of the stage frees it (B3, amendment 12 §15: From Nothing's or Controlled
+--     Metamorphosis' "can be Allocated without being connected to your tree", on a socket the stage connects,
+--     radius_nodes); a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
 --     socket); an attribute choice on a node that isn't an attribute node, and an allocated attribute
 --     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket;
 --     an unknown config option or a bad value (BuildOps' own config check); a main group or main active
@@ -78,8 +80,9 @@
 --                   minionSkill?, minionStatSet?, weaponSet?, slot?}], main, configSet, config, customMods[], offenseFields[],
 --                   itemSlots[], anoint?, companion?{id}, boss?{groups[], fields[]}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
---     spec 1, every other stage gets a new spec; the nodes go in through set_tree with their weapon-set
---     tags and attribute choices (C-40), then the tree jewels. Item, skill and config sets: `reuse` names
+--     spec 1, every other stage gets a new spec; the tree jewels go in, then the nodes through set_tree with
+--     their weapon-set tags and attribute choices (C-40): a radius jewel already socketed keeps the nodes it frees
+--     (B3, amendment 12 §15). Item, skill and config sets: `reuse` names
 --     a set an earlier stage created, which is only selected (its content is the same); otherwise stage 1
 --     retitles set 1 of that type and every other stage creates a set (Sets.lua, C-39), and the content
 --     goes in: the items, the toggles (a toggle on an empty slot is skipped, for the checks to report)
@@ -156,7 +159,11 @@
 --     (D-380), each group whose skill gem, or whose minionSkill, a passive's "Grants Skill: <name>" line grants,
 --     with those passives and whether the stage allocates any of them; and `implicitVariants` (D-435), each of the
 --     stage's items left without its base's implicits because the base's implicit has variants, {slot, base,
---     variants[]}, for V1's `implicit-variant`.
+--     variants[]}, for V1's `implicit-variant`. Amendment 12: each gem's `curseCap {cap, of, level}` (D-455), the
+--     level above which its curse, Frost Bomb's exposure or Thunderstorm's Wet doesn't apply, read at the level PoB
+--     calculates the gem at (gear's +levels included), absent for a gem without such a stat; and `customMods` (D-451),
+--     each custom modifier line the stage writes with the names of the modifiers PoB's parser makes of it,
+--     {text, modNames[]}, for V1's `custom-defence`.
 --     A base's implicits (D-435): every item text the stage equips, and compile_check's `weaponGrants` reads, that has
 --     no `Implicits:` line and isn't a unique gets its base's implicit lines first, as PoB's rare list and its
 --     crafting window fill a base's (base_implicits, below).
@@ -431,10 +438,49 @@ end
 
 local SET_NAMES = { 'set1', 'set2' }
 
+-- The stage's tree jewels as PoB parses them: {node, text, item} per `st.jewels` entry, `item` nil when the text
+-- doesn't parse. check_stage reports a jewel's defects from these; check_tree reads their radius nodes.
+local function parse_jewels(st)
+  local out = {}
+  for _, j in ipairs(list(st.jewels)) do
+    local ok, item = pcall(construct, 'Item', tostring(j.text))
+    out[#out + 1] = { node = j.node, text = j.text, item = ok and item or nil }
+  end
+  return out
+end
+
+-- B3 (amendment 12 §15, D-460): the nodes the stage's radius jewels let PoB allocate without a path, node id -> true.
+-- A jewel whose text PoB parses as "Passives in Radius can be Allocated without being connected to your tree"
+-- (Controlled Metamorphosis: `jewelData.intuitiveLeapLike`) frees the nodes in its radius around its socket; one with
+-- "Passives in radius of <keystone> can be Allocated without being connected to your tree" (From Nothing:
+-- `jewelData.fromNothingKeystones`) frees the nodes in its radius around each keystone it names. PoB keeps such a node
+-- unconnected while the jewel sits in an allocated socket, and prunes any node that hangs on it outside the radius
+-- (Classes/PassiveSpec.lua:1360-1390, :1455-1471, :1870-1910), so only the radius nodes themselves go free, and only
+-- for a jewel on a socket the stage lists and connects (`connected`). A radius is the jewel's (`jewelRadiusIndex`).
+local function radius_nodes(tree, jewels, connected)
+  local out = {}
+  for _, j in ipairs(jewels) do
+    local item, socket = j.item, tree.nodes[j.node]
+    local index = item and item.jewelRadiusIndex
+    local jd = item and item.jewelData
+    if index and jd and item.type == 'Jewel' and is_jewel_socket(socket) and connected(j.node) then
+      if jd.intuitiveLeapLike and socket.nodesInRadius then
+        for id in pairs(socket.nodesInRadius[index] or {}) do out[id] = true end
+      end
+      for name in pairs(jd.fromNothingKeystones or {}) do
+        local key = tree.keystoneMap and tree.keystoneMap[name]
+        for id in pairs(key and key.nodesInRadius and key.nodesInRadius[index] or {}) do out[id] = true end
+      end
+    end
+  end
+  return out
+end
+
 -- The tree defects of one stage. `st.nodes`, `st.ascendancyNodes`, `st.weaponSets{set1, set2}` and
--- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31). Returns the stage's trees for V1's
--- `tree-shape` (D-360; `tree_shape`), or nil without a resolved roll.
-local function check_tree(tree, roll, st, defect)
+-- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31); `jewels` the stage's tree jewels as
+-- parse_jewels reads them. Returns the stage's trees for V1's `tree-shape` (D-360; `tree_shape`), or nil without a
+-- resolved roll. B3 (amendment 12 §15): a listed node a radius jewel frees (radius_nodes) needs no path.
+local function check_tree(tree, roll, st, defect, jewels)
   local nodes = tree.nodes
   local mode = {}
   local listed = {}
@@ -527,10 +573,11 @@ local function check_tree(tree, roll, st, defect)
     [1] = reach(nodes, mode, starts, function(m) return m == 0 or m == 1 end),
     [2] = reach(nodes, mode, starts, function(m) return m == 0 or m == 2 end),
   }
+  local freed = radius_nodes(tree, jewels or {}, function(id) return mode[id] ~= nil and reached[mode[id]][id] == true end)
   table.sort(listed)
   for _, id in ipairs(listed) do
     local m = mode[id]
-    if not reached[m][id] then
+    if not reached[m][id] and not freed[id] then
       local how = m == 0 and 'through untagged nodes'
         or ('through untagged nodes and nodes tagged weapon set ' .. m)
       defect(('node %d (%s)%s is not connected to its start %s'):format(id, tostring(nodes[id].dn),
@@ -729,14 +776,38 @@ end
 -- so the stage build checks them.
 local OFF_HAND = { ['Weapon 2'] = true, ['Weapon 2 Swap'] = true }
 
--- Whether PoB's customMods option adds `line` as modifiers (D-293): as its apply does, the line is stripped of
--- colour codes and of spaces and '?' at either end, and kept only when modLib.parseMod parses all of it
--- (Modules/ConfigOptions.lua:2281-2285).
-local function parses_whole(line)
+-- A custom modifier line as PoB's customMods option parses it (D-293): stripped of colour codes and of spaces and '?'
+-- at either end, then modLib.parseMod (Modules/ConfigOptions.lua:2281-2285). Returns its mods and any unparsed rest.
+local function parse_custom_line(line)
   if type(modLib) ~= 'table' or type(modLib.parseMod) ~= 'function' then fail("PoB's modifier parser is not available") end
   local stripped = StripEscapes(tostring(line)):gsub('^[%s?]+', ''):gsub('[%s?]+$', '')
-  local mods, extra = modLib.parseMod(stripped)
+  return modLib.parseMod(stripped)
+end
+
+-- Whether PoB's customMods option adds `line` as modifiers (D-293): its apply keeps a line only when modLib.parseMod
+-- parses all of it.
+local function parses_whole(line)
+  local mods, extra = parse_custom_line(line)
   return mods ~= nil and not extra
+end
+
+-- D-451 (amendment 12 §6): each custom modifier line the stage writes (`st.customMods`, in order), with the names of
+-- the modifiers PoB's parser makes of it as its customMods option does (parse_custom_line), each once in parse order,
+-- for V1's `custom-defence`: {text, modNames[]}.
+local function custom_mod_names(st)
+  local out = {}
+  for _, line in ipairs(list(st.customMods)) do
+    local mods = parse_custom_line(line)
+    local names, seen = {}, {}
+    for _, mod in ipairs(type(mods) == 'table' and mods or {}) do
+      if type(mod) == 'table' and type(mod.name) == 'string' and not seen[mod.name] then
+        seen[mod.name] = true
+        names[#names + 1] = mod.name
+      end
+    end
+    out[#out + 1] = { text = tostring(line), modNames = names }
+  end
+  return out
 end
 
 -- D-402 (WU-87): the companion gems. Tame Beast (TameBeastPlayer) is the gem a plan holds; a capture turns it into
@@ -863,10 +934,11 @@ end
 
 -- The stage's defects; returns its trees (check_tree).
 local function check_stage(tree, roll, st, defect)
-  local shape = check_tree(tree, roll, st, defect)
-  for _, j in ipairs(list(st.jewels)) do
-    local ok, item = pcall(construct, 'Item', tostring(j.text))
-    if not ok or not item or not item.baseName then
+  local jewels = parse_jewels(st)
+  local shape = check_tree(tree, roll, st, defect, jewels)
+  for _, j in ipairs(jewels) do
+    local item = j.item
+    if not item or not item.baseName then
       defect(('tree jewel on node %s: PoB can not parse its text into an item with a base type'):format(tostring(j.node)))
     elseif item.type ~= 'Jewel' then
       defect(('tree jewel on node %s: %s is not a jewel'):format(tostring(j.node), tostring(item.baseName)))
@@ -1416,15 +1488,18 @@ local function build_tree(st)
   for _, id in ipairs(list(st.nodes)) do nodes[#nodes + 1] = id end
   for _, id in ipairs(list(st.ascendancyNodes)) do nodes[#nodes + 1] = id end
   local weaponSets, choices = tree_state(st)
+  -- B3 (amendment 12 §15): the tree jewels go in first, into the new spec's sockets (the slot writes spec.jewels), so
+  -- the import keeps the nodes a radius jewel frees: PoB prunes an unconnected node unless a jewel already socketed
+  -- holds it (Classes/PassiveSpec.lua:1870-1910), and set_tree's dry run reads the spec's jewels.
+  for _, j in ipairs(list(st.jewels)) do
+    must('socketing the tree jewel on node ' .. tostring(j.node),
+      BuildOps.add_item_text({ text = j.text, slotName = 'Jewel ' .. tostring(j.node) }))
+  end
   must('importing the tree', BuildOps.set_tree({
     classId = spec.curClassId, ascendClassId = spec.curAscendClassId,
     secondaryAscendClassId = spec.curSecondaryAscendClassId or 0, nodes = nodes, treeVersion = spec.treeVersion,
     weaponSets = weaponSets, attributeChoices = choices,
   }))
-  for _, j in ipairs(list(st.jewels)) do
-    must('socketing the tree jewel on node ' .. tostring(j.node),
-      BuildOps.add_item_text({ text = j.text, slotName = 'Jewel ' .. tostring(j.node) }))
-  end
   return specId
 end
 
@@ -1867,15 +1942,61 @@ local function gem_kind(gem, grantedEffect, level)
   return 'skill'
 end
 
+-- D-455 (amendment 12 §10): the stats that stop a skill's debuff on a target above a level, in the order they're
+-- read, with the debuff each one caps. A per-level stat (Despair's curse: 72 at gem level 14, 78 at 17, 0 from 18,
+-- Data/Skills/act_int.lua:5282-5310); PoB's calculation reads none of them (PG-86).
+local LEVEL_CAP_STATS = {
+  { stat = 'skill_curses_cannot_apply_to_targets_above_level', of = 'curse' },
+  { stat = 'frost_bomb_exposure_does_not_apply_to_enemies_of_level_higher_than_X', of = 'exposure' },
+  { stat = 'thunderstorm_wet_debuff_cannot_apply_to_targets_above_level', of = 'wet' },
+}
+
+-- D-455: the level the last calculation computed each gem's skill at, by gem instance: its active effect's level, the
+-- socketed level with the gem-level modifiers of the build's gear and passives applied (Modules/CalcSetup.lua:1876-1890,
+-- applyGemMods), the level its stats are read at (Modules/CalcActiveSkill.lua:557). A gem PoB doesn't calculate (a
+-- disabled one) has none.
+local function calculated_levels()
+  local out = {}
+  local env = build.calcsTab and build.calcsTab.mainEnv
+  for _, skill in ipairs(env and env.player and env.player.activeSkillList or {}) do
+    local e = skill.activeEffect
+    if e and e.srcInstance and tonumber(e.level) and out[e.srcInstance] == nil then out[e.srcInstance] = tonumber(e.level) end
+  end
+  return out
+end
+
+-- D-455: a gem's level cap at `level`, {cap, of, level}: the first LEVEL_CAP_STATS stat a stat set of its granted
+-- effects carries, read as PoB's calculation reads a stat set (calcLib.buildSkillInstanceStats); nil when it carries
+-- none. A cap of 0 means none (Despair from gem level 18).
+local function level_cap(gemData, level)
+  if type(gemData) ~= 'table' then return nil end
+  for _, cap in ipairs(LEVEL_CAP_STATS) do
+    for _, effect in ipairs(Lookup.gemEffects(gemData)) do
+      for _, statSet in ipairs(effect.statSets or {}) do
+        for _, stat in ipairs(statSet.stats or {}) do
+          if stat == cap.stat then
+            local stats = calcLib.buildSkillInstanceStats({ level = level, quality = 0 }, effect, statSet)
+            return { cap = tonumber(stats[cap.stat]) or 0, of = cap.of, level = level }
+          end
+        end
+      end
+    end
+  end
+  return nil
+end
+
 -- Every gem of the active skill set's plan groups (PoB's own groups, which have a `source`, left out): its group
 -- (the plan's number, D-382) and index, name, level, tier, kind and level requirement at its level. D-402: a captured
 -- Tame Beast, PoB's companion gem (its own Tier 0), has the Tame Beast gem's tier: the gem the player cuts and levels
--- is Tame Beast, so V1's tier floor still applies to it.
+-- is Tame Beast, so V1's tier floor still applies to it. D-455 (amendment 12 §10): `curseCap`, the gem's debuff level
+-- cap (level_cap) at the level the calculation uses (calculated_levels; the socketed level for a gem it doesn't
+-- calculate), absent when the gem has no such stat.
 local function stage_gems()
   local out = {}
   local pob = group_indices()
   local d = (build and build.data) or data
   local tameBeast = d.gems and d.gems[TAME_BEAST_GEM]
+  local calculated = calculated_levels()
   for gi, index in ipairs(pob) do
     for k, gem in ipairs(build.skillsTab.socketGroupList[index].gemList or {}) do
       local gemData = gem.gemData
@@ -1890,6 +2011,7 @@ local function stage_gems()
         tier = tierOf and tonumber(tierOf.Tier) or nil,
         kind = gem_kind(gem, ge, level),
         levelRequirement = tonumber(gem.reqLevel) or (lv and tonumber(lv.levelRequirement)) or 0,
+        curseCap = level_cap(gemData, calculated[gem] or level),
       }
     end
   end
@@ -2063,6 +2185,7 @@ local function stage_checks(st, output, configSetId, defer)
     shownOptions = shownOptions,
     grantedSkills = granted_skills(st),
     implicitVariants = implicit_variants(st),
+    customMods = custom_mod_names(st),
   }
 end
 

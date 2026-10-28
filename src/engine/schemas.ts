@@ -1419,6 +1419,17 @@ export const stageChecksSchema = z
           /** PoB's kind: a support, a gem that reserves Spirit, or another skill (V1 checks by C1's tiers). */
           kind: z.enum(['skill', 'support', 'spirit']),
           levelRequirement: z.number(),
+          /**
+           * D-455 (amendment 12 §10): the level above which the gem's curse, Frost Bomb's exposure or Thunderstorm's Wet
+           * doesn't apply (`cap`, 0 for none), read at `level`, the level PoB calculates the gem at (its socketed level
+           * with gear's and passives' +levels; the socketed level for a gem PoB doesn't calculate). Absent, or null, for
+           * a gem without such a stat; V1's `curse-level-cap` reads it.
+           */
+          curseCap: z
+            .object({ cap: z.number(), of: z.enum(['curse', 'exposure', 'wet']), level: z.number().int() })
+            .passthrough()
+            .nullable()
+            .optional(),
         })
         .passthrough(),
     ),
@@ -1469,6 +1480,12 @@ export const stageChecksSchema = z
     implicitVariants: luaArray(
       z.object({ slot: z.string(), base: z.string(), variants: luaArray(z.string()) }).passthrough(),
     ).optional(),
+    /**
+     * D-451 (amendment 12 §6): each custom modifier line the stage writes, in order (the plan's `config.customMods`, then a
+     * companion's lines, D-402), with the names of the modifiers PoB's parser makes of it (`modLib.parseMod`, as PoB's
+     * customMods option parses it), for V1's `custom-defence`. Optional, so a hand-made `checks` without it reads as none.
+     */
+    customMods: luaArray(z.object({ text: z.string(), modNames: luaArray(z.string()) }).passthrough()).optional(),
   })
   .passthrough();
 export type StageChecks = z.infer<typeof stageChecksSchema>;

@@ -144,6 +144,7 @@ import {
 } from './companion.js';
 import {
   CUSTOM_MODS_OPTION,
+  RESPEC_UNTIL,
   validatePlan,
   type Plan,
   type PlanError,
@@ -155,7 +156,7 @@ import type { SourceTag } from './sourceTag.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
 import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
-import { checkV1, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
+import { checkV1, DEFENCE_CHECKS_SINCE, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
@@ -1007,6 +1008,26 @@ const SET_ID_KEY: Record<ContentKind, 'itemSet' | 'skillSet' | 'configSet'> = {
   config: 'configSet',
 };
 
+/**
+ * WU-119 (amendment 12 §7, D-452): on a schema-8 plan, what a stage's tree changes from the stage before it
+ * (`predecessorOf`, which skips temporary stages): `from` its id, `refunded` the nodes that stage holds and this one
+ * doesn't, `added` the reverse, counted over the regular and ascendancy nodes alike. Null on a plan of version 7 or
+ * earlier (its respec says the same, D-144) and for a stage with none before it.
+ */
+export function treeChangeOf(plan: Pick<Plan, 'schemaVersion' | 'stages'>, stage: Stage): StageRecord['treeChange'] | null {
+  if (plan.schemaVersion <= RESPEC_UNTIL) return null;
+  const before = predecessorOf(plan.stages, plan.stages.indexOf(stage));
+  if (before === null) return null;
+  const nodesOf = (s: Stage) => new Set([...s.tree.nodes, ...s.tree.ascendancyNodes]);
+  const had = nodesOf(before);
+  const has = nodesOf(stage);
+  return {
+    from: before.id,
+    refunded: [...had].filter((n) => !has.has(n)).length,
+    added: [...has].filter((n) => !had.has(n)).length,
+  };
+}
+
 /** Every item set after `compile_finish` against the plan, named by the stages that use it. */
 function finishItemDefects(
   finish: CompileFinishResult,
@@ -1155,7 +1176,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     // V1 and V2, once the stage is measured (D-192): findings go into the record, never into an error.
     const v1 = checkV1({
       stage,
-      predecessor: predecessorOf(plan.stages, plan.stages.indexOf(stage)),
+      // D-452: a schema-8 plan has no tree continuity to check, each loadout's tree its own.
+      predecessor: plan.schemaVersion <= RESPEC_UNTIL ? predecessorOf(plan.stages, plan.stages.indexOf(stage)) : null,
       checks: reply.checks,
       ref: refData,
       trees: treesOf.get(stage.id),
@@ -1167,6 +1189,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       schemaVersion: plan.schemaVersion,
       movementTiers: check.movementTiers ?? [],
       travel: travelOf(stage, reply, reply.travelSkills),
+      // D-455 (schema 8): a rung's area level, for curse-level-cap. D-451: the plan's own custom lines, before a
+      // companion's (D-402), for custom-defence.
+      ...(stage.variant !== undefined && plan.schemaVersion >= DEFENCE_CHECKS_SINCE ? { rungAreaLevel: rungAreaLevel(stage.variant, refData) } : {}),
+      planCustomMods: checkedPlan.stages.find((s) => s.id === stage.id)?.config.customMods?.length ?? 0,
     });
     const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
     results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
@@ -1287,6 +1313,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       // D-413: the level the stage works from, and the items or gems that set it.
       requirements: stageRequirements(reply.checks),
     };
+    // D-452 (schema 8): what the stage's tree changes from the stage before it.
+    const treeChange = treeChangeOf(plan, stage);
+    if (treeChange !== null) stages[stage.id].treeChange = treeChange;
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
     // D-427: the clear measure's travel skill, from the stage's skills with PoB's Travel type.
     // WU-111 (D-437, D-447): with the reply's skill meta and boss measure, the damage figures, trigger and source types.

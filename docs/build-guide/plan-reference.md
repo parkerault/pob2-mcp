@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 7)
+# Build plan reference (`plan.json`, schema version 8)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 7`. Versions `1`, `2`, `3`, `4`, `5`, `6` and `7` are
+- **Version first.** A new plan declares `schemaVersion: 8`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7` and `8` are
   accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5, 6, 7]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 6 still validates and compiles, with its
+  `[1, 2, 3, 4, 5, 6, 7, 8]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 7 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -51,6 +51,15 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - `tree.scales` (D-438) and `items.bootsException` (D-440);
   - V1's `movement-tier`, which checks a schema-7 plan's boots only.
   In an earlier plan each key is an error at its own path; its record still gains the new measures.
+
+  Version 8 (amendment 12; see defence that holds and one tree per loadout below):
+  - added `stages[].defence` (D-451), the stage's defence plan; in an earlier plan the key is an error;
+  - removed `stages[].respec` (D-452): each loadout's tree is its own, so a respec errs at `stages[n].respec` with "a
+    schema-8 plan has no respec: each loadout's tree is its own (D-452)". A plan of version 7 or earlier keeps it, and
+    V1's `tree-continuity` with it;
+  - V1's `curse-level-cap` (D-455) and `custom-defence` (D-451), which check a schema-8 plan only, and the record's
+    `treeChange` on its stages (see tree tracks).
+  A schema-7 plan compiles as before: its findings and its record are those of a schema-7 compile.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -154,12 +163,9 @@ input, or a reference to a stage the plan doesn't have, each with its 0-based co
 stage the compile didn't include, a division by zero or a non-finite result sets that entry's value to
 null with the error in the record; the compile still succeeds. Values are unrounded doubles.
 
-### Tree tracks (D-144, D-282)
+### Tree tracks (D-144, D-282, D-452)
 
-Each stage's tree contains its predecessor's, the previous stage on its track, except the nodes its
-`respec` drops. The respec names exactly those nodes and carries the respec's gold cost, which the guide
-lists. The compile's validity check (V1) reports `tree-continuity` when a stage drops a node without a
-respec, or when `respec.dropped` isn't exactly the dropped set.
+A stage's predecessor is the previous stage on its track:
 
 - **The campaign track:** the stages without `variant`, in plan order.
 - **The endgame ladder:** the stages with `variant`, one track by rung: `entering-maps` (`m`) continues from
@@ -168,13 +174,26 @@ respec, or when `respec.dropped` isn't exactly the dropped set.
   order; within a rung, stages follow plan order. A rung the plan doesn't have is skipped, so without `m`,
   `b` continues from the last campaign stage. In a plan with no campaign stage, the first rung continues from
   none.
+- **Temporary stages** (D-453): a stage whose id starts `tmp`, then letters and digits like every id (`tmpb1`), is a
+  design step's measuring copy, removed when the step ends. It is no stage's predecessor, so a `tmpb1` copying `b`
+  leaves `n` continuing from `b`; its own predecessor is found as any stage's is.
 
-**Respec when the scaling changes, otherwise grow** (D-438, schema version 7). Growing is the default: each stage's
-tree holds its predecessor's. A stage names the stats that scale it in `tree.scales`; a stage whose scaling differs from
-the stage before it on its track (a new skill or gem, a gear item, an ascendancy node, a keystone or a notable that
-scales differently) is a respec stage, and its `respec` names the change and its gate in `note`, the prior nodes it no
-longer holds in `dropped`, and its gold cost. On `b` and `n` the gold cost is a note, never a reason to skip a respec;
-on `m` and campaign stages it is weighed. V1's `tree-continuity` check is the same either way.
+**One tree per loadout** (D-452, schema version 8). Players respec freely, so each loadout's tree is the best one for it;
+the only constraint across stages is one start node. A schema-8 stage has no `respec` (an error at `stages[n].respec`),
+and V1 doesn't check tree continuity. The compile record gives each stage with a predecessor its tree change,
+`stages.<id>.treeChange {from, refunded, added}`: `from` the predecessor's id, `refunded` how many nodes it holds that
+this stage doesn't, `added` the reverse, regular and ascendancy nodes alike. The guide's respec line gives the counts.
+`tree.scales` stays: the design's shared-scaling rule reads it.
+
+**Schema version 7 and earlier: grow, or respec with its gold cost** (D-144, D-438). Each stage's tree contains its
+predecessor's, except the nodes its `respec` drops. The respec names exactly those nodes and carries the respec's gold
+cost, which the guide lists. The compile's validity check (V1) reports `tree-continuity` when a stage drops a node
+without a respec, or when `respec.dropped` isn't exactly the dropped set. Growing is the default: a stage names the stats
+that scale it in `tree.scales`, and a stage whose scaling differs from the stage before it on its track (a new skill or
+gem, a gear item, an ascendancy node, a keystone or a notable that scales differently) is a respec stage, whose
+`respec` names the change and its gate in `note`, the prior nodes it no longer holds in `dropped`, and its gold cost.
+On `b` and `n` the gold cost is a note, never a reason to skip a respec; on `m` and campaign stages it is weighed. Such a
+plan's record has no `treeChange`.
 
 ### A tree's needs (D-418)
 
@@ -229,6 +248,15 @@ record marks what rests on it.
   - A line PoB can't parse whole would add nothing, so it fails the compile.
   - Each entry needs a `reason` saying what it stands for and how it was worked out; without one, V1
     reports `missing-reason`.
+  - No custom line for a layer PoB models (D-451, schema version 8). A line that adds a pool or a defence first shows,
+    through `check_model_coverage`, that PoB doesn't model the mechanic it stands for, and its `reason` names that result
+    as `coverage: <status>` (`unparsed`, `partly parsed`, `parsed to nothing` or `possibly unread`; a `possibly unread`
+    line is measured on a temporary stage too). On a schema-8 plan, V1 reports `custom-defence` for a line whose
+    modifiers, as PoB's parser makes them, include a pool or defence stat (PoB's `Life`, `Mana`, `EnergyShield` or
+    `Ward`, or a name holding `Armour`, `Evasion`, `Evade`, `Deflect`, `Block`, `Resist`, `DamageTaken`,
+    `DamageReduction` or `Defences`, not the enemy's side, armour break or penetration) and whose reason gives no
+    `coverage:` result; `data.path` is the line's `reason`. V1 trusts the marker's text. A companion's lines (D-402) are
+    the compile's, not the plan's, and aren't checked. A damage line never is.
   - Every figure of a stage with custom modifiers, defences included, is marked in the compile record, and
     so is every ledger value that reads one. From version 2 on, don't list `customMods` in `earned` or
     `scenario`. A version-1 plan may still list PoB's `customMods` option there, and its stage is marked the
@@ -408,7 +436,8 @@ their item and skill sets, and a plan without them compiles as a schema-6 plan d
   `stages[n].skills.boss.entries[k]`, as for `rolledGroup`); the compile checks its active skill and stat set against
   PoB, with errors at the same path, and nothing is compiled.
 - **`tree.scales`** (D-438): one short line naming the stats that scale the stage ("crit damage, ailment magnitude,
-  physical spell levels"). A stage whose scaling differs from the one before it is a respec stage (see tree tracks).
+  physical spell levels"). On schema 7, a stage whose scaling differs from the one before it is a respec stage; on
+  schema 8 each loadout's tree is its own (see tree tracks).
 - **`items.bootsException {kind, reason}`** (D-440): why the stage's boots may carry less movement speed than their tier:
   `travel` (the build moves with its travel skill; `reason` names the affix the boots slot gains) or `unique` (the unique
   boots are required for another of the build's mechanics; `reason` says what they give and why it's worth the speed).
@@ -477,6 +506,39 @@ area level allows (C1's `<progress>.area-level` against the game data's tiers: 1
 (`travel` with a travel skill in the stage, `clearSpeed.travel`; `unique` with unique boots): then they are a V1 note
 `boots-exception`, information only, and V1 passes. A stage without boots and a card skeleton are skipped, and a plan
 before schema 7 isn't checked, so an old build's boots don't fail a recompile.
+
+### Defence that holds and one tree per loadout (D-451 to D-455, schema version 8)
+
+Schema version 8 (amendment 12) adds `stages[].defence`, refuses `stages[].respec` (see tree tracks) and names temporary
+stages (see tree tracks).
+
+- **`stages[].defence {base, chance, mitigation, pool, physicalHit}`** (D-451): the stage's defence plan, picked before
+  it is tuned. `base` is the bases' attribute family, one of `armour`, `evasion`, `energy shield`, `armour/evasion`,
+  `armour/energy shield` and `evasion/energy shield`; it follows the class's attributes, and a family off them costs
+  attribute lines and tree points. `chance` names the chance layers (evade, deflect, block), `mitigation` the mitigation
+  (armour, resistances, damage taken), `pool` the pool (life, energy shield, mana under damage taken from mana first), and
+  `physicalHit` what holds the Arbiter's physical hit. Each is a short text, names only; write `none` for a role the
+  build leaves empty. D1-build writes it on `n` beside `skills.engagement`; the schema keeps it optional, and the run
+  checker requires it on `n` of a schema-8 plan in a run held to amendment 12's rules. It doesn't change PoB's sets.
+- **V1's curse cap** (D-455). A curse stops at a monster level its gem level sets
+  (`skill_curses_cannot_apply_to_targets_above_level`: Despair's is 72 at gem level 14, 76 at 16, 78 at 17 and none from
+  18), as do Frost Bomb's exposure and Thunderstorm's Wet, and PoB never reads the cap (PG-86). The compile reads each
+  gem's cap at the level PoB calculates it at, its gear's and passives' +levels included. On a schema-8 plan, an enabled
+  gem whose cap is above 0 and below the stage's area level is the V1 finding `curse-level-cap`, naming the gem, its
+  level, the debuff (`curse`, `exposure` or `Wet`), the cap and the area level: the rung's (69 for `m`, 79 for `b`, 82
+  for `n`), a campaign stage's C1 `<progress>.area-level`. A card skeleton is skipped. Its `data` is `{gem, group,
+  index, level, socketedLevel, of, cap, areaLevel, path}`, `path` the gem's `level`. In practice it guards planned low
+  gem levels on `m` and in the campaign.
+
+```json
+"defence": {
+  "base": "evasion",
+  "chance": "evasion, deflection from the tree",
+  "mitigation": "capped elemental resistances",
+  "pool": "life",
+  "physicalHit": "a life pool line on the helmet and the body"
+}
+```
 
 ### Reference hits and measures (D-353, D-407)
 
@@ -628,7 +690,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6` or `7` | yes | `7` for a new plan; `1` to `6` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7` or `8` | yes | `8` for a new plan; `1` to `7` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -641,7 +703,7 @@ rule may require an optional key in some cases.
 | `versions.externalPatch` | string | yes | Non-empty. The patch of the prices and boss data, e.g. `0.5.5` | D-107 |
 | `league` | string or null | yes | Non-empty: the pricing league. Null only in an offline run, when every price is `unavailable` with note `offline run` (error at `league`) | C-31, D-233 |
 | `stages` | object[] | yes | At least one. Plan order is progression order | C-31 |
-| `stages[].id` | string | yes | Letters and digits only (`[A-Za-z0-9]+`), so it works as a brace id. Unique: a repeat errs at the later stage | A-P1, D-103 |
+| `stages[].id` | string | yes | Letters and digits only (`[A-Za-z0-9]+`), so it works as a brace id. Unique: a repeat errs at the later stage. An id starting `tmp` (`tmpb1`) is a temporary stage, no stage's predecessor (see tree tracks) | A-P1, D-103, D-453 |
 | `stages[].loadoutName` | string | yes | Contains `(L<level>)` with the stage's own level, ends with ` {<id>}`, and has no other braces, e.g. `Act 2 (L25) {2}`. Also the stage's tree title | A-P1, D-103, D-138 |
 | `stages[].level` | integer | yes | 1 to 100. The level the stage is measured at | D-138 |
 | `stages[].progress` | string | yes | A progress key: `start`, `endgame` or `q.<key>` with `<key>` lowercase letters and digits in `-`-joined runs (`q.act-1-clearfell-beira`); a C1 key once the data is loaded | D-214, A-P13 |
@@ -675,7 +737,7 @@ rule may require an optional key in some cases.
 | `stages[].chaosResistException.tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].chaosResistException.tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].tree` | object | yes | The stage's passive tree | C-31 |
-| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
+| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node a radius jewel of the stage frees needs no path: From Nothing's radius around the keystone it names, or Controlled Metamorphosis' around its socket, while the jewel sits in a socket the tree connects (B3); a node hanging on such a node outside the radius still needs one. A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
 | `stages[].tree.ascendancyNodes` | integer[] | yes | Every allocated ascendancy node id, without the ascendancy's start node, which PoB allocates itself | C-31 |
 | `stages[].tree.weaponSetNodes` | object | yes | The nodes tagged to weapon set 1 or 2. A tagged node paths only through untagged nodes and nodes of its own set | C-31, D-213 |
 | `stages[].tree.weaponSetNodes.set1` | integer[] | yes | Each node is in `tree.nodes` (error at `set1[n]`) | C-31 |
@@ -687,8 +749,8 @@ rule may require an optional key in some cases.
 | `stages[].tree.needs[].nodes` | integer[] | yes | At least one. The nodes the need keeps, each in `tree.nodes` (error at `nodes[k]`) | D-418 |
 | `stages[].tree.needs[].stat` | string | no | Non-empty. The node power stat that measures the need, by PoB's id (`ManaRegen`), when PoB has one | D-418 |
 | `stages[].tree.needs[].claim` | string | no | Non-empty. The id of the stage's `reason` claim saying why; set by D1-finish. Missing, or naming no claim of the stage, V1 reports `missing-reason`. Left out of `buildSha1` | D-266, D-418 |
-| `stages[].tree.scales` | string | no | Non-empty. One short line naming the stats that scale the stage; a stage whose scaling differs from the one before it is a respec stage (see tree tracks). Schema version 7 | D-438 |
-| `stages[].respec` | object | no | Present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost | D-144, D-282 |
+| `stages[].tree.scales` | string | no | Non-empty. One short line naming the stats that scale the stage; up to schema 7, a stage whose scaling differs from the one before it is a respec stage (see tree tracks). Schema version 7 | D-438 |
+| `stages[].respec` | object | no | Schema version 7 and earlier: present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost. A schema-8 plan has none: each loadout's tree is its own, and a respec errs here | D-144, D-282, D-452 |
 | `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |
 | `stages[].respec.goldCost.value` | number | yes | At least 0 | D-144 |
@@ -773,10 +835,16 @@ rule may require an optional key in some cases.
 | `stages[].config.scenario[].tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. From version 2 on, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
 | `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
-| `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason` | D-293, D-322 |
+| `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason`. On a schema-8 plan, a line that adds a pool or defence names its coverage result, `coverage: <status>`, or V1 reports `custom-defence` (see custom modifiers above) | D-293, D-322, D-451 |
 | `stages[].companion` | object | no | The stage's tamed beast: its species and the rare monster modifiers it keeps (see a tamed beast above). The stage holds exactly one `Tame Beast` gem, enabled, in an enabled group, which the compile turns into the beast. Schema version 5 | D-402 |
 | `stages[].companion.species` | string | yes | Non-empty. The beast, as PoB's beast library names it (ignoring case), or its monster id when several beasts share the name; the compile refuses a species the library lacks or a shared name | D-402 |
 | `stages[].companion.mods` | string[] | yes | The kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, each once; `[]` for none. Each is applied by its row's model: `stats` as custom-modifier estimates, `condition` as its config option, `none` not at all. An id the table lacks errs here; an option a `condition` row writes errs where the stage lists it too | D-402 |
+| `stages[].defence` | object | no | The stage's defence plan (see defence that holds above): its base family and its layers by role. D1-build writes it on `n`; the run checker requires it there in a revision-12 run, not the schema. Not part of any set's content. Schema version 8 | D-451 |
+| `stages[].defence.base` | `armour`, `evasion`, `energy shield`, `armour/evasion`, `armour/energy shield` or `evasion/energy shield` | yes | The bases' attribute family, which follows the class's attributes | D-451 |
+| `stages[].defence.chance` | string | yes | Non-empty. The chance layers (evade, deflect, block), names only | D-451 |
+| `stages[].defence.mitigation` | string | yes | Non-empty. The mitigation (armour, resistances, damage taken), names only | D-451 |
+| `stages[].defence.pool` | string | yes | Non-empty. The pool (life, energy shield, mana under damage taken from mana first), names only | D-451 |
+| `stages[].defence.physicalHit` | string | yes | Non-empty. What holds the Arbiter's physical hit, names only | D-451 |
 | `stages[].claims` | object[] | yes | The stage's claims, each with its source | C-30, D-105 |
 | `stages[].claims[].id` | string | yes | Non-empty | C-30 |
 | `stages[].claims[].text` | string | yes | Non-empty. The claim as the guide states it | C-30 |

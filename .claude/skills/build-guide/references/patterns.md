@@ -1254,7 +1254,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 ### Radius jewel instead of an anoint
 
 - **Shape:** a radius jewel reaches notables, or saves travel, without a path or the anoint.
-- **Search:** before an anoint, check whether a radius jewel such as From Nothing reaches the notable.
+- **Search:** before an anoint, check whether a radius jewel such as From Nothing reaches the notable. For a skill
+  off the class's stats (a melee Witch), Split Personality, a Ruby, lets the tree also grow from the start its
+  variant names ("Can Allocate Passive Skills from the Warrior's starting point"); PoB models it, but our compiler
+  doesn't yet accept that start.
 - **PoB:** modelled.
 - **Examples:** Twister: From Nothing near CI reaches Heavy Frost [twister]. From Nothing in 9 and Controlled
   Metamorphosis in 3 of 30 published league starters, the largest single-jewel effects there: up to ×1.23 EHP

@@ -42,7 +42,10 @@ doesn't change them.
   (`analysis/defence/results.jsonl`, `results-np.jsonl`) name the builds that failed with "Invalid input". Nothing of
   the library is copied into a worktree, committed or named in a committed file; the fixture is the unit's own, built
   from the pinned game data. When none reproduces the failure, the unit reports the raw reply and the failing path
-  and stops (HG-26). Every other unit leaves the library alone.
+  and stops (HG-26). WU-122 reads one more part, read only: `analysis/defence/proposals.md`, lines 483–548, the
+  candidate list's PoB gaps, which §17 has it follow. It writes each entry in its own words with PoB's `file:line`,
+  quoting no guide or video, and names builds only as the studies do (creator and skill). Every other unit leaves the
+  library alone.
 - **Trade.** No unit sends a trade request; WU-118's tests use a fake clock and `fixtureFetch`. `CLAUDE.md`'s trade
   paragraph is WU-118's.
 - **Room left, measured at `80bc542`:**

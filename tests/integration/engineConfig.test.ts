@@ -273,7 +273,7 @@ engineDescribe('engine ops: config and presets on the golden build (WU-12)', () 
   );
 
   it(
-    'AC-K73 (D-460 B6): load_config_preset with a preset lacking a checkbox PoB defaults to on leaves it on, and a checkbox the build set on that PoB defaults to off goes off',
+    'AC-K73 (D-460 B6): load_config_preset with a preset lacking a checkbox PoB defaults to on leaves it on, and a checkbox the build set on that PoB defaults to off goes off; set_config "" on a checkbox is still refused',
     async () => {
       // PoB's own option list (Modules/ConfigOptions): each checkbox and its defaultState.
       const checks = await luaQuery<{ on: string[]; off: string[] }>(`
@@ -294,6 +294,13 @@ engineDescribe('engine ops: config and presets on the golden build (WU-12)', () 
       const offKey = 'conditionLowLife';
       expect(checks.off).toContain(offKey);
       expect(goldenInput[offKey]).toBeUndefined();
+      // set_config keeps refusing "" on a checkbox (only the preset loader asks for the reset), on and off alike.
+      for (const key of [onKey!, offKey]) {
+        const empty = await call('set_config', { config_name: key, value: '' });
+        expect({ key, isError: empty.isError }).toEqual({ key, isError: true });
+        expect(empty.text).toContain(`config option '${key}' is a checkbox: the value must be true or false`);
+      }
+      expect(await engineInput()).toEqual(goldenInput);
       expect((await call('set_config', { config_name: offKey, value: true })).isError).toBe(false);
       expect((await engineInput())[offKey]).toBe(true);
 

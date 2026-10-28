@@ -96,10 +96,17 @@ export async function handleSaveConfigPreset(context: ConfigPresetContext, name:
 }
 
 /**
+ * D-460 (B6): the `set_config` params key that isn't a config option, `true` asking the engine's config writer to
+ * put a checkbox given `''` back to PoB's default (`pob-api/API/BuildOps.lua`'s CHECK_DEFAULTS). Only
+ * load_config_preset sends it; every other `''` on a checkbox is refused, as before.
+ */
+export const CHECK_DEFAULTS_KEY = '__checkboxDefaults';
+
+/**
  * Apply a preset: every option it holds is set to its saved value, and every option the build sets
- * that the preset doesn't hold is cleared to PoB's default (`''`: a checkbox to its default state, on for one PoB
- * defaults to on, D-460 B6; a list to a new config set's entry; anything else emptied), so the config matches the
- * preset. One `set_config` call carries every key, so an invalid value changes nothing.
+ * that the preset doesn't hold is cleared to PoB's default (`''`, with CHECK_DEFAULTS_KEY: a checkbox to its default
+ * state, on for one PoB defaults to on, D-460 B6; a list to a new config set's entry; anything else emptied), so the
+ * config matches the preset. One `set_config` call carries every key, so an invalid value changes nothing.
  */
 export async function handleLoadConfigPreset(context: ConfigPresetContext, name: string) {
   return wrapHandler('load config preset', async () => {
@@ -137,7 +144,7 @@ export async function handleLoadConfigPreset(context: ConfigPresetContext, name:
       cleared.push(key);
     }
     const applied = Object.keys(params).length - cleared.length;
-    if (Object.keys(params).length > 0) await luaClient.setConfig(params);
+    if (Object.keys(params).length > 0) await luaClient.setConfig({ ...params, [CHECK_DEFAULTS_KEY]: true });
 
     let text = `Config preset "${name}" loaded: ${applied} options set to their saved values`;
     text += cleared.length > 0 ? `; ${cleared.length} options the preset doesn't hold cleared to PoB's default.` : '.';

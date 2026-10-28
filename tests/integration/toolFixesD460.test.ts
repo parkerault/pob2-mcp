@@ -1,7 +1,8 @@
 /**
  * WU-117 (amendment 12 §15, D-460): the tool fixes B1, B2, B4 and B5, in process and engine-required; AC-K73's rows
- * for them and AC-K74's samples. AC-K73's contract-error row is in `tests/unit/pobLuaBridge.test.ts`, B6's in
- * `engineConfig.test.ts`, B8's (and AC-K37's new line) in `treeState.test.ts`.
+ * for them and AC-K74's samples, and B6's compile guard (a plan's "" on a checkbox stays refused). AC-K73's
+ * contract-error row is in `tests/unit/pobLuaBridge.test.ts`, B6's preset rows in `engineConfig.test.ts`, B8's (and
+ * AC-K37's new line) in `treeState.test.ts`.
  *
  * - B1: `get_node_power` with TotalEHP first on the fixture `tests/fixtures/plans/weapon-set-2-unarmed/plan.json`,
  *   written from the pinned game data: a Warrior / Titan at level 14 whose main and clear skill, Boneshatter, needs a
@@ -163,6 +164,31 @@ engineDescribe('WU-117: the tool fixes B1, B2, B4 and B5 (D-460; AC-K73)', () =>
       ENGINE_TIMEOUT,
     );
   });
+
+  // -------------------------------------------------------------------------------------------------
+  // B6 (the rest is in engineConfig.test.ts)
+
+  it(
+    'AC-K73 (B6): a compile whose plan sets a checkbox to "" is refused as at the base, naming the checkbox: only load_config_preset puts a checkbox back to its default',
+    async () => {
+      const made = await f.call('guide_run', { new_run: 'checkbox-empty' });
+      if (made.isError) throw new Error(`guide_run failed: ${made.text}`);
+      const planPath = /^plan_path for this run: (\S+)$/m.exec(made.text)![1];
+      const plan = JSON.parse(fs.readFileSync(UNARMED_PLAN, 'utf8')) as Json;
+      // A string value counts as on (A-P5), so the entry names a producer and an uptime, as any on entry does.
+      plan.stages[0].config.earned.push({
+        option: 'conditionLowLife',
+        value: '',
+        producer: { kind: 'item', name: 'Rusted Cuirass' },
+        uptime: 'a test of the empty value',
+      });
+      fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(plan, null, 2)}\n`);
+      const out = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
+      expect(out.isError).toBe(true);
+      expect(out.text).toContain("config option 'conditionLowLife' is a checkbox: the value must be true or false");
+    },
+    ENGINE_TIMEOUT,
+  );
 
   // -------------------------------------------------------------------------------------------------
   // B2

@@ -892,16 +892,18 @@ function M.get_config()
 end
 
 -- One set_config value, checked against its option the way PoB's config controls accept input.
--- Returns true, value (nil clears the option) or false, error.
-local function config_value(option, v)
+-- Returns true, value (nil clears the option) or false, error. `checkDefaults` (D-460, B6): only
+-- load_config_preset's clearing asks for it (set_config's CHECK_DEFAULTS key); then an empty value puts a
+-- checkbox back to PoB's default, its defaultState (what a new config set holds, Classes/ConfigTab.lua:981): on
+-- for a checkbox PoB defaults to on, cleared (off) for any other. Every other caller (set_config, the compile's
+-- check and writes) has an empty value on a checkbox refused, as before.
+local function config_value(option, v, checkDefaults)
   local key, t = option.var, option.type
   if t == 'check' then
     if type(v) == 'boolean' then return true, v end
     if v == 'true' then return true, true end
     if v == 'false' then return true, false end
-    -- D-460 (B6): an empty value puts a checkbox back to PoB's default, its defaultState (what a new config set
-    -- holds, Classes/ConfigTab.lua:981): on for a checkbox PoB defaults to on, cleared (off) for any other.
-    if v == '' then return true, option.varData and option.varData.defaultState end
+    if v == '' and checkDefaults == true then return true, option.varData and option.varData.defaultState end
     return false, string.format("config option '%s' is a checkbox: the value must be true or false", key)
   end
   -- An empty value clears the option back to PoB's default. A list can't be emptied in PoB (its
@@ -949,10 +951,17 @@ local function config_value(option, v)
   return false, string.format("config option '%s' has an unsupported type '%s'", key, tostring(t))
 end
 
--- Set config options and rebuild. params: { <config option key> = value, ... } (see config_value).
--- Every key is checked before anything changes: an unknown key or a bad value changes nothing. Values
--- go into the active config set's input, as PoB's config controls write them, then ConfigTab's
--- BuildModList recomputes the config mods (and the enemy level, from input.enemyLevel).
+-- D-460 (B6): the one params key of set_config that isn't a config option: `true` asks that an empty value put a
+-- checkbox back to PoB's default (config_value's `checkDefaults`). Only load_config_preset's handler sends it
+-- (src/handlers/configHandlers.ts); no PoB config option has this name.
+local CHECK_DEFAULTS = '__checkboxDefaults'
+M.CHECK_DEFAULTS = CHECK_DEFAULTS
+
+-- Set config options and rebuild. params: { <config option key> = value, ... } (see config_value), and
+-- CHECK_DEFAULTS = true from load_config_preset only. Every key is checked before anything changes: an unknown
+-- key or a bad value changes nothing. Values go into the active config set's input, as PoB's config controls
+-- write them, then ConfigTab's BuildModList recomputes the config mods (and the enemy level, from
+-- input.enemyLevel).
 function M.set_config(params)
   local ct = build and build.configTab
   if not ct or not ct.configSets then return nil, 'build/config not initialized' end
@@ -961,8 +970,12 @@ function M.set_config(params)
   if not configSet then return nil, 'no active config set' end
   local opts, err = config_options()
   if not opts then return nil, err end
+  local checkDefaults = params[CHECK_DEFAULTS]
+  if checkDefaults ~= nil and checkDefaults ~= true then return nil, CHECK_DEFAULTS .. ' takes only true' end
   local keys = {}
-  for k in pairs(params) do keys[#keys + 1] = tostring(k) end
+  for k in pairs(params) do
+    if k ~= CHECK_DEFAULTS then keys[#keys + 1] = tostring(k) end
+  end
   table.sort(keys)
   if #keys == 0 then return nil, 'no config options given' end
   local values = {}
@@ -975,7 +988,7 @@ function M.set_config(params)
       end
       return nil, string.format("unknown config option '%s'%s; get_config lists PoB2's option keys", k, hint)
     end
-    local ok, value = config_value(option, params[k])
+    local ok, value = config_value(option, params[k], checkDefaults)
     if not ok then return nil, value end
     values[k] = { value = value }
   end

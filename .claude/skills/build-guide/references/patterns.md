@@ -9,7 +9,8 @@ Ask these of every candidate; the builds in brackets showed why.
 
 1. What is the damage source, what does it read, and which slot carries it? (Shield Charge, Enervating
    Nova)
-2. Fix the payoff first, then judge each piece by whether it feeds it. (Empyrean)
+2. Fix the payoff first, then judge each piece by whether it feeds it. Name the means apart from the payoff they
+   supply: when a means fails, search other means to the same payoff before tuning it. (Empyrean)
 3. What does the payoff consume or require, and can the skill create it? If not, it's a builder and a
    finisher, and the lock must fit by tag. (Wing Blast, Shockchain)
 4. The enabler: name it, the level it arrives at, and how to get it ("dormant until X"). Its downside is the
@@ -31,7 +32,7 @@ The answers fill the card (`templates/card-template.md`). The questions and the 
 Ask these after 1–10 (D-409). Navira's Fracturing against our Varashta build showed why: tuning can't find a
 better structure, and the pieces of one sat unused in the research ([comparison] §7.1). Questions 15–19 are the
 synthesis questions (D-431): the synthesis asks them of each composite, and D1-build again after a conversion, a
-keystone or a limit named as a con. Spud's Warcryer carried six damage layers to our build's two ([spud] §4).
+keystone or a limit named as a con.
 
 11. What does the obvious build do, and how is this card faster? Start from its archetype's entry under
     Standard kits. (Navira's Fracturing)
@@ -52,20 +53,36 @@ keystone or a limit named as a con. Spud's Warcryer carried six damage layers to
     to another pool (Cost redirection), a refund, a cooldown ignored. (Spud's Warcryer)
 18. Conflicts. Which pieces fight (one consumes what another needs)? Schedule the conflict before leaving a piece
     out: a clear button and a boss button, a second weapon set; or drop the piece the other side needs, if it is worth
-    less (Spud's character takes Jade Heritage in place of Imploding Impacts, so Battershout competes with nothing).
-    See Payoff thief.
-19. Bosses. When the clear skill is capped by a limit or shaped for packs, what is the boss button? (Spud's
-    Warcryer: Hammer of the Gods on its own weapon set)
+    less. See Payoff thief. (Spud's Warcryer)
+19. Bosses. What does the build press on a boss? When the clear skill is capped by a limit or shaped for packs, name
+    the boss button. (Spud's Warcryer: Hammer of the Gods on its own weapon set)
+
+## Brainstorm questions 20–24: defence, pools and buttons
+
+Ask these after 1–19 (D-458); the defence and sizing studies showed why ([defence-layers], [sizing]).
+
+20. Defence layers. Which layers does the character get cheaply (the armour base its attributes allow, what that base
+    feeds, the pool)? Which figure does each move? What holds the Arbiter's physical hit? See Defence layers in hit
+    order. (the animeprincess Twister Gemling)
+21. Empty pools. List the multiplier pools (your increases, more multipliers, gain as extra, crit, the enemy's
+    resistance, the enemy's damage taken) and how full each is; the next buy goes in the emptiest. Its inversion
+    branch: never reduce resistance on a build that inverts it, or buy it on one that ignores it. [sizing]: per 10
+    points, enemy damage taken +9.7%, increased damage +2.3%. See The damage-taken pool.
+22. Ascendancy fit, for briefs that leave the ascendancy open: for each candidate ascendancy, which notables feed the
+    build's layers, which only defend, which are dead; when another feeds clearly more, compose a split or successor
+    card. R1a-synthesize asks it in step 5.
+23. Shared scaling, for builds with two or more damage skills: name the stats every damage group shares (D1-build
+    writes them in `tree.scales`); a node that feeds only another group is a need, measured on that group's figure.
+    (Spud's Warcryer)
+24. Buttons, upkeep and proxies: presses per pack and per boss, buffs that need re-casting, and a proxy that could
+    press each, with its cost. See A proxy presses the button. (Lazy Exile's Mortar Cannon ballistas)
 
 ## How to read an entry
 
 - **Shapes only.** Re-check every use against current game data with a lookup: names, numbers and wording
-  change between patches. The studies span 0.1 to 0.5.5 plus one Path of Exile 1 video (each source's
-  patch is in Sources); the pin is 0.5.4.
-- **The studies show what players do, not game truth.** They are agents' reports on creators' videos and
-  write-ups, and creators err. A card is dealt only when a lookup confirms every load-bearing link in game
-  text (the sniff test, R1a-assemble). A claim marked unverified here needs that check, or "needs in-game
-  testing" on the card. An interaction no game text documents is never used.
+  change between patches. Each source's patch is in Sources; the pin is 0.5.4.
+- **The studies show what players do, not game truth.** Creators err: a claim marked unverified here needs a
+  lookup, or "needs in-game testing" on the card, and an interaction no game text documents is never used.
 - **Damage order.** Flat damage is converted first. The skill's own conversion comes first, then every
   other conversion once, on what it left, with no chains. Gain-as-extra lines then add a share of each type's damage after conversion and before
   any increase; the gained damage keeps its new type, and no later conversion touches it. Increased and more
@@ -75,9 +92,11 @@ keystone or a limit named as a con. Spud's Warcryer carried six damage layers to
   PoB agrees).
 - **Defence figures:** EHP is PoB's `TotalEHP`, the average damage taken before death; it counts the chance layers
   (evade, block, deflection) as averages. The max hit is PoB's largest hit survived per type, assuming every chance
-  roll fails; the Arbiter verdict reads it, and no chance layer moves it. Take evasion and deflection thresholds
-  from PoB's formulas at the rung's enemy level (accuracy 2,357 at level 85), never from a video's table: two
-  explainers used Path of Exile 1's [vid-scale-defence] [vid-defence-guide].
+  roll fails; no chance layer moves it. The Arbiter verdict reads it against the Arbiter's hits, and hits survived
+  adds the share of them the build evades or deflects. Take evasion and deflection thresholds from PoB's formulas at
+  the attacker's accuracy, 2,357 for the map enemy (level 85) and 3,786 for the Arbiter
+  (`data/enemies/arbiter-of-divinity.json#base.accuracy`, level 79), never from a video's table: two explainers used
+  Path of Exile 1's [vid-scale-defence] [vid-defence-guide].
 - **Fields.** **Shape:** one sentence true of any skill. **Search:** the starting point, the lookups, what to
   check. **PoB:** how PoB follows it, in six labels: **modelled**; **Count** (the group's Count multiplies
   its damage); **custom modifier** (a hand-calculated line PoB applies as a modifier); **config stand-in** (a
@@ -95,24 +114,16 @@ keystone or a limit named as a con. Spud's Warcryer carried six damage layers to
   approves them (§7.6, C-53).
 - **Reviewed.** Questions 11–14, Standard kits, A count as a multiplier, Supply by family, Bank the resource, A
   tamed rare beast and A rule changer (amendment 8, D-409) were reviewed by the user on 2026-10-18 with no
-  corrections. The kits were thin for want of common-practice sources; the Mobalytics review of 17 popular
-  guides (the `mob-` keys) revised them, added five kits, Meta trigger as a supply and Self-firing buff, and was
-  approved by the user on 2026-10-19 (C-53). Question 15 and Scale the scaler are the user's lens (2026-10-23:
-  search for what scales the thing that scales the thing being scaled), approved as worded. The damage-order rule,
-  Convert into the ailment's type and the corpse-explosion line are the user's (2026-10-23), as [amendment-9] §24.1
-  words them. Questions 16–19 and the changes to Cost redirection and Payoff thief are amendment 10's (D-431),
-  approved by the user on 2026-10-23. The Defence family, the defence line in Standard kits and the defence edits to
-  other entries come from the defence study [defence-layers] and seven videos the user picked (the `vid-` keys),
-  approved by the user on 2026-10-26.
-- **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
-  redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
-  Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
-  carrier (their examples).
+  corrections; the Mobalytics review (the `mob-` keys) revised the kits, approved 2026-10-19 (C-53). Question 15 and
+  Scale the scaler are the user's lens (2026-10-23), approved as worded; the damage-order rule, Convert into the
+  ailment's type and the corpse-explosion line are the user's, as [amendment-9] §24.1 words them. Approved by the
+  user: questions 16–19 and the changes to Cost redirection and Payoff thief (D-431, 2026-10-23); the Defence family
+  and the defence edits, from [defence-layers] and the `vid-` keys (2026-10-26); questions 20–24, The enemy's side
+  and the Arbiter's figures (D-458, 2026-10-28).
 
 ## Standard kits
 
-What an average player reaches for first in each archetype, and its big levers (D-403). Question 9 and the
-obvious card start here; R1b's structure check reads the card's archetype here (D-406). Each line cites a study
+What an average player reaches for first in each archetype, and its big levers (D-403). Each line cites a study
 by its key and section, the pinned data (`pin:`, a grep of the files under `vendor/PathOfBuilding-PoE2/src/`,
 2026-10-18; a bare "(pin)" is a lookup at the pin) or the user; a line with no source stays out. Where guides
 differ, the line gives both. Kits are common wisdom and go stale after a patch: re-check the numbers.
@@ -120,14 +131,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Every archetype, for defence:** the class's attributes pick the defence family: armour bases need strength,
   evasion bases dexterity, energy shield bases intelligence and a hybrid base two, so a family off the class's
   attributes pays its requirements in tree points and gear stats. In 30 published level-90+ league starters the main
-  defence follows the class's attributes in 26: every Huntress, Ranger and Monk evades, the Warriors and two of
-  three Druids wear armour, and the Mercenaries split, three on armour and five on evasion. Under the non-budget
-  enemy, as median EHP and median physical max hit [defence-layers] families: evasion with an energy shield pool,
-  24k and 6.2k (15k with every condition against it), where deflection still helps; evasion with a life pool, 18k
-  and 3.5k, three of five one-shot, so a pool and deflection come before more evasion; armour with a life pool, 29k
-  and 5.0k, which conditions don't move; a mana pool (Mind over Matter, Eldritch Battery), 17k and 9.0k; energy
-  shield without evasion, 16.5–25k and 10–14k; evasion with Sorcery Ward (two Witchhunters), 158–206k and 12–15k.
-  Capped resistances are worth ×1.30–2.24 in all 30, and all four one-shots fail on the physical hit.
+  defence follows the class's attributes in 26. Under the non-budget enemy, as median EHP and median physical max hit
+  [defence-layers] families: evasion with an energy shield pool, 24k and 6.2k; evasion with a life pool, 18k and
+  3.5k, three of five one-shot, so a pool and deflection come first; armour with a life pool, 29k and 5.0k; a mana
+  pool, 17k and 9.0k; energy shield without evasion, 16.5–25k and 10–14k. All four one-shots fail on the physical hit.
 - **Every archetype, for clear:** an explosion on kill (a corpse explosion from a warcry, a node or a unique; a
   Herald's) turns each kill into a hit sized by the monster's life, so a pack chain-explodes once the first
   monsters die: one of the strongest and most fun additions to map clear (the user, 2026-10-23). PoB sizes it per
@@ -143,31 +150,26 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   Feeding Frenzy II), enemy-side debuffs, then more minions through Spirit [mob-thyworm] §4; the same four as
   [comparison] §7.2 (4).
 - **Levels:** up to +4 on a sceptre, +3 on an amulet, +2 on a helmet; a focus gets +1–2 only from the "of
-  Amanamu" suffix (pin: `Data/ModItem.lua`, `Data/ModVeiled.lua`). Navira's guide reaches +12, counting a
-  fractured amulet at +4, above a regular roll's +3 [comparison] §2.
-- **Spirit:** a sceptre's base 100 and up to 65% increased; up to +50 on an amulet and +61 on body armour
-  (pin: `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Navira's runs 334 to our run's 100 [comparison] §2. Both
-  Infernalist guides add Enfolding Dawn (+100 Spirit) and Bones of Ullr (20–30% reservation efficiency for undead
-  minions) (pin), and Beidat's Will [mob-mattjestic] §3; [mob-thyworm] §3; an eight-type zoo reserves about 600
-  base Spirit, more than visible gear gives [mob-mattjestic] §6.
+  Amanamu" suffix (pin: `Data/ModItem.lua`, `Data/ModVeiled.lua`); Navira's guide reaches +12 [comparison] §2.
+- **Spirit:** a sceptre's base 100 and up to 65% increased; up to +50 on an amulet and +61 on body armour (pin:
+  `Data/Bases/sceptre.lua`, `Data/ModItem.lua`). Both Infernalist guides add Enfolding Dawn (+100 Spirit) and Bones of
+  Ullr (20–30% reservation efficiency for undead minions) (pin), and Beidat's Will [mob-mattjestic] §3; [mob-thyworm]
+  §3; an eight-type zoo reserves about 600 base Spirit, more than visible gear gives [mob-mattjestic] §6.
 - **Types:** one of each type rather than more of the best one, adding a type with each Spirit gain [varashta]
-  §2, §6. Muster (7% more per reviving type, pin: `Data/Skills/sup_int.lua`) and At your Command (10%
-  increased command damage per persistent type, pin: `TreeData/0_5/tree.lua`) grow with the count; see A
-  count as a multiplier.
+  §2, §6; Muster and At your Command grow with the count (pin: `Data/Skills/sup_int.lua`, `TreeData/0_5/tree.lua`;
+  A count as a multiplier).
 - **Spectres:** picked for the monster's skill, whose tags decide which supports apply: a Vaal Guard grenadier at
   Act 3 (50 Spirit), then a Powered Zealot casting Spark (55) with Wildshards II and Pierce III [mob-thyworm] §3, §5
-  (pin: `Data/Spectres.lua`); a melee spectre with Minion Splash II in the other guide [mob-mattjestic] §3. The
-  guides differ on the monster; both give it Feeding Frenzy and Muster.
+  (pin: `Data/Spectres.lua`); a melee spectre with Minion Splash II in the other guide [mob-mattjestic] §3.
 - **Commands:** a command skill deals minion damage, so minion levels, Muster, Pain Offering and Archon of
   Undeath (25% more minion damage, 200% more command cooldown recovery) scale it [varashta] §2;
   [supporting-fire] chain 6.
 - **Offering:** Pain Offering with Danse Macabre (30% more damage, 30% increased buff effect, pin) in three guides
   [mob-mattjestic] §3; [mob-thyworm] §3; [mob-beastmaster] §3; two feed it Skeletal Warriors with Sacrificial Lamb,
   which makes your skills target that skill's minions within 6 metres first (pin).
-- **Survival:** Loyalty on a damageable companion (the Infernal Hound, a tamed beast) takes 10% of your hit damage
-  first, in three guides [mob-mattjestic] §7; [mob-thyworm] §7; [mob-beastmaster] §7; when the damage or a buff
-  lives on the minions, cap their resistances first [chayula-minions] §2 (6), §6. Romira's Requital's 10% and
-  a 5% companion line read ×1.06–1.11 on EHP and the max hit [defence-layers] families.
+- **Survival:** Loyalty on a damageable companion (the Infernal Hound, a tamed beast), in three guides
+  [mob-mattjestic] §7; [mob-thyworm] §7; [mob-beastmaster] §7 (An ally takes the hit first); when the damage or a buff
+  lives on the minions, cap their resistances first [chayula-minions] §2 (6), §6.
 - **Campaign:** both Infernalists pair a fire minion with Flame Wall: Raging Spirits, which your fire casts summon
   [mob-mattjestic] §2, §5, or the Skeletal Sniper's Gas Arrow, ignited by the wall [mob-thyworm] §2, §5.
 
@@ -177,7 +179,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   Act 3 (25% base crit, pin), beside a rare tame kept for its modifier and the Bear Spirit, outside the companion
   limit [mob-beastmaster] §2, §3.
 - **Rare tame's modifier:** Haste Aura first (20% attack and cast speed, 10% movement speed to allies within 5
-  metres), not Hasted, which speeds the beast alone; then a shock trail or a defensive aura [mob-beastmaster] §5, §8.
+  metres), then a shock trail or a defensive aura (A tamed rare beast) [mob-beastmaster] §5, §8.
 - **Spirit:** a tame reserves 13.8–56.1% of maximum Spirit (32.7% at the median), not a flat amount (the user,
   [amendment-8] §4; pin: `Modules/CalcDefence.lua:204`); two tames take 78–90%, and reservation efficiency cuts
   the percentage (Idol of Ralakesh, Idolatry); Sylvan's Effigy allows several types (pin) [mob-beastmaster] §3, §7.
@@ -197,12 +199,11 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Curses:** Temporal Chains on Blasphemy in four more guides [mob-ed-lich] §3; [mob-arc-totems] §7;
   [mob-invoker] §8; [mob-plants] §6; [enervating] chain 2; [fangs] arc (46:16); Elemental Weakness for elemental
   hits [mob-arc-totems] §3; [mob-thyworm] §3.
-- **Crit:** Cast on Critical into Arc "is standard" [widowhail] §3; two later guides fire it for what the spell
-  makes: Thunderstorm's wet for Overgrowth [mob-plants] §3, Profane Ritual's Power Charges [mob-invoker] §3;
-  Pinpoint Critical trades crit bonus for chance [enervating] chain 6.
-- **Defence:** Mind over Matter or Eldritch Battery on a large mana pool [enervating] chain 7; [oracle] chain 9.
-  Three published casters read 14–19k EHP and 8–11k physical max hit on it, all three with Enfeeble (×1.52)
-  [defence-layers] families; see Mana as a hit pool.
+- **Crit:** Cast on Critical into Arc "is standard" [widowhail] §3, or fired for what the spell makes (Meta
+  trigger as a supply) [mob-plants] §3; [mob-invoker] §3; Pinpoint Critical trades crit bonus for chance
+  [enervating] chain 6.
+- **Defence:** Mind over Matter or Eldritch Battery on a large mana pool [enervating] chain 7; [oracle] chain 9;
+  see Mana as a hit pool.
 - **Weapon set 2:** a Chiming Staff's Sigil of Power (spell damage in its area, growing with mana spent there, pin)
   in four guides [mob-plants] §3; [mob-ed-lich] §3; [mob-mattjestic] §3; [oracle] chain 4–6; curses and exposure
   cast from set 2 [mob-ed-lich] §3; [mob-arc-totems] §2.
@@ -215,23 +216,23 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   [flicker] §2; Herald of Ash [mob-shield-wall] §3; [mob-grenades] §3; [mob-invoker] §3. Trinity (about 6% more
   elemental damage per 30 affinity, 100 Spirit) when hits carry two or three elements, and Wind Dancer once an
   amulet adds about 60 Spirit [ronarray-videos] §1.
-- **Levers:** attack speed, then skill levels and flat added damage on several slots: the better of two
-  poe.ninja Explosive Concoction builds beat ours ×3.1 (the other ×2.2), ×1.46 of it from speed and ×1.32 from
-  +3 levels and added fire on three slots [ec-comparison] §3; search +level sources for every tag and slot
-  [ec-comparison] §5 (1); flat added damage on the weapon and both rings, right for any attack build in three
-  guides [mob-ballista] §8; [mob-spear-amazon] §8; [mob-witchhunter] §4.
+- **Levers:** attack speed, then skill levels and flat added damage on several slots: of a poe.ninja Explosive
+  Concoction build's ×3.1 over ours, ×1.46 came from speed and ×1.32 from +3 levels and added fire on three slots
+  [ec-comparison] §3; search +level sources for every tag and slot [ec-comparison] §5 (1); flat added damage on the
+  weapon and both rings in three guides [mob-ballista] §8; [mob-spear-amazon] §8; [mob-witchhunter] §4; a weapon's
+  global prefixes, such as (87–100)% increased Elemental Damage with Attacks, or (120–139)% on a two-hander: a
+  listing's DPS hides them, counting only local lines, so compare weapons by compile (pin: `Data/ModItem.lua`,
+  `Classes/Item.lua`).
 - **Supports:** Elemental Armament II, Rakiata's Flow (enemy elemental resistances inverted), Concentrated Area
   against bosses [flicker] §2; [glacial-bolt] §1.
 - **Defence:** Chaos Inoculation on energy shield and evasion from about 4–6k energy shield, with Ghost Dance
-  for recovery [ronarray-videos] §1. Four published Chaos Inoculation attack builds carry 6.2–19.1k energy
-  shield and read 17–52k EHP [defence-layers] families; Ghost Dance's lines aren't parsed, so its recovery is
-  off the gate.
+  for recovery, which PoB doesn't parse (PG-94) [ronarray-videos] §1; see Zeroed resource.
 - **Rage:** Eternal Rage (5 Rage a second, active in both weapon sets, pin; 100 Spirit) in five guides
   [mob-spear-amazon] §3; [mob-witchhunter] §3; [mob-ballista] §3; [mob-wolfman] §3; [mob-glacial-lance] §3, with
   Berserk at about 114–230 Spirit [mob-ballista] §3; [mob-witchhunter] §6.
-- **Weapon sets:** lock the one weapon to both sets, so set 2 is a second set of skills and points
-  [mob-witchhunter] §3; [mob-bear] §3; [mob-shield-wall] §2; Rigwald's Ferocity picks the damage set: 30% more
-  damage, 10% reduced attack speed in set II, the reverse trade in set I (pin) [mob-poison] §3; [fubgun] §2.
+- **Weapon sets:** lock the one weapon to both sets (A weapon set per skill) [mob-witchhunter] §3; [mob-bear] §3;
+  [mob-shield-wall] §2; Rigwald's Ferocity picks the damage set: 30% more damage, 10% reduced attack speed in set
+  II, the reverse in set I (pin) [mob-poison] §3; [fubgun] §2.
 - **Crit cap:** Garukhan's Resolve caps the skill's crit chance at 50%, bifurcated, and can't support Cooldown,
   Triggered or Persistent skills (pin) [mob-wolfman] §3; [mob-invoker] §4.
 
@@ -250,7 +251,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 - **Kit:** (bolts) Woolie's Witchhunter (4.7K favourites): one crossbow in both sets, a clear ammo on set 1
   (Galvanic Shards, Herald of Thunder), a boss ammo on set 2 (Stormblast Bolts), Emergency Reload between clips
-  [mob-witchhunter] §2, §3; [glacial-bolt] §1. Fresh Clip II is one off-meta study's [crossbow] header.
+  [mob-witchhunter] §2, §3; [glacial-bolt] §1.
 - **Kit:** (grenades) DEADRABB1T's Gemling (1.6K): five grenades from level 1, no bolt skill: Explosive Grenade
   the main hit, Flash, Gas, Oil, Cluster Grenade at 52, Mirage Archer re-firing Cluster at endgame; Pounce on set 2
   [mob-grenades] §2, §3.
@@ -316,8 +317,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   [mob-ed-lich] §2, §3; Wither from Withering Presence [eraser] §1; [mob-ed-lich] §3; Despair on Blasphemy
   [maelstrom] §1 (7) or on set 2 [mob-ed-lich] §3.
 - **Levers:** the skill's level, ailment magnitude, enough duration to spread (an ignite of 2–3 s) [eraser] §1;
-  Swift Affliction, Brutality and Herald of Blood on Corrupted Blood [infernal-cry] chain 4, which is said to
-  take its host cry's level, 17 of it from items (unverified, PG-2) [infernal-cry] chain 2.
+  Swift Affliction, Brutality and Herald of Blood on Corrupted Blood, said to take its host cry's level (unverified,
+  Level-carrier host) [infernal-cry] chain 2, 4.
 - **Ramp:** Contagion deals 100% more per spread, up to 300% (pin) [mob-ed-lich] §2.
 - **Bosses:** a hit keyed to the DoT: Dark Effigy bombards only enemies with a chaos DoT debuff (pin)
   [mob-ed-lich] §3; Toxic Growth's pustules store the poison Gas Arrow's cloud puts on them [mob-poison] §2.
@@ -341,8 +342,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Limits:** Spell Totem and Ancestral Warrior Totem consume three charges per totem (pin:
   `Data/Skills/act_str.lua`); Ancestral Bond doubles the limit and drops the charges, at 75 Spirit a totem
   (pin: `TreeData/0_5/tree.lua`).
-- **Ballistas:** one, +1 from Mortar Cannon's Gemling quality, +1 from an Ulaman crossbow prefix; its grenades take
-  50% less attack speed and damage for 100% increased cooldown recovery [mob-ballista] §4.
+- **Ballistas:** one, +1 from Mortar Cannon's Gemling quality, +1 from an Ulaman crossbow prefix, at the proxy's
+  price (A proxy presses the button) [mob-ballista] §4.
 
 ### Warcries
 
@@ -499,9 +500,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** not modelled until coverage shows otherwise: Storm Lance's detonation and Shield Wall's 100% more are
   possibly unmodelled (coverage; PG-60, PG-66).
 - **Examples:** Shield Charge: "your Slams, Warcries, and Shield Charge will instantly shatter" Shield Wall
-  [shield-charge]; Fortifying Cry shatters it too [mob-shield-wall]. Spears and crossbows: Storm Lance and
-  Explosive Spear [mob-spear-amazon]; Stormblast and Mirage Archer [mob-witchhunter]. Wolf: Cross Slash detonates
-  Shred's Ice Fragments [mob-wolfman].
+  [shield-charge]; Fortifying Cry shatters it too [mob-shield-wall]. Spears: Storm Lance and Explosive Spear
+  [mob-spear-amazon]. Wolf: Cross Slash detonates Shred's Ice Fragments [mob-wolfman].
 - **Cautions:** 80% less if enemies break it within 0.5 s; Glacial Bolt's crystals have a like penalty
   [glacial-bolt].
 
@@ -588,8 +588,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   (PG-56).
 - **Examples:** Navira's Fracturing: Powered by Verisium spends Runic Ward for Verisium Infusions, "used in
   place of any Elemental Infusions", so Ice Nova lays Chilled Ground without a freeze; a tamed beast's Frozen
-  Ground Trail lays the same ground [comparison]. Our run searched "Cold Infusion" five times and missed it, and
-  two researchers saw "Verisium Infusion Remnant" without asking what it was [feedback].
+  Ground Trail lays the same ground [comparison].
 - **Cautions:** Powered by Verisium costs Runic Ward (20 at level 1, 155 at level 20), so it needs a Ward source
   [feedback]; that the guide's Frozen Ground Trail is the table's Trail of Ice is the table's inference.
 
@@ -772,8 +771,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Examples:** The Eraser and Infernal Cry: block as damage [eraser] [infernal-cry]. Earthshatter: armour
   into exposure [earthshatter].
 - **Cautions:** a layer sized from another stat costs some of it: Sorcery Ward takes armour
-  [walking-calamity] (0.4). At the pin PoB sizes the ward itself at 30% of armour plus evasion, so a custom
-  line for it counts it twice [defence-layers].
+  [walking-calamity] (0.4); see Derived defence layer.
 
 ### Type conversion so another mechanic applies
 
@@ -803,6 +801,19 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   Blistering Bond's. A support that forbids ailments (Elemental Focus) turns the layer off. Only the strongest
   ignite applies, so it favours big hits over fast ones (the creator's claim, [spud] §5).
 
+### A gained slice keeps its type
+
+- **Shape:** a gain-as-extra line adds a slice of the hit as another type, and the slice keeps that type: that type's
+  increases scale it, the enemy's resistance to it meets it, and it can inflict that type's ailment.
+- **Search:** `mechanic "of Damage as Extra"` (gem, unique, passive, mod), filtered by the types the build scales
+  and the enemy's resistances.
+- **PoB:** modelled: a gain takes the source type after conversion, before any increase
+  (`Modules/CalcOffence.lua:90-107`); a gain keyed to a type that gear converts away reads nothing (PG-87).
+- **Examples:** under Avatar of Fire, which drops a cold or lightning slice (the damage-order rule), Spud's final
+  wand gains extra fire only [spud] §2. Wolf: Lunar Blessing's 59% as extra cold, scaled by cold lines [mob-wolfman].
+- **Cautions:** on a build that inverts resistance: an elemental slice is inverted too, so a slice of an element
+  the enemy resists gains from it.
+
 ## 5. Copies and rate
 
 ### Proxy multiplier
@@ -818,6 +829,18 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   unmapped (PG-68).
 - **Cautions:** coverage gives Mirage Archer a false all-clear (PG-49); Count also multiplies per-copy
   reservation [worklog].
+
+### A proxy presses the button
+
+- **Shape:** a totem, ballista, mirage or minion uses a skill the player would otherwise press, re-cast or keep up,
+  so the player's time goes to moving and the main skill, at the proxy's price.
+- **Search:** question 24's presses and re-casts; then the proxies each skill accepts (the gem lookup's `Usable by:`,
+  D-299), each with its price.
+- **PoB:** Count for the proxies up at once (Proxy multiplier); the presses saved are not modelled.
+- **Examples:** Lazy Exile's Mortar Cannon ballistas fire a socketed Cluster Grenade at 50% less damage and attack
+  speed, for 100% increased grenade cooldown recovery (pin: `Data/Skills/act_str.lua`) [mob-ballista].
+- **Cautions:** weigh the price against the presses saved. Mortar Cannon takes no meta, triggered, persistent or
+  usage-conditioned skill (pin). Copies that add damage are Proxy multiplier.
 
 ### Repeat to cap
 
@@ -910,16 +933,13 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Search:** from the consumed resource, what raises its maximum (`tree "Infusions"`, `mechanic "maximum
   Power Charges" (passive)`), then what refills it between packs; compare the refill time with the walk to the
   next pack.
-- **PoB:** not modelled: pace is no output. The record's clear-speed band reads the skill's area, with movement
-  speed beside it (D-407); the card's "How it clears" estimates the time to first damage.
+- **PoB:** not modelled: pace is no output; the record's clear-speed band reads the skill's area (D-407).
 - **Examples:** Navira's Fracturing banks Verisium Infusions between packs with the three infusion-limit
-  passives (Frozen, Infernal and Shocking Limit: +1 to maximum Cold, Fire or Lightning Infusions, pin:
-  `TreeData/0_5/tree.lua`), so the nova lays ground on arrival; ours made ground only as skeletons died inside
-  the pack [comparison]. Whirling Assault Monk: Killing Palm on the bells fills Power Charges before a boss
+  passives (pin: `TreeData/0_5/tree.lua`), so the nova lays ground on arrival; ours made ground only as skeletons
+  died inside the pack [comparison]. Whirling Assault Monk: Killing Palm on the bells fills Power Charges before a boss
   [ronarray-videos].
 - **Cautions:** the banking is the comparison's reading, not measured, and whether the elemental limits hold
-  Verisium Infusions is unchecked; a second spender drains the bank (Charged Staff spends the Power Charges
-  Flicker needs) [flicker].
+  Verisium Infusions is unchecked; a second spender drains the bank (Payoff thief).
 
 ## 6. Levels, quality and tags
 
@@ -1023,11 +1043,16 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 ### Saturated type count
 
-- **Shape:** one enabler fills a "per distinct type" counter, so every scaler reading it is full.
-- **Search:** `mechanic "for each type of" (passive)`, from an item granting several types.
-- **PoB:** config stand-in: tick all three ground boxes (PG-35).
-- **Examples:** Twister: The Taming feeds Harness the Elements and Trinity [twister].
-- **Cautions:** Trinity wants the three elements kept balanced [twister].
+- **Shape:** one enabler, or a slice of each element from a different slot, fills a "per distinct type" counter (the
+  elements a hit carries, the elemental ailments on the enemy), so every scaler reading it is full.
+- **Search:** `mechanic "for each type of" (passive)`, `mechanic "Ailment type among" (unique)`; an item granting
+  several types, or a gain-as-extra slice of each element on separate slots.
+- **PoB:** config stand-in: tick the ground boxes (PG-35); for Yoke of Suffering only the ailments the build applies,
+  since it also counts Path of Exile 1's (PG-89).
+- **Examples:** Twister: The Taming feeds Harness the Elements and Trinity [twister]. Yoke of Suffering: enemies take
+  (15–20)% increased damage per elemental ailment type among yours (pin). Autobomber: Rising Tempest's 12% per element
+  used recently [mob-autobomber].
+- **Cautions:** Trinity wants the three elements kept balanced [twister]; each ailment counts only at its uptime.
 
 ### Drawback cancellation and offload
 
@@ -1092,12 +1117,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 
 ### Weapon set 2 job
 
-- **Shape:** the second weapon set does what set 1 can't (a buff, a boss button, a more-damage support); one
-  weapon locked to both sets makes it a second set of skills and points.
+- **Shape:** the second weapon set does what set 1 can't (a buff, a boss button, a more-damage support).
 - **Search:** skills needing another weapon (gem lookup); items that prime the resource (unique).
 - **PoB:** not modelled: a buff cast from set 2 at its higher level (the level carrying over is unverified: the
-  creator hedges) [ancestral-cry]; Gem Studded counts every set's supports [hotg]; "active in both weapon sets" is
-  never read (PG-70).
+  creator hedges) [ancestral-cry]; "active in both weapon sets" is never read (PG-70).
 - **Examples:** HotG: Fury of the King primes Glory [hotg]. Wing Blast: the builder on set 2 [wing-blast].
   Witchhunter and Poison Pathfinder: a boss ammo on set 2 [mob-witchhunter]; Rigwald's Ferocity's damage set
   [mob-poison].
@@ -1179,7 +1202,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   trail) or stats (an aura's speed for its allies), and it reserves a percentage of Spirit, not a flat amount.
 - **Search:** the engine's family in the index of `data/monsters/monster-mods.md` (`chilled-ground`), then the
   block by its heading (`grep -n -A14 '^### Trail of Ice'`): its `Model`, its `Reach` (the beast, or its allies
-  within 5 metres) and its `Config`; the plan names the beast as `companion {species, mods}` (D-402).
+  within 5 metres) and its `Config`.
 - **PoB:** custom modifier for a `stats` row (`Companions have …` for the beast's own, each an estimate); config
   stand-in for a `condition` row; not modelled for a `none` row (PG-56). The beast's damage and reserved Spirit
   are measured from its species (D-402).
@@ -1187,12 +1210,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   consumes, in the guide's text only [comparison]. Infernal Cry Gemling: a Plague Harvester with a physical
   damage aura and "all damage shocks", kept alive by Brutus' Brain [infernal-cry]. Beast Master: a rare tame
   kept for Haste Aura beside Mighty Silverfist [mob-beastmaster].
-- **Cautions:** the cost is 13.8–56.1% of maximum Spirit by species (32.7% at the median,
-  `Modules/CalcDefence.lua:204`), so it grows with the Spirit a build stacks, unlike a flat-cost minion's (the
-  user, [amendment-8] §4); Haste is "usually the mod that most players prioritize" (the user, [amendment-8] §4),
-  and the Haste most players prioritize is Haste Aura [mob-beastmaster] §8: the table's Hasted speeds the beast
-  alone, Haste Aura its allies; every keep flag is an inference (the table);
-  a minion that deals no damage applying shock is doubtful [infernal-cry].
+- **Cautions:** the Spirit cost grows with the Spirit a build stacks (the Companions kit); Haste is "usually the mod
+  that most players prioritize" (the user, [amendment-8] §4), and that is Haste Aura, which speeds its allies, where
+  the table's Hasted speeds the beast alone [mob-beastmaster] §8; every keep flag is an inference (the table); a
+  minion that deals no damage applying shock is doubtful [infernal-cry].
 
 ## 10. Tree
 
@@ -1201,14 +1222,14 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Shape:** judge a cluster by its gain per point with its path, never by its gain alone: a tree that runs one
   route out through its clusters beats long branches to separate clusters of average payoff (the user,
   2026-10-19: "minimize travel distance").
-- **Search:** `mcp__pob2__get_node_power` on the loaded build: unallocated nodes by path gain per point, allocated
-  branches by loss per point, the travel count (points that give nothing alone) and the best legal swap.
+- **Search:** `mcp__pob2__get_node_power` on the loaded build: path gain per point, branch loss per point, the
+  travel count (points that give nothing alone) and the best legal swap.
 - **PoB:** modelled: node power is PoB's own ranking, on any stat it offers; it can't see sustain, area, a
   boss-only gain on a clear config or an attribute a gem needs, so those are the tree's needs.
 - **Examples:** Executioner's Howl (Warbringer, Arctic Howl): reachable nodes worth 13–19% Full DPS each sat
   unallocated while two Dexterity branches of 7 and 8 points gave nothing [amendment-9] §1, §4.
-- **Cautions:** gains aren't additive, and paths change once a branch is removed: measure a swap on the tree
-  after the removal; a branch that looks idle may hold the floor or the sustain.
+- **Cautions:** gains aren't additive, and paths change once a branch is removed; a branch that looks idle may hold
+  the floor or the sustain.
 
 ### Keystone as pathing anchor
 
@@ -1233,7 +1254,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** modelled.
 - **Examples:** Twister: From Nothing near CI reaches Heavy Frost [twister]. From Nothing in 9 and Controlled
   Metamorphosis in 3 of 30 published league starters, the largest single-jewel effects there: up to ×1.23 EHP
-  and ×1.58 damage [defence-layers]. Controlled Metamorphosis [vid-build-process].
+  and ×1.58 damage [defence-layers].
 - **Cautions:** From Nothing's radius belongs to one named node. Controlled Metamorphosis costs 5–20% of every
   elemental resistance. Our compiler's connection check may refuse the disconnected nodes (read from the code,
   untested).
@@ -1264,23 +1285,18 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   pool raise EHP and the max hit alike.
 - **Search:** the class's attributes and armour bases give the first layer (the defence line in Standard kits), then
   what it feeds (Derived defence layer); then a pool line for the Arbiter's worst type: `mechanic "to maximum Life"
-  (mod)`, `mechanic "to maximum Energy Shield" (mod)`, `mechanic "taken from Mana before Life"`. Read the record's
-  EHP and Arbiter verdict together.
-- **PoB:** modelled: the chance layers count in `TotalEHP` only, as averages (deflection as each hit × (1 − chance ×
-  40%)); the max hit assumes every chance roll fails and counts deflection only at 100%, which its 95% cap rules
-  out. Mitigation and pools count in both. Recovery, stun and control count in neither.
+  (mod)`, `mechanic "to maximum Energy Shield" (mod)`, `mechanic "taken from Mana before Life"`.
+- **PoB:** modelled: the chance layers in EHP only, as averages (Defence figures, How to read an entry); mitigation
+  and pools in both; recovery, stun and control in neither.
 - **Examples:** in 30 published league starters, factors on EHP and on the max hit: evade ×1.25–5.05 and ×1.00;
   deflection ×1.01–1.61 and ×1.00; 50% block ×1.60 and ×1.00; armour on eight armour builds ×3.0–9.5 and ×1.19–1.88;
-  resistances ×1.30–2.24, and ×1.00 on physical unless shifted; energy shield beside life, median ×1.69 and ×1.72;
-  Sorcery Ward ×1.70–1.96 on both [defence-layers]. The layers by where a hit meets them [vid-scale-defence]; one
-  hit traced through the checks [vid-defence-guide].
-- **Cautions:** an EHP target can be met on chance layers alone, so read the Arbiter verdict for the max hit.
-  Deflection is damage reduction on the hits it deflects: its 40% doesn't shrink as the hit grows, where armour's
-  share does (armour ÷ (armour + 10 × hit)), but a hit it misses lands whole. Under PoB's unlucky switch the 16
-  builds over 40% evade lose 32–45% of EHP, and armour, energy shield and mana builds 0–11%. Armour is sized on the
-  hit, and the reference hit is small, so armour's EHP factor overstates it against a boss slam. A creator's rule
-  that three of four layers make a character sturdy fails: the Beast Master has three and is one-shot
-  [defence-layers]. The chance layers stop no damage over time.
+  resistances ×1.30–2.24, and ×1.00 on physical unless shifted; energy shield beside life, median ×1.69 and ×1.72
+  [defence-layers].
+- **Cautions:** armour's share shrinks as the hit grows (armour ÷ (armour + 10 × hit)), and the reference hit is
+  small, so armour's EHP factor overstates it against a boss slam; deflection's 40% doesn't shrink. Under PoB's
+  unlucky switch the 16 builds over 40% evade lose 32–45% of EHP, armour, energy shield and mana builds 0–11%. Three
+  of four layers don't make a character sturdy: the Beast Master has three and is one-shot [defence-layers]. The
+  chance layers stop no damage over time.
 
 ### Defence the gate can't see
 
@@ -1291,21 +1307,15 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   shield recharge); thresholds (`tree "Stun Threshold"`, `tree "Ailment Threshold"`); then coverage for the build's
   unparsed defence lines.
 - **PoB:** not modelled as defence: recovery has its own figures, stun its own chance, control and decoys nothing.
-  Report these beside EHP and the Arbiter verdict, never instead.
-- **Examples:** Fangs: freeze and slows carried bosses [fangs]. Shockchain: electrocute [shockchain]. In 30
-  published league starters, by line pattern: regeneration in 26, instant flask recovery in 24, stun lines in 24,
-  leech in 19, slows on enemies in 16, chill or freeze in 15, recoup in 8; each has 2–23 unparsed defence lines,
-  most often Nascent Hope's recharge, Ghost Dance and Lavianga's Spirits [defence-layers]. Instant recovery, slows,
-  and stun and ailment thresholds [vid-secret-defence].
-- **Cautions:** say plainly when control carries. Enemy-damage curses are the exception the gate does see, at
-  map-monster strength in both figures (Enfeeble ×1.52); PoB halves curse effect on a pinnacle boss, and at half
-  strength no reference verdict flips (estimate) [defence-layers]. Deflection also cuts the damaging ailments a
-  deflected hit inflicts by its prevented share (the user, 2026-10-26), on average chance × prevented share (70%
-  deflect: 28% less); resistances multiply apart from it, so an ignite under 75% fire resistance and 70% deflect
-  does 0.25 × 0.72 = 18% of its raw size. PoB sizes enemy ignite and poison from the raw hit, with resistance on the
-  damage over time, but applies no deflection and never models enemy bleeding. Staunch Deflection stops deflected
-  hits inflicting bleeding and maim. Decoy minions are unverified: PoB has no model of what monsters target.
-  Blasphemy's curses have 41% less magnitude at the pin [vid-secret-defence].
+- **Examples:** Fangs: freeze and slows carried bosses [fangs]. Shockchain: electrocute [shockchain]. Of 30 published
+  league starters, by line pattern, 26 carry regeneration, 24 instant flask recovery, 19 leech, and each 2–23 unparsed
+  defence lines (PG-94) [defence-layers]. Instant recovery, slows and thresholds [vid-secret-defence].
+- **Cautions:** say plainly when control carries. Enemy-damage curses are the exception the gate does see: at full
+  strength in EHP (Enfeeble ×1.52 [defence-layers]), at half in the Arbiter verdict, which reads PoB's Pinnacle
+  settings (PG-91). Deflection also cuts the ailments a deflected hit inflicts, on average by chance × prevented share
+  (the user, 2026-10-26), which PoB doesn't apply (PG-97); PoB never models enemy bleeding (PG-98). Staunch Deflection
+  stops deflected hits inflicting bleeding and maim. Decoy minions are unverified: PoB has no model of what monsters
+  target. Blasphemy's curses have 41% less magnitude at the pin [vid-secret-defence].
 
 ### Derived defence layer
 
@@ -1315,65 +1325,53 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Search:** `mechanic "Deflection Rating equal to"` (mod, unique, passive); `mechanic "of Armour also applies to
   Elemental" (mod)`; `tree "Item Energy Shield on Equipped"`, `tree "Item Evasion"`; gem lookup "Sorcery Ward"; then
   the source stat's size at the rung.
-- **PoB:** modelled: deflection comes from final evasion and armour, after all their increases, and increased
-  deflection rating multiplies the gained rating on top, so it stacks with every evasion increase; a flat "+X to
-  Deflection Rating" isn't scaled by those increases. Armour on elemental hits is sized on the hit before
-  resistance. Sorcery Ward is a barrier in EHP and the max hit; with Ceremonial Ablution it also takes physical and
-  chaos hits.
+- **PoB:** modelled: deflection comes from final evasion and armour, after their increases, with increased
+  deflection rating on top; a flat "+X to Deflection Rating" isn't scaled. Armour on elemental hits is sized on the
+  hit before resistance. Sorcery Ward is a barrier in EHP and the max hit; with Ceremonial
+  Ablution it also takes physical and chaos hits.
 - **Examples:** deflection comes from evasion on 14 of 16 published deflection builds and from armour on two
-  Tacticians, worth ×1.01–1.61 on EHP by its chance; armour on elemental hits on eight armour builds, ×1.35–2.30 on
-  EHP (Fubgun's Flameblast, at 280%), never on the lowest max hit; Sorcery Ward on two Witchhunters, 30% of armour
-  plus evasion, ×1.96 and ×1.70 on both figures [defence-layers]. Subterfuge Mask and Iron Slippers
-  [vid-scale-defence] and Spectral Ward [vid-build-process]: node power offers them at 3.6–8.0% EHP a point on four
-  builds.
+  Tacticians; armour on elemental hits on eight armour builds, ×1.35–2.30 on EHP, never on the lowest max hit;
+  Sorcery Ward on two Witchhunters, 30% of armour plus evasion, ×1.96 and ×1.70 on both figures [defence-layers].
+  Subterfuge Mask and Iron Slippers [vid-scale-defence] and Spectral Ward [vid-build-process]: node power offers
+  them at 3.6–8.0% EHP a point on four builds.
 - **Cautions:** the derived layer keeps its source's conditions: Hyrri's Ire doubles evasion only while not hit
-  recently, so the Witchhunters' ward and max hit fall ×0.77–0.81 once hit. Deflection caps at 95% at a rating of
-  about 14.4 × the enemy's accuracy (34k against a level-85 monster); more is wasted. Never add a custom line for a
-  layer PoB models: both Witchhunter files typed their ward as energy shield and counted it twice [defence-layers].
-  Rates move between patches: Subterfuge Mask was +2 in 0.4 and is +1 at the pin [vid-scale-defence].
+  recently, so the Witchhunters' ward and max hit fall ×0.77–0.81 once hit; both their files also typed the ward as
+  energy shield, counting it twice [defence-layers].
 
 ### Deflection beside evasion
 
 - **Shape:** any build with evasion, pure or hybrid (evasion with energy shield, evasion with armour), takes
   deflection as far as its points and gear allow: evasion is all or nothing, safe until a big hit gets through
   whole, and deflection takes 40% off most of the hits that get through, whatever their size. Pure evasion gains
-  most; a hybrid gains less but should still look. No cap is required.
+  most. No cap is required.
 - **Search:** `tree "Deflection"` (small nodes, 5–8% of evasion as deflection rating), Trained Deflection and
   Enduring Deflection (more prevented share); `mechanic "Deflection Rating equal to"` (mod, unique, passive) for
   gear; `mechanic "increased Deflection Rating"`; Blind on the attackers (Blind as defence).
-- **PoB:** modelled in EHP, each hit × (1 − chance × prevented share); not in the max hit, which assumes the roll
-  fails; not in ailment damage (Defence the gate can't see).
-- **Examples:** Snoobae's Twister (20% deflect): node power offers three Deflection nodes and Enduring Deflection at
-  3.5% EHP a point, against 4.3% for its best pick; Woolie's Witchhunter ranks Enduring Deflection second. Three of
-  the four published one-shots survive a deflected slam (it deals 60%): the Twister Gemling (84% deflect) dies to
-  about 16% of slams, the Beast Master (67%) to 33%, the Amazon (21%) to 79%. The evasion-with-life builds carry a
-  median 2.1k life against 2.9k for armour builds, since strength adds 2 base life a point and dexterity none
-  [defence-layers]. 0.5 made high deflection reachable: evasion grown into deflection, with Pocket Sand, Trained
-  Deflection and Hyrri's Ire [vid-deflection].
+- **PoB:** modelled in EHP, each hit × (1 − chance × prevented share); not in the max hit, nor in ailment damage
+  (PG-97). The gate shows a deflected hit (40% off) against the max hit, and hits survived at the Arbiter's accuracy.
+- **Examples:** at the Arbiter's accuracy, evasion and deflection together, the three evasion one-shots survive
+  79.6%, 78% and 45% of its slams, and the Twister Gemling clears the 80% floor at 67% deflect, about +800 rating
+  [amendment-12] §4. Against the best EHP nodes, 20 deflection points bought a third of the EHP but cut the Amazon's
+  lethal slams from 79% to 29%, against 63% [sizing].
 - **Cautions:** EHP undervalues it: a ranking by EHP puts deflection nodes behind evasion and energy shield nodes
-  (2.8–6.5% a point against a best of 4.3–9.4%), so also ask how a deflected big hit fares: it is survived up to 1 ÷
-  0.6 of the max hit, which the gate doesn't show yet. It doesn't replace a pool: a slam it misses lands whole, so a
-  one-shot build still needs life, energy shield or armour for the type it fails. The chance is front-loaded: half
-  the cap's rating gives about 70%. It rolls against the attacker's accuracy, so a boss deflects less often than the
-  map enemy the figures use. A hybrid gains less: it has less evasion to turn into deflection, and its energy shield
-  or armour already holds a big hit better (physical max hit median 6.2k for evasion with an energy shield pool,
-  3.5k with a life pool) [defence-layers] (the user, 2026-10-26). A build without evasion takes it only where it is
-  cheap, such as deflection from armour. Deflection was buffed heavily in 0.5 (the user, 2026-10-26): a guide from
-  before, or not re-tuned since, may under-use it.
+  (2.8–6.5% a point against a best of 4.3–9.4% [defence-layers]), so value it by hits survived too. A hit it misses
+  lands whole, so under the floor a pool line is often the cheaper fix. The chance is front-loaded: half the cap's
+  rating gives about 70%, and the cap needs about 14.4 × the attacker's accuracy (34k against the map enemy, 54k
+  against the Arbiter). A hybrid gains less: less evasion to turn into deflection, and a pool that holds a big hit
+  better (the kit's defence line; the user, 2026-10-26). Without evasion, take it only where it is cheap, such as
+  from armour. Deflection was buffed heavily in 0.5 (the user, 2026-10-26): an older guide may under-use it.
 
 ### Blind as defence
 
-- **Shape:** blinding the enemies that hit you cuts their accuracy by a fifth, which raises evade and deflection
-  together.
+- **Shape:** blinding the enemies that hit you cuts their accuracy, which raises evade and deflection together.
 - **Search:** `mechanic "Blind" (gem)` (Twister, Whirling Slash, Flash Grenade, Blind I and II), `tree "Blind
   Effect"` (Pocket Sand), then unique; then check that it lands on the enemies that attack you, and how often.
-- **PoB:** config stand-in: "Is the enemy Blinded?" gives the enemy 20% less accuracy and evasion, counted in EHP
-  only.
+- **PoB:** config stand-in: "Is the enemy Blinded?" cuts the enemy's accuracy (to 0.68–0.81 × by the build's blind
+  effect [sizing]), in EHP only.
 - **Examples:** 11 of 30 published league starters blind the enemy; turned off, their EHP falls ×0.78–0.90 and the
-  max hit doesn't move [defence-layers]. Twister blinds what it hits; Pocket Sand strengthens blind to 30% less
-  accuracy [vid-deflection].
-- **Cautions:** blind is earned state: it needs a producer and an honest uptime (D1-build step 7). Blindside stops
-  the supported skill from blinding. Its effect on bosses isn't established. It never fixes a one-shot.
+  max hit doesn't move [defence-layers]. Twister blinds what it hits; Pocket Sand strengthens blind [vid-deflection].
+- **Cautions:** it needs a producer that hits the attackers. Blindside stops the supported skill from blinding. Its
+  effect on bosses isn't established, and the gate's chances at the Arbiter count no blind.
 
 ### Shift physical hits into a resisted type
 
@@ -1383,27 +1381,24 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   passive, mod) and Molten Symbol (Smith of Kitava); then check resistance headroom for the new type.
 - **PoB:** modelled: the taken-as table feeds EHP and every max hit.
 - **Examples:** Balrog's Bear Smith, 30% as fire: ×1.51 on EHP, ×1.33 on the lowest max hit. MisoxShiru's Glacial
-  Lance, 51% as lightning: ×1.44 and ×1.48. On the four one-shot builds, 2–48% as fire clears the one-shot alone
-  [defence-layers]. Cloak of Flame and Lightning Coil [vid-secret-defence].
-- **Cautions:** all four one-shot reference builds fail on a physical hit, but three need 45–48% (a body armour's
-  worth), where 340–1,100 life or energy shield does the same [defence-layers]. Lightning Coil carries a lightning
-  resistance penalty, so over-cap lightning first.
+  Lance, 51% as lightning: ×1.44 and ×1.48 [defence-layers]. Cloak of Flame and Lightning Coil [vid-secret-defence].
+- **Cautions:** three of the four one-shot reference builds need 45–48% (a body armour's worth), where a pool line
+  does the same [defence-layers]. Lightning Coil carries a lightning resistance penalty, so over-cap lightning first.
 
 ### Mana as a hit pool
 
 - **Shape:** a share of each hit is taken from mana before life, so a large mana pool becomes a buffer.
-- **Search:** `mechanic "taken from Mana before Life"` (passive, mod, unique: belts, body runes, Cloak of Defiance;
-  Mind over Matter for all of it) and Eldritch Battery (energy shield converted to mana); then check unreserved mana
-  and what skills spend.
+- **Search:** `mechanic "taken from Mana before Life"` (passive, mod, unique; Mind over Matter for all of it) and
+  Eldritch Battery (energy shield converted to mana); then check unreserved mana and what skills spend.
 - **PoB:** modelled in EHP and the max hit; mana recovery is in neither.
 - **Examples:** the Arc Gemling (Mind over Matter and Eldritch Battery) reads ×14.66 on both figures, the Grim
-  Pillars Oracle (a 93% share with Eldritch Battery) ×11.24, Ignatius's Stormweaver (81%) ×4.13; 4–15% shares on six
-  builds read ×1.03–1.15, and Eldritch Battery itself ×1.11–1.72 [defence-layers]. Mana-first nodes, body runes and
-  Cloak of Defiance [vid-secret-defence]; Mind over Matter [enervating] chain 7, [oracle] chain 9.
-- **Cautions:** Mind over Matter has 50% less mana recovery. Under Blood Magic (no mana) it does nothing: Woolie's
-  Wolfman takes both, and the keystone reads ×1.00. PoB doesn't parse Pyromantic Pact (maximum mana replaced by
-  Infernal Flame), so it keeps a mana pool the Infernalist doesn't have, and node power offers Mind over Matter at
-  +88.6% EHP a point [defence-layers]. Mana spent on skills isn't in the pool when the hit lands.
+  Pillars Oracle ×11.24, Ignatius's Stormweaver ×4.13; 4–15% shares on six builds read ×1.03–1.15 [defence-layers].
+  Mana-first nodes, body runes and Cloak of Defiance [vid-secret-defence]; Mind over Matter [enervating] chain 7,
+  [oracle] chain 9.
+- **Cautions:** Mind over Matter has 50% less mana recovery, and under Blood Magic (no mana) it does nothing
+  (Woolie's Wolfman: ×1.00). PoB doesn't parse Pyromantic Pact (PG-84), so node power offers the Infernalist Mind over
+  Matter at +88.6% EHP a point for a mana pool it doesn't have [defence-layers]. Mana spent on skills isn't in the
+  pool when the hit lands.
 
 ### An ally takes the hit first
 
@@ -1416,27 +1411,66 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Examples:** Romira's Requital's 10% on three published builds, and a 5% companion line on the Beast Master:
   ×1.06–1.11 on EHP and on the max hit [defence-layers]. Loyalty on a damageable companion [mob-mattjestic] §7;
   [mob-thyworm] §7; [mob-beastmaster] §7. Minions as a buffer [vid-scale-defence].
-- **Cautions:** it is small, ×1.11 at most in the reference builds. The share stops when the ally dies. Romira's
-  Requital costs its companion 30% of its life, and its recoup line may be unmodelled (coverage). With a companion's
-  share, PoB's hit count can bend a layer's knock-out reading by about 3.5% (Snoobae's Twister) [defence-layers].
+- **Cautions:** it is small, and stops when the ally dies. Romira's Requital costs its companion 30% of its life, and
+  its recoup line may be unmodelled (coverage). A companion's share bends PoB's hit count (PG-96), and its share of
+  deflected hits makes hits survived read high (PG-100).
 
 ### EHP over its target but one-shot (a diagnosis)
 
-- **Shape:** a rung that meets its EHP target but fails the Arbiter verdict owes its EHP to the chance layers, so
-  the fix is the pool, armour or a physical shift, never more evasion.
-- **Search:** read the record's Arbiter verdict (worst type and ratio) beside the evade and deflect chances; then
-  measure each fix on a temporary stage: the cheapest pool line for that type on a slot (life, energy shield),
-  armour, or a physical-taken-as line.
-- **PoB:** modelled: the max hit has no evade term, and deflection enters it only at 100%.
+- **Shape:** a rung that meets its EHP target but fails the Arbiter verdict owes its EHP to the chance layers. It is
+  one-shot only under the 80% floor: a rung that survives the full hit, or at least 80% of those hits, evasion and
+  deflection counting alike, isn't (the user, 2026-10-27). Under it, the fix is the pool, armour or a physical
+  shift, or more evasion and deflection where hits survived sits near the floor.
+- **Search:** read the record's deciding Arbiter row (type, ratio, hits survived) beside the chances at the Arbiter;
+  then measure each fix on a temporary stage: the cheapest pool line for that type on a slot (life, energy shield),
+  armour, a physical-taken-as line, or deflection.
+- **PoB:** modelled: the max hit has no evade term, and deflection enters it only at 100%; the gate adds the
+  deflected hit (40% off) and hits survived, at the Arbiter's accuracy.
 - **Examples:** the animeprincess Twister reads 17.9k, inside the distance band, and is one-shot at 1.01; +30 life
-  clears it. LazyExile's Amazon (7.7k) and the Beast Master (12.9k) need +1.1k life or +640–1,100 energy shield;
-  16–17k armour or 45–48% physical as fire also work. +30% to every maximum resistance clears none of the four. With
-  their deflection three of the four are a chance, not a certainty: a deflected slam deals 60%, so the Twister
-  Gemling dies to about 16% of slams, the Beast Master to 33%, the Amazon to 79% [defence-layers].
-- **Cautions:** node power ranks by EHP and offers evasion first, which never fixes a one-shot. Reserved life
-  shrinks a life fix: the Comet Infernalist reserves two thirds of its life, so +342 energy shield beats +3.6k life.
-  The max hit doesn't depend on the configured hits, so the verdict is the same on both rungs [toughness]. The
-  deflect chances are at the map enemy's accuracy; a boss's may be higher.
+  clears the full hit. LazyExile's Amazon (7.7k) and the Beast Master (12.9k) need +1.1k life or +640–1,100 energy
+  shield; 16–17k armour or 45–48% physical as fire also work; +30% to every maximum resistance clears none of the four
+  [defence-layers]. Counting evasion and deflection, the three evasion one-shots survive 79.6%, 78% and 45% of slams:
+  the Twister reaches the floor at 67% deflect (about +800 rating), the Beast Master at 55% (about +2,600), the Amazon
+  only with the full trade [amendment-12] §4.
+- **Cautions:** node power ranks by EHP and offers evasion first, which never moves the max hit, and 80% evade alone
+  needs about 81,000 evasion at the Arbiter's accuracy, where the highest reference build has 38,000 [amendment-12]
+  §4. Reserved life shrinks a life fix: the Comet Infernalist reserves two thirds of its life, so +342 energy shield
+  beats +3.6k life.
+
+## 12. The enemy's side
+
+### Resistance below zero
+
+- **Shape:** the enemy's resistance is a multiplier of its own: curses and exposure can push it below zero, where
+  each point adds damage, while penetration only lowers it to zero.
+- **Search:** curses and exposure (`mechanic "Exposure" (gem)`, Elemental Weakness, presence lines such as Xoph's
+  Blood's), then penetration (`mechanic "Penetrat"`); read the record's resisting figure (40% fire, cold and
+  lightning) beside the map figure, which meets 0%.
+- **PoB:** modelled: reductions and exposure reach −200% (`Modules/Data.lua:242`), penetration only 0
+  (`Modules/CalcOffence.lua:4193-4195`); a Pinnacle boss halves curses and exposure
+  (`Modules/ConfigOptions.lua:2043-2044`); penetration reads nothing on the map figure (PG-90); a curse's
+  monster-level cap is unread (PG-86).
+- **Examples:** Spud's Warcryer stacks Xoph's Blood (−25% fire resistance in presence), Exposing Cry, Potent Exposure
+  and Elemental Weakness where ours ran Fire Penetration II [spud] §4.1. On 13 builds that follow resistance, 40% on
+  the main element cost a median 18%, 8% with penetration [sizing].
+- **Cautions:** below gem level 18 a curse can't reach monsters in areas 79 and 82 (PG-86). On a build that inverts
+  resistance: curses and exposure cost damage (−15% and −18% [sizing]), since an inverted resistance below zero is a
+  positive one (`Modules/CalcOffence.lua:4200-4201`), and a resisting enemy raises damage (7–63%); Rakiata's Flow costs
+  about 185 divines, so budget rungs don't invert (the user, [sizing]).
+
+### The damage-taken pool
+
+- **Shape:** "increased damage taken" on the enemy (shock, Wither, Yoke of Suffering's line, Uruk's Smelting) adds
+  in a pool of its own, apart from your increases, so it is usually the emptiest (question 21).
+- **Search:** `mechanic "increased Damage taken"` (gem, unique, passive), then shock and Wither sources (`mechanic
+  "Shock" (gem)`, "Withered"), each with its uptime.
+- **PoB:** modelled: the enemy's increased damage taken sums apart and multiplies the hit
+  (`Modules/CalcOffence.lua:4099-4100`, `:4190`); shock is 20% at base (`Data/Misc.lua:75`), Wither up to 10 stacks
+  (`Modules/CalcPerform.lua:707-710`), each a config stand-in for earned state.
+- **Examples:** The Eraser: Wither from Withering Presence [eraser]. On finished builds a reliable shock was one of two
+  enemy-side levers still worth buying [sizing].
+- **Cautions:** each source counts at its uptime only. On a build that inverts resistance: this pool still pays where
+  resistance reduction costs damage.
 
 ## Sources
 
@@ -1502,6 +1536,8 @@ Paths are from this file; each title is the source's patch.
 [mob-autobomber]: ../../../../docs/build-guide/studies/2026-10-18-mob-lyrthos-autobomber-shaman.md "0.5.5, title 0.5"
 [toughness]: ../../../../docs/build-guide/studies/2026-10-25-toughness-floors.md "published guides, measured at pin 0.5.4"
 [defence-layers]: ../../../../docs/build-guide/studies/2026-10-26-defence-layers.md "published guides, measured at pin 0.5.4"
+[sizing]: ../../../../docs/build-guide/studies/2026-10-26-sizing.md "published guides, measured at pin 0.5.4"
+[amendment-12]: ../../../../docs/build-guide/spec/amendment-12-defence-and-design.md "pin 0.5.4"
 [vid-scale-defence]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.4"
 [vid-defence-guide]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.1.0"
 [vid-secret-defence]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.5"

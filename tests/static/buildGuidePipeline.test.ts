@@ -1826,7 +1826,8 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const hs = headings(text);
-  /** The work-log's ten families ("Off-meta builds 7–30"), in its order, then Defence (the user, 2026-10-26). */
+  /** The work-log's ten families ("Off-meta builds 7–30"), in its order, then Defence (the user, 2026-10-26) and the
+   * enemy's side (amendment 12 §13, D-458: "the family list (12 with the enemy's side)"). */
   const FAMILIES = [
     'Loops and relays',
     'State consumers (builder and finisher)',
@@ -1839,6 +1840,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     'Actors',
     'Tree',
     'Defence',
+    "The enemy's side",
   ];
   /** Each entry's fields, in order: name and shape, search step, how PoB follows it, examples, cautions. */
   const FIELDS = ['Shape', 'Search', 'PoB', 'Examples', 'Cautions'];
@@ -1882,7 +1884,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     expect(flat).toMatch(/\*\*Maintenance\.\*\* After each study the user supplies, the coordinator proposes entries and the user approves them/);
   });
 
-  it('holds the families in order, the work-log\'s ten and Defence, and defines the six labels', () => {
+  it('holds the families in order, the work-log\'s ten, Defence and the enemy\'s side, and defines the six labels', () => {
     expect(hs.filter((h) => h.level === 2 && /^\d+\. /.test(h.title)).map((h) => h.title)).toEqual(FAMILIES.map((f, i) => `${i + 1}. ${f}`));
     for (const label of POB_LABELS) expect({ label, defined: text.includes(`**${label}**`) }).toEqual({ label, defined: true });
   });

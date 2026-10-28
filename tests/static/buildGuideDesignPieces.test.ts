@@ -11,7 +11,8 @@
  *   11 (WU-115, D-442, Appendix A) drops `outNames`: the design gate counts the out pieces without naming them.
  * - `references/stages/RV.md` (removed by amendment 11, D-443): its block went with it.
  * - `references/patterns.md`: questions 16–19 and the two amended entries, read from the amendment's §6, under the
- *   library's cap; R1a-synthesize's one-line glosses agree with them.
+ *   library's cap; R1a-synthesize's one-line glosses agree with them. Amendment 12 §13 (WU-123, D-458) rewrote
+ *   question 19 for every build: its text is read from that amendment.
  *
  * The questions, the entries' changes, `pieces.md`'s form and the design field's names are read from the amendment
  * (§6, §9, Appendix A), so the skill text is held to the spec.
@@ -105,6 +106,13 @@ const plain = (s: string) => s.replace(/\*\*/g, '').replace(/\s*\([^)]*\)/g, '')
 // The spec's own words: §6's questions and entries, §9's field, Appendix A's pieces.md and the Pieces columns.
 const SECTION_6 = between(spec, '## 6. D-431', '## 7. ');
 const SPEC_QUESTIONS = numbered(SECTION_6, 16, 19);
+/** Amendment 12 §13 (D-458, P6): question 19's new text, as the amendment quotes it. */
+const A12_QUESTION_19 = (() => {
+  const a12 = folded(read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-12-defence-and-design.md')));
+  const m = /\*\*Question 19 for every build\*\* \(P6\), .*? Its text: "19\. (.*?)"\./.exec(a12);
+  if (!m) throw new Error("amendment 12 §13 doesn't quote question 19's text");
+  return m[1];
+})();
 const SPEC_FIELDS = (() => {
   const m = /`pieces \{([a-zA-Z, ]+)\}`/.exec(between(spec, '## 9. D-434', '## 10. '));
   if (!m) throw new Error("§9 doesn't name the design field's pieces");
@@ -347,13 +355,16 @@ describe('AC-W86: the library holds questions 16–19 and the two amended entrie
     expect(library).not.toMatch(/11–15/);
   });
 
-  it('words each of 16–19 as §6 does, every sentence', () => {
+  it('words each of 16–18 as §6 does, every sentence, and 19 as amendment 12 §13 rewrites it (D-458)', () => {
     for (const [n, specText] of SPEC_QUESTIONS) {
+      if (n === 19) continue;
       const ours = plain(questions.get(n) ?? '');
       for (const sentence of plain(specText).split(/(?<=[.?])\s+/)) {
         expect({ n, sentence, held: ours.includes(sentence) }).toEqual({ n, sentence, held: true });
       }
     }
+    // Amendment 12 §13 (P6): question 19 for every build, in the text it quotes.
+    expect(questions.get(19)).toBe(A12_QUESTION_19);
     // The pointers each question names are entries of the library.
     for (const title of ["Convert into the ailment's type", 'Cost redirection', 'Payoff thief (anti-pattern)']) {
       expect({ title, entry: entry(title).length > 0 }).toEqual({ title, entry: true });
@@ -386,7 +397,9 @@ describe('AC-W86: the library holds questions 16–19 and the two amended entrie
       [16, "Search each layer's payoff by its damage type after conversion, and weigh it by the hit that starts it: an ailment pays on a big, slow hit more than on a fast one"],
       [17, 'what removes the cap rather than feeding it'],
       [18, 'Schedule the conflict before leaving a piece out'],
-      [19, 'when the clear skill is capped by a limit or shaped for packs, what is the boss button?'],
+      // Amendment 12 §13 rewrote question 19 ("name the boss button" on every build); the synthesis gloss and the
+      // library still share its condition.
+      [19, 'when the clear skill is capped by a limit or shaped for packs'],
     ];
     for (const [n, gloss] of glosses) {
       expect({ n, gloss, synthesis: synth.toLowerCase().includes(gloss.toLowerCase()), library: (questions.get(n) ?? '').toLowerCase().includes(gloss.toLowerCase()) }).toEqual({ n, gloss, synthesis: true, library: true });

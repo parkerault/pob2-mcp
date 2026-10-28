@@ -273,7 +273,10 @@ describe('AC-W97 (WU-125): D1-finish', () => {
     const dir = copyFixture('run-a12');
     fs.writeFileSync(path.join(dir, 'builds', BUILD, 'trades.json'), `${JSON.stringify(fromFinish, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
-    expect(r.stderr.split('\n').filter((l) => l.startsWith('check-run: [trades] trades.json'))).toEqual([]);
+    // The checker names the build's folder before the file: `check-run: [trades] builds/<id>: trades.json's …`.
+    const tradeLines = r.stderr.split('\n').filter((l) => /\[trades\] [^:]+: trades\.json/.test(l));
+    expect(r.code).not.toBeNull();
+    expect(tradeLines).toEqual([]);
     const gateExample = JSON.parse(blockAfter(rawStage('D1-gate'), '## Writes')) as Json;
     expect(gateExample.design.rungs.find((x: Json) => x.stage === 'n').trades).toEqual(fromFinish.trades);
   });

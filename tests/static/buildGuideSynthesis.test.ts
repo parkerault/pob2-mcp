@@ -351,7 +351,8 @@ describe('AC-W83: the task header, the stages README, the run folder and the def
     expect(folder).toMatch(/or R1a-synthesize for a composite `r<k>-s-<n>` \(its brainstorm half, `### Pieces` included, D-429\)/);
     expect(folder).toMatch(/\| `cards\.md` \| the R1a-synthesize step \(the R1a-assemble step in a run whose first brainstorm round used it\)/);
     expect(folder).toMatch(/`n` from 1 to 4, or to 8 on a composite/);
-    expect(folder).toMatch(/\| `builds\/<id>\/pieces\.md` \| D1-build \(D-434\) \|/);
+    // Amendment 12 (WU-125, D-453): D1-tree writes its `## Jewel lines` there too.
+    expect(folder).toMatch(/\| `builds\/<id>\/pieces\.md` \| D1-build \(D-434\); D1-tree its `## Jewel lines` only \(D-453\) \|/);
     // Amendment 11 (WU-114, D-443): an older run's rival card is named, in parentheses, between them.
     expect(folder).toMatch(/a composite R1a-synthesize writes `r<k>-s-<n>` \(D-429\)\. .* A card holding `### Pieces` is a composite, whatever its letter/);
   });

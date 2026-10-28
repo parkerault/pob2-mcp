@@ -330,7 +330,10 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
     const dir = copyFixture('run-a12');
     fs.writeFileSync(path.join(dir, 'builds', A11_BUILD, 'trades.json'), `${JSON.stringify({ trades }, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
-    expect(r.stderr.split('\n').filter((l) => l.startsWith('check-run: [trades] trades.json'))).toEqual([]);
+    // The checker names the build's folder before the file: `check-run: [trades] builds/<id>: trades.json's …`.
+    const tradeLines = r.stderr.split('\n').filter((l) => /\[trades\] [^:]+: trades\.json/.test(l));
+    expect(r.code).not.toBeNull();
+    expect(tradeLines).toEqual([]);
   });
 });
 

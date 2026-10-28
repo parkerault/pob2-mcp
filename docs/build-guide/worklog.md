@@ -5984,3 +5984,16 @@ the `m17` engine at `b76967b`.
   mutation, and named D1-tree as a writer of `pieces.md`'s jewel lines in `task-header.md` and `run-folder.md`; the
   re-verify passed. Gate on the first head: 205 suites, 3,572 tests, rc 0; build rc 0; targeted after the fix: 49
   suites, 1,379 tests.
+- **M-25's gate passed** on `6acf2bd` (a fresh verifier, from clean): `mise run test` rc 0 (205 suites, 3,572 tests,
+  none skipped; the timing step 2 suites, 4 tests), `pnpm build` rc 0. Every criterion but AC-W99 maps to a named
+  passing test or the work-log row the test strategy names; spot checks against the pin (Elemental Weakness's cap, the
+  evade and deflect formulas, the conditioned read's options, B4's 19 fields, PG-100's lines) held; a broken trade in a
+  copy of the run fixture failed its test. Five seams checked: the scripts read the record and plan schema 8 as the
+  compiler writes them; the design docs' examples run through the scripts; the library and R1a cite the same section;
+  `CLAUDE.md`, the README and `pricing.md` agree with the limiter. The built server lists 78 tools with trade and
+  poe.ninja off (85 with every group on); `scripts/fresh-clone-check.sh` rc 0. Waivers `[]`, dependencies unchanged,
+  nothing from the private library. AC-W99 waits on the live test (WU-126), which covers amendment 11's (WU-116).
+  - **Known, not fixed:** `POB_TEST_TRADE_PACE=off` turns the pace off in any start of the server, not only tests, and
+    isn't in the README's env table (kept out on purpose, so users aren't invited to turn off their own floor); the
+    two script items under WU-121; for the spec fold, stabilization's 40 s refusal example and §19's touches
+    (`Handlers.lua`, the shared tests that moved with the key-figure line).

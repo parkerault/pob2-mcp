@@ -5890,3 +5890,25 @@ the `m17` engine at `b76967b`.
     ms, `n` 503 and 467 ms (the verifier's run: `b` 369, `n` 459 ms). Each far under 20 s.
   - Appendix A gains `avoid.companionDeflected` (for PG-100's note), the percent units of `evade` and `deflect`, and
     the null cases, as built.
+- **WU-117 (tool fixes) merged** at `30a37d3` (two commits, cherry-picked onto the integration head unchanged).
+  The engine's contract error names each union member's failing path; B1, B2, B4, B5, B6 and B8 (with
+  `find_path_to_node`). Its verifier (fresh context) failed the first head on one defect, confirmed: B6's checkbox
+  reset sat in the shared config writer, so `set_config` and the compile's config check also reset a checkbox given
+  `""`, against `set_config`'s description and with no grant. The fix round resets only when `load_config_preset`
+  asks for it (a reserved key no tool call, plan or preset file can set); the re-verify passed. Gate after the
+  rebase: 202 suites, 3,393 tests, rc 0; build rc 0. B8's change to the auto-path output adds `autoPathedNames` to
+  `update_tree_delta`'s engine reply and one line of `pob-api/API/Handlers.lua`, which §19's list lacks.
+  - **B1's repro (AC-K73):** all 8 failing builds of the defence study reproduced at `2ac662c` with the new error. The
+    failing field: weapon set 2's pool moves, `result.poolSwaps[1].swaps[k].clear` and `.bestSwap.clear`, value `[]`.
+    When the main skill can't use set 2's weapons, the clear entry has no radius and no speed, and dkjson writes the
+    empty table as `[]` (a known engine quirk). Before the fix: "engine reply for "node_power" does not match its
+    contract (C-5): result: Invalid input; union member 1: result.poolSwaps.1.bestSwap.clear: Expected object,
+    received array; …". The schema now accepts `[]`; all 8 return results. The fixture is the unit's own
+    (`weapon-set-2-unarmed`, from the committed `weapon-sets` plan), failing the same way before the fix. HG-26 didn't
+    fire.
+  - **B2:** not reproduced at `2ac662c`; both queries parse. The failure appears only against the reply schema from
+    before `5554cb1` (WU-100), which lacked the `constant` kind, so the study's server was likely built before WU-100
+    while running newer Lua (plausible, not proven). No code change; the test guards it.
+  - **B8:** the old refusal case (node 40918) now auto-paths through 15 untagged nodes, PoB's own untagged shortest
+    path; a node with no untagged path is still refused. `find_path_to_node` and `update_tree_delta` can pick different
+    equal-cost paths (search order); left as is.

@@ -477,15 +477,15 @@ The defence study (`studies/2026-10-26-defence-layers.md`) took the toughness st
 apart one defence layer at a time, and the sizing study (`studies/2026-10-26-sizing.md`) measured amendment 12's open
 candidates on the same builds; amendment 12 logs what they found (D-462). The kinds and statuses are the studies'
 candidate list's; every `file:line` below was checked against the pin on 2026-10-28. "Reported (coverage)" means
-`check_model_coverage` flagged the line and no one has read the code for it; "video study" and "video frame" mean a
-study of a creator's video read the code or showed the figure. PG-85 (plain block against spells) was dropped, since
-the user trusts PoB's block reading (2026-10-26), and its number is skipped.
+`check_model_coverage` flagged the line; "video study" and "video frame" mean a study of a creator's video read the
+code or showed the figure. PG-85 (plain block against spells) was dropped, since the user trusts PoB's block reading
+(2026-10-26), and its number is skipped.
 
 - **PG-83, Virtuous Barrier's motes aren't lost to hits.** gap, confirmed in code.
-  - **Where:** PoB counts the buff's motes of each attribute from a base of 3 plus the socketed skill gems that
-    require that attribute (`Modules/CalcSetup.lua:1485`, `:1857-1871`), into the multipliers its life, armour,
-    evasion and energy shield lines read (`:2096-2099`). The skill loses a random mote whenever the character is hit
-    (`Data/Skills/other.lua:19594`), and no config option sets how many are lost.
+  - **Where:** PoB counts the buff's motes of each attribute from a base of 3, plus 1 for each socketed skill gem
+    that requires the attribute (2 when it requires no other) (`Modules/CalcSetup.lua:1485`, `:1857-1871`), into the
+    multipliers its life, defence and regeneration lines read (`:2096-2099`). The skill loses a random mote whenever
+    the character is hit (`Data/Skills/other.lua:19594`), and no config option sets how many are lost.
   - **Effect:** the buff reads at full motes.
   - **Seen in:** five Gemlings in the defence study, ×1.01–1.68 EHP (the animeprincess Twister ×1.68).
   - **Workaround:** treat the figure as an upper bound.

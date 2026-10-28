@@ -47,7 +47,7 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
   at most 7 in any 5 minutes, waiting inside the tool call (D-461). So make one trade call at a time; calls
   in parallel queue past the 60 s wait cap and come back `would_wait`. Ad-hoc pricing (studies, probes) makes
   at most 30 searches without asking. On the first 429, `rate_limited` or `locked_out`, stop, report when the
-  lockout ends, and don't retry before then. The server logs each 429 to `trade-429.jsonl` in its state folder.
+  lockout ends, and don't retry before then.
 - **The session's pob2 server runs the code built when it started.** After a rebuild, reconnect it with `/mcp`
   before relying on new tool behaviour.
 - **Spawned test servers use `spawnServer`** (`tests/helpers/spawnServer.ts`). It gives the child an

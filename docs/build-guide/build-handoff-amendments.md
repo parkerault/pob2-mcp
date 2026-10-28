@@ -4,7 +4,62 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-24: amendment 11, builds a player would run (read this first)
+## M-25: amendment 12, defence that holds and one tree per loadout (read this first)
+
+Added 2026-10-28. For this build, this section overrides the M-24 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-24's formats stay in force where M-25
+doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-12-defence-and-design.md`, approved revision 2 at `80bc542` (D-449…D-462,
+  §19's units, owners and order, §20's criteria AC-K73…AC-K75, AC-P82…AC-P85, AC-W93…AC-W98, Appendix A's formats) is
+  binding. The spine and slices are v1.6 with amendments 8 to 11 built. Read the amendment's status, §19, §22 (which
+  rules a run is held to), §23 (guardrails), your unit's decisions and criteria, and Appendix A.
+- **Approved** by the user on 2026-10-28 ("The amendment is approved, start the build"). The build doesn't wait for
+  amendment 11's live test (WU-116): one live test after M-25 (WU-126) covers both.
+- **HG-12 is granted (HG-23) only for** §15's and §16's tool changes and the plan-schema and record changes the
+  amendment names (Appendix A: schema 8, the record's additions, "Tool changes"). No tool is added or removed. Any
+  other tool-contract change is HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m25`, branch `build-guide/m25`, off `main` at this
+  section's commit. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the integration head when the unit starts. The main checkout
+  is never touched; its `vendor/` is the source for a lane's copy, read only.
+- **Waves** (§19). Wave 1, in parallel: WU-117 (tool fixes), WU-118 (the trade limiter), WU-119 (plan schema 8 and
+  V1), WU-120 (the compiler's measures), WU-122 (the PoB gaps). WU-121 (the scripts) starts in wave 1 against
+  Appendix A's formats and rebases onto WU-119 and WU-120 before it merges. Wave 2: WU-123 (the library, after WU-122)
+  and WU-124 (the research docs, after wave 1; it merges after WU-123, so HG-24 holds it too). Wave 3: WU-125 (the
+  design docs, after WU-121). WU-126 is the live test, run by the user with the coordinator, not a doer's unit.
+- **Merge order inside wave 1** (§19's shared files): WU-117 before WU-118 for `toolSchemas.ts` and the README table
+  (WU-118 may merge first while WU-117 is stopped at HG-26); WU-119 before WU-120 for `src/engine/schemas.ts`,
+  `Compile.lua`, `compiler.ts`, `record.ts` and `plan-reference.md`. The later unit rebases onto `build-guide/m25` and
+  runs its gate after the rebase. §19's split of the shared files and shared static tests is binding.
+- **The coordinator** merges each unit after its verifier passes, and owns the work-log (the spikes' and repros'
+  rows that AC-K73, AC-P83, AC-P85 and AC-W95 name, from the units' reports), the spec, V1's table rows in
+  `02-plan-compiler.md` and HG-23 to HG-26 in the spine's §6.3 (§17).
+- **Spikes first,** each its unit's first step, its result in the unit's report: B1's and B2's repro after the union
+  error fix (WU-117), B3's test compile (WU-119), G9's deflected ratio, `pass` or `formula` (WU-120).
+- **B1's repro (WU-117) is the one place a unit reads the user's private guide library**
+  (`/home/parker/projects/poe2-guide-library/`): read only, locally. The defence study's results there
+  (`analysis/defence/results.jsonl`, `results-np.jsonl`) name the builds that failed with "Invalid input". Nothing of
+  the library is copied into a worktree, committed or named in a committed file; the fixture is the unit's own, built
+  from the pinned game data. When none reproduces the failure, the unit reports the raw reply and the failing path
+  and stops (HG-26). Every other unit leaves the library alone.
+- **Trade.** No unit sends a trade request; WU-118's tests use a fake clock and `fixtureFetch`. `CLAUDE.md`'s trade
+  paragraph is WU-118's.
+- **Room left, measured at `80bc542`:**
+  - `SKILL.md` is 325 of its 325 lines: WU-125 makes room before adding anything.
+  - `patterns.md` is 15,684 `wc -w` words of its 16,000; kits are capped at 4,000. WU-123's trim stops at HG-24 if
+    the trimmed library is over 16,000 or the kits over 4,000.
+  - Tool descriptions against AC-F15's 2,048 characters: `get_node_power` 2,023, `lookup_game_data` 2,035,
+    `check_model_coverage` 1,852, `find_upgrades` 1,335, `lua_get_stats` 634, `update_tree_delta` 340,
+    `load_config_preset` 219, `find_path_to_node` 134. Describe new inputs in their parameter schemas.
+- **Running the gate:** the M-20 bullet's command, unchanged; no `rm -rf` inside its `sh -c` script.
+- **Lane bootstrap:** from the integration worktree, `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m25`;
+  in the lane, `git config --worktree commit.gpgsign false`, `mise trust`,
+  `cp -a /home/parker/projects/pob2-mcp/vendor ./vendor`, `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **Studies the units cite:** `docs/build-guide/studies/2026-10-26-defence-layers.md` and `2026-10-26-sizing.md`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap. No unit has a network allowance.
+
+## M-24: amendment 11, builds a player would run (built)
 
 Added 2026-10-25. For this build, this section overrides the M-23 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

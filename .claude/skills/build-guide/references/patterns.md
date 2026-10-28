@@ -120,6 +120,10 @@ Ask these after 1–19 (D-458); the defence and sizing studies showed why ([defe
   user: questions 16–19 and the changes to Cost redirection and Payoff thief (D-431, 2026-10-23); the Defence family
   and the defence edits, from [defence-layers] and the `vid-` keys (2026-10-26); questions 20–24, The enemy's side
   and the Arbiter's figures (D-458, 2026-10-28).
+- **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
+  redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
+  Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
+  carrier (their examples).
 
 ## Standard kits
 
@@ -167,9 +171,9 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Offering:** Pain Offering with Danse Macabre (30% more damage, 30% increased buff effect, pin) in three guides
   [mob-mattjestic] §3; [mob-thyworm] §3; [mob-beastmaster] §3; two feed it Skeletal Warriors with Sacrificial Lamb,
   which makes your skills target that skill's minions within 6 metres first (pin).
-- **Survival:** Loyalty on a damageable companion (the Infernal Hound, a tamed beast), in three guides
-  [mob-mattjestic] §7; [mob-thyworm] §7; [mob-beastmaster] §7 (An ally takes the hit first); when the damage or a buff
-  lives on the minions, cap their resistances first [chayula-minions] §2 (6), §6.
+- **Survival:** Loyalty on a damageable companion (the Infernal Hound, a tamed beast) takes 10% of your hit damage
+  first, in three guides [mob-mattjestic] §7; [mob-thyworm] §7; [mob-beastmaster] §7 (An ally takes the hit first);
+  when the damage or a buff lives on the minions, cap their resistances first [chayula-minions] §2 (6), §6.
 - **Campaign:** both Infernalists pair a fire minion with Flame Wall: Raging Spirits, which your fire casts summon
   [mob-mattjestic] §2, §5, or the Skeletal Sniper's Gas Arrow, ignited by the wall [mob-thyworm] §2, §5.
 
@@ -1256,8 +1260,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   Metamorphosis in 3 of 30 published league starters, the largest single-jewel effects there: up to ×1.23 EHP
   and ×1.58 damage [defence-layers].
 - **Cautions:** From Nothing's radius belongs to one named node. Controlled Metamorphosis costs 5–20% of every
-  elemental resistance. Our compiler's connection check may refuse the disconnected nodes (read from the code,
-  untested).
+  elemental resistance. Our compiler accepts the radius nodes a socketed From Nothing or Controlled Metamorphosis
+  frees, and the Sinister sockets a Voices grants (the plan lists each), the jewel in a socket the tree connects;
+  the compile sockets the jewels before the tree (`plan-reference.md`'s `stages[].tree.nodes`;
+  `pob-api/API/Compile.lua`).
 
 ### A rule changer
 
@@ -1307,6 +1313,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   shield recharge); thresholds (`tree "Stun Threshold"`, `tree "Ailment Threshold"`); then coverage for the build's
   unparsed defence lines.
 - **PoB:** not modelled as defence: recovery has its own figures, stun its own chance, control and decoys nothing.
+  Report these beside EHP and the Arbiter verdict, never instead.
 - **Examples:** Fangs: freeze and slows carried bosses [fangs]. Shockchain: electrocute [shockchain]. Of 30 published
   league starters, by line pattern, 26 carry regeneration, 24 instant flask recovery, 19 leech, and each 2–23 unparsed
   defence lines (PG-94) [defence-layers]. Instant recovery, slows and thresholds [vid-secret-defence].
@@ -1356,7 +1363,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Cautions:** EHP undervalues it: a ranking by EHP puts deflection nodes behind evasion and energy shield nodes
   (2.8–6.5% a point against a best of 4.3–9.4% [defence-layers]), so value it by hits survived too. A hit it misses
   lands whole, so under the floor a pool line is often the cheaper fix. The chance is front-loaded: half the cap's
-  rating gives about 70%, and the cap needs about 14.4 × the attacker's accuracy (34k against the map enemy, 54k
+  rating gives about 70%, and the 95% cap needs about 14.4 × the attacker's accuracy (34k against the map enemy, 54k
   against the Arbiter). A hybrid gains less: less evasion to turn into deflection, and a pool that holds a big hit
   better (the kit's defence line; the user, 2026-10-26). Without evasion, take it only where it is cheap, such as
   from armour. Deflection was buffed heavily in 0.5 (the user, 2026-10-26): an older guide may under-use it.
@@ -1366,8 +1373,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Shape:** blinding the enemies that hit you cuts their accuracy, which raises evade and deflection together.
 - **Search:** `mechanic "Blind" (gem)` (Twister, Whirling Slash, Flash Grenade, Blind I and II), `tree "Blind
   Effect"` (Pocket Sand), then unique; then check that it lands on the enemies that attack you, and how often.
-- **PoB:** config stand-in: "Is the enemy Blinded?" cuts the enemy's accuracy (to 0.68–0.81 × by the build's blind
-  effect [sizing]), in EHP only.
+- **PoB:** config stand-in: "Is the enemy Blinded?" cuts the enemy's accuracy and evasion (accuracy to 0.68–0.81 ×
+  by the build's blind effect [sizing]), in EHP only.
 - **Examples:** 11 of 30 published league starters blind the enemy; turned off, their EHP falls ×0.78–0.90 and the
   max hit doesn't move [defence-layers]. Twister blinds what it hits; Pocket Sand strengthens blind [vid-deflection].
 - **Cautions:** it needs a producer that hits the attackers. Blindside stops the supported skill from blinding. Its

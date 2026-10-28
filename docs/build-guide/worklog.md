@@ -5969,3 +5969,18 @@ the `m17` engine at `b76967b`.
   buildup (`<Ailment>BuildupAvg` for freeze and electrocute) and flags more than 5 expected hits as a `risk`, against
   the skeleton's own enemy, since a skeleton has no Pinnacle pass. Its verifier (fresh context) passed it, re-running
   the gate (203 suites, 3,452 tests, rc 0; build rc 0); 14 doc mutations each failed their test.
+- **WU-125 (the design docs, the gates, the guide and SKILL.md) merged** at `697b980` (three commits). D1-build's
+  defence step, schema 8, seeded trees, needs on every rung, `tmp` stages, the wall rule and `stronger structure:`,
+  questions 19 and 23, Wither, the levers, ailment uptime and the curse cap line; D1-tree's needs-only keep, no ladder,
+  jewel sockets and lines with their prices, and the boss guard; D1-finish's one-shot defence trade, the avoidance
+  trade, the boss cut in a trade's `reason` and the weapon re-check; D1-gate's design field; the design gate and revise
+  paths, `gates.md` (V1 rows for the new codes), D2, W1, V4, the guide and audit templates, `pricing.md` (the 45 s
+  gap, the 60 s caps, one trade call at a time, the pricing notice) and `SKILL.md` (325 lines; D1-tree's `respec:`
+  route removed for new runs). §11's 5-hit rule reads `<Ailment>ChancePerHit` or `<Ailment>BuildupAvg` from the
+  rung's compile for the map enemy and from a `tmp` stage with the boss scenario for the Pinnacle boss (the record's
+  Pinnacle pass doesn't carry them). Its verifier (fresh context) failed the first head on one defect, confirmed: the
+  `it`s running D1-finish's `trades.json` example through the checker filtered on a prefix the checker never prints,
+  so they couldn't fail (the filter dates from WU-115, `85e7bae`). The fix round corrected both filters, proved by a
+  mutation, and named D1-tree as a writer of `pieces.md`'s jewel lines in `task-header.md` and `run-folder.md`; the
+  re-verify passed. Gate on the first head: 205 suites, 3,572 tests, rc 0; build rc 0; targeted after the fix: 49
+  suites, 1,379 tests.

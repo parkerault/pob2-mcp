@@ -706,6 +706,115 @@ describe('AC-K75 (WU-118, D-461): the pace floor between searches', () => {
   });
 });
 
+describe("AC-K75 (WU-118, D-461): a wait behind a class's first request is bounded by the deadline and the cap", () => {
+  /** A clock the test sets, with sleeps that end only when the test releases them. */
+  function heldClock() {
+    const clock = { t: 1_000_000 };
+    const pending: Array<{ ms: number; release: () => void }> = [];
+    const sleep = jest.fn((ms: number) => new Promise<void>((resolve) => pending.push({ ms, release: resolve })));
+    return { clock, pending, sleep, now: () => clock.t };
+  }
+
+  /** A's first search fails on the network at t0 (no policy yet); B's, 5 s later, waits out 40 s of the pace. */
+  async function behindPacedFirst() {
+    const h = heldClock();
+    const limiter = new RateLimiter({ now: h.now, sleep: h.sleep, searchPace: TRADE_SEARCH_PACE });
+    const t0 = h.clock.t;
+    await expect(
+      limiter.run('search', async () => {
+        throw new TypeError('fetch failed');
+      }),
+    ).rejects.toThrow('fetch failed');
+    h.clock.t = t0 + 5_000;
+    const sendB = jest.fn(async () => response(roomy(SEARCH_POLICY)));
+    const pB = limiter.run('search', sendB);
+    await flush();
+    expect(h.pending.map((p) => p.ms)).toEqual([40_000]);
+    return { ...h, limiter, t0, sendB, pB };
+  }
+
+  it("AC-K75: a search arriving with 10 s to its deadline during another request's paced first search is refused at once, as the server's pace, not the site's", async () => {
+    const { clock, pending, limiter, t0, sendB, pB } = await behindPacedFirst();
+    const sendC = jest.fn(async () => response(roomy(SEARCH_POLICY)));
+    const arrived = clock.t;
+    const err = await rejection(limiter.run('search', sendC, { deadline: arrived + 10_000 }));
+    expect(err).toBeInstanceOf(PaceWaitError);
+    expect(err.kind).toBe('would_wait');
+    // B goes at +45 s, so C no sooner than +90 s: 85 s after its arrival at +5 s.
+    expect(err.waitS).toBe(85);
+    expect(err.message).toMatch(/trade searches go at least 45 s apart \(the server's pace\)/);
+    expect(err.message).not.toMatch(/trade site's rate limit/);
+    expect(clock.t).toBe(arrived); // refused without waiting
+    expect(sendC).not.toHaveBeenCalled();
+    // B is unaffected: it goes at +45 s.
+    clock.t = t0 + 45_000;
+    pending[0].release();
+    await pB;
+    expect(sendB).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC-K75: the cap counts from the search's arrival: past 60 s behind a paced first search it is refused at once; within 60 s it waits and goes at the pace's time", async () => {
+    const { clock, pending, limiter, t0, sendB, pB } = await behindPacedFirst();
+    // No deadline, the default 60 s cap: 85 s from +5 s is refused at once.
+    const early = await rejection(limiter.run('search', jest.fn(async () => response(roomy(SEARCH_POLICY)))));
+    expect(early).toBeInstanceOf(PaceWaitError);
+    expect(early.waitS).toBe(85);
+    // Under an explicit 30 s cap, too.
+    clock.t = t0 + 40_000;
+    const capped = await rejection(
+      limiter.run('search', jest.fn(async () => response(roomy(SEARCH_POLICY))), { maxWaitMs: 30_000 }),
+    );
+    expect(capped).toBeInstanceOf(PaceWaitError);
+    expect(capped.waitS).toBe(50);
+    // At +40 s the wait to +90 s is 50 s: within the cap, it waits behind B, then goes at the pace's time.
+    const sendC: jest.Mock<() => Promise<Response>> = jest.fn(async () => response(roomy(SEARCH_POLICY)));
+    const sentAt: number[] = [];
+    sendC.mockImplementation(async () => {
+      sentAt.push(clock.t);
+      return response(roomy(SEARCH_POLICY));
+    });
+    const pC = limiter.run('search', sendC);
+    await flush();
+    clock.t = t0 + 45_000;
+    pending[0].release(); // B sends and settles
+    await pB;
+    expect(sendB).toHaveBeenCalledTimes(1);
+    await flush();
+    await flush();
+    expect(pending.map((p) => p.ms)).toEqual([40_000, 45_000]); // C's own wait, from +45 s to +90 s
+    clock.t = t0 + 90_000;
+    pending[1].release();
+    await pC;
+    expect(sentAt).toEqual([t0 + 90_000]);
+  });
+
+  it("AC-K75: a request waiting on a class's hung first request ends at its deadline less 1 s, or at maxWaitMs from its arrival, as would_wait", async () => {
+    jest.useFakeTimers({ now: new Date('2026-10-28T12:00:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    const limiter = new RateLimiter();
+    const first = deferred<Response>();
+    const p1 = limiter.run('fetch', () => first.promise);
+    const start = Date.now();
+    const send2 = jest.fn(async () => response());
+    const p2 = rejection(limiter.run('fetch', send2, { deadline: start + 5_000 }));
+    const send3 = jest.fn(async () => response());
+    const p3 = rejection(limiter.run('fetch', send3, { maxWaitMs: 3_000 }));
+    await jest.advanceTimersByTimeAsync(3_000);
+    const capped = await p3;
+    expect(capped.kind).toBe('would_wait');
+    expect(capped.message).toMatch(/would need a wait of over 3 s/);
+    expect(Date.now() - start).toBe(3_000);
+    await jest.advanceTimersByTimeAsync(1_000);
+    const late = await p2;
+    expect(late.kind).toBe('would_wait');
+    expect(late.message).toMatch(/too little time before the deadline/);
+    expect(Date.now() - start).toBe(4_000);
+    expect(send2).not.toHaveBeenCalled();
+    expect(send3).not.toHaveBeenCalled();
+    first.resolve(response());
+    await p1;
+  });
+});
+
 describe('AC-K75 (WU-118, D-461): at most 7 searches in any 300 s', () => {
   it("AC-K75: the server's pace is 45 s between searches and at most 7 in 300 s", () => {
     expect(TRADE_SEARCH_PACE).toEqual({ gapMs: 45_000, cap: { max: 7, periodMs: 300_000 } });

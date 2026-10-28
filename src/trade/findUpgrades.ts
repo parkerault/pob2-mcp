@@ -287,6 +287,23 @@ export function paceStop(searches: number, refusal: PaceWaitError): SearchStop {
   };
 }
 
+/**
+ * D-461: the stop when the server's search pace refused the call's search before any ran (`would_wait`,
+ * C-49's prefix kept): `the server's 45 s gap between trade searches requires waiting <n> s`. The
+ * trade site didn't refuse it, so the line doesn't blame the site's rate limit.
+ */
+export function paceWaitStop(refusal: PaceWaitError): SearchStop {
+  const pace =
+    refusal.gapMs > 0
+      ? `the server's ${Math.round(refusal.gapMs / 1000)} s gap between trade searches`
+      : `the server's cap of ${refusal.cap?.max} trade searches in ${Math.round((refusal.cap?.periodMs ?? 0) / 1000)} s`;
+  const waitS = refusal.waitS;
+  if (waitS === undefined || !Number.isFinite(waitS)) {
+    return { reason: `${pace} requires waiting longer than this call can`, kind: 'would_wait' };
+  }
+  return { reason: `${pace} requires waiting ${waitS} s`, waitS, kind: 'would_wait' };
+}
+
 /** The rate-limit stop: `the trade site's rate limit requires waiting <n> s`, with the limit's kind. */
 export function rateLimitStop(waitS: number | undefined, kind: TradeLimitKind): SearchStop {
   if (waitS === undefined || !Number.isFinite(waitS)) {
@@ -296,11 +313,12 @@ export function rateLimitStop(waitS: number | undefined, kind: TradeLimitKind): 
 }
 
 /**
- * The early stop a trade error means, or null when it is not one: the limiter's refusals and a 429
- * (the rate-limit stop). The engine-busy stop is not here: the lock wait is the caller's `session.run`,
+ * The early stop a trade error means, or null when it is not one: the server's pace refusing a search
+ * (D-461), the limiter's refusals and a 429 (the rate-limit stop). The engine-busy stop is not here: the lock wait is the caller's `session.run`,
  * so its `EngineBusyError` surfaces in the router, which renders `engineBusyStopText`.
  */
 export function stopForError(error: unknown): SearchStop | null {
+  if (error instanceof PaceWaitError) return paceWaitStop(error);
   if (error instanceof TradeError) {
     if (error.kind === 'would_wait' || error.kind === 'locked_out') return rateLimitStop(error.waitS, error.kind);
     if (error.kind === 'rate_limited') return rateLimitStop(error.retryAfterS, error.kind);

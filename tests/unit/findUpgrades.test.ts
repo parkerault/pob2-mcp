@@ -600,6 +600,82 @@ describe("AC-K75 (WU-118, D-461): find_upgrades under the pace floor (the server
     expect(Date.now() - start).toBeLessThanOrEqual(FIND_UPGRADES_BUDGET_MS);
   });
 
+  /**
+   * Another call's first search fails on the network at S (the search class has no policy yet); a third
+   * call's search, 5 s later, is a first request again and waits out 40 s of the pace (it goes at S + 45 s).
+   * Returns the trade setup and that pending search; later searches answer from `responses`.
+   */
+  async function behindPacedFirst(responses: SyntheticResponse[]) {
+    const later = searchSequence(responses);
+    let n = 0;
+    const route: FixtureRoute = {
+      match: (url, init) => /\/api\/trade2\/search\//.test(url) && (init?.method ?? 'GET').toUpperCase() === 'POST',
+      respond: (url, init) => {
+        n += 1;
+        if (n === 1) return Promise.reject(new TypeError('fetch failed'));
+        return (later.respond as (u: string, i: RequestInit | undefined) => Response | Promise<Response>)(url, init);
+      },
+    };
+    const limiter = new RateLimiter({ searchPace: TRADE_SEARCH_PACE });
+    const env = setup([route, fetchRoute()], { limiter });
+    const failed = await drive(env.ctx.trade.search(LEAGUE, GENERATED_BODY_ARMOUR_QUERY, { auth: true }).then(() => null, (e: unknown) => e));
+    expect((failed as { kind?: string }).kind).toBe('network');
+    const S = searches(env.calls)[0].at;
+    await jest.advanceTimersByTimeAsync(5_000);
+    const pacedFirst = env.ctx.trade.search(LEAGUE, GENERATED_BODY_ARMOUR_QUERY, { auth: true });
+    await jest.advanceTimersByTimeAsync(0);
+    return { ...env, S, pacedFirst };
+  }
+
+  it("AC-K75: a find_upgrades search arriving during another call's paced first search waits behind it within its 60 s cap and returns by its deadline", async () => {
+    const { ctx, calls, S, pacedFirst } = await behindPacedFirst([searchResponse('other', 2207), searchResponse('s1', 10000), searchResponse('s2', 10000)]);
+    await jest.advanceTimersByTimeAsync(35_000 - (Date.now() - S - 5_000));
+    const arrival = Date.now();
+    expect(arrival - S).toBe(40_000);
+    const deadline = arrival + FIND_UPGRADES_BUDGET_MS;
+    const result = searched(await drive(runUpgradeSearch(input(), { ...ctx, deadline })));
+    await drive(pacedFirst);
+    // The other call's paced search went at S + 45 s; this call's one search 45 s later, its next past the deadline.
+    expect(searches(calls).map((c) => c.at - S)).toEqual([0, 45_000, 90_000]);
+    for (const c of calls) expect(c.at).toBeLessThanOrEqual(deadline);
+    expect(Date.now()).toBeLessThanOrEqual(deadline);
+    expect(result.searches).toBe(1);
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe(GAP_STOP(1));
+  });
+
+  it("AC-K75: one arriving with 10 s to its deadline during that paced first search is refused at once, by its deadline, and the stop line names the server's gap, not the trade site's rate limit", async () => {
+    const { ctx, calls, S, pacedFirst } = await behindPacedFirst([searchResponse('other', 2207), searchResponse('s1', 10000)]);
+    await jest.advanceTimersByTimeAsync(1_000);
+    const arrival = Date.now();
+    expect(arrival - S).toBe(6_000);
+    // Its engine steps took the rest of the budget: 10 s are left when it searches.
+    const deadline = arrival + 10_000;
+    const result = searched(await drive(runUpgradeSearch(input(), { ...ctx, deadline })));
+    expect(Date.now() - arrival).toBeLessThan(1_000);
+    expect(searches(calls)).toHaveLength(1); // only the other call's failed search: this one sent none
+    // The other call's search goes at S + 45 s, so this one no sooner than S + 90 s: 84 s from its arrival.
+    expect(result.stoppedEarly).toEqual({ reason: "the server's 45 s gap between trade searches requires waiting 84 s", waitS: 84, kind: 'would_wait' });
+    expect(stoppedEarlyNote(result.stoppedEarly!)).toBe(
+      "Stopped early: [trade:would_wait] the server's 45 s gap between trade searches requires waiting 84 s.",
+    );
+    expect(stoppedEarlyNote(result.stoppedEarly!)).not.toMatch(/trade site's rate limit/);
+    expect(result.entries).toEqual([]);
+    await drive(pacedFirst);
+    expect(searches(calls).map((c) => c.at - S)).toEqual([0, 45_000]);
+  });
+
+  it("AC-K75: with its full 90 s, a search that would wait 84 s behind that paced first search passes find_upgrades' 60 s cap and is refused at once", async () => {
+    const { ctx, calls, S, pacedFirst } = await behindPacedFirst([searchResponse('other', 2207), searchResponse('s1', 10000)]);
+    await jest.advanceTimersByTimeAsync(1_000);
+    const arrival = Date.now();
+    const deadline = arrival + FIND_UPGRADES_BUDGET_MS; // S + 96 s: the deadline would allow S + 90 s
+    const result = searched(await drive(runUpgradeSearch(input(), { ...ctx, deadline })));
+    expect(Date.now() - arrival).toBeLessThan(1_000);
+    expect(searches(calls)).toHaveLength(1);
+    expect(result.stoppedEarly).toEqual({ reason: "the server's 45 s gap between trade searches requires waiting 84 s", waitS: 84, kind: 'would_wait' });
+    await drive(pacedFirst);
+  });
+
   it("AC-K75: find_upgrades' description states the 90 s budget, the 45 s gap and at most two searches", () => {
     const description = getTradeToolSchemas().find((t) => t.name === 'find_upgrades')!.description as string;
     expect(description).toMatch(/90 s budget/);

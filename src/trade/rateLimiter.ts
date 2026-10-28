@@ -26,14 +26,18 @@
  * - **Lockouts.** A state with `active > 0`, or a 429, locks the policy until
  *   `now + max(active, Retry-After)` seconds; admissions then throw `locked_out`.
  * - **First request per endpoint class.** Until a class has a policy, its first request goes alone
- *   and the others wait until it settles (a response with or without headers, or an error).
+ *   and the others wait until it settles (a response with or without headers, or an error). That wait
+ *   is bounded like any other (D-461): a search the pace can't admit before the deadline or within
+ *   `maxWaitMs` is refused at once (a `PaceWaitError`), and the wait ends as `would_wait` when the
+ *   deadline less 1 s, or `maxWaitMs` from the request's arrival, comes first.
  * - **The search pace** (D-461, an option the server sets). Beside the site's windows, a search request
  *   (either kind) is sent no sooner than `gapMs` (45 s) after the previous search's send, and at most
  *   `cap.max` (7) searches go in any `cap.periodMs` (300 s). Fetches don't wait on it. Its state is the
  *   limiter's, across policies and kinds. A wait the pace sets and the limiter refuses is a `PaceWaitError`
  *   (`would_wait`), so a caller can tell the server's own gap from the site's windows.
  * - **No long sleeps.** A wait past the deadline or past `maxWaitMs` (default 60 s, D-461) throws
- *   `would_wait` without sleeping.
+ *   `would_wait` without sleeping. The wait counts from the request's arrival, so time spent behind a
+ *   class's first request counts toward `maxWaitMs`.
  * - **No send with under 1 s left** (D-22, risk R-1). A send that has to wait is refused as
  *   `would_wait` when it would go out with less than `MIN_SEND_LEFT_MS` before the deadline, both at
  *   admission and again after the wait (a sleep can overshoot, and waiting on a class's first request
@@ -287,6 +291,8 @@ export class RateLimiter {
   private readonly classPolicy = new Map<Endpoint, string>();
   /** Endpoint class → the in-flight first request (while the class has no policy). */
   private readonly firstInFlight = new Map<Endpoint, Promise<unknown>>();
+  /** Endpoint class → whether its in-flight first request is still waiting out the pace (D-461), unsent. */
+  private readonly firstPacing = new Map<Endpoint, boolean>();
   /** D-461: the search pace, or null when off. */
   private readonly pace: SearchPace | null;
   /** D-461: send times (ms) of searches under the pace, ascending; may include reservations in the future. */
@@ -317,16 +323,23 @@ export class RateLimiter {
       const inFlight = this.firstInFlight.get(endpoint);
       if (!inFlight) {
         if (waited) this.refuseIfTooLate(opts, this.now() - arrived);
-        return this.runFirst(endpoint, kind, send, opts);
+        return this.runFirst(endpoint, kind, send, opts, arrived);
       }
-      await untilSettledOrAborted(inFlight, opts.signal);
+      if (endpoint === 'search' && this.pace) {
+        // D-461: this search can't go before the pace admits it, after the in-flight one's reserved
+        // send; when that is past the deadline or the cap, refuse now instead of waiting behind it.
+        const now = this.now();
+        const at = this.pacedTime(now, now);
+        if (at > now) this.refuseWait(at, now, opts, true, arrived);
+      }
+      await this.waitForFirst(endpoint, inFlight, opts, arrived);
       waited = true;
     }
     if (waited) this.refuseIfTooLate(opts, this.now() - arrived);
 
     const policyName = this.classPolicy.get(endpoint)!;
     const policy = this.policy(policyName);
-    const { sendAt, paced } = this.admit(endpoint, policy, kind, opts);
+    const { sendAt, paced } = this.admit(endpoint, policy, kind, opts, arrived);
     const counted = endpoint === 'search' && this.pace !== null;
     try {
       const wait = sendAt - this.now();
@@ -346,6 +359,41 @@ export class RateLimiter {
     const response = await send();
     this.record(endpoint, kind, response);
     return response;
+  }
+
+  /**
+   * Wait for a class's in-flight first request to settle, but no longer than the request may wait (D-461):
+   * until the deadline less `MIN_SEND_LEFT_MS`, or `maxWaitMs` after its arrival, whichever comes first.
+   * Past that, refuse as `would_wait`: a `PaceWaitError` while the first request is still waiting out the
+   * pace. The bound is a `setTimeout` (as the client's request timeout is), cleared when the first settles.
+   */
+  private async waitForFirst(endpoint: Endpoint, inFlight: Promise<unknown>, opts: RunOptions, arrived: number): Promise<void> {
+    const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
+    const capAt = arrived + maxWaitMs;
+    const deadlineAt = opts.deadline === undefined ? Infinity : opts.deadline - MIN_SEND_LEFT_MS;
+    const limitAt = Math.min(capAt, deadlineAt);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<'late'>((resolve) => {
+      timer = setTimeout(() => resolve('late'), Math.max(0, limitAt - this.now()));
+    });
+    try {
+      const outcome = await Promise.race([untilSettledOrAborted(inFlight, opts.signal).then(() => 'settled' as const), late]);
+      if (outcome === 'settled') return;
+    } finally {
+      clearTimeout(timer);
+    }
+    const waitS = Math.max(1, Math.ceil((this.now() - arrived) / 1000));
+    const byDeadline = deadlineAt <= capAt;
+    if (this.firstPacing.get(endpoint) && this.pace) {
+      throw new PaceWaitError(waitS, this.pace.gapMs, this.pace.cap, byDeadline);
+    }
+    throw new TradeError(
+      'would_wait',
+      byDeadline
+        ? `the trade site's rate limit needed a wait of ${waitS} s, which left too little time before the deadline; try again later`
+        : `the trade site's rate limit would need a wait of over ${waitS} s; try again later`,
+      { waitS },
+    );
   }
 
   /**
@@ -398,13 +446,14 @@ export class RateLimiter {
     kind: RequestKind,
     send: () => Promise<Response>,
     opts: RunOptions,
+    arrived: number,
   ): Promise<Response> {
     const counted = endpoint === 'search' && this.pace !== null;
     const now = this.now();
     let sendAt = now;
     if (counted) {
       sendAt = this.pacedTime(now, now);
-      if (sendAt > now) this.refuseWait(sendAt, now, opts, true);
+      if (sendAt > now) this.refuseWait(sendAt, now, opts, true, arrived);
       insertSorted(this.searchSends, sendAt);
     }
     let sent = false;
@@ -418,9 +467,11 @@ export class RateLimiter {
       }
       sentAt = this.now();
       sent = true;
+      this.firstPacing.delete(endpoint);
       return send();
     })();
     this.firstInFlight.set(endpoint, exchange);
+    if (!sent) this.firstPacing.set(endpoint, true);
     try {
       const response = await exchange;
       this.record(endpoint, kind, response, sentAt);
@@ -431,6 +482,7 @@ export class RateLimiter {
       throw error;
     } finally {
       this.firstInFlight.delete(endpoint);
+      this.firstPacing.delete(endpoint);
     }
   }
 
@@ -452,6 +504,7 @@ export class RateLimiter {
     policy: PolicyState,
     kind: RequestKind,
     opts: RunOptions,
+    arrived: number,
   ): { sendAt: number; paced: boolean } {
     const now = this.now();
     if (now < policy.lockedUntil) throw lockedOut(policy.lockedUntil - now);
@@ -462,7 +515,7 @@ export class RateLimiter {
     const counted = endpoint === 'search' && this.pace !== null;
     const sendAt = counted && Number.isFinite(siteAt) ? this.pacedTime(siteAt, now) : siteAt;
     const paced = sendAt > siteAt;
-    this.refuseWait(sendAt, now, opts, paced);
+    this.refuseWait(sendAt, now, opts, paced, arrived);
     insertSorted(policy.sent, sendAt);
     if (counted) insertSorted(this.searchSends, sendAt);
     return { sendAt, paced };
@@ -470,15 +523,17 @@ export class RateLimiter {
 
   /**
    * C-11 step 3: throw `would_wait` without sleeping when a send at `sendAt` is past the deadline, would
-   * leave under 1 s before it, or needs a wait over `maxWaitMs` (a `PaceWaitError` when `paced`).
+   * leave under 1 s before it, or needs a wait over `maxWaitMs` counted from the request's arrival `from`
+   * (D-461: time spent behind a class's first request counts); a `PaceWaitError` when `paced`.
    */
-  private refuseWait(sendAt: number, now: number, opts: RunOptions, paced: boolean): void {
+  private refuseWait(sendAt: number, now: number, opts: RunOptions, paced: boolean, from: number): void {
     const wait = sendAt - now;
+    const total = sendAt - Math.min(from, now);
     const maxWaitMs = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
     const pastDeadline =
       opts.deadline !== undefined && (sendAt > opts.deadline || (wait > 0 && opts.deadline - sendAt < MIN_SEND_LEFT_MS));
-    if (Number.isFinite(sendAt) && !pastDeadline && wait <= maxWaitMs) return;
-    const waitS = Number.isFinite(wait) ? Math.ceil(wait / 1000) : Infinity;
+    if (Number.isFinite(sendAt) && !pastDeadline && (wait <= 0 || total <= maxWaitMs)) return;
+    const waitS = Number.isFinite(total) ? Math.ceil(total / 1000) : Infinity;
     if (paced && this.pace) throw new PaceWaitError(waitS, this.pace.gapMs, this.pace.cap);
     throw new TradeError(
       'would_wait',

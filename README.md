@@ -105,7 +105,8 @@ POESESSID=<the POESESSID cookie value from your browser on pathofexile.com>
   known, no request is made before that decision.
 
 The trade tools use the trade site's own API. The server obeys every rate-limit rule the site sends,
-with a safety margin, and only makes requests when you call a tool.
+with a safety margin, and only makes requests when you call a tool. It also waits at least 45 s between
+trade searches, inside the tool call, so `find_upgrades` makes at most two searches a call.
 
 ### State folder
 

@@ -5960,3 +5960,12 @@ the `m17` engine at `b76967b`.
     rest survive gets the guide label "not measured against the Arbiter", but the design-field check doesn't look at
     the missing verdict, so the design field can still say it survives its hits (rare); failure messages print the
     unrounded hits survived ("59.980000000000004%").
+- **WU-124 (the research docs) merged** (two commits, cherry-picked onto the integration head unchanged). The card's
+  `Defence:` line (after The catch, since the display's first six Pitch fields are fixed) and `Means:` lines, no
+  respec clause in Needs; R1a asks questions 20–24 and writes the defence line from the class's attributes;
+  R1a-synthesize asks question 22 for an open ascendancy (a split is a second composite within the 4, a successor
+  replaces the composite) and glosses question 19 in §13's words, for every build (WU-123's test on that gloss
+  tightened back to the full text); R1b's checklist item 2 reads PoB's per-hit chance (`<Ailment>ChancePerHit`) or
+  buildup (`<Ailment>BuildupAvg` for freeze and electrocute) and flags more than 5 expected hits as a `risk`, against
+  the skeleton's own enemy, since a skeleton has no Pinnacle pass. Its verifier (fresh context) passed it, re-running
+  the gate (203 suites, 3,452 tests, rc 0; build rc 0); 14 doc mutations each failed their test.

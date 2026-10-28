@@ -642,7 +642,8 @@ are additive (`recordVersion` stays 2); a record without them shows the old line
   of a deflected hit prevented. `method` is how the deflected ratio is read: `pass`, PoB's own max hit in a pass where
   every hit is deflected (the 95% deflect cap lifted for it and put back), or `formula`, the ratio × (1 − `DeflectEffect`
   / 100), exact without armour and optimistic with it, used only when the pass can't make PoB deflect every hit. A
-  companion's share of deflected hits is already in PoB's max hit, so such a build's hits survived reads high (PG-100).
+  companion's share of deflected hits (the unique body Forgotten Warden) is already in PoB's max hit, so such a build's
+  hits survived reads high (PG-100): `avoid.companionDeflected` then holds that share, in percent, for the gate's note.
 - **`damage.resisting`** (every variant stage): the named source's damage figure against the map enemy with 40% fire,
   cold and lightning resistance (the top roll of `enemies/waystones.json#mods.monster-elemental-resistance`), curses at
   full strength, on its own weapon set, by the map figure's rule and with its `CullMultiplier` when the stage states

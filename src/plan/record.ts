@@ -326,6 +326,13 @@ export interface ArbiterAvoid {
   deflect: number;
   deflectEffect: number;
   method: 'pass' | 'formula';
+  /**
+   * PG-100 (§4, §17): on a build whose companion takes part of each deflected hit (PoB's
+   * `TakenFromCompanionBeforeYouFromDeflected`, the unique body Forgotten Warden), that percent. PoB's max hit already counts
+   * it at its own deflect chance, so hits survived counts deflection partly twice and reads high: the gate notes it.
+   * Absent when the build has none.
+   */
+  companionDeflected?: number;
 }
 
 export interface ArbiterMeasure {
@@ -439,7 +446,8 @@ function hitSurvived(full: HitRead, deflected: HitRead | null, evade: number, de
  * ratio and verdict, and its `hitsSurvived` is the least over the type's hits (`hitSurvived`), at the chances at the
  * Arbiter (`inputs.chances`; none, 0). With a deflect chance above 0, each row has its largest hit's `deflectedRatio` and
  * `deflectedVerdict`, by the deflected pass's max hits (`method: pass`) or the formula. `avoid` is given when the evade
- * or the deflect chance is above 0.
+ * or the deflect chance is above 0, with `companionDeflected` on a build whose companion takes part of each deflected hit
+ * (PG-100).
  */
 export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: readonly ArbiterHit[], inputs: ArbiterInputs = {}): ArbiterMeasure {
   const immune = new Set(inputs.immune ?? []);
@@ -495,6 +503,8 @@ export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: 
   const out: ArbiterMeasure = { verdict, worst, rows };
   if (chances !== undefined && (evade > 0 || deflect > 0)) {
     out.avoid = { accuracy: chances.accuracy, evade, deflect, deflectEffect, method: deflect > 0 && pass === null ? 'formula' : chances.method };
+    // PG-100: a companion's share of deflected hits, for the gate's note.
+    if ((chances.companionDeflected ?? 0) > 0) out.avoid.companionDeflected = chances.companionDeflected;
   }
   return out;
 }

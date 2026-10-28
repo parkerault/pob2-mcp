@@ -401,6 +401,11 @@ describe('WU-120 (D-449): the Arbiter rows, hits survived and the deciding row',
     expect(arbiterMeasure(MAXH(3000, 2000), [SLAM, BOLT], { chances: chances({ deflected: { maxHits: MAXH(5000, 3000), immune: [] } }) }).avoid!.method).toBe('pass');
   });
 
+  it("PG-100: avoid carries a companion's share of deflected hits when the build has one, and nothing at 0", () => {
+    expect(arbiterMeasure(MAXH(3000, 2000), [SLAM, BOLT], { chances: chances({ companionDeflected: 30 }) }).avoid!.companionDeflected).toBe(30);
+    expect('companionDeflected' in arbiterMeasure(MAXH(3000, 2000), [SLAM, BOLT], { chances: chances({ companionDeflected: 0 }) }).avoid!).toBe(false);
+  });
+
   it("an unevadable hit's evade chance is 0; the row keeps the least over its type's hits, so an unevadable smaller hit sets it; other rows don't change", () => {
     const deflected = { maxHits: MAXH(6000, 3000), immune: [] };
     const base = arbiterMeasure(MAXH(3000, 2000), [SLAM, SLAM2, BOLT], { chances: chances({ deflected }) });

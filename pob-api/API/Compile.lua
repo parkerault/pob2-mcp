@@ -2437,7 +2437,9 @@ end
 -- (calcs.deflectChance, :48-54, on its DeflectionRating), each with `accuracy` in place of the enemy's (PoB's config
 -- can't set an accuracy above 2,357: the enemy level clamps at 85, Modules/CalcSetup.lua:739), no blind and no distance;
 -- unlucky evasion and lucky deflection applied as PoB applies them (:1476-1481, :1518-1521). `deflectEffect` is PoB's
--- DeflectEffect, the share of a deflected hit prevented.
+-- DeflectEffect, the share of a deflected hit prevented. `companionDeflected` (PG-100) is the percent of a deflected hit
+-- a companion takes before the build (TakenFromCompanionBeforeYouFromDeflected, :2961-2963), which PoB's max hit already
+-- counts at PoB's own deflect chance.
 local function arbiter_chances(output, accuracy)
   local env = build.calcsTab.mainEnv
   local modDB, enemyDB = env.modDB, env.enemyDB
@@ -2460,7 +2462,10 @@ local function arbiter_chances(output, accuracy)
     local notDeflect = 1 - deflect / 100
     deflect = (1 - notDeflect * notDeflect) * 100
   end
-  return { accuracy = accuracy, evade = evade, deflect = deflect, deflectEffect = tonumber(output.DeflectEffect) or 0 }
+  return {
+    accuracy = accuracy, evade = evade, deflect = deflect, deflectEffect = tonumber(output.DeflectEffect) or 0,
+    companionDeflected = modDB:Sum('BASE', nil, 'TakenFromCompanionBeforeYouFromDeflected'),
+  }
 end
 
 -- WU-120 (amendment 12 §4, the G9 spike: `pass`): the stage measured with every hit deflected, for the deflected ratio.

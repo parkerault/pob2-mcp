@@ -1559,6 +1559,8 @@ export const stageArbiterChancesSchema = z
     evade: z.number(),
     deflect: z.number(),
     deflectEffect: z.number(),
+    /** PG-100: the percent of a deflected hit a companion takes before the build (`TakenFromCompanionBeforeYouFromDeflected`). */
+    companionDeflected: z.number().optional(),
     method: z.enum(['pass', 'formula']),
     deflected: stageMaxHitsSchema.optional(),
   })

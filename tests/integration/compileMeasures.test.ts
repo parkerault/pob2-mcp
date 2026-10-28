@@ -396,7 +396,8 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
  * - `nE`: +20000 evasion, +3000 deflection rating and +2000 life on evasion gear (no armour): one-shot by the slams, the
  *   deflected hit survived; `nA`: the same with +6000 armour, where PoB applies armour to the full hit before deflection;
  * - `nCI`: Chaos Inoculation with +2000 energy shield: immune to chaos; `bP`: the plain stage, with neither evasion nor
- *   deflection at the Arbiter's accuracy.
+ *   deflection at the Arbiter's accuracy; `nW`: `nE` with Forgotten Warden's companion line at its top roll, 15%
+ *   (Data/Uniques/body.lua:747), whose hits survived PoB's max hit makes read high (PG-100).
  *
  * The data copies (`tests/fixtures/enemies/`) are the Arbiter's data with the slam, or the smaller slam, unevadable, and
  * with a chaos hit; they are compiled through `compilePlan` itself with that data.
@@ -473,6 +474,7 @@ engineDescribe('WU-120: the toughness reading, the Arbiter on the Pinnacle pass 
       stage('nA', 'non-budget', [...evasion, '+6000 to Armour'], true),
       stage('nCI', 'non-budget', ['Chaos Inoculation', '+2000 to maximum Energy Shield'], false),
       stage('bP', 'budget', [], false),
+      stage('nW', 'non-budget', [...evasion, "15% of Damage from Deflected Hits is taken from Damageable Companion's Life before you"], true),
     ];
     plan.ledger = [];
     return plan;
@@ -671,6 +673,11 @@ engineDescribe('WU-120: the toughness reading, the Arbiter on the Pinnacle pass 
         expect(want.evade).toBeGreaterThan(0);
         expect(want.deflect).toBeGreaterThan(0);
       }
+    });
+
+    it("PG-100: a build whose companion takes part of each deflected hit carries that share in avoid, for the gate's note; one without carries none", () => {
+      expect(rec.stages.nW.measures!.arbiter!.avoid!.companionDeflected).toBe(15);
+      for (const id of ['nE', 'nA']) expect({ id, has: 'companionDeflected' in rec.stages[id].measures!.arbiter!.avoid! }).toEqual({ id, has: false });
     });
 
     it('AC-P84: a stage with neither evasion nor deflection at the Arbiter has no avoid', () => {

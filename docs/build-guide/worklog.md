@@ -5872,3 +5872,21 @@ the `m17` engine at `b76967b`.
     3367 at the pin), the first N, as free nodes it allocates while calculating and doesn't save. A plan lists every
     socket the jewel grants; a jewel in one applies (a "+200 to maximum Life" jewel raised life from 708 to 908).
     §15's citation lines for Voices are From Nothing's code; the fold corrects them.
+- **WU-120 (the compiler's measures) merged** at `46e20b3` (two commits, rebased onto WU-119 by the doer and
+  cherry-picked onto the integration head unchanged). `measures.toughness` with the conditioned read on `n`, the
+  Arbiter's rows from the Pinnacle pass with `avoid` and hits survived per row, the immune types,
+  `measures.damage.resisting`, and the key-figure line. Its verifier (fresh context) passed it on the rebased head,
+  re-running the gate (201 suites, 3,410 tests, rc 0; build rc 0) and checking the floor by hand: at accuracy 3,786 an
+  evasion stage with 20,061 evasion and 3,000 deflection rating evades 54% and deflects 13%, so a physical row one-shot
+  at 1.098 whose deflected hit (0.659) is survived reads 54 + 0.46 × 13 = 59.98% hits survived, as the record holds.
+  The golden values hold (AC-B5).
+  - **G9's spike (AC-P85, R-49): `pass`.** A measure pass can make deflection certain: it lifts
+    `DeflectionChanceCap` to 100 and has `calcs.deflectChance` read an accuracy of 0, both restored on every exit,
+    `data.misc` unchanged after. On an evasion stage (20,000 evasion, 3,000 deflection rating, no armour) the
+    physical, fire, lightning and chaos max hits went from 1,176 to 1,960, exactly ÷ 0.6 as the formula gives; with
+    +6,000 armour (7,035) the physical max hit went from 1,684 to 2,530 where the formula gives 2,807, so the formula
+    reads high with armour, as §4 says. `avoid.method` holds `pass`.
+  - **NFR-21 (AC-P85)** on `schema6-ladder`: before, `b` 414 and 319 ms, `n` 675 and 605 ms; after, `b` 403 and 349
+    ms, `n` 503 and 467 ms (the verifier's run: `b` 369, `n` 459 ms). Each far under 20 s.
+  - Appendix A gains `avoid.companionDeflected` (for PG-100's note), the percent units of `evade` and `deflect`, and
+    the null cases, as built.

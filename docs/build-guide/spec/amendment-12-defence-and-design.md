@@ -1113,8 +1113,11 @@ WU-124, and WU-118 free of HG-26 (§19). D7's left-out levers are gap 8's defaul
   damage, factor, share}}`; on `n` also `conditioned: {ehp, lowestMaxHit: {type, value} | null}`.
 - On `b` and `n`: `measures.arbiter` rows from the Pinnacle pass, an immune type's row `{ratio: 0, verdict: "survives",
   immune: true}`; each row `deflectedRatio | null`, `deflectedVerdict | null`, `hitsSurvived` (0–100, the least over
-  the type's hits); `measures.arbiter.avoid {accuracy: 3786, evade, deflect, deflectEffect, method: "pass" |
-  "formula"} | absent`.
+  the type's hits; null on a row with no verdict); `measures.arbiter.avoid {accuracy: 3786, evade, deflect,
+  deflectEffect, method: "pass" | "formula", companionDeflected?} | absent`, `evade` and `deflect` in percent (0–100),
+  `companionDeflected` PoB's `TakenFromCompanionBeforeYouFromDeflected` when a companion takes a share of deflected
+  hits (PG-100's note reads it; as built, WU-120). A max hit of 0 gives `ratio: null` and verdict `one-shot`; a mixed
+  row's immune part carries `immune: true`; `chance.factor` is null and `share` 1 when nothing gets through.
 - On each variant stage: `measures.damage.resisting` (a number).
 - On each stage of a schema-8 plan with a stage before it: `treeChange {from, refunded, added}`.
 - The key-figure line, its parts joined by `; ` as today: the damage part becomes `damage <map> against map monsters,

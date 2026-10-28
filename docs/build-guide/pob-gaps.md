@@ -476,7 +476,8 @@ the meta gems' trigger rates are PG-9's, the dropped supports in a granted skill
 The defence study (`studies/2026-10-26-defence-layers.md`) took the toughness study's 30 published league starters
 apart one defence layer at a time, and the sizing study (`studies/2026-10-26-sizing.md`) measured amendment 12's open
 candidates on the same builds; amendment 12 logs what they found (D-462). The kinds and statuses are the studies'
-candidate list's; every `file:line` below was checked against the pin on 2026-10-28. "Reported (coverage)" means
+candidate list's, except PG-91's and PG-100's, which amendment 12 sets (§17); every `file:line` below was checked
+against the pin on 2026-10-28. "Reported (coverage)" means
 `check_model_coverage` flagged the line; "video study" and "video frame" mean a study of a creator's video read the
 code or showed the figure. PG-85 (plain block against spells) was dropped, since the user trusts PoB's block reading
 (2026-10-26), and its number is skipped.

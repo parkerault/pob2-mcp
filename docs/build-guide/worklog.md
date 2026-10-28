@@ -5834,3 +5834,24 @@ the `m17` engine at `b76967b`.
   forms, `get_node_power`'s arguments, R1b's `verdict.damage`, the `priceOutcomes` keys). Every bullet of AC-P79–P81,
   AC-K72 and AC-W89–W91 has a named passing test; no bad artifacts; the built server lists 78 tools with trade and
   poe.ninja off; `scripts/fresh-clone-check.sh` rc 0. AC-W92 waits on the live test (WU-116).
+
+## 2026-10-28: M-25 (amendment 12) build started
+
+- **Approved:** amendment 12 revision 2 by the user ("The amendment is approved, start the build. I won't do any live
+  tests until the amendment is built."), committed at `80bc542` and pushed with the M-25 handoff (`a49d2d3`). So the
+  build doesn't wait for amendment 11's live test (WU-116): one live test after M-25 (WU-126) covers both. Integration
+  worktree `build-guide/m25` off `main` at `a49d2d3`; the handoff's M-25 section (`a49d2d3`, `2ac662c`) fixes the
+  waves, the merge order inside wave 1, the room left in the capped files, and the only reads of the user's private
+  guide library (B1's repro for WU-117, the candidate list's PoB gaps for WU-122).
+- **Baseline gate** on `a49d2d3`: `mise run test` rc 0 (196 suites, 3,309 tests; the timing step 2 suites, 3 tests),
+  `pnpm build` rc 0.
+- **WU-122 (the PoB gaps) merged** at `d26712d` (two commits). `pob-gaps.md` gains the section "Found in the defence
+  study (2026-10-26)": PG-83, PG-84 and PG-86 to PG-100, no PG-85, with PG-82's three figures no tool exposes;
+  amendment 11's status says it was approved and built, and that its live test runs with WU-126. Its verifier (fresh
+  context) passed it, re-running the gate (197 suites, 3,329 tests, rc 0; build rc 0); 18 of the 20 new tests fail on
+  the base docs, and five mutations were each caught. Every new `file:line` was checked against the pin.
+  - **PG-100's lines** are `Modules/CalcDefence.lua`:2960–2963, not §17's 2959–2962 (2959 is blank; 2963 multiplies
+    the companion's deflected share by `DeflectChance`). The coordinator corrected §4 and §17 of amendment 12.
+  - The coordinator also made amendment 11's status quote the user's words rather than call the pairing of the live
+    tests a ruling (the pairing is §19's plan), and said in `pob-gaps.md`'s intro that PG-91's and PG-100's kinds and
+    statuses come from §17.

@@ -6,8 +6,8 @@ revision 2 adds their answers after the boss-damage study (`../studies/2026-10-2
 made the way the guides will make it (§9b, D-447), toughness by engagement distance (§9), and the damage trade from
 150% of the target; revision 3 adds their answers after the second study (`../studies/2026-10-25-boss-estimate.md`):
 a boss floor of 250,000 at non-budget with a damage trade below it (D-448), and §9b's corrections widened. Its live
-test (WU-116) hasn't run: at amendment 12's approval (2026-10-28) the user ruled that it runs with amendment 12's
-live test (WU-126), after M-25 ("I won't do any live tests until the amendment is built"). It carries:
+test (WU-116) hasn't run: at amendment 12's approval (2026-10-28) the user said "I won't do any live tests until the
+amendment is built", so it runs with amendment 12's live test (WU-126), after M-25. It carries:
 - the user's notes during and after the open-brief half of the live test (WU-109, run `open-clear/2026-10-24-1`),
   the user's choices of 2026-10-24 and 2026-10-25 quoted where they're used;
 - the comparison study (`../studies/2026-10-24-reap-infernalist-comparison.md`, cited as [study]), the toughness

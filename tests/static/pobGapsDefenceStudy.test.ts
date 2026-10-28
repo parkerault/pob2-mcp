@@ -373,9 +373,9 @@ describe("AC-W94 (WU-122): amendment 11's status paragraph says it was approved 
     expect(status).not.toMatch(/Waiting for|REVISION 3/);
   });
 
-  it("says its live test (WU-116) runs with amendment 12's (WU-126), after M-25, as the user ruled at amendment 12's approval", () => {
+  it("says its live test (WU-116) runs with amendment 12's (WU-126), after M-25, quoting the user's words at amendment 12's approval", () => {
     const [, approved, quote] = /The user approved it on (\d{4}-\d{2}-\d{2}): "The amendment is approved, start the build\. (I won't do any live tests until the amendment is built\.)"/.exec(folded(SPEC))!;
-    expect(status).toContain(`Its live test (WU-116) hasn't run: at amendment 12's approval (${approved}) the user ruled that it runs with amendment 12's live test (WU-126), after M-25 ("${quote.replace(/\.$/, '')}")`);
+    expect(status).toContain(`Its live test (WU-116) hasn't run: at amendment 12's approval (${approved}) the user said "${quote.replace(/\.$/, '')}", so it runs with amendment 12's live test (WU-126), after M-25.`);
   });
 
   it('changes only lines 3–10: the title, the blank line and the "It carries:" list around them stand', () => {

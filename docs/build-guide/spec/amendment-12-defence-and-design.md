@@ -185,7 +185,7 @@ beside it the gate shows what EHP hides, and warns when EHP could mislead.
   (enemy level clamps at 85; `CalcSetup.lua`:739). Each Arbiter row gains `deflectedRatio`, `deflectedVerdict` and
   `hitsSurvived` (Names).
 - **A companion's share of deflected hits** (`TakenFromCompanionBeforeYouFromDeflected`, the unique body Forgotten
-  Warden) is already in PoB's max hit, at PoB's own deflect chance (`CalcDefence.lua`:2959–2962), so such a build's
+  Warden) is already in PoB's max hit, at PoB's own deflect chance (`CalcDefence.lua`:2960–2963), so such a build's
   hits survived counts deflection partly twice, and reads high at the floor: a known approximation (PG-100;
   proceed-on), which the gate notes on such a build. No reference file has it.
 - **Evadable hits.** Arbiter hits can be evaded (proceed-on, R-54): since patch 0.3.0 removed Acrobatics, evasion
@@ -675,7 +675,7 @@ Amends D-422, D-160's "measured, not capped" (a cap now exists), C-11, C-14, C-1
   doesn't cut ailment damage), PG-98 (enemy bleeding on the player is never modelled), PG-99 (crafted jewel effect
   lines unread), each in the file's skeleton (kind and status, Effect or Where, Seen in) as the candidate list states
   it, with a Workaround where the candidate gives one; and PG-100, which no candidate states: **ours, confirmed**
-  (an approximation); Where: `CalcDefence.lua`:2959–2962, a companion's share of deflected hits already in PoB's max
+  (an approximation); Where: `CalcDefence.lua`:2960–2963, a companion's share of deflected hits already in PoB's max
   hit, so hits survived counts deflection partly twice and errs optimistic at the floor; Seen in: none of the 30
   (Forgotten Warden is the only source in the pinned data); Workaround: when a build carries the line, the gate adds
   one note that its hits survived is optimistic (§4). PG-85 is dropped (the user trusts PoB's block reading) and its

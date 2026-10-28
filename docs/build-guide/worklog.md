@@ -5855,3 +5855,20 @@ the `m17` engine at `b76967b`.
   - The coordinator also made amendment 11's status quote the user's words rather than call the pairing of the live
     tests a ruling (the pairing is §19's plan), and said in `pob-gaps.md`'s intro that PG-91's and PG-100's kinds and
     statuses come from §17.
+- **WU-119 (plan schema 8 and V1) merged** at `6964995` (two commits on `e6dad76`). Schema 8: `stages[].defence`,
+  `respec` refused, `tree-continuity` on schema 7 and earlier only, `predecessorOf` skipping `tmp` stages, `treeChange`,
+  V1's `curse-level-cap` and `custom-defence` (rows in `02-plan-compiler.md`'s V1 table; `movement-tier`'s row now says
+  schema 7 and later, as the code ran), and radius jewels in the connection check. Its verifier (fresh context) failed
+  the first head on two defects, both confirmed: `custom-defence` matched words, so it flagged offence lines ("Hits
+  ignore enemy Fire Resistance") and missed "reduced Physical Damage from Hits taken"; and Voices was left out of B3.
+  The fix round reads an explicit list of 178 PoB mod names, checked by a test against ModParser's 1,243, and handles
+  Voices; the re-verify passed. Gate after the rebase: 201 suites, 3,371 tests, rc 0; build rc 0.
+  - **B3's test compile (AC-P83, R-50):** a Warrior two-stage stage with From Nothing in socket 26725 and node 17138
+    (Melee Damage) in its radius with no path. At `2ac662c` `compile_check` refused it ("not connected to its start
+    through untagged nodes"). With only the check fixed, the tree import failed ("would no longer be allocated"),
+    because the jewel was socketed after the tree. With the jewels socketed first, it compiles and the node raises DPS.
+  - **Voices** ("Allocates N Sinister Jewel sockets") becomes `GrantedPassive {SinisterJewelSockets, N}`; PoB's
+    `ResolveGrantedPassiveNodes` grants the sockets aliased `voices_jewel_slot1` to `slot5` (62152, 26178, 23960, 39087,
+    3367 at the pin), the first N, as free nodes it allocates while calculating and doesn't save. A plan lists every
+    socket the jewel grants; a jewel in one applies (a "+200 to maximum Life" jewel raised life from 708 to 908).
+    §15's citation lines for Voices are From Nothing's code; the fold corrects them.

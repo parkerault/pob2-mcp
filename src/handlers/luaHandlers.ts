@@ -240,8 +240,25 @@ const DEFENSE_PATTERNS = [
   /Life/, /Mana/, /EnergyShield/, /Ward/, /Armour/, /Evasion/, /Evade/, /Deflect/, /Block/,
   /Resist/, /Regen/, /Leech/, /Recovery/, /Recharge/, /Dodge/, /Suppression/,
 ];
-/** Stats `lua_get_stats` lists even at 0: PoE2's evade and deflect chances (AC-E41). */
-export const ALWAYS_SHOWN_STATS: ReadonlySet<string> = new Set(['EvadeChance', 'DeflectChance']);
+/**
+ * D-460 (B4, Appendix A): the defence view's fields beyond the pools, defences and resistances: deflection's effect,
+ * the chances not to be hit and to take damage (the configured hit kind's, and by hit kind), the evade chance by hit
+ * kind, the chance to avoid all damage from hits, the hits to die (raw and mitigated), the stun threshold and the
+ * chance to be stunned, and the companion's life and share of damage taken. Each is listed wherever PoB sets it.
+ */
+export const DEFENSE_DETAIL_FIELDS: readonly string[] = [
+  'DeflectEffect',
+  'ConfiguredNotHitChance', 'ConfiguredDamageChance', 'ConfiguredEvadeChance',
+  'MeleeNotHitChance', 'ProjectileNotHitChance', 'SpellNotHitChance', 'SpellProjectileNotHitChance',
+  'MeleeEvadeChance', 'ProjectileEvadeChance', 'SpellEvadeChance', 'SpellProjectileEvadeChance',
+  'AvoidAllDamageFromHitsChance', 'NumberOfDamagingHits', 'NumberOfMitigatedDamagingHits',
+  'StunThreshold', 'SelfStunChance', 'TotalCompanionLife', 'CompanionAllyDamageMitigation',
+];
+/**
+ * Stats `lua_get_stats` lists even at 0: PoE2's evade and deflect chances (AC-E41), and the defence view's detail
+ * fields wherever PoB sets them (D-460, B4): a 0% chance is itself the information.
+ */
+export const ALWAYS_SHOWN_STATS: ReadonlySet<string> = new Set(['EvadeChance', 'DeflectChance', ...DEFENSE_DETAIL_FIELDS]);
 /** Defense keys listed first, in this order; the rest keep the engine's order. */
 const DEFENSE_HEAD = ['TotalEHP', 'Life', 'EnergyShield', 'Mana'];
 const OFFENSE_HEAD = ['CombinedDPS', 'TotalDPS', 'FullDPS', 'MinionTotalDPS', 'MinionCombinedDPS'];
@@ -394,6 +411,7 @@ export async function handleLuaGetStats(
         'FireResistOverCap', 'ColdResistOverCap', 'LightningResistOverCap', 'ChaosResistOverCap',
         'TotalEHP', 'PhysicalMaximumHitTaken', 'FireMaximumHitTaken', 'ColdMaximumHitTaken',
         'LightningMaximumHitTaken', 'ChaosMaximumHitTaken',
+        ...DEFENSE_DETAIL_FIELDS,
       ];
     }
     // If category is 'all' or undefined, get all stats (fields = undefined)
@@ -427,8 +445,9 @@ export async function handleLuaGetStats(
           textLines.push('');
         }
       } else {
-        // Just show the requested category, skip zeros
-        const maxStats = 50;
+        // Just show the requested category, skip zeros. A category's own list is shown whole (the defence list
+        // holds 58 fields, D-460); any other view stops at 50.
+        const maxStats = fields ? Math.max(50, fields.length) : 50;
         let shown = 0;
         for (const [key, value] of entries) {
           if (shown >= maxStats) break;
@@ -642,8 +661,11 @@ export async function handleUpdateTreeDelta(context: LuaHandlerContext, addNodes
     if (removedCount)  text += `  Removed: ${removedCount} node(s)\n`;
     text += `  Total allocated: ${actualCount} nodes\n`;
 
+    // D-460 (B8): each auto-pathed node by name and id, in the engine's order (ids ascending).
     if (autoPathedNodes && autoPathedNodes.length > 0) {
-      text += `\n🔗 Auto-pathed ${autoPathedNodes.length} intermediate node(s) to maintain connectivity.`;
+      const names = result?.autoPathedNames ?? [];
+      const listed = autoPathedNodes.map((id, i) => `${names[i] ?? '?'} [${id}]`).join(', ');
+      text += `\nAuto-pathed ${autoPathedNodes.length} node(s): ${listed}`;
     }
 
     if (skippedAsc && skippedAsc.length > 0) {

@@ -97,8 +97,9 @@ export async function handleSaveConfigPreset(context: ConfigPresetContext, name:
 
 /**
  * Apply a preset: every option it holds is set to its saved value, and every option the build sets
- * that the preset doesn't hold is cleared (a checkbox to false, anything else to PoB's default), so the
- * config matches the preset. One `set_config` call carries every key, so an invalid value changes nothing.
+ * that the preset doesn't hold is cleared to PoB's default (`''`: a checkbox to its default state, on for one PoB
+ * defaults to on, D-460 B6; a list to a new config set's entry; anything else emptied), so the config matches the
+ * preset. One `set_config` call carries every key, so an invalid value changes nothing.
  */
 export async function handleLoadConfigPreset(context: ConfigPresetContext, name: string) {
   return wrapHandler('load config preset', async () => {
@@ -132,7 +133,7 @@ export async function handleLoadConfigPreset(context: ConfigPresetContext, name:
     const cleared: string[] = [];
     for (const key of Object.keys(current.input)) {
       if (Object.prototype.hasOwnProperty.call(preset.input, key)) continue;
-      params[key] = types.get(key) === 'check' ? false : '';
+      params[key] = '';
       cleared.push(key);
     }
     const applied = Object.keys(params).length - cleared.length;

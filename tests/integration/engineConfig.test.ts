@@ -273,6 +273,50 @@ engineDescribe('engine ops: config and presets on the golden build (WU-12)', () 
   );
 
   it(
+    'AC-K73 (D-460 B6): load_config_preset with a preset lacking a checkbox PoB defaults to on leaves it on, and a checkbox the build set on that PoB defaults to off goes off',
+    async () => {
+      // PoB's own option list (Modules/ConfigOptions): each checkbox and its defaultState.
+      const checks = await luaQuery<{ on: string[]; off: string[] }>(`
+        local on, off = {}, {}
+        for _, v in ipairs(LoadModule('Modules/ConfigOptions')) do
+          if v.var and v.type == 'check' then
+            if v.defaultState == true then on[#on + 1] = v.var elseif v.defaultState == nil then off[#off + 1] = v.var end
+          end
+        end
+        table.sort(on)
+        table.sort(off)
+        return { on = on, off = off }`);
+      const goldenInput = await engineInput();
+      // A default-on checkbox the build holds on (a new config set holds every defaultState, ConfigTab.lua:981).
+      const onKey = checks.on.find((k) => goldenInput[k] === true);
+      expect(onKey).toBeDefined();
+      // A default-off checkbox the golden build doesn't set, set on here.
+      const offKey = 'conditionLowLife';
+      expect(checks.off).toContain(offKey);
+      expect(goldenInput[offKey]).toBeUndefined();
+      expect((await call('set_config', { config_name: offKey, value: true })).isError).toBe(false);
+      expect((await engineInput())[offKey]).toBe(true);
+
+      // The preset holds neither.
+      const { [onKey!]: _on, ...preset } = goldenInput;
+      expect(_on).toBe(true);
+      const dir = path.join(xdg, 'pob2-mcp', 'presets');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'checks.json'), JSON.stringify({ input: preset }), 'utf8');
+
+      const load = await call('load_config_preset', { name: 'checks' });
+      expect(load.isError).toBe(false);
+      expect(load.text).toContain('2 options the preset doesn\'t hold cleared to PoB\'s default');
+      const after = await engineInput();
+      expect(after[onKey!]).toBe(true);
+      expect(after[offKey]).toBeUndefined();
+      // So the config is the golden build's again.
+      expect(after).toEqual(goldenInput);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
     'AC-E44: set_enemy_stats {level: 85} -> get_config shows enemy level 85, and build.configTab.input.enemyLevel == 85',
     async () => {
       const before = await luaQuery<{ input: number | null; level: number }>(

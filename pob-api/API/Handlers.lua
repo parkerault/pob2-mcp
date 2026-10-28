@@ -425,7 +425,8 @@ handlers.get_rule_breaks = function(params)
   return { ok = true, result = res }
 end
 
--- C-48 (D-194): the tree carries the ascendancy points used after the call.
+-- C-48 (D-194): the tree carries the ascendancy points used after the call; D-460 (B8): the auto-pathed
+-- nodes' names, in `autoPathedNodes`' order.
 handlers.update_tree_delta = function(params)
   local res, err = BuildOps.update_tree_delta(params or {})
   if not res then return { ok = false, error = err } end
@@ -435,6 +436,7 @@ handlers.update_tree_delta = function(params)
     ok = true,
     tree = tree,
     autoPathedNodes = res.autoPathedNodes,
+    autoPathedNames = res.autoPathedNames,
     skippedAscendancyNodes = res.skippedAscendancyNodes,
   }
 end

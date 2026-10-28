@@ -8,6 +8,7 @@ import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
 import { summonsMinion } from "../plan/record.js";
 import { formatLoadedBuild } from "./luaHandlers.js";
+import { activeSpecTreeState } from "./treeStateHandlers.js";
 
 export interface TreeHandlerContext {
   buildService: BuildService;
@@ -214,6 +215,21 @@ export async function handleGetNearbyNodes(
   }
 }
 
+/** A parsed spec's weapon-set nodes (`<WeaponSet1 nodes>` and `<WeaponSet2 nodes>`, as PoB's `PassiveSpec:Save` writes them). */
+function specWeaponSetNodes(spec: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  for (const key of ["WeaponSet1", "WeaponSet2"]) {
+    const raw = spec[key];
+    for (const el of Array.isArray(raw) ? raw : raw ? [raw] : []) {
+      const nodes = el && typeof el === "object" ? (el as Record<string, unknown>).nodes : undefined;
+      if (typeof nodes === "string" || typeof nodes === "number") {
+        for (const id of String(nodes).split(",")) if (id.trim().length > 0) out.push(id.trim());
+      }
+    }
+  }
+  return out;
+}
+
 export async function handleFindPath(
   context: TreeHandlerContext,
   buildName: string | undefined,
@@ -222,6 +238,8 @@ export async function handleFindPath(
 ) {
   try {
     let allocatedNodeIds: string[] = [];
+    // D-460 (B8): the allocated nodes tagged to a weapon set, which a path to an untagged node never runs through.
+    let weaponSetNodeIds: string[] = [];
     let treeVersion = 'Unknown';
     let fileBuildName: string | null = null;
 
@@ -234,6 +252,7 @@ export async function handleFindPath(
           throw new Error("Build has no passive tree data");
         }
         allocatedNodeIds = context.buildService.parseAllocatedNodes(build);
+        weaponSetNodeIds = specWeaponSetNodes(spec);
         treeVersion = context.buildService.extractBuildVersion(build);
         if (allocatedNodeIds.length > 0) fileBuildName = buildName;
       } catch (fileErr) {
@@ -249,6 +268,10 @@ export async function handleFindPath(
         const treeResult = await luaClient.getTree();
         allocatedNodeIds = (treeResult.nodes || []).map(String);
         treeVersion = treeResult.treeVersion || 'Unknown';
+        if (allocatedNodeIds.length > 0) {
+          const tags = activeSpecTreeState(await luaClient.exportBuildXml()).weaponSets;
+          weaponSetNodeIds = [...tags["1"], ...tags["2"]].map(String);
+        }
       }
     }
 
@@ -287,7 +310,8 @@ export async function handleFindPath(
       allocatedNodes,
       targetNodeId,
       treeData,
-      showAlternatives ? 3 : 1
+      showAlternatives ? 3 : 1,
+      new Set(weaponSetNodeIds),
     );
 
     if (paths.length === 0) {

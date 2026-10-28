@@ -6,6 +6,8 @@
  * - AC-K35, AC-K36: `add_item`'s tree-jewel slots (C-46): the enum, and socketing into the active spec.
  * - AC-K37, AC-K38: `update_tree_delta` (C-48, D-194): auto-path along PoB's own path, and the 8-point
  *   ascendancy cap. AC-K38's reply-field part is in `contract.test.ts`.
+ * - AC-K73 (D-460, B8): an untagged add auto-paths through untagged nodes only, naming each auto-pathed node by name
+ *   and id (AC-K37's line reads that form), and `find_path_to_node` follows the same rule.
  *
  * The real server runs in process (`startSessionFixture`: real `Client`, router, handlers, session, bridge
  * and luajit) over a private builds folder holding the golden build. Tool outputs are read through MCP;
@@ -133,6 +135,48 @@ const TAGGED = `
   end
   table.sort(rows, function(a, b) return a.id < b.id end)
   return rows`;
+
+/**
+ * D-460 (B8)'s case on the golden build, the first by node id: an allocated leaf `a` PoB can tag, an unallocated
+ * neighbour `t` of it with no other allocated neighbour (so once `a` is tagged, PoB's shortest path to `t` runs
+ * through `a`), and `us`, the unallocated neighbours of `t` next to an allocated node other than `a` (an untagged
+ * path of 2 points). Every node is Normal or Notable, outside any ascendancy, no jewel socket, no attribute node.
+ */
+const DETOUR = `
+  local s = build.spec
+  local function plain(n)
+    return (n.type == 'Normal' or n.type == 'Notable') and not n.ascendancyName and not n.containJewelSocket
+      and not n.isJewelSocket and not n.isAttribute
+  end
+  local function allocLinks(n)
+    local out = {}
+    for _, l in ipairs(n.linked) do if l.alloc then out[#out + 1] = l end end
+    return out
+  end
+  local best
+  for aId, a in pairs(s.allocNodes) do
+    local al = allocLinks(a)
+    if plain(a) and #al == 1 and al[1].type ~= 'ClassStart' then
+      for _, t in ipairs(a.linked) do
+        local tl = allocLinks(t)
+        if not t.alloc and plain(t) and #tl == 1 and tl[1] == a then
+          local us = {}
+          for _, u in ipairs(t.linked) do
+            if not u.alloc and u ~= a and plain(u) then
+              for _, x in ipairs(u.linked) do
+                if x.alloc and x ~= a and x.type ~= 'ClassStart' and not x.ascendancyName then us[#us + 1] = u.id break end
+              end
+            end
+          end
+          if #us > 0 and (not best or t.id < best.t or (t.id == best.t and aId < best.a)) then
+            table.sort(us)
+            best = { a = aId, t = t.id, us = us }
+          end
+        end
+      end
+    end
+  end
+  return best`;
 
 /** Every jewel socket of the pinned tree (ItemsTab's own rule, `vendor/Classes/ItemsTab.lua:278-290`). */
 const TREE_SOCKETS = `
@@ -417,7 +461,7 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
   );
 
   it(
-    'AC-K37: update_tree_delta allocates a pathDist ≥ 3 notable\'s whole pre-call path and reports Auto-pathed <pathDist − 1>; a pathDist 1 node adds exactly one node with no auto-path',
+    'AC-K37: update_tree_delta allocates a pathDist ≥ 3 notable\'s whole pre-call path and reports Auto-pathed <pathDist − 1> node(s), each by name and id; a pathDist 1 node adds exactly one node with no auto-path',
     async () => {
       const far = await luaQuery<{ id: number; pathDist: number; path: number[] }>(`
         local s = build.spec
@@ -438,7 +482,16 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
       const before = await allocated();
       const out = await f.call('update_tree_delta', { add_nodes: [String(far.id)] });
       expect(out.isError).toBe(false);
-      expect(out.text).toContain(`Auto-pathed ${far.pathDist - 1} intermediate node(s)`);
+      // D-460 (B8): the line names each auto-pathed node, ids ascending, by PoB's name for it once allocated.
+      const pathed = sorted(far.path.filter((id) => id !== far.id));
+      expect(pathed).toHaveLength(far.pathDist - 1);
+      const names = await luaQuery<Record<string, string>>(`
+        local out = {}
+        for _, id in ipairs({ ${pathed.join(', ')} }) do out[tostring(id)] = build.spec.nodes[id].dn end
+        return out`);
+      expect(out.text).toContain(
+        `Auto-pathed ${far.pathDist - 1} node(s): ${pathed.map((id) => `${names[String(id)]} [${id}]`).join(', ')}`,
+      );
       expect(await allocated()).toEqual(sorted([...new Set([...before, ...far.path])]));
 
       const near = await luaQuery<number>(`
@@ -496,38 +549,45 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
   // WU-36 review fixes (C-48): existing tags and choices survive an add; one re-import; the cap's count.
 
   it(
-    'C-48: an add whose path runs through a weapon-set branch fails naming the node and the branch, with the export and revision unchanged; an add elsewhere keeps every tag and attribute choice',
+    'C-48: an add that only a path through a weapon-set branch reaches fails naming the node and the branch, with the export and revision unchanged; an add elsewhere keeps every tag and attribute choice',
     async () => {
-      // The reviewer's case: the 8-node path to notable 55, tagged weapon set 1, its 4 attribute nodes
-      // set to Intelligence; node 40918 hangs off that branch only.
-      const pre = await luaQuery<{ pathDist: number; path: number[]; attributes: number[] }>(`
+      // The reviewer's case, D-460 (B8) amended: notable 55 is a dead end whose one neighbour, 13030, ends its 8-node
+      // path. The 7 path nodes before it are allocated and tagged weapon set 1, its 4 attribute nodes set to
+      // Intelligence, so only a path through the branch reaches 55. (A node with an untagged path, as 40918 has,
+      // now auto-paths through untagged nodes instead: the B8 tests below.)
+      const pre = await luaQuery<{ pathDist: number; path: number[]; attributes: number[]; links: number[] }>(`
         local n = build.spec.nodes[55]
-        local path, attributes = {}, {}
+        local path, attributes, links = {}, {}, {}
         for _, p in ipairs(n.path) do
-          path[#path + 1] = p.id
+          if p.id ~= 55 then path[#path + 1] = p.id end
           if p.isAttribute then attributes[#attributes + 1] = p.id end
         end
-        return { pathDist = n.pathDist, path = path, attributes = attributes }`);
+        for _, l in ipairs(n.linked) do if l.type ~= 'Mastery' then links[#links + 1] = l.id end end
+        return { pathDist = n.pathDist, path = path, attributes = attributes, links = links }`);
       expect(pre.pathDist).toBe(8);
+      expect(pre.links).toEqual([13030]);
       expect(pre.attributes).toHaveLength(4);
       const branch = sorted(pre.path);
-      expect((await f.call('update_tree_delta', { add_nodes: ['55'] })).isError).toBe(false);
+      expect(branch).toHaveLength(7);
+      expect(branch).toContain(13030);
+      expect((await f.call('update_tree_delta', { add_nodes: ['13030'] })).isError).toBe(false);
       const tagged = await f.call('set_tree_state', {
         weapon_set_nodes: { '1': branch.map(String) },
         attribute_choices: Object.fromEntries(pre.attributes.map((id) => [String(id), 'intelligence'])),
       });
       expect({ isError: tagged.isError, text: tagged.isError ? tagged.text : '' }).toEqual({ isError: false, text: '' });
-      const root = await luaQuery<{ alloc: boolean; pathDist: number; rootMode: number }>(`
-        local n = build.spec.nodes[40918]
-        return { alloc = n.alloc, pathDist = n.pathDist, rootMode = n.pathRoot and n.pathRoot.allocMode or 0 }`);
-      expect(root).toEqual({ alloc: false, pathDist: 1, rootMode: 1 });
+      const root = await luaQuery<{ alloc: boolean; pathDist: number; rootMode: number; untagged: boolean }>(`
+        local n = build.spec.nodes[55]
+        return { alloc = n.alloc, pathDist = n.pathDist, rootMode = n.pathRoot and n.pathRoot.allocMode or 0,
+          untagged = build.spec:GetAllocationPath(n, 0) ~= nil }`);
+      expect(root).toEqual({ alloc: false, pathDist: 1, rootMode: 1, untagged: false });
       const xml = await exportXml();
       expect(weaponSets(xml)).toEqual({ '1': branch });
       const choices = attributeOverride(xml);
       for (const id of pre.attributes) expect(choices.int).toContain(id);
       const intBefore = (await stats()).Int;
 
-      const text = await expectRefused('update_tree_delta', { add_nodes: ['40918'] }, ['node 40918', 'set_tree_state']);
+      const text = await expectRefused('update_tree_delta', { add_nodes: ['55'] }, ['node 55', 'set_tree_state']);
       // The refusal names the branch nodes the add would untag.
       const named = branch.filter((id) => text.includes(`${id} (`));
       expect(named.length).toBeGreaterThan(0);
@@ -562,6 +622,87 @@ engineDescribe('WU-36: L1 tree state on the engine (C-40, C-46, C-48)', () => {
         int: choices.int.filter(wasAllocated),
       });
       expect((await allocated()).length).toBeGreaterThan(before.length);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  /** Tag DETOUR's `a` to weapon set 1 and check PoB's shortest path to `t` now runs through it (pathDist 1). */
+  async function tagDetour(): Promise<{ a: number; t: number; us: number[] }> {
+    const d = await luaQuery<{ a: number; t: number; us: number[] } | null>(DETOUR);
+    expect(d).not.toBeNull();
+    const tagged = await f.call('set_tree_state', { weapon_set_nodes: { '1': [String(d!.a)] } });
+    expect({ isError: tagged.isError, text: tagged.isError ? tagged.text : '' }).toEqual({ isError: false, text: '' });
+    const pob = await luaQuery<{ pathDist: number; root: number; rootMode: number; path: number[] }>(`
+      local n = build.spec.nodes[${d!.t}]
+      local path = {}
+      for _, p in ipairs(n.path) do path[#path + 1] = p.id end
+      return { pathDist = n.pathDist, root = n.pathRoot.id, rootMode = n.pathRoot.allocMode or 0, path = path }`);
+    expect(pob).toEqual({ pathDist: 1, root: d!.a, rootMode: 1, path: [d!.t] });
+    return d!;
+  }
+
+  /** find_path_to_node's allocation order, as node ids, and its total cost. */
+  function pathOf(text: string): { ids: number[]; cost: number } {
+    const cost = Number(/^Total Cost: (\d+) passive points$/m.exec(text)![1]);
+    const ids = [...text.matchAll(/^(?:  \d+\. |→ TARGET: ).*\[(\d+)\]$/gm)].map((m) => Number(m[1]));
+    return { ids, cost };
+  }
+
+  it(
+    'AC-K73 (B8): update_tree_delta adding an untagged node whose shortest path runs through an allocated weapon-set node allocates it along untagged nodes, with no refusal, and names each auto-pathed node with its id',
+    async () => {
+      const d = await tagDetour();
+      const before = await allocated();
+      const out = await f.call('update_tree_delta', { add_nodes: [String(d.t)] });
+      expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+
+      // One more point than PoB's path through the tag: the target and one untagged neighbour of the tree.
+      const after = await allocated();
+      const added = after.filter((id) => !before.includes(id));
+      expect(added).toHaveLength(2);
+      expect(added).toContain(d.t);
+      const u = added.find((id) => id !== d.t)!;
+      expect(d.us).toContain(u);
+      expect(before.every((id) => after.includes(id))).toBe(true);
+      // The tag stays, and the new nodes are untagged.
+      expect(weaponSets(await exportXml())).toEqual({ '1': [d.a] });
+      expect(await luaQuery(TAGGED)).toEqual([{ id: d.a, mode: 1 }]);
+
+      const name = await luaQuery<string>(`return build.spec.nodes[${u}].dn`);
+      expect(out.text).toContain(`Auto-pathed 1 node(s): ${name} [${u}]`);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K73 (B8): find_path_to_node to the same node returns a path through untagged nodes only, from the engine\'s build and from a saved file; untagged, it is the 1-point path',
+    async () => {
+      const untagged = await luaQuery<{ a: number; t: number; us: number[] } | null>(DETOUR);
+      const plain = await f.call('find_path_to_node', { target_node_id: String(untagged!.t) });
+      expect(plain.isError).toBe(false);
+      expect(pathOf(plain.text)).toEqual({ ids: [untagged!.t], cost: 1 });
+
+      const d = await tagDetour();
+      // A 2-point path through one of the target's untagged neighbours, never through the tagged node (the
+      // neighbour taken depends on the search's order when there are several).
+      const throughUntagged = (text: string) => {
+        const p = pathOf(text);
+        expect(p.cost).toBe(2);
+        expect(p.ids).toHaveLength(2);
+        expect(p.ids[1]).toBe(d.t);
+        expect(d.us).toContain(p.ids[0]);
+        expect(p.ids).not.toContain(d.a);
+      };
+      const engine = await f.call('find_path_to_node', { target_node_id: String(d.t) });
+      expect(engine.isError).toBe(false);
+      throughUntagged(engine.text);
+
+      const saved = await f.call('lua_save_build', { build_name: 'b8-tagged' });
+      expect(saved.isError).toBe(false);
+      const file = await f.call('find_path_to_node', { build_name: 'b8-tagged.xml', target_node_id: String(d.t) });
+      expect(file.isError).toBe(false);
+      expect(file.text).toContain('Build: b8-tagged.xml');
+      throughUntagged(file.text);
     },
     ENGINE_TIMEOUT,
   );

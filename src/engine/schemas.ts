@@ -314,18 +314,21 @@ export const treeReply = baseReply.extend({ tree: treeSchema });
 
 /**
  * `update_tree_delta` (C-48, D-194): the tree with the ascendancy points it uses after the call (the start
- * node excluded), the path nodes allocated beyond the requested ones, and the requested nodes skipped
- * because their path would take the ascendancy points over 8.
+ * node excluded), the path nodes allocated beyond the requested ones, their names in the same order (D-460, B8),
+ * and the requested nodes skipped because their path would take the ascendancy points over 8.
  */
 const deltaTreeSchema = treeSchema.extend({ ascendancyPointsUsed: z.number().int() });
 export const updateTreeDeltaReply = baseReply.extend({
   tree: deltaTreeSchema,
   autoPathedNodes: luaArray(z.number().int()),
+  autoPathedNames: luaArray(z.string()),
   skippedAscendancyNodes: luaArray(z.number().int()),
 });
 export interface UpdateTreeDeltaResult {
   tree: z.infer<typeof deltaTreeSchema>;
   autoPathedNodes: number[];
+  /** D-460 (B8): each auto-pathed node's name, in `autoPathedNodes`' order. */
+  autoPathedNames: string[];
   skippedAscendancyNodes: number[];
 }
 
@@ -1696,6 +1699,16 @@ export type PowerWeak = z.infer<typeof powerWeakSchema>;
 
 export const POWER_SWAP_VERDICTS = ['legal', 'illegal', 'no-candidate', 'no-gain', 'over-loss', 'error'] as const;
 
+/**
+ * A measured swap's clear entry: the clear skill's radius and uses per second on the set measured. D-460 (B1): on a
+ * weapon set whose weapons the clear skill can't use (a mace skill with nothing in set 2), PoB gives it neither, and
+ * dkjson encodes the empty table as `[]`; it reads as an entry with no figures.
+ */
+const powerSwapClearSchema = z.preprocess(
+  (v) => (Array.isArray(v) && v.length === 0 ? {} : v),
+  z.object({ radius: optNumber, usesPerSecond: optNumber }).passthrough(),
+);
+
 /** D-439: a branch a swap frees: its node (the branch's root), and the points it holds (the node and its dependants). */
 export const powerBranchSchema = z.object({ id: z.number().int(), name: z.string(), points: z.number().int() }).passthrough();
 export type PowerBranch = z.infer<typeof powerBranchSchema>;
@@ -1716,7 +1729,7 @@ export const powerSwapSchema = z
     gainPercent: powerFiguresSchema.optional(),
     movement: optNumber,
     maxHit: optNumber,
-    clear: z.object({ radius: optNumber, usesPerSecond: optNumber }).passthrough().optional(),
+    clear: powerSwapClearSchema.optional(),
     used: z.number().int().optional(),
     removed: luaArray(powerNodeSchema).optional(),
     added: luaArray(powerNodeSchema.extend({ attributeChoice: optString })).optional(),

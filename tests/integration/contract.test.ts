@@ -22,7 +22,8 @@
  * AC-K38 (WU-36, contract part): on a new Warrior/Titan build, `update_tree_delta` with the 8 Titan notables
  * replies with `autoPathedNodes`, `skippedAscendancyNodes` and `tree.ascendancyPointsUsed` (C-48), the last
  * equal to a Lua count of the allocated Titan nodes (the start node excluded). That case runs on its own
- * engine with test actions on, for the Lua query.
+ * engine with test actions on, for the Lua query. D-460 (B8): the reply also carries `autoPathedNames`, each
+ * auto-pathed node's name in `autoPathedNodes`' order.
  *
  * WU-35 (C-39, AC-B4): `manage_sets` replies match their schema for every set type, a list and a changing
  * action of each; AC-K30's contract case: `set_level {level, autoMode:true}` matches its schema and the
@@ -1004,7 +1005,7 @@ engineDescribe('AC-K38 (contract part): update_tree_delta carries its reply fiel
   };
 
   it(
-    'AC-K38: on a new Warrior/Titan build, update_tree_delta with the 8 Titan notables replies with autoPathedNodes, skippedAscendancyNodes and tree.ascendancyPointsUsed equal to the Lua count',
+    'AC-K38: on a new Warrior/Titan build, update_tree_delta with the 8 Titan notables replies with autoPathedNodes and their autoPathedNames (D-460), skippedAscendancyNodes and tree.ascendancyPointsUsed equal to the Lua count',
     async () => {
       expect(await engine.request('new_build', { className: 'Warrior', ascendancy: 'Titan' }, { timeoutMs: 120_000 })).toMatchObject({ ok: true });
       const notables = await lua<number[]>(`
@@ -1024,6 +1025,12 @@ engineDescribe('AC-K38 (contract part): update_tree_delta carries its reply fiel
       expect(parsed.success ? [] : parsed.error.issues).toEqual([]);
       expect(Array.isArray(reply.autoPathedNodes)).toBe(true);
       expect(reply.autoPathedNodes.length).toBeGreaterThan(0);
+      // D-460 (B8): each auto-pathed node's name, as PoB holds it, in the same order.
+      const names = await lua<string[]>(`
+        local out = {}
+        for i, id in ipairs({ ${(reply.autoPathedNodes as number[]).join(', ')} }) do out[i] = build.spec.nodes[id].dn end
+        return out`);
+      expect(reply.autoPathedNames).toEqual(names);
       expect(Array.isArray(reply.skippedAscendancyNodes)).toBe(true);
       expect(reply.skippedAscendancyNodes.length).toBeGreaterThan(0);
 

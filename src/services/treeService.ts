@@ -484,13 +484,20 @@ export class TreeService {
     return results;
   }
 
+  /**
+   * The shortest path from the allocated tree to `targetNodeId` (D-360's legal steps), the target last, the allocated
+   * node it starts from left out. D-460 (B8): `weaponSetNodes`, the allocated nodes tagged to a weapon set, are neither
+   * starts nor steps, so the path to an untagged node runs through untagged allocated nodes only, as PoB connects one
+   * (PassiveSpec:CanPathThroughAllocMode).
+   */
   findShortestPaths(
     allocatedNodes: Set<string>,
     targetNodeId: string,
     treeData: PassiveTreeData,
-    maxPaths: number = 1
+    maxPaths: number = 1,
+    weaponSetNodes: ReadonlySet<string> = new Set(),
   ): Array<{ nodes: string[]; cost: number }> {
-    // Multi-source BFS from all allocated nodes toward the target.
+    // Multi-source BFS from all untagged allocated nodes toward the target.
     // O(V+E) — correct and optimal for unit-weight graphs.
     // Bidirectional edges: PoB tree edges are traversable both ways.
     const visited = new Set<string>();
@@ -501,6 +508,7 @@ export class TreeService {
     for (const nodeId of allocatedNodes) {
       if (treeData.nodes.has(nodeId)) {
         visited.add(nodeId);
+        if (weaponSetNodes.has(nodeId)) continue;
         previous.set(nodeId, null);
         queue.push(nodeId);
       }

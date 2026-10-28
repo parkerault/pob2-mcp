@@ -32,9 +32,11 @@
 --   parsed to nothing  an empty mod list, no remainder
 --   possibly unread    fully parsed, but some mod's name (a nested `value.mod` one included) is not read
 --                      by name (`unread` lists them). A name is read when it is in sourceNames; when it is
---                      a compound "Condition:X" whose ':'-separated parts are read; when it is, or ends
---                      with, a template literal of 6 or more characters starting with a capital (D-243);
---                      or when it matches a template whose `*` parts are each empty or in sourceNames
+--                      a "Condition:X" or "Multiplier:X" a mod tag reads, a tag of the line's own mods or of
+--                      the skill data (D-460, B5); when it is a compound "Condition:X" whose ':'-separated
+--                      parts are read; when it is, or ends with, a template literal of 6 or more characters
+--                      starting with a capital (D-243); or when it matches a template whose `*` parts are each
+--                      empty or in sourceNames
 --   possibly unmodelled; check config
 --                      a gem line whose stat is in neither statSet.statMap nor data.skillStatMap (PoB's
 --                      red-tooltip rule, GemTooltip.lua:17-37)
@@ -234,6 +236,40 @@ local function named(reader, name)
   return matchesTemplate(reader, name)
 end
 
+-- The mod names a mod tag reads when PoB evaluates it (ModStore:EvalMod): a Condition or ActorCondition tag's
+-- `var` (or each of its `varList`) X reads "Condition:X"; a Multiplier or MultiplierThreshold tag's reads
+-- "Multiplier:X". Added to `out` for every tag of `mod`, its nested `value.mod` included.
+local TAG_READS = { Condition = 'Condition:', ActorCondition = 'Condition:', Multiplier = 'Multiplier:',
+  MultiplierThreshold = 'Multiplier:' }
+local function tagReads(mod, out)
+  if type(mod) ~= 'table' then return out end
+  for _, tag in ipairs(mod) do
+    local prefix = type(tag) == 'table' and TAG_READS[tag.type]
+    if prefix then
+      if type(tag.var) == 'string' then out[prefix .. tag.var] = true end
+      for _, v in ipairs(type(tag.varList) == 'table' and tag.varList or {}) do
+        if type(v) == 'string' then out[prefix .. v] = true end
+      end
+    end
+  end
+  if type(mod.value) == 'table' and type(mod.value.mod) == 'table' then tagReads(mod.value.mod, out) end
+  return out
+end
+
+local skillDataNames -- the skill data's tag names and more, defined with the strict reading below
+
+-- D-460 (B5): the names PoB reads through mod tags when it evaluates a line's mods: the tags of the line's own
+-- mods (a "doubled" line's MORE mod carries a Multiplier tag on its own "Multiplier:<X>Doubled", ModParser.lua:
+-- 6802-6817, so Hyrri's Ire's "Evasion Rating is doubled ..." reads its own multiplier), then the tags of the
+-- skill data (Sorcery Ward's mods test Condition tags on "SorceryWard" and "CeremonialAblution",
+-- Data/Skills/other.lua:16818-16819, which Obsessive Rituals' grant and Ceremonial Ablution set).
+local function tagged(reader, list)
+  if reader.dataReads == nil then reader.dataReads = skillDataNames(gameData()).reads end
+  local own = {}
+  for _, mod in ipairs(list) do tagReads(mod, own) end
+  return setmetatable(own, { __index = reader.dataReads })
+end
+
 -- One parse's status (C-38): `list, extra` are modLib.parseMod's results; `reader` the scan (M.reader).
 function M.classify(list, extra, reader)
   if list == nil then return { status = UNPARSED } end
@@ -242,11 +278,14 @@ function M.classify(list, extra, reader)
     return { status = NOTHING }
   end
   if extra then return { status = PARTLY, remainder = extra } end
-  local unread, seen = {}, {}
+  local unread, seen, tags = {}, {}, nil
   for _, name in ipairs(modNames(list, {})) do
     if not named(reader, name) and not seen[name] then
-      seen[name] = true
-      table.insert(unread, name)
+      tags = tags or tagged(reader, list)
+      if not tags[name] then
+        seen[name] = true
+        table.insert(unread, name)
+      end
     end
   end
   if #unread > 0 then return { status = UNREAD, unread = unread } end
@@ -268,8 +307,9 @@ end
 --   skills   every skill's name with its whitespace removed, as CalcActiveSkill.lua:866-869 builds a name
 --            from one ("Multiplier:"..name:gsub("%s+", "").."MaxStages"): the `*` of such a template
 --            (`sourceSkillTemplates`) may be one
+--   reads    D-460 (B5): every "Condition:X" and "Multiplier:X" those tags read (`tagReads`), for the line statuses
 local dataNamesFor, dataNamesSets
-local function skillDataNames(d)
+function skillDataNames(d)
   if dataNamesFor == d then return dataNamesSets end
   local limits, skills = {}, {}
   for _, list in ipairs({ d.minions or {}, d.spectres or {} }) do
@@ -282,9 +322,10 @@ local function skillDataNames(d)
       skills[(skill.name:gsub('%s+', ''))] = true
     end
   end
-  local names = {}
+  local names, reads = {}, {}
   local function fromMod(mod)
     if type(mod) ~= 'table' then return end
+    tagReads(mod, reads)
     for _, tag in ipairs(mod) do
       if type(tag) == 'table' then
         for k, v in pairs(tag) do
@@ -310,7 +351,7 @@ local function skillDataNames(d)
     end
   end
   for _, entry in pairs(d.skillStatMap or {}) do fromList(entry) end
-  dataNamesFor, dataNamesSets = d, { tags = names, limits = limits, skills = skills }
+  dataNamesFor, dataNamesSets = d, { tags = names, limits = limits, skills = skills, reads = reads }
   return dataNamesSets
 end
 

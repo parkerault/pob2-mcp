@@ -427,7 +427,7 @@ export function getLuaToolSchemas(): any[] {
         properties: {
           category: {
             type: "string",
-            description: "Stat category: 'offense', 'defense', 'all' (default: all). With breakdown, only 'offense' (or leave it out).",
+            description: "Stat category: 'offense', 'defense', 'all' (default: all). 'defense' also lists, wherever PoB sets them, deflection's effect, the chances not to be hit, to take damage and to evade by hit kind (melee, projectile, spell, spell projectile), the hits to die, the stun threshold and chance to be stunned, and a companion's life and share of the damage taken. With breakdown, only 'offense' (or leave it out).",
           },
           breakdown: {
             type: "boolean",
@@ -478,7 +478,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "update_tree_delta",
-      description: "Incrementally add or remove specific passive nodes from the current tree allocation. Automatically finds and includes intermediate path nodes when adding nodes that aren't directly adjacent to the current tree. Safer than lua_set_tree because you only specify the nodes to change, not the entire tree. Note: max 8 ascendancy points allowed.",
+      description: "Incrementally add or remove specific passive nodes from the current tree allocation. Automatically finds and includes intermediate path nodes when adding nodes that aren't directly adjacent to the current tree, through untagged nodes only (PoB connects an untagged node only through untagged nodes, never through a weapon-set node), and names each one it adds. Safer than lua_set_tree because you only specify the nodes to change, not the entire tree. Note: max 8 ascendancy points allowed.",
       inputSchema: {
         type: "object",
         properties: {

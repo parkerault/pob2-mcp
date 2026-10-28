@@ -506,6 +506,35 @@ describe('reply validation (C-5 hook)', () => {
     proc.registerResponse('__test_state', { ok: true, result: { popups: 0 } });
     await expect(client.request('__test_state')).resolves.toMatchObject({ ok: true, result: { popups: 0 } });
   });
+
+  it('AC-K73 (D-460 B1): a node_power reply failing both members of its result union rejects EngineContractError naming each member\'s failing paths, as Appendix A writes them', async () => {
+    const { client, proc } = await startedClient();
+    // The upgrades member (get_passive_upgrades' candidates) but for `candidates`; the power member lacks its fields.
+    const result = { maxDistance: 2, base: { Life: 10 }, candidates: 'none', calculations: 3, cpuSeconds: 0.1 };
+    proc.registerResponse('node_power', { ok: true, result });
+
+    const err = await client.request('node_power', { stats: ['TotalEHP', 'MainDamage'] }).catch((e) => e);
+    expect(err).toBeInstanceOf(EngineContractError);
+    const message = (err as Error).message;
+    // The top issue first, then each member's issues, `union member <k>` counting from 1 in the union's order.
+    expect(message.startsWith('engine reply for "node_power" does not match its contract (C-5): result: Invalid input; union member 1: result.')).toBe(true);
+    expect(message).toContain('union member 1: result.stats: Required');
+    expect(message).toContain('union member 1: result.mode: Required');
+    expect(message).toContain('union member 2: result.candidates: Expected array, received string');
+    // Every issue of every member is named, and nothing else: the parts are exactly the top issue and the members'.
+    const parsed = replySchemas.node_power!.safeParse({ id: 1, ok: true, result });
+    expect(parsed.success).toBe(false);
+    const top = parsed.success ? undefined : parsed.error.issues[0];
+    expect(top?.code).toBe('invalid_union');
+    const members = top?.code === 'invalid_union' ? top.unionErrors : [];
+    expect(members).toHaveLength(2);
+    const expected = [
+      'result: Invalid input',
+      ...members.flatMap((m, k) => m.issues.map((i) => `union member ${k + 1}: ${i.path.join('.')}: ${i.message}`)),
+    ];
+    expect(message.slice(message.indexOf('(C-5): ') + '(C-5): '.length).split('; ')).toEqual(expected);
+    expect(client.isAlive()).toBe(true);
+  });
 });
 
 describe('typed wrappers over request()', () => {

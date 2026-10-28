@@ -145,15 +145,32 @@ export class EngineExitedError extends EngineError {
   }
 }
 
+/**
+ * Each issue as `<path>: <message>`. A union's issue ("Invalid input") is followed by every member's own issues,
+ * each as `union member <k>: <path>: <message>` (k from 1, in the union's order; a nested union's members read
+ * `<k>.<j>`), so the failing field is named whichever member the reply was meant to be (D-460, B1).
+ */
+export function describeContractIssues(issues: readonly ZodIssue[], member?: string): string[] {
+  const out: string[] = [];
+  for (const issue of issues) {
+    const where = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+    out.push(`${member ? `union member ${member}: ` : ""}${where}: ${issue.message}`);
+    if (issue.code === "invalid_union") {
+      issue.unionErrors.forEach((err, k) => {
+        out.push(...describeContractIssues(err.issues, member ? `${member}.${k + 1}` : `${k + 1}`));
+      });
+    }
+  }
+  return out;
+}
+
 /** An `ok:true` reply failed its C-5 schema. The engine stays alive. */
 export class EngineContractError extends EngineError {
   constructor(
     readonly action: string,
     readonly issues: readonly ZodIssue[],
   ) {
-    const described = issues
-      .map((i) => `${i.path.length > 0 ? i.path.join(".") : "(root)"}: ${i.message}`)
-      .join("; ");
+    const described = describeContractIssues(issues).join("; ");
     super(`engine reply for "${action}" does not match its contract (C-5): ${described}`);
   }
 }
@@ -888,7 +905,12 @@ export class PoBLuaApiClient {
    */
   async updateTreeDelta(params: ActionParams<"update_tree_delta">): Promise<UpdateTreeDeltaResult> {
     const res = await this.request("update_tree_delta", params);
-    return { tree: res.tree, autoPathedNodes: res.autoPathedNodes, skippedAscendancyNodes: res.skippedAscendancyNodes };
+    return {
+      tree: res.tree,
+      autoPathedNodes: res.autoPathedNodes,
+      autoPathedNames: res.autoPathedNames,
+      skippedAscendancyNodes: res.skippedAscendancyNodes,
+    };
   }
 
   async calcWith(params: ActionParams<"calc_with">): Promise<Record<string, any>> {

@@ -614,14 +614,19 @@ end
 --  1. one re-import of (current - remove + add), as before, keeping the tags and choices; the adds that
 --     cost ascendancy points are left to step 2, so the cap applies to every add;
 --  2. each add PoB left unallocated, in the order given, along PoB's own path (PassiveSpec:AllocNode,
---     untagged); skipped when the path would take the ascendancy points over 8, or when it runs through
---     allocated weapon-set nodes, which AllocNode would untag (GetEffectiveAllocationPath,
---     vendor/Classes/PassiveSpec.lua:900-909): those adds are listed in `retagged`, not allocated;
+--     untagged). D-460 (B8): an untagged node connects through untagged nodes only (PoB's own rule,
+--     PassiveSpec:CanPathThroughAllocMode, vendor/Classes/PassiveSpec.lua:826-830), so when PoB's shortest
+--     path runs through allocated weapon-set nodes, which AllocNode would untag (GetEffectiveAllocationPath,
+--     :890-915), the add takes the shortest path from the untagged tree instead (PoB's GetAllocationPath in
+--     normal mode, :832-888). An add is skipped when its path would take the ascendancy points over 8, or
+--     when no untagged path reaches it and PoB's runs through weapon-set nodes: those adds are listed in
+--     `retagged`, not allocated;
 --  3. every node allocated before the call keeps its attribute choice (AllocNode sets path attribute
 --     nodes to PoB's default, PassiveSpec.lua:939).
--- Returns the result ({autoPathedNodes, skippedAscendancyNodes, retagged}) and whether `spec` changed.
+-- Returns the result ({autoPathedNodes, autoPathedNames, skippedAscendancyNodes, retagged}) and whether `spec`
+-- changed.
 local function apply_delta(spec, params, current, removeNodes, addNodes)
-  local result = { autoPathedNodes = {}, skippedAscendancyNodes = {}, retagged = {} }
+  local result = { autoPathedNodes = {}, autoPathedNames = {}, skippedAscendancyNodes = {}, retagged = {} }
   local changed = false
   local priorChoices = {}
   for id in pairs(spec.allocNodes) do priorChoices[id] = spec.hashOverrides[id] or false end
@@ -657,6 +662,17 @@ local function apply_delta(spec, params, current, removeNodes, addNodes)
   for _, id in ipairs(addNodes) do
     local node = spec.nodes[id]
     local path = node and not node.alloc and node.path and spec:GetEffectiveAllocationPath(node)
+    local altPath
+    if path and #(node.intuitiveLeapLikesAffecting or {}) == 0 then
+      local tagged = false
+      for _, pathNode in ipairs(path) do
+        if pathNode.alloc and (pathNode.allocMode or 0) ~= 0 then tagged = true break end
+      end
+      if tagged then
+        altPath = spec:GetAllocationPath(node, 0)
+        if altPath then path = altPath end
+      end
+    end
     if path then
       local cost, branch = 0, {}
       for _, pathNode in ipairs(path) do
@@ -671,14 +687,18 @@ local function apply_delta(spec, params, current, removeNodes, addNodes)
       else
         local before = {}
         for allocId in pairs(spec.allocNodes) do before[allocId] = true end
-        spec:AllocNode(node)
+        spec:AllocNode(node, altPath)
         changed = true
         local pathed = {}
         for allocId in pairs(spec.allocNodes) do
           if not before[allocId] and not requested[allocId] then pathed[#pathed + 1] = allocId end
         end
         table.sort(pathed)
-        for _, allocId in ipairs(pathed) do table.insert(result.autoPathedNodes, allocId) end
+        for _, allocId in ipairs(pathed) do
+          local pathNode = spec.nodes[allocId]
+          table.insert(result.autoPathedNodes, allocId)
+          table.insert(result.autoPathedNames, tostring(pathNode and (pathNode.dn or pathNode.name) or '?'))
+        end
       end
     end
   end
@@ -710,13 +730,15 @@ end
 -- Update tree by delta lists (C-48, D-194).
 -- params: { addNodes?, removeNodes?, classId?, ascendClassId?, secondaryAscendClassId?, treeVersion? }
 -- See apply_delta: one re-import of (current - remove + add) keeping the tags and choices, then each add
--- PoB left unallocated along PoB's own path, in the order given; the path nodes beyond the requested ones
--- are `autoPathedNodes`, and an add whose path would take the ascendancy points (as
--- PassiveSpec:CountAllocNodes counts them) over 8 is in `skippedAscendancyNodes`. Already allocated
--- nodes keep their tags and choices: an add whose path would untag a weapon-set branch fails the whole
--- call, decided by a dry run on a throwaway spec, so the build is left as it was. An unknown,
--- unreachable or already allocated node adds nothing, and an empty delta changes nothing.
--- Returns { autoPathedNodes, skippedAscendancyNodes, ascendancyPointsUsed } (the points after the call).
+-- PoB left unallocated along PoB's own path, through untagged nodes only (D-460, B8), in the order given;
+-- the path nodes beyond the requested ones are `autoPathedNodes`, their names `autoPathedNames` in the same
+-- order, and an add whose path would take the ascendancy points (as PassiveSpec:CountAllocNodes counts them)
+-- over 8 is in `skippedAscendancyNodes`. Already allocated nodes keep their tags and choices: an add that only
+-- a path through a weapon-set branch reaches (it would untag the branch) fails the whole call, decided by a
+-- dry run on a throwaway spec, so the build is left as it was. An unknown, unreachable or already allocated
+-- node adds nothing, and an empty delta changes nothing.
+-- Returns { autoPathedNodes, autoPathedNames, skippedAscendancyNodes, ascendancyPointsUsed } (the points after
+-- the call).
 function M.update_tree_delta(params)
   if not build or not build.spec then return nil, 'build/spec not initialized' end
   params = type(params) == 'table' and params or {}
@@ -877,6 +899,9 @@ local function config_value(option, v)
     if type(v) == 'boolean' then return true, v end
     if v == 'true' then return true, true end
     if v == 'false' then return true, false end
+    -- D-460 (B6): an empty value puts a checkbox back to PoB's default, its defaultState (what a new config set
+    -- holds, Classes/ConfigTab.lua:981): on for a checkbox PoB defaults to on, cleared (off) for any other.
+    if v == '' then return true, option.varData and option.varData.defaultState end
     return false, string.format("config option '%s' is a checkbox: the value must be true or false", key)
   end
   -- An empty value clears the option back to PoB's default. A list can't be emptied in PoB (its

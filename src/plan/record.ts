@@ -72,8 +72,16 @@
  * `skills.cull`, `cull {map, boss}` is the named source's `CullPercent` under each. Every measured stage, a card
  * skeleton's included, gains `sourceTypes` (the named source's PoB skill types) and, when the named source's group holds a
  * gem of PoB's skill types `Meta` and `Triggers`, `trigger {by, usesPerSecond}`. `measures.dps` stays as written.
+ *
+ * **The toughness reading and the resisting figure** (WU-120; amendment 12 §4, §9; D-449, D-454; the user's HG-12 grant,
+ * HG-23), additive. Every variant stage's `measures` gain `toughness` (`toughnessOf`: the lowest max hit and immune types
+ * of its own measure, the chance layers, and on `n` the conditioned read) and `damage.resisting`. On `b` and `n` the
+ * Arbiter rows read the Pinnacle pass (its max hits, immune types and chances at the Arbiter): an immune type's row, a max
+ * hit of 0, each row's `deflectedRatio`, `deflectedVerdict` and `hitsSurvived` (the least over its type's hits, an
+ * unevadable hit's evade chance 0), and `arbiter.avoid` when the build evades or deflects at the Arbiter. A rung's
+ * deciding row (`decidingRow`) gives its single Arbiter figure.
  */
-import type { StageChecks, StageSkillMeta } from '../engine/schemas.js';
+import type { StageArbiterChances, StageChecks, StageSkillMeta } from '../engine/schemas.js';
 import { isMultiSegmentRef, parseFormula, stageValue, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
 import type { Plan, Stage } from './schema.js';
@@ -226,6 +234,11 @@ export interface ArbiterHit {
   max: number;
   /** Its damage types (`hits.<id>.type`, split at `-`): one for a plain hit, more for a mixed one. */
   types: string[];
+  /**
+   * WU-120 (amendment 12 §4, R-54): `false` when the data says the hit can't be evaded (`hits.<id>.evadable: false`),
+   * which makes its evade chance 0; absent or true means evadable.
+   */
+  evadable?: boolean;
 }
 
 /** The data file holding the Arbiter's hits (C-35). */
@@ -233,7 +246,8 @@ export const ARBITER_FILE = 'enemies/arbiter-of-divinity.json';
 
 /**
  * The Arbiter's hits from its data file's facts: every `hits.<id>` range with its `hits.<id>.type`, in file
- * order. A hit without a type, or a type that isn't a string, is left out.
+ * order. A hit without a type, or a type that isn't a string, is left out. WU-120 (amendment 12 §4, Appendix A): a hit
+ * whose `hits.<id>.evadable` fact is `false` is unevadable (`evadable: false`); absent or `true`, it is evadable.
  */
 export function arbiterHitsOf(facts: Readonly<Record<string, Fact>>): ArbiterHit[] {
   const out: ArbiterHit[] = [];
@@ -243,7 +257,8 @@ export function arbiterHitsOf(facts: Readonly<Record<string, Fact>>): ArbiterHit
     if (!m || typeof value !== 'object' || value === null || typeof (value as { max?: unknown }).max !== 'number') continue;
     const type = facts[`${key}.type`]?.value;
     if (typeof type !== 'string' || type === '') continue;
-    out.push({ id: m[1], max: (value as { max: number }).max, types: type.split('-') });
+    const evadable = facts[`${key}.evadable`]?.value !== false;
+    out.push({ id: m[1], max: (value as { max: number }).max, types: type.split('-'), evadable });
   }
   return out;
 }
@@ -252,8 +267,12 @@ export function arbiterHitsOf(facts: Readonly<Record<string, Fact>>): ArbiterHit
 export interface ArbiterPart {
   type: string;
   hit: number;
+  /** The max hit of the part's type; null when PoB gave none, or (with `immune`) none is finite. */
   maxHit: number | null;
+  /** Its share over the max hit: 0 for an immune part; null when PoB gave no max hit, or one of 0. */
   ratio: number | null;
+  /** WU-120 (D-449): PoB makes the build immune to the part's type: it counts 0, and the row reads the other part. */
+  immune?: true;
 }
 
 /** A row of `measures.arbiter`: one per damage type the Arbiter deals and one per mixed hit. */
@@ -266,15 +285,47 @@ export interface ArbiterRow {
   /** Its top roll. */
   hit: number;
   /**
-   * The stage's `<Type>MaximumHitTaken`. For a mixed hit, the largest hit of that mix the stage takes: the hit
-   * over the summed ratio. Null when PoB gave no finite positive max hit.
+   * The stage's `<Type>MaximumHitTaken` (WU-120: the Pinnacle pass's, D-449). For a mixed hit, the largest hit of that
+   * mix the stage takes: the hit over the summed ratio. Null when PoB gave no finite max hit, or the type is immune.
    */
   maxHit: number | null;
-  /** The hit over the max hit; for a mixed hit, its parts' ratios summed. */
+  /**
+   * The hit over the max hit; for a mixed hit, its parts' ratios summed. WU-120 (D-449): 0 for an immune type; null when
+   * PoB gave no max hit, or a max hit of 0 (then the verdict is `one-shot`).
+   */
   ratio: number | null;
   verdict: ArbiterVerdict | null;
   /** A mixed hit's parts, its top roll split evenly between its types. */
   parts?: ArbiterPart[];
+  /** WU-120 (D-449, gap 26): PoB makes the build immune to the row's type (every part of a mixed row): ratio 0, `survives`. */
+  immune?: true;
+  /**
+   * WU-120 (D-449): the row's hit, deflected, over the max hit (`avoid.method`: PoB's max hit with every hit deflected, or
+   * the ratio × (1 − DeflectEffect / 100)); null when the build doesn't deflect at the Arbiter or the row has no ratio.
+   */
+  deflectedRatio?: number | null;
+  /** WU-120 (D-449): the deflected ratio's verdict, `survives` below 1; null with no deflection or no verdict. */
+  deflectedVerdict?: ArbiterVerdict | null;
+  /**
+   * WU-120 (D-449; Names): the share of the type's hits the build survives, 0 to 100, the least over the type's hits: per
+   * hit, 100 when it survives the full hit; else its evade chance plus (100 − the evade chance) × the deflect chance / 100
+   * when it survives the deflected hit; else its evade chance. An unevadable hit's evade chance is 0. Null with no verdict.
+   */
+  hitsSurvived?: number | null;
+}
+
+/**
+ * WU-120 (amendment 12 §4, D-449; Appendix A): the chances at the Arbiter, on `b` and `n` when the evade or the deflect
+ * chance is above 0: its accuracy (`enemies/arbiter-of-divinity.json#base.accuracy`), PoB's melee evade and deflect
+ * chances at it (percent), PoB's `DeflectEffect`, and how the deflected ratio is read: `pass` (PoB's max hit with every hit
+ * deflected) or `formula` (the ratio × (1 − DeflectEffect / 100), optimistic with armour).
+ */
+export interface ArbiterAvoid {
+  accuracy: number;
+  evade: number;
+  deflect: number;
+  deflectEffect: number;
+  method: 'pass' | 'formula';
 }
 
 export interface ArbiterMeasure {
@@ -283,6 +334,18 @@ export interface ArbiterMeasure {
   /** The row with the largest ratio: the hit the survival label names. */
   worst: { type: string; hitId: string; ratio: number } | null;
   rows: ArbiterRow[];
+  /** WU-120 (D-449): the chances at the Arbiter, when the build evades or deflects there. */
+  avoid?: ArbiterAvoid;
+}
+
+/**
+ * WU-120 (amendment 12 §4, D-449): what the Arbiter rows read beside the max hits: the types PoB makes the build immune
+ * to, and the Pinnacle pass's chances at the Arbiter (`compile_stage`'s `boss.arbiter`), with the max hits of its
+ * deflected pass.
+ */
+export interface ArbiterInputs {
+  immune?: readonly string[];
+  chances?: StageArbiterChances;
 }
 
 /** The order of the plain damage types in `measures.arbiter`. */
@@ -292,42 +355,135 @@ const capitalised = (t: string) => `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
 /** The verdict of a ratio (D-353): below 1 the stage survives the hit, else it is one-shot. */
 export const arbiterVerdict = (ratio: number): ArbiterVerdict => (ratio < 1 ? 'survives' : 'one-shot');
 
+/** One hit read against a set of max hits: its ratio, verdict, max hit and parts (a mixed hit), and whether it is immune. */
+interface HitRead {
+  ratio: number | null;
+  verdict: ArbiterVerdict | null;
+  maxHit: number | null;
+  parts?: ArbiterPart[];
+  immune: boolean;
+}
+
+/**
+ * D-353, WU-120 (D-449): a hit's top roll against `maxHits` (`<Type>MaximumHitTaken` by field). A type in `immune` counts
+ * 0; a max hit of 0 is a one-shot with no ratio; a type PoB gave no finite max hit for has no verdict. A mixed hit's
+ * parts are its top roll split evenly between its types (the data's split is "half converted"), their ratios summed.
+ */
+function readHit(hit: ArbiterHit, maxHits: Readonly<Record<string, number>>, immune: ReadonlySet<string>): HitRead {
+  type Read = { kind: 'immune' } | { kind: 'value'; value: number } | { kind: 'none' };
+  const maxHitOf = (type: string): Read => {
+    if (immune.has(type)) return { kind: 'immune' };
+    const v = maxHits[`${capitalised(type)}MaximumHitTaken`];
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? { kind: 'value', value: v } : { kind: 'none' };
+  };
+  if (hit.types.length === 1) {
+    const m = maxHitOf(hit.types[0]);
+    if (m.kind === 'immune') return { ratio: 0, verdict: 'survives', maxHit: null, immune: true };
+    if (m.kind === 'none') return { ratio: null, verdict: null, maxHit: null, immune: false };
+    if (m.value === 0) return { ratio: null, verdict: 'one-shot', maxHit: 0, immune: false };
+    const ratio = hit.max / m.value;
+    return { ratio, verdict: arbiterVerdict(ratio), maxHit: m.value, immune: false };
+  }
+  const reads = hit.types.map((type) => ({ type, share: hit.max / hit.types.length, m: maxHitOf(type) }));
+  const parts: ArbiterPart[] = reads.map(({ type, share, m }) =>
+    m.kind === 'immune'
+      ? { type, hit: share, maxHit: null, ratio: 0, immune: true as const }
+      : m.kind === 'none'
+        ? { type, hit: share, maxHit: null, ratio: null }
+        : { type, hit: share, maxHit: m.value, ratio: m.value === 0 ? null : share / m.value },
+  );
+  if (reads.some((r) => r.m.kind === 'none')) return { ratio: null, verdict: null, maxHit: null, parts, immune: false };
+  if (reads.some((r) => r.m.kind === 'value' && r.m.value === 0)) return { ratio: null, verdict: 'one-shot', maxHit: 0, parts, immune: false };
+  const ratio = parts.reduce((sum, p) => sum + p.ratio!, 0);
+  return { ratio, verdict: arbiterVerdict(ratio), maxHit: ratio === 0 ? null : hit.max / ratio, parts, immune: reads.every((r) => r.m.kind === 'immune') };
+}
+
+/**
+ * WU-120 (D-449): a hit read deflected. `pass`: against the max hits of the deflected pass. `formula`: the full read's
+ * ratio × (1 − `deflectEffect` / 100), exact without armour and optimistic with it (PoB applies armour to the full hit
+ * first); an immune hit stays 0 and a max hit of 0 stays a one-shot.
+ */
+function readDeflected(
+  hit: ArbiterHit,
+  full: HitRead,
+  deflected: { maxHits: Readonly<Record<string, number>>; immune: ReadonlySet<string> } | null,
+  deflectEffect: number,
+): HitRead {
+  if (deflected !== null) return readHit(hit, deflected.maxHits, deflected.immune);
+  if (full.verdict === null || full.ratio === null) return { ...full, parts: undefined };
+  const ratio = full.ratio * (1 - deflectEffect / 100);
+  return { ratio, verdict: arbiterVerdict(ratio), maxHit: ratio === 0 ? null : hit.max / ratio, immune: full.immune };
+}
+
+/**
+ * WU-120 (D-449; Names): the share of one hit the build survives, 0 to 100: 100 when it survives the full hit; else the
+ * evade chance plus (100 − the evade chance) × the deflect chance / 100 when it survives the deflected hit; else the
+ * evade chance. Null when the full hit has no verdict.
+ */
+function hitSurvived(full: HitRead, deflected: HitRead | null, evade: number, deflect: number): number | null {
+  if (full.verdict === null) return null;
+  if (full.verdict === 'survives') return 100;
+  if (deflect > 0 && deflected?.verdict === 'survives') return evade + ((100 - evade) * deflect) / 100;
+  return evade;
+}
+
 /**
  * D-353: for each damage type the Arbiter deals, its largest hit's top roll over the stage's
  * `<Type>MaximumHitTaken`; for each mixed hit, the largest of that mix, its parts' ratios summed (a part is
  * the top roll split evenly between the mix's types: the data's split is "half converted"). `survives`
  * below 1, else `one-shot`.
+ *
+ * WU-120 (amendment 12 §4, D-449): `outputs` are the Pinnacle pass's max hits when the compile has them. A type in
+ * `inputs.immune` reads ratio 0, `survives`, `immune: true` (a mixed row's immune part counts 0); a max hit of 0 is a
+ * one-shot. Every hit of a row's type is read with its own ratio and `evadable` fact: the row keeps its largest hit's
+ * ratio and verdict, and its `hitsSurvived` is the least over the type's hits (`hitSurvived`), at the chances at the
+ * Arbiter (`inputs.chances`; none, 0). With a deflect chance above 0, each row has its largest hit's `deflectedRatio` and
+ * `deflectedVerdict`, by the deflected pass's max hits (`method: pass`) or the formula. `avoid` is given when the evade
+ * or the deflect chance is above 0.
  */
-export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: readonly ArbiterHit[]): ArbiterMeasure {
-  const maxHitOf = (type: string): number | null => {
-    const v = outputs[`${capitalised(type)}MaximumHitTaken`];
-    return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
-  };
-  const largest = new Map<string, ArbiterHit>();
+export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: readonly ArbiterHit[], inputs: ArbiterInputs = {}): ArbiterMeasure {
+  const immune = new Set(inputs.immune ?? []);
+  const chances = inputs.chances;
+  const evade = chances?.evade ?? 0;
+  const deflect = chances?.deflect ?? 0;
+  const deflectEffect = chances?.deflectEffect ?? 0;
+  const pass = deflect > 0 && chances?.deflected !== undefined ? { maxHits: chances.deflected.maxHits, immune: new Set(chances.deflected.immune) } : null;
+  const byType = new Map<string, ArbiterHit[]>();
   for (const hit of hits) {
     const key = hit.types.join('-');
-    const seen = largest.get(key);
-    if (seen === undefined || hit.max > seen.max) largest.set(key, hit);
+    byType.set(key, [...(byType.get(key) ?? []), hit]);
   }
-  const keys = [...largest.keys()].sort((a, b) => {
+  const keys = [...byType.keys()].sort((a, b) => {
     const rank = (k: string) => (k.includes('-') ? DAMAGE_TYPES.length : Math.max(0, DAMAGE_TYPES.indexOf(k)));
     return rank(a) - rank(b);
   });
   const rows: ArbiterRow[] = keys.map((key) => {
-    const hit = largest.get(key)!;
-    if (hit.types.length === 1) {
-      const maxHit = maxHitOf(hit.types[0]);
-      const ratio = maxHit === null ? null : hit.max / maxHit;
-      return { type: key, mixed: false, hitId: hit.id, hit: hit.max, maxHit, ratio, verdict: ratio === null ? null : arbiterVerdict(ratio) };
+    const ofType = byType.get(key)!;
+    // The largest hit of the type: the first of the largest top roll, in file order.
+    const hit = ofType.reduce((best, h) => (h.max > best.max ? h : best));
+    let least: number | null | undefined;
+    let row: ArbiterRow | undefined;
+    for (const h of ofType) {
+      const full = readHit(h, outputs, immune);
+      const deflected = deflect > 0 ? readDeflected(h, full, pass, deflectEffect) : null;
+      const survived = hitSurvived(full, deflected, h.evadable === false ? 0 : evade, deflect);
+      least = least === undefined ? survived : least === null || survived === null ? null : Math.min(least, survived);
+      if (h !== hit) continue;
+      row = {
+        type: key,
+        mixed: h.types.length > 1,
+        hitId: h.id,
+        hit: h.max,
+        maxHit: full.maxHit,
+        ratio: full.ratio,
+        verdict: full.verdict,
+        ...(full.parts !== undefined ? { parts: full.parts } : {}),
+        ...(full.immune ? { immune: true as const } : {}),
+        deflectedRatio: deflected?.ratio ?? null,
+        deflectedVerdict: deflected?.verdict ?? null,
+      };
     }
-    const parts: ArbiterPart[] = hit.types.map((type) => {
-      const share = hit.max / hit.types.length;
-      const maxHit = maxHitOf(type);
-      return { type, hit: share, maxHit, ratio: maxHit === null ? null : share / maxHit };
-    });
-    const ratio = parts.every((p) => p.ratio !== null) ? parts.reduce((sum, p) => sum + p.ratio!, 0) : null;
-    const maxHit = ratio === null || ratio === 0 ? null : hit.max / ratio;
-    return { type: key, mixed: true, hitId: hit.id, hit: hit.max, maxHit, ratio, verdict: ratio === null ? null : arbiterVerdict(ratio), parts };
+    return { ...row!, hitsSurvived: least ?? null };
   });
   const verdict: ArbiterVerdict | null = rows.some((r) => r.verdict === 'one-shot')
     ? 'one-shot'
@@ -336,7 +492,122 @@ export function arbiterMeasure(outputs: Readonly<Record<string, number>>, hits: 
       : null;
   let worst: ArbiterMeasure['worst'] = null;
   for (const r of rows) if (r.ratio !== null && (worst === null || r.ratio > worst.ratio)) worst = { type: r.type, hitId: r.hitId, ratio: r.ratio };
-  return { verdict, worst, rows };
+  const out: ArbiterMeasure = { verdict, worst, rows };
+  if (chances !== undefined && (evade > 0 || deflect > 0)) {
+    out.avoid = { accuracy: chances.accuracy, evade, deflect, deflectEffect, method: deflect > 0 && pass === null ? 'formula' : chances.method };
+  }
+  return out;
+}
+
+/**
+ * WU-120 (amendment 12, Names): a rung's deciding row, from which every single Arbiter figure of the rung comes: its
+ * one-shot row with the lowest hits survived (of two alike, the larger ratio; a row without a ratio, a max hit of 0,
+ * counts as the largest), else its row with the largest ratio (`worst`). A record without hits survived reads 0, so its
+ * deciding row is its worst. Null when no row has a ratio and none is one-shot.
+ */
+export function decidingRow(arbiter: Pick<ArbiterMeasure, 'rows' | 'worst'>): ArbiterRow | null {
+  const ratioOf = (r: ArbiterRow) => r.ratio ?? Number.POSITIVE_INFINITY;
+  let pick: ArbiterRow | null = null;
+  for (const r of arbiter.rows) {
+    if (r.verdict !== 'one-shot') continue;
+    const [hs, best] = [r.hitsSurvived ?? 0, pick?.hitsSurvived ?? 0];
+    if (pick === null || hs < best || (hs === best && ratioOf(r) > ratioOf(pick))) pick = r;
+  }
+  if (pick !== null) return pick;
+  const worst = arbiter.worst;
+  return worst === null ? null : (arbiter.rows.find((r) => r.type === worst.type && r.hitId === worst.hitId) ?? null);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The toughness reading (WU-120; amendment 12 §4, D-449)
+
+/** A max hit and its damage type (lowercase). */
+export interface MaxHit {
+  type: string;
+  value: number;
+}
+
+/**
+ * `measures.toughness.chance` (D-449): PoB's `ConfiguredNotHitChance` and `ConfiguredDamageChance` (percent;
+ * `Modules/CalcDefence.lua`:2051-2061, :3310), `factor` = 1 ÷ ((1 − notHit/100) × damage/100), the EHP multiple the chance
+ * layers give, and `share` = 1 − 1 ÷ `factor`, the part of the EHP that evade, block and deflection make. With nothing
+ * getting through (a product of 0), `factor` is null and `share` 1.
+ */
+export interface ChanceMeasure {
+  notHit: number;
+  damage: number;
+  factor: number | null;
+  share: number;
+}
+
+/** `measures.toughness.conditioned` (D-449): the conditioned read's `TotalEHP` and lowest max hit, on `n`. */
+export interface ConditionedMeasure {
+  ehp: number | null;
+  lowestMaxHit: MaxHit | null;
+}
+
+/**
+ * `measures.toughness` (D-449), on every variant stage: the lowest max hit of the stage's own measure (map monsters) and
+ * the types PoB makes it immune to, which the lowest max hit leaves out; the chance layers; on `n`, the conditioned read.
+ * Null fields where PoB gives none.
+ */
+export interface ToughnessMeasure {
+  lowestMaxHit: MaxHit | null;
+  immune: string[];
+  chance: ChanceMeasure | null;
+  conditioned?: ConditionedMeasure;
+}
+
+/** The conditioned read `compile_stage` gives on `n` (D-449). */
+export interface ConditionedReply {
+  ehp?: number;
+  maxHits: Readonly<Record<string, number>>;
+  immune: readonly string[];
+}
+
+/**
+ * D-449: the least of the five `<Type>MaximumHitTaken` in `maxHits` with its type, the immune types left out; of two
+ * alike, the first in the order physical, fire, cold, lightning, chaos. Null when none is finite.
+ */
+export function lowestMaxHitOf(maxHits: Readonly<Record<string, number>>, immune: readonly string[] = []): MaxHit | null {
+  let low: MaxHit | null = null;
+  for (const type of DAMAGE_TYPES) {
+    if (immune.includes(type)) continue;
+    const v = maxHits[`${capitalised(type)}MaximumHitTaken`];
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+    if (low === null || v < low.value) low = { type, value: v };
+  }
+  return low;
+}
+
+/** D-449: the chance layers from a stage's outputs (`ChanceMeasure`); null when PoB gives either chance as no number. */
+export function chanceOf(outputs: Readonly<Record<string, number>>): ChanceMeasure | null {
+  const [notHit, damage] = [outputs.ConfiguredNotHitChance, outputs.ConfiguredDamageChance];
+  if (typeof notHit !== 'number' || !Number.isFinite(notHit) || typeof damage !== 'number' || !Number.isFinite(damage)) return null;
+  const taken = (1 - notHit / 100) * (damage / 100);
+  if (!(taken > 0)) return { notHit, damage, factor: null, share: 1 };
+  const factor = 1 / taken;
+  return { notHit, damage, factor, share: 1 - 1 / factor };
+}
+
+/**
+ * D-449: a variant stage's toughness from its own outputs and immune types (`compile_stage`'s `immune`), with the
+ * conditioned read on `n`.
+ */
+export function toughnessOf(outputs: Readonly<Record<string, number>>, immune: readonly string[], conditioned?: ConditionedReply): ToughnessMeasure {
+  return {
+    lowestMaxHit: lowestMaxHitOf(outputs, immune),
+    immune: [...immune],
+    chance: chanceOf(outputs),
+    ...(conditioned !== undefined
+      ? {
+          conditioned: {
+            ehp: typeof conditioned.ehp === 'number' && Number.isFinite(conditioned.ehp) ? conditioned.ehp : null,
+            lowestMaxHit: lowestMaxHitOf(conditioned.maxHits, conditioned.immune),
+          },
+        }
+      : {}),
+  };
 }
 
 export type ClearSpeed = 'slow' | 'medium' | 'fast';
@@ -660,6 +931,12 @@ export interface DamageMeasure {
   map: number | null;
   /** PoB alone against a Pinnacle boss (`bossDamage`): the untriggered rotation entries' sum, never culled. */
   boss: number | null;
+  /**
+   * WU-120 (amendment 12 §9, D-454): the resisting figure, against the map enemy with 40% fire, cold and lightning
+   * resistance (the waystone modifier's top roll), curses at full strength; times its `CullMultiplier` with `skills.cull`,
+   * as the map figure. Absent from records written before amendment 12.
+   */
+  resisting?: number | null;
 }
 
 /** `measures.cull` (D-437): the named source's `CullPercent` (0–100) against map monsters and a Pinnacle boss. */
@@ -702,8 +979,20 @@ export interface BossGroupMeasure {
 /** PoB's skill types that mark a meta gem that triggers its socketed skills (D-437). */
 export const META_TRIGGER_TYPES: readonly string[] = ['Meta', 'Triggers'];
 
-/** The boss measure `compile_stage` gives with `boss` in its params (D-437, D-447). */
+/**
+ * The boss measure `compile_stage` gives with `boss` in its params (D-437, D-447). WU-120 (D-449): with the Pinnacle
+ * pass's max hits and immune types, and on `b` and `n` the chances at the Arbiter.
+ */
 export interface BossMeasureReply {
+  skillOutputs: StageRecord['skillOutputs'];
+  skillMeta: Readonly<Record<string, StageSkillMeta>>;
+  maxHits?: Readonly<Record<string, number>>;
+  immune?: readonly string[];
+  arbiter?: StageArbiterChances;
+}
+
+/** WU-120 (D-454): the resisting measure `compile_stage` gives with `resisting` in its params, keyed as `skillOutputs`. */
+export interface ResistingMeasureReply {
   skillOutputs: StageRecord['skillOutputs'];
   skillMeta: Readonly<Record<string, StageSkillMeta>>;
 }
@@ -716,6 +1005,12 @@ export interface MeasureInputs {
   skillMetaSet2?: Readonly<Record<string, StageSkillMeta>>;
   /** The boss measure, on a variant stage. */
   boss?: BossMeasureReply;
+  /** WU-120 (D-449): the types whose max hit PoB makes infinite in the stage's own measure. */
+  immune?: readonly string[];
+  /** WU-120 (D-454): the resisting measure, on a variant stage. */
+  resisting?: ResistingMeasureReply;
+  /** WU-120 (D-449): the conditioned read, on `n`. */
+  conditioned?: ConditionedReply;
 }
 
 /** The named source's selection, as a rotation entry (stat set 1 when `skills.main` names none). */
@@ -835,7 +1130,7 @@ function sourceFigures(
  * The new measures of a measured stage (WU-111; D-437, D-441, D-447): on every one, `sourceTypes` and, when the named
  * source's group holds a gem of PoB's types `Meta` and `Triggers` (one of its active skills has both, at its first stat
  * set, on the group's weapon set), `trigger`; on a variant stage with the boss measure, `damage`, `bossGroups` and, with
- * `skills.cull`, `cull`.
+ * `skills.cull`, `cull`. WU-120 (D-454): `damage.resisting` with the resisting measure.
  */
 export function sourceMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
@@ -865,6 +1160,13 @@ export function sourceMeasures(
     map: map === null ? null : map * (culls ? finiteOr(fields?.CullMultiplier, 1) : 1),
     boss: bossDamage(groups, bossSource.figure),
   };
+  // WU-120 (D-454): the resisting figure, by the map figure's rule, from the resisting measure's own fields and meta.
+  if (pob.resisting !== undefined) {
+    const key = selectionKey(source);
+    const rFields = pob.resisting.skillOutputs[key]?.fields;
+    const resisting = damageFigure(rFields, countOf(stage, source.group), pob.resisting.skillMeta[key]?.stacks.dot === true, minionAt(rec, source.group, rFields));
+    out.damage.resisting = resisting === null ? null : resisting * (culls ? finiteOr(rFields?.CullMultiplier, 1) : 1);
+  }
   if (culls) {
     const bossFields = pob.boss.skillOutputs[selectionKey(source)]?.fields;
     out.cull = { map: finiteOr(fields?.CullPercent, 0), boss: finiteOr(bossFields?.CullPercent, 0) };
@@ -901,6 +1203,11 @@ export interface StageMeasures {
   sourceTypes?: string[];
   /** WU-111 (D-447): on a variant stage, the boss rotation's entries against a Pinnacle boss. */
   bossGroups?: BossGroupMeasure[];
+  /**
+   * WU-120 (amendment 12 §4, D-449): on a variant stage, the lowest max hit and immune types of its own measure, the chance
+   * layers and, on `n`, the conditioned read. Absent from records written before amendment 12.
+   */
+  toughness?: ToughnessMeasure;
 }
 
 /** The rungs `measures.arbiter` is given on (D-353): `b` and `n`. */
@@ -922,6 +1229,10 @@ export function measuredStage(stage: Pick<Stage, 'progress' | 'variant'>): boole
  * `b` and `n`, `arbiter`, on a variant stage. D-427 (WU-102): given the stage's travel skills (`compile_stage`'s
  * `travelSkills`), the clear measure carries `travel` (`travelOf`), the travel skill or null. WU-111: given the reply's
  * skill meta and boss measure (`pob`), the new measures (`sourceMeasures`).
+ *
+ * WU-120 (amendment 12 §4, D-449): a variant stage's `toughness` (`toughnessOf`: its own outputs and immune types, the
+ * conditioned read on `n`); the Arbiter rows read the Pinnacle pass's max hits and immune types and its chances at the
+ * Arbiter when the boss measure has them, else (a reply from before amendment 12) the stage's own outputs.
  */
 export function stageMeasures(
   stage: Pick<Stage, 'skills' | 'variant'>,
@@ -956,13 +1267,19 @@ export function stageMeasures(
   const added = pob !== undefined ? sourceMeasures(stage, rec, pob) : {};
   // D-407: a card skeleton (no variant) has the pace measures only (the HG-12 grant covers these two fields).
   if (stage.variant === undefined) return { clearSpeed, movementSpeed, ...added };
+  const boss = pob?.boss;
+  const arbiter = (): ArbiterMeasure =>
+    boss?.maxHits !== undefined
+      ? arbiterMeasure(boss.maxHits, arbiterHits, { immune: boss.immune ?? [], ...(boss.arbiter !== undefined ? { chances: boss.arbiter } : {}) })
+      : arbiterMeasure(rec.outputs, arbiterHits, { immune: pob?.immune ?? [] });
   return {
     dps: headlineDps(stage, rec),
     ehp: typeof ehp === 'number' && Number.isFinite(ehp) ? ehp : null,
-    ...(ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiterMeasure(rec.outputs, arbiterHits) } : {}),
+    ...(ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiter() } : {}),
     clearSpeed,
     movementSpeed,
     ...added,
+    toughness: toughnessOf(rec.outputs, pob?.immune ?? [], pob?.conditioned),
   };
 }
 

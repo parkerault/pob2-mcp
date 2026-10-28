@@ -2288,8 +2288,28 @@ local function companion_measure(st)
   fail('the stage names a companion, but PoB built no companion skill for its Tame Beast gem')
 end
 
+-- WU-120 (amendment 12 §4, D-449): the five damage types of PoB's `<Type>MaximumHitTaken`.
+local MAX_HIT_TYPES = { 'Physical', 'Fire', 'Cold', 'Lightning', 'Chaos' }
+
+-- WU-120 (D-449): an output's max hits: the finite `<Type>MaximumHitTaken` by field, and the types PoB makes the
+-- build immune to (an infinite max hit: a part whose taken multiplier is 0, Modules/CalcDefence.lua:3683-3738),
+-- lowercase, in MAX_HIT_TYPES' order. A max hit of 0 is finite and kept: it is a one-shot.
+local function max_hits(output)
+  local hits, immune = {}, {}
+  for _, t in ipairs(MAX_HIT_TYPES) do
+    local v = output[t .. 'MaximumHitTaken']
+    if finite(v) then
+      hits[t .. 'MaximumHitTaken'] = v
+    elseif v == math.huge then
+      immune[#immune + 1] = t:lower()
+    end
+  end
+  return hits, immune
+end
+
 -- Every finite number of a main output, with the minion's own numbers flattened as Minion<Field> (D-376,
--- BuildOps.output_field; PoB's own field wins).
+-- BuildOps.output_field; PoB's own field wins). WU-120 (D-449): the second value is the immune types (`max_hits`),
+-- whose infinite max hit the map leaves out.
 local function output_map(output)
   local outputs = {}
   for k, v in pairs(output) do
@@ -2304,7 +2324,8 @@ local function output_map(output)
       end
     end
   end
-  return outputs
+  local _, immune = max_hits(output)
+  return outputs, immune
 end
 
 -- D-426: whether the stage uses weapon set 2: passives tagged to it, an item in a Swap slot, or a skill group
@@ -2349,22 +2370,45 @@ local function measure_set_two(fields)
   return outputs, skills, meta
 end
 
--- WU-111 (amendment 11 §5, §9b; D-437, D-447): the boss measure. The stage is measured again under its own config with
--- only `enemyIsBoss` set to "Pinnacle" (the community convention, Modules/ConfigOptions.lua:1964: its apply sets the
--- Pinnacle boss's placeholders and conditions), the plan's earned conditions and every other listed option as they are.
--- `boss.groups` are the reply's group numbers to measure (the named source's and the boss rotation's), each with
--- `boss.fields`, on its own weapon set: a group the plan puts on weapon set 2 with set 2 active (on a stage measured on
--- set 1), the others as the stage's own measure. Each is read as skill_outputs reads it, so the keys and fields are
--- `skillOutputs`', with each key's `skill_meta`. The config value, the weapon-set flag and the weapon-fit flags are put
--- back and the build recalculated however it ends, so the saved build and every later stage are as they would be
--- without it. Nil without `boss`.
-local BOSS_VALUE = 'Pinnacle'
-local function measure_boss(st)
-  local boss = st.boss
-  if type(boss) ~= 'table' then return nil end
+-- WU-111, WU-120 (amendment 11 §9b; amendment 12 §4, §9): `fn(cs)` run with the config `options` (option -> value) set on
+-- the stage's config set, every other option as it is. The options, the weapon-set flag and the weapon-fit flags are put
+-- back and the build recalculated however it ends, so the saved build and every later stage are as they would be without
+-- it. `what` names the measure in a failure.
+local function with_config(what, options, fn)
+  local ct = build.configTab
+  local cs = ct.configSets[ct.activeConfigSetId]
+  if not cs then fail(what .. ' needs the stage\'s config set') end
+  local names, prior = {}, {}
+  for option in pairs(options) do
+    names[#names + 1] = option
+    prior[option] = cs.input[option]
+  end
+  local itemsTab = build.itemsTab
+  local itemSet = itemsTab.activeItemSet
+  local priorSet = itemSet.useSecondWeaponSet
+  local flags = itemsTab.lastWeaponFlagState
+  local ok, res = pcall(function()
+    for _, option in ipairs(names) do cs.input[option] = options[option] end
+    ct:BuildModList()
+    return fn(cs)
+  end)
+  itemSet.useSecondWeaponSet = priorSet
+  itemsTab.lastWeaponFlagState = flags
+  for _, option in ipairs(names) do cs.input[option] = prior[option] end
+  ct:BuildModList()
+  rebuild()
+  if not ok then error(res, 0) end
+  return res
+end
+
+-- WU-111 (D-447): the groups `nums` (the reply's numbers) read with `fields` as skill_outputs reads them, each on its own
+-- weapon set: a group the plan puts on weapon set 2, on a stage measured on set 1, with set 2 active (after the others),
+-- the others as the stage's own measure; keyed as `skillOutputs`, with each key's `skill_meta`. The caller puts the
+-- weapon-set flag back (with_config).
+local function measure_groups(st, nums, fields)
   local groups = list(st.groups)
   local own, two, anyTwo = {}, {}, false
-  for _, g in ipairs(list(boss.groups)) do
+  for _, g in ipairs(list(nums)) do
     local n = tonumber(g)
     local group = n and groups[n]
     if group and tonumber(group.weaponSet) == 2 and st.useSecondWeaponSet ~= true then
@@ -2374,37 +2418,142 @@ local function measure_boss(st)
       own[n] = true
     end
   end
-  local fields = list(boss.fields)
-  local ct = build.configTab
-  local cs = ct.configSets[ct.activeConfigSetId]
-  if not cs then fail('the boss measure needs the stage\'s config set') end
-  local prior = cs.input.enemyIsBoss
-  local itemsTab = build.itemsTab
-  local itemSet = itemsTab.activeItemSet
-  local priorSet = itemSet.useSecondWeaponSet
-  local flags = itemsTab.lastWeaponFlagState
-  local ok, skills, meta = pcall(function()
-    cs.input.enemyIsBoss = BOSS_VALUE
-    ct:BuildModList()
+  local out, _, _, metas = skill_outputs(fields, own)
+  if anyTwo then
+    local itemsTab = build.itemsTab
+    itemsTab.activeItemSet.useSecondWeaponSet = true
+    itemsTab.lastWeaponFlagState = nil
     rebuild()
-    local out, _, _, metas = skill_outputs(fields, own)
-    if anyTwo then
-      itemSet.useSecondWeaponSet = true
-      itemsTab.lastWeaponFlagState = nil
-      rebuild()
-      local out2, _, _, metas2 = skill_outputs(fields, two)
-      for k, v in pairs(out2) do out[k] = v end
-      for k, v in pairs(metas2) do metas[k] = v end
+    local out2, _, _, metas2 = skill_outputs(fields, two)
+    for k, v in pairs(out2) do out[k] = v end
+    for k, v in pairs(metas2) do metas[k] = v end
+  end
+  return out, metas
+end
+
+-- WU-120 (amendment 12 §4, D-449): the chances at the Arbiter, from the last calculation (the Pinnacle pass, on the stage's
+-- own weapon set): PoB's own melee evade chance (Modules/CalcDefence.lua:1447-1464, calcs.monsterHitChance at :40-46, on
+-- the build's MeleeEvasion, its EvadeChance base, the enemy's HitChance and the evade cap) and deflect chance
+-- (calcs.deflectChance, :48-54, on its DeflectionRating), each with `accuracy` in place of the enemy's (PoB's config
+-- can't set an accuracy above 2,357: the enemy level clamps at 85, Modules/CalcSetup.lua:739), no blind and no distance;
+-- unlucky evasion and lucky deflection applied as PoB applies them (:1476-1481, :1518-1521). `deflectEffect` is PoB's
+-- DeflectEffect, the share of a deflected hit prevented.
+local function arbiter_chances(output, accuracy)
+  local env = build.calcsTab.mainEnv
+  local modDB, enemyDB = env.modDB, env.enemyDB
+  local calcs = build.calcsTab.calcs
+  local evade
+  if modDB:Flag(nil, 'CannotEvade') or enemyDB:Flag(nil, 'CannotBeEvaded') then
+    evade = 0
+  elseif modDB:Flag(nil, 'AlwaysEvade') then
+    evade = 100
+  else
+    local base = modDB:Sum('BASE', nil, 'EvadeChance')
+    local hitChance = calcLib.mod(enemyDB, nil, 'HitChance')
+    local evadeMax = modDB:Max(nil, 'EvadeChanceMax') or _G.data.misc.EvadeChanceCap
+    local hit = calcs.monsterHitChance(tonumber(output.MeleeEvasion) or 0, accuracy)
+    evade = math.max(0, math.min(evadeMax, (100 - (hit - base) * hitChance) * calcLib.mod(modDB, nil, 'EvadeChance', 'MeleeEvadeChance')))
+    if modDB:Flag(nil, 'UnluckyEvade') then evade = evade * evade / 100 end
+  end
+  local deflect = calcs.deflectChance(tonumber(output.DeflectionRating) or 0, accuracy)
+  if modDB:Flag(nil, 'DeflectIsLucky') then
+    local notDeflect = 1 - deflect / 100
+    deflect = (1 - notDeflect * notDeflect) * 100
+  end
+  return { accuracy = accuracy, evade = evade, deflect = deflect, deflectEffect = tonumber(output.DeflectEffect) or 0 }
+end
+
+-- WU-120 (amendment 12 §4, the G9 spike: `pass`): the stage measured with every hit deflected, for the deflected ratio.
+-- PoB counts deflection in the max hit only at a 100% chance (Modules/CalcDefence.lua:2459) and caps the chance at 95%
+-- (Modules/Data.lua:245, data.misc.DeflectionChanceCap). The pass lifts the cap to 100 and has PoB's own deflect formula
+-- (calcs.deflectChance, :48-54) read an enemy accuracy of 0, which a build with any deflection rating deflects at the
+-- cap; nothing else of the calculation changes. vendor/ is unmodified: the cap and the formula are put back however the
+-- pass ends, before the build is read again. The five max hits (`max_hits`) when PoB's chance came out 100, else nil
+-- (the compile then reads the ratio by formula).
+local function deflected_pass()
+  local misc = _G.data.misc
+  local calcs = build.calcsTab.calcs
+  local cap, own = misc.DeflectionChanceCap, calcs.deflectChance
+  misc.DeflectionChanceCap = 100
+  calcs.deflectChance = function(deflection) return own(deflection, 0) end
+  local ok, output, err = pcall(rebuild)
+  misc.DeflectionChanceCap = cap
+  calcs.deflectChance = own
+  if not ok then error(output, 0) end
+  output = must('measuring the stage with every hit deflected', output, err)
+  if output.DeflectChance ~= 100 then return nil end
+  local hits, immune = max_hits(output)
+  return { maxHits = hits, immune = immune }
+end
+
+-- WU-111 (amendment 11 §5, §9b; D-437, D-447): the boss measure. The stage is measured again under its own config with
+-- only `enemyIsBoss` set to "Pinnacle" (the community convention, Modules/ConfigOptions.lua:1964: its apply sets the
+-- Pinnacle boss's placeholders and conditions), the plan's earned conditions and every other listed option as they are.
+-- `boss.groups` are the reply's group numbers to measure (the named source's and the boss rotation's), each with
+-- `boss.fields`, on its own weapon set (`measure_groups`). Each is read as skill_outputs reads it, so the keys and fields
+-- are `skillOutputs`', with each key's `skill_meta`. Everything is put back as with_config puts it back. Nil without
+-- `boss`.
+-- WU-120 (amendment 12 §4, D-449): right after its first calculation, on the stage's own weapon set, before any weapon-set-2
+-- one, the pass reads the five max hits and the immune types (`maxHits`, `immune`: the Arbiter verdict's), under PoB's
+-- Pinnacle settings as they are (curses at half effect, the enemy's penetration placeholders, enemy level 82). With
+-- `boss.arbiter` (`b` and `n`), `arbiter` is the chances at the Arbiter's accuracy (`arbiter_chances`) and, when the
+-- deflect chance is above 0, the max hits with every hit deflected (`deflected`, by `deflected_pass`); `method` is
+-- `pass`, or `formula` when PoB couldn't be made to deflect every hit.
+local BOSS_VALUE = 'Pinnacle'
+local function measure_boss(st)
+  local boss = st.boss
+  if type(boss) ~= 'table' then return nil end
+  local accuracy = type(boss.arbiter) == 'table' and tonumber(boss.arbiter.accuracy) or nil
+  return with_config('the boss measure', { enemyIsBoss = BOSS_VALUE }, function()
+    local output = must('measuring the stage against a Pinnacle boss', rebuild())
+    local hits, immune = max_hits(output)
+    local arbiter = nil
+    if accuracy ~= nil then
+      arbiter = arbiter_chances(output, accuracy)
+      arbiter.method = 'pass'
+      if arbiter.deflect > 0 then
+        arbiter.deflected = deflected_pass()
+        if arbiter.deflected == nil then arbiter.method = 'formula' end
+      end
     end
-    return out, metas
+    -- The breakdown rebuilds before each figure it reads (BuildOps.stats_breakdown), so the deflected pass is gone.
+    local skills, meta = measure_groups(st, boss.groups, list(boss.fields))
+    return { skillOutputs = skills, skillMeta = meta, maxHits = hits, immune = immune, arbiter = arbiter }
   end)
-  itemSet.useSecondWeaponSet = priorSet
-  itemsTab.lastWeaponFlagState = flags
-  cs.input.enemyIsBoss = prior
-  ct:BuildModList()
-  rebuild()
-  if not ok then error(skills, 0) end
-  return { skillOutputs = skills, skillMeta = meta }
+end
+
+-- WU-120 (amendment 12 §9, D-454): the resisting figure's measure. The stage is measured again under its own config with
+-- only the enemy's fire, cold and lightning resistances set to `resisting.resist` (the waystone modifier's top roll),
+-- curses at full strength (the map enemy isn't a boss); `resisting.groups` (the named source's) are read with
+-- `resisting.fields` on their own weapon set as the boss measure reads its groups, and everything is put back as it is
+-- put back there. Nil without `resisting`.
+local RESIST_OPTIONS = { 'enemyFireResist', 'enemyColdResist', 'enemyLightningResist' }
+local function measure_resisting(st)
+  local r = st.resisting
+  if type(r) ~= 'table' then return nil end
+  local value = tonumber(r.resist)
+  if value == nil then fail('the resisting measure needs the enemy\'s resistance') end
+  local options = {}
+  for _, option in ipairs(RESIST_OPTIONS) do options[option] = value end
+  return with_config('the resisting measure', options, function()
+    must('measuring the stage against resisting enemies', rebuild())
+    local skills, meta = measure_groups(st, r.groups, list(r.fields))
+    return { skillOutputs = skills, skillMeta = meta }
+  end)
+end
+
+-- WU-120 (amendment 12 §4, D-449): the conditioned read, on `n`. The stage is measured again with every condition against
+-- it: PoB's EHP calc set to Unlucky (`EHPUnluckyWorstOf` 2), been hit recently, Wind Dancer at 0 stacks and the enemy not
+-- blinded, every other option as it is; its TotalEHP and max hits (`max_hits`) are read and every option is put back as
+-- the boss measure puts its own back, so the saved file's config is the plan's. Nil without `conditioned`.
+local CONDITIONED = { EHPUnluckyWorstOf = 2, conditionBeenHitRecently = true, windDancerStacks = 0, conditionEnemyBlinded = false }
+local function measure_conditioned(st)
+  if st.conditioned ~= true then return nil end
+  return with_config('the conditioned read', CONDITIONED, function()
+    local output = must('measuring the stage with every condition against it', rebuild())
+    local hits, immune = max_hits(output)
+    return { ehp = finite(output.TotalEHP) and output.TotalEHP or nil, maxHits = hits, immune = immune }
+  end)
 end
 
 function M.compile_stage(st)
@@ -2461,7 +2610,7 @@ function M.compile_stage(st)
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
     local companion = companion_measure(st)
-    local outputs = output_map(output)
+    local outputs, immune = output_map(output)
     if setTwo and st.useSecondWeaponSet == true then outputsSet2 = outputs end
     local configInputs, configSurvivesDrop = {}, {}
     local cs = build.configTab.configSets[configSetId]
@@ -2481,13 +2630,17 @@ function M.compile_stage(st)
     local alloc = allocation()
     local skills, skillStacks, travelSkills, skillMeta = skill_outputs(list(st.offenseFields))
     if setTwo and st.useSecondWeaponSet == true then skillsSet2, metaSet2 = skills, skillMeta end
-    -- WU-111: the boss measure, last, so nothing above reads the build while it is set for a Pinnacle boss.
+    -- WU-111: the boss measure, last, so nothing above reads the build while it is set for a Pinnacle boss. WU-120
+    -- (amendment 12 §4, §9): then the resisting measure and, on `n`, the conditioned read, each putting its options back.
     local boss = measure_boss(st)
+    local resisting = measure_resisting(st)
+    local conditioned = measure_conditioned(st)
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
       allocation = alloc,
       outputs = outputs,
+      immune = immune,
       outputsSet2 = outputsSet2,
       skillOutputs = skills,
       skillOutputsSet2 = skillsSet2,
@@ -2502,6 +2655,8 @@ function M.compile_stage(st)
       skillMeta = skillMeta,
       skillMetaSet2 = metaSet2,
       boss = boss,
+      resisting = resisting,
+      conditioned = conditioned,
       checks = checks,
       minionSkills = minionSkills,
       companion = companion,

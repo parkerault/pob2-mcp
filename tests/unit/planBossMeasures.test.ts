@@ -12,6 +12,9 @@
  *   `cull {map, boss}` its `CullPercent` under each, only with `skills.cull`.
  * - `trigger` (§5): when the named source's group holds an active skill of PoB's types `Meta` and `Triggers`; on a card
  *   skeleton too. `sourceTypes`: the named source's types, on every measured stage.
+ * - WU-120 (amendment 12 §9, D-454): `damage.resisting`, the named source's figure from the resisting measure by the map
+ *   figure's rule (its own Count, damage over time by the measure's own stacking, ailments once, a minion's
+ *   `MinionTotalDPS`), × that measure's `CullMultiplier` only with `skills.cull`; absent without the measure.
  */
 import { describe, expect, it } from '@jest/globals';
 import type { StageSkillMeta } from '../../src/engine/schemas';
@@ -214,5 +217,45 @@ describe('WU-111 (D-437): the named source\'s figures, cull, trigger and types',
     // No such gem in the group: no trigger.
     const plain = stageMeasures(stage(), rec, [], {}, undefined, { ...pob, skillMeta: { ...pob.skillMeta, g1s1p1: meta({ types: ['Buff', 'Meta'] }) } });
     expect(plain.trigger).toBeUndefined();
+  });
+});
+
+describe('WU-120 (D-454): the resisting figure', () => {
+  const stage = (over: Partial<Stage['skills']> = {}): Pick<Stage, 'skills' | 'variant'> => {
+    const gems = [{ name: 'X', level: 1, quality: 0, enabled: true }];
+    return {
+      variant: 'non-budget',
+      skills: { groups: [{ enabled: true, role: 'single_target', gems, count: 3 }], main: { group: 1, activeSkill: 1, statSet: 1 }, rolledGroup: 1, ...over },
+    } as Pick<Stage, 'skills' | 'variant'>;
+  };
+  const rec = {
+    outputs: { TotalEHP: 5000 },
+    skillOutputs: { g1s1p1: entry('Frostbolt', { TotalDPS: 100, TotalDot: 10, IgniteDPS: 7, CullMultiplier: 1.25 }) },
+    countedOutputs: { group: 1, count: 3, dotCanStack: false, fields: {} },
+    countedSkillOutputs: { g1s1p1: { skill: 'Frostbolt', statSetLabel: 'Frostbolt', count: 3, dotCanStack: false, fields: { TotalDPS: 300 } } },
+    minionSkills: [],
+  } as Pick<StageRecord, 'outputs' | 'skillOutputs' | 'countedOutputs' | 'countedSkillOutputs' | 'minionSkills'>;
+  const boss: BossMeasureReply = { skillOutputs: { g1s1p1: entry('Frostbolt', { TotalDPS: 50 }) }, skillMeta: { g1s1p1: meta() } };
+  const resisting = (fields: Fields, stacks: Partial<Stacks> = {}) => ({ skillOutputs: { g1s1p1: entry('Frostbolt', fields) }, skillMeta: { g1s1p1: meta({ stacks }) } });
+
+  it("is the named source's figure in the resisting measure, by the map figure's rule: hits × Count, damage over time × Count only when it stacks there, ailments once", () => {
+    const m = stageMeasures(stage(), rec, [], {}, undefined, { boss, resisting: resisting({ TotalDPS: 60, TotalDot: 6, IgniteDPS: 4 }) });
+    expect(m.damage).toEqual({ map: 300 + 10 + 7, boss: 150, resisting: 60 * 3 + 6 + 4 });
+    const stacking = stageMeasures(stage(), rec, [], {}, undefined, { boss, resisting: resisting({ TotalDPS: 60, TotalDot: 6 }, { dot: true }) });
+    expect(stacking.damage!.resisting).toBe(60 * 3 + 6 * 3);
+  });
+
+  it("carries the resisting measure's own CullMultiplier only with skills.cull, as the map figure does", () => {
+    const fields = { TotalDPS: 60, CullMultiplier: 1.1 };
+    expect(stageMeasures(stage(), rec, [], {}, undefined, { boss, resisting: resisting(fields) }).damage!.resisting).toBe(180);
+    const culled = stageMeasures(stage({ cull: 'test: a cull' }), rec, [], {}, undefined, { boss, resisting: resisting(fields) });
+    expect(culled.damage!.resisting).toBeCloseTo(180 * 1.1, 9);
+    expect(culled.damage!.map).toBeCloseTo(317 * 1.25, 9);
+  });
+
+  it("a minion's figure is its MinionTotalDPS × Count; null when PoB gives none; absent without the resisting measure", () => {
+    expect(stageMeasures(stage(), rec, [], {}, undefined, { boss, resisting: resisting({ MinionTotalDPS: 20, MinionIgniteDPS: 5 }) }).damage!.resisting).toBe(60);
+    expect(stageMeasures(stage(), rec, [], {}, undefined, { boss, resisting: resisting({ Speed: 1 }) }).damage!.resisting).toBeNull();
+    expect('resisting' in stageMeasures(stage(), rec, [], {}, undefined, { boss }).damage!).toBe(false);
   });
 });

@@ -20,6 +20,10 @@
  * (`__noDeferForTest`, test actions only, rebuilding after every mutation as BuildOps does on its own) and
  * requires every stage's outputs and breakdown to be exactly equal. It runs after the timed test, so its
  * slower compile never counts against the threshold.
+ *
+ * AC-P85 (WU-120, NFR-21): with amendment 12's measure passes (the Pinnacle pass's chances and deflected max hits on `b`
+ * and `n`, the resisting measure on every rung, the conditioned read on `n`), every stage request of `schema6-ladder`,
+ * whose ladder has `b` and `n`, stays under 20 s. The times are printed for the work-log.
  */
 import fs from 'fs';
 import path from 'path';
@@ -30,6 +34,7 @@ import type { CompileRecord } from '../../src/plan/record';
 import { PoBLuaApiClient } from '../../src/pobLuaBridge';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'fifteen-stage', 'plan.json');
+const LADDER = path.resolve(__dirname, '..', 'fixtures', 'plans', 'schema6-ladder', 'plan.json');
 const WHOLE_CALL_MS = 100_000;
 const STAGE_MS = 20_000;
 
@@ -153,4 +158,25 @@ engineDescribe('AC-P37 (NFR-20, NFR-21): a fifteen-stage final compile', () => {
       expect({ id, skillOutputs: timed!.stages[id].skillOutputs }).toEqual({ id, skillOutputs: eager.stages[id].skillOutputs });
     }
   }, 300_000);
+
+  it('AC-P85 (NFR-21): schema6-ladder with the new measure passes: every stage request under 20 s, b and n among them', async () => {
+    const run = await f.call('guide_run', { new_run: 'nfr-schema6-ladder' });
+    expect(run.isError).toBe(false);
+    const planPath = /^plan_path for this run: (\S+)$/m.exec(run.text)![1];
+    fs.copyFileSync(LADDER, path.join(f.guides, planPath));
+    const out = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
+    expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+    const record = JSON.parse(
+      fs.readFileSync(path.join(f.guides, path.posix.dirname(planPath), 'compile-record.json'), 'utf8'),
+    ) as CompileRecord;
+    const stageMs = Object.fromEntries(Object.entries(record.stages).map(([id, s]) => [id, Math.round(s.elapsedMs)]));
+    console.error(`[NFR] schema6-ladder with amendment 12's passes, per stage (ms): ${JSON.stringify(stageMs)}`);
+    expect(Object.keys(stageMs)).toEqual(expect.arrayContaining(['b', 'n']));
+    // The passes ran: b and n carry the Arbiter rows' hits survived, n the conditioned read, every rung the resisting figure.
+    expect(record.stages.n.measures!.toughness!.conditioned).toBeDefined();
+    for (const id of ['m', 'b', 'n']) expect({ id, resisting: typeof record.stages[id].measures!.damage!.resisting }).toEqual({ id, resisting: 'number' });
+    for (const [id, ms] of Object.entries(record.stages).map(([id, s]) => [id, s.elapsedMs] as const)) {
+      expect({ stage: id, under20s: ms < STAGE_MS }).toEqual({ stage: id, under20s: true });
+    }
+  }, 150_000);
 });

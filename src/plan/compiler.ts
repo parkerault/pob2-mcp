@@ -77,6 +77,14 @@
  * and the stage's travel skill. The plan's new fields (`skills.cull`, `skills.engagement`, `skills.boss`,
  * `items.bootsException`) don't change PoB's sets, so the sets are grouped without them.
  *
+ * WU-120 (amendment 12 §4, §9; D-449, D-454): the measure passes grow (`stageParams`' `measure`, from `measureDataOf`).
+ * On `b` and `n` the Pinnacle pass also gives its max hits and immune types, the chances at the Arbiter's accuracy and,
+ * for a build that deflects there, the max hits with every hit deflected (the G9 spike's `pass`); every variant stage
+ * has a resisting measure (the named source with the enemy's fire, cold and lightning resistance at the waystone
+ * modifier's top roll) and `n` the conditioned read. Each pass puts its options back. The record's measures gain
+ * `toughness`, the Arbiter rows' hits survived and `avoid`, and `damage.resisting`; the key-figure line the resisting
+ * figure, the lowest max hit and, on a rung with `avoid`, hits survived.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -107,8 +115,10 @@ import { buildSha1 } from './buildHash.js';
 import { evaluateLedger, ledgerErrorText, type StageOutputs } from './ledger.js';
 import {
   ARBITER_FILE,
+  ARBITER_VARIANTS,
   BOSS_MEASURE_FIELDS,
   bossMeasureGroups,
+  decidingRow,
   MEASURE_ONLY_XML_FILE,
   RECORD_FILE,
   RECORD_VERSION,
@@ -638,6 +648,33 @@ export function referenceHits(variant: PlanVariant, ref: PlanReferenceData): Sta
 }
 
 /**
+ * WU-120 (amendment 12 §4, §9; D-449, D-454): the data the new measure passes read: the Arbiter's accuracy
+ * (`enemies/arbiter-of-divinity.json#base.accuracy`, monster level 79), at which the Pinnacle pass reads the chances at
+ * the Arbiter on `b` and `n`, and the enemy's fire, cold and lightning resistance of the resisting figure, the top roll of
+ * the waystone modifier (`enemies/waystones.json#mods.monster-elemental-resistance`, 35 to 40).
+ */
+export interface MeasureData {
+  arbiterAccuracy: number;
+  resist: number;
+}
+
+/** WU-120: the measure data from the reference data (`MeasureData`); a missing fact stops the compile, naming it. */
+export function measureDataOf(ref: PlanReferenceData): MeasureData {
+  const fact = (file: string, key: string, what: string): number => {
+    const found = ref.resolveFact(file, key);
+    if (!found.ok) throw new CompileError(`${what} needs ${file}#${key}: ${found.reason}. Nothing was compiled.`);
+    const v = found.fact.value as unknown;
+    if (typeof v === 'number') return v;
+    if (typeof v === 'object' && v !== null && typeof (v as { max?: unknown }).max === 'number') return (v as { max: number }).max;
+    throw new CompileError(`${what} needs a number at ${file}#${key}. Nothing was compiled.`);
+  };
+  return {
+    arbiterAccuracy: fact(ARBITER_FILE, 'base.accuracy', 'the chances at the Arbiter (D-449)'),
+    resist: fact(WAYSTONES, 'mods.monster-elemental-resistance', 'the resisting figure (D-454)'),
+  };
+}
+
+/**
  * D-423: the rung whose reference hits a card skeleton (an endgame stage with no `variant`, `measuredStage`) is
  * measured against: the budget rung's, the T15 map hit, so the verification gate's Effective HP compares with the
  * design gate's.
@@ -691,6 +728,13 @@ const whole = (v: unknown): string => (typeof v === 'number' && Number.isFinite(
  * the minion's name when a minion deals it; a campaign stage and a card skeleton keep `DPS <n>`.
  * A named source a meta gem triggers (`measures.trigger`) adds `<skill> is triggered by <gem>: PoB rates it at its
  * hand-cast speed (<n> a second) and doesn't model Energy`, on a skeleton too.
+ *
+ * WU-120 (amendment 12 §4, §9, Appendix A; D-449, D-454): the damage part becomes `damage <map> against map monsters,
+ * <resisting> against resisting rares, <boss> against a Pinnacle boss` when the record has the resisting figure (an older
+ * record keeps two figures); `lowest max hit <n> <type>` follows `EHP <n>` when the measures have `toughness`; the
+ * Arbiter part names the rung's deciding row (`decidingRow`: its one-shot row with the lowest hits survived, else the
+ * worst), and on a rung with `avoid` it is followed by `hits survived <x>%`, the deciding row's, rounded down to a whole
+ * percent so no figure rounds up across the floor.
  */
 export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): string {
   const o = rec.outputs;
@@ -702,22 +746,31 @@ export function keyFigureLine(rec: StageRecord, main: Stage['skills']['main']): 
   const minionTag = source !== undefined ? ` (${source}, minion)` : '';
   const damage = rec.measures?.damage;
   const cull = rec.measures?.cull;
+  const toughness = rec.measures?.toughness;
+  const low = toughness?.lowestMaxHit;
   const parts = [
     damage !== undefined
       ? `damage ${whole(damage.map)} against map monsters${cull !== undefined ? ` (culling at ${whole(cull.map)}%)` : ''}, ` +
+        (damage.resisting !== undefined ? `${whole(damage.resisting)} against resisting rares, ` : '') +
         `${whole(damage.boss)} against a Pinnacle boss${minionTag}`
       : `DPS ${whole(dps)}${minionTag}`,
     `life ${whole(o.Life)}`,
     `ES ${whole(o.EnergyShield)}`,
     `EHP ${whole(ehp)}`,
+    ...(toughness !== undefined ? [low === null || low === undefined ? 'lowest max hit ?' : `lowest max hit ${whole(low.value)} ${low.type}`] : []),
     `resists ${['FireResist', 'ColdResist', 'LightningResist', 'ChaosResist'].map((k) => whole(o[k])).join('/')} (fire/cold/lightning/chaos)`,
     `findings V1 ${rec.v1?.findings.length ?? '?'}, V2 ${rec.v2?.findings.length ?? '?'}`,
   ];
   const arbiter = rec.measures?.arbiter;
   if (arbiter !== undefined) {
-    const worst = arbiter.worst;
-    const at = worst === null ? '' : ` (worst: ${worst.type} hit ${worst.hitId}, ${worst.ratio.toFixed(2)} of max hit)`;
+    const row = decidingRow(arbiter);
+    const of = row === null ? '' : row.ratio === null ? `max hit ${whole(row.maxHit)}` : `${row.ratio.toFixed(2)} of max hit`;
+    const at = row === null ? '' : ` (worst: ${row.type} hit ${row.hitId}, ${of})`;
     parts.push(`Arbiter ${arbiter.verdict ?? 'unknown'}${at}`);
+    if (arbiter.avoid !== undefined) {
+      const survived = row?.hitsSurvived;
+      parts.push(`hits survived ${typeof survived === 'number' ? Math.floor(survived + 1e-9) : '?'}%`);
+    }
   }
   if (variantMeasures !== undefined) parts.push(`clear ${variantMeasures.clearSpeed.speed} (rough)`);
   const trigger = rec.measures?.trigger;
@@ -911,6 +964,7 @@ export function stageParams(
   anoint?: string,
   companionId?: string,
   grants?: WeaponGrants,
+  measure?: MeasureData,
 ): CompileStageParams {
   const slots = groupSlots(stage, grants);
   return {
@@ -955,8 +1009,23 @@ export function stageParams(
     // D-402: the beast compile_check resolved the companion's species to.
     ...(companionId !== undefined ? { companion: { id: companionId } } : {}),
     // WU-111 (D-437, D-447): an endgame variant stage is measured against a Pinnacle boss too: the named source's group
-    // and the boss rotation's, with the measured fields and a minion's ailments.
-    ...(stage.variant !== undefined ? { boss: { groups: bossMeasureGroups(stage), fields: bossFields(offenseFields) } } : {}),
+    // and the boss rotation's, with the measured fields and a minion's ailments. WU-120 (D-449): on `b` and `n` the pass
+    // also reads the chances at the Arbiter's accuracy and the deflected max hits.
+    ...(stage.variant !== undefined
+      ? {
+          boss: {
+            groups: bossMeasureGroups(stage),
+            fields: bossFields(offenseFields),
+            ...(measure !== undefined && ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: { accuracy: measure.arbiterAccuracy } } : {}),
+          },
+        }
+      : {}),
+    // WU-120 (D-454): an endgame variant stage's named source, against the map enemy with every elemental resistance at
+    // the waystone modifier's top roll; (D-449) the conditioned read on `n`.
+    ...(stage.variant !== undefined && measure !== undefined
+      ? { resisting: { groups: [stage.skills.main.group], fields: bossFields(offenseFields), resist: measure.resist } }
+      : {}),
+    ...(stage.variant === 'non-budget' && measure !== undefined ? { conditioned: true } : {}),
   };
 }
 
@@ -1074,6 +1143,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const preflight = checkedPlan.stages.filter((s) => compiledIds.has(s.id));
   // V2's baseline list (D-230), checked with the plan: an invalid file stops the compile here.
   const baselineList = readConfigBaseline(env);
+  // WU-120 (D-449, D-454): the new measure passes' data, read before any engine request.
+  const measureData = measureDataOf(refData);
 
   // 3. A final compile's target (D-199, D-211).
   let target: TargetCheck | null = null;
@@ -1146,7 +1217,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     }
     const t = env.clock();
     const reply = await ctx.client.compileStage(
-      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id)),
+      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id), measureData),
     );
     const elapsedMs = env.clock() - t;
     // D-447: every boss rotation entry is a selection PoB's boss measure has (compile_check bounded it already).
@@ -1324,6 +1395,10 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         ...(reply.skillMeta !== undefined ? { skillMeta: reply.skillMeta } : {}),
         ...(reply.skillMetaSet2 !== undefined ? { skillMetaSet2: reply.skillMetaSet2 } : {}),
         ...(reply.boss !== undefined ? { boss: reply.boss } : {}),
+        // WU-120 (D-449, D-454): the stage's immune types, the resisting measure and, on `n`, the conditioned read.
+        ...(reply.immune !== undefined ? { immune: reply.immune } : {}),
+        ...(reply.resisting !== undefined ? { resisting: reply.resisting } : {}),
+        ...(reply.conditioned !== undefined ? { conditioned: reply.conditioned } : {}),
       });
     }
     // C-33, WU-111 (the ledger's boss context): the stage's numbers, with its boss rotation and PoB alone when measured.

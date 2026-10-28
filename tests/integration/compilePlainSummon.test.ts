@@ -115,9 +115,10 @@ engineDescribe("WU-80: a plain summon's figure is its minion's (D-397)", () => {
         expect(entry.skill).toBe('Skeletal Warrior Minion');
         // WU-111 (D-437): a variant stage's line leads with the damage figure, the minion's, named as before.
         expect(s.measures!.damage!.map).toBe(s.measures!.dps);
+        // WU-120 (D-454): the resisting figure between the map and boss figures.
         const line =
-          `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} ` +
-          `against a Pinnacle boss (Skeletal Warrior Minion, minion);`;
+          `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.resisting!)} against resisting rares, ` +
+          `${Math.round(s.measures!.damage!.boss!)} against a Pinnacle boss (Skeletal Warrior Minion, minion);`;
         expect(text).toContain(line);
         expect(view).toContain(line);
         // The player's group beside it: no minion numbers, so its figure stays TotalDPS.
@@ -153,7 +154,9 @@ engineDescribe("WU-80: a plain summon's figure is its minion's (D-397)", () => {
         expect(s.measures!.dps).toBeGreaterThan(0);
         // WU-111 (D-437): Boneshatter's damage figure (no ailment here) is its TotalDPS × Count.
         expect(s.measures!.damage!.map).toBe(s.measures!.dps);
-        const line = `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} against a Pinnacle boss; life `;
+        const line =
+          `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.resisting!)} against resisting rares, ` +
+          `${Math.round(s.measures!.damage!.boss!)} against a Pinnacle boss; life `;
         expect(text).toContain(line);
         expect(view).toContain(line);
         expect(text).not.toContain(', minion)');

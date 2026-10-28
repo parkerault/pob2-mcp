@@ -65,11 +65,12 @@ describe('D-407: the pace measures on a card skeleton', () => {
   });
 
   it('a variant stage keeps dps, ehp and (on b and n) arbiter, and gains the movement speed beside its clear speed', () => {
+    // WU-120 (amendment 12 §4, D-449): every variant stage also gains its toughness reading; a skeleton doesn't.
     const b = stageMeasures(stage('budget'), record('area', 1.1), [], {});
-    expect(Object.keys(b).sort()).toEqual(['arbiter', 'clearSpeed', 'dps', 'ehp', 'movementSpeed']);
+    expect(Object.keys(b).sort()).toEqual(['arbiter', 'clearSpeed', 'dps', 'ehp', 'movementSpeed', 'toughness']);
     expect({ dps: b.dps, ehp: b.ehp, movementSpeed: b.movementSpeed }).toEqual({ dps: 40, ehp: 3000, movementSpeed: 1.1 });
     const m = stageMeasures(stage('entering-maps'), record('area', 1.1), [], {});
-    expect(Object.keys(m).sort()).toEqual(['clearSpeed', 'dps', 'ehp', 'movementSpeed']);
+    expect(Object.keys(m).sort()).toEqual(['clearSpeed', 'dps', 'ehp', 'movementSpeed', 'toughness']);
   });
 
   it('the movement speed is null when PoB gives none', () => {

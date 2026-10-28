@@ -170,7 +170,8 @@ engineDescribe('WU-88: clear speed and movement speed on a card skeleton (D-407)
       expect(Object.keys(quake.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed', 'sourceTypes']);
       expect(Object.keys(warrior.record.stages[SKELETON].measures!).sort()).toEqual(['clearSpeed', 'movementSpeed', 'sourceTypes']);
       const rung = quakeRung.record.stages.b;
-      expect(Object.keys(rung.measures!).sort()).toEqual(['arbiter', 'bossGroups', 'clearSpeed', 'damage', 'dps', 'ehp', 'movementSpeed', 'sourceTypes']);
+      // WU-120 (amendment 12 §4, D-449): a variant rung also has its toughness reading; a skeleton doesn't.
+      expect(Object.keys(rung.measures!).sort()).toEqual(['arbiter', 'bossGroups', 'clearSpeed', 'damage', 'dps', 'ehp', 'movementSpeed', 'sourceTypes', 'toughness']);
       expect(rung.measures!.movementSpeed).toBe(rung.outputs.EffectiveMovementSpeedMod);
       expect(rung.measures!.movementSpeed).toBe(quake.record.stages[SKELETON].measures!.movementSpeed);
       expect(rung.measures!.clearSpeed).toEqual(quake.record.stages[SKELETON].measures!.clearSpeed);

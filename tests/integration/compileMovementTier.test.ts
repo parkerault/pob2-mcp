@@ -9,7 +9,8 @@
  *   (`compiledAt`, `timing`, each stage's `elapsedMs`, the import code and the saved file's sha1 and path: PoB's save
  *   orders attributes differently from one process to the next); `config-before-schema7.json` is that compile's saved
  *   config sets, each set's lines sorted. A compile now keeps every one of those fields equal (new fields may be added),
- *   and the saved config sets are the same lines: the boss measure puts `enemyIsBoss` back.
+ *   and the saved config sets are the same lines: the boss measure puts `enemyIsBoss` back. WU-120 (amendment 12 §22):
+ *   every field but `measures.arbiter`, which now reads the Pinnacle pass; the new passes put their options back too.
  * - **The boots.** A schema-7 plan of the same Warrior / Titan, its boots written from the pinned data (Rough Greaves with
  *   one movement-speed line, Data/ModItem.lua's tiers 20% to 35%; the unique Birth of Fury, Stone Greaves at 20%,
  *   Data/Uniques/boots.lua; Leap Slam, PoB's Travel type, Data/Skills/act_str.lua): campaign stages at
@@ -157,9 +158,21 @@ engineDescribe('WU-111: movement-tier and a schema-6 plan through compile_plan (
   describe('a schema-6 plan compiles as before (§19)', () => {
     it("AC-P81: a schema-6 plan's record keeps every existing field equal to the pre-change record's", () => {
       const before = JSON.parse(fs.readFileSync(path.join(LADDER, 'record-before-schema7.json'), 'utf8')) as Json;
+      // WU-120 (amendment 12 §22): the Arbiter rows now read the Pinnacle pass on every recompiled plan, so the equality
+      // leaves measures.arbiter out (AC-P82's rule); compileMeasures.test.ts checks those rows against PoB.
+      for (const s of Object.values<Json>(before.stages)) delete s.measures?.arbiter;
       expect(differences(before, ladder)).toEqual([]);
-      // The ladder's variant stages gained the new measures beside them.
-      expect(ladder.stages.n.measures!.damage).toEqual({ map: expect.any(Number), boss: expect.any(Number) });
+      // The ladder's variant stages gained the new measures beside them: amendment 11's damage figures and amendment 12's
+      // resisting figure and toughness reading (the conditioned read on n only).
+      expect(ladder.stages.n.measures!.damage).toEqual({ map: expect.any(Number), boss: expect.any(Number), resisting: expect.any(Number) });
+      for (const id of ['m', 'b', 'n']) {
+        expect({ id, toughness: Object.keys(ladder.stages[id].measures!.toughness!).sort() }).toEqual({
+          id,
+          toughness: id === 'n' ? ['chance', 'conditioned', 'immune', 'lowestMaxHit'] : ['chance', 'immune', 'lowestMaxHit'],
+        });
+      }
+      expect(ladder.stages.m.measures!.arbiter).toBeUndefined();
+      expect(ladder.stages.b.measures!.arbiter!.rows.every((r) => typeof r.hitsSurvived === 'number')).toBe(true);
     });
 
     it("the saved file's config sets are the same lines as before: the boss measure puts enemyIsBoss back", () => {

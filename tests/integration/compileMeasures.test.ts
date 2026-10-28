@@ -21,13 +21,23 @@
  * - D-363: `clearSpeed` reads the clear skill's first stat set: Earthquake's Impact, not its Aftershock, whose
  *   radius PoB resolves in hash order.
  * - AC-P64 (D-356): `compile_plan`'s reply has a key-figure line after each stage's line.
+ *
+ * WU-120 (amendment 12 §4, D-449; AC-P84, AC-P85): the Arbiter rows read the Pinnacle pass, so AC-P62 checks them
+ * against the same stages compiled separately with `enemyIsBoss: "Pinnacle"`, and AC-P64's line carries the resisting
+ * figure and the lowest max hit. The second block is the toughness reading on its own fixtures (the header there).
  */
 import fs from 'fs';
 import path from 'path';
-import { afterAll, beforeAll, expect, it } from '@jest/globals';
+import os from 'os';
+import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import { engineDescribe } from '../helpers/engine';
 import { startSessionFixture, type SessionFixture } from '../helpers/engineSession';
-import type { CompileRecord } from '../../src/plan/record';
+import { compilePlan, type CompileResult } from '../../src/plan/compiler';
+import { loadReferenceData } from '../../src/plan/referenceData';
+import { readPin } from '../../src/engine/pinCheck';
+import { OFFENSE_STAT_FIELDS } from '../../src/handlers/luaHandlers';
+import { PoBLuaApiClient } from '../../src/pobLuaBridge';
+import type { ArbiterRow, CompileRecord, StageRecord } from '../../src/plan/record';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'plans', 'two-stage', 'plan.json');
@@ -113,6 +123,8 @@ function ladderPlan(): Json {
 engineDescribe('WU-65: the anoint, measures, reference hits and key figures through compile_plan (D-353, D-356, D-358)', () => {
   let f: SessionFixture;
   let record: CompileRecord;
+  /** WU-120 (D-449): b, bs and n compiled separately with enemyIsBoss "Pinnacle": the Arbiter rows' max hits. */
+  let pinnacle: CompileRecord;
   let text: string;
   let xml: string;
 
@@ -141,6 +153,14 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
     text = out.text;
     record = JSON.parse(fs.readFileSync(path.join(r.abs, 'compile-record.json'), 'utf8')) as CompileRecord;
     xml = fs.readFileSync(path.join(r.abs, 'compiled-build.xml'), 'utf8');
+    const twin = ladderPlan();
+    twin.stages = twin.stages.filter((s: Json) => ['b', 'bs', 'n'].includes(s.id));
+    twin.ledger = [];
+    for (const s of twin.stages) s.config.scenario.find((e: Json) => e.option === 'enemyIsBoss').value = 'Pinnacle';
+    const p = await newRun('measures-pinnacle', twin);
+    const outP = await f.call('compile_plan', { plan_path: p.plan, measure_only: true });
+    expect({ isError: outP.isError, text: outP.isError ? outP.text : '' }).toEqual({ isError: false, text: '' });
+    pinnacle = JSON.parse(fs.readFileSync(path.join(p.abs, 'compile-record.json'), 'utf8')) as CompileRecord;
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
@@ -203,7 +223,7 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
     expect(fs.existsSync(path.join(r.abs, 'compile-record.json'))).toBe(false);
   }, ENGINE_TIMEOUT);
 
-  it('AC-P62 (D-353): measures.arbiter has a row per damage type and mixed hit, each the largest hit\'s top roll over the max hit; the slam one-shots b, and bs survives every hit', () => {
+  it('AC-P62 (D-353): measures.arbiter has a row per damage type and mixed hit, each the largest hit\'s top roll over the max hit (WU-120: the Pinnacle pass\'s); the slam one-shots b, and bs survives every hit', () => {
     const arbiter = facts('arbiter-of-divinity.json');
     // The data's hits by type: the largest top roll of each plain type and each mix.
     const largest = new Map<string, { id: string; max: number }>();
@@ -216,7 +236,8 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
     expect([...largest.keys()].sort()).toEqual(['lightning', 'physical', 'physical-lightning']);
     const cap = (t: string) => `${t[0].toUpperCase()}${t.slice(1)}MaximumHitTaken`;
     for (const id of ['b', 'bs', 'n']) {
-      const out = record.stages[id].outputs;
+      // WU-120 (D-449): the max hits of the stage against a Pinnacle boss, PoB's own measure in a separate compile.
+      const out = pinnacle.stages[id].outputs;
       const a = record.stages[id].measures!.arbiter!;
       expect({ id, types: a.rows.map((r) => r.type).sort() }).toEqual({ id, types: [...largest.keys()].sort() });
       for (const row of a.rows) {
@@ -232,7 +253,7 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
     // b's physical max hit is below the slam (3486 at its top roll): one-shot.
     const slam = largest.get('physical')!;
     expect(slam.id).toBe('extendo-spear-combo-slam-1');
-    expect(record.stages.b.outputs.PhysicalMaximumHitTaken).toBeLessThan(slam.max);
+    expect(pinnacle.stages.b.outputs.PhysicalMaximumHitTaken).toBeLessThan(slam.max);
     const bPhys = record.stages.b.measures!.arbiter!.rows.find((r) => r.type === 'physical')!;
     expect(bPhys.verdict).toBe('one-shot');
     expect(record.stages.b.measures!.arbiter!.verdict).toBe('one-shot');
@@ -337,13 +358,15 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
       // WU-111 (D-437): an endgame variant stage leads with the named source's damage figure against map monsters and a
       // Pinnacle boss (its measures' `damage`); a campaign stage keeps the headline DPS.
       const damage = s.measures?.damage;
+      // WU-120 (Appendix A): the resisting figure between the two (D-454), and the lowest max hit after EHP (D-449).
+      const low = s.measures?.toughness?.lowestMaxHit;
       const want = [
         damage !== undefined
-          ? `damage ${round(damage.map)} against map monsters, ${round(damage.boss)} against a Pinnacle boss; life `
+          ? `damage ${round(damage.map)} against map monsters, ${round(damage.resisting)} against resisting rares, ${round(damage.boss)} against a Pinnacle boss; life `
           : `DPS ${round(dps)}`,
         `life ${round(o.Life)}`,
         `ES ${round(o.EnergyShield)}`,
-        `EHP ${round(o.TotalEHP)}`,
+        s.measures !== undefined ? `EHP ${round(o.TotalEHP)}; lowest max hit ${round(low!.value)} ${low!.type}; resists ` : `EHP ${round(o.TotalEHP)}; resists `,
         `resists ${round(o.FireResist)}/${round(o.ColdResist)}/${round(o.LightningResist)}/${round(o.ChaosResist)} (fire/cold/lightning/chaos)`,
         `findings V1 ${s.v1!.findings.length}, V2 ${s.v2!.findings.length}`,
       ];
@@ -352,11 +375,392 @@ engineDescribe('WU-65: the anoint, measures, reference hits and key figures thro
       if (s.measures) want.push(`clear ${s.measures.clearSpeed.speed} (rough)`);
       expect({ id, starts: line.startsWith('  Key figures: ') }).toEqual({ id, starts: true });
       for (const part of want) expect({ id, line, has: line.includes(part) }).toEqual({ id, line, has: true });
-      if (!s.measures) expect({ id, endgame: /Arbiter|clear /.test(line) }).toEqual({ id, endgame: false });
+      if (!s.measures) expect({ id, endgame: /Arbiter|clear |lowest max hit/.test(line) }).toEqual({ id, endgame: false });
+      // No ladder stage evades or deflects at the Arbiter's accuracy: no hits survived.
+      expect({ id, avoid: s.measures?.arbiter?.avoid, hits: line.includes('hits survived') }).toEqual({ id, avoid: undefined, hits: false });
     }
     // b names the hit that one-shots it.
     const bLine = lines[lines.findIndex((l) => l.startsWith('Stage b "')) + 1];
     const worst = record.stages.b.measures!.arbiter!.worst!;
     expect(bLine).toContain(`Arbiter one-shot (worst: ${worst.type} hit ${worst.hitId}, ${worst.ratio.toFixed(2)} of max hit)`);
+  });
+});
+
+/**
+ * WU-120 (amendment 12 §4, D-449; AC-P84, AC-P85): the toughness reading through `compile_plan`, engine-required. Every
+ * expected figure comes from PoB itself in a separate compile (the same stages with `enemyIsBoss: "Pinnacle"`, or with the
+ * conditioned read's four options in their scenario), from PoB's formulas as §4 names them, or from the data, never from
+ * the record's measures alone. The fixtures are the two-stage fixture's stage 2 at level 90, with custom modifiers from
+ * PoB's own modifier lines and bases from the pinned data (Leather Vest, Rawhide Boots: evasion bases with no armour):
+ *
+ * - `nE`: +20000 evasion, +3000 deflection rating and +2000 life on evasion gear (no armour): one-shot by the slams, the
+ *   deflected hit survived; `nA`: the same with +6000 armour, where PoB applies armour to the full hit before deflection;
+ * - `nCI`: Chaos Inoculation with +2000 energy shield: immune to chaos; `bP`: the plain stage, with neither evasion nor
+ *   deflection at the Arbiter's accuracy.
+ *
+ * The data copies (`tests/fixtures/enemies/`) are the Arbiter's data with the slam, or the smaller slam, unevadable, and
+ * with a chaos hit; they are compiled through `compilePlan` itself with that data.
+ */
+const EVASION_GEAR = [
+  { slot: 'Body Armour', text: 'Rarity: Normal\nLeather Vest' },
+  { slot: 'Boots', text: 'Rarity: Normal\nRawhide Boots' },
+];
+const CONDITIONED: [string, boolean | number][] = [
+  ['EHPUnluckyWorstOf', 2],
+  ['conditionBeenHitRecently', true],
+  ['windDancerStacks', 0],
+  ['conditionEnemyBlinded', false],
+];
+const ARBITER_ACCURACY = facts('arbiter-of-divinity.json')['base.accuracy'].value as number;
+const MAX_HIT = (t: string) => `${t[0].toUpperCase()}${t.slice(1)}MaximumHitTaken`;
+const TYPES = ['physical', 'fire', 'cold', 'lightning', 'chaos'];
+/** PoB's `round` (Modules/Common.lua): half up. */
+const pobRound = (x: number) => Math.floor(x + 0.5);
+/** PoB's melee evade chance for a build with no evade-chance modifiers: 100 − calcs.monsterHitChance (CalcDefence.lua:40-46), capped at 95. */
+const evadeAt = (evasion: number, accuracy: number) =>
+  Math.min(95, 100 - Math.max(Math.min(pobRound((1 - (0.95 * evasion) / (evasion + 4 * accuracy)) * 100), 100), 5));
+/** PoB's calcs.deflectChance (CalcDefence.lua:48-54), with its 95% cap. */
+const deflectAt = (deflection: number, accuracy: number) =>
+  deflection < 1 ? 0 : Math.max(Math.min(100 - pobRound((accuracy / (accuracy + deflection * 0.12)) * 150 - 50), 95), 0);
+
+/** One leaf per line of a saved file's config sets, attributes in name order (PoB's save orders them per process). */
+function savedConfigSets(xmlText: string): Record<string, string[]> {
+  const sets: Record<string, string[]> = {};
+  for (const m of xmlText.matchAll(/<ConfigSet\b([^>]*)>([\s\S]*?)<\/ConfigSet>/g)) {
+    const title = /\btitle="([^"]*)"/.exec(m[1])![1];
+    sets[title] = m[2]
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l !== '')
+      .map((l) => {
+        const e = /^<(\w+)((?:\s+[\w-]+="[^"]*")*)\s*\/>$/.exec(l);
+        return e === null ? l : `<${e[1]} ${[...e[2].matchAll(/([\w-]+)="([^"]*)"/g)].map((a) => `${a[1]}="${a[2]}"`).sort().join(' ')}/>`;
+      })
+      .sort();
+  }
+  return sets;
+}
+
+engineDescribe('WU-120: the toughness reading, the Arbiter on the Pinnacle pass and hits survived (D-449, AC-P84)', () => {
+  let f: SessionFixture;
+  let rec: CompileRecord;
+  let recText: string;
+  let recXml: string;
+  let twin: CompileRecord;
+  let conditioned: CompileRecord;
+  let without: CompileRecord;
+  let withoutXml: string;
+  let slamUnevadable: CompileRecord;
+  let slam2Unevadable: CompileRecord;
+  let chaosHit: CompileRecord;
+  let miscBefore: Json;
+  let miscAfter: Json;
+  let deflectAfter: number;
+
+  /** The toughness plan, schema 7: the stages the header lists. */
+  function toughnessPlan(): Json {
+    const plan = fixturePlan();
+    plan.schemaVersion = 7;
+    const stage = (id: string, variant: string, mods: string[], evasionGear: boolean): Json => {
+      const s = endgameStage(plan, id, variant, 90);
+      if (evasionGear) s.items.slots = [...s.items.slots.filter((i: Json) => i.slot !== 'Body Armour' && i.slot !== 'Boots'), ...EVASION_GEAR];
+      if (mods.length > 0) s.config.customMods = mods.map((text) => ({ text, reason: `test: ${text}` }));
+      return s;
+    };
+    const evasion = ['+20000 to Evasion Rating', '+3000 to Deflection Rating', '+2000 to maximum Life'];
+    plan.stages = [
+      stage('nE', 'non-budget', evasion, true),
+      stage('nA', 'non-budget', [...evasion, '+6000 to Armour'], true),
+      stage('nCI', 'non-budget', ['Chaos Inoculation', '+2000 to maximum Energy Shield'], false),
+      stage('bP', 'budget', [], false),
+    ];
+    plan.ledger = [];
+    return plan;
+  }
+
+  /** The plan's stages `ids`, each with `edit` applied. */
+  const subset = (ids: string[], edit: (s: Json) => void): Json => {
+    const plan = toughnessPlan();
+    plan.stages = plan.stages.filter((s: Json) => ids.includes(s.id));
+    plan.stages.forEach(edit);
+    return plan;
+  };
+
+  async function newRun(slug: string, plan: Json): Promise<{ abs: string; plan: string }> {
+    const out = await f.call('guide_run', { new_run: slug });
+    if (out.isError) throw new Error(`guide_run failed: ${out.text}`);
+    const abs = /^Created run folder (.+)$/m.exec(out.text)![1];
+    const planPath = /^plan_path for this run: (\S+)$/m.exec(out.text)![1];
+    fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(plan, null, 2)}\n`);
+    return { abs, plan: planPath };
+  }
+
+  async function compiled(slug: string, plan: Json): Promise<{ record: CompileRecord; text: string; xml: string }> {
+    const r = await newRun(slug, plan);
+    const out = await f.call('compile_plan', { plan_path: r.plan, measure_only: true });
+    expect({ slug, isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ slug, isError: false, text: '' });
+    return {
+      record: JSON.parse(fs.readFileSync(path.join(r.abs, 'compile-record.json'), 'utf8')) as CompileRecord,
+      text: out.text,
+      xml: fs.readFileSync(path.join(r.abs, 'compiled-build.xml'), 'utf8'),
+    };
+  }
+
+  /** A measure-only compile through `compilePlan` itself, with the data's Arbiter file replaced by the fixture copy `name`. */
+  async function withArbiterData(slug: string, plan: Json, name: string): Promise<CompileRecord> {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-wu120-data-'));
+    fs.cpSync(path.join(REPO, 'data'), dataDir, { recursive: true });
+    fs.copyFileSync(path.join(REPO, 'tests', 'fixtures', 'enemies', `${name}.json`), path.join(dataDir, 'enemies', 'arbiter-of-divinity.json'));
+    const r = await newRun(slug, plan);
+    const pin = readPin();
+    const refuse = () => {
+      throw new Error('a measure-only compile writes nothing into the builds folder');
+    };
+    const { value } = await f.session.run({ tool: 'compile_plan', kind: 'load' }, async (ctx): Promise<CompileResult> =>
+      compilePlan(
+        {
+          ctx,
+          pobDirectory: f.builds,
+          stateDir: path.join(f.tmp, 'state'),
+          guidesDirectory: f.guides,
+          writer: { checkBuildFile: refuse, writeBuildFile: refuse } as never,
+          referenceData: () => loadReferenceData(dataDir),
+          offenseFields: OFFENSE_STAT_FIELDS,
+          engine: { pobTag: pin.tag, pobCommit: pin.commit },
+          clock: () => performance.now(),
+          wallClock: () => new Date(),
+        },
+        { mode: 'measure-only', planPath: r.plan },
+      ),
+    );
+    return value.record;
+  }
+
+  async function lua<T>(code: string): Promise<T> {
+    const { value } = await f.session.run({ tool: 'test:toughness-query', kind: 'read' }, async (ctx) => (await ctx.client.request('__test_eval', { code })).result as T);
+    return value;
+  }
+
+  const MISC = String.raw`
+    local t = {}
+    for k, v in pairs(data.misc) do
+      if type(v) == 'number' and (v ~= v or v == math.huge or v == -math.huge) then t[k] = tostring(v)
+      elseif type(v) ~= 'table' and type(v) ~= 'function' then t[k] = v end
+    end
+    return t`;
+
+  beforeAll(async () => {
+    f = await startSessionFixture({ testActions: true });
+    // The engine is running before the first compile, so data.misc is read as PoB loaded it.
+    const info = await f.call('lua_get_build_info');
+    if (info.isError) throw new Error(info.text);
+    miscBefore = await lua<Json>(MISC);
+    const main = await compiled('toughness', toughnessPlan());
+    [rec, recText, recXml] = [main.record, main.text, main.xml];
+    miscAfter = await lua<Json>(MISC);
+    deflectAfter = await lua<number>('return build.calcsTab.calcs.deflectChance(3000, 3786)');
+    twin = (await compiled('toughness-pinnacle', subset(['nE', 'nA', 'nCI', 'bP'], (s) => {
+      s.config.scenario.find((e: Json) => e.option === 'enemyIsBoss').value = 'Pinnacle';
+    }))).record;
+    conditioned = (await compiled('toughness-conditioned', subset(['nE', 'nCI'], (s) => {
+      for (const [option, value] of CONDITIONED) {
+        s.config.scenario.push({ option, value, source: { file: 'enemies/arbiter-of-divinity.json', key: 'base.accuracy' }, tag: judgment('test: the conditioned read') });
+      }
+    }))).record;
+    // The same plan without the new passes: compile_stage's params lose the Arbiter's chances, the resisting measure and
+    // the conditioned read.
+    const original = PoBLuaApiClient.prototype.request;
+    jest.spyOn(PoBLuaApiClient.prototype, 'request').mockImplementation(async function (this: PoBLuaApiClient, ...args: any[]) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (args[0] === 'compile_stage') {
+        const { resisting: _r, conditioned: _c, ...rest } = args[1];
+        args[1] = { ...rest, ...(rest.boss !== undefined ? { boss: { groups: rest.boss.groups, fields: rest.boss.fields } } : {}) };
+      }
+      return (original as any).apply(this, args); // eslint-disable-line @typescript-eslint/no-explicit-any
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    try {
+      const w = await compiled('toughness-without', toughnessPlan());
+      [without, withoutXml] = [w.record, w.xml];
+    } finally {
+      jest.restoreAllMocks();
+    }
+    slamUnevadable = await withArbiterData('toughness-slam', subset(['nE'], () => undefined), 'arbiter-slam-unevadable');
+    slam2Unevadable = await withArbiterData('toughness-slam-2', subset(['nE'], () => undefined), 'arbiter-slam-2-unevadable');
+    chaosHit = await withArbiterData('toughness-chaos', subset(['nE', 'nCI'], () => undefined), 'arbiter-chaos-hit');
+  }, ENGINE_TIMEOUT * 2);
+
+  afterAll(async () => f?.close(), 60_000);
+
+  const rowOf = (s: StageRecord, type: string): ArbiterRow => s.measures!.arbiter!.rows.find((r) => r.type === type)!;
+
+  describe('measures.toughness (§4)', () => {
+    it("AC-P84: lowestMaxHit is the least of the stage's five <Type>MaximumHitTaken, with its type", () => {
+      for (const id of ['nE', 'nA', 'bP']) {
+        const o = rec.stages[id].outputs;
+        const least = Math.min(...TYPES.map((t) => o[MAX_HIT(t)]));
+        const low = rec.stages[id].measures!.toughness!.lowestMaxHit!;
+        expect({ id, value: low.value, ofType: o[MAX_HIT(low.type)], immune: rec.stages[id].measures!.toughness!.immune }).toEqual({ id, value: least, ofType: least, immune: [] });
+      }
+    });
+
+    it('AC-P84: a Chaos Inoculation stage records immune ["chaos"] and its lowest max hit from the other four', () => {
+      const s = rec.stages.nCI;
+      expect(s.outputs.ChaosMaximumHitTaken).toBeUndefined();
+      expect(s.measures!.toughness!.immune).toEqual(['chaos']);
+      const four = ['physical', 'fire', 'cold', 'lightning'];
+      const least = Math.min(...four.map((t) => s.outputs[MAX_HIT(t)]));
+      expect(s.measures!.toughness!.lowestMaxHit!.value).toBe(least);
+      expect(four).toContain(s.measures!.toughness!.lowestMaxHit!.type);
+    });
+
+    it("AC-P84: chance equals the formula on the record's ConfiguredNotHitChance and ConfiguredDamageChance", () => {
+      for (const id of ['nE', 'nA', 'nCI', 'bP']) {
+        const o = rec.stages[id].outputs;
+        const c = rec.stages[id].measures!.toughness!.chance!;
+        const factor = 1 / ((1 - o.ConfiguredNotHitChance / 100) * (o.ConfiguredDamageChance / 100));
+        expect({ id, notHit: c.notHit, damage: c.damage }).toEqual({ id, notHit: o.ConfiguredNotHitChance, damage: o.ConfiguredDamageChance });
+        expect(c.factor).toBeCloseTo(factor, 9);
+        expect(c.share).toBeCloseTo(1 - 1 / factor, 9);
+      }
+      // The evasion stage's chance layers carry a real share of its EHP.
+      expect(rec.stages.nE.measures!.toughness!.chance!.share).toBeGreaterThan(0.5);
+    });
+
+    it("AC-P84: on n, conditioned.ehp equals TotalEHP in a separate compile with the four options set as §4 says, and its lowest max hit that compile's; the band's EHP stays the stage's own", () => {
+      for (const id of ['nE', 'nCI']) {
+        const c = rec.stages[id].measures!.toughness!.conditioned!;
+        const o = conditioned.stages[id].outputs;
+        expect({ id, ehp: c.ehp }).toEqual({ id, ehp: o.TotalEHP });
+        const four = TYPES.filter((t) => o[MAX_HIT(t)] !== undefined);
+        const least = Math.min(...four.map((t) => o[MAX_HIT(t)]));
+        expect({ id, low: c.lowestMaxHit!.value, ofType: o[MAX_HIT(c.lowestMaxHit!.type)] }).toEqual({ id, low: least, ofType: least });
+        expect(rec.stages[id].measures!.ehp).toBe(rec.stages[id].outputs.TotalEHP);
+      }
+      // Every condition against the evasion build lowers its EHP; the budget rung has no conditioned read.
+      expect(rec.stages.nE.measures!.toughness!.conditioned!.ehp!).toBeLessThan(rec.stages.nE.outputs.TotalEHP);
+      expect(rec.stages.bP.measures!.toughness!.conditioned).toBeUndefined();
+    });
+
+    it("AC-P84: the saved file's config sets and configWritten equal a compile without the new passes", () => {
+      for (const id of rec.stagesCompiled) expect({ id, written: rec.stages[id].configWritten }).toEqual({ id, written: without.stages[id].configWritten });
+      expect(savedConfigSets(recXml)).toEqual(savedConfigSets(withoutXml));
+      expect(Object.keys(savedConfigSets(recXml)).length).toBeGreaterThan(0);
+      // The compile without them has no chances, resisting figure or conditioned read; the stage's own figures are the same.
+      expect(without.stages.nE.measures!.arbiter!.avoid).toBeUndefined();
+      expect(without.stages.nE.measures!.toughness!.conditioned).toBeUndefined();
+      for (const id of rec.stagesCompiled) expect({ id, outputs: rec.stages[id].outputs }).toEqual({ id, outputs: without.stages[id].outputs });
+    });
+  });
+
+  describe('the Arbiter on the Pinnacle pass, with avoid (§4)', () => {
+    it("AC-P84: measures.arbiter reads the Pinnacle pass's max hits: each row's max hit is the separate Pinnacle compile's", () => {
+      for (const id of ['nE', 'nA', 'bP']) {
+        for (const type of ['physical', 'lightning']) {
+          expect({ id, type, maxHit: rowOf(rec.stages[id], type).maxHit }).toEqual({ id, type, maxHit: twin.stages[id].outputs[MAX_HIT(type)] });
+        }
+      }
+    });
+
+    it("AC-P84: avoid's evade and deflect equal PoB's formulas at accuracy 3,786 on the build's MeleeEvasion and DeflectionRating; method is the spike's, pass", () => {
+      expect(ARBITER_ACCURACY).toBe(3786);
+      for (const id of ['nE', 'nA']) {
+        const o = twin.stages[id].outputs;
+        const want = { accuracy: 3786, evade: evadeAt(o.MeleeEvasion, 3786), deflect: deflectAt(o.DeflectionRating, 3786), deflectEffect: o.DeflectEffect, method: 'pass' };
+        expect({ id, avoid: rec.stages[id].measures!.arbiter!.avoid }).toEqual({ id, avoid: want });
+        // At the map enemy's lower accuracy PoB's own chances are higher.
+        expect(rec.stages[id].outputs.MeleeEvadeChance).toBeGreaterThan(want.evade);
+        expect(want.evade).toBeGreaterThan(0);
+        expect(want.deflect).toBeGreaterThan(0);
+      }
+    });
+
+    it('AC-P84: a stage with neither evasion nor deflection at the Arbiter has no avoid', () => {
+      for (const id of ['bP', 'nCI']) {
+        const o = twin.stages[id].outputs;
+        expect({ id, evade: evadeAt(o.MeleeEvasion ?? 0, 3786), deflect: deflectAt(o.DeflectionRating ?? 0, 3786), avoid: rec.stages[id].measures!.arbiter!.avoid }).toEqual({ id, evade: 0, deflect: 0, avoid: undefined });
+        expect(rec.stages[id].measures!.arbiter!.rows.map((r) => r.hitsSurvived)).toEqual(rec.stages[id].measures!.arbiter!.rows.map((r) => (r.verdict === 'survives' ? 100 : 0)));
+      }
+    });
+
+    it("AC-P84: each row's hitsSurvived equals Names' rule on its deflectedRatio; the slams one-shot nE and its deflected hit survives", () => {
+      for (const id of ['nE', 'nA']) {
+        const { evade, deflect } = rec.stages[id].measures!.arbiter!.avoid!;
+        for (const r of rec.stages[id].measures!.arbiter!.rows) {
+          const want = r.verdict === 'survives' ? 100 : r.deflectedRatio! < 1 ? evade + ((100 - evade) * deflect) / 100 : evade;
+          expect({ id, type: r.type, deflectedVerdict: r.deflectedVerdict }).toEqual({ id, type: r.type, deflectedVerdict: r.deflectedRatio! < 1 ? 'survives' : 'one-shot' });
+          expect({ id, type: r.type, hitsSurvived: Math.round(r.hitsSurvived! * 1e9) }).toEqual({ id, type: r.type, hitsSurvived: Math.round(want * 1e9) });
+        }
+      }
+      const phys = rowOf(rec.stages.nE, 'physical');
+      expect([phys.verdict, phys.deflectedVerdict]).toEqual(['one-shot', 'survives']);
+      expect(phys.hitsSurvived).toBeGreaterThan(rec.stages.nE.measures!.arbiter!.avoid!.evade);
+    });
+
+    it("the deflected ratio is a pass (the G9 spike): without armour it is the ratio × (1 − DeflectEffect / 100); with armour PoB's deflected max hit is below the formula's", () => {
+      const de = rec.stages.nE.measures!.arbiter!.avoid!.deflectEffect;
+      for (const r of rec.stages.nE.measures!.arbiter!.rows) expect(r.deflectedRatio!).toBeCloseTo(r.ratio! * (1 - de / 100), 3);
+      const phys = rowOf(rec.stages.nA, 'physical');
+      expect(phys.deflectedRatio!).toBeGreaterThan(phys.ratio! * (1 - de / 100) * 1.02);
+      const light = rowOf(rec.stages.nA, 'lightning');
+      expect(light.deflectedRatio!).toBeCloseTo(light.ratio! * (1 - de / 100), 3);
+    });
+
+    it('AC-P84: after a compile with the deflected-ratio pass, data.misc holds its values from before, and PoB\'s deflect formula is its own', () => {
+      expect(miscAfter).toEqual(miscBefore);
+      expect(miscBefore.DeflectionChanceCap).toBe(95);
+      expect(deflectAfter).toBe(deflectAt(3000, 3786));
+    });
+
+    it("AC-P84: with a data copy whose slam is unevadable, the slam's row counts an evade chance of 0 and the other rows don't change", () => {
+      const base = rec.stages.nE.measures!.arbiter!;
+      const got = slamUnevadable.stages.nE.measures!.arbiter!;
+      const { deflect } = got.avoid!;
+      expect(got.avoid).toEqual(base.avoid);
+      const phys = got.rows.find((r) => r.type === 'physical')!;
+      expect(phys.hitId).toBe('extendo-spear-combo-slam-1');
+      expect(phys.hitsSurvived).toBeCloseTo(0 + (100 * deflect) / 100, 9);
+      expect(phys.hitsSurvived).toBeLessThan(base.rows.find((r) => r.type === 'physical')!.hitsSurvived!);
+      expect(got.rows.filter((r) => r.type !== 'physical')).toEqual(base.rows.filter((r) => r.type !== 'physical'));
+    });
+
+    it("AC-P84: when the unevadable hit is the type's smaller one (slam 2, one-shot too), the row's hitsSurvived is that hit's", () => {
+      const got = slam2Unevadable.stages.nE.measures!.arbiter!;
+      const phys = got.rows.find((r) => r.type === 'physical')!;
+      const slam2 = facts('arbiter-of-divinity.json')['hits.slam-2'].value.max as number;
+      // Slam 2 is one-shot and its deflected hit survived: its own hits survived is 0 + 100 × the deflect chance.
+      expect(slam2 / phys.maxHit!).toBeGreaterThanOrEqual(1);
+      expect(phys.hitId).toBe('extendo-spear-combo-slam-1');
+      expect(phys.hitsSurvived).toBeCloseTo(got.avoid!.deflect, 9);
+      expect(got.rows.filter((r) => r.type !== 'physical')).toEqual(rec.stages.nE.measures!.arbiter!.rows.filter((r) => r.type !== 'physical'));
+    });
+
+    it('AC-P84: with a data copy holding a chaos hit, a Chaos Inoculation stage\'s chaos row is survives, ratio 0, immune, with a non-null verdict', () => {
+      const row = chaosHit.stages.nCI.measures!.arbiter!.rows.find((r) => r.type === 'chaos')!;
+      expect(row).toMatchObject({ hitId: 'test-chaos-bolt', ratio: 0, verdict: 'survives', immune: true, hitsSurvived: 100 });
+      // The immune type comes from the Pinnacle pass: the separate Pinnacle compile has no finite chaos max hit either.
+      expect(twin.stages.nCI.outputs.ChaosMaximumHitTaken).toBeUndefined();
+      // A stage that isn't immune reads the chaos hit against its max hit.
+      const e = chaosHit.stages.nE.measures!.arbiter!.rows.find((r) => r.type === 'chaos')!;
+      expect(e.immune).toBeUndefined();
+      expect(e.ratio).toBeCloseTo(3000 / twin.stages.nE.outputs.ChaosMaximumHitTaken, 9);
+    });
+  });
+
+  it('AC-P84: the key-figure line carries the lowest max hit, the resisting figure and, on a rung with avoid, hits survived, in Appendix A\'s form', () => {
+    const lines = recText.split('\n');
+    const round = (v: number | null | undefined) => (typeof v === 'number' ? String(Math.round(v)) : '?');
+    for (const id of ['nE', 'bP']) {
+      const s = rec.stages[id];
+      const line = lines[lines.findIndex((l) => l.startsWith(`Stage ${id} "`)) + 1];
+      const d = s.measures!.damage!;
+      const low = s.measures!.toughness!.lowestMaxHit!;
+      expect(line).toContain(`Key figures: damage ${round(d.map)} against map monsters, ${round(d.resisting)} against resisting rares, ${round(d.boss)} against a Pinnacle boss; life `);
+      expect(line).toContain(`; EHP ${round(s.outputs.TotalEHP)}; lowest max hit ${round(low.value)} ${low.type}; resists `);
+    }
+    const nE = lines[lines.findIndex((l) => l.startsWith('Stage nE "')) + 1];
+    const rows = rec.stages.nE.measures!.arbiter!.rows.filter((r) => r.verdict === 'one-shot');
+    const deciding = rows.reduce((a, b) => (b.hitsSurvived! < a.hitsSurvived! || (b.hitsSurvived === a.hitsSurvived && b.ratio! > a.ratio!) ? b : a));
+    expect(nE).toContain(`; Arbiter one-shot (worst: ${deciding.type} hit ${deciding.hitId}, ${deciding.ratio!.toFixed(2)} of max hit); hits survived ${Math.floor(deciding.hitsSurvived!)}%; clear `);
+    const bP = lines[lines.findIndex((l) => l.startsWith('Stage bP "')) + 1];
+    expect(bP).not.toContain('hits survived');
   });
 });

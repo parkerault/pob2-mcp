@@ -188,9 +188,10 @@ engineDescribe('WU-78: a minion\'s skill through compile_plan (D-377, D-378, D-3
           // The key-figure line names the minion skill, in compile_plan's reply and in guide_run's stage view.
           // WU-111 (D-437): a variant stage's line leads with the damage figure, the minion's, named as before.
           expect(s.measures!.damage!.map).toBe(s.measures!.dps);
+          // WU-120 (D-454): the resisting figure between the map and boss figures.
           const line =
-            `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.boss!)} ` +
-            `against a Pinnacle boss (${fixture.skill}, minion);`;
+            `Key figures: damage ${Math.round(s.measures!.dps!)} against map monsters, ${Math.round(s.measures!.damage!.resisting!)} against resisting rares, ` +
+            `${Math.round(s.measures!.damage!.boss!)} against a Pinnacle boss (${fixture.skill}, minion);`;
           expect(text).toContain(line);
           const view = await f.call('guide_run', { view: { plan: planPath, stage: 'b' } });
           expect({ isError: view.isError, has: view.text.includes(line) }).toEqual({ isError: false, has: true });

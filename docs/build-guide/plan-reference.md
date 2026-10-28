@@ -460,9 +460,10 @@ their item and skill sets, and a plan without them compiles as a schema-6 plan d
 
 **The damage figure and the boss measure** (D-437, D-447). A group's damage figure is its `TotalDPS` × Count, its
 `TotalDot` × Count only when its damage over time stacks, and its `IgniteDPS`, `BleedDPS` and `PoisonDPS` once (the
-record's Count rule); a minion's is its `MinionTotalDPS` × Count. Each endgame variant stage is measured twice: under
-its own config (map monsters) and again with only `enemyIsBoss` set to `Pinnacle`, the plan's earned conditions and
-every other option as listed; the config is put back after, so the saved build is the plan's. Each group is read on its
+record's Count rule); a minion's is its `MinionTotalDPS` × Count. Each endgame variant stage is measured under its own
+config (map monsters) and again with only `enemyIsBoss` set to `Pinnacle`, the plan's earned conditions and every other
+option as listed (amendment 12 adds the passes of the toughness reading and the resisting figure, below); the config is
+put back after each, so the saved build is the plan's. Each group is read on its
 own weapon set: a group with `weaponSet: 2` from set 2's measure. The record's `stages.<id>.measures` gain:
 
 - **`damage {map, boss}`** (variant stages): `map` the named source's damage figure against map monsters, times its
@@ -559,10 +560,11 @@ at area level 79, filled the same way, so its Effective HP compares with the run
 The compiler also measures each endgame stage (`stages.<id>.measures` in the record), so no plan needs a
 ledger entry for them: `dps` (the main group's Count-scaled figure: its minion's `MinionTotalDPS` when it names a
 minion skill, else `TotalDPS`; D-294, D-378), `ehp` (`TotalEHP`), on `b` and `n`
-the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit
-(`survives` below 1, else `one-shot`), a rough `clearSpeed` and the player's `movementSpeed`. No ledger entry is
-needed for a reference hit, a kill time or hits to kill. Amendment 11's measures (`damage`, `bossGroups`, `cull`,
-`trigger`, `sourceTypes`) are described under builds a player would run above.
+the Arbiter of Divinity's largest hit of each damage type and each mixed hit over the stage's max hit against a
+Pinnacle boss (`survives` below 1, else `one-shot`), a rough `clearSpeed` and the player's `movementSpeed`. No ledger
+entry is needed for a reference hit, a kill time or hits to kill. Amendment 11's measures (`damage`, `bossGroups`,
+`cull`, `trigger`, `sourceTypes`) are described under builds a player would run above; amendment 12's (`toughness`,
+the Arbiter rows' hits survived and `avoid`, `damage.resisting`) under the toughness reading below.
 
 A card skeleton (R1b's one endgame stage with no `variant`) is measured too, with the pace measures only (D-407):
 its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arbiter rows. A campaign stage has no
@@ -588,17 +590,81 @@ its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arb
 the record for these: the headline DPS (the main group's Count-scaled figure, followed by the minion skill's name
 when a minion deals it: `DPS 649 (Navira's Fracturing, minion)`), life, energy shield, EHP, the
 fire, cold, lightning and chaos resistances, and the stage's V1 and V2 finding counts; on an endgame variant stage
-also the Arbiter verdict with its worst hit and ratio (`b`, `n`) and the rough clear speed. A card skeleton's pace
-measures and every measured stage's movement speed are in the record only. Numbers are rounded to whole numbers.
-On an endgame variant stage (amendment 11, D-437) the line leads with the named source's damage figure in place of the
-headline: `damage <map> against map monsters, <boss> against a Pinnacle boss` (`measures.damage`), the map figure
-followed by `(culling at <x>%)` when it carries the cull, and the minion's name after the boss figure when a minion
-deals it. A named source a meta gem triggers adds `<skill> is triggered by <gem>: PoB rates it at its hand-cast speed
-(<n> a second) and doesn't model Energy`, on a card skeleton too.
+also the Arbiter verdict with its deciding row's hit and ratio (`b`, `n`) and the rough clear speed. A card skeleton's
+pace measures and every measured stage's movement speed are in the record only. Numbers are rounded to whole numbers.
+On an endgame variant stage (amendment 11, D-437; amendment 12, D-454) the line leads with the named source's damage
+figure in place of the headline: `damage <map> against map monsters, <resisting> against resisting rares, <boss>
+against a Pinnacle boss` (`measures.damage`), the map figure followed by `(culling at <x>%)` when it carries the cull,
+and the minion's name after the boss figure when a minion deals it; a record from before amendment 12, without
+`damage.resisting`, keeps `damage <map> against map monsters, <boss> against a Pinnacle boss` (`measures.damage`).
+Amendment 12 (D-449) adds `lowest max hit <n> <type>` after `EHP <n>` on a variant stage; the Arbiter part names the
+rung's deciding row (its one-shot row with the lowest hits survived, else its row with the largest ratio), and on a
+rung with `avoid` it is followed by `hits survived <x>%`, that row's, rounded down to a whole percent so no figure
+rounds up across the 80% floor. A named source a meta gem triggers adds `<skill> is triggered by <gem>: PoB rates it at
+its hand-cast speed (<n> a second) and doesn't model Energy`, on a card skeleton too.
 
 ```
 Stage b "Budget (L80) {b}" level 80: V1 fail, V2 pass
-  Key figures: damage 5 against map monsters, 5 against a Pinnacle boss; life 1121; ES 0; EHP 1136; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
+  Key figures: damage 5 against map monsters, 5 against resisting rares, 5 against a Pinnacle boss; life 1121; ES 0; EHP 1136; lowest max hit 1121 lightning; resists 0/10/0/0 (fire/cold/lightning/chaos); findings V1 9, V2 0; Arbiter one-shot (worst: lightning hit volatile-explode, 3.54 of max hit); clear slow (rough)
+Stage n "Non-budget (L90) {n}" level 90: V1 pass, V2 pass
+  Key figures: damage 1500000 against map monsters, 1200000 against resisting rares, 400000 against a Pinnacle boss; life 4000; ES 0; EHP 17900; lowest max hit 3451 physical; resists 75/75/75/0 (fire/cold/lightning/chaos); findings V1 0, V2 0; Arbiter one-shot (worst: physical hit extendo-spear-combo-slam-1, 1.01 of max hit); hits survived 79%; clear fast (rough)
+```
+
+### The toughness reading and the resisting figure (D-449, D-454)
+
+Amendment 12 reads how tough a rung is beside its EHP, and how its damage holds against a resisting enemy. Its fields
+are additive (`recordVersion` stays 2); a record without them shows the old lines.
+
+- **`toughness`** (every variant stage): `lowestMaxHit {type, value}`, the least of PoB's five `<Type>MaximumHitTaken` of
+  the stage's own measure (map monsters), with its type, or null; `immune`, the types PoB makes the build immune to (an
+  infinite max hit, which `outputs` leaves out), which the lowest max hit leaves out; `chance {notHit, damage, factor,
+  share}`: PoB's `ConfiguredNotHitChance` and `ConfiguredDamageChance` (percent), `factor` = 1 ÷ ((1 − notHit/100) ×
+  damage/100), the EHP multiple the chance layers give (null when nothing gets through), and `share` = 1 − 1 ÷ `factor`,
+  the part of the EHP that evade, block and deflection make.
+- **`toughness.conditioned {ehp, lowestMaxHit}`** (on `n`): the conditioned read, the stage measured again with every
+  condition against it: PoB's EHP calc on Unlucky (`EHPUnluckyWorstOf` 2), been hit recently, Wind Dancer at 0 stacks and
+  the enemy not blinded, every option put back after, so the saved file's config and `configWritten` are the plan's. The
+  toughness band still reads `ehp`, the build's own config.
+- **The Arbiter rows** (`b`, `n`) read the Pinnacle pass: its max hits and immune types, right after its first
+  calculation, on the stage's own weapon set, under PoB's Pinnacle settings as they are (curses at half effect, the
+  enemy's 3% fire, cold and lightning penetration placeholders, enemy level 82). Every hit of the data is read with its
+  own ratio: a row keeps its largest hit's `ratio` and `verdict`. A row of a type PoB makes the build immune to is
+  `{ratio: 0, verdict: "survives", immune: true}`, and a mixed row's immune part counts 0 (the part carries `immune:
+  true`); a max hit of 0 is a one-shot with no ratio. Each row gains `deflectedRatio` and `deflectedVerdict`, its hit
+  deflected over the max hit (null when the build doesn't deflect at the Arbiter), and `hitsSurvived`, 0 to 100, the
+  least over the type's hits: per hit, 100 when it survives the full hit; else its evade chance plus (100 − the evade
+  chance) × the deflect chance / 100 when it survives the deflected hit; else its evade chance. A hit whose data carries
+  `hits.<id>.evadable: false` has an evade chance of 0.
+- **`arbiter.avoid {accuracy, evade, deflect, deflectEffect, method}`** (`b`, `n`, when the evade or the deflect chance at
+  the Arbiter is above 0): the chances at the Arbiter's accuracy, 3,786 (`enemies/arbiter-of-divinity.json#base.accuracy`),
+  with no blind and no distance: PoB's melee evade formula on the build's `MeleeEvasion` and PoB's deflect formula on its
+  `DeflectionRating`, an unlucky evade or lucky deflect applied as PoB applies them, and PoB's `DeflectEffect`, the share
+  of a deflected hit prevented. `method` is how the deflected ratio is read: `pass`, PoB's own max hit in a pass where
+  every hit is deflected (the 95% deflect cap lifted for it and put back), or `formula`, the ratio × (1 − `DeflectEffect`
+  / 100), exact without armour and optimistic with it, used only when the pass can't make PoB deflect every hit. A
+  companion's share of deflected hits is already in PoB's max hit, so such a build's hits survived reads high (PG-100).
+- **`damage.resisting`** (every variant stage): the named source's damage figure against the map enemy with 40% fire,
+  cold and lightning resistance (the top roll of `enemies/waystones.json#mods.monster-elemental-resistance`), curses at
+  full strength, on its own weapon set, by the map figure's rule and with its `CullMultiplier` when the stage states
+  `skills.cull`; null when PoB gives none.
+
+```json
+"damage": { "map": 1500000, "boss": 400000, "resisting": 1200000 },
+"toughness": {
+  "lowestMaxHit": { "type": "physical", "value": 3451 },
+  "immune": [],
+  "chance": { "notHit": 65, "damage": 92, "factor": 3.11, "share": 0.68 },
+  "conditioned": { "ehp": 10900, "lowestMaxHit": { "type": "physical", "value": 3451 } }
+},
+"arbiter": {
+  "verdict": "one-shot",
+  "worst": { "type": "physical", "hitId": "extendo-spear-combo-slam-1", "ratio": 1.01 },
+  "rows": [
+    { "type": "physical", "mixed": false, "hitId": "extendo-spear-combo-slam-1", "hit": 3486, "maxHit": 3451,
+      "ratio": 1.01, "verdict": "one-shot", "deflectedRatio": 0.61, "deflectedVerdict": "survives", "hitsSurvived": 79.6 }
+  ],
+  "avoid": { "accuracy": 3786, "evade": 32, "deflect": 70, "deflectEffect": 40, "method": "pass" }
+}
 ```
 
 ### Weapon set 2's measure (D-426)

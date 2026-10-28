@@ -1538,6 +1538,33 @@ export const stageSkillMetaSchema = z
   .passthrough();
 export type StageSkillMeta = z.infer<typeof stageSkillMetaSchema>;
 
+/**
+ * WU-120 (amendment 12 §4, D-449): a measure's max hits: the finite `<Type>MaximumHitTaken` by field (a max hit of 0
+ * included), and `immune`, the types PoB makes the build immune to (an infinite max hit), lowercase.
+ */
+export const stageMaxHitsSchema = z
+  .object({ maxHits: luaMap(z.number()), immune: luaArray(z.string()) })
+  .passthrough();
+export type StageMaxHits = z.infer<typeof stageMaxHitsSchema>;
+
+/**
+ * WU-120 (amendment 12 §4, D-449): the chances at the Arbiter, with `boss.arbiter` in the params (`b` and `n`): its
+ * accuracy, PoB's melee evade and deflect chances at it (percent), PoB's `DeflectEffect`, and, when the deflect chance is
+ * above 0, the max hits with every hit deflected (`deflected`, the G9 pass); `method` is `pass`, or `formula` when the
+ * pass couldn't make PoB deflect every hit (then no `deflected`).
+ */
+export const stageArbiterChancesSchema = z
+  .object({
+    accuracy: z.number(),
+    evade: z.number(),
+    deflect: z.number(),
+    deflectEffect: z.number(),
+    method: z.enum(['pass', 'formula']),
+    deflected: stageMaxHitsSchema.optional(),
+  })
+  .passthrough();
+export type StageArbiterChances = z.infer<typeof stageArbiterChancesSchema>;
+
 export const compileStageReply = baseReply.extend({
   result: z
     .object({
@@ -1554,6 +1581,8 @@ export const compileStageReply = baseReply.extend({
         .object({ nodes: luaArray(allocatedNodeSchema), startNodes: luaArray(z.number().int()) })
         .passthrough(),
       outputs: luaMap(z.number()),
+      /** WU-120 (D-449): the types whose max hit PoB makes infinite in the stage's own measure, which `outputs` leaves out. */
+      immune: luaArray(z.string()).optional(),
       /** D-426: on a stage that uses weapon set 2, the same map measured with set 2 active; absent otherwise. */
       outputsSet2: luaMap(z.number()).optional(),
       skillOutputs: luaMap(stageSkillOutputSchema),
@@ -1575,12 +1604,33 @@ export const compileStageReply = baseReply.extend({
       /**
        * WU-111 (amendment 11 §5, §9b; D-437, D-447): the boss measure, with `boss` in the params: the named groups'
        * breakdown with only `enemyIsBoss` set to `Pinnacle`, each group on its own weapon set, keyed as `skillOutputs`,
-       * and each key's meta.
+       * and each key's meta. WU-120 (amendment 12 §4, D-449): the pass's max hits and immune types, read on the stage's
+       * own weapon set right after its first calculation, and with `boss.arbiter` the chances at the Arbiter.
        */
       boss: z
+        .object({
+          skillOutputs: luaMap(stageSkillOutputSchema),
+          skillMeta: luaMap(stageSkillMetaSchema),
+          maxHits: luaMap(z.number()).optional(),
+          immune: luaArray(z.string()).optional(),
+          arbiter: stageArbiterChancesSchema.optional(),
+        })
+        .passthrough()
+        .optional(),
+      /**
+       * WU-120 (amendment 12 §9, D-454): the resisting measure, with `resisting` in the params: the named source's group
+       * with only the enemy's fire, cold and lightning resistances set, on its own weapon set, keyed as `skillOutputs`,
+       * and each key's meta.
+       */
+      resisting: z
         .object({ skillOutputs: luaMap(stageSkillOutputSchema), skillMeta: luaMap(stageSkillMetaSchema) })
         .passthrough()
         .optional(),
+      /**
+       * WU-120 (amendment 12 §4, D-449): the conditioned read, with `conditioned` in the params (`n`): `TotalEHP` (absent
+       * when PoB gives no finite one) and the max hits with every condition against the build.
+       */
+      conditioned: stageMaxHitsSchema.extend({ ehp: z.number().optional() }).passthrough().optional(),
       checks: stageChecksSchema,
       /** D-377: the resolved minion selection of each group that names a `minionSkill`, in group order. */
       minionSkills: luaArray(stageMinionSkillSchema),
@@ -1881,7 +1931,22 @@ export interface CompileStageParams {
    * WU-111 (D-437, D-447): the boss measure, on an endgame variant stage: the groups to measure against a Pinnacle boss
    * (the reply's numbers: the named source's and the boss rotation's) and the fields read for each skill and stat set.
    */
-  boss?: { groups: number[]; fields: string[] };
+  boss?: {
+    groups: number[];
+    fields: string[];
+    /**
+     * WU-120 (amendment 12 §4, D-449): on `b` and `n`, the Arbiter's accuracy
+     * (`enemies/arbiter-of-divinity.json#base.accuracy`): the pass also gives the chances at it and the deflected max hits.
+     */
+    arbiter?: { accuracy: number };
+  };
+  /**
+   * WU-120 (amendment 12 §9, D-454): on an endgame variant stage, the resisting measure: the named source's group, the
+   * fields read for it, and the enemy's fire, cold and lightning resistance (`enemies/waystones.json`'s top roll).
+   */
+  resisting?: { groups: number[]; fields: string[]; resist: number };
+  /** WU-120 (amendment 12 §4, D-449): on `n`, the conditioned read. */
+  conditioned?: boolean;
   /** Test actions only (POB_API_TEST_ACTIONS=1): the engine exits during this stage (AC-P35). */
   __crashForTest?: boolean;
 }

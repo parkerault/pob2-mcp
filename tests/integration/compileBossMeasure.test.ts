@@ -21,6 +21,12 @@
  *   PoB's InbuiltTrigger and Triggered types, Data/Skills/sup_str.lua), group 5 Frost Bomb (a 6-second cooldown,
  *   Data/Skills/act_int.lua). `t` names Spark alone; `ts` is a card skeleton; `tm` names Boneshatter, the triggered
  *   Spark, the totem's Spark and Corrupted Cry.
+ *
+ * WU-120 (amendment 12 §4, §9; D-449, D-454; AC-P84): `attacks` gains `nF`, the named source with Enfeeble beside it (a
+ * curse PoB halves against a Pinnacle boss), and `nL2`, a rotation entry on weapon set 2 whose set-2 club carries +800
+ * life, so the two sets' max hits differ. The Arbiter rows read the Pinnacle pass's max hits, checked against the twin.
+ * `elements` (the resisting figure) names Frostbolt (cold) on `fc` and Essence Drain (chaos) on `xc`; its twin has the
+ * enemy's fire, cold and lightning resistance at 40 (the waystone modifier's top roll) in the scenario.
  */
 import fs from 'fs';
 import path from 'path';
@@ -114,6 +120,14 @@ function attacks(): Json {
       s.skills.groups[2].weaponSet = 2;
       boss([BONE, QUAKE])(s);
     }),
+    // WU-120 (D-449): Enfeeble beside the named source; a rotation entry on set 2 whose club adds life on set 2 only.
+    rung(base, 'nF', [...ATTACK_GROUPS, { label: 'Enfeeble', enabled: true, role: 'utility', gems: [gem('Enfeeble', 20)] }], main),
+    rung(base, 'nL2', ATTACK_GROUPS, main, (s) => {
+      s.items.slots = s.items.slots.filter((i: Json) => i.slot !== 'Weapon 1');
+      s.items.slots.push({ ...SLIM_MACE }, { slot: 'Weapon 1 Swap', text: 'Rarity: Rare\nTest Bludgeon\nWooden Club\n+800 to maximum Life' });
+      s.skills.groups[2].weaponSet = 2;
+      boss([BONE, QUAKE])(s);
+    }),
   ];
   plan.ledger = [
     { id: 'boss_ignite', claim: "nI's Boneshatter ignite against a Pinnacle boss.", formula: 'nI.boss.g1s1p1.ignite', inputs: [] },
@@ -150,6 +164,32 @@ function spells(): Json {
   return plan;
 }
 
+/**
+ * WU-120 (D-454): a resisting figure's plan, schema 7, rolled on `skill`: one rung `id` whose named source is that spell,
+ * Frostbolt (cold) or Essence Drain (chaos).
+ */
+function elements(id: string, skill: string): Json {
+  const plan = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as Json;
+  const base = plan.stages[1];
+  plan.schemaVersion = 7;
+  plan.roll.skill = skill;
+  plan.stages = [rung(base, id, [{ label: skill, enabled: true, role: 'single_target', gems: [gem(skill, 20)] }], { group: 1, activeSkill: 1, statSet: 1 })];
+  plan.ledger = [];
+  return plan;
+}
+
+/** The resisting twin of a plan: its stages with the enemy's fire, cold and lightning resistance at the waystone modifier's top roll. */
+function resisting(plan: Json): Json {
+  const twin = JSON.parse(JSON.stringify(plan)) as Json;
+  const source = { file: 'enemies/waystones.json', key: 'mods.monster-elemental-resistance' };
+  for (const s of twin.stages) {
+    for (const option of ['enemyFireResist', 'enemyColdResist', 'enemyLightningResist']) {
+      s.config.scenario.push({ option, value: 40, source, tag: judgment('test: the resisting figure') });
+    }
+  }
+  return twin;
+}
+
 /** The twin of a plan: its variant stages with `enemyIsBoss: "Pinnacle"` and no boss rotation or cull. */
 function pinnacle(plan: Json): Json {
   const twin = JSON.parse(JSON.stringify(plan)) as Json;
@@ -170,6 +210,9 @@ engineDescribe('WU-111: the boss measure, the damage figure and boss references 
   let spl: CompileRecord;
   let splBoss: CompileRecord;
   let spellText: string;
+  /** WU-120: the cold and chaos rungs, `fc` and `xc`, each compiled alone and with the enemy's resistances at 40. */
+  const ele: Record<string, CompileRecord> = {};
+  const eleRes: Record<string, CompileRecord> = {};
 
   async function compile(slug: string, plan: Json): Promise<{ isError: boolean; text: string; record?: CompileRecord }> {
     const made = await f.call('guide_run', { new_run: slug });
@@ -196,6 +239,10 @@ engineDescribe('WU-111: the boss measure, the damage figure and boss references 
     spl = s.record;
     spellText = s.text;
     splBoss = (await compiled('boss-spells-pinnacle', pinnacle(spells()))).record;
+    for (const [id, skill] of [['fc', 'Frostbolt'], ['xc', 'Essence Drain']]) {
+      ele[id] = (await compiled(`resisting-${id}`, elements(id, skill))).record;
+      eleRes[id] = (await compiled(`resisting-${id}-40`, resisting(elements(id, skill)))).record;
+    }
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
@@ -390,5 +437,48 @@ engineDescribe('WU-111: the boss measure, the damage figure and boss references 
       expect(out.text).toMatch(/^stages\[0\]\.skills\.boss\.entries\[1\] \(stage t\): group 1 has no active skill 1 with stat set 2 in PoB's measure \(D-447\); its selections: g1s1p1 Cast on Critical/m);
       expect(out.record).toBeUndefined();
     }, ENGINE_TIMEOUT);
+  });
+
+  describe('WU-120: the Arbiter on the Pinnacle pass and the resisting figure (amendment 12 §4, §9)', () => {
+    const MAX_HIT = (t: string) => `${t[0].toUpperCase()}${t.slice(1)}MaximumHitTaken`;
+    const slam = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'enemies', 'arbiter-of-divinity.json'), 'utf8')).facts['hits.extendo-spear-combo-slam-1'].value.max as number;
+
+    it('AC-P84: on a stage that curses with Enfeeble, the Arbiter physical ratio is above the map measure\'s ratio for the same hit, and its max hit is the Pinnacle compile\'s', () => {
+      const s = atk.stages.nF;
+      // Enfeeble raises the stage's own physical max hit, and PoB halves it against a Pinnacle boss.
+      expect(s.outputs.PhysicalMaximumHitTaken).toBeGreaterThan(atk.stages.n.outputs.PhysicalMaximumHitTaken);
+      const row = s.measures!.arbiter!.rows.find((r) => r.type === 'physical')!;
+      expect(row.hit).toBe(slam);
+      expect(row.ratio!).toBeGreaterThan(slam / s.outputs.PhysicalMaximumHitTaken);
+      expect(row.maxHit).toBe(atkBoss.stages.nF.outputs.PhysicalMaximumHitTaken);
+      // The lowest max hit is the stage's own measure, against map monsters.
+      expect(s.measures!.toughness!.lowestMaxHit!.value).toBe(Math.min(...['physical', 'fire', 'cold', 'lightning', 'chaos'].map((t) => s.outputs[MAX_HIT(t)])));
+    });
+
+    it("AC-P84: measures.arbiter reads the Pinnacle pass's max hits on the stage's own weapon set, on a stage with a boss group on set 2", () => {
+      const twin = atkBoss.stages.nL2;
+      // The set-2 club's life moves set 2's max hits: the two sets differ.
+      expect(twin.outputsSet2!.PhysicalMaximumHitTaken).toBeGreaterThan(twin.outputs.PhysicalMaximumHitTaken);
+      for (const r of atk.stages.nL2.measures!.arbiter!.rows.filter((x) => !x.mixed)) {
+        expect({ type: r.type, maxHit: r.maxHit }).toEqual({ type: r.type, maxHit: twin.outputs[MAX_HIT(r.type)] });
+      }
+      // The boss rotation's set-2 entry is still read on set 2.
+      expect(atk.stages.nL2.measures!.bossGroups!.map((g) => g.group)).toEqual([1, 3]);
+    });
+
+    it("AC-P84: measures.damage.resisting equals the named source's figure in a separate compile with enemy fire, cold and lightning resistance 40; a cold source reads it below damage.map, a chaos one equal to it", () => {
+      for (const id of ['fc', 'xc']) {
+        expect({ id, resisting: ele[id].stages[id].measures!.damage!.resisting }).toEqual({ id, resisting: eleRes[id].stages[id].measures!.damage!.map });
+      }
+      const [fc, xc] = [ele.fc.stages.fc.measures!.damage!, ele.xc.stages.xc.measures!.damage!];
+      expect(fc.map!).toBeGreaterThan(0);
+      expect(fc.resisting!).toBeLessThan(fc.map!);
+      expect(xc.map!).toBeGreaterThan(0);
+      expect(xc.resisting).toBe(xc.map);
+      // The map figure stays the stage's own: the saved config is the plan's, enemy resistances unlisted.
+      expect(ele.fc.stages.fc.configWritten.enemyColdResist).toBeUndefined();
+      // A physical source reads the same against resisting rares.
+      expect(atk.stages.n.measures!.damage!.resisting).toBe(atk.stages.n.measures!.damage!.map);
+    });
   });
 });

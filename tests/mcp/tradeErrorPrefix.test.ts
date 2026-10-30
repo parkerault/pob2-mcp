@@ -188,6 +188,13 @@ async function handlerMessages(error: Error): Promise<Record<string, string>> {
   };
 }
 
+/**
+ * D-474 (AC-K79): the error of `get_item_price` and `search_trade_items` ends with the pace line; this context sets no
+ * pace, so the server's default is reported. `get_leagues` carries none.
+ */
+const PACE_ON = 'Pace: 45 s between searches, at most 7 in 5 minutes.';
+const paced = (action: string): string => (action === 'get leagues' ? '' : `\n${PACE_ON}`);
+
 describe('AC-K43 (WU-49, D-218): the trade handlers keep the error kind', () => {
   it('AC-K43: the kinds checked are exactly the TradeErrorKind union', () => {
     expect([...sourceKinds()].sort()).toEqual([...SPEC_KINDS].sort());
@@ -197,7 +204,7 @@ describe('AC-K43 (WU-49, D-218): the trade handlers keep the error kind', () => 
     const messages = await handlerMessages(new TradeError(kind, 'm'));
     for (const [action, message] of Object.entries(messages)) {
       expect(message.startsWith(`[trade:${kind}] Failed to `)).toBe(true);
-      expect(message).toBe(`[trade:${kind}] Failed to ${action}: m`);
+      expect(message).toBe(`[trade:${kind}] Failed to ${action}: m${paced(action)}`);
     }
   });
 
@@ -205,7 +212,7 @@ describe('AC-K43 (WU-49, D-218): the trade handlers keep the error kind', () => 
     const messages = await handlerMessages(new Error('m'));
     for (const [action, message] of Object.entries(messages)) {
       expect(message).not.toContain('[trade:');
-      expect(message).toBe(`Failed to ${action}: m`);
+      expect(message).toBe(`Failed to ${action}: m${paced(action)}`);
     }
   });
 });

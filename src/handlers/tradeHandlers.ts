@@ -16,7 +16,9 @@ import {
   type UpgradeSearchContext,
 } from '../trade/findUpgrades.js';
 import { completeUpgradeSearch } from '../trade/rankUpgrades.js';
-import { checkedTimestamp, renderFallback, renderUpgradeReport } from '../trade/renderUpgrades.js';
+import { checkedTimestamp, renderFallback, renderUpgradeReport, withPaceBeforeLink } from '../trade/renderUpgrades.js';
+import { TRADE_SEARCH_PACE, type SearchPace } from '../trade/rateLimiter.js';
+import { truncateResponse } from '../server/responseUtils.js';
 import type { Credentials } from '../trade/credentials.js';
 import type { EngineSession } from '../engine/session.js';
 import { z } from 'zod';
@@ -33,9 +35,58 @@ export interface TradeContext {
   resolveLeague: () => Promise<string>;
   /** The wall clock (epoch ms) that dates price results (C-49): `ServerDeps.now ?? Date.now`; default `Date.now`. */
   now?: () => number;
+  /**
+   * D-474: the server's trade search pace (D-461), which the pace line reports: null when it is off (a test server);
+   * left out, the default `TRADE_SEARCH_PACE`, as `ServerDeps.tradePace`.
+   */
+  pace?: SearchPace | null;
 }
 
 type TextResult = { content: Array<{ type: string; text: string }> };
+
+/** `n` seconds or minutes, whole: `45 s`, `5 minutes`. */
+function durationText(ms: number): string {
+  if (ms >= 60_000 && ms % 60_000 === 0) return `${ms / 60_000} minute${ms === 60_000 ? '' : 's'}`;
+  return `${Math.round(ms / 1000)} s`;
+}
+
+/**
+ * D-474: the pace line every `search_trade_items`, `get_item_price` and `find_upgrades` reply carries, so a caller can
+ * tell a server that paces its trade searches (D-461) from one built before it: `Pace: 45 s between searches, at most
+ * 7 in 5 minutes.`, or `Pace: off (test setting).` when the server's pace is off.
+ */
+export function paceLine(pace: SearchPace | null | undefined): string {
+  const p = pace === undefined ? TRADE_SEARCH_PACE : pace;
+  const parts: string[] = [];
+  if (p !== null && p.gapMs > 0) parts.push(`${durationText(p.gapMs)} between searches`);
+  if (p !== null && p.cap !== null) parts.push(`at most ${p.cap.max} in ${durationText(p.cap.periodMs)}`);
+  return parts.length === 0 ? 'Pace: off (test setting).' : `Pace: ${parts.join(', ')}.`;
+}
+
+/**
+ * The reply with the pace line as its last line. With `limit` (a tool C-1 truncates), the text before it is cut first,
+ * as C-1 cuts it, so the whole reply fits and the line survives.
+ */
+function withPaceLine(result: TextResult, line: string, limit?: number): TextResult {
+  const content = [...result.content];
+  const last = content.length - 1;
+  if (last < 0) return { ...result, content: [{ type: 'text', text: line }] };
+  let body = content[last].text.replace(/\n+$/, '');
+  if (limit !== undefined && body.length + 1 + line.length > limit) {
+    let room = limit - line.length - 1;
+    let cut = truncateResponse(body, room);
+    while (cut.length + 1 + line.length > limit && room > 0) {
+      room -= 50;
+      cut = truncateResponse(body, Math.max(0, room));
+    }
+    body = cut;
+  }
+  content[last] = { ...content[last], text: `${body}\n${line}` };
+  return { ...result, content };
+}
+
+/** C-1: the characters the server keeps of `search_trade_items`' text (`TRUNCATED_TOOLS`, createServer). */
+const SEARCH_TEXT_LIMIT = 5000;
 
 function text(output: string): TextResult {
   return { content: [{ type: 'text', text: output }] };
@@ -44,15 +95,23 @@ function text(output: string): TextResult {
 /**
  * The trade handlers' error wrapper (D-218). As `wrapHandler`, except that an error a `TradeError`
  * (C-10) caused keeps its kind as a stable prefix, so the router's error text reads
- * `Error: [trade:<kind>] Failed to <action>: <message>`. Any other error gets no prefix.
+ * `Error: [trade:<kind>] Failed to <action>: <message>`. Any other error gets no prefix. With `paced` (D-474,
+ * `search_trade_items` and `get_item_price`), the reply's last line is the pace line, an error's included.
  */
-async function wrapTradeHandler<T>(action: string, handler: () => Promise<T>): Promise<T> {
+async function wrapTradeHandler<T>(action: string, handler: () => Promise<T>): Promise<T>;
+async function wrapTradeHandler(
+  action: string,
+  handler: () => Promise<TextResult>,
+  paced: { line: string; limit?: number },
+): Promise<TextResult>;
+async function wrapTradeHandler<T>(action: string, handler: () => Promise<T>, paced?: { line: string; limit?: number }): Promise<T> {
   try {
-    return await handler();
+    const result = await handler();
+    return paced ? (withPaceLine(result as unknown as TextResult, paced.line, paced.limit) as unknown as T) : result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const prefix = error instanceof TradeError ? `[trade:${error.kind}] ` : '';
-    throw new Error(`${prefix}Failed to ${action}: ${message}`);
+    throw new Error(`${prefix}Failed to ${action}: ${message}${paced ? `\n${paced.line}` : ''}`);
   }
 }
 
@@ -144,7 +203,7 @@ export interface SearchTradeItemsArgs {
  * native price and, where poe.ninja can place the currency, its primary-currency equivalent.
  */
 export async function handleSearchTradeItems(context: TradeContext, args: SearchTradeItemsArgs): Promise<TextResult> {
-  return wrapTradeHandler('search trade items', async () => {
+  return wrapTradeHandler('search trade items', async (): Promise<TextResult> => {
     const {
       league,
       item_name,
@@ -188,7 +247,7 @@ export async function handleSearchTradeItems(context: TradeContext, args: Search
     );
     const prices = await normalizePrices(context.currency, league, items);
     return text(formatSearchResults(items, searchResult.total, league, searchResult.id, prices, checkedAt));
-  });
+  }, { line: paceLine(context.pace), limit: SEARCH_TEXT_LIMIT });
 }
 
 /** The fetch entries that are listings (trade2 may return `null` for a listing that is gone). */
@@ -429,7 +488,7 @@ export async function handleGetItemPrice(
     rarity?: 'unique' | 'rare' | 'magic' | 'normal';
   },
 ): Promise<TextResult> {
-  return wrapTradeHandler('get item price', async () => {
+  return wrapTradeHandler('get item price', async (): Promise<TextResult> => {
     const { item_name, item_type, rarity } = args;
     const league = args.league || (await context.resolveLeague());
     // D-444: an item the currency exchange sells is priced from poe.ninja's exchange first.
@@ -448,7 +507,7 @@ export async function handleGetItemPrice(
     }
     // C-49: the date and league come before the listings, so C-1's truncation can't drop them.
     return text(`=== Price Check: ${item_name} ===\n${datedLines(league, checkedAt)}${priced.body}`);
-  });
+  }, { line: paceLine(context.pace) });
 }
 
 // ========================================
@@ -615,6 +674,8 @@ export interface FindUpgradesContext {
   env: Env;
   /** The wall clock (epoch ms) that dates the result's prices (C-49, D-372): `ServerDeps.now ?? Date.now`; default `Date.now`. */
   wallClock?: () => number;
+  /** D-474: the server's trade search pace, for the pace line (as `TradeContext.pace`). */
+  pace?: SearchPace | null;
   /** The MCP call: its abort signal, its deadline (arrival + 90 s, D-22) and progress (D-22). */
   call: {
     signal: AbortSignal;
@@ -628,72 +689,88 @@ export interface FindUpgradesContext {
 /**
  * `find_upgrades` (C-14): PoB's weighted trade search for one slot of the loaded build. The search
  * pipeline (steps 1–9, `runUpgradeSearch`) and the evaluation, pricing, ranking and rendering (steps
- * 10–13) run inside the one `session.run` the router opened, under one deadline.
+ * 10–13) run inside the one `session.run` the router opened, under one deadline. Every reply, an error's
+ * included, carries the pace line just before the search link, which stays last (D-474, C-14).
  */
 export async function handleFindUpgrades(
   context: FindUpgradesContext,
   args: unknown,
 ): Promise<TextResult & { refit?: (reservedChars: number) => string }> {
+  const pace = paceLine(context.pace);
   return wrapHandler('find upgrades', async () => {
-    const input = parseFindUpgradesInput(args);
-    const engine = context.session.current();
-    if (!engine) throw new Error('find_upgrades must run inside an engine session');
-    let step = 0;
-    const progress = async (message: string): Promise<void> => {
-      step += 1;
-      try {
-        await context.call.sendProgress(step, message);
-      } catch (error) {
-        console.error(`[find_upgrades] progress notification failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    };
-    const { signal, deadline } = context.call;
-    const now = context.call.now ?? Date.now;
-    const wallClock = context.wallClock ?? Date.now;
-
-    // C-49 (D-372): the result is dated by the wall-clock time its first trade search was sent, as
-    // get_item_price's is; with no search sent, by the time of the report.
-    let checkedAt: number | undefined;
-    const client = context.tradeClient;
-    const trade: UpgradeSearchContext['trade'] = {
-      search: (...a: Parameters<TradeApiClient['search']>) => {
-        if (checkedAt === undefined) checkedAt = wallClock();
-        return client.search(...a);
-      },
-      fetch: client.fetch.bind(client),
-      getStats: client.getStats.bind(client),
-      getLeagues: client.getLeagues.bind(client),
-    };
-
-    const result = await runUpgradeSearch(input, {
-      engine,
-      trade,
-      credentials: context.credentials,
-      env: context.env,
-      signal,
-      deadline,
-      now,
-      progress,
-      session: context.session,
-    });
-    if (result.kind === 'fallback') {
-      await progress('done');
-      return text(renderFallback(result));
+    try {
+      return await findUpgradesReply(context, args, pace);
+    } catch (error) {
+      // wrapHandler keeps only the message, so the error is rebuilt with the line in it.
+      throw new Error(withPaceBeforeLink(error instanceof Error ? error.message : String(error), pace));
     }
-    const loaded = context.session.loaded;
-    const report = await completeUpgradeSearch(result, input, {
-      engine,
-      signal,
-      deadline,
-      now,
-      env: context.env,
-      loaded: loaded ? { displayName: loaded.displayName, path: loaded.path } : null,
-      currency: context.currency,
-      progress,
-      checkedAt: checkedAt ?? wallClock(),
-    });
-    // The router prepends the session's notices (C-3 step 8); `refit` renders the report again with
-    // their room reserved, so the whole output stays within the D-53 budget.
-    return { ...text(renderUpgradeReport(report)), refit: (reservedChars: number) => renderUpgradeReport(report, reservedChars) };
   });
+}
+
+async function findUpgradesReply(
+  context: FindUpgradesContext,
+  args: unknown,
+  pace: string,
+): Promise<TextResult & { refit?: (reservedChars: number) => string }> {
+  const input = parseFindUpgradesInput(args);
+  const engine = context.session.current();
+  if (!engine) throw new Error('find_upgrades must run inside an engine session');
+  let step = 0;
+  const progress = async (message: string): Promise<void> => {
+    step += 1;
+    try {
+      await context.call.sendProgress(step, message);
+    } catch (error) {
+      console.error(`[find_upgrades] progress notification failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  const { signal, deadline } = context.call;
+  const now = context.call.now ?? Date.now;
+  const wallClock = context.wallClock ?? Date.now;
+
+  // C-49 (D-372): the result is dated by the wall-clock time its first trade search was sent, as
+  // get_item_price's is; with no search sent, by the time of the report.
+  let checkedAt: number | undefined;
+  const client = context.tradeClient;
+  const trade: UpgradeSearchContext['trade'] = {
+    search: (...a: Parameters<TradeApiClient['search']>) => {
+      if (checkedAt === undefined) checkedAt = wallClock();
+      return client.search(...a);
+    },
+    fetch: client.fetch.bind(client),
+    getStats: client.getStats.bind(client),
+    getLeagues: client.getLeagues.bind(client),
+  };
+
+  const result = await runUpgradeSearch(input, {
+    engine,
+    trade,
+    credentials: context.credentials,
+    env: context.env,
+    signal,
+    deadline,
+    now,
+    progress,
+    session: context.session,
+  });
+  if (result.kind === 'fallback') {
+    await progress('done');
+    return text(renderFallback(result, pace));
+  }
+  const loaded = context.session.loaded;
+  const completed = await completeUpgradeSearch(result, input, {
+    engine,
+    signal,
+    deadline,
+    now,
+    env: context.env,
+    loaded: loaded ? { displayName: loaded.displayName, path: loaded.path } : null,
+    currency: context.currency,
+    progress,
+    checkedAt: checkedAt ?? wallClock(),
+  });
+  const report = { ...completed, paceLine: pace };
+  // The router prepends the session's notices (C-3 step 8); `refit` renders the report again with
+  // their room reserved, so the whole output stays within the D-53 budget.
+  return { ...text(renderUpgradeReport(report)), refit: (reservedChars: number) => renderUpgradeReport(report, reservedChars) };
 }

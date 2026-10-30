@@ -33,7 +33,7 @@ import { handleAnalyzeDefenses } from "../handlers/optimizationHandlers.js";
 import { handleGetConfig, handleSetConfig, handleSetEnemyStats, handleSaveConfigPreset, handleLoadConfigPreset, handleListConfigPresets } from "../handlers/configHandlers.js";
 import { handleValidateBuild } from "../handlers/validationHandlers.js";
 import { handleExportBuild, handleSnapshotBuild, handleListSnapshots, handleRestoreSnapshot, handleExportBuildSummary } from "../handlers/exportHandlers.js";
-import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleTradeQueryOptions, handleFindUpgrades, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
+import { handleSearchTradeItems, handleGetItemPrice, handleGetLeagues, handleSearchStats, handleTradeQueryOptions, handleFindUpgrades, paceLine, type SearchTradeItemsArgs, type TradeContext } from "../handlers/tradeHandlers.js";
 import type { Credentials } from "../trade/credentials.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
@@ -62,6 +62,11 @@ export interface ToolRouterDependencies {
   credentials: () => Credentials;
   /** The wall clock (epoch ms) that dates price results (C-49); default `Date.now`. */
   wallClock?: () => number;
+  /**
+   * D-474: the trade limiter's search pace (D-461), which the trade tools' pace line reports: null when it is off;
+   * left out, the default `TRADE_SEARCH_PACE` (as `ServerDeps.tradePace`).
+   */
+  tradePace?: import("../trade/rateLimiter.js").SearchPace | null;
 }
 
 /**
@@ -218,15 +223,17 @@ export async function routeToolCall(
     if (error instanceof McpError) throw error;
     const notices = noticesOf(error);
     if (error instanceof ToolResultError) return withNotices(normalize(error.result), notices);
+    // D-474: these two stops are find_upgrades replies too, so they carry the pace line (no link: it is last).
     if (name === "find_upgrades" && error instanceof EngineBusyError) {
       console.error(`[Tool] tool=${name} stopped early: ${error.message}`);
-      return withNotices({ content: [{ type: "text", text: engineBusyStopText(args?.slot) }] }, notices);
+      const text = `${engineBusyStopText(args?.slot)}\n${paceLine(deps.tradePace)}`;
+      return withNotices({ content: [{ type: "text", text }] }, notices);
     }
     if (name === "find_upgrades" && error instanceof EngineDeadlineError) {
       // The deadline arrived during the session's own steps 2–4, before the query existed: no link can
       // be built, so it is an error (D-75), worded as C-14's budget stop.
       console.error(`[Tool] tool=${name} stopped early: ${error.message}`);
-      return withNotices(errorResponse(`Error: ${engineDeadlineStopText(error.step)}`), notices);
+      return withNotices(errorResponse(`Error: ${engineDeadlineStopText(error.step)}\n${paceLine(deps.tradePace)}`), notices);
     }
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Tool Error] tool=${name} error=${errorMsg}`);
@@ -243,6 +250,8 @@ function tradeContext(deps: ToolRouterDependencies): TradeContext {
     currency: deps.currency,
     resolveLeague: deps.resolveLeague,
     ...(deps.wallClock ? { now: deps.wallClock } : {}),
+    // D-474: the pace line's setting.
+    ...(deps.tradePace !== undefined ? { pace: deps.tradePace } : {}),
   };
 }
 
@@ -725,6 +734,8 @@ async function dispatch(
           env: deps.env,
           // C-49 (D-372): its prices are dated on the wall clock, as the other trade tools' are.
           ...(deps.wallClock ? { wallClock: deps.wallClock } : {}),
+          // D-474: the pace line's setting.
+          ...(deps.tradePace !== undefined ? { pace: deps.tradePace } : {}),
           call: {
             signal: call.signal,
             deadline: call.arrivedAt + FIND_UPGRADES_BUDGET_MS,

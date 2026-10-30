@@ -255,10 +255,11 @@ export function createServer(deps: ServerDeps): {
   // Trade (C-9, C-10, C-11): one limiter for all trade traffic; the cookie is read per request.
   // D-461: the search pace (on unless the deps turn it off), and each 429 logged in the state dir
   // with a wall-clock time.
+  const tradePace = deps.tradePace === undefined ? TRADE_SEARCH_PACE : deps.tradePace;
   const tradeLimiter = new RateLimiter({
     now,
     ...(deps.tradeSleep ? { sleep: deps.tradeSleep } : {}),
-    searchPace: deps.tradePace === undefined ? TRADE_SEARCH_PACE : deps.tradePace,
+    searchPace: tradePace,
     on429: createTrade429Log({ stateDir: deps.stateDir, now: deps.now ?? Date.now }),
   });
   const tradeClient = new TradeApiClient({
@@ -326,6 +327,8 @@ export function createServer(deps: ServerDeps): {
     credentials: deps.credentials,
     // C-49: price results are dated on the wall clock, as the currency cache's ages are.
     wallClock: deps.now ?? Date.now,
+    // D-474: the trade tools' pace line reports the limiter's pace.
+    tradePace,
   };
 
   server.onerror = (error) => {

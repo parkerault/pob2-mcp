@@ -1,12 +1,13 @@
 /**
  * `find_upgrades` output (C-14 "Output", "Fallback result"; D-49, D-53).
  *
- * - **Fallback** (a result, not `isError`): `Trade search not run: <reason>.`, the hint, then the
- *   trade-site link for the generated query.
+ * - **Fallback** (a result, not `isError`): `Trade search not run: <reason>.`, the hint, the pace line (D-474), then
+ *   the trade-site link for the generated query.
  * - **Success:** a header (with C-49's `League:` and `Checked:` lines, D-372), this call's notices, the
  *   current item and baseline, the counts line, then the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
  *   the PoB item text) while the whole output stays ≤ 30,000 characters; the rest render as one
- *   compact line each, ending with the listing's `Buy:` (D-90), followed by a note. The last line is always `Search on the trade site: <url>`.
+ *   compact line each, ending with the listing's `Buy:` (D-90), followed by a note. The last line is always `Search on the trade site: <url>` (C-14),
+ *   and the line before it the server's pace line (D-474), both inside the budget.
  *   The session's notices go in front of this text (the router adds them, C-3 step 8), so the renderer
  *   is given their length and keeps the whole output, notices included, within the budget.
  */
@@ -20,7 +21,23 @@ export const OUTPUT_BUDGET = 30_000;
 export const NO_UPGRADE = 'No upgrade within budget.';
 export const NO_MATCHES = 'No listings matched the search.';
 
-const LINK_INTRO = 'Open this search in a browser where you are logged in to pathofexile.com:';
+export const LINK_INTRO = 'Open this search in a browser where you are logged in to pathofexile.com:';
+/** The success report's last line's start (C-14: the search link stays last). */
+const SEARCH_LINK = 'Search on the trade site: ';
+
+/**
+ * D-474: `text` with the server's pace line just before its search link, which C-14 keeps last: before a closing
+ * `LINK_INTRO` and link pair (a fallback, or an error that carries the link), or before a last `Search on the trade
+ * site:` line; with no link, the pace line is the last line.
+ */
+export function withPaceBeforeLink(text: string, paceLine: string): string {
+  const lines = text.replace(/\n+$/, '').split('\n');
+  const n = lines.length;
+  if (n >= 2 && lines[n - 2] === LINK_INTRO) lines.splice(n - 2, 0, paceLine);
+  else if (lines[n - 1].startsWith(SEARCH_LINK)) lines.splice(n - 1, 0, paceLine);
+  else lines.push(paceLine);
+  return lines.join('\n');
+}
 
 /** PoB's trade statuses and the trader pane's labels (`Trade.lua`, C-15). */
 export const STATUS_LABELS: Readonly<Record<string, string>> = {
@@ -39,9 +56,9 @@ export function checkedTimestamp(epochMs: number): string {
 // ---------------------------------------------------------------------------------------------------
 // Fallback
 
-export function renderFallback(f: { reason: string; hint: string; link: string; notes: string[] }): string {
+export function renderFallback(f: { reason: string; hint: string; link: string; notes: string[] }, paceLine?: string): string {
   const reason = f.reason.replace(/\.+$/, '');
-  return [`Trade search not run: ${reason}.`, f.hint, ...f.notes, LINK_INTRO, f.link].join('\n');
+  return [`Trade search not run: ${reason}.`, f.hint, ...f.notes, ...(paceLine ? [paceLine] : []), LINK_INTRO, f.link].join('\n');
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -84,6 +101,8 @@ export interface UpgradeReport {
   query: object;
   /** The closing statement before the search link (no upgrade, no matches, all rejected…), if any; may span lines. */
   closing: string | null;
+  /** D-474: the server's pace line, just before the search link. */
+  paceLine?: string;
   searchUrl: string;
 }
 
@@ -204,7 +223,11 @@ function headLines(report: UpgradeReport): string[] {
 export function renderUpgradeReport(report: UpgradeReport, reservedChars = 0): string {
   const budget = OUTPUT_BUDGET - Math.max(0, reservedChars);
   const head = headLines(report).join('\n');
-  const tail = [...(report.closing ? [report.closing] : []), `Search on the trade site: ${report.searchUrl}`].join('\n');
+  const tail = [
+    ...(report.closing ? [report.closing] : []),
+    ...(report.paceLine ? [report.paceLine] : []),
+    `${SEARCH_LINK}${report.searchUrl}`,
+  ].join('\n');
   const full = report.listings.map((row, i) => fullListing(row, i + 1, report));
   const compact = report.listings.map((row, i) => compactListing(row, i + 1, report));
   const bare = report.listings.map((row, i) => compactListing(row, i + 1, report, false));

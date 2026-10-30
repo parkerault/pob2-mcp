@@ -846,11 +846,13 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       expect(out.isError).toBe(false);
       expect(countOf(out.text, 'Evaluated')).toBe(0);
       expect(out.text).toMatch(/All 20 fetched items were rejected: \S/);
-      // "No upgrade within budget." is always stated when there is none (C-14), after the rejected line
-      const tail = out.text.split('\n').slice(-3);
+      // "No upgrade within budget." is always stated when there is none (C-14), after the rejected line; then the pace
+      // line (D-474, this test server's pace is off) and the search link, last (C-14).
+      const tail = out.text.split('\n').slice(-4);
       expect(tail[0]).toMatch(/^All 20 fetched items were rejected: \S.*\.$/);
       expect(tail[1]).toBe('No upgrade within budget.');
-      expect(tail[2]).toMatch(/^Search on the trade site: /);
+      expect(tail[2]).toBe('Pace: off (test setting).');
+      expect(tail[3]).toMatch(/^Search on the trade site: /);
     }, TIMEOUT);
 
     it('AC-T44 (c): when the deadline cuts evaluation after one all-rejected block, the rejected count is not called "all" of the fetched items', async () => {
@@ -1081,6 +1083,8 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       expect(out.isError).toBe(false);
       expect(out.text.startsWith('Trade search not run: no POESESSID set.')).toBe(true);
       expect(out.text).toMatch(/\nhttps:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\?q=\S+$/);
+      // AC-K79 (D-474): the pace line (this test server's pace is off) just before the link's two lines.
+      expect(out.text.split('\n').slice(-3)[0]).toBe('Pace: off (test setting).');
       expect(http.calls).toEqual([]);
     }, TIMEOUT);
 

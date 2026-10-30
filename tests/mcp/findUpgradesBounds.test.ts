@@ -15,7 +15,8 @@
  *
  * AC-K75 (WU-118, D-461), the last block: a server with the trade search pace on, its sleep a jump of the
  * fake clock, so the 45 s gap costs no real time. A call arriving 0.5 s after another call's search makes
- * one search, 45 s after that one, and its output carries the gap's stop line.
+ * one search, 45 s after that one, and its output carries the gap's stop line. AC-K79 (D-474): each reply's pace
+ * line, just before the search link, or last in a stop with no link.
  */
 import path from 'path';
 import { afterAll, afterEach, beforeAll, expect, it, jest } from '@jest/globals';
@@ -237,6 +238,8 @@ engineDescribe('find_upgrades: report_stats checked before any request; deadline
     expect(out.isError).toBe(true);
     expect(out.text).toMatch(BUDGET_STOP);
     expect(out.text).toContain('(the engine was starting)');
+    // AC-K79 (D-474): the router's budget stop is a find_upgrades reply too; with no link, the pace line is its last.
+    expect(out.text.split('\n').pop()).toBe('Pace: off (test setting).');
     expect(out.elapsed).toBeLessThanOrEqual(BUDGET_MS);
     expect(fx.session.enginePid()).toBeNull();
     expect(http.calls).toHaveLength(0);
@@ -310,5 +313,8 @@ engineDescribe('AC-K75 (WU-118, D-461): find_upgrades through the MCP tool under
     expect(out.text).toMatch(/^Stopped early: the 45 s gap between trade searches cut the loop short after 1 search\.$/m);
     expect(out.text).toMatch(/^Searches 1 · Matches 10000 · Fetched 20 · /m);
     expect(out.text.split('\n').pop()).toMatch(/^Search on the trade site: https:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\/s1$/);
+    // AC-K79 (D-474): the server paces, and its pace line sits just before the search link, which stays last (C-14).
+    expect(out.text.split('\n').slice(-2)[0]).toBe('Pace: 45 s between searches, at most 7 in 5 minutes.');
+    expect(other.text.split('\n').slice(-2)[0]).toBe('Pace: 45 s between searches, at most 7 in 5 minutes.');
   }, TIMEOUT);
 });

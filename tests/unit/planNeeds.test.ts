@@ -82,8 +82,8 @@ function needFindings(p: Json) {
 }
 
 describe('D-418: plan schema 6, a tree\'s needs', () => {
-  it('version 6 added needs (version 8 is the current one), and a schema-6 plan with needs validates, with or without a need\'s claim', () => {
-    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  it('version 6 added needs (version 9 is the current one), and a schema-6 plan with needs validates, with or without a need\'s claim', () => {
+    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     const r = validatePlan(plan(), ref);
     expect(r.ok ? r.plan.stages[1].tree.needs : r.errors).toEqual([
       { nodes: [55473, 39581], stat: 'Life', claim: 's2-why-life' },

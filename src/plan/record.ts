@@ -1418,7 +1418,11 @@ export interface StageRecord {
   countedSkillOutputs: Record<string, CountedFigures & { skill: string; statSetLabel: string }>;
   /** Every option the stage lists, earned and scenario, as written into its config set (C-32). */
   configWritten: Record<string, ConfigValue>;
-  /** D-293: the lines written into PoB's `customMods` option, the stage's `config.customMods` texts in order. */
+  /**
+   * D-293: the lines written into PoB's `customMods` option, the stage's `config.customMods` texts in order: the modifier
+   * lines only. D-469: on a schema-9 plan the compile also writes each line's reason as the comment line `# <reason>`
+   * before it, which PoB skips and this list leaves out (the saved file's text holds them).
+   */
   customModsWritten: string[];
   /**
    * D-293, D-321: the custom-modifier mark. True when the stage was measured with custom modifiers present,

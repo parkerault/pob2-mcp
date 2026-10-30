@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 8)
+# Build plan reference (`plan.json`, schema version 9)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 8`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7` and `8` are
-  accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5, 6, 7, 8]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 7 still validates and compiles, with its
+- **Version first.** A new plan declares `schemaVersion: 9`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8` and `9`
+  are accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
+  `[1, 2, 3, 4, 5, 6, 7, 8, 9]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 8 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -60,6 +60,14 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - V1's `curse-level-cap` (D-455) and `custom-defence` (D-451), which check a schema-8 plan only, and the record's
     `treeChange` on its stages (see tree tracks).
   A schema-7 plan compiles as before: its findings and its record are those of a schema-7 compile.
+
+  Version 9 (amendment 13; see the tree search's figures and the finishing touches below):
+  - added a pinned weapon, a Swap weapon slot's `sameAs` (`stages[].items.slots[]`, D-464), a skill gem's `corrupt`
+    (`stages[].skills.groups[].gems[]`, D-471), and D1-tree's `tree.start`, `tree.end` and `tree.search`
+    (`stages[].tree`, D-467, D-468); in an earlier plan each key is an error at its own path;
+  - made each custom modifier's `reason` required and one line (D-469): the compiler writes it as the comment line
+    `# <reason>` before its line. A schema-8 or older plan's custom modifier box is unchanged, its reasons optional.
+  A schema-8 plan compiles as before. Split Personality's start (D-463) and V1's `corruption` apply on any schema.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -76,13 +84,14 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
 
 Some rules are checked at compile time, against PoB, rather than by the schema: gem names, item text,
 node ids and tree connectivity, config option names and values, the main skill's index, that PoB parses
-each custom modifier line whole, an anoint's notable (it has a three-emotion recipe, the stage's tree
+each custom modifier line whole and, on schema 9, no reason's comment line whole (D-469), an anoint's notable (it has a three-emotion recipe, the stage's tree
 doesn't allocate it, and the stage has an amulet), a group's minion skill (its group holds one summon
 whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), a companion's species and its
 Tame Beast gem (D-402), and each boss rotation entry's active skill and stat set (D-447, errors at
-`stages[n].skills.boss.entries[k]`). A missing `countReason` or custom-modifier `reason` isn't a
-schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322), and so is a tree need
-with no `claim`, or one naming no claim of its stage (D-418).
+`stages[n].skills.boss.entries[k]`). A missing `countReason`, or a custom-modifier `reason` on a plan before schema 9,
+isn't a schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322), and so is a tree
+need with no `claim`, or one naming no claim of its stage (D-418). On schema 9 a custom modifier's `reason` is required
+(an error at `stages[n].config.customMods[k].reason`, D-469).
 
 ## Terms
 
@@ -247,7 +256,16 @@ record marks what rests on it.
   options.
   - A line PoB can't parse whole would add nothing, so it fails the compile.
   - Each entry needs a `reason` saying what it stands for and how it was worked out; without one, V1
-    reports `missing-reason`.
+    reports `missing-reason`. On schema 9 (D-469) the reason is required (a schema error at its path) and one line, with
+    no line break, and the compiler writes it into the box as the comment line `# <reason>` just before its modifier
+    line. PoB adds a line only when it parses whole, so it skips the comment (its config tab shows it in red, as any
+    line it doesn't apply). A comment never adds a modifier: a reason whose `# <reason>` line PoB would parse whole fails
+    the compile, naming the entry (`config.customMods[k].reason`), so the reason is reworded. Write the reason as one
+    plain sentence a PoB reader understands, what PoB misses and the source ("PoB doesn't apply Crimson Assault's
+    aggravation; 20% more Rake damage stands in for it"), with whole numbers in the line, since PoB doesn't parse
+    "33.33%". What reads the custom lines reads the modifier lines alone: the estimate mark, `custom-defence` and the
+    record's `customModsWritten`; the saved file's text holds the comments. A schema-8 or older plan's box holds the
+    lines alone, as before.
   - No custom line for a layer PoB models (D-451, schema version 8). A line that adds a pool or a defence first shows,
     through `check_model_coverage`, that PoB doesn't model the mechanic it stands for, and its `reason` names that result
     as `coverage: <status>` (`unparsed`, `partly parsed`, `parsed to nothing` or `possibly unread`; a `possibly unread`
@@ -421,8 +439,8 @@ Schema version 3 adds two fields.
 Schema version 7 (amendment 11) adds five optional fields. None changes PoB's sets: stages that differ only in them share
 their item and skill sets, and a plan without them compiles as a schema-6 plan does.
 
-- **`skills.cull`** (D-437): a short text naming the culling source and the button that uses it ("Legacy of Deathblow's
-  Culling Strike on Detonate Dead"). With it, the stage's map damage figure is multiplied by the named source's own
+- **`skills.cull`** (D-437): a short text naming the culling source and the button that uses it ("Heavy Contact (56997):
+  Detonate Dead's hits that Heavy Stun cull", the notable's "Hits that Heavy Stun Enemies have Culling Strike"). With it, the stage's map damage figure is multiplied by the named source's own
   `CullMultiplier` (a global cull, such as a rune's, reaches it), and the record gains `measures.cull`; without it, neither.
   A cull only another skill carries, or a skill's own incidental cull, isn't counted unless the design states it here.
 - **`skills.engagement {kind, reason}`** (D-441): how close the character stands while it deals its damage, `close` (in
@@ -449,7 +467,7 @@ their item and skill sets, and a plan without them compiles as a schema-6 plan d
   "groups": [ … ],
   "main": { "group": 1, "activeSkill": 2, "statSet": 1 },
   "rolledGroup": 1,
-  "cull": "Legacy of Deathblow's Culling Strike on Detonate Dead",
+  "cull": "Heavy Contact (56997): Detonate Dead's hits that Heavy Stun cull",
   "engagement": { "kind": "close", "reason": "Reap and the corpse blasts need the pack next to you" },
   "boss": {
     "entries": [{ "group": 1, "activeSkill": 2, "statSet": 1 }, { "group": 2, "activeSkill": 1, "statSet": 1, "turns": true }],
@@ -540,6 +558,69 @@ stages (see tree tracks).
   "mitigation": "capped elemental resistances",
   "pool": "life",
   "physicalHit": "a life pool line on the helmet and the body"
+}
+```
+
+### The tree search's figures and the finishing touches (D-463 to D-471, schema version 9)
+
+Schema version 9 (amendment 13) adds three plan fields and the comment lines (see custom modifiers above); Split
+Personality's start and V1's `corruption` hold on any schema.
+
+- **Split Personality's start** (D-463, any schema). Split Personality, a Ruby limited to 1 that drops corrupted, has one
+  variant per start ("Can Allocate Passive Skills from the Warrior's starting point"; Mercenary, Ranger, Shadow,
+  Sorceress, Templar or Warrior). Write it as a tree jewel with its variant lines and the `Selected Variant` line PoB
+  writes (`Selected Variant: 6` for the Warrior's). In a socket the stage's tree reaches from the class start (or the
+  ascendancy's), the jewel opens the start its variant names: the stage may grow one tree from it, listed in
+  `tree.nodes` like any node (the start itself isn't listed). The compile is stricter than PoB, which also accepts a
+  socket reached only through the start the jewel opens: such a tree is refused, as is the tree without the jewel. V1's
+  `tree-shape` counts the jewel's start like any open start, one tree at most (`one-tree-per-start`), and reports
+  `alternate-class-start` when the variant names the class's own start, or one an allocated ascendancy node already
+  opens (Path of the Warrior, 57253): the jewel adds nothing.
+- **A pinned weapon** (D-464): a Swap weapon slot's entry may be `{"slot": "Weapon 2 Swap", "sameAs": "Weapon 2"}` (or
+  `Weapon 1 Swap` naming `Weapon 1`) in place of its `text`: the item the set-1 slot holds sits in both weapon sets, as
+  the game lets the player pin it. The compile puts that one item in both slots, so the saved file holds it once, and
+  set 2 is measured with it. Only a Swap slot naming its own set-1 slot shares, and the named slot must hold text: any
+  other pair, or a named slot the stage leaves empty, errs at the `sameAs`. A shared Swap slot fills its weapon set
+  (`useSecondWeaponSet`, V1's `empty-weapon-set`), and it is priced once, with its set-1 slot.
+- **A gem's corruption** (D-471): a skill gem written at its level with `"corrupt": "plus_one_level"` is corrupted to +1
+  level: the compile sets PoB's corruption state, so PoB calculates it one level higher (a level-20 gem at 21, the
+  record's `GemLevel` on the main skill). V1's `gem-availability` reads the written level, so a level-20 gem passes. The
+  corruption belongs on the budget and non-budget rungs, on skill gems: V1 reports `corruption` for a `corrupt` gem on
+  `m`, a campaign stage or a card skeleton, or a support gem (`data {gem, group, index, rule, path}`, `rule` `rung` or
+  `support`), and PoB doesn't corrupt a support gem.
+- **`tree.start` and `tree.end`** (D-467, D-468): D1-tree's figures at the start of its search and on its finished tree,
+  before D1-finish: `{ehp, lowestMaxHit: {type, value}, life, boss, bossEntries: [{group, label, figure}]}`, the stage's
+  `TotalEHP`, its lowest max hit with its type (`physical`, `fire`, `cold`, `lightning` or `chaos`, the record's
+  `measures.toughness.lowestMaxHit`), Life, the boss figure (the ledger's `boss_<stage>` when the plan has one, else
+  `measures.damage.boss`; null on a rung with none) and each boss-rotation entry's figure.
+- **`tree.search`** (D-467, D-468): what D1-tree's search did on the rung: `{swaps, lastGain, capHit, rebuild, removed,
+  bossFall}`, the swaps tried (undone ones included), the last swap's gain in percent (null for none), whether the cap
+  of 30 was hit, the rebuild's outcome (`taken`, `none` or `undone: <why>`), the passives the rebuild removed whose lines
+  serve another skill (`[{names, skill}]`), and the designer's reason when the boss figure or an entry fell from start to
+  end (null when none fell).
+- No compile reads `tree.start`, `tree.end` or `tree.search`: they change no figure and no set.
+
+```json
+"items": {
+  "slots": [
+    { "slot": "Weapon 1", "text": "Rarity: Normal\nWooden Club" },
+    { "slot": "Weapon 2", "text": "Rarity: Magic\nHale Splintered Tower Shield\n+40 to maximum Life" },
+    { "slot": "Weapon 1 Swap", "text": "Rarity: Normal\nSlim Mace" },
+    { "slot": "Weapon 2 Swap", "sameAs": "Weapon 2" }
+  ],
+  …
+}
+```
+
+```json
+"tree": {
+  …,
+  "start": { "ehp": 21000, "lowestMaxHit": { "type": "physical", "value": 4100 }, "life": 3138, "boss": 380000,
+             "bossEntries": [{ "group": 1, "label": "Boneshatter", "figure": 300000 }] },
+  "end": { "ehp": 21400, "lowestMaxHit": { "type": "physical", "value": 4150 }, "life": 2943, "boss": 405000,
+           "bossEntries": [{ "group": 1, "label": "Boneshatter", "figure": 325000 }] },
+  "search": { "swaps": 12, "lastGain": 1.4, "capHit": false, "rebuild": "taken",
+              "removed": [{ "names": ["Herald Damage"], "skill": "Herald of Blood" }], "bossFall": null }
 }
 ```
 
@@ -759,7 +840,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7` or `8` | yes | `8` for a new plan; `1` to `7` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8` or `9` | yes | `9` for a new plan; `1` to `8` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -806,7 +887,7 @@ rule may require an optional key in some cases.
 | `stages[].chaosResistException.tag.patch` | string | no | Non-empty, e.g. `0.5.5` | C-30, D-107 |
 | `stages[].chaosResistException.tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].tree` | object | yes | The stage's passive tree | C-31 |
-| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node a radius jewel of the stage frees needs no path: From Nothing's radius around the keystone it names, or Controlled Metamorphosis' around its socket, while the jewel sits in a socket the tree connects (B3); a node hanging on such a node outside the radius still needs one. A jewel socket a jewel grants needs no path either, and is listed: Voices, in a socket the tree connects, grants the Sinister Jewel sockets 62152, 26178, 23960, 39087 and 3367, in that order, as many as its "Allocates <n> Sinister Jewel sockets" says, and PoB allocates them all (no point), so the stage lists each one it grants and no other Sinister socket (B3). A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364) | C-31, D-213, D-360, D-364, D-383 |
+| `stages[].tree.nodes` | integer[] | yes | Every allocated non-ascendancy node id, a complete list connected to the class start through listed nodes. The class start node, which PoB allocates itself, isn't listed. Existence and connectivity are checked at compile. A node a radius jewel of the stage frees needs no path: From Nothing's radius around the keystone it names, or Controlled Metamorphosis' around its socket, while the jewel sits in a socket the tree connects (B3); a node hanging on such a node outside the radius still needs one. A jewel socket a jewel grants needs no path either, and is listed: Voices, in a socket the tree connects, grants the Sinister Jewel sockets 62152, 26178, 23960, 39087 and 3367, in that order, as many as its "Allocates <n> Sinister Jewel sockets" says, and PoB allocates them all (no point), so the stage lists each one it grants and no other Sinister socket (B3). A node whose unlock constraint is unmet (most name the Oracle's The Unseen Path, 5571) is refused at compile (D-383). The tree's shape is V1's `tree-shape`: a tree is a connected group of these nodes, the start not counted; each start holds at most one tree, which may touch two of its exits; an alternate start (Path of the Sorceress, 12795) holds a tree only while its node is listed (D-360, D-364). A socketed Split Personality opens the start its variant names when the tree reaches its socket without that start (any schema): that start holds one tree too (see the tree search's figures and the finishing touches above, D-463) | C-31, D-213, D-360, D-364, D-383, D-463 |
 | `stages[].tree.ascendancyNodes` | integer[] | yes | Every allocated ascendancy node id, without the ascendancy's start node, which PoB allocates itself | C-31 |
 | `stages[].tree.weaponSetNodes` | object | yes | The nodes tagged to weapon set 1 or 2. A tagged node paths only through untagged nodes and nodes of its own set | C-31, D-213 |
 | `stages[].tree.weaponSetNodes.set1` | integer[] | yes | Each node is in `tree.nodes` (error at `set1[n]`) | C-31 |
@@ -819,6 +900,37 @@ rule may require an optional key in some cases.
 | `stages[].tree.needs[].stat` | string | no | Non-empty. The node power stat that measures the need, by PoB's id (`ManaRegen`), when PoB has one | D-418 |
 | `stages[].tree.needs[].claim` | string | no | Non-empty. The id of the stage's `reason` claim saying why; set by D1-finish. Missing, or naming no claim of the stage, V1 reports `missing-reason`. Left out of `buildSha1` | D-266, D-418 |
 | `stages[].tree.scales` | string | no | Non-empty. One short line naming the stats that scale the stage; up to schema 7, a stage whose scaling differs from the one before it is a respec stage (see tree tracks). Schema version 7 | D-438 |
+| `stages[].tree.start` | object | no | D1-tree's figures at the start of its search, after the floor and the user's requests; kept on a gate's `tree-swap` retry (see the tree search's figures above). No compile reads it. Schema version 9 | D-467, D-468 |
+| `stages[].tree.start.ehp` | number | yes | The stage's `TotalEHP` | D-467 |
+| `stages[].tree.start.lowestMaxHit` | object | yes | The least of PoB's five maximum hits taken, with its type (`measures.toughness.lowestMaxHit`) | D-467 |
+| `stages[].tree.start.lowestMaxHit.type` | `physical`, `fire`, `cold`, `lightning` or `chaos` | yes | The hit's damage type | D-467 |
+| `stages[].tree.start.lowestMaxHit.value` | number | yes | The maximum hit | D-467 |
+| `stages[].tree.start.life` | number | yes | The stage's Life (shown, not a target) | D-467 |
+| `stages[].tree.start.boss` | number or null | yes | The boss figure: the ledger's `boss_<stage>` when the plan has one, else `measures.damage.boss`; null on a rung with none | D-468 |
+| `stages[].tree.start.bossEntries` | object[] | yes | Each boss-rotation entry's figure (none without a rotation) | D-468 |
+| `stages[].tree.start.bossEntries[].group` | integer | yes | At least 1. The entry's group | D-468 |
+| `stages[].tree.start.bossEntries[].label` | string | yes | Non-empty. The entry's name as the gate shows it | D-468 |
+| `stages[].tree.start.bossEntries[].figure` | number | yes | The entry's figure | D-468 |
+| `stages[].tree.end` | object | no | The same figures on D1-tree's finished tree, before D1-finish (see the tree search's figures above). No compile reads it. Schema version 9 | D-467, D-468 |
+| `stages[].tree.end.ehp` | number | yes | The stage's `TotalEHP` | D-467 |
+| `stages[].tree.end.lowestMaxHit` | object | yes | The least of PoB's five maximum hits taken, with its type (`measures.toughness.lowestMaxHit`) | D-467 |
+| `stages[].tree.end.lowestMaxHit.type` | `physical`, `fire`, `cold`, `lightning` or `chaos` | yes | The hit's damage type | D-467 |
+| `stages[].tree.end.lowestMaxHit.value` | number | yes | The maximum hit | D-467 |
+| `stages[].tree.end.life` | number | yes | The stage's Life (shown, not a target) | D-467 |
+| `stages[].tree.end.boss` | number or null | yes | The boss figure: the ledger's `boss_<stage>` when the plan has one, else `measures.damage.boss`; null on a rung with none | D-468 |
+| `stages[].tree.end.bossEntries` | object[] | yes | Each boss-rotation entry's figure (none without a rotation) | D-468 |
+| `stages[].tree.end.bossEntries[].group` | integer | yes | At least 1. The entry's group | D-468 |
+| `stages[].tree.end.bossEntries[].label` | string | yes | Non-empty. The entry's name as the gate shows it | D-468 |
+| `stages[].tree.end.bossEntries[].figure` | number | yes | The entry's figure | D-468 |
+| `stages[].tree.search` | object | no | What D1-tree's search did on the rung (see the tree search's figures above). No compile reads it. Schema version 9 | D-467, D-468 |
+| `stages[].tree.search.swaps` | integer | yes | At least 0. The swaps tried, undone ones included | D-467 |
+| `stages[].tree.search.lastGain` | number or null | yes | The last swap's Main damage gain in percent; null for none | D-467 |
+| `stages[].tree.search.capHit` | boolean | yes | Whether the cap of 30 swaps was hit | D-467 |
+| `stages[].tree.search.rebuild` | string | yes | `taken`, `none` or `undone: <why>` (error at `rebuild` otherwise) | D-467 |
+| `stages[].tree.search.removed` | object[] | yes | The passives the rebuild removed whose lines name another skill the build uses | D-467 |
+| `stages[].tree.search.removed[].names` | string[] | yes | At least one. The removed passives' names | D-467 |
+| `stages[].tree.search.removed[].skill` | string | yes | Non-empty. The skill their lines serve | D-467 |
+| `stages[].tree.search.bossFall` | string or null | yes | Non-empty: the designer's reason when the boss figure or an entry fell from `tree.start` to `tree.end`; null when none fell | D-468 |
 | `stages[].respec` | object | no | Schema version 7 and earlier: present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost. A schema-8 plan has none: each loadout's tree is its own, and a respec errs here | D-144, D-282, D-452 |
 | `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |
@@ -832,9 +944,10 @@ rule may require an optional key in some cases.
 | `stages[].respec.note` | string | yes | Non-empty. Why the tree changes | D-144 |
 | `stages[].items` | object | yes | The item set. Stages with deep-equal `items` share one set | C-31, A-P2 |
 | `stages[].items.setTitle` | string | no | Non-empty, no braces. The shared set's base title | A-P2 |
-| `stages[].items.slots` | object[] | yes | One entry per filled slot | C-31 |
+| `stages[].items.slots` | object[] | yes | One entry per filled slot: its item's text, or (schema 9) on a Swap weapon slot `sameAs` | C-31, D-464 |
 | `stages[].items.slots[].slot` | item slot | yes | One of `Weapon 1`, `Weapon 1 Swap`, `Weapon 2`, `Weapon 2 Swap`, `Helmet`, `Body Armour`, `Gloves`, `Boots`, `Amulet`, `Ring 1`, `Ring 2`, `Ring 3`, `Belt`, `Charm 1`, `Charm 2`, `Charm 3`, `Flask 1`, `Flask 2`. Unique within `slots` (a repeat errs at the later entry) | C-31 |
-| `stages[].items.slots[].text` | string | yes | Non-empty. The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile; a text with no `Implicits:` line, not a unique, gets its base's implicits (see a base's implicits above) | C-31, D-435 |
+| `stages[].items.slots[].text` | string | no | Non-empty. The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile; a text with no `Implicits:` line, not a unique, gets its base's implicits (see a base's implicits above). Required unless the entry has `sameAs`, and never with it (error at `text` without either, at `sameAs` with both) | C-31, D-435, D-464 |
+| `stages[].items.slots[].sameAs` | item slot | no | A pinned weapon (see the tree search's figures and the finishing touches above): on `Weapon 1 Swap` it names `Weapon 1`, on `Weapon 2 Swap` `Weapon 2`, a slot the stage fills with `text`; the compile puts that one item in both slots. Any other slot or pair, or a named slot without text, errs here. Schema version 9 | D-464 |
 | `stages[].items.treeJewels` | object[] | yes | The jewels socketed in the tree | C-31 |
 | `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` | C-31 |
 | `stages[].items.treeJewels[].text` | string | yes | Non-empty. The jewel's item text | C-31 |
@@ -860,6 +973,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].gems[].level` | integer | yes | At least 1 | C-31, D-193 |
 | `stages[].skills.groups[].gems[].quality` | integer | yes | At least 0 | C-31 |
 | `stages[].skills.groups[].gems[].enabled` | boolean | yes | Whether the gem is enabled | C-31 |
+| `stages[].skills.groups[].gems[].corrupt` | `plus_one_level` | no | The skill gem corrupted to +1 level: PoB calculates it one level higher; V1's `gem-availability` reads `level`. On `m`, a campaign stage or a card skeleton, or on a support gem, V1 reports `corruption` (see the tree search's figures and the finishing touches above). Schema version 9 | D-471 |
 | `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). On the `rolledGroup` it is PoB's Count in Full DPS; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320 |
 | `stages[].skills.groups[].countReason` | string | no | Non-empty. Why `count` copies act at once; needed when `count` is above 1, else V1 reports `missing-reason`. Schema version 2 | D-293, D-322 |
 | `stages[].skills.groups[].minionSkill` | string | no | Non-empty. The skill the group's summon's minion uses, as the gem lookup names it (see a minion's skill above). The group holds exactly one summon; the compile resolves the name against the minion's skill list, ignoring case, and refuses a name it can't use, listing its skills. The group's damage figure is then its minion's `MinionTotalDPS`. Schema version 4 | D-377, D-378 |
@@ -904,7 +1018,7 @@ rule may require an optional key in some cases.
 | `stages[].config.scenario[].tag.confidence` | `H`, `M` or `L` | no | Required for `external`, `judgment` and `external-unavailable` | C-30 |
 | `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. From version 2 on, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
 | `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
-| `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason`. On a schema-8 plan, a line that adds a pool or defence names its coverage result, `coverage: <status>`, or V1 reports `custom-defence` (see custom modifiers above) | D-293, D-322, D-451 |
+| `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason`. On a schema-8 plan, a line that adds a pool or defence names its coverage result, `coverage: <status>`, or V1 reports `custom-defence` (see custom modifiers above). On schema 9 required and one line, with no line break (error here), and written as the comment line `# <reason>` before the line; a reason whose comment PoB parses whole fails the compile | D-293, D-322, D-451, D-469 |
 | `stages[].companion` | object | no | The stage's tamed beast: its species and the rare monster modifiers it keeps (see a tamed beast above). The stage holds exactly one `Tame Beast` gem, enabled, in an enabled group, which the compile turns into the beast. Schema version 5 | D-402 |
 | `stages[].companion.species` | string | yes | Non-empty. The beast, as PoB's beast library names it (ignoring case), or its monster id when several beasts share the name; the compile refuses a species the library lacks or a shared name | D-402 |
 | `stages[].companion.mods` | string[] | yes | The kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, each once; `[]` for none. Each is applied by its row's model: `stats` as custom-modifier estimates, `condition` as its config option, `none` not at all. An id the table lacks errs here; an option a `condition` row writes errs where the stage lists it too | D-402 |

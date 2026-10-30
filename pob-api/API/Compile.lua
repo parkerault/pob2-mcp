@@ -46,7 +46,13 @@
 --     allocates that node (`granted`). `main` are the components of the stage's listed main-tree nodes,
 --     class starts not joining their exits, each with the start exits it holds; `ascendancy` the
 --     components of the ascendancy start and the listed ascendancy nodes over ascendancy links, the
---     start's first. PoB2 v0.23.1 enforces none of the rule (I-3), so it is checked here.
+--     start's first. PoB2 v0.23.1 enforces none of the rule (I-3), so it is checked here. D-463 (amendment 13 §4): a
+--     socketed Split Personality (`AlternateClassStart`) whose socket the stage reaches from the class and ascendancy
+--     starts opens the start its variant names: that start joins the connectivity check's seeds and the stage's
+--     `starts`, with `jewel`, `grantedBy` the socket, `grantedByName` the jewel's name and `granted` (whether it opens); a
+--     socket reached only through the start the jewel names opens nothing (R-63: PoB accepts any allocated socket).
+--     A custom modifier's comment (D-469, schema 9): with `customModReasons`, each reason's comment line `# <reason>`
+--     that PoB would parse whole as a modifier is a defect naming the entry (R-68).
 --     A minion's skill (WU-78, D-377): a group's `minionSkill` (with `minionStatSet`) is a defect when the
 --     group's enabled gems' active skills hold no summon (a summon's "Command" skill has no minion; a disabled
 --     summon gem is named) or two; when the name is neither in the summon's minion's skill list (game data: the
@@ -76,10 +82,10 @@
 --                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}],
 --         companions[{stage, species, id, name, companionReservation, parsed[]}]}
 --
---   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[], toggles[],
---                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[],
---                   minionSkill?, minionStatSet?, weaponSet?, slot?}], main, configSet, config, customMods[], offenseFields[],
---                   itemSlots[], anoint?, companion?{id}, boss?{groups[], fields[]}}
+--   compile_stage  {id, first, title, level, tree, jewels[], itemSet, items[{slot, text, sameAs?}], toggles[],
+--                   useSecondWeaponSet, skillSet, groups[{label, enabled, includeInFullDPS, groupCount, gems[{..., corrupt?}],
+--                   minionSkill?, minionStatSet?, weaponSet?, slot?}], main, configSet, config, customMods[],
+--                   customModReasons[]?, offenseFields[], itemSlots[], anoint?, companion?{id}, boss?{groups[], fields[]}}
 --     Builds one stage into the engine's build and measures it (C-41 step 7). The tree: stage 1 retitles
 --     spec 1, every other stage gets a new spec; the tree jewels go in, then the nodes through set_tree with
 --     their weapon-set tags and attribute choices (C-40): a radius jewel already socketed keeps the nodes it frees
@@ -90,10 +96,13 @@
 --     goes in: the items, the toggles (a toggle on an empty slot is skipped, for the checks to report)
 --     and the second weapon set (an `anoint` notable goes on the amulet as the enchant line
 --     `Allocates <notable>`, as PoB's anoint dialog writes it, ItemsTab:anointItem; WU-65, D-358); every
---     socket group and its gems, each group with the includeInFullDPS and groupCount it is given
+--     socket group and its gems (D-471, schema 9: a skill gem with `corrupt` gets PoB's corruption state, set_gem_corruption,
+--     so PoB calculates it one level higher), each group with the includeInFullDPS and groupCount it is given
 --     (the compiler puts only the named source's group in Full DPS, with its Count:
 --     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
---     PoB's customMods text option (D-293). Then each group's minion skill (WU-78, D-377: select_minion_skills,
+--     PoB's customMods text option (D-293; D-469, schema 9: each after its `customModReasons` entry's comment line
+--     `# <reason>`, which PoB skips). A pinned weapon (D-464, schema 9): an item with `sameAs` puts the item its
+--     set-1 slot got in the Swap slot too (pin), so the item set holds one item in both weapon sets. Then each group's minion skill (WU-78, D-377: select_minion_skills,
 --     by name against the minion's live list, each group the main group for its call, so a disabled one is built
 --     too; PoB's own fields are written, so the saved file keeps them), the main selection (after the
 --     second-weapon-set flag, which doesn't move it), the level in manual mode, and the measurement: every finite
@@ -392,8 +401,9 @@ local function components(nodes, ids)
 end
 
 -- One stage's trees (the reply's `trees` entry): `mainIds` and `ascIds` are its valid listed main-tree and
--- ascendancy nodes. A listed start node never joins its exits.
-local function tree_shape(tree, roll, id, mainIds, ascIds)
+-- ascendancy nodes. A listed start node never joins its exits. D-463: `jewelStarts` (jewel_starts) follow the roll's
+-- starts, each with `jewel` and whether it opens (`granted`).
+local function tree_shape(tree, roll, id, mainIds, ascIds, jewelStarts)
   local nodes = tree.nodes
   local listedAsc = {}
   for _, a in ipairs(ascIds) do listedAsc[a] = true end
@@ -402,6 +412,10 @@ local function tree_shape(tree, roll, id, mainIds, ascIds)
     local entry = { node = s.node, name = s.name, exits = s.exits, grantedBy = s.grantedBy, grantedByName = s.grantedByName }
     if s.grantedBy then entry.granted = listedAsc[s.grantedBy] == true end
     starts[#starts + 1] = entry
+    for _, e in ipairs(s.exits) do exitOf[e] = true end
+  end
+  for _, s in ipairs(jewelStarts or {}) do
+    starts[#starts + 1] = s
     for _, e in ipairs(s.exits) do exitOf[e] = true end
   end
   local mainList = {}
@@ -511,12 +525,37 @@ local function granted_sockets(tree, jewels, holds)
   return out
 end
 
+-- D-463 (amendment 13 §4): the starts the stage's Split Personality jewels name, one tree start entry each (tree_shape's
+-- `starts`): a jewel PoB parses as "Can Allocate Passive Skills from the <class>'s starting point" (`AlternateClassStart`,
+-- Modules/ModParser.lua:2755-2756; its `jewelData.alternateClassStart`, Classes/Item.lua:2075-2077, the selected variant's
+-- line only), on a jewel socket, names the class start PoB maps that class to (`tree.classStartNodeNameMap`, the six
+-- start nodes' class names, Classes/PassiveTree.lua:204-212). PoB paths through that start while the jewel sits in any
+-- allocated socket (Classes/PassiveSpec.lua:1403-1412, :1770-1777); our rule is stricter: the start opens (`granted`)
+-- only when `connected` reaches the socket without it (R-63). Sorted by socket.
+local function jewel_starts(tree, jewels, connected)
+  local out = {}
+  for _, j in ipairs(jewels) do
+    local item = j.item
+    local className = item and item.type == 'Jewel' and item.jewelData and item.jewelData.alternateClassStart
+    local startId = className and tree.classStartNodeNameMap and tree.classStartNodeNameMap[className]
+    local start = startId and tree.nodes[startId]
+    if start and is_jewel_socket(tree.nodes[j.node]) then
+      out[#out + 1] = { node = startId, name = tostring(className), exits = main_links(tree.nodes, start), grantedBy = j.node,
+        grantedByName = tostring(item.title or item.name), granted = connected(j.node) == true, jewel = true }
+    end
+  end
+  table.sort(out, function(a, b) return a.grantedBy < b.grantedBy end)
+  return out
+end
+
 -- The tree defects of one stage. `st.nodes`, `st.ascendancyNodes`, `st.weaponSets{set1, set2}` and
 -- `st.attributeChoices[{node, attribute}]` as the plan has them (C-31); `jewels` the stage's tree jewels as
 -- parse_jewels reads them. Returns the stage's trees for V1's `tree-shape` (D-360; `tree_shape`), or nil without a
 -- resolved roll. B3 (amendment 12 §15): a listed node a radius jewel frees (radius_nodes), or a jewel socket a jewel on a
 -- connected socket grants (granted_sockets: Voices' Sinister sockets), needs no path; a stage lists every socket its jewels
--- grant, since PoB allocates them all.
+-- grant, since PoB allocates them all. D-463 (amendment 13 §4): a socketed Split Personality whose socket the stage reaches
+-- from the class and ascendancy starts opens the start its variant names: that start joins the seeds, and the stage's
+-- `starts` (jewel_starts).
 local function check_tree(tree, roll, st, defect, jewels)
   local nodes = tree.nodes
   local mode = {}
@@ -611,6 +650,24 @@ local function check_tree(tree, roll, st, defect, jewels)
     [2] = reach(nodes, mode, starts, function(m) return m == 0 or m == 2 end),
   }
   local function connected(id) return mode[id] ~= nil and reached[mode[id]][id] == true end
+  -- D-463: each Split Personality on a socket reached without its own start opens that start; the stage is reached again
+  -- with it among the seeds.
+  local jewelStarts = jewel_starts(tree, jewels or {}, connected)
+  local opened = false
+  for _, s in ipairs(jewelStarts) do
+    if s.granted then
+      starts[#starts + 1] = s.node
+      mode[s.node] = mode[s.node] or 0
+      opened = true
+    end
+  end
+  if opened then
+    reached = {
+      [0] = reach(nodes, mode, starts, function(m) return m == 0 end),
+      [1] = reach(nodes, mode, starts, function(m) return m == 0 or m == 1 end),
+      [2] = reach(nodes, mode, starts, function(m) return m == 0 or m == 2 end),
+    }
+  end
   local freed = radius_nodes(tree, jewels or {}, connected)
   local granted = granted_sockets(tree, jewels or {}, connected)
   table.sort(listed)
@@ -635,7 +692,7 @@ local function check_tree(tree, roll, st, defect, jewels)
     defect(('node %d (%s) is a jewel socket the jewel on node %d grants, which PoB allocates while that jewel is socketed: '
       .. 'list it in tree.nodes'):format(g.id, tostring(nodes[g.id] and nodes[g.id].dn), g.by))
   end
-  return tree_shape(tree, roll, st.id, mainIds, ascIds)
+  return tree_shape(tree, roll, st.id, mainIds, ascIds, jewelStarts)
 end
 
 -- The number of active skills a gem may grant (an upper bound: PoB lists its non-support granted effects).
@@ -840,6 +897,14 @@ end
 local function parses_whole(line)
   local mods, extra = parse_custom_line(line)
   return mods ~= nil and not extra
+end
+
+-- D-469 (amendment 13 §10): the comment line written before a schema-9 custom modifier line, from its reason, or nil
+-- for none. PoB adds a line only when it parses whole (Modules/ConfigOptions.lua:2279-2297), so this one reads as a
+-- comment unless parses_whole says otherwise, which check_stage refuses.
+local function comment_line(reason)
+  if reason == nil or tostring(reason) == '' then return nil end
+  return '# ' .. tostring(reason)
 end
 
 -- D-451 (amendment 12 §6): each custom modifier line the stage writes (`st.customMods`, in order), with the names of
@@ -1088,6 +1153,15 @@ local function check_stage(tree, roll, st, defect)
         .. 'skip it and add nothing'):format(i - 1, tostring(line)))
     end
   end
+  -- D-469 (R-68): a schema-9 reason is written as the comment line before its line; one PoB parses whole would add a
+  -- modifier, so the reason is reworded.
+  for i, reason in ipairs(list(st.customModReasons)) do
+    local comment = comment_line(reason)
+    if comment and parses_whole(comment) then
+      defect(('config.customMods[%d].reason: PoB parses its comment line "%s" whole as a modifier, so its customMods '
+        .. 'option would add it: reword the reason (D-469)'):format(i - 1, comment))
+    end
+  end
   return shape
 end
 
@@ -1313,8 +1387,9 @@ end
 local function implicit_variants(st)
   local out = {}
   for _, it in ipairs(list(st.items)) do
+    -- D-464: a pinned weapon's Swap slot shares its set-1 slot's item, reported there.
     local _, variant = base_implicits(it.text)
-    if variant then out[#out + 1] = { slot = tostring(it.slot), base = variant.base, variants = variant.variants } end
+    if variant and it.sameAs == nil then out[#out + 1] = { slot = tostring(it.slot), base = variant.base, variants = variant.variants } end
   end
   return out
 end
@@ -1564,13 +1639,35 @@ local function build_tree(st)
   return specId
 end
 
--- Equip the stage's items whose slot `pick` accepts, recording each one's id and name in `added`.
+-- D-464 (amendment 13 §5): a pinned weapon. The Swap slot `slot` gets the item `added` holds for its set-1 slot `sameAs`
+-- (PoB's itemSet[slot].selItemId, through the slot control as add_item_text selects one), so the item set, and the saved
+-- file, hold one item in both weapon sets; it must fit the Swap slot as add_item_text checks a named slot.
+local function pin(slot, sameAs, added)
+  local shared = added[sameAs]
+  local item = shared and build.itemsTab.items[shared.id]
+  if not item then fail(('the item in %s: %s holds no item for it to share (sameAs)'):format(slot, sameAs)) end
+  local ctrl = build.itemsTab.slots[slot]
+  if not ctrl then fail('unknown item slot: ' .. slot) end
+  if type(build.itemsTab.IsItemValidForSlot) == 'function' and not build.itemsTab:IsItemValidForSlot(item, slot) then
+    fail(('the item in %s: %s, shared with %s, is not valid for slot %s'):format(slot, tostring(item.name), sameAs, slot))
+  end
+  ctrl:SetSelItemId(shared.id)
+  build.itemsTab:PopulateSlots()
+  added[slot] = { id = shared.id, name = shared.name }
+end
+
+-- Equip the stage's items whose slot `pick` accepts, recording each one's id and name in `added`. D-464: an entry with
+-- `sameAs` shares that slot's item (pin), which comes before it in PoB's slot order.
 local function equip(st, added, pick)
   for _, it in ipairs(list(st.items)) do
     if pick(tostring(it.slot)) then
-      local res = must('equipping the item in ' .. tostring(it.slot),
-        BuildOps.add_item_text({ text = anointed_text(st, it), slotName = it.slot }))
-      added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
+      if it.sameAs ~= nil then
+        pin(tostring(it.slot), tostring(it.sameAs), added)
+      else
+        local res = must('equipping the item in ' .. tostring(it.slot),
+          BuildOps.add_item_text({ text = anointed_text(st, it), slotName = it.slot }))
+        added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
+      end
     end
   end
 end
@@ -1646,6 +1743,15 @@ local function build_skills(st, fresh)
         groupIndex = created.index, gemName = captured and COMPANION_GEM or gem.name, level = gem.level,
         quality = gem.quality, enabled = gem.enabled ~= false,
       }))
+      -- D-471 (amendment 13 §12): a corrupted skill gem gets PoB's corruption state (BuildOps' CORRUPT_STATES, as PoB's
+      -- dropdown sets it), so PoB calculates it at its level plus the corruption's (Modules/CalcSetup.lua:1884-1885) and
+      -- adds GemCorruptionLevel (Modules/CalcActiveSkill.lua:770-772). A support gem PoB doesn't corrupt: V1's
+      -- `corruption` reports it.
+      if gem.corrupt ~= nil and not added.support then
+        must(('corrupting gem "%s" in group %d'):format(tostring(gem.name), gi), BuildOps.set_gem_corruption({
+          state = tostring(gem.corrupt), groupIndex = created.index, gemIndex = added.gemIndex,
+        }))
+      end
       if captured then
         local set = build.skillsTab.skillSets[build.skillsTab.activeSkillSetId or 1]
         local instance = set.socketGroupList[created.index].gemList[added.gemIndex]
@@ -1748,10 +1854,16 @@ end
 -- PoB's text option that holds custom modifiers, one per line (Modules/ConfigOptions.lua:2279).
 local CUSTOM_MODS = 'customMods'
 
--- The stage's custom modifier lines as PoB's customMods text: one line per entry, in order; nil for none.
+-- The stage's custom modifier lines as PoB's customMods text: one line per entry, in order; nil for none. D-469
+-- (schema 9): each line follows its reason's comment line (`st.customModReasons`, comment_line), which PoB skips.
 local function custom_mods_text(st)
   local lines = {}
-  for _, line in ipairs(list(st.customMods)) do lines[#lines + 1] = tostring(line) end
+  local reasons = list(st.customModReasons)
+  for i, line in ipairs(list(st.customMods)) do
+    local comment = comment_line(reasons[i])
+    if comment then lines[#lines + 1] = comment end
+    lines[#lines + 1] = tostring(line)
+  end
   if #lines == 0 then return nil end
   return table.concat(lines, '\n')
 end

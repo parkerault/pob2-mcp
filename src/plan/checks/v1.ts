@@ -21,7 +21,7 @@
  * | `skill-slots` | (D-428) PoB's warning past its skill slots (`SKILL_SLOTS_WARNING`): more groups that no item or passive grants than its 9 slots plus one per "Grants 1 additional Skill Slot"; the message names the Unset Ring as the remedy. PoB's own count, no new one; the line stays in `pobWarnings.kept` |
  * | `tree-continuity` | (schema 7 and earlier; D-452) the stage's tree doesn't contain its predecessor's apart from `respec.dropped`, or `respec.dropped` isn't exactly the dropped set (D-144). The predecessor is the previous stage on the stage's track: the campaign track, or the endgame ladder `m` → `b` → `n` (D-282, `predecessorOf`), so each rung's respec, which carries its gold cost, is checked against the rung before it. A schema-8 plan has no respec (each loadout's tree is its own), so it isn't checked |
  * | `missing-reason` | a socket group's `count` is above 1 and it has no `countReason`, or a `config.customMods` entry has no `reason` (D-293, D-322): Count and custom modifiers are estimates the plan must explain. Also (D-418, schema 6) a `tree.needs` entry with no `claim`, or whose `claim` names no claim id of the stage: a need keeps nodes node power may call weak, so the plan says why. One finding per group, entry or need; `data.path` is the missing field's path in the stage |
- * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, or an alternate start whose node is allocated) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`). A group that leaves by no start, the nodes a radius jewel frees (B3, amendment 12 §15), breaks no rule |
+ * | `tree-shape` | the stage's trees, as `check_tree` computes them, break D-360's rule: each start (the class start, an alternate start whose node is allocated, or (D-463) the start a socketed Split Personality opens) holds at most one tree, a loop through two of its exits being one tree (D-364); an alternate start holds one only while its node is allocated; and the ascendancy nodes form one tree with their start (`checkTreeShape`). A group that leaves by no start, the nodes a radius jewel frees (B3, amendment 12 §15), breaks no rule. Rule `alternate-class-start` (D-463): a Split Personality whose variant names the class's own start, or a start an allocated ascendancy node already opens, adds nothing |
  * | `support-sockets` | a tree-granted skill's group holds more supports than C1's estimated ceiling at the stage's level (`support-sockets.tree-granted`, a `judgment` fact at L, D-359); never an item-granted group, whose supports follow its item's sockets, or a gem's own group (`checkSupportSockets`) |
  * | `not-granted` | a group whose skill gem a passive grants ("Navira, the Last Mirage", node 32705), or whose `minionSkill` one grants (Navira's Fracturing, node 10561), by a `Grants Skill: <name>` line, on a stage that allocates none of those passives (D-380). PoB checks neither (spike A4). Only an enabled group or the main group, and never a gem an item of the stage grants (`checkNotGranted`) |
  * | `empty-weapon-set` | (WU-102, D-426) a group with `weaponSet` 1 or 2 on a stage whose items fill neither of that set's weapon slots (`Weapon 1` and `Weapon 2`; `Weapon 1 Swap` and `Weapon 2 Swap`): PoB enables the group only while that set is active (`checkWeaponSetGroups`) |
@@ -29,6 +29,7 @@
  * | `implicit-variant` | (D-435) an item written without an `Implicits:` line whose base's implicit has variants (`variantList`, three amulet bases at the pin): the compile fills every other bare base's implicits, but can't pick a variant, so PoB measures the item with none; the finding names the base and its variants and asks for the variant's implicit line (`checkImplicitVariants`, from `compile_stage`'s `implicitVariants`) |
  * | `movement-tier` | (WU-111, D-440; schema 7 and later) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
  * | `curse-level-cap` | (WU-119, D-455; schema 8 and later) an enabled gem whose curse, Frost Bomb's exposure or Thunderstorm's Wet stops at a monster level above 0 and below the stage's area level: the rung's (`rungAreaLevel`: 69, 79, 82), a campaign stage's C1 `<progress>.area-level`; a card skeleton is skipped. The cap is PoB's stat at the level PoB calculates the gem at, gear's +levels included (`checks.gems[].curseCap`); PoB never reads it (PG-86) (`checkCurseLevelCap`) |
+ * | `corruption` | (WU-128, D-471) a gem written with `corrupt` (schema 9) that is a support gem (PoB's kind, `checks.gems`), or on a stage other than `b` and `n`: the entering-maps rung `m`, a campaign stage or a card skeleton. Corruption is for the finishing-touch rungs, on skill gems only (`checkCorruption`) |
  * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken: PoB's names in `DEFENCE_MODS`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
@@ -608,11 +609,16 @@ const startText = (s: TreeStart) => `the ${s.name} start${s.node !== undefined ?
  * the main tree's components, class starts not joining their exits, and the ascendancy's. PoB2 v0.23.1
  * enforces none of the rule, so V1 does. A start exit counts when its start is open: the class start, or an
  * alternate start whose node the stage allocates (Path of the Sorceress, 12795, opens the Sorceress start's
- * exits 4739 and 44871). A tree is one connected group of allocated nodes, the start not counted, so a loop
+ * exits 4739 and 44871), or (D-463) the start a socketed Split Personality names, while the stage reaches its socket
+ * without that start. A tree is one connected group of allocated nodes, the start not counted, so a loop
  * touching two exits of its start through its own nodes is one tree, and legal (D-364: the user's rule is "two
  * unconnected start nodes"). One finding per broken rule, naming the stage, the start and each tree's nodes:
- * - `alternate-start`: a tree leaves only by an alternate start's exit, and the stage doesn't allocate its node;
- * - `one-tree-per-start`: a start's exits lead into more than one tree;
+ * - `alternate-start`: a tree leaves only by an alternate start's exit, and the stage doesn't allocate its node (or
+ *   doesn't reach the jewel's socket without that start);
+ * - `one-tree-per-start`: a start's exits lead into more than one tree; the jewel's start is one more start, holding at
+ *   most one tree like any other;
+ * - `alternate-class-start` (D-463): a Split Personality whose variant names the class's own start, or a start an
+ *   allocated ascendancy node already opens: the jewel adds nothing, and its start isn't counted again;
  * - `ascendancy`: the ascendancy nodes aren't one tree with their start over ascendancy links.
  */
 export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[]): void {
@@ -620,7 +626,32 @@ export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[
   const stage = trees.stage;
   const open = new Map<number, TreeStart>();
   const closed = new Map<number, TreeStart>();
+  // D-463: a jewel's start that the class start, or an allocated ascendancy node's alternate start, already opens.
+  const opened = new Map<number, TreeStart>();
   for (const s of trees.starts) {
+    if (s.jewel !== true && s.node !== undefined && (s.grantedBy === undefined || s.granted === true)) opened.set(s.node, s);
+  }
+  for (const s of trees.starts) {
+    const already = s.jewel === true && s.node !== undefined ? opened.get(s.node) : undefined;
+    if (already !== undefined) {
+      const by = already.grantedBy === undefined ? 'the class start' : `${already.grantedByName ?? 'its node'} (${already.grantedBy})`;
+      findings.push({
+        code: 'tree-shape',
+        message:
+          `stage ${stage}: ${s.grantedByName ?? 'the jewel'} in socket ${s.grantedBy} names ${startText(s)}, which ${by} already ` +
+          `opens, so the jewel adds no start (D-463)`,
+        data: {
+          stage,
+          rule: 'alternate-class-start',
+          start: s.node ?? null,
+          startName: s.name,
+          grantedBy: s.grantedBy,
+          grantedByName: s.grantedByName ?? null,
+          openedBy: already.grantedBy ?? null,
+        },
+      });
+      continue;
+    }
     for (const e of s.exits) (s.grantedBy === undefined || s.granted === true ? open : closed).set(e, s);
   }
   const held = new Map<TreeStart, { exits: number[]; nodes: number[] }[]>();
@@ -633,7 +664,9 @@ export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[
         code: 'tree-shape',
         message:
           `stage ${stage}: a tree leaves ${startText(s)} by ${locked.join(' and ')} (${nodeList(t.nodes)}), but that start holds ` +
-          `a tree only while ${s.grantedByName ?? 'its node'} (${s.grantedBy}) is allocated (D-360)`,
+          (s.jewel === true
+            ? `a tree only while ${s.grantedByName ?? 'its jewel'} sits in a socket (${s.grantedBy}) the stage reaches without that start (D-463)`
+            : `a tree only while ${s.grantedByName ?? 'its node'} (${s.grantedBy}) is allocated (D-360)`),
         data: { stage, rule: 'alternate-start', start: s.node ?? null, startName: s.name, grantedBy: s.grantedBy, trees: [{ exits: locked, nodes: t.nodes }] },
       });
     }
@@ -667,6 +700,42 @@ export function checkTreeShape(trees: StageTrees | undefined, findings: Finding[
   }
 }
 
+/** D-471 (amendment 13 §12): the rungs a gem may be corrupted on, the finishing-touch rungs (proceed-on). */
+export const CORRUPTION_VARIANTS: readonly PlanVariant[] = ['budget', 'non-budget'];
+
+/**
+ * `corruption` (WU-128, D-471): a gem written with `corrupt` (schema 9) on a stage other than `b` and `n` (the
+ * entering-maps rung, a campaign stage or a card skeleton), or one PoB reads as a support gem (`checks.gems`' kind,
+ * matched by group and index): corruption is for the finishing-touch rungs, on skill gems. One finding per gem, the
+ * support rule first; `data.path` is the gem's `corrupt`.
+ */
+export function checkCorruption(stage: Pick<Stage, 'variant' | 'skills'>, checks: Pick<StageChecks, 'gems'>, findings: Finding[]): void {
+  const kinds = new Map(checks.gems.map((g) => [`${g.group}:${g.index}`, g.kind]));
+  const where = stage.variant === undefined ? 'a campaign stage or card skeleton' : `the ${stage.variant} rung`;
+  stage.skills.groups.forEach((g, k) => {
+    g.gems.forEach((gem, j) => {
+      if (gem.corrupt === undefined) return;
+      const at = `skill group ${k + 1} gem ${j + 1}`;
+      const path = `skills.groups[${k}].gems[${j}].corrupt`;
+      if (kinds.get(`${k + 1}:${j + 1}`) === 'support') {
+        findings.push({
+          code: 'corruption',
+          message: `${gem.name} (${at}) is a support gem written with corrupt: only a skill gem is corrupted to +1 level (D-471)`,
+          data: { gem: gem.name, group: k + 1, index: j + 1, rule: 'support', path },
+        });
+      } else if (stage.variant === undefined || !CORRUPTION_VARIANTS.includes(stage.variant)) {
+        findings.push({
+          code: 'corruption',
+          message:
+            `${gem.name} (${at}) is written with corrupt on ${where}: a corrupted gem belongs on the budget and ` +
+            `non-budget rungs only (D-471)`,
+          data: { gem: gem.name, group: k + 1, index: j + 1, rule: 'rung', variant: stage.variant ?? null, path },
+        });
+      }
+    });
+  });
+}
+
 /** C1's estimated support ceiling for a tree-granted skill, keyed by character-level ranges (D-359). */
 const TREE_GRANTED_SUPPORTS = 'support-sockets.tree-granted';
 
@@ -676,7 +745,9 @@ const GRANTS_SKILL = /^(?:\{[^}]*\})*\s*Grants Skill:\s*(?:Level\s+\S+\s+)?(.+?)
 /** The skills the stage's items and jewels grant, by their texts' `Grants Skill:` lines, lowercased. */
 function itemGrantedSkills(items: Stage['items']): Set<string> {
   const out = new Set<string>();
+  // D-464: a pinned weapon's Swap slot has no text of its own; the set-1 slot it shares holds it.
   for (const { text } of [...items.slots, ...items.treeJewels]) {
+    if (text === undefined) continue;
     for (const line of text.split(/\r?\n/)) {
       const m = GRANTS_SKILL.exec(line);
       if (m) out.add(m[1].toLowerCase());
@@ -1191,5 +1262,6 @@ export function checkV1(input: V1Input): V1Result {
   checkMovementTier(stage, checks, input, facts, findings, notes);
   checkCurseLevelCap(stage, checks, input, facts, findings);
   checkCustomDefence(stage, checks, input, findings);
+  checkCorruption(stage, checks, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

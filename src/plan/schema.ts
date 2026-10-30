@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 8; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 9; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 8 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 9 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -73,6 +73,17 @@
  * - A temporary stage (D-453) has an id starting `tmp` (`isTemporaryStage`), letters and digits like every id (`tmpb1`):
  *   the design's steps measure a piece on one and remove it, and no stage's tree continues from it (`predecessorOf`).
  *
+ * **The tree search's figures and the finishing touches** (amendment 13, version 9; WU-128):
+ * - A pinned weapon (D-464): a Swap weapon slot's entry may be `{slot, sameAs}` in place of `{slot, text}`, naming its own
+ *   set-1 slot (`Weapon 1 Swap` → `Weapon 1`, `Weapon 2 Swap` → `Weapon 2`, `PINNED_SLOTS`), which the stage fills with
+ *   text: one item in both weapon sets. Any other pair, or a named slot the stage leaves empty, errs at the `sameAs`.
+ * - A skill gem's `corrupt: "plus_one_level"` (D-471): the compiler sets PoB's corruption state, so PoB calculates the gem
+ *   one level higher; V1's `corruption` reports one on `m`, a campaign stage or a support gem.
+ * - `tree.start`, `tree.end` (`{ehp, lowestMaxHit, life, boss, bossEntries}`) and `tree.search` (D-467, D-468): D1-tree's
+ *   figures at its start and end and what its search did; no compile reads them.
+ * - A custom modifier's `reason` is required and one line (D-469): the compiler writes it as the comment line `# <reason>`
+ *   before the entry's line in PoB's custom modifier box (a schema-8 or older plan's box is unchanged).
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -90,7 +101,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -159,6 +170,44 @@ const needSchema = z
   })
   .strict();
 
+/** D-467 (schema 9): PoB's five maximum-hit types, as the record's lowest max hit names them (`lowestMaxHitOf`). */
+export const MAX_HIT_TYPES = ['physical', 'fire', 'cold', 'lightning', 'chaos'] as const;
+
+const figure = z.number().finite();
+
+/**
+ * D-467, D-468 (schema 9): the stage's figures at the start or the end of D1-tree's search: `TotalEHP`, the lowest max hit
+ * with its type, Life, the boss figure (null when the rung has none) and each boss-rotation entry's figure.
+ */
+const treeFiguresSchema = z
+  .object({
+    ehp: figure,
+    lowestMaxHit: z.object({ type: z.enum(MAX_HIT_TYPES), value: figure }).strict(),
+    life: figure,
+    boss: figure.nullable(),
+    bossEntries: z.array(z.object({ group: z.number().int().min(1), label: text('label'), figure }).strict()),
+  })
+  .strict();
+
+/** D-467 (schema 9): the rebuild's outcome on the rung: taken, none, or undone with why. */
+const REBUILD_OUTCOME_RE = /^(taken|none|undone: \S.*)$/;
+
+/** D-467, D-468 (schema 9): what D1-tree's search did on the rung. */
+const treeSearchSchema = z
+  .object({
+    swaps: z.number().int().nonnegative(),
+    lastGain: figure.nullable(),
+    capHit: z.boolean(),
+    rebuild: z.string().regex(REBUILD_OUTCOME_RE, { message: 'rebuild is "taken", "none" or "undone: <why>"' }),
+    removed: z.array(
+      z
+        .object({ names: z.array(text('name')).min(1, { message: 'a removed entry names at least one passive' }), skill: text('skill') })
+        .strict(),
+    ),
+    bossFall: text('bossFall').nullable(),
+  })
+  .strict();
+
 const treeSchema = z
   .object({
     nodes: z.array(nodeId),
@@ -170,6 +219,10 @@ const treeSchema = z
     needs: z.array(needSchema).optional(),
     // D-438 (schema 7): the stats that scale the stage, one short line.
     scales: text('scales').optional(),
+    // D-467, D-468 (schema 9): D1-tree's figures at its start and end, and what its search did; no compile reads them.
+    start: treeFiguresSchema.optional(),
+    end: treeFiguresSchema.optional(),
+    search: treeSearchSchema.optional(),
   })
   .strict()
   .superRefine((tree, ctx) => {
@@ -224,10 +277,28 @@ export const ANOINT_VARIANTS: readonly PlanVariant[] = ['budget', 'non-budget'];
 export const BOOTS_EXCEPTION_KINDS = ['travel', 'unique'] as const;
 const bootsExceptionSchema = z.object({ kind: z.enum(BOOTS_EXCEPTION_KINDS), reason: text('reason') }).strict();
 
+/**
+ * D-464 (schema 9): the slots a pinned weapon may share: a Swap weapon slot and the set-1 slot its `sameAs` names. The
+ * game's pin rule beyond its own set-1 slot is unverified, so only these two pairs (proceed-on).
+ */
+export const PINNED_SLOTS: Readonly<Record<string, string>> = { 'Weapon 1 Swap': 'Weapon 1', 'Weapon 2 Swap': 'Weapon 2' };
+
+/** One filled slot: its item's text, or (D-464, schema 9) on a Swap weapon slot `sameAs`, the set-1 slot it shares. */
+const slotEntrySchema = z
+  .object({ slot: z.enum(ITEM_SLOTS), text: text('text').optional(), sameAs: z.enum(ITEM_SLOTS).optional() })
+  .strict()
+  .superRefine((e, ctx) => {
+    if (e.text !== undefined && e.sameAs !== undefined) {
+      issue(ctx, ['sameAs'], 'a slot holds its own text or names the slot it shares (sameAs), not both (D-464)');
+    } else if (e.text === undefined && e.sameAs === undefined) {
+      issue(ctx, ['text'], 'Required: a slot holds its item\'s text (or, on a Swap weapon slot, sameAs: its set-1 slot, D-464)');
+    }
+  });
+
 const itemsSchema = z
   .object({
     setTitle: setTitle.optional(),
-    slots: z.array(z.object({ slot: z.enum(ITEM_SLOTS), text: text('text') }).strict()),
+    slots: z.array(slotEntrySchema),
     treeJewels: z.array(z.object({ node: nodeId, text: text('text') }).strict()),
     toggles: z.array(toggleSchema),
     useSecondWeaponSet: z.boolean(),
@@ -242,7 +313,22 @@ const itemsSchema = z
       if (at !== undefined) issue(ctx, ['slots', i, 'slot'], `slot "${s.slot}" is already filled by slots[${at}]`);
       else first.set(s.slot, i);
     });
+    // D-464: a pinned weapon is a Swap weapon slot naming its own set-1 slot, which the stage fills with text.
+    items.slots.forEach((s, i) => {
+      if (s.sameAs === undefined) return;
+      const own = PINNED_SLOTS[s.slot];
+      if (own === undefined) {
+        issue(ctx, ['slots', i, 'sameAs'], `sameAs is allowed only on Weapon 1 Swap (naming Weapon 1) and Weapon 2 Swap (naming Weapon 2); this is ${s.slot} (D-464)`);
+      } else if (s.sameAs !== own) {
+        issue(ctx, ['slots', i, 'sameAs'], `${s.slot} shares only ${own}'s item, its own set-1 slot; it names ${s.sameAs} (D-464)`);
+      } else if (!items.slots.some((o) => o.slot === own && o.text !== undefined)) {
+        issue(ctx, ['slots', i, 'sameAs'], `sameAs names ${own}, which the stage leaves empty: the item it shares is ${own}'s, written with its text (D-464)`);
+      }
+    });
   });
+
+/** D-471 (schema 9): the corruption a skill gem is written with: +1 level (PoB's `plus_one_level` state). */
+export const GEM_CORRUPTIONS = ['plus_one_level'] as const;
 
 const gemSchema = z
   .object({
@@ -250,6 +336,8 @@ const gemSchema = z
     level: z.number().int().min(1),
     quality: z.number().int().nonnegative(),
     enabled: z.boolean(),
+    // D-471 (schema 9): the gem corrupted to +1 level; PoB calculates it one level higher.
+    corrupt: z.enum(GEM_CORRUPTIONS).optional(),
   })
   .strict();
 
@@ -690,7 +778,36 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     before: 'no defence plan',
     uses: (plan) => plan.stages.flatMap((s, i) => (s.defence !== undefined ? [['stages', i, 'defence']] : [])),
   },
+  {
+    since: 9,
+    what: "a pinned weapon, a Swap slot's sameAs (D-464)",
+    before: 'a text in every filled slot',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) => s.items.slots.flatMap((e, k) => (e.sameAs !== undefined ? [['stages', i, 'items', 'slots', k, 'sameAs']] : []))),
+  },
+  {
+    since: 9,
+    what: "a gem's corruption, corrupt (D-471)",
+    before: 'no corrupted gem',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) =>
+        s.skills.groups.flatMap((g, k) =>
+          g.gems.flatMap((gem, j) => (gem.corrupt !== undefined ? [['stages', i, 'skills', 'groups', k, 'gems', j, 'corrupt']] : [])),
+        ),
+      ),
+  },
+  ...(['start', 'end', 'search'] as const).map(
+    (key): VersionAddition => ({
+      since: 9,
+      what: `D1-tree's ${key === 'search' ? 'search, tree.search (D-467, D-468)' : `figures, tree.${key} (D-467, D-468)`}`,
+      before: "no tree search's figures",
+      uses: (plan) => plan.stages.flatMap((s, i) => (s.tree[key] !== undefined ? [['stages', i, 'tree', key]] : [])),
+    }),
+  ),
 ];
+
+/** D-469: the first plan schema version whose custom modifiers carry a required one-line reason, written as a comment. */
+export const COMMENT_LINES_SINCE = 9;
 
 /** D-452: the last plan schema version that has `stages[].respec`, and V1's `tree-continuity` with it. */
 export const RESPEC_UNTIL = 7;
@@ -737,6 +854,21 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
           }
         });
       }
+    });
+  }
+
+  // D-469: from version 9 the compiler writes each custom modifier's reason as the comment line `# <reason>` before it, so
+  // the reason is required, and one line, so the comment can't spill onto a line PoB would read as a modifier.
+  if (plan.schemaVersion >= COMMENT_LINES_SINCE) {
+    plan.stages.forEach((s, i) => {
+      (s.config.customMods ?? []).forEach((m, k) => {
+        const at = ['stages', i, 'config', 'customMods', k, 'reason'];
+        if (m.reason === undefined) {
+          issue(ctx, at, `a schema-${plan.schemaVersion} custom modifier gives its reason: the compiler writes it as the comment line "# <reason>" before the line (D-469)`);
+        } else if (/[\r\n]/.test(m.reason)) {
+          issue(ctx, at, 'reason is one line, with no line break: the compiler writes it as one comment line "# <reason>" (D-469)');
+        }
+      });
     });
   }
 

@@ -1281,7 +1281,9 @@ export type AnointResult = z.infer<typeof anointSchema>;
  * main-tree links (`exits`); or an alternate start of the ascendancy, opened by an ascendancy node with main-tree
  * links (`grantedBy`: Path of the Sorceress, 12795, links the Sorceress start's exits 4739 and 44871), with
  * whether the stage allocates that node (`granted`). `node` is the class start node (absent when an alternate
- * start's exits join none).
+ * start's exits join none). D-463 (amendment 13 §4): or the start a socketed Split Personality's variant names
+ * (`jewel: true`, `grantedBy` the socket, `grantedByName` "Split Personality", `name` the start's class as the jewel names
+ * it), with whether the stage reaches the socket without that start (`granted`), which opens it.
  */
 export const treeStartSchema = z
   .object({
@@ -1291,6 +1293,7 @@ export const treeStartSchema = z
     grantedBy: z.number().int().optional(),
     grantedByName: z.string().optional(),
     granted: z.boolean().optional(),
+    jewel: z.boolean().optional(),
   })
   .passthrough();
 export type TreeStart = z.infer<typeof treeStartSchema>;
@@ -1863,7 +1866,8 @@ export interface CompileCheckStage {
   weaponSets: { set1: number[]; set2: number[] };
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
   jewels: Array<{ node: number; text: string }>;
-  items: Array<{ slot: string; text: string }>;
+  /** D-464: a pinned weapon's Swap slot (`sameAs`) holds the text of the set-1 slot it shares. */
+  items: Array<{ slot: string; text: string; sameAs?: string }>;
   /**
    * D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data; a
    * gem's `enabled` (default true) says whether PoB builds its skills.
@@ -1873,6 +1877,11 @@ export interface CompileCheckStage {
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */
   customMods: string[];
+  /**
+   * D-469 (schema 9): each custom modifier line's reason, in `customMods`' order; its comment line `# <reason>` that PoB
+   * would parse whole as a modifier is a defect naming the entry (`''`: no comment). Absent before schema 9.
+   */
+  customModReasons?: string[];
   /** D-358: the notable the stage's amulet is anointed with (`items.anoint.notable`). */
   anoint?: string;
   /**
@@ -1907,7 +1916,11 @@ export interface CompileStageParams {
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
   jewels: Array<{ node: number; text: string }>;
   itemSet: StageSetRef;
-  items: Array<{ slot: string; text: string }>;
+  /**
+   * In PoB's slot order. D-464 (schema 9): a pinned weapon's Swap slot names the set-1 slot it shares (`sameAs`, its
+   * `text` that slot's): the engine puts that slot's item id in both, so the saved file holds one item.
+   */
+  items: Array<{ slot: string; text: string; sameAs?: string }>;
   toggles: Array<{ slot: string; active: boolean }>;
   useSecondWeaponSet: boolean;
   skillSet: StageSetRef;
@@ -1918,7 +1931,8 @@ export interface CompileStageParams {
     includeInFullDPS: boolean;
     /** D-293: the group's Count (`groupCount`), set on the named source's group only. */
     groupCount?: number;
-    gems: Array<{ name: string; level: number; quality: number; enabled: boolean }>;
+    /** D-471 (schema 9): `corrupt` sets PoB's corruption state on a skill gem (`plus_one_level`: one level higher). */
+    gems: Array<{ name: string; level: number; quality: number; enabled: boolean; corrupt?: string }>;
     /** D-377: the skill the group's summon's minion uses, selected by name after the stage's groups are built. */
     minionSkill?: string;
     /** D-377: that minion skill's stat set (default 1). */
@@ -1934,6 +1948,11 @@ export interface CompileStageParams {
   config: Record<string, boolean | number | string>;
   /** D-293: the custom modifier lines, written into PoB's `customMods` option after `config`, one line each. */
   customMods: string[];
+  /**
+   * D-469 (schema 9): each line's reason, in `customMods`' order: the engine writes `# <reason>` before the line (none for
+   * `''`). Absent before schema 9, whose text is the lines alone.
+   */
+  customModReasons?: string[];
   /** The C-45 fields measured per active skill and stat set. */
   offenseFields: string[];
   /** The slots whose content the reply reports (`ITEM_SLOTS`). */

@@ -80,6 +80,17 @@ describe('AC-P9 (WU-38): plan-reference.md documents every schema field', () => 
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
+  it('AC-P89 (WU-128, amendment 13 §6): the reference holds no "Legacy of" example: an over-budget rune is no example', () => {
+    const text = fs.readFileSync(REFERENCE, 'utf8');
+    expect(text).not.toMatch(/Legacy of /);
+    expect(text).not.toContain('Raven-Touched Shard');
+    // The culling example is a notable of the pinned tree whose line gives Culling Strike.
+    const tree = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', 'vendor', 'PathOfBuilding-PoE2', 'src', 'TreeData', '0_5', 'tree.json'), 'utf8'));
+    const node = tree.nodes['56997'];
+    expect(node.stats).toEqual(['Hits that Heavy Stun Enemies have Culling Strike']);
+    expect(text).toContain(`"cull": "${node.name} (56997): Detonate Dead's hits that Heavy Stun cull"`);
+  });
+
   it('AC-P9: each row\'s Required cell matches the JSON Schema', () => {
     const wrong = rows
       .filter((r) => schemaPaths.has(r.path))

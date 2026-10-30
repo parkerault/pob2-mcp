@@ -85,6 +85,13 @@
  * `toughness`, the Arbiter rows' hits survived and `avoid`, and `damage.resisting`; the key-figure line the resisting
  * figure, the lowest max hit and, on a rung with `avoid`, hits survived.
  *
+ * WU-128 (amendment 13; D-463, D-464, D-469, D-471): `compile_check` opens the start a socketed Split Personality names when
+ * the stage reaches its socket without it (any schema), and V1's `tree-shape` counts that start; on schema 9 a pinned
+ * weapon's Swap slot (`sameAs`) is checked with the text it shares and built as that one item in both slots (`slotTexts`), a
+ * corrupted skill gem gets PoB's corruption state, and each custom modifier's reason goes in as the comment line
+ * `# <reason>` before its line (`customModReasons`), which `compile_check` refuses when PoB would parse it whole. V1 gains
+ * `corruption`. What reads the custom lines (the estimate mark, `custom-defence`, `customModsWritten`) reads the lines alone.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -153,6 +160,7 @@ import {
   type CompanionPlan,
 } from './companion.js';
 import {
+  COMMENT_LINES_SINCE,
   CUSTOM_MODS_OPTION,
   RESPEC_UNTIL,
   validatePlan,
@@ -499,8 +507,11 @@ function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBas
 /**
  * What `compile_check` reads of a stage; with its companion (D-402), the beast's species and lines. WU-111 (D-447): with
  * the stage's index in the plan, its boss rotation's entries, each with its path (`stages[n].skills.boss.entries[k]`).
+ * WU-128 (amendment 13): a pinned weapon's Swap slot is checked with the text of the slot it shares (D-464, `slotTexts`),
+ * and, with the plan's schema version, a schema-9 stage's custom modifier reasons, whose comment lines PoB must not parse
+ * whole (D-469, `customModReasons`).
  */
-export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?: number): CompileCheckStage {
+export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?: number, schemaVersion?: number): CompileCheckStage {
   const bossEntries = (stage.skills.boss?.entries ?? []).map((e, k) => ({
     at: `stages[${planIndex ?? '?'}].skills.boss.entries[${k}]`,
     group: e.group,
@@ -514,7 +525,7 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
     weaponSets: { set1: stage.tree.weaponSetNodes.set1, set2: stage.tree.weaponSetNodes.set2 },
     attributeChoices: stage.tree.attributeChoices,
     jewels: stage.items.treeJewels,
-    items: stage.items.slots,
+    items: slotTexts(stage),
     groups: stage.skills.groups.map((g) => ({
       gems: g.gems.map((gem) => ({ name: gem.name, enabled: gem.enabled })),
       ...minionFields(g),
@@ -522,10 +533,22 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
     main: stage.skills.main,
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),
+    ...withCustomModReasons(stage, schemaVersion),
     ...(stage.items.anoint !== undefined ? { anoint: stage.items.anoint.notable } : {}),
     ...(companion !== undefined ? { companion: companionCheckOf(stage, companion) } : {}),
     ...(bossEntries.length > 0 ? { bossEntries } : {}),
   };
+}
+
+/**
+ * D-464 (schema 9): the stage's filled slots, each with its item's text: a pinned weapon's Swap slot (`sameAs`) has the
+ * text of the set-1 slot it shares, and keeps `sameAs` so `compile_stage` puts that one item in both slots. In plan order.
+ */
+export function slotTexts(stage: Pick<Stage, 'items'>): Array<{ slot: string; text: string; sameAs?: string }> {
+  const texts = new Map(stage.items.slots.flatMap((s) => (s.text !== undefined ? [[s.slot as string, s.text] as const] : [])));
+  return stage.items.slots.map((s) =>
+    s.sameAs !== undefined ? { slot: s.slot, text: texts.get(s.sameAs) ?? '', sameAs: s.sameAs } : { slot: s.slot, text: s.text ?? '' },
+  );
 }
 
 /** D-377: a group's minion skill and its stat set, as the engine actions take them (absent when it names none). */
@@ -539,6 +562,25 @@ function minionFields(g: Stage['skills']['groups'][number]): { minionSkill?: str
 /** D-293: a stage's custom modifier lines, `config.customMods` texts in plan order (none for a version-1 plan). */
 export function customModLines(stage: Pick<Stage, 'config'>): string[] {
   return (stage.config.customMods ?? []).map((m) => m.text);
+}
+
+/**
+ * D-469 (schema 9): each custom modifier's reason, in the order of `customModLines` (a companion's lines included, D-402),
+ * which the engine writes as the comment line `# <reason>` before the line in PoB's `customMods` text, and which
+ * `compile_check` refuses when PoB would parse that comment whole as a modifier. `''` for an entry without a reason (none
+ * on schema 9, whose reasons are required). Undefined before schema 9, or with no custom modifier: the text is the lines
+ * alone, as before. What reads the custom lines (the estimate mark, `custom-defence`) reads `customModLines`, never the
+ * comments.
+ */
+export function customModReasons(stage: Pick<Stage, 'config'>, schemaVersion: number | undefined): string[] | undefined {
+  const mods = stage.config.customMods ?? [];
+  if (schemaVersion === undefined || schemaVersion < COMMENT_LINES_SINCE || mods.length === 0) return undefined;
+  return mods.map((m) => m.reason ?? '');
+}
+
+function withCustomModReasons(stage: Pick<Stage, 'config'>, schemaVersion: number | undefined): { customModReasons?: string[] } {
+  const reasons = customModReasons(stage, schemaVersion);
+  return reasons !== undefined ? { customModReasons: reasons } : {};
 }
 
 /**
@@ -955,7 +997,11 @@ function setRef(title: string, created: Map<number, number>, group: number): Sta
   return id === undefined ? { title } : { title, reuse: id };
 }
 
-/** What `compile_stage` builds for one stage. */
+/**
+ * What `compile_stage` builds for one stage. WU-128 (amendment 13, schema 9): a pinned weapon's Swap slot carries `sameAs`
+ * (D-464), a corrupted gem its `corrupt` (D-471), and, with the plan's `schemaVersion`, the custom modifiers their reasons
+ * for the comment lines (D-469).
+ */
 export function stageParams(
   stage: Stage,
   first: boolean,
@@ -965,6 +1011,7 @@ export function stageParams(
   companionId?: string,
   grants?: WeaponGrants,
   measure?: MeasureData,
+  schemaVersion?: number,
 ): CompileStageParams {
   const slots = groupSlots(stage, grants);
   return {
@@ -978,8 +1025,11 @@ export function stageParams(
     attributeChoices: stage.tree.attributeChoices,
     jewels: stage.items.treeJewels,
     itemSet: refs.item,
-    // In PoB's slot order, so a main hand is in place before the off-hand is checked against it.
-    items: [...stage.items.slots].sort((a, b) => ITEM_SLOTS.indexOf(a.slot) - ITEM_SLOTS.indexOf(b.slot)),
+    // In PoB's slot order, so a main hand is in place before the off-hand is checked against it, and a set-1 slot before
+    // the Swap slot that shares its item (D-464).
+    items: slotTexts(stage).sort(
+      (a, b) => ITEM_SLOTS.indexOf(a.slot as (typeof ITEM_SLOTS)[number]) - ITEM_SLOTS.indexOf(b.slot as (typeof ITEM_SLOTS)[number]),
+    ),
     toggles: stage.items.toggles.map((t) => ({ slot: t.slot, active: t.active })),
     useSecondWeaponSet: stage.items.useSecondWeaponSet,
     skillSet: refs.skill,
@@ -992,7 +1042,14 @@ export function stageParams(
         enabled: g.enabled,
         includeInFullDPS: named,
         ...(named ? { groupCount: g.count ?? 1 } : {}),
-        gems: g.gems.map((gem) => ({ name: gem.name, level: gem.level, quality: gem.quality, enabled: gem.enabled })),
+        gems: g.gems.map((gem) => ({
+          name: gem.name,
+          level: gem.level,
+          quality: gem.quality,
+          enabled: gem.enabled,
+          // D-471 (schema 9): PoB's corruption state, so it calculates the gem one level higher.
+          ...(gem.corrupt !== undefined ? { corrupt: gem.corrupt } : {}),
+        })),
         ...minionFields(g),
         // D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets.
         ...(g.weaponSet !== undefined ? { weaponSet: g.weaponSet, slot: slots[k]! } : {}),
@@ -1002,6 +1059,8 @@ export function stageParams(
     configSet: refs.config,
     config: stageConfig(stage),
     customMods: customModLines(stage),
+    // D-469 (schema 9): each line's reason, written as the comment line `# <reason>` before it.
+    ...withCustomModReasons(stage, schemaVersion),
     offenseFields: [...offenseFields, ...MEASURE_FIELDS.filter((f) => !offenseFields.includes(f))],
     itemSlots: [...ITEM_SLOTS],
     // D-358: the notable's PoB name, as compile_check resolved it, written on the amulet.
@@ -1165,7 +1224,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const check = await ctx.client.compileCheck({
     className: checkedPlan.roll.className,
     ascendancy: checkedPlan.roll.ascendancy,
-    stages: preflight.map((s) => checkStageOf(s, companions.get(s.id), checkedPlan.stages.indexOf(s))),
+    stages: preflight.map((s) => checkStageOf(s, companions.get(s.id), checkedPlan.stages.indexOf(s), checkedPlan.schemaVersion)),
     producers: producersOf(preflight),
     // D-353: the clear-speed measure reads the measured stages' clear gems' texts, a card skeleton's included (D-407).
     describeGems: [...new Set(preflight.filter(measuredStage).flatMap(clearGemNames))],
@@ -1217,7 +1276,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     }
     const t = env.clock();
     const reply = await ctx.client.compileStage(
-      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id), measureData),
+      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id), measureData, plan.schemaVersion),
     );
     const elapsedMs = env.clock() - t;
     // D-447: every boss rotation entry is a selection PoB's boss measure has (compile_check bounded it already).
@@ -1493,7 +1552,7 @@ export async function validatePlanFile(
   const check = await env.ctx.client.compileCheck({
     className: loaded.plan.roll.className,
     ascendancy: loaded.plan.roll.ascendancy,
-    stages: stages.map((x) => checkStageOf(x.stage, x.companion, x.index)),
+    stages: stages.map((x) => checkStageOf(x.stage, x.companion, x.index, loaded.plan.schemaVersion)),
     producers: producersOf(stages.map((x) => x.stage)),
   });
   if (check.defects.length > 0) {

@@ -63,8 +63,8 @@ function errorsOf(input: unknown): PlanError[] {
 }
 
 describe('WU-119: plan schema 8 (Appendix A, AC-P82)', () => {
-  it('schema 8 is the current version; 1 to 7 stay accepted', () => {
-    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  it('schema 8 stays accepted (schema 9, amendment 13, is the current version); 1 to 7 too', () => {
+    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it('AC-P82: a schema-8 plan with respec errs at stages[n].respec, with Appendix A\'s message', () => {

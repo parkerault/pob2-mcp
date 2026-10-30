@@ -6,19 +6,20 @@ through `scripts/run-log.mjs` (D-356, "Writing it" below), never with Write or E
 (`run-folder.md`). This page is **schema version 4** (D-412), the run log of the three phases and their gates
 with one build per finalized card (D-411); `run-log.mjs <runFolder> migrate` rewrites a schema-3 log as schema 4
 (D-415), and the run checker also reads schemas 3 and 2, so runs recorded before amendments 9 and 3 still check
-(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 12` (amendment 12, §22;
-`11` in a log written under amendment 11's rules): `init` writes it, and a resume stamps it on an older log with one
-boundary per revision, so the entries after a revision's boundary are held to its rules and the ones before it to their
-own. Revisions compare by order: amendment 11's rules hold from 11's boundary, amendment 12's from 12's ("Runs before
-amendment 11" and "Runs before amendment 12", below).
+(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 13` (amendment 13, §22;
+`12` or `11` in a log written under amendment 12's or 11's rules): `init` writes it, and a resume stamps it on an older
+log with one boundary per revision, so the entries after a revision's boundary are held to its rules and the ones before
+it to their own. Revisions compare by order: amendment 11's rules hold from 11's boundary, amendment 12's from 12's,
+amendment 13's from 13's, and a build is held to the rules of its last D1 gate ("Runs before amendment 11", "Runs before
+amendment 12" and "Runs before amendment 13", below).
 
 ## Fields
 
 | Field | Content |
 |---|---|
 | `schemaVersion` | `4` |
-| `skillRevision` | `12`: the run is held to amendment 12's rules and amendment 11's (§22). `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 11's rules has `11` |
-| `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
+| `skillRevision` | `13`: the run is held to amendment 13's rules, amendment 12's and amendment 11's (§22). `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 12's rules has `12`, one under amendment 11's `11` |
+| `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}, "13": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
 | `runFolder` | the absolute path `mcp__pob2__guide_run {new_run}` returned |
 | `slug` | the run's slug, from the brief (`run-folder.md`, D-285) |
 | `brief` | the parsed brief (below, C-51); `{}` for an empty brief, "surprise me" |
@@ -29,10 +30,10 @@ amendment 11" and "Runs before amendment 12", below).
 | `pinCommit` | the PoB pin's commit when `init` ran, which `run-log.mjs` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
 | `digest` | the newest league digest's file name when `init` ran (`data/league/<name>.md`, newest by its fetch date), or `null` |
 | `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
-| `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412), with `name` after `roll` once a `build` entry gave one (D-435) |
+| `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412), with `name` after `roll` once a `build` entry gave one (D-435), and `draftFile` after `pobFile` in a log at 13 (D-466) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, shortReason?, tried?}` |
 | `checkpoints[]` | `{checkpoint, concept?, visit, answer, answeredBy, rule?, questions?, changes?, newCards?, note?}`; `concept`, the build's card id, on a design or final checkpoint only |
-| `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below) |
+| `displays[]` | `{checkpoint, visit}`, one per gate visit whose display `display <gate>` printed (D-367, "Writing it" below); in a log at 13 a brainstorm visit's is `{checkpoint, visit, numbers}`, `numbers` the number-to-id map of the cards it numbered, `{"1": "<card id>", …}` (D-475), from which the runner maps the user's numbers to the `pick:` it logs |
 | `escalations[]` | gate escalations only: `{stage, concept, verdict, choice, guidance?}` |
 | `faults[]` | offline test mode only: `{id, target, applied, observed}`; empty otherwise |
 | `resumes[]` | one per resume (D-415): `{date, pinCommit, digest, noNinja, lengths: {stages, checkpoints, escalations, displays}}` |
@@ -51,10 +52,11 @@ holds the import code, whose one home is the record (D-260).
 | `id` | the card id (`r1-a-2`); a card with a build is never finalized again (D-411) |
 | `roll` | the card's identity `{className, ascendancy, skill}`, `skill` its named damage source, the names exactly as the tools gave them (D-286) |
 | `name` | only once a `build` entry gave it: the build's name, the card's or the one its finalize revision gave the build (D-435). `render-audit.mjs` titles the build's `audit.md` with it, else with its card's H1, so F1's render and the run checker's re-render agree; the card keeps its own name |
-| `status` | `queued` at the finalize; `designing` from its D1-build; `writing` once its final compile passed, and while its campaign runs; then its end: `completed` (the final gate's `accept`, `accept:verification` or `campaign`), `file-only` (F1 after the design gate's `accept:file`), `not-accepted` (`decline:<note>`), `dropped` (back to the verification gate), `stopped` or `escalated` |
+| `status` | `queued` at the finalize; `designing` from its D1-build; `writing` once its final compile passed, and while its campaign runs; then its end: `completed` (the final gate's `accept`, `accept:verification` or `campaign`), `file-only` (F1 after the design gate's `accept:file`; in a build held to revision 13, once its claims pass, `V4-claims`, passed, or the re-check of its round ran, D-477), `not-accepted` (`decline:<note>`), `dropped` (back to the verification gate), `stopped` or `escalated` |
 | `folder` | `builds/<id>`, the build's folder; `.` for a migrated run's build, whose files stayed at the root |
 | `guide` | `null`, `endgame` or `full`: the template its plan decides (D-414: no campaign stage, the endgame guide), set once W1 wrote it |
-| `pobFile` | `null` until a final compile wrote the PoB file (F1, or the D2 gate after its campaign); then the final record's PoB path, the verdict's `finalCompile.pobFile` |
+| `pobFile` | `null` until a final compile wrote the PoB file (F1, or the D2 gate after its campaign); then the final record's PoB path, the verdict's `finalCompile.pobFile`. A build held to revision 13 names it by its session name (`name`, else its card's), cleaned: `<name>.xml`, `<name> <run date>.xml` or `<name> <run date> <k>.xml`, a campaign's ending ` (campaign)` (D-466); two builds never record one file |
+| `draftFile` | in a log at 13 only (D-466): the latest draft's path, `<name> (draft).xml` or `<name> (draft <k>).xml`, as `compile_plan`'s draft mode returned it (on a D1 gate pass that leads to the design gate, and on an escalation's `accept`); `null` once F1 removed it, or before any draft. A log below 13 has none, and the run checker accepts both shapes |
 
 ### Resumes (D-415)
 
@@ -89,7 +91,8 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   of D1's three steps. `stage` is `R1a`, `R1a-assemble`, `R1b`, `R1b-assemble`, `D1-build`, `D1-finish`, `D1-gate`,
   `D2`, `D2-gate`, `W1`, `V4` (the one full pass, D-352) or `V4-recheck` (a re-check), and `Q`, a gate question
   step (D-390); and schema 4's `D1-tree` (D-418), `F1`, an endgame-only build's final
-  compile (D-413), and `V4-campaign`, V4's campaign pass (D-415); and amendment 10's `R1a-synthesize` (D-429),
+  compile (D-413), and `V4-campaign`, V4's campaign pass (D-415); amendment 13's `V4-claims`, a file-only build's
+  claims pass (D-477); and amendment 10's `R1a-synthesize` (D-429),
   the brainstorm round's coordinator step that composes 1 to 4 builds, the composites, from every card and the research
   files' Ideas, in place of R1a-assemble's deal. A run whose first brainstorm round used `R1a-assemble` keeps it for
   every later round, and one that composed keeps `R1a-synthesize`: `run-log.mjs` refuses the other step, and the run
@@ -100,7 +103,10 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   verdict file name; per log name, so a re-check's `attempt` counts that card's re-checks from 1, apart from its
   full pass (D-368). `outcome`:
   - `pass` or `fail` for a gate step (R1b, D1-gate, F1, D2-gate) and a V4 entry (`fail`: its report has an
-    `unresolved` finding); a D1 gate whose only issue is its tree part's `tool-error` is `fail` (D-419);
+    `unresolved` finding), `V4-claims` among them; a D1 gate whose only issue is its tree part's `tool-error` is `fail` (D-419);
+  - `stale-server` for a D1-tree whose first node power reply had no targets in its rebuild line (a session server
+    built before M-26, D-467): the runner asks the user to reconnect the server with `/mcp`, and D1-tree runs again
+    next, its next attempt;
   - `done` for a step that only produces (R1a, R1a-assemble, R1a-synthesize, R1b-assemble, D1-tree, D1-finish, …), `infeasible`
     for D1-build claiming it and for a D1 gate routed so;
   - `respec` for a D1-tree that returned `respec: <stage> needs one: <why>`, a scaling change D1-build missed (D-438),
@@ -147,11 +153,14 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 - **`priceOutcomes`**, on a pricing step (R1b, D1-build, D1-finish, D1-gate, D2) that made price calls: its calls
   counted by outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
   `pricing.md`), and `exchange` for the calls priced from poe.ninja's currency exchange, which send no trade request
-  (D-444). D1-build logs its `find_upgrades` calls (D-444). Never in an offline run. NFR-22 reads it: no
-  `rate_limited` and no `locked_out`.
-- **Pricing stops** (D-444). A `stage` entry whose `priceOutcomes` counts a `rate_limited` or `locked_out` call stops
-  trade-site pricing: `run-log.mjs` records `pricing.stops[] {at, step, outcome}` with it (`at` that entry's index in
-  `stages[]`, `outcome` `locked_out` when it counts one, else `rate_limited`). From then on no step makes a trade-site
+  (D-444). D1-build logs its `find_upgrades` calls (D-444). Amendment 13 (D-474): `pace` counts the trade call whose
+  reply had no pace line, or `Pace: off (test setting).`, after which the step made no more trade calls and returned
+  the stop `pace: missing` or `pace: off`. Never in an offline run. NFR-22 reads it: no `rate_limited` and no
+  `locked_out`.
+- **Pricing stops** (D-444). A `stage` entry whose `priceOutcomes` counts a `rate_limited` or `locked_out` call, or
+  amendment 13's `pace` (D-474), stops trade-site pricing: `run-log.mjs` records `pricing.stops[] {at, step, outcome}`
+  with it (`at` that entry's index in `stages[]`, `outcome` `locked_out` when it counts one, else `rate_limited`, else
+  `pace`). After a `pace` stop the runner asks the user to reconnect the server with `/mcp` before the retry. From then on no step makes a trade-site
   request (poe.ninja's exchange stays allowed, counted as `exchange`) until the user approves a retry at the next
   gate, or a resume clears the stop. That gate asks before its other questions ("Pricing stopped at <step> after
   <outcome>: retry?"), once its display printed, and the runner logs the answer with `run-log.mjs pricing`:
@@ -226,7 +235,11 @@ Only the user starts a round (D-287), so the log's gate answers say where every 
   asks for, D-438; D1-tree then D1-finish for the tree alone; D1-finish alone otherwise), the D1 gate and the design
   gate again; a D1 gate's `tree` failure runs D1-tree, then D1-finish. Within an attempt, D1-tree's `respec` and
   D1-finish's `build` route D1-build next (D-438, §14). D2 and the D2 gate run only for a campaign (the final gate's
-  `campaign`, or `campaign:<id>`), followed for a `completed` build by `V4-campaign`. Every route back from a
+  `campaign`, or `campaign:<id>`), followed for a `completed` build by `V4-campaign`. D-477 (amendment 13): a build
+  held to revision 13 that F1 passed after `accept:file` stays `designing` for its claims pass, `V4-claims`; on a
+  pass it ends `file-only`; on a failure its fix round follows (the round copy, D1 alone, D1-finish first; a recompile
+  runs the D1 gate, then F1 with no design gate), then one `V4-recheck`, and the build ends `file-only`. A later
+  `guide:<id>` runs W1 and V4's full pass, its report numbered after the claims pass's. Every route back from a
   design (an `infeasible` D1 gate, an escalation's or the design gate's `verification`, FI-3) returns to the
   verification gate, the cards still queued waiting behind the visit.
 - **The fix round, a revision and a campaign** (D-352, D-415): each starts with the round copy, `rounds/<n>/` in
@@ -244,7 +257,8 @@ last answer didn't ask for the verification gate.
 - **NFR-23** (the cost caps): per brainstorm round at most 3 R1a entries and one R1a-assemble, dealing 6–9 cards (or
   one R1a-synthesize, composing 1–4 composites, D-429);
   per verification round at most 3 cards compiled (a second verification round from the
-  same deck has its own 3); one V4 pass per guide, and one re-check per fix round or revision (D-352); at most 2 counted
+  same deck has its own 3); one V4 pass per guide, and one re-check per fix round or revision (D-352); one claims pass
+  per file-only build held to revision 13 (D-477); at most 2 counted
   retries per gate (the run checker counts them from `stages[]`, S6 included); and at most 3 agents in flight,
   which the session's transcript shows.
 - **D-292's probe cap**: each card's `probes`, summed over its R1b entries, at most 4; a composite's at most 8 (D-433).
@@ -289,14 +303,15 @@ JSON
 node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
 ```
 
-- `init` writes the first log (below): `skillRevision` 12, `runFolder` the folder given, `noNinja` the run's
+- `init` writes the first log (below): `skillRevision` 13, `runFolder` the folder given, `noNinja` the run's
   `--no-ninja` (`true` or `false`, required), the pin's commit and the newest digest as the script reads them,
   `dossier` null, the lists empty, `pricing` with no stop or retry, `status` `running`, or `stopped` with a refused
   test config. It never overwrites a log.
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
-  `escalations[]`. A `stage` entry counting a `rate_limited` or `locked_out` call also records its stop in
-  `pricing.stops[]` (D-444). A log with `skillRevision` refuses a stage `RV`: the rival is removed (D-443); a log at 12
-  refuses a D1-tree `respec` (D-452).
+  `escalations[]`. A `stage` entry counting a `rate_limited`, `locked_out` or `pace` call also records its stop in
+  `pricing.stops[]` (D-444, D-474). A log with `skillRevision` refuses a stage `RV`: the rival is removed (D-443); a log
+  at 12 or later refuses a D1-tree `respec` (D-452). D1-tree's `stale-server` (D-467) and the stage `V4-claims` (D-477)
+  are schema 4's.
 - `pricing` (D-444) logs the user's answer to a gate's pricing question, `{"checkpoint", "answer"}`, `answer`
   `retry-pricing` or `no-retry`, as `pricing.retries[]` with `at` the `stages[]` length; refused when no stop is open,
   or before that gate visit's display printed. After a stop, at the design gate, before that visit's `checkpoint`
@@ -309,15 +324,23 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   ```
 - `build` (D-412) adds a finalized card's build, `{"id", "roll", "status": "queued"}`, its folder `builds/<id>`,
   once per card the verification gate finalizes, with `"name"` when its finalize revision gave the build one (D-435);
-  then `{"id", "name"?, "status"?, "guide"?, "pobFile"?}` updates it. A card with a build is refused as a new one, and a
-  build keeps its card's identity.
+  then `{"id", "name"?, "status"?, "guide"?, "pobFile"?, "draftFile"?}` updates it. A card with a build is refused as a
+  new one, and a build keeps its card's identity. `draftFile` (D-466), a log at 13's: the draft mode's reply's path on a
+  D1 gate pass that leads to the design gate and on an escalation's `accept`, and `null` once F1 removed the draft:
+
+  ```
+  node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build - <<'JSON'
+  {"id": "r1-a-2", "draftFile": "Royal Fury Rake Titan (draft).xml"}
+  JSON
+  ```
 - `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
   `noNinja` (its `--no-ninja`) and the four lists' lengths, sets the top-level `noNinja` to this session's flag, and
-  sets `status` `running`. On a log below `skillRevision` 12, or without it, it stamps `skillRevision` 12 and writes a
-  boundary in `skillRevisionFrom`, its resume's lengths, for every revision above the log's old one: a log at 11 keeps
-  11's boundary (its flat form read as `"11"`) and gains `"12"`; a log without `skillRevision` gains `"11"` and `"12"` at
-  the same lengths, so its earlier entries are held to neither amendment's rules; it adds `pricing` (§19, amendment 12
-  §22). It runs once per resume,
+  sets `status` `running`. On a log below `skillRevision` 13, or without it, it stamps `skillRevision` 13 and writes a
+  boundary in `skillRevisionFrom`, its resume's lengths, for every revision above the log's old one: a log at 12 gains
+  `"13"` (and keeps 11's or 12's boundary when a resume stamped them); a log at 11 keeps 11's boundary (its flat form
+  read as `"11"`) and gains `"12"` and `"13"`; a log without `skillRevision` gains `"11"`, `"12"` and `"13"` at the same
+  lengths, so its earlier entries are held to none of those amendments' rules; it adds `pricing` (§19, amendment 12 §22,
+  amendment 13 §22). It runs once per resume,
   before the resume's unsaved-build question and verification visit.
 - `migrate` (D-415), with no JSON, rewrites a schema-3 log as schema 4: its finalized card becomes `builds[0]` with
   `folder: "."` (its files stay at the root), its status from the old `status` and last answer, `guide` from
@@ -357,6 +380,26 @@ node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
   second against map monsters, <resisting> against resisting rares, <boss> against a Pinnacle boss`, and a record whose
   Arbiter rows carry hits survived gives the verdict label's three forms there and in the design-to-final comparison
   (D-459).
+  In a run held to amendment 13 (D-475, Appendix A), the brainstorm display, on the composite and the dealt-card paths
+  alike, prints the header's first one or two sentences of "what they share" and no "How they differ"; each composite or
+  dealt card not verified yet, numbered, on one first line, `<n>. <name>: <structure>; under-played: yes|no` (the
+  structure the deck line's first part, under-played its `under-played (judgment: …)` label); under a composite at most 8
+  key pieces, `  in: <pieces>` (by kind: its uniques, supports, keystones, under-played rows, then notables, then the
+  rest), then `, + <N> more in cards.md`, and `  scheduled: <names>`, names only; `drawn from <host>`; the plain cards on
+  one line, `Plain cards: <names>.` (a dealt deck's `Not dealt: <names>.`); the obvious build's line, a short round's
+  reason and the not-confirmed sentence as before; and no "For reference": the visit's `displays[]` entry records
+  `numbers`. A D1 gate's design field written under amendment 13's rules (a rung with `life`, `swapCap`, `rebuild`,
+  `removedForOthers`, `levels`, or `boss.start`, Appendix A) adds to the design display, from the field alone: `- Boss
+  rotation on <rung>: <start> → <end> on the tree, <final> at the gate (floor <n>). <entry> <start> → <end> (−<x>%) →
+  <final>, … (valued by <reason>: +<x>% to the rotation, the designer): <reason for a fall> (the designer).` after the
+  damage lines (an entry's percent on a fall, its `valuedBy` in place of it; the floor on `n`); `- Life on <rung>: <start>
+  → <end> (EHP and the lowest max hit held their start).` after the toughness lines; after the tree lines `- Swap cap on
+  <rung>: <swaps> swaps, the last +<x>%.`, `- Rebuild undone on <rung>: <why>.`, `- Removed on <rung>: <names>: lines for
+  <skill>.` and `- Skill levels on <rung>: <skill> +<n>.`; among the trades `- Boss trade on <rung>: <what> (remove <r>,
+  add <a>): boss <gate figure> → <bossAfter>, damage <±x>%, EHP <±y>%.`; and before the rungs, from the build's
+  `draftFile`, `- Draft PoB file: <file name>, in your builds list.` (D-466, D-467, D-468, D-473). The final display
+  prints F1's `draftLeft`, `Your draft PoB file stays: <file name>, which F1 didn't remove: it changed on disk, or this
+  build didn't write it.` (Appendix A).
 - `set` replaces `status`, `dossier` (once R1b-assemble wrote it) or `faults` (`SKILL.md` §8).
 - An entry with a field, stage name, outcome or answer outside this page's forms is refused, and nothing is
   written. The run checker checks the whole log and the flow it records.
@@ -369,7 +412,7 @@ the pin's commit and newest digest as `run-log.mjs` reads them from the reposito
 ```json
 {
   "schemaVersion": 4,
-  "skillRevision": 12,
+  "skillRevision": 13,
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "slug": "titan-blood-hunt",
   "brief": { "ascendancy": "Titan", "skill": "Blood Hunt" },
@@ -411,6 +454,15 @@ nowhere; a log a resume stamped at 12 holds its entries before 12's boundary to 
 before it is read by its own format: its `respec` routes (D-438), its two-figure verdict lines and labels, its design
 fields without `maxHit` and its 7-field trades (`trades.json`, `run-folder.md`). A build is held to the rules of its last
 D1 gate.
+
+## Runs before amendment 13
+
+A log at `skillRevision` 12 (or 11) is a run recorded under amendment 12's rules, held to amendment 13's nowhere; a log a
+resume stamped at 13 holds its entries before 13's boundary to their own rules, and each build to the rules of its last
+D1 gate (§22): a build whose last D1 gate is before 13's boundary keeps its PoB file `<slug>-<YYYY-MM-DD>-<n>-<card
+id>`, its 9-field trades, its design field without amendment 13's additions, no claims pass after `accept:file`, and no
+rule on runes over the budget, corruption, flasks or charms; a card dealt before the boundary takes no rune rule. Its brainstorm
+displays keep their older form, and its builds no `draftFile` until a write after the stamp.
 
 ## Schema 3: runs recorded before amendment 9
 

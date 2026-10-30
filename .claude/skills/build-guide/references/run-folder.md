@@ -2,7 +2,7 @@
 
 Every run of the build-guide skill works inside one run folder, which the server creates. This page is
 the layout, who writes each file, how the PoB file is named, and what the run checker holds a run folder
-to (slice 03 §2 and FR-W7, as amendments 1, 3 and 9 to 11 change them; spine C-34, C-36, C-52; D-412, D-415).
+to (slice 03 §2 and FR-W7, as amendments 1, 3 and 9 to 13 change them; spine C-34, C-36, C-52; D-412, D-415, D-466).
 
 ## Creating it
 
@@ -69,14 +69,14 @@ asked once per resume (`checkpoints.md`).
 | `dossier.md` | the R1b-assemble step | the dossier, the verification gate's comparison table (slice 03 §7.2, D-355): each verified card's status, synergy, damage kinds, pieces, key prices, league and main risk, no figure (D-436) |
 | `builds/<id>/` | the build's steps, one folder per finalized card (D-412) | everything that is one build's: the rows below |
 | `builds/<id>/plan.json` | D1's three steps (D1-build, D1-tree, D1-finish) and D2; the D1 gate step only to apply FI-2 and the final re-price pass | the build's plan (C-31) |
-| `builds/<id>/trades.json` | D1-tree (its `unmodelled` trades) and D1-finish (its `boots`, `defence` and `damage` trades), each replacing only its own kinds' entries (D-439) | the design's trades, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter, reason}]}` (amendment 11, Appendix A): what each measured option gains and costs, which the D1 gate reads into its design field and the design gate shows; outside the record's `buildSha1`; a build designed before amendment 11 has none. In a build held to amendment 12 (D-450, §22) D1-finish also writes its `avoidance` trades (on `b` and `n`), defence trades may be on `b` or `n`, and every entry carries `maxHit {type, before, after}` (a one-shot rung's defence and damage entries: the deciding row's Pinnacle-pass max hit) and `hitsSurvived {before, after}` (the defence and avoidance entries of a build that evades or deflects), `null` where they don't apply; a build held to 11 keeps the 7 fields |
+| `builds/<id>/trades.json` | D1-tree (its `unmodelled` trades) and D1-finish (its `boots`, `defence` and `damage` trades), each replacing only its own kinds' entries (D-439) | the design's trades, `{"trades": [{stage, kind, what, ehpChange, damageChange, bossAfter, reason}]}` (amendment 11, Appendix A): what each measured option gains and costs, which the D1 gate reads into its design field and the design gate shows; outside the record's `buildSha1`; a build designed before amendment 11 has none. In a build held to amendment 12 (D-450, §22) D1-finish also writes its `avoidance` trades (on `b` and `n`), defence trades may be on `b` or `n`, and every entry carries `maxHit {type, before, after}` (a one-shot rung's defence and damage entries: the deciding row's Pinnacle-pass max hit) and `hitsSurvived {before, after}` (the defence and avoidance entries of a build that evades or deflects), `null` where they don't apply; a build held to 11 keeps the 7 fields. In a build held to amendment 13 (D-468, §22) D1-tree also writes a `boss` trade on a rung whose boss figure fell on its tree (the best tree it measured at or above the start's boss figure), which D1-finish keeps, and every entry carries `bossEntries [{label, before, after}]` and `nodes {remove: [ids], add: [ids]}`, `null` but on a boss trade: 11 fields, a boss trade with its `bossAfter` |
 | `builds/<id>/pieces.md` | D1-build (D-434); D1-tree its `## Jewel lines` only (D-453) | the build's pieces as designed: its Pieces table (the card's columns), each piece's status and reason, then `## Searched`, each synthesis question asked again and what it found; no round copy takes it |
 | `builds/<id>/compile-record.json`, `builds/<id>/compiled-build.xml` | `mcp__pob2__compile_plan` | the record of the last compile of the build's plan; after its final compile (F1's, or the D2 gate's for its campaign) it names the PoB file and holds `importCode` |
 | `builds/<id>/guide.md` | W1; the runner replaces its `Known issues` list each cycle (step 14, D-265) | the guide, the reader layer (slice 03 §8, D-276): the endgame guide, or the full guide once the build has its campaign (D-414) |
 | `builds/<id>/audit.md` | the runner, rendered by `scripts/render-audit.mjs --build <id>` after the final compile (D-355); W1 adds the accepted gate findings' rows to its `Known issues`, and the runner fills that table each cycle (step 14) | the audit layer (slice 03 §7.8, D-278) |
-| `builds/<id>/reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) | the build's V4 full pass's, re-check's or campaign pass's report (`source-markers.md`, `stages/V4.md`) |
-| `builds/<id>/rounds/<n>/` | the run checker's `--snapshot <n> --build <id>`, which the runner runs before a fix round, a revision or a campaign (A-34) | the round copy: `plan.json`, `compile-record.json` and `guide.md` as they stood, which `--changed <n> --build <id>` compares with; nobody reads it |
-| `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate, F1 or D2-gate | its verdict (`gates.md`), at the run folder's root and keyed by the card id; R1b's adds its damage check, `verdict.damage`, and on a composite its leave-one-outs' drops, `pieces[]` (D-436, `stages/R1b.md`) |
+| `builds/<id>/reports/V4-<n>.md` | the verifier itself, one per pass, never overwritten (D-352) | the build's V4 full pass's, re-check's or campaign pass's report, or a file-only build's claims pass's (`V4-claims`, H1 `# V4-<n>: claims pass`, `check: claims`, D-477) (`source-markers.md`, `stages/V4.md`) |
+| `builds/<id>/rounds/<n>/` | the run checker's `--snapshot <n> --build <id>`, which the runner runs before a fix round, a revision or a campaign (A-34) | the round copy: `plan.json`, `compile-record.json` and `guide.md` as they stood, which `--changed <n> --build <id>` compares with; a build with no guide (a file-only build's claims round, D-477) copies its plan and its record, and `--changed` then lists claims only; nobody reads it |
+| `reports/gates/<stage>-<concept>-a<attempt>.json` | the gate step itself: R1b, D1-gate, F1 or D2-gate | its verdict (`gates.md`), at the run folder's root and keyed by the card id; R1b's adds its damage check, `verdict.damage`, and on a composite its leave-one-outs' drops, `pieces[]` (D-436, `stages/R1b.md`); F1's adds `draftLeft`, the draft it couldn't remove, or `null` (D-466) |
 
 A run migrated from schema 3 (`run-log.mjs migrate`, D-415) keeps its one build at the root, as before amendment 9:
 its `builds[]` entry has `folder: "."`, and its plan, record, guide, audit, V4 reports and round copies are the
@@ -90,7 +90,7 @@ root's. Every agent finds a build's files by its header's `buildFolder`, `builds
   file's `<concept>` and `concepts/<id>/` use the card id. (Runs before amendment 3 used concept ids `c1`, `c2`, ….)
 - `<stage>` in a gate file is `R1b`, `D1-gate`, `F1` or `D2-gate`; `<attempt>` counts from 1 per (stage,
   concept), as the header and the run log's `stages[]` do. A V4 report's `<n>` counts the build's V4 passes
-  from 1, full pass, re-checks and campaign pass alike, apart from the other builds' (D-412).
+  from 1, full pass, re-checks, campaign pass and claims pass alike, apart from the other builds' (D-412, D-477).
 - Every V4 report is kept: a re-check, a revision's check or a campaign pass writes the build's next `<n>`, never
   over an earlier report.
 - Nothing else goes in the run folder or a build's folder. No agent writes outside it (D-177), and agents
@@ -109,6 +109,19 @@ F1 wrote as it was: the user has likely opened and saved that one in PoB by then
 write ledger's refusal every time. The build's `pobFile` is then the `-campaign` file. Every earlier compile, the
 concept skeletons' and the D1 gate's included, is measure-only and writes only the record and the compiled XML
 beside its plan.
+
+**From amendment 13** (D-466, §22), a build whose last D1 gate is held to revision 13 names its files by its session
+name, `builds[].name` when a revision renamed it, else its card's name, as the server cleans it: each character Windows
+refuses (`< > : " / \ | ? *`) a space, runs of spaces one, trailing dots and spaces gone, a Windows device name gaining
+` (build)`. F1's first write passes `first_free`: the final file is the first free of `<name>.xml`, `<name> <run
+date>.xml` and `<name> <run date> <k>.xml` (k from 2; the run date the run folder's `<YYYY-MM-DD>`); a campaign's first
+write, the D2 gate's, the same with ` (campaign)` after the date. A re-compile passes the recorded name, without
+`first_free`. Names compare without case, and two builds never record one file. **The draft**: on a D1 gate pass that
+leads to the design gate (and on an escalation's `accept`), `compile_plan`'s draft mode copies the gate's whole-plan
+`compiled-build.xml` into the builds folder as `<name> (draft).xml`, or `<name> (draft <k>).xml` beside a draft the user
+changed; the run log records it in `builds[].draftFile`, and F1 removes it after the final file is written, the server
+backing it up first, or leaves it (`draftLeft`) when it changed on disk. After `stop`, a dropped build or an escalation's
+stop, the draft stays.
 
 A re-compile of the build (the fix round's or a revision's) rewrites its current file: F1's for an endgame-only
 build, the `-campaign` file after its campaign. The
@@ -144,7 +157,24 @@ one stderr line `check-run: [<rule>] <message>`.
   0.8), `damage.resisting` on each rung, and on `n` `toughness`'s `chanceShare`, `conditioned`, `ailmentCut` and `warning`,
   each recomputed from the record while the gate is fresh (D-449, D-454); the record's Arbiter rows within Names' rule; a
   defence trade on a one-shot rung, a damage trade there that keeps its max hit, and an avoidance trade on `b` and `n` of
-  an evasion build (D-450). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
+  an evasion build (D-450). **In a build held to amendment 13** (its last D1 gate at or after 13's boundary, §22): its
+  PoB file named by its session name in one of the three forms (`<name>`, `<name> <date>`, `<name> <date> <k>`, a
+  campaign's ending ` (campaign)`) and its `draftFile` in one of the two (`<name> (draft)`, `<name> (draft <k>)`), the
+  name cleaned as the server cleans it (D-466; rule `layout`); `trades.json` in its 11 fields, a `boss` trade with its
+  `bossAfter`, `bossEntries` and `nodes` (D-468; `trades`); the design field's `life`, `swapCap`, `rebuild`,
+  `removedForOthers`, `levels` and the boss's `start`, `end`, `entries` and `bossFall`, equal to the plan's `tree.start`,
+  `tree.end` and `tree.search` and each entry's final figure to the record's while the gate is fresh (`design-field`); a
+  fall of the boss figure or an entry with its reason (`boss-fall`, its claim `boss-fall-<rung>` in the plan), a boss
+  figure that fell with its boss trade (`trades`), `n`'s boss figure never taken under the floor by D1-tree from a start
+  at or above it (`boss-floor`), and under the floor at the gate a damage or boss trade (D-448, D-468); no rune line of a
+  "Legacy of …" soul core or the Raven-Touched Shard in its plan without the user's word (the brief's `around`, `like` or
+  `notes`, or a gate answer's; rule `runes`, D-465); corruption only on a cheap unique on `b` and `n` (under
+  `references/corruption.json`'s 1 divine, uncorrupted; an unpriced one's note `cheapness unchecked: <why>`, the offline
+  note offline) and a `corrupt` gem, never a rare, magic or normal item, the guide naming each (`corruption`, D-471); a
+  life flask in every endgame rung's `Flask 1`, no flask priced, no charm slot filled (`flasks`, D-472); a pinned
+  weapon's Swap slot (`sameAs`) priced once by its set-1 slot's entry (D-464); and a file-only build's claims pass (D-477).
+  A card dealt at or after 13's boundary takes no such rune in an `in` or `scheduled` Pieces row without the user's word
+  (`runes`). Every research marker resolves and parses as a C-30 tag. Offline, every price is `unavailable` and no
   step priced.
 - **The reader layer** (D-276, D-283, D-414). The guide's template is its plan's: the endgame guide's 12 H2s
   for a plan with no campaign stage, at most 2,300 words, its `Switching over` naming each reward pick; else the
@@ -180,7 +210,8 @@ one stderr line `check-run: [<rule>] <message>`.
   `render-audit.mjs` renders from the current plan, final record and last D1 gate verdict file, `Known issues`
   aside.
 - **The V4 reports** (D-352). One `reports/V4-<n>.md` in the build's folder per logged pass (`V4`, `V4-recheck`,
-  `V4-campaign`), numbered in the build's run order from 1 and never overwritten, in `stages/V4.md`'s form: its H1 the pass's kind, its four fields, its
+  `V4-campaign`, and amendment 13's `V4-claims`, whose report reads no guide: claims only, its findings the plan's,
+  owned by D1, D-477), numbered in the build's run order from 1 and never overwritten, in `stages/V4.md`'s form: its H1 the pass's kind, its four fields, its
   `Checked` items and its findings (ids `v4-<n>-<k>`, fields in order, `reader` on each `unresolved` one, the
   verdict the log's outcome). A re-check of `rounds/<n-1>/` reports again every finding the report before it
   left open, and its `Checked` lists every item `--changed <n-1>` prints, as the files stood when it ran (the
@@ -214,9 +245,13 @@ one stderr line `check-run: [<rule>] <message>`.
   verdict that differs from its own, and, once a guide exists, any failure no accepted finding covers.
 - **The run log and the control flow** (`run-log.md`, schema 4): the fields and their values, `builds[]` in
   finalize order with each build's end, the stage names `R1a-synthesize` (a run keeps the brainstorm step its first round used, D-429), `D1-build`,
-  `D1-tree`, `D1-finish`, `F1`, `V4`, `V4-recheck` and `V4-campaign` (`RV` only in an older run's entries, before
-  amendment 11 removed the rival, D-443); `skillRevision` (11 or 12, compared by order, each revision's rules from its own
-  boundary in `skillRevisionFrom`; no D1-tree `respec` from 12's on, D-452) and the pricing stops and retries (D-444); steps in a legal order per build, each gate visit's answer followed (D-411): the
+  `D1-tree`, `D1-finish`, `F1`, `V4`, `V4-recheck`, `V4-campaign` and `V4-claims` (`RV` only in an older run's entries,
+  before amendment 11 removed the rival, D-443); `skillRevision` (11, 12 or 13, compared by order, each revision's rules
+  from its own boundary in `skillRevisionFrom`; no D1-tree `respec` from 12's on, D-452) and the pricing stops and
+  retries (D-444; the stop `pace`, D-474); D1-tree's `stale-server` followed by D1-tree again (D-467); a file-only build
+  held to 13 through F1's pass, `V4-claims`, on a failure its round (the round copy, D1 alone, the D1 gate and F1 after
+  a recompile, no design gate) and one `V4-recheck`, then its end (D-477); a brainstorm display's `numbers` naming cards
+  of the run (D-475); steps in a legal order per build, each gate visit's answer followed (D-411): the
   queued cards designed in turn; in the design, D1-build, D1-tree, D1-finish, the D1 gate, then the design gate;
   F1 only after a `design` visit answered `accept` or `accept:file` (D-362, D-413), a `revise:` running D1 again,
   its gate and the design gate, and `verification` the verification gate; D2 only for a campaign; entries after a

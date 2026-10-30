@@ -4,7 +4,78 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-25: amendment 12, defence that holds and one tree per loadout (read this first)
+## M-26: amendment 13, a tree search judged on targets and the finishing touches (read this first)
+
+Added 2026-10-30. For this build, this section overrides the M-25 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-25's formats stay in force where M-26
+doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md`, approved revision 2 at `6ec076e`
+  (D-463…D-477, §19's units, owners, order and shared-file split, §20's criteria AC-K76…AC-K80, AC-P86…AC-P89,
+  AC-W100…AC-W106, Appendix A's formats) is binding. The spine and slices are v1.6 with amendments 8 to 12 built
+  (M-25). Read the amendment's status, §19, §22 (which rules a run is held to: revision 13, per build by its last D1
+  gate), §23 (guardrails), your unit's decisions and criteria, and Appendix A.
+- **Approved** by the user on 2026-10-30 ("1. verify on file-only build. Approve."). Their answer on HG-31 is D-477,
+  a file-only build's claims pass (§15), folded after the review: WU-130's and WU-133's reviewers check it against
+  `check-run.mjs`'s step order and its V4 report rules.
+- **HG-12 is granted (HG-27) only for** the list in §24: node power's new arguments and guards, `free` on a pool node
+  and Split Personality's start (C-55); `compile_plan`'s draft mode, `remove_draft`, `first_free` names and its
+  schema-9 behaviour (C-41); `buildFileWriter`'s delete and the write ledger's version 2 (C-17, D-211); the trade
+  tools' pace line (C-14, D-71, D-72); the path tools from Split Personality's start (C-48); `compile_stage`'s 120 s
+  long action (C-4, NFR-21); plan schema 9 (C-31). No tool is added or removed. Any other tool-contract change is
+  HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m26`, branch `build-guide/m26`, off `main` at this
+  section's commit. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the integration head when the unit starts. The main checkout
+  is never touched; its `vendor/` is the source for a lane's copy, read only.
+- **Waves** (§19). Wave 1, in parallel: WU-127 (node power), WU-128 (plan schema 9 and the compiler), WU-129 (the
+  server tools) and WU-134 (the PoB gaps and the fold's leftovers). Wave 2: WU-130 (the scripts; it may start in wave
+  1 against Appendix A's formats and rebases onto WU-128 and WU-129 before it merges), WU-131 (the library, after
+  WU-128 and WU-134 merge) and WU-132 (the research docs). Wave 3: WU-133 (the design, gate and guide docs, after
+  WU-130 merges). WU-135 is the live test, run by the user with the coordinator, not a doer's unit.
+- **Merge order** (§19's shared files, binding): WU-128 before WU-129 for `src/plan/compiler.ts`; WU-127 before
+  WU-129 for `src/server/toolSchemas.ts`, the README table and `src/handlers/treeHandlers.ts`; `src/engine/schemas.ts`
+  by rebase between WU-127 and WU-128. The later unit rebases onto `build-guide/m26` and runs its gate after the
+  rebase. `checkpoints.md`, `pricing.md` and `SKILL.md` are WU-133's only; shared static test files are edited by
+  `describe` block; the cap `it`s are WU-131's.
+- **The coordinator** merges each unit after its verifier passes, and owns the work-log (the spikes' rows and the rows
+  AC-K76, AC-K77, AC-P86, AC-P87, AC-P89, AC-K80 and AC-W101 name, from the units' reports), the spec, and §17's
+  integration fold: V1's new rows in `02-plan-compiler.md`, C-53's cap, the spine's C-4 and NFR-21 for
+  `compile_stage`, and C-14's "search link last" note in `docs/stabilization/spec/03-trade.md`. HG-27 to HG-31 and
+  the HG-12 grant are in the spine's §6.3 already (`6ec076e`).
+- **Spikes first,** each its unit's first step, its result in the unit's report: the Titan Rake fixtures' copy, then a
+  timing of the rebuild with repair at reach 12 and of one swap search under `targets` (WU-127); Split Personality's
+  compile, the pinned weapon's one item, a unique jewel's variant (WU-128); the failed restore after `compile_stage`'s
+  timeout, traced before the 120 s change (WU-129). A spike that fails stops its unit, and the coordinator reports to
+  the user (R-66 for the pinned weapon); the units that wait on it wait.
+- **The Titan Rake fixtures are the build's one read of the user's builds folder** (HG-6, granted with the approval).
+  WU-127 only, as its first step: copy `builds/r2-s-1/plan.json` and `builds/r2-s-2/plan.json` of the run folder
+  `/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Guides/titan-rake/2026-10-28-1/`, unchanged, into
+  `tests/fixtures/plans/titan-rake/`, and record their sha1s in the unit's report. No other file of the builds folder
+  is read, listed or written. No machine path enters the repository: if a plan holds one, stop and report rather than
+  edit it.
+- **No unit reads the user's private guide library**; the spec carries what the units need from the finishing-touches
+  study.
+- **Stops for the user:** HG-28 (WU-131's library over 17,000 `wc -w` words after its additions: the unit stops with
+  the count); HG-30 (WU-127's rebuild with repair short of AC-K76's +41% on r2-s-2 or +46% on r2-s-1: the unit stops
+  with the figures and the repair steps); HG-12 for any tool change outside the grant.
+- **Trade.** No unit sends a trade request; test servers keep trade off (`spawnServer`), and HTTP in tests goes
+  through `fixtureFetch`.
+- **Room left, measured at `6ec076e`:**
+  - `SKILL.md` is 325 of its 325 lines: WU-133 makes room before adding anything, or goes over only by the lines a
+    rule can't do without, named in the work-log (D-477's claims pass among them).
+  - `patterns.md` is 15,988 `wc -w` words; its cap is 17,000 (HG-28).
+  - Tool descriptions against AC-F15's 2,048 characters: `get_node_power` 2,023, `find_upgrades` 1,684,
+    `compile_plan` 1,651, `get_item_price` 1,047, `search_trade_items` 351, `find_path_to_node` 134,
+    `get_nearby_nodes` 130. Describe new inputs in their parameter schemas.
+- **Running the gate:** the M-20 bullet's command, unchanged (one full gate at a time, `nice -n 19`, under the lock);
+  no `rm -rf` inside its `sh -c` script.
+- **Lane bootstrap:** from the integration worktree, `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m26`;
+  in the lane, `git config --worktree commit.gpgsign false`, `mise trust`,
+  `cp -a /home/parker/projects/pob2-mcp/vendor ./vendor`, `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap. No unit has a network allowance.
+
+## M-25: amendment 12, defence that holds and one tree per loadout (built)
 
 Added 2026-10-28. For this build, this section overrides the M-24 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

@@ -47,8 +47,8 @@ describe("resume sets the top-level noNinja to the session's --no-ninja; resumes
   it('a migrated run resumed with --no-ninja prices without currency rates: null becomes true', () => {
     const dir = migrated();
     // Amendment 11 (§19), amendment 12 (Appendix A): the resume stamps the migrated log with the skill revision, a
-    // boundary for each of amendments 11 and 12 at the same lengths.
-    expect(resume(dir, true)).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 12 from stages[19] (the rules of amendments 11 and 12)\n', stderr: '' });
+    // boundary for each of amendments 11 and 12 at the same lengths; amendment 13 (§22) adds 13's.
+    expect(resume(dir, true)).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 13 from stages[19] (the rules of amendments 11, 12 and 13)\n', stderr: '' });
     expect(log(dir)).toMatchObject({ noNinja: true, status: 'running', resumes: [expect.objectContaining({ noNinja: true })] });
     // The checker holds a migrated run's noNinja to true, false or null: true passes its field rule.
     expect(node(CHECKER, [dir]).stderr).not.toMatch(/noNinja/);

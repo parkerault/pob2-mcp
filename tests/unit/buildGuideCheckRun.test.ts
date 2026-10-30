@@ -2973,7 +2973,7 @@ describe('AC-W54 (D-352): each V4 pass writes its own report, never over an earl
     fs.writeFileSync(path.join(dir, 'reports', 'V4-1.md'), fs.readFileSync(path.join(dir, 'reports', 'V4-2.md'), 'utf8').replace('# V4-2: re-check of rounds/1', '# V4-1: re-check of rounds/0'));
     fs.rmSync(path.join(dir, 'reports', 'V4-2.md'));
     const stderr = failing(dir);
-    expect(lines(stderr, 'reports')).toContainEqual('check-run: [reports] run-log.json logs 2 V4 pass(es) (V4 and V4-recheck), but reports/ holds 1 V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)');
+    expect(lines(stderr, 'reports')).toContainEqual('check-run: [reports] run-log.json logs 2 V4 pass(es) (V4, V4-recheck, V4-campaign and V4-claims), but reports/ holds 1 V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352, D-477)');
     expect(stderr).toMatch(/\[report-shape\] reports\/V4-1\.md: its H1 is "V4-1: re-check of rounds\/0"; it is "# V4-1: full pass" or "# V4-1: re-check of rounds\/0"/);
   });
 
@@ -2986,7 +2986,7 @@ describe('AC-W54 (D-352): each V4 pass writes its own report, never over an earl
     expect(lines(failing(gap), 'reports')).toContainEqual('check-run: [reports] reports/ holds the V4 reports V4-1.md, V4-3.md; they are numbered from 1 in run order, with no gap (D-352)');
     const extra = copyOf('run-ok-online');
     fs.copyFileSync(path.join(extra, 'reports', 'V4-1.md'), path.join(extra, 'reports', 'V4-2.md'));
-    expect(lines(failing(extra), 'reports')).toContainEqual('check-run: [reports] reports/ holds 2 V4 report(s), but run-log.json logs 1 V4 pass(es) (V4 and V4-recheck); every report is a logged pass\'s (D-352)');
+    expect(lines(failing(extra), 'reports')).toContainEqual('check-run: [reports] reports/ holds 2 V4 report(s), but run-log.json logs 1 V4 pass(es) (V4, V4-recheck, V4-campaign and V4-claims); every report is a logged pass\'s (D-352, D-477)');
   });
 
   it('fails a re-check of a round no one copied (A-34)', () => {
@@ -3214,11 +3214,12 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
     // The next round takes the current files.
     snapshot(dir, 2);
     expect(fs.readFileSync(path.join(dir, 'rounds', '2', 'plan.json'))).toEqual(fs.readFileSync(path.join(dir, 'plan.json')));
-    // A run folder missing one of the three files gets no copy at all.
+    // A run folder missing its record gets no copy at all; one with no guide.md (amendment 13, D-477: a file-only build's
+    // claims pass) copies its plan and its record.
     const partial = guideRun();
-    fs.rmSync(path.join(partial, 'guide.md'));
+    fs.rmSync(path.join(partial, 'compile-record.json'));
     const r = runChecker(partial, '--snapshot', '1');
-    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 1, stderr: 'check-run: the run folder has no guide.md; the round copy holds plan.json, compile-record.json, guide.md (A-34)\n' });
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 1, stderr: 'check-run: the run folder has no compile-record.json; the round copy holds plan.json, compile-record.json, guide.md, or plan.json and compile-record.json for a build with no guide (A-34, D-477)\n' });
     expect(fs.existsSync(path.join(partial, 'rounds', '1'))).toBe(false);
   });
 
@@ -3316,7 +3317,7 @@ describe('AC-W54 (WU-71, D-352, A-34): --snapshot makes the round copy, and --ch
     fs.mkdirSync(path.join(dir, 'rounds', 'latest'));
     const out = failing(dir);
     expect(lines(out, 'layout')).toEqual([
-      'check-run: [layout] rounds/2/ holds ["audit.md","compile-record.json","guide.md","plan.json"]; a round copy holds exactly plan.json, compile-record.json, guide.md (A-34)',
+      'check-run: [layout] rounds/2/ holds ["audit.md","compile-record.json","guide.md","plan.json"]; a round copy holds exactly plan.json, compile-record.json, guide.md, or plan.json and compile-record.json for a build with no guide (A-34, D-477)',
       "check-run: [layout] rounds/latest isn't a round copy rounds/<n>/ (A-34)",
     ]);
   });

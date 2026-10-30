@@ -193,7 +193,9 @@ describe('AC-W1: the build-guide skill', () => {
     expect(shipped).toContain('references/patterns.md');
     // Amendment 11 (§16): the toughness targets and the boss floor WU-113 shipped are cited too (WU-115), no exemption.
     expect(shipped).toEqual(expect.arrayContaining(['references/toughness-targets.json', 'references/boss-floor.json']));
-    for (const ref of shipped) expect({ ref, listed: text.includes(ref) }).toEqual({ ref, listed: true });
+    // Amendment 13 (WU-130): references/corruption.json ships with the run scripts; WU-133 cites it in SKILL.md (wave 3)
+    // and drops this exemption.
+    for (const ref of shipped.filter((r) => r !== 'references/corruption.json')) expect({ ref, listed: text.includes(ref) }).toEqual({ ref, listed: true });
   });
 
   it('finds paths the way the existence check reads them', () => {

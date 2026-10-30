@@ -523,11 +523,11 @@ describe('AC-W93 (D-454): the resisting figure', () => {
 // ---------------------------------------------------------------------------------------------------
 
 describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its own boundary', () => {
-  it('init writes skillRevision 12; a revision-11 log (run-a11) passes unchanged and keeps amendment 11\'s rules from its own boundary', () => {
+  it('init writes skillRevision 13 (12 before amendment 13); a revision-11 log (run-a11) passes unchanged and keeps amendment 11\'s rules from its own boundary', () => {
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     expect(write(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 12 });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 13 });
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const a11 = copy('run-a11');
     expect(readJson(a11, 'run-log.json').skillRevision).toBe(11);
@@ -538,15 +538,15 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     });
     expect(lines(check(a11).stderr, 'rival')).toEqual([expect.stringMatching(/stages\[14\] runs the rival \(RV\), which amendment 11 removes/)]);
     expect(lines(check(a11).stderr, 'respec')).toEqual([]);
-    // A skillRevision that isn't 11 or 12 fails.
+    // A skillRevision that isn't 11, 12 or 13 fails.
     const bad = copy('run-a11');
     editJson(bad, 'run-log.json', (l) => {
-      l.skillRevision = 13;
+      l.skillRevision = 14;
     });
-    expect(lines(check(bad).stderr, 'run-log')).toContainEqual(expect.stringMatching(/run-log\.json skillRevision: is 13; 11 or 12/));
+    expect(lines(check(bad).stderr, 'run-log')).toContainEqual(expect.stringMatching(/run-log\.json skillRevision: is 14; 11 or 12 or 13/));
   });
 
-  it("a revision-11 log resumed at 12 keeps 11's boundary and gains 12's", () => {
+  it("a revision-11 log resumed now keeps 11's boundary and gains 12's (and 13's, amendment 13)", () => {
     // run-builds stamped at 11 by its first resume (amendment 11's flat boundary), then resumed now.
     const dir = copy('run-builds');
     editJson(dir, 'run-log.json', (l) => {
@@ -554,10 +554,10 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     });
     const at11 = { ...readJson(dir, 'run-log.json').skillRevisionFrom };
     const before = readJson(dir, 'run-log.json');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 12 from stages[${before.stages.length}]\n` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 13 from stages[${before.stages.length}] (the rules of amendments 12 and 13)\n` });
     const log = readJson(dir, 'run-log.json');
-    expect(log.skillRevision).toBe(12);
-    expect(log.skillRevisionFrom).toEqual({ 11: at11, 12: log.resumes[log.resumes.length - 1].lengths });
+    expect(log.skillRevision).toBe(13);
+    expect(log.skillRevisionFrom).toEqual({ 11: at11, 12: log.resumes[log.resumes.length - 1].lengths, 13: log.resumes[log.resumes.length - 1].lengths });
     expect(lines(check(dir).stderr, 'run-log')).toEqual([]);
     // Resumed again, nothing more is stamped.
     expect(write(dir, 'resume', { noNinja: false }).stdout).toBe(`run-log: wrote resumes[${before.resumes.length + 1}], status running\n`);
@@ -570,18 +570,18 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     // A revision-11 log init wrote (no boundary) resumed at 12 gains 12's alone.
     const fresh = copy('run-a11');
     expect(write(fresh, 'resume', { noNinja: false }).code).toBe(0);
-    expect(Object.keys(readJson(fresh, 'run-log.json').skillRevisionFrom)).toEqual(['12']);
+    expect(Object.keys(readJson(fresh, 'run-log.json').skillRevisionFrom)).toEqual(['12', '13']);
     passes(fresh);
   });
 
-  it('a log from before amendment 11 resumed at 12 gains both boundaries at the same lengths, so its earlier entries are held to neither', () => {
+  it('a log from before amendment 11 resumed now gains every boundary at the same lengths, so its earlier entries are held to none', () => {
     const dir = copy('run-builds');
     const before = readJson(dir, 'run-log.json');
     expect(before).not.toHaveProperty('skillRevision');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 12 from stages[${before.stages.length}] (the rules of amendments 11 and 12)\n` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 13 from stages[${before.stages.length}] (the rules of amendments 11, 12 and 13)\n` });
     const log = readJson(dir, 'run-log.json');
     const lengths = log.resumes[log.resumes.length - 1].lengths;
-    expect(log.skillRevisionFrom).toEqual({ 11: lengths, 12: lengths });
+    expect(log.skillRevisionFrom).toEqual({ 11: lengths, 12: lengths, 13: lengths });
     // Its entries before the stamp keep their rules: no amendment-11 or amendment-12 rule fires on them.
     const stderr = check(dir).stderr;
     expect(rules(stderr, 'run-log', 'rival', 'toughness', 'dossier-sections', 'design-field', 'arbiter', 'trades', 'respec', 'defence-plan')).toEqual([]);
@@ -781,6 +781,10 @@ describe('AC-W93: run-a12 is a run the amended pipeline could write', () => {
       a.verdict = null;
       Object.assign(a.rows[1], { ratio: null, maxHit: null, verdict: null, hitsSurvived: null });
       Object.assign(a.rows[2], { ratio: 0, maxHit: null, verdict: 'survives', immune: true, hitsSurvived: 100 });
+    });
+    // Amendment 13 (§15, M-25's leftover): the design field no longer reads as surviving: its deciding row is null.
+    editJson(dir, GATE, (g) => {
+      rung(g, 'n').maxHit.arbiter = null;
     });
     expect(lines(check(dir).stderr, 'arbiter')).toEqual([]);
     expect(lines(check(dir).stderr, 'survival-label')).toEqual([expect.stringMatching(/so its label is "not measured against the Arbiter"/)]);

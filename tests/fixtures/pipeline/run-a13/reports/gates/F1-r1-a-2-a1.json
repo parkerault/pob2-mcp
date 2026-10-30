@@ -1,0 +1,18 @@
+{
+  "stage": "F1",
+  "concept": "r1-a-2",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "finalCompile": {
+    "compiled": true,
+    "errors": [],
+    "recordPath": "builds/r1-a-2/compile-record.json",
+    "pobFile": "Blood Hunt with Rolling Slam clear.xml"
+  },
+  "draftLeft": null
+}

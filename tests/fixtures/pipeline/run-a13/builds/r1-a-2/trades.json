@@ -1,0 +1,45 @@
+{
+  "trades": [
+    {
+      "stage": "n",
+      "kind": "damage",
+      "what": "moving 6 points from Bone Breaker to Vicious Bite",
+      "ehpChange": -12,
+      "damageChange": 18,
+      "bossAfter": 247800,
+      "reason": "over the toughness band and under the boss floor",
+      "maxHit": null,
+      "hitsSurvived": null,
+      "bossEntries": null,
+      "nodes": null
+    },
+    {
+      "stage": "n",
+      "kind": "boss",
+      "what": "keep the start's two bleed notables",
+      "ehpChange": 0,
+      "damageChange": -4,
+      "bossAfter": 221000,
+      "reason": "the boss figure fell on the tree",
+      "maxHit": null,
+      "hitsSurvived": null,
+      "bossEntries": [
+        {
+          "label": "Blood Hunt",
+          "before": 210000,
+          "after": 221000
+        }
+      ],
+      "nodes": {
+        "remove": [
+          1009,
+          1010
+        ],
+        "add": [
+          1011,
+          1012
+        ]
+      }
+    }
+  ]
+}

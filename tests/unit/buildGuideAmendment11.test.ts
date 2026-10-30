@@ -802,11 +802,12 @@ describe('AC-W89 (D-443, §11, §19): the rival only in older runs, and the run 
   it('resume on an old log stamps skillRevision, and the entries after the stamp are held to the new rules', () => {
     const dir = copy('run-builds');
     const before = readJson(dir, 'run-log.json');
-    // Amendment 12 (Appendix A): a log from before amendment 11 resumed now is stamped 12, with both boundaries.
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 12 from stages[${before.stages.length}] (the rules of amendments 11 and 12)\n` });
+    // Amendment 12 (Appendix A): a log from before amendment 11 resumed now is stamped with a boundary per revision;
+    // amendment 13 (§22) stamps 13.
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 13 from stages[${before.stages.length}] (the rules of amendments 11, 12 and 13)\n` });
     const log = readJson(dir, 'run-log.json');
     const lengths = { stages: before.stages.length, checkpoints: before.checkpoints.length, escalations: 0, displays: before.displays.length };
-    expect(log).toMatchObject({ skillRevision: 12, skillRevisionFrom: { 11: lengths, 12: lengths }, pricing: { stops: [], retries: [] } });
+    expect(log).toMatchObject({ skillRevision: 13, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths }, pricing: { stops: [], retries: [] } });
     expect(log.resumes[log.resumes.length - 1].lengths).toEqual(log.skillRevisionFrom['11']);
     // The entries before the stamp keep their rules (its D1 gates hold no amendment-11 design field); run-log.mjs
     // refuses the rival after it, and so does the checker.
@@ -832,7 +833,7 @@ describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's display
       });
     }
     if (stamp) {
-      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 12 from stages\[25\]/) });
+      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 13 from stages\[25\]/) });
     }
     return dir;
   }

@@ -449,13 +449,13 @@ describe('AC-W84: build accepts name, and the re-rendered audit\'s title matches
     expect(write('init', { slug: 'titan-open', brief: { ascendancy: 'Titan' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
     const roll = { className: 'Warrior', ascendancy: 'Titan', skill: 'Rolling Slam' };
     expect(write('build', { id: 'r1-s-1', roll, name: 'Aftershock Slammer', status: 'queued' })).toEqual({ code: 0, stdout: 'run-log: wrote builds[0]\n', stderr: '' });
-    expect(readJson(dir, 'run-log.json').builds).toEqual([{ id: 'r1-s-1', roll, name: 'Aftershock Slammer', status: 'queued', folder: 'builds/r1-s-1', guide: null, pobFile: null }]);
+    expect(readJson(dir, 'run-log.json').builds).toEqual([{ id: 'r1-s-1', roll, name: 'Aftershock Slammer', status: 'queued', folder: 'builds/r1-s-1', guide: null, pobFile: null, draftFile: null }]);
     expect(write('build', { id: 'r1-s-1', name: 'Aftershock Slammer, two-handed' }).code).toBe(0);
     expect(readJson(dir, 'run-log.json').builds[0].name).toBe('Aftershock Slammer, two-handed');
     expect(write('build', { id: 'r1-s-1', name: ' ' }).stderr).toMatch(/name is the build's name, the card's or the one its finalize revision gave it, a non-empty text \(D-435\)/);
-    // A build with no name keeps the six fields.
+    // A build with no name keeps the six fields (with amendment 13's draftFile last, in a log at 13, D-466).
     expect(write('build', { id: 'r1-a-1', roll, status: 'queued' }).code).toBe(0);
-    expect(Object.keys(readJson(dir, 'run-log.json').builds[1])).toEqual(['id', 'roll', 'status', 'folder', 'guide', 'pobFile']);
+    expect(Object.keys(readJson(dir, 'run-log.json').builds[1])).toEqual(['id', 'roll', 'status', 'folder', 'guide', 'pobFile', 'draftFile']);
   });
 
   it("the audit's title is builds[].name, else the card's H1; F1's render and the checker's re-render agree", () => {

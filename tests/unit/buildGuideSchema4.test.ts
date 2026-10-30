@@ -182,9 +182,10 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     expect(write(dir, 'init', { ...INIT, noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote the first log\n', stderr: '' });
     const log = readJson(dir, 'run-log.json');
     const pin = readJson(REPO, 'pob-pin.json').commit;
-    // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12.
+    // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12;
+    // amendment 13 (§22): 13.
     expect(log).toEqual({
-      schemaVersion: 4, skillRevision: 12, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
+      schemaVersion: 4, skillRevision: 13, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
       noNinja: true, pinCommit: pin, digest: 'runes-of-aldur.md', dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
@@ -217,7 +218,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     expect(write(dir, 'build', { id: 'r1-a-2', roll, status: 'queued' })).toEqual({ code: 0, stdout: 'run-log: wrote builds[0]\n', stderr: '' });
     expect(write(dir, 'build', { id: 'r1-a-2', status: 'file-only', pobFile: 'titan-blood-hunt-2026-10-08-1-r1-a-2.xml' }).code).toBe(0);
     expect(write(dir, 'build', { id: 'r1-a-2', guide: 'endgame', status: 'completed' }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json').builds).toEqual([{ id: 'r1-a-2', roll, status: 'completed', folder: 'builds/r1-a-2', guide: 'endgame', pobFile: 'titan-blood-hunt-2026-10-08-1-r1-a-2.xml' }]);
+    expect(readJson(dir, 'run-log.json').builds).toEqual([{ id: 'r1-a-2', roll, status: 'completed', folder: 'builds/r1-a-2', guide: 'endgame', pobFile: 'titan-blood-hunt-2026-10-08-1-r1-a-2.xml', draftFile: null }]);
     const refused: [Json, RegExp][] = [
       [{ id: 'r1-a-3', status: 'designing' }, /r1-a-3 has no build yet; a new build is \{"id", "roll", "status": "queued"\}/],
       [{ id: 'r1-a-2', roll, status: 'queued' }, /r1-a-2 already has a build \(completed\); a card with a build in the run isn't finalized again/],
@@ -239,8 +240,8 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
       l.status = 'completed';
     });
     // Amendment 11 (§19): the resume stamps the older log with the skill revision, held from here on.
-    // Amendment 12 (Appendix A): an older log is stamped 12, with a boundary for each of amendments 11 and 12.
-    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 12 from stages[25] (the rules of amendments 11 and 12)\n', stderr: '' });
+    // Amendment 12 (Appendix A): an older log is stamped with a boundary for each revision; amendment 13 (§22): 13.
+    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 13 from stages[25] (the rules of amendments 11, 12 and 13)\n', stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
     expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: 'runes-of-aldur.md', noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
@@ -285,7 +286,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     for (const s of [{ stage: 'D1-tree', concept: 'r1-a-2', attempt: 2, outcome: 'done' }, { stage: 'F1', concept: 'r1-a-2', attempt: 3, outcome: 'refused' }, { stage: 'V4-campaign', concept: 'r1-a-1', attempt: 1, outcome: 'pass' }]) {
       expect({ s, ...write(dir, 'stage', s) }).toMatchObject({ s, code: 0 });
     }
-    expect(write(dir, 'stage', { stage: 'D1-tree', concept: 'r1-a-2', attempt: 3, outcome: 'pass' }).stderr).toMatch(/a D1-tree entry's outcome is done, respec, missing, not "pass"/);
+    expect(write(dir, 'stage', { stage: 'D1-tree', concept: 'r1-a-2', attempt: 3, outcome: 'pass' }).stderr).toMatch(/a D1-tree entry's outcome is done, respec, stale-server, missing, not "pass"/);
     // A schema-3 log keeps schema 3's forms until it is migrated.
     const old = copy('run-ok');
     expect(write(old, 'stage', { stage: 'D1-tree', concept: 'r1-a-1', attempt: 1, outcome: 'done' }).stderr).toMatch(/stage "D1-tree" isn't one of .*\(D1-tree is schema 4's: migrate the log first\)/);

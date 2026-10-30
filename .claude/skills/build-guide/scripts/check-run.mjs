@@ -136,13 +136,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   loadAuditInputs, renderAudit, checksBlocks, priceTable, marketOf, rungBudget, roundDivines, PRICE_DAY, M_TARGET, ledgerStage,
   arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedOf, typeWords,
+  divinesOf, ratesOf, pinnedSlots, FLASK_SLOT,
 } from './render-audit.mjs';
 import {
   parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder,
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
-  MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, REVISIONS, heldFrom, openStop, stopOutcome, RETRY_ANSWERS, EXCHANGE, referenceJson,
-  swapLabel,
+  MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
+  swapLabel, revisionOf,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -259,8 +260,11 @@ const TRADE_KINDS = [
   'no_session', 'session_rejected', 'too_complex', 'invalid_query', 'rate_limited', 'locked_out',
   'would_wait', 'auth', 'http', 'network', 'timeout', 'disabled',
 ];
-/** A `priceOutcomes` key: `ok`, `error` (no prefix) or a trade kind; D-444: `exchange`, a call poe.ninja's currency exchange priced. */
-const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS, EXCHANGE];
+/**
+ * A `priceOutcomes` key: `ok`, `error` (no prefix) or a trade kind; D-444: `exchange`, a call poe.ninja's currency exchange
+ * priced; D-474: `pace`, the trade call whose reply had no pace line or the pace off.
+ */
+const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS, EXCHANGE, PACE];
 /**
  * The steps that price (pricing.md): R1b, D1-finish (D1 in schema 2), the D1 gate's re-price pass and D2; amendment 11's
  * D1-build too, for its `find_upgrades` calls (D-444).
@@ -395,9 +399,15 @@ const STAGE_OUTCOMES = {
 STAGE_OUTCOMES[4] = { ...STAGE_OUTCOMES[3], 'D1-tree': ['done', 'respec'], 'D1-finish': ['done', CLAIMS_EDITED, 'build'], F1: ['pass', 'fail', 'escalated'], 'V4-campaign': ['pass', 'fail'] };
 // Amendment 10 (D-429): the brainstorm round's synthesis, which composes its builds in place of R1a-assemble's deal.
 STAGE_OUTCOMES[4]['R1a-synthesize'] = ['done'];
+// Amendment 13: D1-tree's `stale-server` (D-467), D1-tree again once the user reconnected the server; the file-only
+// build's claims pass `V4-claims` (D-477).
+STAGE_OUTCOMES[4]['D1-tree'] = ['done', 'respec', 'stale-server'];
+STAGE_OUTCOMES[4]['V4-claims'] = ['pass', 'fail'];
 /** D-421: a step the permission system refused, logged so and re-run alone, uncounted (schema 4). */
 const REFUSED = 'refused';
-const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED, 'respec', 'build'];
+/** D-467 (amendment 13): D1-tree's stop on a session server built before M-26, whose node power ignores the targets. */
+const STALE_SERVER = 'stale-server';
+const OUTCOMES = ['pass', 'fail', 'done', 'infeasible', 'escalated', 'missing', CLAIMS_EDITED, 'none-found', REFUSED, 'respec', 'build', STALE_SERVER];
 /** The D1 steps: schema 3's two (D-356), schema 2's one, and schema 4's tree step (D-418). */
 const D1_STAGES = ['D1', 'D1-build', 'D1-tree', 'D1-finish'];
 /**
@@ -459,6 +469,8 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const show = (v) => JSON.stringify(v);
 const round2 = (x) => Math.round(x * 100) / 100;
+/** M-25's leftover (amendment 13 §15): a percentage in a failure message, whole as it is, else to one decimal: 60.0, never 59.980000000000004. */
+const pct1 = (x) => (isNum(x) ? (Number.isInteger(x) ? String(x) : x.toFixed(1)) : show(x));
 const sha1 = (bytes) => crypto.createHash('sha1').update(bytes).digest('hex');
 /** D-256: the scenario value of a reference hit whose ledger entry has `value`. */
 export const hitCeiling = (value) => Math.ceil(round2(value));
@@ -500,6 +512,99 @@ export function countWords(lines, skip = () => false) {
     if (!skip(i)) words += line.split(/\s+/).filter((t) => /[\p{L}\p{N}]/u.test(t)).length;
   });
   return words;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Amendment 13's names and rules (D-465, D-466, D-471, D-472)
+// ---------------------------------------------------------------------------------------------------
+
+/** A text compared as the rules read names: lower case, any dash a hyphen, any apostrophe straight, spaces collapsed. */
+const plainName = (s) => String(s ?? '').replace(/[`*_]/g, '').replace(/[‐-―−]/g, '-').replace(/[‘’ʼ]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
+/**
+ * D-465 (amendment 13): a rune over the budget: a "Legacy of …" soul core (the name starting "Legacy of ", never one merely
+ * holding "Legacy", such as Coward's Legacy), or the Raven-Touched Shard. Returns `legacy`, `shard` or null.
+ */
+export function overBudgetRune(name) {
+  const n = plainName(name);
+  if (/^legacy of \S/.test(n)) return 'legacy';
+  if (/\braven-touched shard\b/.test(n)) return 'shard';
+  return null;
+}
+/**
+ * D-465: whether the user asked for a rune over the budget: one of `says` (the brief's `around`, `like` and `notes`, and
+ * every gate answer's words: its answer, changes and note) names it, a parenthesis after the rune's name aside, or, for
+ * a "Legacy of …" core, names the Legacy cores generally ("Legacy cores", "Legacy soul cores").
+ */
+export function askedFor(name, says) {
+  const kind = overBudgetRune(name);
+  const want = plainName(String(name).replace(/\s*\([^)]*\)\s*$/, ''));
+  return says.some((t) => {
+    const x = plainName(t);
+    return x.includes(want) || (kind === 'legacy' && /\blegacy (?:soul )?cores?\b/.test(x));
+  });
+}
+/** D-465: the user's words a run holds: the brief's `around`, `like` and `notes`, and each gate answer, its changes and note. */
+function userWords(log) {
+  const b = isObj(log.brief) ? log.brief : {};
+  const words = [b.around, b.like, b.notes];
+  for (const c of list(log.checkpoints)) words.push(c.answer, ...(isObj(c.changes) ? Object.values(c.changes) : []), c.note);
+  return words.filter((t) => typeof t === 'string' && t.trim() !== '');
+}
+
+/**
+ * D-466 (amendment 13): a build's name as the server cleans it for a file name: each character Windows refuses (`< > : "
+ * / \ | ? *`) a space, runs of spaces one, trailing dots and spaces gone; a name that is a Windows device name whole
+ * (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9) gains " (build)".
+ */
+export function cleanName(name) {
+  const s = String(name ?? '').replace(/[<>:"/\\|?*]/g, ' ').replace(/ {2,}/g, ' ').replace(/[. ]+$/, '');
+  return /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(s) ? `${s} (build)` : s;
+}
+/**
+ * D-466 (§7): the file names a build held to revision 13 may write, compared without case (D-52): its final file
+ * `<name>`, `<name> <run date>` and `<name> <run date> <k>` (k from 2), a campaign's each ending ` (campaign)`, and its
+ * draft `<name> (draft)` or `<name> (draft <k>)`, `<name>` the cleaned session name. `kind` is `final`, `campaign` or
+ * `draft`; `base` the file's name without `.xml`.
+ */
+export function nameFits(base, name, date, kind) {
+  const n = cleanName(name).toLowerCase();
+  const b = String(base).toLowerCase();
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (kind === 'draft') return new RegExp(`^${esc(n)} \\(draft(?: (?:[2-9]|[1-9]\\d+))?\\)$`).test(b);
+  const dated = date ? `(?: ${esc(date)}(?: (?:[2-9]|[1-9]\\d+))?)?` : '';
+  return new RegExp(`^${esc(n)}${dated}${kind === 'campaign' ? ' \\(campaign\\)' : ''}$`).test(b);
+}
+
+/**
+ * D-466: a build's session name: its `builds[].name` when a revision renamed it (D-435), else its card's name (the card
+ * file's Pitch `Name`, or its deck line's); null when the run holds neither.
+ */
+function sessionName(runFolder, build) {
+  if (typeof build.name === 'string' && build.name.trim() !== '') return build.name.trim();
+  const read = (rel) => {
+    try {
+      return fs.readFileSync(path.join(runFolder, ...rel.split('/')), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+  const card = parseCard(read(`cards/${build.id}.md`)).name;
+  if (typeof card === 'string' && card.trim() !== '') return card.trim();
+  const line = parseDeck(read('cards.md')).entries.find((d) => d.id === build.id)?.name;
+  return typeof line === 'string' && line.trim() !== '' ? line.trim() : null;
+}
+
+/**
+ * PoB's item text, read as the rules need it (D-471, D-472): `rarity` (upper case), `name` (the line after the rarity),
+ * its lines trimmed, `corrupted` (a `Corrupted` or `Twice Corrupted` line), and `enchants`, its `{enchant}` lines but the
+ * amulet anoint's `Allocates <notable>`: a designed corruption's outcome (`Classes/ItemsTab.lua`:2767).
+ */
+export function itemOf(textOrNull) {
+  const lines = String(textOrNull ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const r = /^Rarity:\s*(\S+)/i.exec(lines[0] ?? '');
+  const rarity = r ? r[1].toUpperCase() : null;
+  const enchants = lines.filter((l) => /^\{enchant\}/i.test(l)).map((l) => l.replace(/^\{enchant\}/i, '').trim()).filter((l) => !/^Allocates\s/i.test(l));
+  return { rarity, name: r ? lines[1] ?? null : null, lines, corrupted: lines.some((l) => l === 'Corrupted' || l === 'Twice Corrupted'), enchants };
 }
 
 /** §2's slug form: lower case, each run of characters outside [a-z0-9] one `-`, trimmed of `-`. */
@@ -574,6 +679,14 @@ export function specTitles(xml) {
 // Markdown
 // ---------------------------------------------------------------------------------------------------
 
+/**
+ * D-474 (amendment 13): a line with its inline code spans blanked: a run of backticks opens a span that the next run of
+ * as many backticks closes (CommonMark), so `` `[^|]` `` holds no marker; an unclosed run stays as text.
+ */
+export function withoutCodeSpans(line) {
+  return String(line).replace(/(`+)([\s\S]*?[^`])\1(?!`)/g, (m) => ' '.repeat(m.length));
+}
+
 /** Headings, fenced blocks, footnote definitions and markers of a markdown text (fences excluded). */
 export function parseMarkdown(text) {
   const lines = text.split(/\r?\n/);
@@ -606,7 +719,8 @@ export function parseMarkdown(text) {
       definitions.push({ id: d[1], body: d[2], line: i });
       return;
     }
-    for (const m of line.matchAll(/\[\^([^\]\s]+)\]/g)) markers.push({ id: m[1], line: i });
+    // D-474 (amendment 13): a marker inside an inline code span (`[^|]`, a pattern) is the span's text, not a marker.
+    for (const m of withoutCodeSpans(line).matchAll(/\[\^([^\]\s]+)\]/g)) markers.push({ id: m[1], line: i });
   });
   const h2 = headings.filter((h) => h.level === 2);
   /** The H2 a line sits under, or null. */
@@ -638,8 +752,18 @@ function h3sUnder(md, h2) {
   return md.headings.filter((h) => h.level === 3 && h.line > start && h.line < end);
 }
 
-/** A definition line's body (§7.3): `<kind> | <ref> [| accessed: …] [| patch: …] [| confidence: …]`, or a citation. */
+/**
+ * A definition line's body (§7.3): `<kind> | <ref> [| accessed: …] [| patch: …] [| confidence: …]`, or a citation. D-474
+ * (amendment 13): one definition may hold several data citations joined by `; `, `data | <file>#<key>; data | …`, read
+ * as `{kind: "data", refs: [{file, key}, …]}` (its first ref's `file` and `key` beside them).
+ */
 export function parseDefinition(body) {
+  const segments = body.split(/;\s+/);
+  if (segments.length > 1 && segments.every((s) => /^\s*data\s*\|/.test(s))) {
+    const refs = segments.map((s) => /^\s*data\s*\|\s*([^#\s|]+)#(\S+)\s*$/.exec(s));
+    if (refs.some((m) => m === null)) return { error: 'a data definition is "data | <file>#<key>", several joined by "; "' };
+    return { kind: 'data', file: refs[0][1], key: refs[0][2], refs: refs.map((m) => ({ file: m[1], key: m[2] })) };
+  }
   const parts = body.split('|').map((s) => s.trim());
   const kind = parts[0];
   if (kind === 'ledger' || kind === 'price') {
@@ -864,10 +988,13 @@ function sourceChecks(fail, offline, mode) {
     if (cite.kind === 'ledger' && !scope.ledger.has(cite.id)) fail('markers', `${where}: ledger ${show(cite.id)} names no ledger entry`);
     if (cite.kind === 'price' && !scope.prices.has(cite.id)) fail('markers', `${where}: price ${show(cite.id)} names no prices[] entry (D-237)`);
     if (cite.kind === 'data') {
-      const why = resolveFact(cite.file, cite.key);
-      // D-400: a Markdown data file's entry (the league digest, the rule-changer index, the monster table) by its id.
-      const what = /\.md$/i.test(cite.file) ? "no entry of a Markdown data file (D-400, M-20's entry id)" : 'no C1/E1 fact (D-232)';
-      if (why !== null) fail('markers', `${where}: data ${cite.file}#${cite.key} names ${what}: ${why}`);
+      // D-474: a definition holding several data citations checks each of them.
+      for (const ref of Array.isArray(cite.refs) ? cite.refs : [cite]) {
+        const why = resolveFact(ref.file, ref.key);
+        // D-400: a Markdown data file's entry (the league digest, the rule-changer index, the monster table) by its id.
+        const what = /\.md$/i.test(ref.file) ? "no entry of a Markdown data file (D-400, M-20's entry id)" : 'no C1/E1 fact (D-232)';
+        if (why !== null) fail('markers', `${where}: data ${ref.file}#${ref.key} names ${what}: ${why}`);
+      }
     }
   };
   const planScope = (p) => ({
@@ -1276,6 +1403,14 @@ export async function checkRun(runFolder) {
         return s && s.outcome === 'pass' ? gateReports.get(`reports/gates/R1b-${id}-a${s.attempt}.json`) ?? null : null;
       },
     });
+    // D-465 (amendment 13, §22): a card dealt at or after revision 13's boundary takes no rune over the budget, in or
+    // scheduled, unless the brief or a gate answer names it.
+    if (v4) checkOverBudgetCards(log, cardIds, cardOf, fail);
+    // D-475 (Appendix A): each number a brainstorm display recorded names a card of the run.
+    list(log.displays).forEach((d, k) => {
+      if (!isObj(d.numbers)) return;
+      for (const [n, id] of Object.entries(d.numbers)) if (!cardIds.has(id)) fail('display', `run-log.json displays[${k}] maps number ${n} to ${show(id)}, which is no card of the run (cards/<id>.md); the brainstorm display records the cards it numbered (D-475)`);
+    });
     // D-408: each rival step that wrote a card, and that card; D-403, D-406: the obvious card's line, the structure check.
     checkRivals(stages, cardIds, fail, heldStage);
     checkCardLines(log, cardIds, readText, fail);
@@ -1315,9 +1450,20 @@ export async function checkRun(runFolder) {
     const mine = v4 ? stages.filter((s) => s.outcome !== REFUSED && (build.folder === '.' ? !otherIds.has(s.concept) : s.concept === build.id)) : stages;
     await checkBuild({
       runFolder, build, log, schema, stages: mine, gates, gateReports, accepted: v4 ? accepted.filter((a) => a.concept === build.id) : accepted,
-      ledgerModule, runName, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate,
+      ledgerModule, runName, runDate, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate,
       fail: build.folder === '.' ? fail : (rule, message) => fail(rule, `${build.folder}: ${message}`),
     });
+  }
+  // D-466 (amendment 13): each build writes its own file; two builds recording one PoB file (names compare without
+  // case, D-52) share it.
+  if (v4) {
+    const seen = new Map();
+    for (const b of builds) {
+      if (typeof b.pobFile !== 'string' || b.pobFile.trim() === '') continue;
+      const key = b.pobFile.replace(/\\/g, '/').toLowerCase();
+      if (seen.has(key)) fail('run-log', `run-log.json builds[] ${b.id} records the PoB file ${show(b.pobFile)}, which build ${seen.get(key)} records too; each build writes its own file, named by its session name (D-466)`);
+      else seen.set(key, b.id);
+    }
   }
   // D-412: a schema-4 run with no build at the root holds no V4 report there: each build's are in its folder.
   if (v4 && !rootBuild) for (const f of listDir('reports').filter((x) => x !== 'gates')) fail('layout', `reports/${f} is at the run folder's root; a schema-4 run's V4 reports are each build's, builds/<id>/reports/V4-<n>.md (D-412)`);
@@ -1330,18 +1476,23 @@ export async function checkRun(runFolder) {
  * log records for its card. A schema-2 or schema-3 run's one build is the root's, held to the whole log.
  */
 async function checkBuild(c) {
-  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, offline, mode, ID, plan, sources, fail, legacy, legacyGate } = c;
+  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, runDate, offline, mode, ID, plan, sources, fail, legacy, legacyGate } = c;
   const v4 = schema === 4;
   const folder = build.folder;
   const { abs, exists, isDir, listDir, readText, readJson } = folderIO(path.join(runFolder, folder), fail);
   const completed = v4 ? build.status === 'completed' : log.status === 'completed';
   const covered = (f) => accepted.some((a) => a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  // §22 (amendment 13): a build is held to the rules of its last D1 gate, logged at or after a revision's boundary; every
+  // rule amendment 13 adds holds a build held to 13 only.
+  const lastD1Entry = stages.filter((s) => s.stage === 'D1-gate' && !idle(s)).pop();
+  const a13Build = v4 && lastD1Entry !== undefined && log.stages.indexOf(lastD1Entry) >= heldFrom(log, 'stages', A13);
 
-  // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else.
+  // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else. D-477
+  // (amendment 13): the round copy of a build with no guide (a file-only build's claims pass) holds the plan and the record.
   if (exists('rounds') && !isDir('rounds')) fail('layout', 'rounds is a file; §2 names the folder rounds/, of round copies rounds/<n>/ (A-34)');
   for (const n of listDir('rounds').filter((x) => !ROUND_TMP.test(x))) {
     if (!ROUND_N.test(n) || !isDir(`rounds/${n}`)) fail('layout', `rounds/${n} isn't a round copy rounds/<n>/ (A-34)`);
-    else if (show(listDir(`rounds/${n}`)) !== show([...ROUND_FILES].sort())) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')} (A-34)`);
+    else if (![[...ROUND_FILES].sort(), [...ROUND_FILES_NO_GUIDE].sort()].some((want) => show(listDir(`rounds/${n}`)) === show(want))) fail('layout', `rounds/${n}/ holds ${show(listDir(`rounds/${n}`))}; a round copy holds exactly ${ROUND_FILES.join(', ')}, or ${ROUND_FILES_NO_GUIDE.join(' and ')} for a build with no guide (A-34, D-477)`);
   }
   if (v4 && folder !== '.') {
     // D-412: a build's folder holds what the root held for the one build: plan.json, the record and its XML, guide.md,
@@ -1416,14 +1567,30 @@ async function checkBuild(c) {
     const campaignAsked = v4 && list(log.checkpoints).some((c) => (c.checkpoint === 'final' && c.concept === build.id && c.answer === 'campaign') || (c.checkpoint === 'verification' && c.answer === `campaign:${build.id}`));
     const lastFinal = stages.filter((s) => FINAL_GATES.includes(s.stage) && s.outcome === 'pass').pop();
     const campaignFile = campaignAsked && lastFinal?.stage === 'D2-gate';
-    const name = v4 && folder !== '.' ? `${runName}-${build.id}` : runName;
-    const want = campaignFile ? `${name}-campaign` : name;
-    if (pob.location !== 'builds' || base !== want) {
-      const why = [name !== runName ? 'then the card id (D-412)' : null, campaignFile ? "then -campaign, the campaign's own file beside the endgame one (D-415)" : null].filter(Boolean);
-      fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${want}", the run folder's last two segments joined${why.length > 0 ? `, ${why.join(', ')}` : ''} (§2)`);
+    if (a13Build && folder !== '.') {
+      // D-466 (amendment 13): the file is named by the build's session name, cleaned: `<name>`, `<name> <run date>` or
+      // `<name> <run date> <k>`, a campaign's ending ` (campaign)`; never the old `<runName>-<id>`.
+      const session = sessionName(runFolder, build);
+      const forms = campaignFile ? '"<name> (campaign)", "<name> <date> (campaign)" or "<name> <date> <k> (campaign)"' : '"<name>", "<name> <date>" or "<name> <date> <k>"';
+      if (pob.location !== 'builds' || session === null || !nameFits(base, session, runDate, campaignFile ? 'campaign' : 'final')) {
+        fail('layout', `the final compile wrote ${show(pob.path)}; a build held to amendment 13 names its file by its session name ${session === null ? '(builds[].name, or its card\'s name, which the run doesn\'t hold)' : `${show(session)}, cleaned ${show(cleanName(session))}`}: ${forms}, the date the run folder's ${show(runDate)} (D-466)`);
+      }
+    } else {
+      const name = v4 && folder !== '.' ? `${runName}-${build.id}` : runName;
+      const want = campaignFile ? `${name}-campaign` : name;
+      if (pob.location !== 'builds' || base !== want) {
+        const why = [name !== runName ? 'then the card id (D-412)' : null, campaignFile ? "then -campaign, the campaign's own file beside the endgame one (D-415)" : null].filter(Boolean);
+        fail('layout', `the final compile wrote ${show(pob.path)}; its build_name is "${want}", the run folder's last two segments joined${why.length > 0 ? `, ${why.join(', ')}` : ''} (§2)`);
+      }
     }
     const compiled = Array.isArray(finalRecord.stagesCompiled) ? finalRecord.stagesCompiled : [];
     if (recordCurrent) for (const s of planStages) if (!compiled.includes(s.id)) fail('layout', `the final record didn't compile stage ${show(s.id)}`);
+  }
+  // D-466 (amendment 13): the draft, `<name> (draft).xml` or `<name> (draft <k>).xml`, its one home builds[].draftFile.
+  if (a13Build && typeof build.draftFile === 'string' && build.draftFile.trim() !== '') {
+    const session = sessionName(runFolder, build);
+    const base = path.posix.basename(build.draftFile.replace(/\\/g, '/')).replace(/\.xml$/i, '');
+    if (session === null || !nameFits(base, session, runDate, 'draft')) fail('layout', `builds[] ${build.id}'s draftFile is ${show(build.draftFile)}; a draft is named by the build's session name${session === null ? '' : ` ${show(cleanName(session))}`}, "<name> (draft).xml" or "<name> (draft <k>).xml" (D-466)`);
   }
 
   // ---- Source tags and markers of the build's plan (§7.3, C-30) -------------------------------------
@@ -1447,11 +1614,17 @@ async function checkBuild(c) {
   const v4Numbers = [...passes.keys()].sort((a, b) => a - b);
   if (v4Numbers.some((n, k) => n !== k + 1)) fail('reports', `reports/ holds the V4 reports ${v4Numbers.map((n) => `V4-${n}.md`).join(', ')}; they are numbered from 1 in run order, with no gap (D-352)`);
   if (v4Entries.length > passes.size) {
-    fail('reports', `run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck), but reports/ holds ${passes.size} V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352)`);
+    fail('reports', `run-log.json logs ${v4Entries.length} V4 pass(es) (V4, V4-recheck, V4-campaign and V4-claims), but reports/ holds ${passes.size} V4 report(s): each pass writes its own reports/V4-<n>.md and never overwrites one (D-352, D-477)`);
   } else if (passes.size > v4Entries.length) {
-    fail('reports', `reports/ holds ${passes.size} V4 report(s), but run-log.json logs ${v4Entries.length} V4 pass(es) (V4 and V4-recheck); every report is a logged pass's (D-352)`);
+    fail('reports', `reports/ holds ${passes.size} V4 report(s), but run-log.json logs ${v4Entries.length} V4 pass(es) (V4, V4-recheck, V4-campaign and V4-claims); every report is a logged pass's (D-352, D-477)`);
   }
   for (const r of [...passes.values()].sort((a, b) => a.n - b.n)) r.parsed = checkV4Report(r, mode, fail, ID);
+  // D-477 (amendment 13): a file-only build held to revision 13 had its claims pass, a logged V4-claims entry with its
+  // report (the order, F1's pass, then V4-claims, its fix round and its re-check, is checkFlow4's); one before the
+  // boundary ended at F1's pass, with none.
+  if (a13Build && build.status === 'file-only' && !stages.some((s) => s.stage === 'V4-claims' && !idle(s))) {
+    fail('verification', `builds[] ${build.id} ended file-only, but run-log.json logs no V4-claims entry for it: a file-only build held to amendment 13 has its claims pass after F1's pass, V4-claims, which checks every hinge claim of its plan (D-477)`);
+  }
 
   // The concept designed last: the one whose D1 gate ran last (the log orders the files), or the only concept
   // with D1 gate reports. The gate file of a logged attempt is the one its log entry names.
@@ -1694,7 +1867,7 @@ async function checkBuild(c) {
     const parts = {
       floor: recomputeFloor(endgame, record, guide, fail),
       // D-371, D-373: the gate's market, totals and over-target findings are held to the recompute while it is fresh.
-      budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, gateFresh ? d1.file : null, fail),
+      budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, gateFresh ? d1.file : null, fail, a13Build),
       rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, ledgerNow, fail),
     };
     for (const [part, got] of Object.entries(parts)) {
@@ -1716,17 +1889,27 @@ async function checkBuild(c) {
   // Amendment 12 (§22): a build held to revision 12's rules by its last D1 gate, logged at or after 12's boundary.
   const a12Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log, 'stages', 12);
   const tradesFile = readJson('trades.json');
-  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build);
+  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build, a13Build);
   if (a11Build && isObj(plan)) {
     // A producer after the gate (a D1 step that compiled, or D2) leaves its design field older than the plan and the record.
     const fresh = !stages.slice(d1At + 1).some((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED && !idle(s));
     checkBossLedger(endgame, plan, record, fail);
     const trades = isObj(tradesFile) ? list(tradesFile.trades) : null;
-    if (isObj(d1rep?.design)) checkDesignField({ file: d1.file, design: d1rep.design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12: a12Build });
+    if (isObj(d1rep?.design)) checkDesignField({ file: d1.file, design: d1rep.design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12: a12Build, a13: a13Build });
     if (a12Build) {
       checkDefencePlan(plan, endgame, fail);
       if (isObj(d1rep?.design)) checkDesignField12({ file: d1.file, design: d1rep.design, endgame, plan, record, fresh, fail });
     }
+    // Amendment 13 (D-467, D-468, D-473): the design field's tree search and boss target, against the plan's tree.start,
+    // tree.end and tree.search.
+    if (a13Build && isObj(d1rep?.design)) checkDesignField13({ file: d1.file, design: d1rep.design, endgame, plan, record, fresh, fail });
+  }
+  // Amendment 13 (§22): the runes over the budget in the plan (D-465), corruption (D-471), and flasks and charms (D-472), for
+  // a build whose last D1 gate is held to revision 13.
+  if (a13Build && isObj(plan)) {
+    checkOverBudgetPlan(planStages, userWords(log), fail);
+    checkCorruption({ plan, planStages, gate: isObj(d1rep) ? d1rep : null, guide: guideText, offline, fail });
+    checkFlasks(planStages, fail);
   }
 
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
@@ -1861,8 +2044,11 @@ async function checkBuild(c) {
  * D-439: the trades D1-tree and D1-finish write for the design gate, `trades.json`.
  */
 const BUILD_FILES = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'trades.json', 'reports', 'rounds'];
-/** The V4 passes a build's reports/V4-<n>.md number: the full pass, a re-check, and schema 4's campaign pass (D-415). */
-const V4_STAGES = ['V4', 'V4-recheck', 'V4-campaign'];
+/**
+ * The V4 passes a build's reports/V4-<n>.md number: the full pass, a re-check, schema 4's campaign pass (D-415), and
+ * amendment 13's claims pass of a file-only build (D-477).
+ */
+const V4_STAGES = ['V4', 'V4-recheck', 'V4-campaign', 'V4-claims'];
 /** A gate verdict's parts: its stage's, and in schema 4 the D1 gate's `tree` (D-419) when the verdict has it. */
 const partsOf = (rep, stage) => (stage === 'D1-gate' && isObj(rep?.verdict) && 'tree' in rep.verdict ? D1_PARTS4 : GATE_PARTS[stage] ?? []);
 /** D-413: whether an F1 verdict is the write ledger's refusal (D-211), which escalates at once. */
@@ -2057,7 +2243,7 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
       if (plainTypography(m[3]) !== want) {
         const r = arbiterReading(st0.measures.arbiter, floor);
         const row = r?.row;
-        fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s deciding Arbiter row is ${row ? `the ${typeWords(row.type)} row (ratio ${isNum(row.ratio) ? round2(row.ratio) : '—'}, hits survived ${isNum(row.hitsSurvived) ? row.hitsSurvived : '—'}%)` : 'none'}${r?.oneShot ? `, under the ${Math.round(floor * 100)}% floor` : ''}, so its label is ${show(want)} (D-353, D-459)`);
+        fail('survival-label', `${at}: the ${label} verdict line's label is ${show(m[3])}, but stage ${s.id}'s deciding Arbiter row is ${row ? `the ${typeWords(row.type)} row (ratio ${isNum(row.ratio) ? round2(row.ratio) : '—'}, hits survived ${isNum(row.hitsSurvived) ? pct1(row.hitsSurvived) : '—'}%)` : 'none'}${r?.oneShot ? `, under the ${Math.round(floor * 100)}% floor` : ''}, so its label is ${show(want)} (D-353, D-459)`);
       }
     } else if (plainTypography(m[3]) !== arbiterLabel(st0?.measures?.arbiter)) {
       const verdict = st0?.measures?.arbiter?.verdict;
@@ -2431,11 +2617,15 @@ function checkSchema4Fields(log, bad) {
   if ('dossier' in log && log.dossier !== null && (typeof log.dossier !== 'string' || log.dossier.trim() === '')) bad('dossier', `is ${show(log.dossier)}; the dossier's path in the run folder, or null (D-412)`);
   if ('builds' in log && !Array.isArray(log.builds)) bad('builds', 'is a list, one build per finalized card (D-412)');
   const ids = new Set();
+  // D-466 (amendment 13, Appendix A): a log at 13 may carry each build's draftFile after its pobFile; an older log has none.
+  const drafts = revisionOf(log) >= A13;
   list(log.builds).forEach((b, i) => {
     const at = `builds[${i}]`;
     const keys = Object.keys(b);
-    if (show(keys) !== show(BUILD_FIELDS) && show(keys) !== show(BUILD_FIELDS_NAMED)) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}}, with name after roll when its finalize gave it one (D-412, D-435)`);
+    const forms = [BUILD_FIELDS, BUILD_FIELDS_NAMED, ...(drafts ? [[...BUILD_FIELDS, 'draftFile'], [...BUILD_FIELDS_NAMED, 'draftFile']] : [])];
+    if (!forms.some((f) => show(keys) === show(f))) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}}, with name after roll when its finalize gave it one (D-412, D-435)${drafts ? ', and draftFile after pobFile in a log at 13 (D-466)' : ''}`);
     if ('name' in b && (typeof b.name !== 'string' || b.name.trim() === '')) bad(at, `name is ${show(b.name)}; the build's name, a non-empty text (D-435)`);
+    if ('draftFile' in b && b.draftFile !== null && (typeof b.draftFile !== 'string' || b.draftFile.trim() === '')) bad(at, `draftFile is ${show(b.draftFile)}; the latest draft's path, or null (D-466)`);
     if (!new RegExp(`^${CARD_ID}$`).test(String(b.id))) bad(at, `id ${show(b.id)} isn't a card id r<round>-<letter>-<n> (D-412)`);
     else if (ids.has(b.id)) bad(at, `${b.id} has a second build; a card with a build in the run isn't finalized again (D-411)`);
     ids.add(b.id);
@@ -2484,7 +2674,7 @@ function checkSchema4Fields(log, bad) {
     if (!isObj(p) || show(Object.keys(p).sort()) !== show(['retries', 'stops']) || !Array.isArray(p.stops) || !Array.isArray(p.retries)) bad('pricing', `is ${show(p)}; it is {stops: [{at, step, outcome}], retries: [{checkpoint, answer, at}]} (D-444)`);
     else {
       p.stops.forEach((x, k) => {
-        if (!isObj(x) || show(Object.keys(x)) !== show(['at', 'step', 'outcome']) || !isInt(x.at) || typeof x.step !== 'string' || !['rate_limited', 'locked_out'].includes(x.outcome)) bad(`pricing.stops[${k}]`, `is ${show(x)}; a stop is {at, step, outcome}: the stages[] index of the step that hit it, its stage, and rate_limited or locked_out (D-444)`);
+        if (!isObj(x) || show(Object.keys(x)) !== show(['at', 'step', 'outcome']) || !isInt(x.at) || typeof x.step !== 'string' || !STOP_OUTCOMES.includes(x.outcome)) bad(`pricing.stops[${k}]`, `is ${show(x)}; a stop is {at, step, outcome}: the stages[] index of the step that hit it, its stage, and rate_limited, locked_out or pace (D-444, D-474)`);
       });
       p.retries.forEach((x, k) => {
         if (!isObj(x) || show(Object.keys(x)) !== show(['checkpoint', 'answer', 'at']) || !DISPLAYED.includes(x.checkpoint) || !RETRY_ANSWERS.includes(x.answer) || !isInt(x.at)) bad(`pricing.retries[${k}]`, `is ${show(x)}; a retry is {checkpoint, answer, at}: the gate that asked, ${RETRY_ANSWERS.join(' or ')}, and the stages[] length when it answered (D-444)`);
@@ -2640,6 +2830,15 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
   });
   const visits = new Map();
   const displays = Array.isArray(log.displays) ? log.displays.filter(isObj) : [];
+  // D-475 (amendment 13, Appendix A): a brainstorm display's number-to-id map, `{"1": "<card id>", …}`, numbered from 1.
+  displays.forEach((d, k) => {
+    if (!('numbers' in d)) return;
+    const n = d.numbers;
+    const keys = isObj(n) ? Object.keys(n) : [];
+    if (d.checkpoint !== 'brainstorm' || !isObj(n) || keys.some((x, j) => x !== String(j + 1)) || !Object.values(n).every((v) => new RegExp(`^${CARD_ID}$`).test(String(v)))) {
+      bad(`displays[${k}]`, `has numbers ${show(n)}; only a brainstorm display records them, {"1": "<card id>", …}, each number the display printed from 1 and the card it named (D-475, Appendix A)`);
+    }
+  });
   arr('checkpoints').forEach((c, i) => {
     const at = `checkpoints[${i}]`;
     if (!isObj(c)) return bad(at, 'is an object');
@@ -2749,7 +2948,8 @@ function checkPricing(log, fail) {
 /** Whether a fault target names `concept`. */
 const targets = (target, concept) => isObj(target) && (target.concepts === 'all' || (Array.isArray(target.concepts) && target.concepts.includes(concept)));
 /** A step's family for the order rules: a V4 lens's full pass is `V4`, its re-check `V4r`. */
-const familyOf = (s) => (s.stage === 'V4-recheck' ? 'V4r' : s.stage === 'V4-campaign' ? 'V4c' : s.stage);
+/** A step's family in the flow: a re-check `V4r`, a campaign pass `V4c`, a file-only build's claims pass `V4k` (D-477). */
+const familyOf = (s) => (s.stage === 'V4-recheck' ? 'V4r' : s.stage === 'V4-campaign' ? 'V4c' : s.stage === 'V4-claims' ? 'V4k' : s.stage);
 const sameStep = (a, b) => a.stage === b.stage && (a.concept ?? null) === (b.concept ?? null);
 const describe = (s) => `${s.stage}${s.concept ? ` ${s.concept}` : ''} attempt ${s.attempt}`;
 
@@ -3405,6 +3605,8 @@ function checkFlow4(log, fail, ctx) {
   const at = (i) => `run-log.json stages[${i}] (${describe(stages[i])})`;
   const illegal = (i, why) => fail('order', i === undefined ? `run-log.json: ${why}` : `${at(i)}: ${why}`);
   const legacyEnd = ctx.legacy ? ctx.legacy.stages : 0;
+  // §22 (amendment 13): where the log's entries start being held to revision 13; a build is held by its last D1 gate.
+  const held13 = heldFrom(log, 'stages', A13);
   const legacyAt = (i) => i !== undefined && i < legacyEnd;
   const GATE_NAME = { brainstorm: 'the brainstorm gate', verification: 'the verification gate', design: 'the design gate', final: 'the final gate' };
 
@@ -3496,7 +3698,7 @@ function checkFlow4(log, fail, ctx) {
   /** Each finalized card's build, as the flow sees it (D-412). */
   const B = new Map();
   const buildOf = (id) => {
-    if (!B.has(id)) B.set(id, { id, status: 'queued', full: false, verified: false, cycle: null, campaign: null, after: null, d1: null, chains: new Map(), lastD1: null, everCompleted: false, legacy: false, guide: false, toolError: false });
+    if (!B.has(id)) B.set(id, { id, status: 'queued', full: false, verified: false, cycle: null, campaign: null, after: null, d1: null, chains: new Map(), lastD1: null, everCompleted: false, legacy: false, guide: false, toolError: false, claims: null, lastD1At: -1 });
     return B.get(id);
   };
   const finalizeOrder = [];
@@ -3532,6 +3734,7 @@ function checkFlow4(log, fail, ctx) {
     b.verified = false;
     b.cycle = null;
     b.after = null;
+    b.claims = null;
     freshChain(b, 'D1-gate');
     cur = b;
     started = s;
@@ -3694,6 +3897,8 @@ function checkFlow4(log, fail, ctx) {
       }
       if (!want.includes(b.status)) illegal(i, `follows the verification gate answered ${show(a)}, but ${r[2]} is ${b.status}; ${r[1]}:<id> takes a ${want.join(' or ')} build (D-415)`);
       cur = b;
+      // D-477: a claims pass belongs to the file-only build it ended; a resume's guide, campaign or design starts afresh.
+      b.claims = null;
       if (r[1] === 'guide') {
         b.status = 'writing';
         b.campaign = null;
@@ -3736,6 +3941,8 @@ function checkFlow4(log, fail, ctx) {
     // D-444: the D1 gate's re-price pass after the design gate's accept and a retry-pricing goes on to F1, not the gate.
     if (p.stage === 'D1-gate' && p.outcome === 'pass' && b && !b.verified && !b.reprice) return { gate: 'design' };
     if (p.stage === 'F1' && p.outcome === 'pass' && b && b.status === 'file-only') return { end: `${p.concept}'s F1 passed after the design gate's accept:file, which ends the build file-only` };
+    // D-477 (amendment 13): a file-only build held to revision 13 ends after its claims pass, or the re-check of its round.
+    if (['V4-claims', 'V4-recheck'].includes(p.stage) && b && b.claims?.state === 'ended' && b.status === 'file-only') return { end: `${p.concept}'s ${p.stage === 'V4-claims' ? 'claims pass' : "claims pass's re-check"}, which ends the build file-only (D-477)` };
     if (V4_STAGES.includes(p.stage) && b && cycleDone(b.cycle)) return { gate: 'final' };
     return { table: true };
   };
@@ -3781,7 +3988,7 @@ function checkFlow4(log, fail, ctx) {
     const p = prev?.s;
     const pf = p ? familyOf(p) : 'start';
     const same = p !== undefined && p.concept === s.concept;
-    const postVerify = ['V4', 'V4r', 'V4c'].includes(pf) && !resumeVisit;
+    const postVerify = ['V4', 'V4r', 'V4c', 'V4k'].includes(pf) && !resumeVisit;
     started = null;
     let via = null;
     if (runEnded !== null && !resumeVisit) {
@@ -3809,7 +4016,7 @@ function checkFlow4(log, fail, ctx) {
         const owners = ['D1-finish', 'D2', 'W1'];
         const nextCheck = b?.cycle ? (b.cycle.first === 'done' ? (b.cycle.fix ? 'V4r' : 'V4') : b.cycle.start === 'revision' ? 'V4r' : b.cycle.start === 'campaign' ? 'V4c' : 'V4') : 'V4';
         const legacy = legacyAt(prev?.i);
-        const allowed = {
+        const routes = {
           start: ['R1a'],
           R1a: ['R1a', 'R1a-assemble', 'R1a-synthesize'],
           'R1a-assemble': ['R1a-assemble'],
@@ -3823,19 +4030,24 @@ function checkFlow4(log, fail, ctx) {
           // D-438 (amendment 11): D1-tree's `respec` (a scaling change D1-build missed) routes D1-build next, and §14:
           // D1-finish's `build` (its return `build: <ids>`) routes D1-build next, both in the same attempt.
           'D1-tree': p?.outcome === 'respec' ? ['D1-build'] : ['D1-finish'],
-          'D1-finish': p?.outcome === CLAIMS_EDITED ? ['D2', 'W1'] : p?.outcome === 'build' ? ['D1-build'] : b?.d1 && !b.d1.built ? ['D1-gate', 'D1-build', 'D1-tree'] : ['D1-gate'],
+          // D-477: a claims-only edit in a file-only build's claims round goes to its re-check.
+          'D1-finish': p?.outcome === CLAIMS_EDITED ? (b?.claims?.fix ? ['V4r'] : ['D2', 'W1']) : p?.outcome === 'build' ? ['D1-build'] : b?.d1 && !b.d1.built ? ['D1-gate', 'D1-build', 'D1-tree'] : ['D1-gate'],
           'D1-gate': p?.outcome === 'pass' ? (b?.full ? ['D2', 'D2-gate'] : ['F1'])
             : p?.outcome === 'fail' ? (cls === 'tree' ? ['D1-tree'] : cls === 'toolError' ? ['D1-gate'] : ['D1-build']) : [],
           D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
           'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
-          F1: p?.outcome === 'pass' ? ['W1'] : ['F1'],
+          // D-477: a file-only build held to revision 13 has its claims pass after F1, and its re-check after a recompile.
+          F1: p?.outcome === 'pass' ? (b?.claims?.state === 'want' ? ['V4k'] : b?.claims?.fix ? ['V4r'] : ['W1']) : ['F1'],
+          V4k: p?.outcome === 'fail' ? ['D1-finish'] : [],
           W1: [nextCheck],
           V4: ['V4', ...owners],
           V4r: ['V4r', ...owners],
           V4c: ['V4c', ...owners],
         }[pf] ?? [];
+        // D-467 (amendment 13): D1-tree's `stale-server`, D1-tree again once the user reconnected the server with /mcp.
+        const allowed = pf === 'D1-tree' && p?.outcome === STALE_SERVER ? ['D1-tree'] : routes;
         if (!allowed.includes(f)) illegal(i, `can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}${cls && cls !== 'pass' ? `; its verdict ${describeClass4(cls)}` : ''}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck').replace(/\bV4c\b/g, 'V4-campaign') || 'nothing'} next`);
-        const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c'].includes(pf);
+        const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c', 'V4k'].includes(pf);
         if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !same) illegal(i, `is about ${s.concept}, but the build before it is ${p.concept}'s; a build's steps run for its own card until it ends (D-411)`);
       }
     }
@@ -3906,7 +4118,7 @@ function checkFlow4(log, fail, ctx) {
       b.verified = true;
     };
     if (b && D1_STAGES.includes(s.stage)) {
-      const continues = same && p && ((s.stage === 'D1-tree' && p.stage === 'D1-build') || (s.stage === 'D1-finish' && ['D1-build', 'D1-tree'].includes(p.stage))
+      const continues = same && p && ((s.stage === 'D1-tree' && p.stage === 'D1-build') || (s.stage === 'D1-tree' && p.stage === 'D1-tree' && p.outcome === STALE_SERVER) || (s.stage === 'D1-finish' && ['D1-build', 'D1-tree'].includes(p.stage))
         || (['D1-build', 'D1-tree'].includes(s.stage) && p.stage === 'D1-finish' && p.outcome === 'done' && b.d1 && !b.d1.built)
         // D-438, §14: D1-build after D1-tree's `respec` or D1-finish's `build`, in the same attempt, even after its D1-build.
         || (s.stage === 'D1-build' && ((p.stage === 'D1-tree' && p.outcome === 'respec') || (p.stage === 'D1-finish' && p.outcome === 'build'))));
@@ -3921,6 +4133,11 @@ function checkFlow4(log, fail, ctx) {
           freshChain(b, 'D1-gate');
           b.f1Guided = true;
           b.verified = false;
+        } else if (pf === 'V4k' && b.claims !== null) {
+          // D-477: the claims pass's fix round, D1 its one owner, no design gate: a recompile runs the D1 gate and F1.
+          b.claims.fix = true;
+          b.verified = true;
+          freshChain(b, 'D1-gate');
         } else if (postVerify && via !== 'campaign') {
           afterVerification();
           freshChain(b, 'D1-gate');
@@ -4003,12 +4220,18 @@ function checkFlow4(log, fail, ctx) {
         }
       }
       if (s.stage === 'D1-gate') b.lastD1 = s.outcome === 'pass';
+      if (s.stage === 'D1-gate') b.lastD1At = i;
       // D-444: a re-price pass that doesn't pass returns the build to its design's usual route.
       if (s.stage === 'D1-gate' && s.outcome !== 'pass') b.reprice = false;
       if (s.stage === 'F1') b.reprice = false;
       if (s.stage === 'D1-gate' && s.outcome === 'infeasible') endBuild(b, 'dropped');
-      if (s.stage === 'F1' && s.outcome === 'pass' && b.after === 'file' && !b.verified) endBuild(b, 'file-only');
-      if (s.stage === 'F1' && s.outcome === 'pass' && !(b.after === 'file' && !b.verified)) b.status = 'writing';
+      // D-477 (amendment 13): a file-only build held to revision 13 (its last D1 gate at or after 13's boundary) doesn't end
+      // at F1's pass: it stays designing through its claims pass, V4-claims, and that pass's round.
+      if (s.stage === 'F1' && s.outcome === 'pass' && b.after === 'file' && !b.verified) {
+        if (b.lastD1At >= held13) b.claims = { state: 'want', fix: false, recheck: false };
+        else endBuild(b, 'file-only');
+      }
+      if (s.stage === 'F1' && s.outcome === 'pass' && !(b.after === 'file' && !b.verified) && b.claims === null) b.status = 'writing';
     }
     if (s.outcome === 'escalated') {
       const e = escalations[esc];
@@ -4043,7 +4266,23 @@ function checkFlow4(log, fail, ctx) {
         b.cycle.failed = s.outcome === 'fail';
       }
     }
-    if (b && f === 'V4r') {
+    // D-477 (amendment 13): a file-only build's claims pass, once, after F1's pass; it ends the build on a pass, and on a
+    // failure its fix round (the round copy, D1, and the D1 gate and F1 after a recompile) and its re-check follow.
+    if (b && f === 'V4k') {
+      if (b.claims === null || b.claims.state !== 'want') fail('verification', `${at(i)}: runs a claims pass (V4-claims), which a file-only build held to amendment 13 runs once, after F1's pass following the design gate's accept:file; a build accepted with its guide, or one whose guide W1 wrote, gets V4's full pass instead (D-477)`);
+      else if (s.outcome === 'pass') {
+        b.claims.state = 'ended';
+        endBuild(b, 'file-only');
+      } else b.claims.state = 'failed';
+    }
+    if (b && f === 'V4r' && b.claims !== null) {
+      if (!b.claims.fix || b.claims.recheck) fail('verification', `${at(i)}: re-checks a file-only build's claims pass ${b.claims.recheck ? 'a second time; there is no further round' : 'with no fix round before it'} (D-477)`);
+      else {
+        b.claims.recheck = true;
+        b.claims.state = 'ended';
+        endBuild(b, 'file-only');
+      }
+    } else if (b && f === 'V4r') {
       const c = b.cycle;
       if (c !== null && c.start === 'revision' && c.first === 'none') {
         c.first = 'done';
@@ -4195,6 +4434,8 @@ function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true, held: f
   if (g.stage === 'R1b' && 'damage' in rep.verdict && !PARTS.includes(rep.verdict.damage)) bad(`verdict.damage is ${show(rep.verdict.damage)}; one of ${PARTS.join(', ')} (D-436)`);
   if (g.stage === 'R1b' && rep.verdict.damage === 'fail' && !list(rep.findings).some((f) => f.code === DAMAGE_MISSING)) bad(`says damage: "fail" with no ${DAMAGE_MISSING} finding; a damage kind the card names that shows nothing on the named source is a ${DAMAGE_MISSING} finding (D-436)`);
   if (!Array.isArray(rep.findings)) bad('has no findings list');
+  // D-466 (amendment 13, Appendix A): F1's draftLeft, the draft it couldn't remove (changed on disk, or not this build's).
+  if (g.stage === 'F1' && 'draftLeft' in rep && rep.draftLeft !== null && (typeof rep.draftLeft !== 'string' || rep.draftLeft.trim() === '')) bad(`draftLeft is ${show(rep.draftLeft)}; the draft F1 couldn't remove, its path in the builds folder, or null (D-466, Appendix A)`);
   // D-408: only the rival's R1b runs R1a-assemble's identity and sniff checks, and stops not-dealt when they fail.
   if (g.stage === 'R1b' && list(rep.findings).some((f) => f.code === 'not-dealt') && !RIVAL_CARD.test(g.concept)) {
     bad(`has the finding not-dealt, but ${g.concept} isn't the rival's card r<k>-x-<n>; only the rival's R1b runs the identity and sniff checks and stops not-dealt (D-408)`);
@@ -4255,7 +4496,7 @@ function checkTreePart(rep, bad, label = () => 'Full DPS') {
   const rule = (l) => (l === 'damage' ? 'D-419, D-437' : 'D-419');
   for (const stage of failing) {
     const l = label(rungOf(stage), stage);
-    if (!swaps.some((f) => f.stage === stage)) bad(`rung ${stage}'s best swap left gains ${rungOf(stage).tree.bestSwap.gainPercent}% ${l}, at least ${TREE_FAIL_PERCENT}%, but no tree-swap finding names it: the tree part fails that rung (${rule(l)})`);
+    if (!swaps.some((f) => f.stage === stage)) bad(`rung ${stage}'s best swap left gains ${pct1(rungOf(stage).tree.bestSwap.gainPercent)}% ${l}, at least ${TREE_FAIL_PERCENT}%, but no tree-swap finding names it: the tree part fails that rung (${rule(l)})`);
   }
   for (const f of swaps) {
     if (typeof f.stage !== 'string' || failing.has(f.stage)) continue;
@@ -4435,6 +4676,44 @@ function checkDeck(text, stages, cardIds, fail, ctx = { rivalRan: false, noteOf:
   for (const id of cardIds) {
     const k = Number(/^r(\d+)-/.exec(id)[1]);
     if (dealtK.has(k) && !GATE_CARD.test(id) && !RIVAL_CARD.test(id) && !listed.has(id)) fail('deck', `cards/${id}.md is a card of round ${k}, which R1a-assemble dealt, but cards.md neither deals it nor lists it under "Not dealt" (§7.5)`);
+  }
+}
+
+/**
+ * D-465 (amendment 13, §22): each card with a Pieces table that was dealt at or after revision 13's boundary (a
+ * researcher's card or a composite by its round's R1a-assemble or R1a-synthesize entry, a card made at a gate by the
+ * checkpoint that made it) takes no rune over the budget in an `in` or `scheduled` row, unless the user asked for it (the
+ * brief's `around`, `like` or `notes`, or a gate answer's words name it). An `out` row and research mentions are allowed.
+ */
+function checkOverBudgetCards(log, cardIds, cardOf, fail) {
+  const stages = Array.isArray(log.stages) ? log.stages : [];
+  const fromStage = heldFrom(log, 'stages', A13);
+  const fromCheckpoint = heldFrom(log, 'checkpoints', A13);
+  if (fromStage === Infinity) return;
+  const dealtAt = new Map();
+  let k = 0;
+  stages.forEach((s, i) => {
+    if (!isObj(s)) return;
+    if (s.stage === 'R1a' && stages[i - 1]?.stage !== 'R1a') k += 1;
+    if (ASSEMBLY_STAGES.includes(s.stage) && !idle(s) && k > 0) dealtAt.set(k, i);
+  });
+  const checkpoints = Array.isArray(log.checkpoints) ? log.checkpoints : [];
+  const held = (id) => {
+    if (GATE_CARD.test(id)) {
+      const at = checkpoints.findIndex((c) => isObj(c) && list(c.newCards).some((n) => n.id === id));
+      return at >= 0 && at >= fromCheckpoint;
+    }
+    const at = dealtAt.get(Number(/^r(\d+)-/.exec(id)?.[1]));
+    return at !== undefined && at >= fromStage;
+  };
+  const says = userWords(log);
+  for (const id of [...cardIds].sort()) {
+    if (!held(id)) continue;
+    for (const r of cardOf(id).pieces?.rows ?? []) {
+      const kind = overBudgetRune(r.piece);
+      if (kind === null || !['in', 'scheduled'].includes(r.status) || askedFor(r.piece, says)) continue;
+      fail('runes', `cards/${id}.md:${r.line}: the Pieces row ${show(r.key)} takes ${show(r.piece)} (${r.status}), ${kind === 'legacy' ? 'a "Legacy of …" soul core' : 'the Raven-Touched Shard'}, a rune over the budget, but neither the brief's around, like or notes nor a gate answer names it; research and design leave every rune over the budget out unless the user asks for it (D-465)`);
+    }
   }
 }
 
@@ -4713,7 +4992,7 @@ function a11Measured(id, p, m, keys, verdict, bad) {
     const mine = drops.filter((x) => x.key === r.key);
     if (mine.length > 0 && ['yes', 'no'].includes(r.answer)) {
       const moves = mine.some((x) => Math.abs(x.dropPercent) >= 1);
-      if ((r.answer === 'yes') !== moves) bad(r.line, `${what} answers ${r.answer}, but R1b's verdict file gives its drops as ${mine.map((x) => `${x.figure ?? '?'} ${x.dropPercent}%`).join(', ')}: a piece does something when leaving it out moves one of its figures by 1% or more (D-436)`);
+      if ((r.answer === 'yes') !== moves) bad(r.line, `${what} answers ${r.answer}, but R1b's verdict file gives its drops as ${mine.map((x) => `${x.figure ?? '?'} ${pct1(x.dropPercent)}%`).join(', ')}: a piece does something when leaving it out moves one of its figures by 1% or more (D-436)`);
     }
   }
 }
@@ -5097,34 +5376,41 @@ function checkV4Report(r, mode, fail, ID) {
   const bad = (why) => fail('report-shape', `${r.file}: ${why}`);
   const rep = r.report;
   for (const e of rep.errors) bad(e);
-  // D-415: V4's campaign pass, `# V4-<n>: campaign pass of rounds/<n-1>`, `check: campaign`.
-  const h1 = /^V4-([1-9]\d*): (?:(full pass)|re-check of rounds\/([1-9]\d*)|(campaign pass) of rounds\/([1-9]\d*))$/.exec(rep.h1 ?? '');
+  // D-415: V4's campaign pass, `# V4-<n>: campaign pass of rounds/<n-1>`, `check: campaign`. D-477 (amendment 13): a
+  // file-only build's claims pass, `# V4-<n>: claims pass`, `check: claims`.
+  const h1 = /^V4-([1-9]\d*): (?:(full pass)|re-check of rounds\/([1-9]\d*)|(campaign pass) of rounds\/([1-9]\d*)|(claims pass))$/.exec(rep.h1 ?? '');
   const of = h1 ? (h1[3] ?? h1[5]) : undefined;
   if (!h1 || Number(h1[1]) !== r.n || (of !== undefined && Number(of) !== r.n - 1)) {
-    bad(`its H1 is ${show(rep.h1)}; it is "# V4-${r.n}: full pass" or "# V4-${r.n}: re-check of rounds/${r.n - 1}" (stages/V4.md), or for V4's campaign pass "# V4-${r.n}: campaign pass of rounds/${r.n - 1}" (D-415)`);
+    bad(`its H1 is ${show(rep.h1)}; it is "# V4-${r.n}: full pass" or "# V4-${r.n}: re-check of rounds/${r.n - 1}" (stages/V4.md), for V4's campaign pass "# V4-${r.n}: campaign pass of rounds/${r.n - 1}" (D-415), or for a file-only build's claims pass "# V4-${r.n}: claims pass" (D-477)`);
   }
-  const check = h1 ? (h1[2] ? 'full' : h1[4] ? 'campaign' : 'recheck') : rep.fields.check;
-  if (rep.fields.check !== check || !['full', 'recheck', 'campaign'].includes(check)) bad(`check is ${show(rep.fields.check ?? null)}; it is "full" or "recheck", as its H1 says (stages/V4.md), or "campaign" for V4's campaign pass (D-415)`);
+  const check = h1 ? (h1[2] ? 'full' : h1[4] ? 'campaign' : h1[6] ? 'claims' : 'recheck') : rep.fields.check;
+  if (rep.fields.check !== check || !['full', 'recheck', 'campaign', 'claims'].includes(check)) bad(`check is ${show(rep.fields.check ?? null)}; it is "full" or "recheck", as its H1 says (stages/V4.md), "campaign" for V4's campaign pass (D-415), or "claims" for a file-only build's claims pass (D-477)`);
   const entry = r.entry?.s;
-  const KIND = { full: 'full pass', recheck: 're-check', campaign: 'campaign pass' };
+  const KIND = { full: 'full pass', recheck: 're-check', campaign: 'campaign pass', claims: 'claims pass' };
   if (entry !== undefined) {
-    const want = entry.stage === 'V4' ? 'full' : entry.stage === 'V4-campaign' ? 'campaign' : 'recheck';
-    if (check !== want) fail('reports', `${r.file} is a ${KIND[check] ?? check}, but the V4 pass it is, run-log.json's V4 entry ${r.n} (${describe(entry)}), is a ${{ full: 'full pass (V4)', recheck: 're-check (V4-recheck)', campaign: 'campaign pass (V4-campaign)' }[want]}; each pass writes its own report and never overwrites one (D-352)`);
+    const want = entry.stage === 'V4' ? 'full' : entry.stage === 'V4-campaign' ? 'campaign' : entry.stage === 'V4-claims' ? 'claims' : 'recheck';
+    if (check !== want) fail('reports', `${r.file} is a ${KIND[check] ?? check}, but the V4 pass it is, run-log.json's V4 entry ${r.n} (${describe(entry)}), is a ${{ full: 'full pass (V4)', recheck: 're-check (V4-recheck)', campaign: 'campaign pass (V4-campaign)', claims: 'claims pass (V4-claims)' }[want]}; each pass writes its own report and never overwrites one (D-352, D-477)`);
     if (rep.fields.concept !== entry.concept) bad(`concept is ${show(rep.fields.concept ?? null)}, but the pass that wrote it, ${describe(entry)}, is about ${entry.concept}`);
   } else if (!ID.test(rep.fields.concept ?? '')) bad(`concept is ${show(rep.fields.concept ?? null)}; it is the guide's card`);
   if (rep.fields.mode !== mode) bad(`mode is ${show(rep.fields.mode ?? null)}; the run is ${show(mode)}`);
   if (!['pass', 'fail'].includes(rep.fields.verdict)) bad(`verdict is ${show(rep.fields.verdict ?? null)}; "pass" or "fail" (stages/V4.md)`);
   if (rep.checked === null) bad('has no "## Checked"; it lists what the pass checked (stages/V4.md)');
   else for (const item of rep.checked) if (!CHECKED_ITEM.test(item)) bad(`## Checked lists ${show(item)}, which is neither "claim stages[<i>].claims[<k>] (<id>)" nor "section <H2 title>" (D-352)`);
+  // D-477: the claims pass reads no guide, the build having none: it lists claims only, and its findings are the plan's,
+  // owned by D1, the fix round's one owner.
+  if (check === 'claims') {
+    for (const item of rep.checked ?? []) if (/^section /.test(item)) bad(`## Checked lists ${show(item)}, but a claims pass reads no guide; it checks the plan's hinge claims alone (D-477)`);
+  }
   if (rep.findings === null) bad('has no "## Findings"; it holds one "### <id>" per finding, or "None." (stages/V4.md)');
-  const statuses = check !== 'full' ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
+  const statuses = !['full', 'claims'].includes(check) ? ['unresolved', 'accepted-offline', 'fixed'] : ['unresolved', 'accepted-offline'];
   const ids = new Set();
   const findings = [];
   for (const f of rep.findings ?? []) {
     const at = `finding ${f.id} (line ${f.line})`;
     const fields = Object.fromEntries(f.fields);
     const id = /^v4-([1-9]\d*)-([1-9]\d*)$/.exec(f.id);
-    if (!id || Number(id[1]) > r.n || (check === 'full' && Number(id[1]) !== r.n)) bad(`${at}: its id isn't v4-<n>-<k>, <n> this pass's (${r.n}) for a new finding or an earlier report's for one reported again (D-352)`);
+    if (!id || Number(id[1]) > r.n || (['full', 'claims'].includes(check) && Number(id[1]) !== r.n)) bad(`${at}: its id isn't v4-<n>-<k>, <n> this pass's (${r.n}) for a new finding or an earlier report's for one reported again (D-352)`);
+    if (check === 'claims' && (fields.owner !== 'D1' || fields.artifact !== 'plan.json')) bad(`${at} is owned by ${show(fields.owner ?? null)} in ${show(fields.artifact ?? null)}; a claims pass's findings are the plan's (plan.json), owned by D1, its fix round's one owner (D-477)`);
     if (ids.has(f.id)) bad(`${at} reuses its id; each finding has its own`);
     ids.add(f.id);
     const want = fields.status === 'unresolved' ? [...FINDING_FIELDS, 'reader'] : FINDING_FIELDS;
@@ -5194,6 +5480,12 @@ const sameFigure = (written, value) => isNum(written) && isNum(value) && Math.ab
  */
 const TRADE_KINDS_A12 = [...TRADE_KINDS_A11, 'avoidance'];
 const TRADE_FIELDS_A12 = [...TRADE_FIELDS, 'maxHit', 'hitsSurvived'];
+/**
+ * Amendment 13 (D-468, Appendix A): a build held to revision 13's trades: the kind `boss`, D1-tree's alternative tree
+ * that keeps the start's boss figure, and on every entry `bossEntries` and `nodes`, null but on a boss trade.
+ */
+const TRADE_KINDS_A13 = [...TRADE_KINDS_A12, 'boss'];
+const TRADE_FIELDS_A13 = [...TRADE_FIELDS_A12, 'bossEntries', 'nodes'];
 /** D-450: a defence trade's reason names why it fires: a one-shot rung, or a rung under its toughness band (D-441). */
 const DEFENCE_REASON = /^(?:one-shot by the Arbiter's [a-z][a-z -]* hit|under the toughness band)(?:; cuts .+ against a boss by [\d.]+%)?$/;
 
@@ -5208,14 +5500,14 @@ const DEFENCE_REASON = /^(?:one-shot by the Arbiter's [a-z][a-z -]* hit|under th
  * toughness band`; `bossAfter`, measured on the trade's temporary stage (D-456), on a defence, damage or avoidance entry.
  * A build held to 11 keeps the 7 fields.
  */
-function checkTradesFile(file, endgame, fail, a12 = false) {
+function checkTradesFile(file, endgame, fail, a12 = false, a13 = false) {
   const bad = (why) => fail('trades', `trades.json${why}`);
   if (!isObj(file) || !Array.isArray(file.trades) || Object.keys(file).length !== 1) return bad(` is ${show(file).slice(0, 80)}; it is {"trades": [...]} (D-439, Appendix A)`);
   const rungs = new Map(endgame.map((s) => [s.id, s.variant]));
-  const [fields, kinds] = a12 ? [TRADE_FIELDS_A12, TRADE_KINDS_A12] : [TRADE_FIELDS, TRADE_KINDS_A11];
+  const [fields, kinds] = a13 ? [TRADE_FIELDS_A13, TRADE_KINDS_A13] : a12 ? [TRADE_FIELDS_A12, TRADE_KINDS_A12] : [TRADE_FIELDS, TRADE_KINDS_A11];
   file.trades.forEach((t, k) => {
     const at = `'s trades[${k}]`;
-    if (!isObj(t) || show(Object.keys(t).sort()) !== show([...fields].sort())) return bad(`${at} is ${show(t)}; a trade is {${fields.join(', ')}}${a12 ? ' in a build held to revision 12, maxHit and hitsSurvived null where they don\'t apply (D-450, §22)' : ' (Appendix A)'}`);
+    if (!isObj(t) || show(Object.keys(t).sort()) !== show([...fields].sort())) return bad(`${at} is ${show(t)}; a trade is {${fields.join(', ')}}${a13 ? ' in a build held to revision 13, bossEntries and nodes null but on a boss trade (D-468, §22)' : a12 ? ' in a build held to revision 12, maxHit and hitsSurvived null where they don\'t apply (D-450, §22)' : ' (Appendix A)'}`);
     if (!rungs.has(t.stage)) bad(`${at} names stage ${show(t.stage)}, which is no endgame rung of the plan (D-439)`);
     if (!kinds.includes(t.kind)) bad(`${at}'s kind is ${show(t.kind)}; one of ${kinds.join(', ')} (Appendix A)`);
     if (typeof t.what !== 'string' || t.what.trim() === '') bad(`${at} has no what, the trade in a short phrase (Appendix A)`);
@@ -5230,7 +5522,22 @@ function checkTradesFile(file, endgame, fail, a12 = false) {
     const bn = ['budget', 'non-budget'].includes(rungs.get(t.stage));
     if (['defence', 'avoidance'].includes(t.kind) && rungs.has(t.stage) && !bn) bad(`${at} is a ${t.kind} trade on ${t.stage}; defence and avoidance trades are on b or n (D-450, Appendix A)`);
     if (t.kind === 'defence' && typeof t.reason === 'string' && !DEFENCE_REASON.test(t.reason.trim())) bad(`${at}'s reason is ${show(t.reason)}; a defence trade's reason is "one-shot by the Arbiter's <type> hit" or "under the toughness band" (D-450, Appendix A)`);
-    if (isNum(t.bossAfter) && !['defence', 'damage', 'avoidance'].includes(t.kind)) bad(`${at} has bossAfter on a ${t.kind} trade; D1-finish measures it on a defence, damage or avoidance trade's temporary stage (D-456, Appendix A)`);
+    // D-468 (amendment 13): a boss trade carries the alternative tree's boss figure, bossAfter, beside the defence, damage
+    // and avoidance trades' (D-456).
+    const bossKinds = a13 ? ['defence', 'damage', 'avoidance', 'boss'] : ['defence', 'damage', 'avoidance'];
+    if (isNum(t.bossAfter) && !bossKinds.includes(t.kind)) bad(`${at} has bossAfter on a ${t.kind} trade; D1-finish measures it on a defence, damage or avoidance trade's temporary stage (D-456${a13 ? '), and D1-tree on a boss trade\'s alternative tree (D-468' : ''}, Appendix A)`);
+    if (a13) {
+      // D-468 (Appendix A): a boss trade's entries `[{label, before, after}]` and its nodes `{remove: [ids], add: [ids]}`
+      // against the final tree, and its alternative tree's boss figure; every other trade's are null.
+      const ids = (v) => Array.isArray(v) && v.every((x) => isInt(x, 1));
+      const entriesOk = Array.isArray(t.bossEntries) && t.bossEntries.length > 0 && t.bossEntries.every((e) => isObj(e) && typeof e.label === 'string' && e.label.trim() !== '' && isNum(e.before) && isNum(e.after));
+      const nodesOk = isObj(t.nodes) && show(Object.keys(t.nodes).sort()) === show(['add', 'remove']) && ids(t.nodes.remove) && ids(t.nodes.add);
+      if (t.kind === 'boss') {
+        if (!isNum(t.bossAfter)) bad(`${at} is a boss trade with bossAfter ${show(t.bossAfter)}; it carries the alternative tree's boss figure (D-468, Appendix A)`);
+        if (!entriesOk) bad(`${at} is a boss trade with bossEntries ${show(t.bossEntries)}; it lists each boss-rotation entry's figure, [{label, before, after}] (D-468, Appendix A)`);
+        if (!nodesOk) bad(`${at} is a boss trade with nodes ${show(t.nodes)}; it names the nodes to remove and add against the final tree, {remove: [ids], add: [ids]} (D-468, Appendix A)`);
+      } else if (t.bossEntries !== null || t.nodes !== null) bad(`${at} is a ${t.kind} trade with bossEntries ${show(t.bossEntries)} and nodes ${show(t.nodes)}; only a boss trade carries them, null on every other trade (Appendix A)`);
+    }
     const mh = t.maxHit;
     if (!(mh === null || (isObj(mh) && typeof mh.type === 'string' && mh.type !== '' && isNum(mh.before) && isNum(mh.after) && Object.keys(mh).length === 3))) bad(`${at}'s maxHit is ${show(mh)}; null, or {type, before, after}, the deciding row's Pinnacle-pass max hit (D-450, Appendix A)`);
     else if (mh !== null && !['defence', 'damage'].includes(t.kind)) bad(`${at} has maxHit on a ${t.kind} trade; it is set on a one-shot rung's defence and damage entries only (Appendix A)`);
@@ -5319,7 +5626,7 @@ function checkBossLedger(endgame, plan, record, fail) {
  * counts), and the damage trade's `bossAfter` is the boss figure × (1 + damageChange / 100), except in a build held to
  * amendment 12 (`a12`), where D1-finish measures it on the trade's temporary stage (D-456).
  */
-function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12 = false }) {
+function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trades, fresh, fail, a12 = false, a13 = false }) {
   const bad = (rule, why) => fail(rule, `${file}: ${why}`);
   const n = endgame.find((s) => s.variant === 'non-budget');
   const engagement = n?.skills?.engagement;
@@ -5403,7 +5710,9 @@ function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trad
     // D-441, D-448: a rung out of its band, or under the floor, shows a trade, `none found: …` when there is none.
     const has = (kind) => rungTrades.some((x) => x.kind === kind);
     if (band === 'under' && !has('defence')) fail('trades', `${file}: the non-budget rung ${r.stage} is under its toughness band, but no defence trade is shown for it (a trades.json entry, kind defence; "none found: <why>" when there is none) (D-441)`);
-    if ((band === 'over' || under) && !has('damage')) fail('trades', `${file}: the non-budget rung ${r.stage} is ${[band === 'over' ? 'over its toughness band' : null, under ? 'under the boss floor' : null].filter(Boolean).join(' and ')}, but no damage trade is shown for it (a trades.json entry, kind damage; "none found: <why>" when there is none) (D-441, D-448)`);
+    // D-468 (amendment 13): under the floor at the gate, D-448's damage trade, or D1-tree's boss trade, is shown.
+    if (a13 && band !== 'over' && under && !has('damage') && !has('boss')) fail('trades', `${file}: the non-budget rung ${r.stage} is under the boss floor at the gate, but no damage or boss trade is shown for it (a trades.json entry, kind damage, "none found: <why>" when there is none, or D1-tree's boss trade) (D-448, D-468)`);
+    else if ((band === 'over' || (under && !(a13 && has('boss')))) && !has('damage')) fail('trades', `${file}: the non-budget rung ${r.stage} is ${[band === 'over' ? 'over its toughness band' : null, under ? 'under the boss floor' : null].filter(Boolean).join(' and ')}, but no damage trade is shown for it (a trades.json entry, kind damage; "none found: <why>" when there is none) (D-441, D-448)`);
     // D-448: the damage trade's boss figure after it moves with the named source's; D-456 (amendment 12) measures it.
     for (const x of rungTrades.filter((y) => !a12 && y.kind === 'damage' && isNum(y.damageChange))) {
       const want = figure * (1 + x.damageChange / 100);
@@ -5450,8 +5759,8 @@ function checkArbiterRows(stage, arbiter, fail) {
     const deflectedSurvives = d > 0 && isNum(row.deflectedRatio) && row.deflectedRatio < 1;
     const bound = deflectedSurvives ? e + ((100 - e) * d) / 100 : e;
     if (row.hitsSurvived > bound + 0.5) {
-      const why = deflectedSurvives ? `the evade chance ${e}% plus (1 − ${e}%) × the deflect chance ${d}%` : d > 0 && isNum(row.deflectedRatio) ? `its deflected hit kills too (${round2(row.deflectedRatio)} of the max hit), so only the evade chance counts` : 'only the evade chance counts';
-      fail('arbiter', `${at} is one-shot by its full hit (${ratioWords}) and survives ${row.hitsSurvived}% of its hits, more than Names' rule gives: ${why}, at most ${round2(bound)}% (Names, D-449)`);
+      const why = deflectedSurvives ? `the evade chance ${pct1(e)}% plus (1 − ${pct1(e)}%) × the deflect chance ${pct1(d)}%` : d > 0 && isNum(row.deflectedRatio) ? `its deflected hit kills too (${round2(row.deflectedRatio)} of the max hit), so only the evade chance counts` : 'only the evade chance counts';
+      fail('arbiter', `${at} is one-shot by its full hit (${ratioWords}) and survives ${pct1(row.hitsSurvived)}% of its hits, more than Names' rule gives: ${why}, at most ${round2(bound)}% (Names, D-449)`);
     }
   }
 }
@@ -5514,13 +5823,18 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
         if (reading !== null) {
           const row = reading.row;
           const avoid = isObj(m.arbiter.avoid) ? m.arbiter.avoid : null;
-          if (row === null) {
+          // M-25's leftover (amendment 13 §15): a rung that isn't one-shot, with a row that has no verdict (PoB gave no max
+          // hit for its type), isn't measured against the Arbiter, so its field can't read as surviving its hits.
+          const unverdicted = list(m.arbiter.rows).filter((x) => !['survives', 'one-shot'].includes(x.verdict)).map((x) => show(x.type));
+          if (!reading.measured && !reading.oneShot) {
+            if (mh.arbiter !== null) bad('arbiter', `${at}'s maxHit.arbiter is the ${show(mh.arbiter?.type ?? null)} row, so the design field reads as surviving the Arbiter's hits, but the record's ${unverdicted.join(', ')} row${unverdicted.length === 1 ? ' has' : 's have'} no verdict (PoB gave no max hit for that type): the rung isn't measured against the Arbiter, and its maxHit.arbiter is null (D-449, D-459)`);
+          } else if (row === null) {
             if (mh.arbiter !== null) bad('arbiter', `${at}'s maxHit.arbiter is ${show(mh.arbiter)}, but the record's ${r.stage}.measures.arbiter has no row with a ratio to decide (D-449)`);
           } else if (!isObj(mh.arbiter) || mh.arbiter.type !== row.type) {
             bad('arbiter', `${at}'s maxHit.arbiter is the ${show(mh.arbiter?.type ?? null)} row, but the record's deciding row is ${show(row.type)}: a rung's one-shot row with the lowest hits survived, else its row with the largest ratio (Names, D-449)`);
           } else {
             const a = mh.arbiter;
-            if (!near(a.hitsSurvived, survivedOf(row), 0.05)) bad('arbiter', `${at}'s maxHit.arbiter.hitsSurvived is ${a.hitsSurvived}, but the record's ${row.type} row survives ${survivedOf(row)}% of its hits (D-449)`);
+            if (!near(a.hitsSurvived, survivedOf(row), 0.05)) bad('arbiter', `${at}'s maxHit.arbiter.hitsSurvived is ${pct1(a.hitsSurvived)}, but the record's ${row.type} row survives ${pct1(survivedOf(row))}% of its hits (D-449)`);
             const dr = isNum(row.deflectedRatio) ? row.deflectedRatio : null;
             if (dr === null ? a.deflectedRatio !== null : !near(a.deflectedRatio, dr, 0.005)) bad('arbiter', `${at}'s maxHit.arbiter.deflectedRatio is ${show(a.deflectedRatio)}, but the record's ${row.type} row has ${show(dr)} (D-449)`);
             const [ev, de] = [isNum(avoid?.evade) ? avoid.evade : 0, isNum(avoid?.deflect) ? avoid.deflect : 0];
@@ -5528,7 +5842,7 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
             if ((a.method ?? null) !== (avoid?.method ?? null)) bad('arbiter', `${at}'s maxHit.arbiter.method is ${show(a.method ?? null)}, but the record's avoid.method is ${show(avoid?.method ?? null)} (D-449)`);
           }
           if (mh.oneShot !== reading.oneShot) {
-            const how = row === null ? 'has no deciding row' : row.verdict === 'one-shot' ? `is one-shot by its full hit and survives ${survivedOf(row)}% of its hits, ${reading.oneShot ? 'under' : 'at or over'} the ${floorWords} floor` : 'survives its full hit';
+            const how = row === null ? 'has no deciding row' : row.verdict === 'one-shot' ? `is one-shot by its full hit and survives ${pct1(survivedOf(row))}% of its hits, ${reading.oneShot ? 'under' : 'at or over'} the ${floorWords} floor` : 'survives its full hit';
             bad('arbiter', `${at}'s maxHit.oneShot is ${mh.oneShot}, but the record's deciding row ${row ? `(${row.type}) ` : ''}${how} (references/toughness-targets.json; D-449)`);
           }
           oneShot = reading.oneShot;
@@ -5599,6 +5913,196 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail }
     } else if (w.fix !== fixFamily(w.type)) {
       bad('toughness', `${at}'s ${w.kind} warning's fix is ${show(w.fix)}; for a ${typeWords(w.type)} hit the fix family is "${fixFamily(w.type)}" (D-449)`);
     }
+  }
+}
+
+/**
+ * Amendment 13 (D-467, D-468, D-473; Appendix A, the D1 gate's design field), for a build whose last D1 gate is held to
+ * revision 13: each rung's `life {start, end}`, `swapCap {swaps, lastGain} | null`, `rebuild` ("taken", "none" or
+ * "undone: <why>"), `removedForOthers [{names, skill}]` and `levels [{skill, plus}]`, and its boss's `start`, `end`,
+ * `entries [{label, start, end, final, valuedBy {figure, reason} | null}]` and `bossFall {claim, reason} | null`. While
+ * the gate is fresh, each is the plan's `tree.start`, `tree.end` and `tree.search` (D1-tree's), and each entry's final
+ * figure the record's boss figure of its group; a `bossFall`'s claim is `boss-fall-<rung>`, which the plan's rung holds.
+ * The target: a rung whose boss figure, or an entry, fell from start to end says why (`bossFall`); a boss figure that
+ * fell shows a boss trade; and on `n` D1-tree's own change never takes the boss figure under the floor
+ * (references/boss-floor.json) from a start at or above it.
+ */
+function checkDesignField13({ file, design, endgame, plan, record, fresh, fail }) {
+  const bad = (rule, why) => fail(rule, `${file}: ${why}`);
+  const text = (v) => typeof v === 'string' && v.trim() !== '';
+  const floor = referenceJson('boss-floor.json')?.floor;
+  for (const r of list(design.rungs)) {
+    const st = endgame.find((s) => s.id === r.stage);
+    if (!st) continue;
+    const at = `design.rungs's ${show(r.stage)}`;
+    const rec = record?.stages?.[r.stage];
+    const tree = isObj(st.tree) ? st.tree : {};
+    const [start, end, search] = [tree.start, tree.end, tree.search].map((x) => (isObj(x) ? x : null));
+    // The shapes (Appendix A).
+    const life = r.life;
+    if (!(isObj(life) && isNum(life.start) && isNum(life.end))) bad('design-field', `${at} has life ${show(life)}; it is {start, end}, Life at D1-tree's start and on its finished tree (D-467, Appendix A)`);
+    if (!(r.swapCap === null || (isObj(r.swapCap) && isInt(r.swapCap.swaps) && numOrNull(r.swapCap.lastGain)))) bad('design-field', `${at} has swapCap ${show(r.swapCap)}; null, or {swaps, lastGain} when the swap loop hit its cap of 30 (D-467, Appendix A)`);
+    if (!(typeof r.rebuild === 'string' && /^(?:taken|none|undone: \S[\s\S]*)$/.test(r.rebuild))) bad('design-field', `${at} has rebuild ${show(r.rebuild)}; "taken", "none" or "undone: <why>" (D-467, Appendix A)`);
+    const namesOk = (v) => text(v) || (Array.isArray(v) && v.length > 0 && v.every(text));
+    if (!(Array.isArray(r.removedForOthers) && r.removedForOthers.every((x) => isObj(x) && namesOk(x.names) && text(x.skill)))) bad('design-field', `${at} has removedForOthers ${show(r.removedForOthers)}; a list of {names, skill}, the passives the rebuild removed whose lines name another skill the build uses (D-467, Appendix A)`);
+    if (!(Array.isArray(r.levels) && r.levels.every((x) => isObj(x) && text(x.skill) && isInt(x.plus)))) bad('design-field', `${at} has levels ${show(r.levels)}; a list of {skill, plus}, the damage skills pieces.md's "## Skill levels" leaves at +0 (D-473, Appendix A)`);
+    const b = isObj(r.boss) ? r.boss : {};
+    const entries = list(b.entries);
+    const entryOk = (e) => text(e.label) && numOrNull(e.start) && numOrNull(e.end) && numOrNull(e.final) && (e.valuedBy === null || (isObj(e.valuedBy) && isNum(e.valuedBy.figure) && text(e.valuedBy.reason)));
+    if (!numOrNull(b.start) || !numOrNull(b.end) || !Array.isArray(b.entries) || entries.length !== b.entries.length || !entries.every(entryOk)) {
+      bad('design-field', `${at}'s boss has start ${show(b.start)}, end ${show(b.end)} and entries ${show(b.entries)}; start and end are the boss figure at D1-tree's start and end, and entries [{label, start, end, final, valuedBy: {figure, reason} | null}] (D-468, Appendix A)`);
+    }
+    const fall = b.bossFall;
+    if (!(fall === null || (isObj(fall) && fall.claim === `boss-fall-${r.stage}` && text(fall.reason)))) bad('design-field', `${at}'s boss.bossFall is ${show(fall)}; null, or {claim: "boss-fall-${r.stage}", reason}, the designer's reason for a fall (D-468, Appendix A)`);
+    else if (isObj(fall) && !list(st.claims).some((cl) => cl.id === fall.claim)) bad('boss-fall', `${at}'s boss.bossFall names the claim ${fall.claim}, but plan.json's ${r.stage} holds no claim of that id; D1-finish turns the designer's reason into it, which V4 checks (D-468)`);
+    // While fresh: the plan's tree.start, tree.end and tree.search, which D1-tree wrote and D1-gate step 6 copies.
+    if (fresh) {
+      if (start === null || end === null || search === null) bad('design-field', `plan.json's ${r.stage} has ${['start', 'end', 'search'].filter((k, i) => [start, end, search][i] === null).map((k) => `no tree.${k}`).join(', ')}; D1-tree writes each rung's start, end and search, and the gate copies them into the design field (D-467, Appendix A)`);
+      else {
+        const same = (x, y) => (x === null || x === undefined ? y === null || y === undefined : sameFigure(x, y));
+        const differ = [];
+        if (isObj(life) && (!same(life.start, start.life) || !same(life.end, end.life))) differ.push(`life ${show(life)} against Life ${show(start.life)} → ${show(end.life)}`);
+        if (!same(b.start, start.boss) || !same(b.end, end.boss)) differ.push(`boss ${show(b.start)} → ${show(b.end)} against ${show(start.boss)} → ${show(end.boss)}`);
+        const startEntries = list(start.bossEntries);
+        const endEntries = list(end.bossEntries);
+        const labels = startEntries.map((e) => e.label);
+        if (show([...entries.map((e) => e.label)].sort()) !== show([...labels].sort())) differ.push(`entries ${show(entries.map((e) => e.label))} against ${show(labels)}`);
+        for (const e of entries) {
+          const s0 = startEntries.find((x) => x.label === e.label);
+          const e0 = endEntries.find((x) => x.label === e.label);
+          if (s0 && !same(e.start, s0.figure)) differ.push(`${e.label}'s start ${show(e.start)} against ${show(s0.figure)}`);
+          if (e0 && !same(e.end, e0.figure)) differ.push(`${e.label}'s end ${show(e.end)} against ${show(e0.figure)}`);
+          // The gate's final figure: the record's boss figure of the entry's group.
+          const group = s0?.group ?? e0?.group;
+          const figure = list(rec?.measures?.bossGroups).find((g) => g.group === group)?.figure;
+          if (isNum(figure) && !same(e.final, figure)) differ.push(`${e.label}'s final ${show(e.final)} against the record's ${r.stage}.measures.bossGroups figure ${round2(figure)}`);
+        }
+        const cap = search.capHit === true ? { swaps: search.swaps, lastGain: search.lastGain ?? null } : null;
+        if (canon(r.swapCap ?? null) !== canon(cap)) differ.push(`swapCap ${show(r.swapCap)} against tree.search's ${show(cap)} (capHit ${show(search.capHit)})`);
+        if (r.rebuild !== search.rebuild) differ.push(`rebuild ${show(r.rebuild)} against ${show(search.rebuild)}`);
+        if (canon(list(r.removedForOthers)) !== canon(list(search.removed))) differ.push(`removedForOthers ${show(r.removedForOthers)} against tree.search.removed ${show(search.removed)}`);
+        const reason = isObj(fall) ? fall.reason : null;
+        if ((reason ?? null) !== (search.bossFall ?? null)) differ.push(`bossFall's reason ${show(reason)} against tree.search.bossFall ${show(search.bossFall ?? null)}`);
+        if (differ.length > 0) bad('design-field', `${at} disagrees with plan.json's ${r.stage} tree.start, tree.end and tree.search, or the record: ${differ.join('; ')} (D-467, D-468, Appendix A)`);
+      }
+    }
+    // The target (D-468): a fall says why, a boss figure that fell shows the alternative tree, and on n D1-tree's own
+    // change keeps the agreed floor.
+    const fellBoss = isNum(b.start) && isNum(b.end) && b.end < b.start;
+    const fellEntries = entries.filter((e) => isNum(e.start) && isNum(e.end) && e.end < e.start).map((e) => e.label);
+    if ((fellBoss || fellEntries.length > 0) && fall === null) {
+      fail('boss-fall', `${file}: on ${r.stage} ${[fellBoss ? `the boss figure fell from ${whole(b.start)} to ${whole(b.end)} on the tree` : null, fellEntries.length > 0 ? `${fellEntries.join(', ')} fell` : null].filter(Boolean).join(', and ')}, but bossFall is null; the designer says why a fall is fine, one reason that may cover several entries (D-468)`);
+    }
+    if (fellBoss && !list(r.trades).some((x) => x.kind === 'boss')) fail('trades', `${file}: on ${r.stage} the boss figure fell from ${whole(b.start)} to ${whole(b.end)} on the tree, but no boss trade is shown for it (a trades.json entry, kind boss: the best tree D1-tree measured at or above the start's boss figure) (D-468)`);
+    if (st.variant === 'non-budget' && isNum(floor) && isNum(b.start) && isNum(b.end) && b.end < floor && b.start >= floor) {
+      fail('boss-floor', `${file}: on ${r.stage} D1-tree's tree takes the boss figure from ${whole(b.start)} to ${whole(b.end)}, under the ${whole(floor)} floor; a change of D1-tree's own that takes n's boss figure under the floor is undone (D-468)`);
+    }
+  }
+}
+
+/** A figure with thousands separators, as the checker's boss messages print it. */
+const whole = (v) => (isNum(v) ? String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : show(v));
+
+/**
+ * D-465 (amendment 13): a plan's item texts hold no rune line (`Rune: <name>`) of a rune over the budget, a "Legacy of …"
+ * soul core or the Raven-Touched Shard, unless the user asked for it (`says`: the brief's `around`, `like` and `notes`,
+ * and the gate answers' words).
+ */
+function checkOverBudgetPlan(planStages, says, fail) {
+  for (const s of planStages) {
+    for (const it of [...list(s.items?.slots).map((x) => ({ where: `slot "${x.slot}"`, text: x.text })), ...list(s.items?.treeJewels).map((x) => ({ where: `tree jewel in node ${x.node}`, text: x.text }))]) {
+      for (const line of String(it.text ?? '').split(/\r?\n/)) {
+        const m = /^\s*Rune:\s*(.+?)\s*$/i.exec(line);
+        const kind = m ? overBudgetRune(m[1]) : null;
+        if (kind === null || askedFor(m[1], says)) continue;
+        fail('runes', `plan.json's stage ${s.id} ${it.where} holds the rune line ${show(line.trim())}, ${kind === 'legacy' ? 'a "Legacy of …" soul core' : 'the Raven-Touched Shard'}, a rune over the budget, but neither the brief's around, like or notes nor a gate answer names it; design leaves every rune over the budget out unless the user asks for it (D-465)`);
+      }
+    }
+  }
+}
+
+/** The skill's corruption rule (Appendix A): `references/corruption.json`, `{cheapUnique: {under, currency}, rungs, source}`. */
+function corruptionRule(fail) {
+  const c = referenceJson('corruption.json');
+  if (!isObj(c) || !isObj(c.cheapUnique) || !isNum(c.cheapUnique.under) || c.cheapUnique.currency !== 'divine' || !Array.isArray(c.rungs) || !c.rungs.every((x) => RUNGS.includes(x))) {
+    fail('corruption', "references/corruption.json can't be read as {cheapUnique: {under, currency: \"divine\"}, rungs: [<rung variant>], source} (D-471, Appendix A)");
+    return null;
+  }
+  return c;
+}
+
+/**
+ * D-471 (amendment 13): corruption only on a cheap unique (a unique jewel among them) and a skill gem corrupted to +1
+ * level. A rare, magic or normal item with a `Corrupted` line fails. A unique with a designed corruption, an `{enchant}`
+ * line beside its `Corrupted` line (the amulet's `Allocates` anoint aside), is on a rung `references/corruption.json`
+ * names (`b` and `n`), priced uncorrupted under its cheap line (1 divine, at the gate's recorded rates); with no price to
+ * judge by (`unavailable`, or a currency with no rate), its price entry's note says `cheapness unchecked: <why>` (in an
+ * offline run, the note "offline run" says it). A unique that comes corrupted (its `Corrupted` line with no enchant, as
+ * Split Personality drops) is the item as it drops: no rule. The guide (when one is current) says each: "Buy several
+ * <unique> and corrupt them until one rolls <line>", and for each `corrupt` gem "Corrupt cheap low-level <gem> gems until
+ * one gets +1 level, then level it to 20".
+ */
+function checkCorruption({ plan, planStages, gate, guide, offline, fail }) {
+  const rule = corruptionRule(fail);
+  const entries = new Map(list(plan?.prices).map((p) => [p.id, p]));
+  const lines = typeof guide === 'string' ? guide.split(/\r?\n/).map(plainName) : null;
+  const says = (...words) => lines !== null && lines.some((l) => words.every((w) => (w instanceof RegExp ? w.test(l) : l.includes(plainName(w)))));
+  const budget = isObj(gate?.basis?.budget) ? gate.basis.budget : {};
+  const prices = new Map(list(budget.slots).map((x) => [`${x.stage}|${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`, x.priceId]));
+  const rates = ratesOf(budget);
+  for (const s of planStages) {
+    const items = [...list(s.items?.slots).map((x) => ({ where: `slot "${x.slot}"`, key: x.slot, text: x.text })), ...list(s.items?.treeJewels).map((x) => ({ where: `tree jewel in node ${x.node}`, key: `jewel ${x.node}`, text: x.text }))];
+    const rung = typeof s.variant === 'string' ? s.variant : 'campaign';
+    for (const it of items) {
+      const item = itemOf(it.text);
+      if (!item.corrupted) continue;
+      const at = `plan.json's stage ${s.id} ${it.where}`;
+      if (item.rarity !== 'UNIQUE') {
+        fail('corruption', `${at} holds a corrupted ${String(item.rarity ?? 'unknown').toLowerCase()} item; corruption is only on cheap uniques and skill gems, never on a rare, magic or normal item, jewels among them: a corrupted rare cuts the trade supply by an order of magnitude or more (D-471)`);
+        continue;
+      }
+      if (item.enchants.length === 0) continue; // the unique as it drops, corrupted (Split Personality)
+      if (rule === null) continue;
+      if (!rule.rungs.includes(rung)) {
+        fail('corruption', `${at} holds ${item.name ?? 'a unique'} with a designed corruption (${item.enchants.join('; ')}) on a ${rung === 'campaign' ? 'campaign stage' : `${rung} rung`}; a designed corruption is on ${rule.rungs.join(' and ')} only (D-471, references/corruption.json)`);
+        continue;
+      }
+      const id = prices.get(`${s.id}|${it.key}`);
+      const entry = id === undefined ? undefined : entries.get(id);
+      if (entry === undefined) {
+        fail('corruption', `${at} holds ${item.name ?? 'a unique'} with a designed corruption, but the D1 gate maps it to no price entry, so its cheapness can't be judged; it is priced uncorrupted, under ${rule.cheapUnique.under} divine (D-471)`);
+      } else {
+        const d = divinesOf(entry, rates);
+        if (d !== null) {
+          if (d >= rule.cheapUnique.under) fail('corruption', `${at} holds ${item.name ?? 'a unique'} with a designed corruption, priced ${round2(d)} divine(s) uncorrupted (${entry.id}), at or over the cheap line of ${rule.cheapUnique.under} divine: a unique that dear can't carry a corrupted line (D-471, references/corruption.json)`);
+        } else if (!(offline && entry.note === OFFLINE_NOTE) && !/\bcheapness unchecked: \S/i.test(String(entry.note ?? ''))) {
+          fail('corruption', `${at} holds ${item.name ?? 'a unique'} with a designed corruption, but its price entry ${entry.id} is ${entry.status === 'ok' ? 'in a currency with no rate' : show(entry.status)} with the note ${show(entry.note ?? null)}; with no price to judge by, the note says "cheapness unchecked: <why>" (D-471)`);
+        }
+      }
+      if (lines !== null && item.name && !says(item.name, /\bbuy several\b/, /\bcorrupt/)) fail('corruption', `guide.md has no line for ${item.name}'s corruption on ${s.id}: "Buy several ${item.name} and corrupt them until one rolls <line>" (D-471)`);
+    }
+    for (const g of list(s.skills?.groups)) {
+      for (const gem of list(g.gems)) {
+        if (gem.corrupt === undefined || gem.corrupt === null) continue;
+        if (lines !== null && !says(String(gem.name ?? ''), /\bcorrupt/, /\+1 level\b/)) fail('corruption', `guide.md has no line for ${gem.name}'s corruption on ${s.id}: "Corrupt cheap low-level ${gem.name} gems until one gets +1 level, then level it to 20" (D-471)`);
+      }
+    }
+  }
+}
+
+/**
+ * D-472 (amendment 13): the flasks and charms of a build held to revision 13: every endgame rung holds a life flask in
+ * `Flask 1` (its base a Life Flask); no stage fills a charm slot, which stay empty until amendment 14's survey. The flasks
+ * are unpriced (`recomputeBudget`); the mana flask is D1-build's judgment, with its claim.
+ */
+function checkFlasks(planStages, fail) {
+  for (const s of planStages) {
+    for (const x of list(s.items?.slots).filter((y) => /^Charm \d+$/.test(String(y.slot ?? '')))) {
+      fail('flasks', `plan.json's stage ${s.id} fills ${show(x.slot)}; the charm slots stay empty for now, charms waiting on amendment 14's survey (D-472)`);
+    }
+    if (typeof s.variant !== 'string') continue;
+    const flask = list(s.items?.slots).find((y) => y.slot === 'Flask 1');
+    if (!flask || !/\bLife Flask\b/i.test(String(flask.text ?? ''))) fail('flasks', `plan.json's endgame rung ${s.id} has ${flask ? `${show(itemOf(flask.text).lines.slice(1, 3).join(' / '))} in Flask 1` : 'no Flask 1'}; every endgame rung carries a life flask in Flask 1, the best base its level allows (D-472)`);
   }
 }
 
@@ -5702,15 +6206,24 @@ function recomputeFloor(endgame, record, guide, fail) {
  * (D-164), else `pass`: it never fails (D-371). With `file` (the gate is fresh), the gate's `market`, each rung's
  * total and its `over-target` findings are held to the recompute within the stated margins.
  */
-function recomputeBudget(endgame, plan, rep, file, fail) {
+function recomputeBudget(endgame, plan, rep, file, fail, a13 = false) {
   const b = isObj(rep.basis?.budget) ? rep.basis.budget : {};
   const maps = list(b.slots);
   const prices = new Map(list(plan.prices).map((p) => [p.id, p]));
   let unverified = false;
   for (const s of endgame) {
-    // D-358: the anoint is priced like a slot, `{stage, slot: "Anoint", priceId}` in the gate's basis (D1-gate.md).
+    // D-464 (amendment 13): a pinned weapon's Swap slot (`sameAs`) is the set-1 slot's item, priced by that slot's entry,
+    // once for both; the gate maps it to that entry, or not at all.
+    const pinned = pinnedSlots(s);
+    for (const [slot, set1] of pinned) {
+      const own = maps.find((x) => x.stage === s.id && x.slot === slot);
+      const theirs = maps.find((x) => x.stage === s.id && x.slot === set1);
+      if (own && theirs && own.priceId !== theirs.priceId) fail('budget', `${s.variant} stage ${s.id}'s slot "${slot}" holds the item of "${set1}" (sameAs), but the gate maps it to ${show(own.priceId)}, not "${set1}"'s ${show(theirs.priceId)}; a pinned weapon is one item, priced once by its set-1 slot's entry (D-464)`);
+    }
+    // D-358: the anoint is priced like a slot, `{stage, slot: "Anoint", priceId}` in the gate's basis (D1-gate.md). D-472
+    // (amendment 13): a build held to revision 13 prices no flask.
     const filled = [
-      ...list(s.items?.slots).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
+      ...list(s.items?.slots).filter((it) => !pinned.has(it.slot) && !(a13 && FLASK_SLOT.test(String(it.slot ?? '')))).map((it) => ({ what: `slot "${it.slot}"`, slot: it.slot, text: it.text })),
       ...list(s.items?.treeJewels).map((j) => ({ what: `tree jewel in node ${j.node}`, jewel: j.node, text: j.text })),
       ...(isObj(s.items?.anoint) ? [{ what: `anoint (${s.items.anoint.notable})`, slot: 'Anoint', text: `anoint ${s.items.anoint.notable}` }] : []),
     ];
@@ -5740,7 +6253,7 @@ function recomputeBudget(endgame, plan, rep, file, fail) {
     return { verdict: 'unverified', failures: [], unverified: true };
   }
   const market = marketOf(plan, b, table);
-  const rungs = endgame.map((s) => ({ s, got: rungBudget(s, plan, b, market, table) }));
+  const rungs = endgame.map((s) => ({ s, got: rungBudget(s, plan, b, market, table, { flasksUnpriced: a13 }) }));
   if (rungs.some((r) => r.got.total === null)) unverified = true;
   if (file) holdBudgetToRecompute(plan, rep, b, maps, market, rungs, file, fail);
   return { verdict: unverified ? 'unverified' : 'pass', failures: [], unverified };
@@ -5923,6 +6436,8 @@ function recomputeRolledSkill(endgame, plan, record, rep, ledgerNow, fail) {
 
 /** A-34: what `--snapshot <n>` copies into `rounds/<n>/`, and all that a round folder holds. */
 export const ROUND_FILES = ['plan.json', 'compile-record.json', 'guide.md'];
+/** D-477 (amendment 13): the round copy of a build with no guide.md (a file-only build's claims pass): the plan and the record. */
+export const ROUND_FILES_NO_GUIDE = ['plan.json', 'compile-record.json'];
 const ROUND_N = /^[1-9]\d*$/;
 /** `--snapshot <n>`'s working folder `rounds/.<n>.tmp-XXXXXX`, renamed to `rounds/<n>/` once whole; the layout skips it. */
 const ROUND_TMP = /^\.[1-9]\d*\.tmp-\w{6}$/;
@@ -5931,7 +6446,8 @@ const ROUND_TMP = /^\.[1-9]\d*\.tmp-\w{6}$/;
  * A-34: copies the plan, the record and the guide into `rounds/<n>/`, `<n>` the number of the V4 report the round
  * answers. It never overwrites a round, and copies nothing unless all three files exist. The copy is made in a
  * working folder inside `rounds/` and renamed to `<n>` once whole, so a copy failing midway leaves no round and can
- * be made again. Returns null, or why not.
+ * be made again. Returns null, or why not. D-477 (amendment 13): a build with no guide.md (a file-only build's claims
+ * pass) copies its plan and its record.
  */
 export function snapshotRound(runFolder, n, folder = '.') {
   const base = path.join(runFolder, folder);
@@ -5939,13 +6455,14 @@ export function snapshotRound(runFolder, n, folder = '.') {
   const dir = path.join(rounds, String(n));
   if (fs.existsSync(rounds) && !fs.statSync(rounds).isDirectory()) return 'rounds is a file; the round copies go in the folder rounds/ (A-34)';
   if (fs.existsSync(dir)) return `rounds/${n}/ exists; a round copy is never overwritten (A-34)`;
-  const missing = ROUND_FILES.filter((f) => !fs.existsSync(path.join(base, f)));
-  if (missing.length > 0) return `the run folder has no ${missing.join(', ')}; the round copy holds ${ROUND_FILES.join(', ')} (A-34)`;
+  const files = fs.existsSync(path.join(base, 'guide.md')) ? ROUND_FILES : ROUND_FILES_NO_GUIDE;
+  const missing = files.filter((f) => !fs.existsSync(path.join(base, f)));
+  if (missing.length > 0) return `the run folder has no ${missing.join(', ')}; the round copy holds ${ROUND_FILES.join(', ')}, or ${ROUND_FILES_NO_GUIDE.join(' and ')} for a build with no guide (A-34, D-477)`;
   let tmp = null;
   try {
     fs.mkdirSync(rounds, { recursive: true });
     tmp = fs.mkdtempSync(path.join(rounds, `.${n}.tmp-`));
-    for (const f of ROUND_FILES) fs.copyFileSync(path.join(base, f), path.join(tmp, f), fs.constants.COPYFILE_EXCL);
+    for (const f of files) fs.copyFileSync(path.join(base, f), path.join(tmp, f), fs.constants.COPYFILE_EXCL);
     fs.renameSync(tmp, dir);
     tmp = null;
     return null;
@@ -6064,6 +6581,8 @@ function changedBetween(ledgerModule, thenDir, nowDir, options = {}) {
       && canon(citedValues(then, old.source)) === canon(citedValues(now, claim.source));
     if (!same) lines.push(`claim stages[${i}].claims[${k}] (${claim.id})`);
   }
+  // D-477 (amendment 13): a round copy with no guide (a file-only build's claims pass) is compared by its claims alone.
+  if (then.guide === null) return lines;
   const sections = new Map(h2Bodies(then.guide, options).map((h) => [h.key, h.body]));
   for (const h of h2Bodies(now.guide, options)) if (sections.get(h.key) !== h.body) lines.push(`section ${h.title}`);
   return lines;
@@ -6134,7 +6653,8 @@ async function main(argv) {
         process.stderr.write(`check-run: ${why}\n`);
         return 1;
       }
-      process.stdout.write(`check-run: copied ${ROUND_FILES.map((f) => `${prefix}${f}`).join(', ')} to ${prefix}rounds/${n}/\n`);
+      const copied = fs.readdirSync(path.join(folder, where.folder, 'rounds', String(n))).filter((f) => ROUND_FILES.includes(f));
+      process.stdout.write(`check-run: copied ${ROUND_FILES.filter((f) => copied.includes(f)).map((f) => `${prefix}${f}`).join(', ')} to ${prefix}rounds/${n}/\n`);
       return 0;
     }
     const { lines, error } = await changedSince(folder, n, where.folder);

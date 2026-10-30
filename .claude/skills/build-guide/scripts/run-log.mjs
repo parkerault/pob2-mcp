@@ -131,6 +131,24 @@
 //  - the final display's rung lines with three figures (`measures.damage.resisting`) and the verdict label's three forms
 //    (`arbiterWords`), and the design-to-final comparison in the same forms.
 //
+// Amendment 13 (WU-130; D-466, D-468, D-474, D-475, D-477, its §22 and Appendix A):
+//  - `init` writes `skillRevision: 13`; `resume` stamps 13 on an older log with its boundary, as amendment 12 set up;
+//  - the brainstorm display of a log at 13 (D-475), on the composite and the dealt-card paths alike: the header's first
+//    one or two sentences and no "How they differ"; one first line per composite or dealt card, `<n>. <name>:
+//    <structure>; under-played: yes|no`; at most 8 key pieces on its `in:` line, chosen by kind, then `+ <N> more in
+//    cards.md`; `scheduled:` names only; the plain cards (and a dealt deck's not-dealt cards) on one line of names; no
+//    "For reference": the visit's `displays[]` entry records the number-to-id map, `{checkpoint, visit, numbers}`;
+//  - `builds[].draftFile` (D-466), the latest draft's path or null, beside `pobFile` on a log at 13; the design display
+//    prints its name; the final display prints F1's `draftLeft` (Appendix A);
+//  - the design display of a design field written under amendment 13's rules (a rung with `life`, `swapCap`, `rebuild`,
+//    `removedForOthers`, `levels`, or `boss.start`): the boss rotation line with each entry's start, end and final
+//    figure (an entry's `valuedBy` value and reason), the `boss-fall` reason, the `boss` trade with its `bossAfter`, the
+//    Life, swap-cap, rebuild-undone, `Removed on` and `Skill levels on` lines (D-467, D-468, D-473);
+//  - D1-tree's outcome `stale-server` (D-467) and the stage `V4-claims` (D-477, a file-only build's claims pass);
+//  - the pricing stop `pace` (D-474): a step whose `priceOutcomes` counts `pace` (its first trade call's reply had no pace
+//    line, or the pace was off) records its stop as `rate_limited` does;
+//  - a Pieces row's kind `anoint` (D-474).
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview. What needs the deck (a new card's `from`
 // and its name) is checked when the gate's checkpoint is written.
@@ -186,32 +204,46 @@ const OUTCOMES = {
   RV: ['done', 'none-found'],
   // Amendment 9 (schema 4): D1's tree step (D-418), the endgame-only build's final compile (D-413) and V4's campaign
   // pass (D-415). Amendment 11: D1-tree's `respec`, a scaling change D1-build missed (D-438), routes D1-build next.
-  'D1-tree': ['done', 'respec'],
+  // Amendment 13 (D-467): D1-tree's `stale-server`, a session server built before M-26, routes D1-tree again once the
+  // user reconnected it with /mcp.
+  'D1-tree': ['done', 'respec', 'stale-server'],
   F1: ['pass', 'fail', 'escalated'],
   'V4-campaign': ['pass', 'fail'],
   // Amendment 10 (D-429): the brainstorm round's synthesis, which composes 1–4 composites; schema 4's only.
   'R1a-synthesize': ['done'],
+  // Amendment 13 (D-477): a file-only build's claims pass, its plan's hinge claims checked with no guide.
+  'V4-claims': ['pass', 'fail'],
 };
 /** The stages schema 4 adds (amendment 9, and amendment 10's synthesis); a schema-3 log has none. */
-const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize'];
+const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize', 'V4-claims'];
 const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV'];
 /** The steps that price (pricing.md); D1-build since amendment 11, for its `find_upgrades` calls (D-444). */
 const PRICING = ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'];
 /** D-444: a `priceOutcomes` key for the calls priced from poe.ninja's currency exchange, which send no trade request. */
 export const EXCHANGE = 'exchange';
 /**
- * §19, amendment 12's §22: the skill revision `init` writes and `resume` stamps; a log without it is held to the rules
- * before amendment 11.
+ * D-474 (amendment 13): a `priceOutcomes` key for the trade call whose reply carried no pace line, or `Pace: off (test
+ * setting).`: the step made no more trade calls and returned the stop `pace: missing` or `pace: off`.
  */
-export const SKILL_REVISION = 12;
+export const PACE = 'pace';
+/**
+ * §19, amendment 12's §22, amendment 13's §22: the skill revision `init` writes and `resume` stamps; a log without it is
+ * held to the rules before amendment 11.
+ */
+export const SKILL_REVISION = 13;
 /** Amendment 11's revision (§19): its rules hold from its boundary in every log at 11 or later. */
 export const A11 = 11;
+/** Amendment 13's revision (§22): its rules hold a build from its boundary, read by the build's last D1 gate. */
+export const A13 = 13;
 /** Appendix A (amendment 12): the revisions a log can be held to, in order; each one's rules hold from its own boundary. */
-export const REVISIONS = [11, 12];
+export const REVISIONS = [11, 12, 13];
 /** A log's skill revision, a whole number, or null for a log without one (an older run's). */
 export const revisionOf = (log) => (isObj(log) && Number.isInteger(log.skillRevision) ? log.skillRevision : null);
-/** D-444: the outcomes that stop trade-site pricing until the user approves a retry at a gate (or a resume clears it). */
-export const STOP_OUTCOMES = ['rate_limited', 'locked_out'];
+/**
+ * D-444: the outcomes that stop trade-site pricing until the user approves a retry at a gate (or a resume clears it);
+ * D-474 (amendment 13): `pace`, a reply with no pace line or the pace off.
+ */
+export const STOP_OUTCOMES = ['rate_limited', 'locked_out', PACE];
 /** D-444: the answer to a gate's pricing question, asked only after a stop. */
 export const RETRY_ANSWERS = ['retry-pricing', 'no-retry'];
 /**
@@ -275,7 +307,8 @@ const FIELDS4 = {
   checkpoint: ['checkpoint', 'concept', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note'],
   set: ['status', 'dossier', 'faults'],
   init: ['slug', 'brief', 'mode', 'testConfig', 'noNinja', 'status'],
-  build: ['id', 'roll', 'name', 'status', 'guide', 'pobFile'],
+  // D-466 (amendment 13): `draftFile`, the latest draft's path, on a log at 13.
+  build: ['id', 'roll', 'name', 'status', 'guide', 'pobFile', 'draftFile'],
   resume: ['noNinja'],
   // D-444: the user's answer to a gate's pricing question after a stop.
   pricing: ['checkpoint', 'answer'],
@@ -381,7 +414,7 @@ export function entryProblems(kind, e, schema = 3) {
     if (![...outcomes, ...any].includes(e.outcome)) bad.push(`a ${e.stage} entry's outcome is ${[...outcomes, 'missing'].join(', ')}, not ${show(e.outcome)}`);
     if (e.priceOutcomes !== undefined) {
       if (!PRICING.includes(e.stage)) bad.push(`priceOutcomes is only on ${PRICING.join(', ')}`);
-      else if (!isObj(e.priceOutcomes) || Object.entries(e.priceOutcomes).some(([k, v]) => !['ok', 'error', ...TRADE_KINDS, EXCHANGE].includes(k) || !isInt(v, 0))) bad.push('priceOutcomes counts calls by outcome: ok, error or a [trade:<kind>] kind, and exchange for the calls priced from poe.ninja\'s currency exchange (D-444), each a whole number');
+      else if (!isObj(e.priceOutcomes) || Object.entries(e.priceOutcomes).some(([k, v]) => !['ok', 'error', ...TRADE_KINDS, EXCHANGE, PACE].includes(k) || !isInt(v, 0))) bad.push('priceOutcomes counts calls by outcome: ok, error or a [trade:<kind>] kind, exchange for the calls priced from poe.ninja\'s currency exchange (D-444), and pace for the trade call whose reply had no pace line or the pace off (D-474), each a whole number');
     }
     if (e.stage === 'R1b' ? !isInt(e.probes, 0) : e.probes !== undefined) bad.push(e.stage === 'R1b' ? 'an R1b entry has probes, the probe variants it ran (0 when none)' : 'probes is only on R1b');
     if (ASSEMBLY_STAGES.includes(e.stage) ? e.shortReason !== undefined && !text(e.shortReason) : e.shortReason !== undefined) bad.push('shortReason is only on R1a-assemble and R1a-synthesize, a non-empty text');
@@ -441,7 +474,9 @@ export function entryProblems(kind, e, schema = 3) {
     if (e.status !== undefined && !BUILD_STATUSES.includes(e.status)) bad.push(`status is ${BUILD_STATUSES.join(', ')}`);
     if (e.guide !== undefined && !GUIDE_KINDS.includes(e.guide)) bad.push('guide is null, endgame or full (D-414)');
     if (e.pobFile !== undefined && e.pobFile !== null && !text(e.pobFile)) bad.push("pobFile is the final compile's PoB file path, or null");
-    if (Object.keys(e).length === 1 && e.id !== undefined) bad.push('a build entry changes its roll, name, status, guide or pobFile');
+    // D-466: the draft's one home, the path compile_plan's draft mode returned, null once F1 removed it.
+    if (e.draftFile !== undefined && e.draftFile !== null && !text(e.draftFile)) bad.push("draftFile is the latest draft's path, as compile_plan's draft mode returned it, or null once F1 removed it (D-466)");
+    if (Object.keys(e).length === 1 && e.id !== undefined) bad.push('a build entry changes its roll, name, status, guide, pobFile or draftFile');
   } else if (kind === 'resume') {
     if (typeof e.noNinja !== 'boolean') bad.push("noNinja is true or false: whether this session prices without poe.ninja (--no-ninja, D-415)");
   } else if (kind === 'pricing') {
@@ -591,7 +626,7 @@ export function writeLog(runFolder, kind, entry) {
       if (!isObj(log.pricing)) log.pricing = { stops: [], retries: [] };
       saveLog(file, log);
       const at = stamped ? log.skillRevisionFrom[String(SKILL_REVISION)].stages : null;
-      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${at}]${added.length > 1 ? ` (the rules of amendments ${added.join(' and ')})` : ''}` : ''}`;
+      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${at}]${added.length > 1 ? ` (the rules of amendments ${added.slice(0, -1).join(', ')} and ${added[added.length - 1]})` : ''}` : ''}`;
     } else Object.assign(log, entry);
   }
   saveLog(file, log);
@@ -667,17 +702,20 @@ function pricingAgainstRun(log, entry) {
 function upsertBuild(log, entry) {
   if (!Array.isArray(log.builds)) log.builds = [];
   const at = log.builds.findIndex((b) => isObj(b) && b.id === entry.id);
-  /** A build's fields in order; `name` only once an entry gave one (D-435). */
-  const shaped = (b) => Object.fromEntries((text(b.name) ? BUILD_FIELDS_NAMED : BUILD_FIELDS).map((k) => [k, b[k] ?? null]));
+  // D-466 (Appendix A): `draftFile` is a log at 13's; an older log is resumed first, which stamps it.
+  const a13 = revisionOf(log) >= A13;
+  if (entry.draftFile !== undefined && !a13) throw new Error(`build entry refused: draftFile is amendment 13's (skillRevision ${A13}); this log is at ${revisionOf(log) ?? 'no skillRevision'}: resume it first (D-466, §22)`);
+  /** A build's fields in order; `name` only once an entry gave one (D-435); `draftFile` after `pobFile` on a log at 13 (D-466). */
+  const shaped = (b) => Object.fromEntries([...(text(b.name) ? BUILD_FIELDS_NAMED : BUILD_FIELDS), ...(a13 ? ['draftFile'] : [])].map((k) => [k, b[k] ?? null]));
   if (at < 0) {
     if (entry.roll === undefined || entry.status !== 'queued') throw new Error(`build entry refused: ${entry.id} has no build yet; a new build is {"id", "roll", "status": "queued"}, with "name" when its finalize revision gave the build one, added when the verification gate finalizes its card (D-411, D-412, D-435)`);
-    log.builds.push(shaped({ id: entry.id, roll: entry.roll, name: entry.name, status: 'queued', folder: `builds/${entry.id}`, guide: entry.guide ?? null, pobFile: entry.pobFile ?? null }));
+    log.builds.push(shaped({ id: entry.id, roll: entry.roll, name: entry.name, status: 'queued', folder: `builds/${entry.id}`, guide: entry.guide ?? null, pobFile: entry.pobFile ?? null, draftFile: entry.draftFile ?? null }));
     return log;
   }
   const b = log.builds[at];
   if (entry.roll !== undefined && JSON.stringify(entry.roll) !== JSON.stringify(b.roll)) throw new Error(`build entry refused: ${entry.id}'s identity is ${JSON.stringify(b.roll)}; a build keeps its card's identity (D-286)`);
   if (entry.status === 'queued' && b.status !== 'queued') throw new Error(`build entry refused: ${entry.id} already has a build (${b.status}); a card with a build in the run isn't finalized again: revise it at its design gate, or make a new card from it (D-411)`);
-  for (const k of ['name', 'status', 'guide', 'pobFile']) if (entry[k] !== undefined) b[k] = entry[k];
+  for (const k of ['name', 'status', 'guide', 'pobFile', 'draftFile']) if (entry[k] !== undefined) b[k] = entry[k];
   log.builds[at] = shaped(b);
   return log;
 }
@@ -977,8 +1015,11 @@ export const MEASURED_COLUMNS = ['Key', 'Drops', 'How'];
 export const MEASURED_COLUMNS_A11 = ['Key', 'Left out by', 'Does something'];
 /** D-436: the answers of a Pieces measured row under amendment 11. */
 export const DOES_SOMETHING = /^(?:yes|no|PoB can['’]t see it|not measured \(.+\))$/;
-/** A piece's kind (Appendix A), and its status in a composite: in, scheduled (its own button, set or setup), or out (D-429). */
-export const PIECE_KINDS = ['skill', 'support', 'unique', 'mod', 'node', 'keystone', 'rune', 'config'];
+/**
+ * A piece's kind (Appendix A), and its status in a composite: in, scheduled (its own button, set or setup), or out (D-429).
+ * D-474 (amendment 13): `anoint`, a notable the amulet allocates.
+ */
+export const PIECE_KINDS = ['skill', 'support', 'unique', 'mod', 'node', 'keystone', 'rune', 'config', 'anoint'];
 export const PIECE_STATUSES = ['in', 'scheduled', 'out'];
 /** The mark on a gate-made card's deck line (D-391). */
 export const MADE_MARK = 'made at the gate';
@@ -1498,11 +1539,7 @@ function pitchLines(card, plain, deckLine) {
   if (text(field('Not confirmed'))) out.push(`   Not confirmed: ${plain(field('Not confirmed'))}`);
   for (const g of card.made) out.push(`   Made at the gate (visit ${g.visit}): ${plain(g.text)}`);
   for (const g of card.changed) out.push(`   Changed at the gate (visit ${g.visit}): ${plain(g.text)}`);
-  const cant = deckLine?.parts.find((p) => CANT_FINALIZE.test(p));
-  if (cant) out.push(`   ${plain(cant).replace(/^c/, 'C')}.`);
-  const waits = /^waits on the pin:\s*(.+)$/i.exec(deckLine?.waits ?? '')?.[1];
-  if (waits) out.push(`   Waits on PoB: ${plain(waits)} isn't in the PoB version this run uses, so the build can't be measured yet.`);
-  return out;
+  return [...out, ...cantLines(deckLine, plain)];
 }
 
 const NOT_CONFIRMED = "Not confirmed in game: no card has been played yet; each rests on the game's text and PoB's model. A card says so where one of its key links isn't confirmed even by a lookup.";
@@ -1590,11 +1627,140 @@ function compositeDisplay(dir, log, deck) {
   return [...out, ...reference(ref)];
 }
 
+/**
+ * D-475 (amendment 13): the first one or two sentences of a text, as the brainstorm display's header prints "what they
+ * share"; a sentence ends at `.`, `!` or `?` (a closing quote or bracket kept with it) before a space and its next word.
+ */
+export function firstSentences(t, n = 2) {
+  const s = String(t ?? '').replace(/\s+/g, ' ').trim();
+  return s.split(/(?<=[.!?]["”’)]?)\s+(?=["“‘(]?[A-Z0-9])/).slice(0, n).join(' ');
+}
+/** D-475: the most key pieces a composite's `in:` line shows; the rest are `+ <N> more in cards.md`. */
+export const KEY_PIECES = 8;
+/**
+ * D-475: an `in` piece's rank among a composite's key pieces, by kind: its uniques, then supports, keystones, the
+ * under-played rows, then notables (`node`), then the rest; the table's order within a rank.
+ */
+function keyRank(r) {
+  const kind = String(r.kind).replace(/,\s*under-played\s*$/i, '').trim().toLowerCase();
+  if (kind === 'unique') return 0;
+  if (kind === 'support') return 1;
+  if (kind === 'keystone') return 2;
+  if (r.underPlayed) return 3;
+  if (kind === 'node') return 4;
+  return 5;
+}
+/**
+ * D-475 (Appendix A): a composite's pieces in short under its first line, in a log at 13: `  in: <at most 8 key pieces>`
+ * then `, + <N> more in cards.md` when it takes more, and `  scheduled: <names>`; no `out:` line.
+ */
+function keyPieceLines(card, plain) {
+  const rows = card.pieces?.rows ?? [];
+  const ins = rows.filter((r) => r.status === 'in');
+  const shown = ins.map((r, i) => ({ r, i })).sort((a, b) => keyRank(a.r) - keyRank(b.r) || a.i - b.i).slice(0, KEY_PIECES).map(({ r }) => plain(r.piece));
+  const more = ins.length - shown.length;
+  const scheduled = rows.filter((r) => r.status === 'scheduled').map((r) => plain(r.piece));
+  return [
+    `  in: ${shown.length > 0 ? shown.join(', ') : 'none'}${more > 0 ? `, + ${more} more in cards.md` : ''}`,
+    `  scheduled: ${scheduled.length > 0 ? scheduled.join(', ') : 'none'}`,
+  ];
+}
+/** D-475 (Appendix A): a composite's or a dealt card's first line: `<name>: <structure>; under-played: yes|no`. */
+const firstLine = (d, name, plain) => `${name(d.id)}: ${plain(d.parts[0] ?? 'no structure given')}; under-played: ${d.underPlayed !== null ? 'yes' : 'no'}`;
+/** A dealt card's lines on why it can't be finalized yet, with the entry it waits on (D-303, D-400). */
+function cantLines(deckLine, plain, indent = '   ') {
+  const out = [];
+  const cant = deckLine?.parts.find((p) => CANT_FINALIZE.test(p));
+  if (cant) out.push(`${indent}${plain(cant).replace(/^c/, 'C')}.`);
+  const waits = /^waits on the pin:\s*(.+)$/i.exec(deckLine?.waits ?? '')?.[1];
+  if (waits) out.push(`${indent}Waits on PoB: ${plain(waits)} isn't in the PoB version this run uses, so the build can't be measured yet.`);
+  return out;
+}
+
+/**
+ * D-475 (amendment 13, Appendix A): the brainstorm display of a composite deck in a log at 13: the brief, the header's
+ * first one or two sentences, the not-confirmed sentence; each composite not verified yet, numbered, its first line
+ * (`<n>. <name>: <structure>; under-played: yes|no`), its key pieces and scheduled names, `drawn from`; the superseded
+ * composites, still pickable; the obvious build's line; the plain cards on one line of names; a short round's reason;
+ * the invitation. No "How they differ" and no "For reference": the display's `numbers` map each number to its card id,
+ * which `display` records in the visit's `displays[]` entry.
+ */
+function compositeDisplay13(dir, log, deck) {
+  const out = [briefLine(log), ''];
+  const { cards, name, plain } = cardsOf(dir, deck);
+  if (text(deck.share)) out.push(`What the composites share: ${plain(firstSentences(deck.share))}`);
+  out.push(NOT_CONFIRMED, '');
+  const verified = new Set(stagesOf(log).filter((s) => s.stage === 'R1b').map((s) => s.concept));
+  const numbers = {};
+  let k = 0;
+  const number = (id) => {
+    k += 1;
+    numbers[String(k)] = id;
+    return k;
+  };
+  const superseded = new Set(deck.superseded.map((s) => s.old));
+  const composites = deck.entries.filter((d) => d.round !== null && !verified.has(d.id) && !superseded.has(d.id));
+  for (const d of composites) {
+    const card = cards.get(d.id) ?? parseCard(null);
+    out.push(`${number(d.id)}. ${firstLine(d, name, plain)}`, ...(card.pieces !== null ? keyPieceLines(card, plain) : []), ...drawnFrom(card, '  '), '');
+  }
+  if (composites.length === 0) out.push('No composite is left to verify.', '');
+  const old = deck.superseded.filter((s) => !verified.has(s.old));
+  if (old.length > 0) {
+    out.push('Superseded by a later round, still pickable:', ...old.map((s) => `${number(s.old)}. ${name(s.old)}, superseded by ${s.next === null ? 'a later composite' : name(s.next)}`), '');
+  }
+  const o = deck.obvious;
+  out.push(o === null ? 'The obvious build: none.' : `The obvious build, the baseline as its card was written: ${[name(o.id), ...o.parts.map(plain)].join(' | ')}`, '');
+  const plainCards = deck.entries.filter((d) => d.section === 'Cards' && !verified.has(d.id));
+  const named = plainCards.map((d) => {
+    const hosts = [...new Set((cards.get(d.id) ?? parseCard(null)).external.map(hostOf))];
+    return `${name(d.id)}${hosts.length > 0 ? ` (drawn from ${hosts.join(', ')})` : ''}`;
+  });
+  out.push(`Plain cards: ${named.length > 0 ? named.join(', ') : 'none left to verify'}.`, '');
+  const short = lastStage(log, ASSEMBLY_STAGES)?.shortReason;
+  if (text(short)) out.push(`A short round: ${plain(short)}`, '');
+  out.push(INVITE.composites);
+  out.numbers = numbers;
+  return out;
+}
+
+/**
+ * D-475 (amendment 13): the brainstorm display of a dealt deck in a log at 13, with the composite path's cuts: the
+ * header's first one or two sentences and no "How they differ"; each dealt card not verified yet, numbered, on its first
+ * line (`<n>. <name>: <structure>; under-played: yes|no`), then why it can't be finalized yet and `drawn from`; the
+ * not-dealt cards on one line of names; no "For reference": the numbers go in the visit's `displays[]` entry.
+ */
+function dealtDisplay13(dir, log, deck) {
+  const out = [briefLine(log), ''];
+  const { cards, name, plain } = cardsOf(dir, deck);
+  if (text(deck.share)) out.push(`What the cards share: ${plain(firstSentences(deck.share))}`);
+  out.push(NOT_CONFIRMED, '');
+  const verified = new Set(stagesOf(log).filter((s) => s.stage === 'R1b').map((s) => s.concept));
+  const dealt = deck.entries.filter((d) => d.round !== null && !verified.has(d.id));
+  const numbers = {};
+  dealt.forEach((d, k) => {
+    const card = cards.get(d.id) ?? parseCard(null);
+    numbers[String(k + 1)] = d.id;
+    out.push(`${k + 1}. ${firstLine(d, name, plain)}`, ...cantLines(d, plain), ...drawnFrom(card, '   '), '');
+  });
+  if (dealt.length === 0) out.push('No dealt card is left to verify.', '');
+  const short = lastStage(log, ASSEMBLY_STAGES)?.shortReason;
+  if (text(short)) out.push(`A short round: ${plain(short)}`, '');
+  const notDealt = deck.entries.filter((d) => d.section === 'Not dealt');
+  out.push(`Not dealt: ${notDealt.length > 0 ? notDealt.map((d) => name(d.id)).join(', ') : 'none'}.`, '');
+  out.push('Found, not used:', ...(deck.found.length > 0 ? deck.found.map((f) => `- ${plain(f.text)}`) : ['None.']), '');
+  out.push(INVITE.brainstorm);
+  out.numbers = numbers;
+  return out;
+}
+
 function brainstormDisplay(dir, log) {
   const out = [briefLine(log), ''];
   const deckText = readText(dir, 'cards.md');
   if (deckText === null) return [...out, 'No cards.md in the run folder.'];
   const deck = parseDeck(deckText);
+  // D-475 (amendment 13): a log at 13 prints the cut display on both paths.
+  if (revisionOf(log) >= A13) return composes(log, deck) ? compositeDisplay13(dir, log, deck) : dealtDisplay13(dir, log, deck);
   if (composes(log, deck)) return compositeDisplay(dir, log, deck);
   const { cards, name, plain } = cardsOf(dir, deck);
   if (text(deck.share)) out.push(`What the cards share: ${plain(deck.share)}`);
@@ -2010,11 +2176,20 @@ const BOSS_CUT = /(?:^|;\s*)(cuts .+ against a boss by [\d.]+%)\s*$/;
  * (<reason>).`; a reason ending `; cuts <entry> against a boss by <x>%` prints that cut last; each kind in rank order.
  */
 function tradeLines(r, rec = null) {
-  const order = ['unmodelled', 'boots', 'defence', 'avoidance', 'damage'];
+  const order = ['unmodelled', 'boots', 'defence', 'avoidance', 'damage', 'boss'];
   const trades = objects(r.trades).filter((t) => order.includes(t.kind)).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
   const rows = objects(rec?.measures?.arbiter?.rows);
   return trades.map((t) => {
+    // D-468 (amendment 13, Appendix A): the alternative tree that keeps the start's boss figure, against the gate's figure.
+    if (t.kind === 'boss') {
+      const n = isObj(t.nodes) ? t.nodes : {};
+      const count = (v) => (Array.isArray(v) ? v.length : 0);
+      const b = isObj(r.boss) ? r.boss : {};
+      const now = isNum(b.estimate) ? b.estimate : b.measured;
+      const changes = [isNum(t.damageChange) ? `damage ${signed(t.damageChange)}` : null, isNum(t.ehpChange) ? `EHP ${signed(t.ehpChange)}` : null].filter(Boolean);
+      return `- Boss trade on ${t.stage}: ${stop(t.what)} (remove ${count(n.remove)}, add ${count(n.add)}): boss ${whole(now)} → ${whole(t.bossAfter)}${changes.length > 0 ? `, ${changes.join(', ')}` : ''}.`;
+    }
     const none = /^none found\b/i.test(String(t.what ?? '').trim());
     if (t.kind === 'unmodelled') return `- Kept for ${stop(t.reason)}, which PoB can't measure: ${stop(t.what)}${isNum(t.damageChange) ? ` would ${t.damageChange < 0 ? 'cost' : 'add'} ${pct(Math.abs(t.damageChange))}% damage` : ''}.`;
     if (t.kind === 'boots') return `- Boots: ${stop(t.what)}${text(t.reason) ? `, for ${stop(t.reason)}` : ''}.`;
@@ -2075,6 +2250,56 @@ function designA11(design) {
 export function designA12(design) {
   return objects(design?.rungs).some((r) => 'maxHit' in r || (isObj(r.damage) && 'resisting' in r.damage));
 }
+/** Appendix A (amendment 13): the design rung's additions, beside the boss's `start`, `end`, `entries` and `bossFall`. */
+export const DESIGN_A13_FIELDS = ['life', 'swapCap', 'rebuild', 'removedForOthers', 'levels'];
+/**
+ * Amendment 13 (§22, Appendix A): whether a D1 gate's design field is amendment 13's, read by its own fields: a rung
+ * carries one of `life`, `swapCap`, `rebuild`, `removedForOthers` and `levels`, or its boss a `start`.
+ */
+export function designA13(design) {
+  return objects(design?.rungs).some((r) => DESIGN_A13_FIELDS.some((k) => k in r) || (isObj(r.boss) && 'start' in r.boss));
+}
+/** A path's file name, whichever separator it uses. */
+const baseName = (p) => String(p).split(/[\\/]/).pop();
+/** A change in percent as the boss lines print it: whole, or one decimal under 1, with its sign: `−5%`, `+6%`. */
+const changeWords = (v) => (isNum(v) ? `${v < 0 ? '−' : '+'}${Math.abs(v) < 1 ? pct(Number(Math.abs(v).toFixed(1))) : Math.round(Math.abs(v))}%` : '?');
+/**
+ * D-468 (Appendix A): a rung's boss rotation line on the design display, from the design field alone: the boss figure at
+ * D1-tree's start and end and at the gate (with `boss.floor` on `n`), then each entry's start, end and final figure, a
+ * fall's percent after its end figure (an entry valued by the buff shows its `valuedBy` value and reason instead), and the
+ * designer's reason for a fall, `bossFall.reason`.
+ */
+function bossRotationLines(r) {
+  const b = isObj(r.boss) ? r.boss : null;
+  if (b === null || !('start' in b)) return [];
+  const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
+  const gate = isNum(b.estimate) ? `about ${whole(b.estimate)}` : whole(b.measured);
+  const head = `- Boss rotation on ${r.stage}: ${whole(b.start)} → ${whole(b.end)} on the tree, ${gate} at the gate${isNum(b.floor) ? ` (floor ${whole(b.floor)})` : ''}.`;
+  const entries = objects(b.entries).map((e) => {
+    const v = isObj(e.valuedBy) ? e.valuedBy : null;
+    const fall = v === null && isNum(e.start) && isNum(e.end) && e.start > 0 && e.end < e.start ? ` (${changeWords(((e.end - e.start) / e.start) * 100)})` : '';
+    const valued = v !== null ? ` (valued by ${stop(v.reason)}: ${changeWords(v.figure)} to the rotation, the designer)` : '';
+    return `${stop(e.label)} ${whole(e.start)} → ${whole(e.end)}${fall} → ${whole(e.final)}${valued}`;
+  });
+  const why = isObj(b.bossFall) && text(b.bossFall.reason) ? stop(b.bossFall.reason) : null;
+  if (entries.length > 0) return [`${head} ${entries.join(', ')}${why !== null ? `: ${why} (the designer)` : ''}.`];
+  return [why !== null ? `${head} ${why.charAt(0).toUpperCase()}${why.slice(1)} (the designer).` : head];
+}
+/**
+ * D-467, D-473 (Appendix A): a rung's tree-search lines on the design display, from the design field alone: the swap
+ * cap when it was hit, an undone rebuild and why, each removed passive with lines for another skill, and each damage
+ * skill at +0 levels.
+ */
+function searchLines(r) {
+  const out = [];
+  const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
+  if (isObj(r.swapCap)) out.push(`- Swap cap on ${r.stage}: ${isNum(r.swapCap.swaps) ? r.swapCap.swaps : '?'} swaps, the last ${isNum(r.swapCap.lastGain) ? `+${pct(r.swapCap.lastGain)}%` : 'gain not recorded'}.`);
+  const undone = /^undone:\s*(.+)$/s.exec(String(r.rebuild ?? ''));
+  if (undone) out.push(`- Rebuild undone on ${r.stage}: ${stop(undone[1])}.`);
+  for (const x of objects(r.removedForOthers)) out.push(`- Removed on ${r.stage}: ${Array.isArray(x.names) ? x.names.map(stop).join(', ') : stop(x.names)}: lines for ${stop(x.skill)}.`);
+  for (const x of objects(r.levels)) out.push(`- Skill levels on ${r.stage}: ${stop(x.skill)} +${isNum(x.plus) ? x.plus : 0}.`);
+  return out;
+}
 
 function designDisplay(dir, log, id) {
   const s = lastStage(log, ['D1-gate'], id);
@@ -2093,8 +2318,14 @@ function designDisplay(dir, log, id) {
   // Amendment 12 (§22): a design field with `maxHit` or the resisting figure shows the Arbiter's deciding row, the lowest
   // max hit, the resisting figure, the non-budget rung's toughness reading and the new trades; the floor from the targets file.
   const a12 = designA12(gate.design);
+  // Amendment 13 (§22): a design field with Appendix A's additions shows the boss rotation, Life, the swap cap, an undone
+  // rebuild, the removed passives and the skill levels, from its own fields.
+  const a13 = designA13(gate.design);
   const floor = arbiterFloor() ?? ARBITER_FLOOR;
   const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a12 ? PACE_FIRST_A12 : a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
+  // D-466 (Appendix A): the draft's one home is the run log's builds[].draftFile; its name, once.
+  const draft = objects(log.builds).find((b) => b.id === s.concept)?.draftFile;
+  if (text(draft)) out.push(`- Draft PoB file: ${baseName(draft)}, in your builds list.`, '');
   // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
   if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces, a11), '');
   for (const r of objects(gate.design.rungs)) {
@@ -2113,6 +2344,8 @@ function designDisplay(dir, log, id) {
     // amendment 11 has `dps` alone).
     if (isObj(r.damage)) out.push(...damageLines(r, sourceSkill(plan, rec, r.stage)));
     else out.push(`- Damage: ${whole(r.dps)} per second.`);
+    // D-468 (amendment 13): the boss rotation, each entry's start, end and final figure, and the designer's reason.
+    if (a13) out.push(...bossRotationLines(r));
     // D-423: the Effective HP line names the hit it was measured against (the rung's `ehpHit`), so it compares with
     // the dossier's EHP at the verification gate. D-449: on n, the share of it chance layers make.
     if (!(a12 && isNum(r.toughness?.chanceShare))) out.push(`- Effective HP: ${whole(r.ehp)}${text(r.ehpHit) ? ` (against ${r.ehpHit.trim()})` : ''}.`);
@@ -2120,9 +2353,13 @@ function designDisplay(dir, log, id) {
     // D-441: the non-budget rung's EHP against its target, with the engagement and the band; D-449, then its
     // conditioned read, the ailment line and the warning.
     if (isObj(r.toughness) && isNum(r.toughness.target)) out.push(toughnessLine(r), ...(a12 ? toughnessLines12(r) : []));
+    // D-467 (amendment 13): Life at D1-tree's start and end, shown though it isn't a target.
+    if (a13 && isObj(r.life)) out.push(`- Life on ${r.stage}: ${whole(r.life.start)} → ${whole(r.life.end)} (EHP and the lowest max hit held their start).`);
     for (const [k, label] of [['anoint', 'Anoint'], ['gear', 'Gear'], ['gems', 'Gems'], ['tree', 'Passive tree']]) if (text(r[k])) out.push(`- ${label}: ${r[k]}`);
     // D-419: schema 4's tree is the node-power summary, its needs one line each.
     if (isObj(r.tree)) out.push(...treeLines(r.tree, swapLabel(a11, r.tree, plan, r.stage)));
+    // D-467, D-473 (amendment 13): the swap cap, an undone rebuild, the removed passives and the skill levels.
+    if (a13) out.push(...searchLines(r));
     // D-439…D-441, D-448, D-450: the trades the user may take or leave.
     out.push(...tradeLines(r, rec));
     out.push('');
@@ -2150,8 +2387,12 @@ async function finalDisplay(dir, log, id) {
     `The guide${card ? ` for ${name(card)}` : ''}: ${at('guide.md')}`,
     `Its audit, how each number was checked: ${at('audit.md')}`,
     `Your PoB file: ${d2gate?.finalCompile?.pobFile ?? "none: the final compile didn't run"}`,
-    '',
   ];
+  // D-466 (Appendix A): the draft F1 couldn't remove (changed on disk, or not this build's), its verdict's `draftLeft`.
+  const f1 = lastStage(log, ['F1'], card);
+  const left = f1 ? readJson(dir, verdictFile(f1))?.draftLeft : null;
+  if (text(left)) out.push(`Your draft PoB file stays: ${baseName(left)}, which F1 didn't remove: it changed on disk, or this build didn't write it.`);
+  out.push('');
   let checker;
   try {
     const { checkRun } = await import('./check-run.mjs');
@@ -2283,7 +2524,8 @@ export async function display(runFolder, gate, build) {
   const body = await DISPLAYS[gate](runFolder, log, build);
   if (!Array.isArray(log.displays)) log.displays = [];
   if (!log.displays.some((d) => isObj(d) && d.checkpoint === gate && d.visit === visit)) {
-    log.displays.push({ checkpoint: gate, visit });
+    // D-475 (amendment 13, Appendix A): the brainstorm display's number-to-id map, so the runner maps the user's numbers.
+    log.displays.push({ checkpoint: gate, visit, ...(isObj(body.numbers) ? { numbers: body.numbers } : {}) });
     saveLog(file, log);
   }
   const title = gate === 'escalation' ? `## Escalation, visit ${visit}` : `## The ${gate} gate, visit ${visit}`;

@@ -56,6 +56,10 @@
 //  - the stage table's `Damage, map / resisting / boss` on endgame rungs once a record carries
 //    `measures.damage.resisting`, the figure against the map enemy with 40% fire, cold and lightning resistance (D-454).
 //
+// Amendment 13 (WU-130; D-464, D-472): a pinned weapon's Swap slot (`{slot, sameAs}`) is the set-1 slot's item, priced
+// once by that slot's entry, so `rungBudget` and the seen total count it once for both; a build held to revision 13
+// prices no flask, so `rungBudget` with `flasksUnpriced` counts no Flask slot.
+//
 // Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js` and the conversion table
 // `data/economy/prices.json`. No network. Exit 0: audit.md written (one line on stdout). Exit 1: an input is
 // missing or unreadable (stderr). Exit 2: usage error.
@@ -180,7 +184,9 @@ function seenTotal(s, plan, budget) {
   const prices = new Map(list(plan?.prices).map((p) => [p.id, p]));
   const sums = new Map();
   let date = null;
-  for (const x of list(budget?.slots).filter((y) => y.stage === s.id)) {
+  // D-464: a pinned weapon's Swap slot is the set-1 slot's item, counted once, as rungBudget counts it.
+  const pinned = pinnedSlots(s);
+  for (const x of list(budget?.slots).filter((y) => y.stage === s.id && !pinned.has(y.slot))) {
     const p = prices.get(x.priceId);
     if (!isObj(p) || p.status !== 'ok' || !isNum(p.amount) || typeof p.currency !== 'string') return null;
     sums.set(p.currency, (sums.get(p.currency) ?? 0) + p.amount);
@@ -192,10 +198,22 @@ function seenTotal(s, plan, budget) {
 }
 
 /** The recorded rates by currency (`basis.budget.rates`); a divine counts 1. */
-const ratesOf = (budget) => new Map(list(budget?.rates).filter((r) => isNum(r.divines)).map((r) => [String(r.currency).toLowerCase(), r.divines]));
+export const ratesOf = (budget) => new Map(list(budget?.rates).filter((r) => isNum(r.divines)).map((r) => [String(r.currency).toLowerCase(), r.divines]));
+
+/**
+ * D-464 (amendment 13): a stage's pinned weapon slots, the Swap slots whose entry is `{slot, sameAs}` naming the set-1
+ * slot the stage fills: one item in both slots, priced once, by the set-1 slot's entry.
+ */
+export function pinnedSlots(stage) {
+  const slots = list(stage?.items?.slots);
+  const filled = new Set(slots.filter((s) => typeof s.text === 'string').map((s) => s.slot));
+  return new Map(slots.filter((s) => typeof s.sameAs === 'string' && filled.has(s.sameAs)).map((s) => [s.slot, s.sameAs]));
+}
+/** D-472 (amendment 13): a flask slot, `Flask <n>`, which a build held to revision 13 doesn't price. */
+export const FLASK_SLOT = /^Flask \d+$/;
 
 /** Step 2: an `ok` entry's price in divines, unrounded; null when it isn't `ok` or its currency has no rate. */
-function divinesOf(price, rates) {
+export function divinesOf(price, rates) {
   if (!isObj(price) || price.status !== 'ok' || !isNum(price.amount) || typeof price.currency !== 'string') return null;
   const currency = price.currency.toLowerCase();
   const rate = rates.has(currency) ? rates.get(currency) : /^divine/.test(currency) ? 1 : undefined;
@@ -238,12 +256,17 @@ export function rangeAt(p, day, market, table) {
  * lists, on `b` and `n`, each entry with a `query.target` whose midpoint is above `query.target.divines`, named by
  * the first slot that maps to it, and on `m` the total when its midpoint is above 5. `ranges` maps each priceId the
  * stage's slots name to its range, or null. Every value is unrounded.
+ *
+ * Amendment 13: a pinned weapon's Swap slot (`sameAs`, D-464) is the set-1 slot's item, so a map of it counts in no
+ * total (the set-1 slot's entry counts once for both); with `flasksUnpriced` (a build held to revision 13, D-472), a
+ * Flask slot's map counts in none either.
  */
-export function rungBudget(stage, plan, budget, market, table) {
+export function rungBudget(stage, plan, budget, market, table, opts = {}) {
   const day = PRICE_DAY[stage.variant];
   const prices = new Map(list(plan?.prices).map((p) => [p.id, p]));
   const rates = ratesOf(budget);
-  const maps = list(budget?.slots).filter((x) => x.stage === stage.id);
+  const pinned = pinnedSlots(stage);
+  const maps = list(budget?.slots).filter((x) => x.stage === stage.id && !pinned.has(x.slot) && !(opts.flasksUnpriced === true && FLASK_SLOT.test(String(x.slot ?? ''))));
   const ranges = new Map();
   let [low, high, known] = [0, 0, true];
   for (const x of maps) {

@@ -35,6 +35,11 @@
  * (when the target was the loaded file, `loaded.fingerprint` before the load replaced it), so a PoB2 save
  * that lands between the check and the write is still refused.
  *
+ * `deleteBuildFile({name, sha1?})` (D-466, the draft mode's `remove_draft`) removes a file under the same
+ * per-path lock: the path as step 1 resolves it; the file must exist, match `sha1` when given (the write
+ * ledger's) and pass step 3's changed-on-disk guard; it is copied to `<stateDir>/backups/<relpath>/<id>_before-delete.xml`
+ * first (a backup failure leaves it in place), then unlinked, and the writer forgets its fingerprints.
+ *
  * Errors are thrown as `BuildFileWriteError` (handlers fail by throwing; the router makes them `isError`).
  */
 import crypto from "crypto";
@@ -123,6 +128,23 @@ export interface WriteBuildFileResult {
   notices: string[];
   /** The tool's text: the relative path, the byte count and, on a replace, the PoB2 re-open hint. */
   message: string;
+}
+
+export interface DeleteBuildFileRequest {
+  /** Build name relative to `POB_DIRECTORY`; `.xml` is appended when missing. */
+  name: string;
+  /** The sha1 the file's bytes must have (the write ledger's, D-466); any other refuses the delete. */
+  sha1?: string;
+}
+
+export interface DeleteBuildFileResult {
+  /** Canonical POSIX path relative to `POB_DIRECTORY`. */
+  path: string;
+  absPath: string;
+  /** The deleted file's size. */
+  bytes: number;
+  /** Absolute path of the backup taken before the delete. */
+  backupPath: string;
 }
 
 /** A refused or failed build-file write (C-17); the message is the user-facing text. */
@@ -268,6 +290,43 @@ export class BuildFileWriter {
 
     const message = `Saved ${rel} (${bytes.length} bytes).` + (current ? ` ${REOPEN_HINT}` : "");
     return { path: rel, absPath: target, bytes: bytes.length, replaced: current !== null, backupPath, fingerprint, notices, message };
+  }
+
+  /**
+   * D-466: delete a build file, backed up first (`_before-delete`). Refused when the file is missing, when its bytes
+   * don't hash to `req.sha1`, or when step 3's guard finds it changed since this process last knew it.
+   */
+  async deleteBuildFile(req: DeleteBuildFileRequest): Promise<DeleteBuildFileResult> {
+    const { rel, target } = await this.resolve(req.name);
+    return this.withTargetLock(target, async () => {
+      const current = await this.read(target);
+      if (!current) throw new BuildFileWriteError(`${rel} doesn't exist, so it was not deleted.`);
+      if (req.sha1 !== undefined && sha1(current.bytes) !== req.sha1) {
+        throw new BuildFileWriteError(
+          `${rel} changed on disk since it was written (probably saved in PoB2), so it was not deleted.`,
+        );
+      }
+      this.checkUnchanged(rel, current, this.references(rel, target, "bytes"));
+      let backupPath: string;
+      try {
+        backupPath = await this.backup(rel, target, "before-delete");
+      } catch (error) {
+        throw new BuildFileWriteError(`could not back up ${rel} before deleting it, so it was not deleted: ${osError(error)}`);
+      }
+      try {
+        await this.fs.unlink(target);
+      } catch (error) {
+        throw new BuildFileWriteError(`could not delete ${rel} (${target}): ${osError(error)}. It is backed up at ${backupPath}.`);
+      }
+      this.written.delete(target);
+      this.engineKnown.delete(target);
+      try {
+        this.opts.onWritten?.(rel);
+      } catch (error) {
+        console.error(`[Build File Writer] cache invalidation for ${rel} failed: ${osError(error)}`);
+      }
+      return { path: rel, absPath: target, bytes: current.bytes.length, backupPath };
+    });
   }
 
   /**

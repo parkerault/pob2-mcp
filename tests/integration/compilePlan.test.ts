@@ -1019,7 +1019,16 @@ describe('AC-P38 (D-216): the plan tools\' metadata and schema (static)', () => 
     expect(TOOL_META.guide_run).toEqual({ engine: 'read', group: 'core' });
     const schema = getLuaToolSchemas().find((t) => t.name === 'compile_plan');
     expect(schema).toBeDefined();
-    expect(Object.keys(schema.inputSchema.properties).sort()).toEqual(['build_name', 'measure_only', 'plan_path', 'stages']);
+    // D-466 (AC-K78): first_free, draft_name and remove_draft join the compile modes' arguments.
+    expect(Object.keys(schema.inputSchema.properties).sort()).toEqual([
+      'build_name',
+      'draft_name',
+      'first_free',
+      'measure_only',
+      'plan_path',
+      'remove_draft',
+      'stages',
+    ]);
     expect(schema.inputSchema.properties).not.toHaveProperty('new_run');
     expect(schema.inputSchema.properties).not.toHaveProperty('validate_only');
   });

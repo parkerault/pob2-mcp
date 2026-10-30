@@ -172,7 +172,15 @@ import {
 } from './schema.js';
 import type { SourceTag } from './sourceTag.js';
 import { restoreConfigInputs, savedConfigProblems, type ConfigSetInputs } from './savedConfig.js';
-import { ledgerEntryFor, readWriteLedger, withLedgerEntry, writeWriteLedger } from './writeLedger.js';
+import {
+  freeForBuild,
+  ledgerEntryFor,
+  readWriteLedger,
+  updateWriteLedger,
+  withLedgerEntry,
+  withoutLedgerEntry,
+  type WriteLedger,
+} from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
 import { checkV1, DEFENCE_CHECKS_SINCE, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
@@ -207,9 +215,14 @@ export interface CompilerEnv {
   wallClock: () => Date;
 }
 
+/**
+ * A compile (C-41): measure-only, or final. A final compile with `firstFree` (D-466: a build's first final write, or
+ * its campaign's) cleans `buildName` and writes the first free of `<name>`, `<name> <run date>` and
+ * `<name> <run date> <k>` (`firstFreeName`).
+ */
 export type CompileRequest =
   | { mode: 'measure-only'; planPath: string; stages?: string[] }
-  | { mode: 'final'; planPath: string; buildName: string };
+  | { mode: 'final'; planPath: string; buildName: string; firstFree?: boolean };
 
 export interface CompileResult {
   planPath: string;
@@ -943,6 +956,8 @@ function changedOnDisk(rel: string): BuildFileWriteError {
 }
 
 interface TargetCheck {
+  /** The build name written: `buildName`, or under `first_free` the free name chosen (D-466). */
+  name: string;
   rel: string;
   guard: WriteGuard;
   overwrite: boolean;
@@ -963,15 +978,22 @@ async function readIfExists(file: string): Promise<Buffer | null> {
  * A new target is written as a new file. An existing one may be overwritten only when the write ledger's
  * entry for its canonical path names this plan's run folder and the file's current sha1 equals the
  * entry's; otherwise C-17's "already exists" text (no entry, or another run's) or its changed-on-disk text
- * (this run's entry, another sha1). C-17's own guard still applies.
+ * (this run's entry, another sha1). C-17's own guard still applies. With `firstFree` (D-466), the target is
+ * the first free name for this build (`firstFreeName`), which is new or this build's own unchanged file.
  */
-async function checkTarget(env: CompilerEnv, buildName: string, runFolder: string): Promise<TargetCheck> {
+async function checkTarget(
+  env: CompilerEnv,
+  buildName: string,
+  runFolder: string,
+  firstFree?: { plan: string },
+): Promise<TargetCheck> {
   const ledger = await readWriteLedger(env.stateDir);
-  const rel = await canonicalBuildPath(buildName, env.pobDirectory);
+  const name = firstFree ? await firstFreeName(env.pobDirectory, ledger, buildName, runFolder, firstFree.plan) : buildName;
+  const rel = await canonicalBuildPath(name, env.pobDirectory);
   const current = await readIfExists(path.join(path.resolve(env.pobDirectory), ...rel.split('/')));
   if (current === null) {
-    const guard = await env.writer.checkBuildFile({ name: buildName, kind: 'engine' });
-    return { rel, guard, overwrite: false, existingSha1: null };
+    const guard = await env.writer.checkBuildFile({ name, kind: 'engine' });
+    return { name, rel, guard, overwrite: false, existingSha1: null };
   }
   const entry = ledgerEntryFor(ledger, rel);
   if (entry === undefined || entry.runFolder !== runFolder) {
@@ -985,8 +1007,8 @@ async function checkTarget(env: CompilerEnv, buildName: string, runFolder: strin
   }
   const currentSha1 = sha1(current);
   if (currentSha1 !== entry.sha1) throw changedOnDisk(rel);
-  const guard = await env.writer.checkBuildFile({ name: buildName, kind: 'engine', overwrite: true });
-  return { rel, guard, overwrite: true, existingSha1: currentSha1 };
+  const guard = await env.writer.checkBuildFile({ name, kind: 'engine', overwrite: true });
+  return { name, rel, guard, overwrite: true, existingSha1: currentSha1 };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -1216,7 +1238,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
           `<slug>/<YYYY-MM-DD>-<n>/plan.json, as guide_run {new_run} creates it (the write ledger is keyed by the run folder, D-211)`,
       );
     }
-    target = await checkTarget(env, request.buildName, runFolder);
+    target = await checkTarget(env, request.buildName, runFolder, request.firstFree ? { plan: loaded.relPath } : undefined);
   }
 
   // 5. The read-only preflight (A-P12).
@@ -1370,7 +1392,7 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       if (now !== null && sha1(now) !== target.existingSha1) throw changedOnDisk(target.rel);
     }
     const saved = await env.writer.writeBuildFile({
-      name: request.buildName,
+      name: target.name,
       bytes: xmlBytes,
       kind: 'engine',
       overwrite: target.overwrite,
@@ -1378,16 +1400,17 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       ctx,
     });
     replacedFile = saved.replaced;
-    // At once after the file: a failure later still leaves the entry, so a retry may overwrite (D-211).
-    await writeWriteLedger(
-      env.stateDir,
-      withLedgerEntry(await readWriteLedger(env.stateDir), {
-        path: saved.path,
-        sha1: saved.fingerprint.sha1,
-        runFolder,
-        writtenAt: env.wallClock().toISOString(),
-      }),
-    );
+    // At once after the file: a failure later still leaves the entry, so a retry may overwrite (D-211). D-466: the
+    // entry names its kind and the plan that wrote it.
+    const entry = {
+      path: saved.path,
+      sha1: saved.fingerprint.sha1,
+      runFolder,
+      writtenAt: env.wallClock().toISOString(),
+      kind: 'final' as const,
+      plan: loaded.relPath,
+    };
+    await updateWriteLedger(env.stateDir, async (ledger) => ({ ledger: withLedgerEntry(ledger, entry), value: undefined }));
     written.builds.push(saved.path);
     pobFile = { location: 'builds', path: saved.path, sha1: saved.fingerprint.sha1, bytes: saved.bytes };
   } else {
@@ -1563,4 +1586,231 @@ export async function validatePlanFile(
   // C-50: unknown producers are listed, not defects (V2 reports them at compile time, D-221).
   const unknownProducers = check.producers.filter((p) => !p.exists).map(({ kind, name }) => ({ kind, name }));
   return { stages: loaded.compiled.map((s) => s.id), unknownProducers };
+}
+
+// ---------------------------------------------------------------------------------------------------
+// D-466: the files' names, the draft mode and its delete
+
+/** The characters Windows refuses in a file name (D-466): each is replaced with a space. */
+const WINDOWS_REFUSED = /[<>:"/\\|?*]/g;
+/** A Windows device name, whole (compared without case): such a name gains " (build)". */
+const DEVICE_NAME = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+/** How many numbered names (`<name> <date> <k>`, ` (draft <k>)`) are tried before a write is refused. */
+const MAX_NAME_TRIES = 99;
+const CAMPAIGN_SUFFIX = / \(campaign\)$/i;
+
+/**
+ * A build's name cleaned for the builds folder (D-466): an `.xml` ending dropped, each character Windows refuses
+ * (`< > : " / \ | ? *`) replaced with a space, runs of spaces made one, leading spaces and trailing dots and spaces
+ * removed; a name that is a Windows device name whole (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9) gains " (build)".
+ * Throws when nothing is left.
+ */
+export function cleanBuildName(name: string): string {
+  const cleaned = name
+    .replace(/\.xml$/i, '')
+    .replace(WINDOWS_REFUSED, ' ')
+    .replace(/ {2,}/g, ' ')
+    .replace(/^ +/, '')
+    .replace(/[. ]+$/, '');
+  if (cleaned === '') throw new CompileError(`the name ${JSON.stringify(name)} has nothing left once cleaned for the builds folder (D-466)`);
+  return DEVICE_NAME.test(cleaned) ? `${cleaned} (build)` : cleaned;
+}
+
+/** The run date of a run folder `<slug>/<YYYY-MM-DD>-<n>`. */
+function runDateOf(runFolder: string): string {
+  const date = /^(\d{4}-\d{2}-\d{2})-\d+$/.exec(runFolder.split('/')[1] ?? '')?.[1];
+  if (date === undefined) {
+    throw new CompileError(`first_free needs the run folder's date: ${runFolder} isn't <slug>/<YYYY-MM-DD>-<n>, as guide_run {new_run} makes it`);
+  }
+  return date;
+}
+
+/** The names a `first_free` write tries, in order (D-466): `<name>`, `<name> <date>`, then `<name> <date> <k>` from 2. */
+export function firstFreeCandidates(name: string, runDate: string, tries = MAX_NAME_TRIES): string[] {
+  const cleaned = cleanBuildName(name);
+  // A campaign's name ends " (campaign)" after the date.
+  const suffix = CAMPAIGN_SUFFIX.exec(cleaned)?.[0] ?? '';
+  const base = cleaned.slice(0, cleaned.length - suffix.length);
+  const out = [`${base}${suffix}`, `${base} ${runDate}${suffix}`];
+  for (let k = 2; out.length < tries; k += 1) out.push(`${base} ${runDate} ${k}${suffix}`);
+  return out;
+}
+
+/** The draft names a build tries, in order (D-466): `<name> (draft)`, then `<name> (draft <k>)` from 2. */
+export function draftCandidates(name: string, tries = MAX_NAME_TRIES): string[] {
+  const cleaned = cleanBuildName(name);
+  const out = [`${cleaned} (draft)`];
+  for (let k = 2; out.length < tries; k += 1) out.push(`${cleaned} (draft ${k})`);
+  return out;
+}
+
+/** A candidate's canonical path (D-52: an existing file's casing) and the sha1 of the file there, null for none. */
+async function onDisk(pobDirectory: string, name: string): Promise<{ rel: string; sha1: string | null }> {
+  const rel = await canonicalBuildPath(name, pobDirectory);
+  const bytes = await readIfExists(path.join(path.resolve(pobDirectory), ...rel.split('/')));
+  return { rel, sha1: bytes === null ? null : sha1(bytes) };
+}
+
+/** The first of `candidates` free for the build whose plan is `plan` (`freeForBuild`), with the paths passed over. */
+async function firstFreeOf(
+  pobDirectory: string,
+  ledger: WriteLedger,
+  candidates: readonly string[],
+  plan: string,
+): Promise<{ name: string; rel: string; existed: boolean; passed: string[] }> {
+  const passed: string[] = [];
+  for (const name of candidates) {
+    const { rel, sha1: found } = await onDisk(pobDirectory, name);
+    if (freeForBuild(ledger, rel, found, plan)) return { name, rel, existed: found !== null, passed };
+    passed.push(rel);
+  }
+  throw new BuildFileWriteError(
+    `none of ${candidates.length} names from "${candidates[0]}" is free in the builds folder (each holds a file another ` +
+      'build or run wrote, or one changed on disk). Rename or move some of them, or choose another name.',
+  );
+}
+
+/** D-466: the name a `first_free` final compile writes. */
+async function firstFreeName(pobDirectory: string, ledger: WriteLedger, buildName: string, runFolder: string, plan: string): Promise<string> {
+  return (await firstFreeOf(pobDirectory, ledger, firstFreeCandidates(buildName, runDateOf(runFolder)), plan)).name;
+}
+
+/** What the draft mode and its delete need of the server (no engine, D-466). */
+export interface DraftEnv {
+  pobDirectory: string;
+  stateDir: string;
+  guidesDirectory: string;
+  writer: Pick<BuildFileWriter, 'writeBuildFile' | 'deleteBuildFile'>;
+  /** The wall clock, for the ledger entry's `writtenAt`. */
+  wallClock: () => Date;
+}
+
+/** A plan found in the guides root, as the ledger keys it: its path relative to the root's real path, and its run folder. */
+interface PlanPlace {
+  realDir: string;
+  relPath: string;
+  relDir: string;
+  runFolder: string;
+}
+
+async function planPlace(env: DraftEnv, planPath: string): Promise<PlanPlace> {
+  await checkGuidesRoot(env.guidesDirectory, env.pobDirectory);
+  const realPath = await resolveInGuidesRoot(env.guidesDirectory, planPath, 'plan_path');
+  const realRoot = await realPathInGuides(env.guidesDirectory);
+  const relPath = path.relative(realRoot, realPath).split(path.sep).join('/');
+  if (relPath.includes('\\')) {
+    throw new CompileError(`plan_path "${planPath}" resolves to ${relPath} in the guides root, whose folder names hold a backslash`);
+  }
+  const runFolder = runFolderOf(relPath);
+  if (runFolder === null) {
+    throw new CompileError(
+      `plan_path "${planPath}" is not inside a run folder: a draft needs the plan at <slug>/<YYYY-MM-DD>-<n>/…/plan.json ` +
+        '(the write ledger is keyed by the run folder, D-211)',
+    );
+  }
+  const relDir = path.posix.dirname(relPath);
+  return { realDir: path.dirname(realPath), relPath, relDir, runFolder };
+}
+
+/** A file beside the plan, read through the guides root's confinement; null when it doesn't exist. */
+async function besidePlan(env: DraftEnv, place: PlanPlace, name: string): Promise<Buffer | null> {
+  const rel = place.relDir === '.' ? name : `${place.relDir}/${name}`;
+  return readIfExists(await resolveInGuidesRoot(env.guidesDirectory, rel, name));
+}
+
+/**
+ * The draft refusals (D-466): the draft is the whole plan as the gate saw it, so the record beside the plan must be a
+ * measure-only compile of every stage of the plan as it is now, and `compiled-build.xml` the XML it wrote.
+ */
+async function draftSource(env: DraftEnv, planPath: string, place: PlanPlace): Promise<Buffer> {
+  const refused = (why: string) => new CompileError(`no draft was written for ${planPath}: ${why}. Nothing was written.`);
+  const planBytes = await besidePlan(env, place, path.posix.basename(place.relPath));
+  if (planBytes === null) throw refused(`plan_path names no file in the guides root ${env.guidesDirectory}`);
+  const recordBytes = await besidePlan(env, place, RECORD_FILE);
+  if (recordBytes === null) throw refused(`there is no ${RECORD_FILE} beside the plan; compile it with measure_only: true first`);
+  let record: Partial<CompileRecord>;
+  let plan: { stages?: unknown };
+  try {
+    record = JSON.parse(recordBytes.toString('utf8')) as Partial<CompileRecord>;
+    plan = JSON.parse(planBytes.toString('utf8')) as { stages?: unknown };
+  } catch (error) {
+    throw refused(`the plan or its ${RECORD_FILE} isn't JSON (${(error as Error).message})`);
+  }
+  if (record === null || typeof record !== 'object' || record.recordVersion !== RECORD_VERSION) {
+    throw refused(`${RECORD_FILE} isn't a version-${RECORD_VERSION} compile record; compile with measure_only: true again`);
+  }
+  if (record.planSha1 !== sha1(planBytes)) {
+    throw refused(`the plan changed since its last compile (${RECORD_FILE}'s planSha1 is another plan's); compile it with measure_only: true again`);
+  }
+  if (record.mode !== 'measure-only') {
+    throw refused(`the plan's last compile was a ${String(record.mode)} compile; the draft copies a measure-only compile's ${MEASURE_ONLY_XML_FILE}`);
+  }
+  const planIds = Array.isArray(plan.stages) ? plan.stages.map((st) => (st as { id?: unknown } | null)?.id) : [];
+  const compiled = Array.isArray(record.stagesCompiled) ? record.stagesCompiled : [];
+  if (planIds.length === 0 || compiled.length !== planIds.length || compiled.some((id, i) => id !== planIds[i])) {
+    throw refused(
+      `the plan's last compile named stages (${compiled.join(', ') || 'none'} of ${planIds.map(String).join(', ')}); the draft is the whole ` +
+        'plan, so compile it with measure_only: true and no stages first',
+    );
+  }
+  const xml = await besidePlan(env, place, MEASURE_ONLY_XML_FILE);
+  if (xml === null || record.pobFile?.location !== 'run' || record.pobFile.sha1 !== sha1(xml)) {
+    throw refused(`${MEASURE_ONLY_XML_FILE} beside the plan isn't the one its last compile wrote; compile it with measure_only: true again`);
+  }
+  return xml;
+}
+
+/** The draft mode's result (D-466): the file written, and the draft names passed over for it. */
+export interface DraftWriteResult {
+  path: string;
+  replaced: boolean;
+  /** Earlier draft names this build couldn't use: changed on disk, or not this build's. */
+  passed: string[];
+}
+
+/**
+ * `compile_plan {plan_path, draft_name}` (D-466): copy the plan's last whole-plan measure-only `compiled-build.xml`
+ * into the builds folder as `<cleaned name> (draft).xml` (or ` (draft <k>)` when that file is one the user changed or
+ * this build didn't write), through C-17 (kind `bytes`) and the write ledger (`kind: draft`, `plan`). No engine.
+ */
+export async function writeDraft(env: DraftEnv, planPath: string, draftName: string): Promise<DraftWriteResult> {
+  const place = await planPlace(env, planPath);
+  const candidates = draftCandidates(draftName);
+  const bytes = await draftSource(env, planPath, place);
+  return updateWriteLedger(env.stateDir, async (ledger) => {
+    const chosen = await firstFreeOf(env.pobDirectory, ledger, candidates, place.relPath);
+    const saved = await env.writer.writeBuildFile({ name: chosen.rel, bytes, kind: 'bytes', overwrite: chosen.existed });
+    const entry = {
+      path: saved.path,
+      sha1: saved.fingerprint.sha1,
+      runFolder: place.runFolder,
+      writtenAt: env.wallClock().toISOString(),
+      kind: 'draft' as const,
+      plan: place.relPath,
+    };
+    return { ledger: withLedgerEntry(ledger, entry), value: { path: saved.path, replaced: saved.replaced, passed: chosen.passed } };
+  });
+}
+
+/**
+ * `compile_plan {plan_path, remove_draft}` (D-466): delete a draft this build wrote, unchanged on disk, through C-17's
+ * delete (backed up first), and drop its ledger entry. Anything else is refused and nothing is deleted. No engine.
+ */
+export async function removeDraft(env: DraftEnv, planPath: string, draftPath: string): Promise<{ path: string; backupPath: string }> {
+  const place = await planPlace(env, planPath);
+  const rel = await canonicalBuildPath(draftPath, env.pobDirectory);
+  return updateWriteLedger(env.stateDir, async (ledger) => {
+    const refused = (why: string) => new BuildFileWriteError(`${rel} was not deleted: ${why}. Nothing was deleted.`);
+    const entry = ledgerEntryFor(ledger, rel);
+    if (entry === undefined) throw refused('no compile_plan wrote it (the write ledger has no entry for it)');
+    if (entry.kind !== 'draft') throw refused("it is a build's final file, not a draft");
+    if (entry.plan !== place.relPath) {
+      throw refused(`it is a draft of another build (${entry.plan ?? `run ${entry.runFolder}`}), not of ${place.relPath}`);
+    }
+    const { sha1: found } = await onDisk(env.pobDirectory, rel);
+    if (found === null) throw refused("it doesn't exist");
+    if (found !== entry.sha1) throw refused('it changed on disk since this build wrote it (probably saved in PoB2)');
+    const deleted = await env.writer.deleteBuildFile({ name: rel, sha1: entry.sha1 });
+    return { ledger: withoutLedgerEntry(ledger, rel), value: { path: deleted.path, backupPath: deleted.backupPath } };
+  });
 }

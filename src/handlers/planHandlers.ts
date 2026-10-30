@@ -4,8 +4,12 @@
  * - `compile_plan {plan_path, build_name | measure_only, stages?}` compiles a plan.json in the guides root
  *   into one PoB2 build with a loadout per stage (`src/plan/compiler.ts`). Measure-only mode writes the
  *   compile record and the compiled XML beside the plan; final mode writes the builds-folder file through
- *   C-17, its write-ledger entry (D-211) and the record. Kind `load`: the call replaces the engine's
- *   build (D-191, D-210).
+ *   C-17, its write-ledger entry (D-211) and the record, under `first_free` (D-466) at the first free of the
+ *   cleaned name, the name with the run date, and the dated name numbered. Kind `load`: the call replaces the
+ *   engine's build (D-191, D-210).
+ * - `compile_plan {plan_path, draft_name}` and `{plan_path, remove_draft}` (D-466) write the design gate's draft,
+ *   a copy of the plan's last whole-plan measure-only XML, as `<name> (draft).xml` in the builds folder, or delete
+ *   a draft this build wrote; the router runs both as kind `none`: no engine.
  * - `guide_run {new_run}` creates the next run folder `<slug>/<YYYY-MM-DD>-<n>` (D-207) and says whether the
  *   engine's build has unsaved changes the next compile would discard (D-210); it never touches the
  *   engine (the router runs it as kind `none`, D-216). `guide_run {validate, stages?}` checks a plan
@@ -29,7 +33,16 @@ import type { BuildFileWriter } from '../services/buildFileWriter.js';
 import { readPin } from '../engine/pinCheck.js';
 import { checkGuidesRoot, createRunFolder, realPathInGuides, resolveInGuidesRoot } from '../utils/guidesPath.js';
 import { wrapHandler } from '../utils/errorHandling.js';
-import { compilePlan, keyFigureLine, validatePlanFile, type CompileRequest, type CompileResult } from '../plan/compiler.js';
+import {
+  compilePlan,
+  keyFigureLine,
+  removeDraft,
+  validatePlanFile,
+  writeDraft,
+  type CompileRequest,
+  type CompileResult,
+  type DraftWriteResult,
+} from '../plan/compiler.js';
 import { buildSha1 } from '../plan/buildHash.js';
 import { RECORD_FILE, RECORD_VERSION, type CompileRecord, type Verdict } from '../plan/record.js';
 import type { Stage } from '../plan/schema.js';
@@ -44,8 +57,8 @@ export interface PlanContext {
   guidesDirectory: string;
   /** The running engine call's context (C-3). */
   engine: () => EngineCallContext;
-  /** C-17: the only writer into the builds folder. */
-  buildFileWriter: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile'>;
+  /** C-17: the only writer into the builds folder (its delete for the draft mode's `remove_draft`, D-466). */
+  buildFileWriter: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile' | 'deleteBuildFile'>;
   /** The build the engine holds (C-3 `loaded`). */
   loadedBuild: () => LoadedBuild | null;
   /** Whether the engine's build has unsaved changes (`session.isDirty()`, read without the lock). */
@@ -56,7 +69,9 @@ export interface PlanContext {
   wallClock?: () => Date;
 }
 
-const COMPILE_ARGS = ['plan_path', 'build_name', 'measure_only', 'stages'] as const;
+const COMPILE_ARGS = ['plan_path', 'build_name', 'measure_only', 'stages', 'first_free', 'draft_name', 'remove_draft'] as const;
+/** D-466: the draft mode's two arguments, each with plan_path only. */
+const DRAFT_ARGS = ['draft_name', 'remove_draft'] as const;
 const GUIDE_RUN_ARGS = ['new_run', 'resume', 'validate', 'view', 'stages'] as const;
 /** `guide_run`'s modes: a call gives exactly one of them (C-50, D-356, D-415). */
 const GUIDE_RUN_MODES = ['new_run', 'resume', 'validate', 'view'] as const;
@@ -88,12 +103,35 @@ function nonEmptyString(value: unknown, name: string): string {
   return value;
 }
 
-/** `compile_plan`'s two modes (C-41): measure-only, or final. Any other combination is refused. */
-export function compileRequestOf(args: Record<string, unknown> | undefined): CompileRequest {
+/** `compile_plan`'s requests (C-41, D-466): a compile, the draft's write, or its delete. */
+export type CompilePlanRequest =
+  | CompileRequest
+  | { mode: 'draft'; planPath: string; draftName: string }
+  | { mode: 'remove-draft'; planPath: string; draftPath: string };
+
+/**
+ * `compile_plan`'s modes (C-41, D-466): measure-only, final (with `first_free` or without), the draft
+ * (`draft_name`) and its delete (`remove_draft`), each of those two with `plan_path` only. Any other
+ * combination is refused.
+ */
+export function compileRequestOf(args: Record<string, unknown> | undefined): CompilePlanRequest {
   const a = args ?? {};
   refuseUnknown('compile_plan', a, COMPILE_ARGS);
   const planPath = nonEmptyString(a.plan_path, 'plan_path');
+  const drafts = DRAFT_ARGS.filter((k) => a[k] !== undefined);
+  if (drafts.length > 0) {
+    const given = [...drafts, ...COMPILE_ARGS.filter((k) => k !== 'plan_path' && !(DRAFT_ARGS as readonly string[]).includes(k) && a[k] !== undefined)];
+    if (given.length > 1) {
+      throw new Error(
+        `${listed(given)} conflict: draft_name (write the build's draft) and remove_draft (delete it) each take plan_path ` +
+          'only (D-466). Nothing was done.',
+      );
+    }
+    if (drafts[0] === 'draft_name') return { mode: 'draft', planPath, draftName: nonEmptyString(a.draft_name, 'draft_name') };
+    return { mode: 'remove-draft', planPath, draftPath: nonEmptyString(a.remove_draft, 'remove_draft') };
+  }
   if (a.measure_only !== undefined && typeof a.measure_only !== 'boolean') throw new Error('measure_only must be true or false');
+  if (a.first_free !== undefined && typeof a.first_free !== 'boolean') throw new Error('first_free must be true or false');
   const buildName = a.build_name === undefined ? undefined : nonEmptyString(a.build_name, 'build_name');
   const stages = a.stages === undefined ? undefined : stringList(a.stages, 'stages');
   if (a.measure_only === true) {
@@ -102,6 +140,9 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
         'build_name and measure_only: true conflict: a measure-only compile writes only the record and the compiled XML ' +
           'beside the plan, never a builds-folder file (D-208). Nothing was done.',
       );
+    }
+    if (a.first_free === true) {
+      throw new Error('first_free and measure_only: true conflict: first_free picks the final file\'s name (D-466). Nothing was done.');
     }
     return { mode: 'measure-only', planPath, ...(stages !== undefined ? { stages } : {}) };
   }
@@ -114,7 +155,7 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
         'measure_only: true (A-P8). Nothing was done.',
     );
   }
-  return { mode: 'final', planPath, buildName };
+  return { mode: 'final', planPath, buildName, ...(a.first_free === true ? { firstFree: true } : {}) };
 }
 
 /** Where the record holds what the text leaves out. */
@@ -170,10 +211,40 @@ export function renderCompileText(result: CompileResult): string {
   return lines.join('\n');
 }
 
-/** `compile_plan` (C-41). Runs inside the session's `load` run that the router opened. */
+/** D-466: the draft mode's reply: the file written, then the earlier draft names it left. */
+export function renderDraftText(result: DraftWriteResult): string {
+  const lines = [`Draft written: ${result.path}${result.replaced ? ' (replaced this build\'s earlier draft)' : ''}`];
+  for (const rel of result.passed) lines.push(`Left ${rel}: it changed on disk since this build wrote it, or another build or run wrote it.`);
+  return lines.join('\n');
+}
+
+/**
+ * `compile_plan` (C-41). A compile runs inside the session's `load` run that the router opened; the draft mode and its
+ * delete (D-466) run outside the session (kind `none`).
+ */
 export async function handleCompilePlan(context: PlanContext, args: Record<string, unknown> | undefined) {
+  const parsed = await wrapHandler('compile the plan', async () => compileRequestOf(args));
+  if (parsed.mode === 'draft' || parsed.mode === 'remove-draft') {
+    const env = {
+      pobDirectory: context.pobDirectory,
+      stateDir: context.stateDir,
+      guidesDirectory: context.guidesDirectory,
+      writer: context.buildFileWriter,
+      wallClock: context.wallClock ?? (() => new Date()),
+    };
+    if (parsed.mode === 'draft') {
+      return wrapHandler('write the draft', async () => {
+        const result = await writeDraft(env, parsed.planPath, parsed.draftName);
+        return { content: [{ type: 'text' as const, text: renderDraftText(result) }] };
+      });
+    }
+    return wrapHandler('remove the draft', async () => {
+      const removed = await removeDraft(env, parsed.planPath, parsed.draftPath);
+      return { content: [{ type: 'text' as const, text: `Draft removed: ${removed.path} (backup ${removed.backupPath})` }] };
+    });
+  }
   return wrapHandler('compile the plan', async () => {
-    const request = compileRequestOf(args);
+    const request: CompileRequest = parsed;
     const pin = readPin();
     const result = await compilePlan(
       {

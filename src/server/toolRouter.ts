@@ -137,6 +137,8 @@ const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options",
  * - D-244: `manage_sets {action: "list"}` is a `read`, so a listing neither bumps `revision` nor marks
  *   the build unsaved; its other actions are `mutate`.
  * - D-216: `guide_run` carrying `new_run` (or, D-415, `resume`) is `none`; `guide_run {validate}` is its `read`.
+ * - D-466: `compile_plan` carrying `draft_name` or `remove_draft` (the draft mode, a copy and a delete in the builds
+ *   folder) is `none`; a compile is its `load`.
  */
 const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
   manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
@@ -147,6 +149,9 @@ const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => 
     args?.validate === undefined || args?.new_run !== undefined || args?.resume !== undefined || args?.view !== undefined
       ? "none"
       : undefined,
+  // D-466: the draft mode runs no engine: no lock, no event, no engine start, and the engine's build is untouched. Any
+  // argument mix with draft_name or remove_draft is refused by the handler, without the engine.
+  compile_plan: (args) => (args?.draft_name !== undefined || args?.remove_draft !== undefined ? "none" : undefined),
 };
 
 /** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */

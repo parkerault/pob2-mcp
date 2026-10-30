@@ -1078,7 +1078,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "compile_plan",
-      description: "Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, its skill groups each on weapon set 1, 2 or both (a group's weaponSet), and stages with identical gear, gems or configuration share one item, skill or config set. Each stage is measured at its own level, and the build is saved in auto-level mode at the highest stage's level, with that stage's loadout active. The plan is checked first: schema errors are listed by JSON path, and unknown gems, item bases, passive nodes and config options, disconnected passives (a node tagged weapon set n connects only through untagged nodes and nodes tagged n), misplaced weapon-set tags and attribute choices are listed per stage; then nothing is compiled. The call replaces the engine's loaded build, unsaved changes included. Two modes: measure_only: true writes compile-record.json and compiled-build.xml beside the plan and nothing to the builds folder (stages may name a subset to compile); build_name (the final compile, always the whole plan) also saves the build into the builds folder, overwriting an existing file only when an earlier final compile of the same run folder wrote it and nobody changed it since. compile-record.json holds each stage's PoB numbers (every main output, and the offense fields per active skill and stat set, keyed g<group>s<skill>p<statSet>), the plan's ledger formulas evaluated on them, the sets and loadouts made, and the build's import code. Returns a line per stage, the ledger values and the paths written.",
+      description: "Compile a build-guide plan (a plan.json in the guides folder) into one Path of Building 2 build with one loadout per guide stage: each stage gets its own passive tree with weapon-set passives and attribute choices, its skill groups each on weapon set 1, 2 or both (a group's weaponSet), and stages with identical gear, gems or configuration share one item, skill or config set. Each stage is measured at its own level, and the build is saved in auto-level mode at the highest stage's level, with that stage's loadout active. The plan is checked first: schema errors are listed by JSON path, and unknown gems, item bases, passive nodes and config options, disconnected passives (a node tagged weapon set n connects only through untagged nodes and nodes tagged n), misplaced weapon-set tags and attribute choices are listed per stage; then nothing is compiled. A compile replaces the engine's loaded build, unsaved changes included. Two compile modes: measure_only: true writes compile-record.json and compiled-build.xml beside the plan and nothing to the builds folder (stages may name a subset to compile); build_name (the final compile, always the whole plan) also saves the build into the builds folder, overwriting an existing file only when an earlier final compile of the same run folder wrote it and nobody changed it since. draft_name or remove_draft, each with plan_path only, writes or deletes the build's draft in the builds folder without the engine. compile-record.json holds each stage's PoB numbers (every main output, and the offense fields per active skill and stat set, keyed g<group>s<skill>p<statSet>), the plan's ledger formulas evaluated on them, the sets and loadouts made, and the build's import code. Returns a line per stage, the ledger values and the paths written.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1089,6 +1089,18 @@ export function getLuaToolSchemas(): any[] {
           build_name: {
             type: "string",
             description: "Final compile: the build file to write in the builds folder (e.g. 'Titan Blood Hunt'; .xml is optional). Not with measure_only",
+          },
+          first_free: {
+            type: "boolean",
+            description: "Final compile, a build's first final write: true cleans build_name (each of < > : \" / \\ | ? * becomes a space; a Windows device name such as CON gains ' (build)') and writes the first free of '<name>', '<name> <run date>', '<name> <run date> 2', … (a campaign's name keeps ' (campaign)' last). A name is free when no file has it, or this build wrote it and nobody changed it. The reply's Wrote line names the file. Leave it out on a re-compile, which passes the recorded name",
+          },
+          draft_name: {
+            type: "string",
+            description: "With plan_path only: copy the plan's last measure-only compile of every stage (compiled-build.xml) into the builds folder as '<cleaned name> (draft).xml', or '(draft 2)', '(draft 3)' when that file was changed on disk or another build wrote it. Refused when the plan changed since that compile or it named stages. Replies 'Draft written: <path>'",
+          },
+          remove_draft: {
+            type: "string",
+            description: "With plan_path only: delete this draft (the path 'Draft written' gave) after backing it up in the state folder. Refused, deleting nothing, unless it is a draft this plan's build wrote and nobody changed it. Replies 'Draft removed: <path> (backup <path>)'",
           },
           measure_only: {
             type: "boolean",

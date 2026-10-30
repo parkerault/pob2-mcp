@@ -201,6 +201,13 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      check, as today): never re-role it to hide a larger figure; the structure check records it (above). A piece
      out stays out. A piece PoB doesn't model stays in the skeleton as the card's links say PoB follows it
      (`How PoB follows it`), and its value is the card's hand estimate (below).
+   - **Over-budget runes** (D-465): the skeleton puts no "Legacy of …" soul core and no Raven-Touched Shard in any
+     item unless the brief asks for it: `run-log.json`'s `brief` names it in `around`, `like` or `notes` (or "Legacy"
+     cores generally), or a gate answer's words name it (the header's `changes`, or a `checkpoints[]` entry's
+     `answer`, `changes` or `note`). One alone can exceed the non-budget rung's whole budget. An over-budget rune is
+     one whose name starts with "Legacy of ", or the one named "Raven-Touched Shard"; never one whose name merely
+     contains "Legacy" (Coward's Legacy). Without that say, a composite's Pieces row that holds one is `out`, Where
+     `—`, its why `over-budget rune: the brief doesn't ask for it`.
    - `companion`, when the card's chain has a tamed beast (D-402, schema 5): `{species, mods}`, the species as
      PoB's beast library names it and `mods` its kept modifiers' ids in `data/monsters/monster-mods.md`, at most
      4, with one `Tame Beast` gem, enabled, in an enabled group. The compile writes PoB's three companion options

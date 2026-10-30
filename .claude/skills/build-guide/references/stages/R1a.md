@@ -33,6 +33,14 @@ notes on what players run, each card's only player evidence). A fixed roll (a br
 `skill`) fixes every card's identity: its named damage source is that skill. A support gem in `around` is the
 build's subject (D-343): each card's named damage source is an active skill it can support.
 
+**Over-budget runes** (D-465). A "Legacy of …" soul core (made with Aldur's Legacy) or the Raven-Touched Shard (the
+helmet rune that adds a second anoint) alone can exceed the non-budget rung's whole budget, so no card carries one
+and no Ideas line names one unless the brief asks for it: the brief's `around`, `like` or `notes` names it (or
+"Legacy" cores generally), or a gate answer's words name it (in a later round, the user's note). An over-budget rune
+is one whose name starts with "Legacy of " (match the prefix, never a list of cores), or the one named "Raven-Touched
+Shard"; a name that merely contains "Legacy" (Coward's Legacy) isn't one. Without that say, your research file may
+still name one where you found it, as a Supply search line `not used: over-budget rune, the brief doesn't ask for it`.
+
 **The ascendancy lock** (D-342). Check every skill a card names, its named damage source and each skill in
 its chain and links, a minion skill's summon too (D-379), before you write that card; when the brief names a
 skill, check it before any card:

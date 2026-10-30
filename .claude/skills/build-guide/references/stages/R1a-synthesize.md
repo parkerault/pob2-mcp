@@ -113,6 +113,15 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    round. A skill locked to another ascendancy is out, its why in R1a-assemble's words (`its ascendancy can't use
    <skill>: …`).
 
+   **Over-budget runes** (D-465): a composite takes no "Legacy of …" soul core and no Raven-Touched Shard, in or
+   scheduled, unless the brief asks for it: the prompt's `brief` names it in `around`, `like` or `notes` (or "Legacy"
+   cores generally), or a gate answer's words name it (the prompt's `note`, or a card's `Changed at the gate` or `Made
+   at the gate` line, which carry the user's words). One alone can exceed the non-budget rung's whole budget. An
+   over-budget rune is one whose name starts with "Legacy of " (the prefix, never a list of cores), or the one named
+   "Raven-Touched Shard"; never one whose name merely contains "Legacy" (Coward's Legacy). Without that say, a piece
+   that is one is `out`, its why `over-budget rune: the brief doesn't ask for it`: the run checker fails a Pieces row
+   `in` or `scheduled` that holds one without the say, and allows an `out` row.
+
    **The sniff test**, `R1a-assemble.md`'s step 3, as D-430 bounds it: every load-bearing link of the composite (one
    without which its payoff stops working) is confirmed in game text. **An Ideas line's lookup counts as its piece's
    confirmation**, and so does a card's links-table row marked `confirmed in game text` with its lookup: don't repeat

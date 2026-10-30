@@ -2556,6 +2556,77 @@ describe("WU-63 (D-342): a skill a passive-tree node grants locks the cards to t
   });
 });
 
+/**
+ * Amendment 13 (WU-132, D-465): AC-W102, the over-budget rule in the research docs. R1a, R1a-synthesize, R1b and the
+ * researcher's definition each state it in one paragraph led by `**Over-budget runes** (D-465)`: both kinds (a name
+ * starting "Legacy of ", and "Raven-Touched Shard"; never a name merely containing "Legacy"), left out unless the
+ * brief's say (its `around`, `like` or `notes`, or "Legacy" cores generally) or a gate answer's words name it. The
+ * terms are read from the amendment's §6 rule, so the text is held to the spec. The checker side is WU-130's.
+ */
+describe('AC-W102 (WU-132, D-465): the research docs leave over-budget runes out unless the brief asks for them', () => {
+  const SPEC = folded(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-13-tree-and-finishing-touches.md'), 'utf8'));
+  const RULE = (() => {
+    const at = SPEC.indexOf('## 6. D-465');
+    const start = SPEC.indexOf('- **The rule:**', at);
+    const end = SPEC.indexOf('- **The checker**', start);
+    if (at < 0 || start < 0 || end < 0) throw new Error("amendment 13's §6 has no rule bullet");
+    return SPEC.slice(start, end);
+  })();
+  /** A term §6's rule states, by a pattern with one capture group. */
+  const term = (re: RegExp): string => {
+    const m = re.exec(RULE);
+    if (!m) throw new Error(`§6's rule doesn't state ${re}`);
+    return m[1];
+  };
+  const FIELDS = [...term(/the brief's ((?:`[a-z]+`(?:, | or )?)+) names it/).matchAll(/`([a-z]+)`/g)].map((m) => m[1]);
+  const GENERALLY = term(/(\(or "Legacy" cores generally\))/);
+  const GATE = term(/, or (a gate answer's words) name it/);
+  const PREFIX = term(/Names match "([^"]+)" at the start/);
+  const SHARD = term(/, and "([^"]+)" \(proceed-on/);
+  const NOT_MERELY = term(/never a name merely containing "Legacy" \(([^)]+)\)/);
+
+  /** The rule's paragraph (or list item), folded: from its lead to a blank line, the next item or a heading. */
+  const paragraph = (raw: string): string => {
+    const lines = raw.split(/\r?\n/);
+    const at = lines.findIndex((l) => l.includes('**Over-budget runes** (D-465)'));
+    if (at < 0) return '';
+    const out = [lines[at]];
+    for (let i = at + 1; i < lines.length && lines[i].trim() !== '' && !/^\s*(?:[-*]|\d+\.)\s|^#/.test(lines[i]); i++) out.push(lines[i]);
+    return folded(out.join('\n'));
+  };
+  const states = (text: string) => ({
+    legacy: text.includes(`"${PREFIX}"`),
+    shard: text.includes(`"${SHARD}"`),
+    notMerely: text.includes(`"Legacy" (${NOT_MERELY})`),
+    unless: text.includes('unless the brief asks for it'),
+    fields: FIELDS.every((f) => text.includes(`\`${f}\``)),
+    generally: text.includes(GENERALLY),
+    gate: text.includes(GATE),
+  });
+  const ALL = { legacy: true, shard: true, notMerely: true, unless: true, fields: true, generally: true, gate: true };
+
+  it("reads §6's terms: the prefix, the shard, the brief's three fields and a gate answer", () => {
+    expect({ FIELDS, PREFIX, SHARD, NOT_MERELY, GATE }).toEqual({
+      FIELDS: ['around', 'like', 'notes'],
+      PREFIX: 'Legacy of ',
+      SHARD: 'Raven-Touched Shard',
+      NOT_MERELY: "Coward's Legacy",
+      GATE: "a gate answer's words",
+    });
+    // A paragraph that names one kind only, and no brief field, doesn't pass.
+    expect(states(paragraph('**Over-budget runes** (D-465): no "Legacy of " core unless the brief asks for it.'))).not.toEqual(ALL);
+  });
+
+  it.each([
+    ['R1a', path.join(STAGES_DIR, 'R1a.md')],
+    ['R1a-synthesize', path.join(STAGES_DIR, 'R1a-synthesize.md')],
+    ['R1b', path.join(STAGES_DIR, 'R1b.md')],
+    ["the researcher's definition", path.join(AGENTS_DIR, 'build-guide-researcher.md')],
+  ])('%s states the rule: both kinds, out unless the brief or a gate answer names it', (name, file) => {
+    expect({ name, ...states(paragraph(fs.readFileSync(file, 'utf8'))) }).toEqual({ name, ...ALL });
+  });
+});
+
 describe('WU-57 re-opened (D-343, D-344): a support gem in the brief, and a missing Agent tool', () => {
   // Step 1's detail moved from SKILL.md to references/start.md (WU-70, D-356).
   const raw = () => fs.readFileSync(START_MD, 'utf8');
@@ -3295,7 +3366,9 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
       // WU-76 moved the checker, the renderer and the run-log script onto the targets too.
       ...fs.readdirSync(path.join(SKILL_DIR, 'scripts')).map((f) => path.join(SKILL_DIR, 'scripts', f)),
     ];
-    const OLD = /near the ceiling|near-ceiling|over-budget|\b20-divine\b|\b(?:at most|under|within|against) 20(?: divines)?\b|\b22-divine\b|\b(?:at most|above) 22\b|\b5\.5-divine\b|\b(?:at most|above) 5\.5\b|> 5\.5|~200-divine/g;
+    // Amendment 13 (WU-132, D-465) brings back the words for a new rule, the over-budget rune ("Legacy of …" soul cores
+    // and the Raven-Touched Shard), so only the old ceiling's `over-budget` stays banned.
+    const OLD = /near the ceiling|near-ceiling|over-budget(?! runes?\b)|\b20-divine\b|\b(?:at most|under|within|against) 20(?: divines)?\b|\b22-divine\b|\b(?:at most|above) 22\b|\b5\.5-divine\b|\b(?:at most|above) 5\.5\b|> 5\.5|~200-divine/g;
     expect(files.length).toBeGreaterThan(20);
     for (const file of files) {
       const text = folded(fs.readFileSync(file, 'utf8'));

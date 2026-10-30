@@ -118,8 +118,55 @@ function M.export_stats(fields)
   return result
 end
 
+-- D-463: the starts the active spec's socketed jewels open (Split Personality's "Can Allocate Passive Skills from the
+-- <class>'s starting point", PoB's jewelData.alternateClassStart), as the compiler's rule takes them: the jewel's
+-- socket is allocated and reached from the class start or the ascendancy start through allocated nodes, by PoB's
+-- weapon-set rule (PassiveSpec:CanPathThroughAllocMode), never through the jewel's own start. PoB is looser: it reads
+-- any allocated socket (PassiveSpec:BuildAllDependsAndPaths). A start the class has already adds nothing. Read only.
+-- Returns { {socket, start, className}, ... } by socket id.
+local function jewel_starts(spec)
+  local out = {}
+  local classStart = spec.curClass and spec.curClass.startNodeId
+  local ascendStart = spec.curAscendClass and spec.curAscendClass.startNodeId
+  for socketId, itemId in pairs(spec.jewels or {}) do
+    local socket = spec.nodes[socketId]
+    local item = socket and socket.alloc and spec:GetJewel(itemId)
+    local className = item and item.jewelData.alternateClassStart
+    local startId = className and spec.tree.classStartNodeNameMap[className]
+    if startId and startId ~= classStart and spec.nodes[startId] then
+      local mode = socket.allocMode or 0
+      local seen, queue, head, reached = {}, {}, 1, false
+      for _, id in ipairs({ classStart, ascendStart }) do
+        local node = id and spec.nodes[id]
+        if node and node.alloc and not seen[id] then
+          seen[id] = true
+          queue[#queue + 1] = node
+        end
+      end
+      while head <= #queue and not reached do
+        local node = queue[head]
+        head = head + 1
+        for _, other in ipairs(node.linked or {}) do
+          if not seen[other.id] and other.id ~= startId and other.alloc and spec:CanPathThroughAllocMode(mode, other) then
+            seen[other.id] = true
+            if other.id == socketId then
+              reached = true
+              break
+            end
+            queue[#queue + 1] = other
+          end
+        end
+      end
+      if reached then out[#out + 1] = { socket = socketId, start = startId, className = className } end
+    end
+  end
+  table.sort(out, function(a, b) return a.socket < b.socket end)
+  return out
+end
+
 -- Read current tree allocation and metadata. Class and ascendancy names are the engine's own (the
--- active spec's tree), so callers never map ids through a table of their own.
+-- active spec's tree), so callers never map ids through a table of their own. `jewelStarts` (D-463) lists the
+-- starts the socketed jewels open (`jewel_starts`), which the path tools may leave.
 function M.get_tree()
   if not build or not build.spec then
     return nil, "build/spec not initialized"
@@ -138,6 +185,7 @@ function M.get_tree()
     table.insert(out.nodes, id)
   end
   table.sort(out.nodes)
+  out.jewelStarts = jewel_starts(spec)
   return out
 end
 

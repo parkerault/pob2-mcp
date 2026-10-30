@@ -93,6 +93,32 @@ export async function handleCompareTrees(
 }
 
 
+/** D-463: a start a socketed jewel opens, as `get_tree` reports it (`jewelStarts`). */
+interface JewelStart {
+  socket: number;
+  start: number;
+  className: string;
+}
+
+/**
+ * D-463: the starts the loaded build's socketed jewels open (`get_tree`'s `jewelStarts`: Split Personality's, while its
+ * socket is reached without that start), which the path tools may leave. A reply without the field gives none.
+ */
+function jewelStartsOf(tree: unknown): JewelStart[] {
+  const list = (tree as { jewelStarts?: unknown } | null)?.jewelStarts;
+  if (!Array.isArray(list)) return [];
+  return list.filter(
+    (e): e is JewelStart =>
+      typeof e === "object" && e !== null && Number.isInteger((e as JewelStart).start) && Number.isInteger((e as JewelStart).socket) &&
+      typeof (e as JewelStart).className === "string",
+  );
+}
+
+/** The path tools' line for each start a jewel opens (D-463). */
+function jewelStartLines(starts: readonly JewelStart[]): string[] {
+  return starts.map((j) => `Open start from a jewel: the ${j.className} start (node ${j.start}), by the jewel in socket ${j.socket}.`);
+}
+
 export async function handleGetNearbyNodes(
   context: TreeHandlerContext,
   buildName: string | undefined,
@@ -103,6 +129,8 @@ export async function handleGetNearbyNodes(
     let allocatedNodeIds: string[] = [];
     let treeVersion = 'Unknown';
     let fileBuildName: string | null = null;
+    // D-463: the starts the loaded build's socketed jewels open.
+    let jewelStarts: JewelStart[] = [];
 
     // Try file-based path first
     if (buildName) {
@@ -123,6 +151,7 @@ export async function handleGetNearbyNodes(
         const treeResult = await luaClient.getTree();
         allocatedNodeIds = (treeResult.nodes || []).map(String);
         treeVersion = treeResult.treeVersion || 'Unknown';
+        jewelStarts = jewelStartsOf(treeResult);
       }
     }
 
@@ -155,7 +184,8 @@ export async function handleGetNearbyNodes(
       allocatedNodes,
       treeData,
       distance,
-      filter
+      filter,
+      new Set(jewelStarts.map((j) => String(j.start))),
     );
 
     if (nearbyNodes.length === 0) {
@@ -173,6 +203,7 @@ export async function handleGetNearbyNodes(
       `=== Nearby Nodes (within ${distance} nodes) ===`,
       '',
       buildLine(context, fileBuildName),
+      ...jewelStartLines(jewelStarts),
       `Found ${nearbyNodes.length} nodes`,
       '',
     ];
@@ -242,6 +273,8 @@ export async function handleFindPath(
     let weaponSetNodeIds: string[] = [];
     let treeVersion = 'Unknown';
     let fileBuildName: string | null = null;
+    // D-463: the starts the loaded build's socketed jewels open.
+    let jewelStarts: JewelStart[] = [];
 
     // Try file-based path first
     if (buildName) {
@@ -268,6 +301,7 @@ export async function handleFindPath(
         const treeResult = await luaClient.getTree();
         allocatedNodeIds = (treeResult.nodes || []).map(String);
         treeVersion = treeResult.treeVersion || 'Unknown';
+        jewelStarts = jewelStartsOf(treeResult);
         if (allocatedNodeIds.length > 0) {
           const tags = activeSpecTreeState(await luaClient.exportBuildXml()).weaponSets;
           weaponSetNodeIds = [...tags["1"], ...tags["2"]].map(String);
@@ -312,6 +346,7 @@ export async function handleFindPath(
       treeData,
       showAlternatives ? 3 : 1,
       new Set(weaponSetNodeIds),
+      new Set(jewelStarts.map((j) => String(j.start))),
     );
 
     if (paths.length === 0) {
@@ -330,6 +365,7 @@ export async function handleFindPath(
       `=== Path to ${targetNode.name || "Node " + targetNodeId} ===`,
       '',
       buildLine(context, fileBuildName),
+      ...jewelStartLines(jewelStarts),
       `Target: ${targetNode.name || "Unknown"} [${targetNodeId}]`,
     ];
     if (targetNode.isKeystone) textLines.push('Type: KEYSTONE');

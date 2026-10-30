@@ -770,3 +770,175 @@ describe('AC-K35: add_item slot enum (static)', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------------------------------
+// AC-K80 (WU-129, D-463): the path tools from Split Personality's start
+
+const POB_SRC = path.resolve(__dirname, '..', '..', 'vendor', 'PathOfBuilding-PoE2', 'src');
+
+/**
+ * Split Personality from the pinned unique data (`Data/Uniques/jewel.lua`), with `variant` (a class name) selected,
+ * as PoB writes a unique's variant (`Selected Variant: <n>`).
+ */
+function splitPersonality(variant: string): string {
+  const data = fs.readFileSync(path.join(POB_SRC, 'Data', 'Uniques', 'jewel.lua'), 'utf8');
+  const block = /\[\[\s*Split Personality\n([\s\S]*?)\]\]/.exec(data);
+  expect(block).not.toBeNull();
+  const lines = block![1].split('\n').map((l) => l.trim()).filter(Boolean);
+  const variants = lines.filter((l) => l.startsWith('Variant: ')).map((l) => l.slice('Variant: '.length));
+  const index = variants.indexOf(variant) + 1;
+  expect(index).toBeGreaterThan(0);
+  const at = lines.findIndex((l) => !l.startsWith('Variant: ') && l !== lines[0]);
+  return ['Rarity: UNIQUE', 'Split Personality', ...lines.slice(0, at), `Selected Variant: ${index}`, ...lines.slice(at)].join('\n');
+}
+
+/**
+ * For a Sorceress: her start, the Warrior's start and its exits, the jewel socket nearest her start, and the notable
+ * nearest the Warrior's start (main-tree steps that never pass a start), with its distance from each.
+ */
+const SPLIT_LAYOUT = String.raw`
+  local spec = build.spec
+  local function isMain(n) return not n.ascendancyName and n.type ~= 'ClassStart' and n.type ~= 'AscendClassStart' end
+  local function bfs(seeds)
+    local dist, queue, head = {}, {}, 1
+    for _, id in ipairs(seeds) do dist[id] = 0; queue[#queue + 1] = spec.nodes[id] end
+    while head <= #queue do
+      local n = queue[head]; head = head + 1
+      for _, o in ipairs(n.linked or {}) do
+        if dist[o.id] == nil and isMain(o) then dist[o.id] = dist[n.id] + 1; queue[#queue + 1] = o end
+      end
+    end
+    return dist
+  end
+  local mine = spec.curClass.startNodeId
+  local warrior = spec.tree.classStartNodeNameMap['Warrior']
+  local fromMine, fromWarrior = bfs({ mine }), bfs({ warrior })
+  local socket, target
+  for id, n in pairs(spec.nodes) do
+    if n.type == 'Socket' and fromMine[id] and (not socket or fromMine[id] < fromMine[socket] or (fromMine[id] == fromMine[socket] and id < socket)) then socket = id end
+    if n.type == 'Notable' and fromWarrior[id] and (not target or fromWarrior[id] < fromWarrior[target] or (fromWarrior[id] == fromWarrior[target] and id < target)) then target = id end
+  end
+  local exits = {}
+  for _, o in ipairs(spec.nodes[warrior].linked) do if isMain(o) then exits[#exits + 1] = o.id end end
+  table.sort(exits)
+  return { mine = mine, warrior = warrior, exits = exits, socket = socket, target = target, targetName = spec.nodes[target].dn,
+    targetFromWarrior = fromWarrior[target] }
+`;
+
+/** The distance of `target` from the allocated tree, in main-tree steps that never pass a start. */
+const FROM_ALLOCATED = (target: number) => String.raw`
+  local spec = build.spec
+  local dist, queue, head = {}, {}, 1
+  for id, n in pairs(spec.allocNodes) do if not n.ascendancyName then dist[id] = 0; queue[#queue + 1] = n end end
+  while head <= #queue do
+    local n = queue[head]; head = head + 1
+    for _, o in ipairs(n.linked or {}) do
+      if dist[o.id] == nil and not o.ascendancyName and o.type ~= 'ClassStart' and o.type ~= 'AscendClassStart' then
+        dist[o.id] = dist[n.id] + 1; queue[#queue + 1] = o
+      end
+    end
+  end
+  return dist[${target}]
+`;
+
+engineDescribe("AC-K80 (D-463): the path tools leave the start a socketed Split Personality opens", () => {
+  let f: SessionFixture;
+
+  beforeAll(async () => {
+    f = await startSessionFixture({ testActions: true });
+  }, ENGINE_TIMEOUT);
+  afterAll(async () => {
+    await f?.close();
+  });
+
+  async function luaQuery<T>(code: string): Promise<T> {
+    const { value } = await f.session.run({ tool: 'test:split-query', kind: 'read' }, async (ctx) => {
+      const reply = await ctx.client.request('__test_eval', { code });
+      return reply.result as T;
+    });
+    return value;
+  }
+  const allocated = async () => sorted(await luaQuery<number[]>('local ids = {} for id in pairs(build.spec.allocNodes) do ids[#ids + 1] = id end return ids'));
+  function pathOf(text: string): { ids: number[]; cost: number } {
+    const cost = Number(/^Total Cost: (\d+) passive points$/m.exec(text)![1]);
+    const ids = [...text.matchAll(/^(?:  \d+\. |→ TARGET: ).*\[(\d+)\]$/gm)].map((m) => Number(m[1]));
+    return { ids, cost };
+  }
+
+  it(
+    'AC-K80: find_path_to_node, get_nearby_nodes and update_tree_delta leave the Warrior start a Warrior Split Personality opens, for a node nearer it than any other open start; only while its socket is reached without that start',
+    async () => {
+      expect((await f.call('lua_new_build', { class_name: 'Sorceress' })).isError).toBe(false);
+      const l = await luaQuery<{ mine: number; warrior: number; exits: number[]; socket: number; target: number; targetName: string; targetFromWarrior: number }>(SPLIT_LAYOUT);
+      expect(l.warrior).not.toBe(l.mine);
+      // The socket nearest the Sorceress start, allocated with its path from her start.
+      const pathed = await f.call('update_tree_delta', { add_nodes: [String(l.socket)] });
+      expect(pathed.isError).toBe(false);
+      expect(await allocated()).toContain(l.socket);
+      // The target is nearer the Warrior start than any open start of this tree.
+      const fromTree = await luaQuery<number>(FROM_ALLOCATED(l.target));
+      expect(l.targetFromWarrior).toBeLessThan(fromTree);
+
+      // No jewel: the path runs from the Sorceress tree.
+      const before = await f.call('find_path_to_node', { target_node_id: String(l.target) });
+      expect(before.isError).toBe(false);
+      expect(pathOf(before.text).cost).toBe(fromTree);
+      expect(l.exits).not.toContain(pathOf(before.text).ids[0]);
+      expect(before.text).not.toContain('Open start from a jewel');
+
+      // Split Personality (Warrior) in the socket: its start is open, and the path leaves it.
+      const socketed = await f.call('add_item', { item_text: splitPersonality('Warrior'), slot_name: `Jewel ${l.socket}` });
+      expect({ isError: socketed.isError, text: socketed.isError ? socketed.text : '' }).toEqual({ isError: false, text: '' });
+      const out = await f.call('find_path_to_node', { target_node_id: String(l.target) });
+      expect(out.isError).toBe(false);
+      expect(out.text).toContain(`Open start from a jewel: the Warrior start (node ${l.warrior}), by the jewel in socket ${l.socket}.`);
+      const p = pathOf(out.text);
+      expect(p.cost).toBe(l.targetFromWarrior);
+      expect(l.exits).toContain(p.ids[0]);
+      expect(p.ids[p.ids.length - 1]).toBe(l.target);
+      expect(p.ids).not.toContain(l.warrior);
+
+      const nearby = await f.call('get_nearby_nodes', { max_distance: l.targetFromWarrior, filter: l.targetName });
+      expect(nearby.isError).toBe(false);
+      expect(nearby.text).toContain(`Open start from a jewel: the Warrior start (node ${l.warrior}), by the jewel in socket ${l.socket}.`);
+      expect(nearby.text).toMatch(new RegExp(`\\*\\*Distance ${l.targetFromWarrior}\\*\\* \\(\\d+ nodes\\):\\n(- .*\\n.*\\n)*- ${l.targetName} \\[${l.target}\\]`));
+
+      // The rule: only while the socket is reached from the class start without the jewel's start. With her path to
+      // the socket cut (a path node tagged to weapon set 1, which an untagged socket can't path through), it closes.
+      const cut = await luaQuery<number>(String.raw`
+        local spec = build.spec
+        local socket = spec.nodes[${l.socket}]
+        for _, o in ipairs(socket.linked) do
+          if o.alloc and o.type ~= 'Socket' then o.allocMode = 1 return o.id end
+        end`);
+      const closed = await f.call('find_path_to_node', { target_node_id: String(l.target) });
+      await luaQuery(`build.spec.nodes[${cut}].allocMode = 0 return true`);
+      expect(closed.text).not.toContain('Open start from a jewel');
+      expect(l.exits).not.toContain(pathOf(closed.text).ids[0]);
+
+      // update_tree_delta's auto-path (PoB's own pathing) leaves it too.
+      const tree0 = await allocated();
+      const delta = await f.call('update_tree_delta', { add_nodes: [String(l.target)] });
+      expect(delta.isError).toBe(false);
+      const added = (await allocated()).filter((id) => !tree0.includes(id));
+      expect(added).toContain(l.target);
+      expect(added).toHaveLength(l.targetFromWarrior);
+      expect(added.some((id) => l.exits.includes(id))).toBe(true);
+      expect(added).not.toContain(l.warrior);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it('AC-K80: a variant naming the class\'s own start opens nothing new: the path tools name no jewel start', async () => {
+    expect((await f.call('lua_new_build', { class_name: 'Sorceress' })).isError).toBe(false);
+    const l = await luaQuery<{ socket: number; target: number }>(SPLIT_LAYOUT);
+    expect((await f.call('update_tree_delta', { add_nodes: [String(l.socket)] })).isError).toBe(false);
+    const socketed = await f.call('add_item', { item_text: splitPersonality('Sorceress'), slot_name: `Jewel ${l.socket}` });
+    expect(socketed.isError).toBe(false);
+    const tree = await luaQuery<{ jewelStarts: unknown }>('return BuildOps and BuildOps.get_tree() or require("API.BuildOps").get_tree()');
+    expect(tree.jewelStarts).toEqual([]);
+    const out = await f.call('find_path_to_node', { target_node_id: String(l.target) });
+    expect(out.isError).toBe(false);
+    expect(out.text).not.toContain('Open start from a jewel');
+  }, ENGINE_TIMEOUT);
+});

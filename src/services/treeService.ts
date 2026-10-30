@@ -380,14 +380,20 @@ export class TreeService {
    * - leaves a start for the main tree only from an open start that holds no tree;
    * - from the main tree, never enters an open start's exit or an ascendancy node (it would be cut off from the
    *   ascendancy start). A loop through two exits of one start is legal (D-364); the tools just never route one.
+   * D-463: `jewelStarts`, the class starts the loaded build's socketed jewels open (Split Personality, while its socket
+   * is reached without that start: `get_tree`'s `jewelStarts`), are open starts too, though PoB never allocates them.
    */
-  private treeStepRule(allocatedNodes: Set<string>, treeData: PassiveTreeData): (fromId: string, toId: string) => boolean {
+  private treeStepRule(
+    allocatedNodes: Set<string>,
+    treeData: PassiveTreeData,
+    jewelStarts: ReadonlySet<string> = new Set(),
+  ): (fromId: string, toId: string) => boolean {
     const nodes = treeData.nodes;
     const isStart = (n: PassiveTreeNode) => n.isClassStart === true || n.isAscendancyStart === true;
     const isMain = (n: PassiveTreeNode) => n.ascendancyName === undefined && !isStart(n);
     const exitsOf = new Map<string, string[]>();
     const openExit = new Set<string>();
-    for (const id of allocatedNodes) {
+    for (const id of new Set([...allocatedNodes, ...jewelStarts])) {
       const n = nodes.get(id);
       if (!n || !(n.isClassStart === true || n.ascendancyName !== undefined)) continue;
       const exits = [...(n.out || []), ...(n.in || [])].filter((o) => {
@@ -412,11 +418,16 @@ export class TreeService {
     };
   }
 
+  /**
+   * The unallocated notables and keystones within `maxDistance` steps of the allocated tree (D-360's legal steps), and,
+   * D-463, of the starts the socketed jewels open (`jewelStarts`).
+   */
   findNearbyNodes(
     allocatedNodes: Set<string>,
     treeData: PassiveTreeData,
     maxDistance: number,
-    filter?: string
+    filter?: string,
+    jewelStarts: ReadonlySet<string> = new Set(),
   ): Array<{ node: PassiveTreeNode; nodeId: string; distance: number; pathCost: number }> {
     const results: Array<{ node: PassiveTreeNode; nodeId: string; distance: number; pathCost: number }> = [];
 
@@ -428,8 +439,8 @@ export class TreeService {
     const distance = new Map<string, number>();
     const queue: Array<{ nodeId: string; dist: number }> = [];
 
-    // Seed BFS with all currently allocated nodes at distance 0
-    for (const nodeId of allocatedNodes) {
+    // Seed BFS with all currently allocated nodes, and the jewels' open starts (D-463), at distance 0
+    for (const nodeId of new Set([...allocatedNodes, ...jewelStarts])) {
       if (treeData.nodes.has(nodeId)) {
         visited.add(nodeId);
         distance.set(nodeId, 0);
@@ -438,7 +449,7 @@ export class TreeService {
     }
 
     const filterLower = filter?.toLowerCase();
-    const step = this.treeStepRule(allocatedNodes, treeData);
+    const step = this.treeStepRule(allocatedNodes, treeData, jewelStarts);
 
     let head = 0;
     while (head < queue.length) {
@@ -488,7 +499,8 @@ export class TreeService {
    * The shortest path from the allocated tree to `targetNodeId` (D-360's legal steps), the target last, the allocated
    * node it starts from left out. D-460 (B8): `weaponSetNodes`, the allocated nodes tagged to a weapon set, are neither
    * starts nor steps, so the path to an untagged node runs through untagged allocated nodes only, as PoB connects one
-   * (PassiveSpec:CanPathThroughAllocMode).
+   * (PassiveSpec:CanPathThroughAllocMode). D-463: a path may also leave a start a socketed jewel opens (`jewelStarts`),
+   * as it leaves any open start; the start itself is left out of the path, as an allocated start is.
    */
   findShortestPaths(
     allocatedNodes: Set<string>,
@@ -496,16 +508,18 @@ export class TreeService {
     treeData: PassiveTreeData,
     maxPaths: number = 1,
     weaponSetNodes: ReadonlySet<string> = new Set(),
+    jewelStarts: ReadonlySet<string> = new Set(),
   ): Array<{ nodes: string[]; cost: number }> {
-    // Multi-source BFS from all untagged allocated nodes toward the target.
+    // Multi-source BFS from all untagged allocated nodes (and the jewels' open starts) toward the target.
     // O(V+E) — correct and optimal for unit-weight graphs.
     // Bidirectional edges: PoB tree edges are traversable both ways.
     const visited = new Set<string>();
     const previous = new Map<string, string | null>();
     const queue: string[] = [];
-    const step = this.treeStepRule(allocatedNodes, treeData);
+    const step = this.treeStepRule(allocatedNodes, treeData, jewelStarts);
+    const seeds = new Set([...allocatedNodes, ...jewelStarts]);
 
-    for (const nodeId of allocatedNodes) {
+    for (const nodeId of seeds) {
       if (treeData.nodes.has(nodeId)) {
         visited.add(nodeId);
         if (weaponSetNodes.has(nodeId)) continue;
@@ -536,10 +550,10 @@ export class TreeService {
 
     if (!found && !visited.has(targetNodeId)) return [];
 
-    // Reconstruct the path from target back to the closest allocated node
+    // Reconstruct the path from target back to the closest allocated node (or open start)
     const path: string[] = [];
     let current: string | null = targetNodeId;
-    while (current !== null && !allocatedNodes.has(current)) {
+    while (current !== null && !seeds.has(current)) {
       path.unshift(current);
       current = previous.get(current) ?? null;
     }

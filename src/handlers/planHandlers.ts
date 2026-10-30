@@ -211,9 +211,13 @@ export function renderCompileText(result: CompileResult): string {
   return lines.join('\n');
 }
 
-/** D-466: the draft mode's reply: the file written, then the earlier draft names it left. */
+/**
+ * D-466: the draft mode's reply: `Draft written: <relpath>` (Appendix A's line, whole), then whether it replaced this
+ * build's earlier draft, and the earlier draft names it left.
+ */
 export function renderDraftText(result: DraftWriteResult): string {
-  const lines = [`Draft written: ${result.path}${result.replaced ? ' (replaced this build\'s earlier draft)' : ''}`];
+  const lines = [`Draft written: ${result.path}`];
+  if (result.replaced) lines.push("It replaced this build's earlier draft of that name.");
   for (const rel of result.passed) lines.push(`Left ${rel}: it changed on disk since this build wrote it, or another build or run wrote it.`);
   return lines.join('\n');
 }

@@ -155,7 +155,7 @@ describe('AC-K78: compile_plan draft mode and remove_draft (D-466), with a hand-
     b = measuredBuild(run, 'r1', { xml: '<PathOfBuilding2>revised</PathOfBuilding2>' });
     const again = await f.call('compile_plan', { plan_path: b.planPath, draft_name: 'Second Draft' });
     expect(again.isError).toBe(false);
-    expect(again.text).toBe("Draft written: Second Draft (draft).xml (replaced this build's earlier draft)");
+    expect(again.text).toBe("Draft written: Second Draft (draft).xml\nIt replaced this build's earlier draft of that name.");
     expect(fs.readFileSync(h.builds('Second Draft (draft).xml'), 'utf8')).toBe('<PathOfBuilding2>revised</PathOfBuilding2>');
     expect(fs.existsSync(h.builds('Second Draft (draft 2).xml'))).toBe(false);
 
@@ -175,6 +175,16 @@ describe('AC-K78: compile_plan draft mode and remove_draft (D-466), with a hand-
     const otherOut = await f.call('compile_plan', { plan_path: other.planPath, draft_name: 'Second Draft' });
     expect(otherOut.text.split('\n')[0]).toBe('Draft written: Second Draft (draft 3).xml');
     expect(fs.readFileSync(h.builds('Second Draft (draft 2).xml'), 'utf8')).toBe('<PathOfBuilding2>third</PathOfBuilding2>');
+  });
+
+  it('names compare without case (D-52): a file that differs only in case, not this build\'s, is taken, so the draft goes to (draft 2)', async () => {
+    const run = await h.newRun('case');
+    const b = measuredBuild(run, 'r1');
+    fs.writeFileSync(h.builds('cased name (draft).xml'), 'a file the user made');
+    const out = await f.call('compile_plan', { plan_path: b.planPath, draft_name: 'Cased Name' });
+    expect(out.isError).toBe(false);
+    expect(out.text.split('\n')[0]).toBe('Draft written: Cased Name (draft 2).xml');
+    expect(fs.readFileSync(h.builds('cased name (draft).xml'), 'utf8')).toBe('a file the user made');
   });
 
   it('remove_draft on an unchanged draft of this build deletes it, leaves a _before-delete backup and drops the ledger entry', async () => {

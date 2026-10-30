@@ -210,7 +210,16 @@
           }
         ],
         "treeJewels": [],
-        "toggles": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": false
+          },
+          {
+            "slot": "Flask 2",
+            "active": false
+          }
+        ],
         "useSecondWeaponSet": false
       },
       "config": {
@@ -542,7 +551,16 @@
             "text": "Rarity: Rare\nGrim Eye\nRuby\n+8% to Fire Resistance\n+12 to maximum Life"
           }
         ],
-        "toggles": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": false
+          },
+          {
+            "slot": "Flask 2",
+            "active": false
+          }
+        ],
         "useSecondWeaponSet": false,
         "anoint": {
           "notable": "Unbending",
@@ -949,7 +967,16 @@
           }
         ],
         "treeJewels": [],
-        "toggles": [],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": false
+          },
+          {
+            "slot": "Flask 2",
+            "active": false
+          }
+        ],
         "useSecondWeaponSet": false
       },
       "skills": {

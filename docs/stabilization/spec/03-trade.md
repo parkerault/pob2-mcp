@@ -735,7 +735,7 @@ Search on the trade site: <searchUrl>    ← always the last line
   - A 429 with `Retry-After: 7` → `rate_limited {retryAfterS: 7}`, and admissions throw `locked_out`
     for 7 s.
   - A 429 **with no policy header** on a class that has a known policy locks that policy.
-  - A required wait of 40 s with the default `maxWaitMs` → `would_wait {waitS: 40}`, with no sleep.
+  - A required wait of 61 s with the default `maxWaitMs` → `would_wait {waitS: 61}`, with no sleep.
 - **AC-T7 (WU-14).** Unit.
   - Two concurrent `run('search', …)` calls before any search response has arrived: the second `send`
     starts only after the first settles.
@@ -920,7 +920,7 @@ The credential getter returns a sentinel cookie unless the AC says otherwise.
 - **AC-T33 (WU-17).** The first search answers `session_rejected` → `kind: 'fallback'`, with "refresh
   POESESSID". No fetch is sent.
 - **AC-T34 (WU-17, D-22, NFR-4).** Fake clock and fake limiter waits:
-  - **(a)** A required wait of 40 s on the second search → `stoppedEarly` with "40 s", returned without
+  - **(a)** A required wait of 61 s on the second search → `stoppedEarly` with "61 s", returned without
     sleeping.
   - **(b)** Cumulative waits approaching the deadline → no request is sent after the deadline, and the
     total elapsed fake time is ≤ 90 s.

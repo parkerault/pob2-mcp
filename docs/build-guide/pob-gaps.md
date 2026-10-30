@@ -593,6 +593,34 @@ code or showed the figure. PG-85 (plain block against spells) was dropped, since
   - **Workaround:** when a build carries the line, the gate adds one note that its hits survived is optimistic
     (amendment 12 §4).
 
+## Found in amendment 13 (2026-10-30)
+
+Amendment 13 (`spec/amendment-13-tree-and-finishing-touches.md`, D-476) records two gaps its work found: the library's
+"A second ailment type" names Bloodhound's Mark's stun build-up (§11), and the finishing touches leave timeless jewels
+out (§14). The kinds and statuses are §17's; every `file:line` below was checked against the pin on 2026-10-30.
+
+- **PG-101, Bloodhound's Mark's Heavy Stun build-up from Blood Loss isn't modelled.** gap, confirmed in code.
+  - **Where:** the skill (`Data/Skills/act_dex.lua:496-620`) maps one stat, the Heavy Stun build-up from Blood Loss
+    a marked enemy needs for the Mark to activate when it dies (`:556-560`), to an `ExplosionThreshold` nothing reads.
+    Its build-up stat, "Marked target receives Heavy Stun buildup equal to {0}% of Blood Loss"
+    (`Data/StatDescriptions/Specific_Skill_Stat_Descriptions/bloodhounds_mark.lua:52`), 300% at base plus 2.5% a point
+    of quality (`Data/Skills/act_dex.lua:570`, `:505`), has no map in the skill, in `Data/SkillStatMap.lua` or in
+    `Modules/`. PoB builds Heavy Stun from hits alone (`Modules/CalcOffence.lua:5404-5422`).
+  - **Effect:** in PoB the Mark adds no Heavy Stun build-up, so a bleed build's time to Heavy Stun a boss, which
+    activates the Mark, reads from its hits alone.
+  - **Seen in:** no reference build; the user named it as the library's bleed-to-stun example (2026-10-30).
+- **PG-102, timeless jewels' seeds aren't read.** gap, confirmed in code.
+  - **Where:** PoB parses a timeless jewel's seed and conqueror (`Modules/ModParser.lua:6182-6187`) and marks the
+    passives in its radius conquered, but what the seed does to them is unfinished ("FIXME - continue implementing"),
+    the notables' lookup commented out (`Classes/PassiveSpec.lua:1528-1571`, "todo: update once we get seed data").
+    The lookup it would call, `data.readLUT`, is defined nowhere, and the pin ships no seed tables
+    (`Data/TimelessJewelData/` holds the legion passives, their trade ids and a node index only).
+  - **Effect:** Heroic Tragedy and Undying Hate (`Data/Uniques/jewel.lua:98`, `:113`) leave every notable in their
+    radius as the tree's own; only a keystone becomes the conqueror's (`Classes/PassiveSpec.lua:1653-1660`), and
+    Undying Hate's small passives give Tribute (`:1699-1706`). What a seed is bought for doesn't show.
+  - **Seen in:** 10 of the 36 endgame guides of the finishing-touches study carry one (amendment 13 §2); amendment 13
+    leaves them out of designs until a follow-up (§14).
+
 ## Data: missing, out of range, or stale
 
 - **PG-41, rolls above PoB's data range.** data, reported. Each has to be typed in:

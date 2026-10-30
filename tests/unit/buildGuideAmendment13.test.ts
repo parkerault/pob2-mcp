@@ -654,6 +654,29 @@ describe("AC-W100 (D-467, D-468, D-473): the design field's tree search and boss
     expect(within((t) => t.kind === 'boss')).toEqual([]);
     expect(within((t) => t.kind === 'damage')).toEqual([]);
   });
+
+  it('an n under its toughness band shows the best damage move beside its defence trade', () => {
+    const under = (kinds: string[]) => {
+      const dir = copy('run-a13');
+      const defence = { stage: 'n', kind: 'defence', what: 'none found: no slot can roll more life', ehpChange: null, damageChange: null, bossAfter: null, reason: 'under the toughness band', maxHit: null, hitsSurvived: null, bossEntries: null, nodes: null };
+      editJson(dir, RECORD, (r) => {
+        r.stages.n.outputs.TotalEHP = 15000;
+        r.stages.n.measures.ehp = 15000;
+      });
+      const keep = (t: Json) => kinds.includes(t.kind);
+      editJson(dir, TRADES, (t) => {
+        t.trades = [...t.trades.filter(keep), defence];
+      });
+      editJson(dir, GATE, (g) => {
+        Object.assign(rung(g, 'n'), { ehp: 15000 });
+        rung(g, 'n').toughness.band = 'under';
+        rung(g, 'n').trades = [...rung(g, 'n').trades.filter(keep), defence];
+      });
+      return lines(check(dir).stderr, 'trades').filter((l) => /toughness band/.test(l));
+    };
+    expect(under(['boss'])).toEqual([expect.stringMatching(/the non-budget rung n is under its toughness band, but no damage trade is shown for it: beside the defence trades the gate shows the best damage move/)]);
+    expect(under(['boss', 'damage'])).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------------

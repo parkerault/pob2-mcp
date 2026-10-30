@@ -867,6 +867,24 @@ describe('AC-W100 (D-477): a file-only build held to revision 13 has its claims 
     passes(dir);
   });
 
+  it('passes with a recompile in its round: V4-claims (fail) → D1-finish → the D1 gate → F1, no design gate → V4-recheck → its end', () => {
+    const st = (stage: string, attempt: number, outcome: string): Json => ({ stage, attempt, outcome });
+    const dir = fileOnly([st('V4-claims', 1, 'fail'), st('D1-finish', 2, 'done'), st('D1-gate', 2, 'pass'), st('F1', 2, 'pass'), st('V4-recheck', 1, 'pass')], { 1: claimsReport(1, [FINDING('unresolved')]) });
+    for (const g of ['D1-gate', 'F1']) {
+      fs.copyFileSync(path.join(dir, `reports/gates/${g}-${ID}-a1.json`), path.join(dir, `reports/gates/${g}-${ID}-a2.json`));
+      editJson(dir, `reports/gates/${g}-${ID}-a2.json`, (v) => {
+        v.attempt = 2;
+      });
+    }
+    expect(SNAPSHOT(dir, 1).code).toBe(0);
+    const recheck = claimsReport(2, [FINDING('fixed')]).replace('# V4-2: claims pass', '# V4-2: re-check of rounds/1').replace('- check: claims', '- check: recheck').replace('- verdict: fail', '- verdict: pass');
+    fs.writeFileSync(path.join(dir, BUILD, 'reports', 'V4-2.md'), recheck);
+    passes(dir);
+    // The claims pass's findings are the plan's, owned by D1.
+    editText(dir, `${BUILD}/reports/V4-1.md`, '- owner: D1', '- owner: W1');
+    expect(lines(check(dir).stderr, 'report-shape')).toEqual([expect.stringMatching(/V4-1\.md: finding v4-1-1 \(line \d+\) is owned by "W1" in "plan\.json"; a claims pass's findings are the plan's \(plan\.json\), owned by D1/)]);
+  });
+
   it('fails with no V4-claims entry, with a V4-claims entry and no report, and with a full V4 pass in its place', () => {
     const none = check(fileOnly([])).stderr;
     expect(lines(none, 'verification')).toEqual([expect.stringMatching(/builds\[\] r1-a-2 ended file-only, but run-log\.json logs no V4-claims entry for it: a file-only build held to amendment 13 has its claims pass after F1's pass/)]);

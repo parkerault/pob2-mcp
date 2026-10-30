@@ -115,6 +115,19 @@
 //    `n` with its defence plan; no D1-tree `respec` from 12's boundary on. By the record, whatever the revision: the
 //    guide's verdict line with three figures once the record measures the resisting figure, its label in the three
 //    forms once the record's rows carry hits survived, and its tree-change line against `treeChange`.
+//  - amendment 13 (WU-130; D-464…D-468, D-471, D-472, D-474, D-475, D-477, its §22 and Appendix A): `skillRevision` 13, a
+//    build held to it by its last D1 gate, a card by the round or checkpoint that dealt it. For a build held to 13: its
+//    PoB file named by its session name (`builds[].name`, else its card's), cleaned as the server cleans it, `<name>`,
+//    `<name> <date>` or `<name> <date> <k>` (a campaign's ending ` (campaign)`), its `builds[].draftFile` `<name> (draft)` or
+//    `<name> (draft <k>)` (`nameFits`, rule `layout`); `trades.json` in 11 fields with the kind `boss`; the design field's
+//    tree search and boss target (`checkDesignField13`); runes over the budget in the plan (`runes`), corruption
+//    (`corruption`, references/corruption.json), flasks and charms (`flasks`); a pinned weapon's Swap slot priced once;
+//    no flask priced; a file-only build's claims pass `V4-claims` (its report `# V4-<n>: claims pass`, its round copy with
+//    no guide, its flow in `checkFlow4`). For every run: two builds never record one file; a brainstorm display's `numbers`
+//    name cards of the run; D1-tree's `stale-server` routes D1-tree again; the pricing stop `pace`; `[markers]` skips
+//    inline code spans; a definition may join several `data | <file>#<key>` refs with `; `; the Pieces kind `anoint`; a
+//    rung with an Arbiter row that has no verdict can't read as surviving in its design field; a failure message's
+//    percentages to one decimal.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -3564,7 +3577,7 @@ function gateClass4(rep, stage, covered) {
   return 'pass';
 }
 /** The steps about one build (D-411): its design, final compile, guide and checks. */
-const BUILD_STEPS = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4-recheck', 'V4-campaign'];
+const BUILD_STEPS = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4-recheck', 'V4-campaign', 'V4-claims'];
 const describeClass4 = (cls) => ({ ledger: "is the write ledger's refusal (ledger-refused)", tree: 'fails only its tree part (a swap left gains 5% or more)', toolError: "leaves only its tree unverified, get_node_power having failed (tool-error)" })[cls] ?? describeClass(cls);
 
 /**
@@ -3594,6 +3607,13 @@ const describeClass4 = (cls) => ({ ledger: "is the write ledger's refusal (ledge
  *    when no card was finalized; each build's status in builds[] its end, builds[] in finalize order.
  * A migrated run's entries before its first resume (`ctx.legacy`) were recorded by schema 3's pipeline: there a design
  * runs D1-build then D1-finish, and the design gate's `accept` goes to D2 (D-415).
+ *
+ * Amendment 13: D1-tree's `stale-server` (D-467) routes D1-tree again, the next attempt of the same design. A file-only
+ * build held to revision 13 (its last D1 gate at or after 13's boundary, §22) doesn't end at F1's pass after
+ * `accept:file`: it stays designing for its claims pass, `V4-claims` (D-477), which ends it `file-only` on a pass; on a
+ * failure its fix round follows, D1 alone (D1-finish first; a claims-only edit goes straight to the re-check, a recompile
+ * runs the D1 gate and F1 with no design gate), then one `V4-recheck`, and the build ends `file-only`. A `V4-claims` entry
+ * anywhere else fails.
  */
 function checkFlow4(log, fail, ctx) {
   if (!Array.isArray(log.stages) || !log.stages.every(isObj)) return;
@@ -4046,7 +4066,7 @@ function checkFlow4(log, fail, ctx) {
         }[pf] ?? [];
         // D-467 (amendment 13): D1-tree's `stale-server`, D1-tree again once the user reconnected the server with /mcp.
         const allowed = pf === 'D1-tree' && p?.outcome === STALE_SERVER ? ['D1-tree'] : routes;
-        if (!allowed.includes(f)) illegal(i, `can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}${cls && cls !== 'pass' ? `; its verdict ${describeClass4(cls)}` : ''}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck').replace(/\bV4c\b/g, 'V4-campaign') || 'nothing'} next`);
+        if (!allowed.includes(f)) illegal(i, `can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}${cls && cls !== 'pass' ? `; its verdict ${describeClass4(cls)}` : ''}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck').replace(/\bV4c\b/g, 'V4-campaign').replace(/\bV4k\b/g, 'V4-claims') || 'nothing'} next`);
         const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c', 'V4k'].includes(pf);
         if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !same) illegal(i, `is about ${s.concept}, but the build before it is ${p.concept}'s; a build's steps run for its own card until it ends (D-411)`);
       }
@@ -5366,7 +5386,9 @@ export function parseV4Report(text) {
 
 /**
  * A V4 report against stages/V4.md and the log entry that wrote it (`r.entry`, the n-th logged pass): the H1
- * `# V4-<n>: full pass` (a V4 entry) or `# V4-<n>: re-check of rounds/<n-1>` (a V4-recheck entry); the fields
+ * `# V4-<n>: full pass` (a V4 entry) or `# V4-<n>: re-check of rounds/<n-1>` (a V4-recheck entry), V4's campaign pass's
+ * (D-415), or a file-only build's claims pass `# V4-<n>: claims pass` (a V4-claims entry, D-477: claims only, its
+ * findings the plan's, owned by D1); the fields
  * `check`, `concept` (the entry's card), `mode` (the run's) and `verdict` (`pass` exactly when no finding is
  * unresolved, the entry's outcome); `## Checked` items in `--changed`'s forms; each finding `v4-<n>-<k>` (a
  * full pass's all its own `<n>`) with its fields in order, `reader` on an unresolved one only. Returns

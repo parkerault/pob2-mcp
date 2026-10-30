@@ -214,6 +214,40 @@ describe('write-anchored timeouts (C-4)', () => {
   });
 });
 
+describe('AC-K80 (D-474): compile_stage is a long action at 120 s', () => {
+  const realTicks = { doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] as const };
+
+  it('compileStage times out at 120 s, not at the default or POB_TIMEOUT_MS, and the timeout kills the engine', async () => {
+    const { client, proc } = await startedClient({ POB_TIMEOUT_MS: '40' });
+    proc.hold('compile_stage');
+    jest.useFakeTimers({ doNotFake: [...realTicks.doNotFake] });
+    let settled: unknown = 'pending';
+    const pending = client.compileStage({} as never).then(
+      () => 'resolved',
+      (e) => e,
+    );
+    void pending.then((v) => (settled = v));
+    jest.advanceTimersByTime(119_999);
+    await flush();
+    expect(settled).toBe('pending');
+    expect(proc.killed).toBe(false);
+    jest.advanceTimersByTime(1);
+    const err = await pending;
+    expect(err).toBeInstanceOf(EngineTimeoutError);
+    expect(err).toMatchObject({ action: 'compile_stage', ms: 120_000 });
+    expect(proc.killed).toBe(true);
+  });
+
+  it("the bridge's timeout for compile_stage reads 120 s, as node_power's; other actions keep the default", () => {
+    const c = newClient({});
+    const timeout = (action: string) => (c as unknown as { defaultTimeout(a: string): number }).defaultTimeout(action);
+    expect(timeout('compile_stage')).toBe(120_000);
+    expect(timeout('node_power')).toBe(120_000);
+    expect(timeout('compile_check')).toBe(30_000);
+    expect(timeout('compile_finish')).toBe(30_000);
+  });
+});
+
 describe('start() (C-4)', () => {
   it('AC-E10: three concurrent start() calls on a cold client spawn once and all resolve', async () => {
     newClient();

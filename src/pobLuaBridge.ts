@@ -76,7 +76,10 @@ export interface PoBLuaApiOptions {
 }
 
 export interface RequestOptions {
-  /** Overrides the default timeout (POB_TIMEOUT_MS, or the long action's: 60 s for `trade_generate_query`, 120 s for `node_power`, D-47). */
+  /**
+   * Overrides the default timeout (POB_TIMEOUT_MS, or the long action's: 60 s for `trade_generate_query`, 120 s for
+   * `node_power` and `compile_stage`, D-47).
+   */
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -89,12 +92,18 @@ const STDERR_RING_LINES = 50;
 const STDERR_SHOWN_LINES = 20;
 const QUIT_GRACE_MS = 2000;
 /**
- * D-47 request timeouts. The long actions: `trade_generate_query` (60 s) and `node_power` (120 s, amended by D-417:
+ * D-47 request timeouts. The long actions: `trade_generate_query` (60 s), `node_power` (120 s, amended by D-417:
  * one pass of PoB's misc calculator over every node within the distance, about 15 s on a level-95 build, plus the
- * swap search).
+ * swap search) and `compile_stage` (120 s, D-474: a rung of a large plan, with its boss and resisting passes, ran
+ * past 30 s twice in a live run; a timeout kills the engine mid-compile, and the compile's build, which replaced the
+ * engine's, has no snapshot to restore yet).
  */
 const DEFAULT_TIMEOUT_MS = 30_000;
-const LONG_ACTION_TIMEOUTS: Readonly<Record<string, number>> = { trade_generate_query: 60_000, node_power: 120_000 };
+const LONG_ACTION_TIMEOUTS: Readonly<Record<string, number>> = {
+  trade_generate_query: 60_000,
+  node_power: 120_000,
+  compile_stage: 120_000,
+};
 /** After `exit`, how long to wait for `close` (stdio drained) before failing pending requests anyway. */
 const EXIT_SETTLE_MS = 250;
 
@@ -984,7 +993,8 @@ export class PoBLuaApiClient {
    * group's `minionSkill` is selected by name, and its resolved selection comes back in `minionSkills`; the outputs
    * carry the minion's numbers as `Minion<Field>` (D-376, D-377), and `checks.grantedSkills` the passives that grant
    * a group's skill (D-380). A `companion` turns the stage's Tame Beast gem into that beast, and the reply's
-   * `companion` gives its skill's place and the Spirit PoB reserves for it (D-402).
+   * `companion` gives its skill's place and the Spirit PoB reserves for it (D-402). A long action: it times out at
+   * 120 s, not the default (D-474).
    */
   async compileStage(params: ActionParams<"compile_stage">, opts?: RequestOptions): Promise<CompileStageResult> {
     const res = await this.request("compile_stage", params, opts);

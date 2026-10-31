@@ -5997,3 +5997,21 @@ the `m17` engine at `b76967b`.
     isn't in the README's env table (kept out on purpose, so users aren't invited to turn off their own floor); the
     two script items under WU-121; for the spec fold, stabilization's 40 s refusal example and §19's touches
     (`Handlers.lua`, the shared tests that moved with the key-figure line).
+
+## 2026-10-30: M-26 (amendment 13) build started
+
+- **Approved:** amendment 13 revision 2 by the user ("1. verify on file-only build. Approve."), committed at `6ec076e`;
+  their answer on HG-31 is D-477, a file-only build's claims pass, folded after the review. The M-26 handoff
+  (`e74ed6b`) fixes the waves, the merge order, the room left in the capped files and the one read of the user's
+  builds folder (WU-127's copy of the two Titan Rake plans, HG-6). Integration worktree `build-guide/m26` off `main`
+  at `e74ed6b`. WU-130 (the scripts) and WU-132 (the research docs) started in wave 1: WU-132 depends on no unit, and
+  WU-130 builds against Appendix A, rebasing onto WU-128 and WU-129.
+- **Baseline gate** on `e74ed6b`: `mise run test` rc 0 (205 suites, 3,572 tests; the timing step 2 suites, 4 tests),
+  `pnpm build` rc 0.
+- **WU-132 (the research docs) merged** at `9210788` (one commit). R1a, R1a-synthesize, R1b and the researcher's
+  definition state the over-budget rune rule (D-465): the "Legacy of " cores and the Raven-Touched Shard stay out
+  unless the brief's `around`, `like` or `notes`, or a gate answer's words, name one; each stage names where it reads
+  that say. AC-W102's test reads its terms from §6 and pins them. AC-W63's ban on amendment 5's removed finding code
+  `over-budget` is narrowed to allow "over-budget rune(s)", the spec's term. Its verifier (fresh context) passed it,
+  re-running the gate (205 suites, 3,577 tests, rc 0; build rc 0); mutations removing the rule or any one term from a
+  file each failed that file's case. Noted, not fixed: the test checks the rule's terms, not its direction.

@@ -6015,3 +6015,21 @@ the `m17` engine at `b76967b`.
   `over-budget` is narrowed to allow "over-budget rune(s)", the spec's term. Its verifier (fresh context) passed it,
   re-running the gate (205 suites, 3,577 tests, rc 0; build rc 0); mutations removing the rule or any one term from a
   file each failed that file's case. Noted, not fixed: the test checks the rule's terms, not its direction.
+- **WU-134 (the PoB gaps and the fold's leftovers) merged** at `6f37c21` (two commits). `pob-gaps.md` gains "Found in
+  amendment 13 (2026-10-30)": PG-101 (Bloodhound's Mark's Heavy Stun build-up from Blood Loss isn't modelled) and
+  PG-102 (timeless jewels' seeds aren't read); stabilization's `03-trade.md` gives 61 s for both refusal examples
+  (:738, :923); amendment 12's §19 lists `pob-api/API/Handlers.lua` under WU-117 (its commit `4abda93` added
+  `autoPathedNames`) and `compileMinion.test.ts` and `compilePlainSummon.test.ts` under WU-120 (its commit `0774765`
+  moved them with the key-figure line); its §15 B3 bullet cites Voices' own code. Every cited line was checked against
+  the pin (`7d6f530`) on 2026-10-30. Its verifier (fresh context) passed it, re-running the gate (206 suites, 3,588
+  tests, rc 0; the timing step 2 suites, 4 tests; build rc 0; the doer's own timing miss, 114 s against AC-P37's 100 s,
+  was machine load from parallel lanes); 15 of the 16 new tests fail on the base docs.
+  - **PG-101's range:** `act_dex.lua`:496–620, the whole skill (its stat map at :556–560 holds only the explosion
+    threshold; the build-up stat at :570), not §17's 496–568, which ends before the stat it quotes. The coordinator
+    corrected §11 and §17 of amendment 13.
+  - **The coordinator also folded:** `03-trade.md`'s `maxWaitMs` default and `find_upgrades`' search wait to 60 000 ms
+    (:218, :250, :453; amendment 12's D-461 raised both); D-477's checker bullet in amendment 13 §15, which said the
+    claims pass comes after the build's last F1 pass (a fix round's recompile runs F1 after it; as WU-130 built it, the
+    claims pass follows the F1 pass after `accept:file`, and the build stays `designing` until it ends).
+  - **Left:** amendment 12's B3 bullet cites nothing for Controlled Metamorphosis (its code: `PassiveSpec.lua`:1369,
+    :1456, :1881); WU-117's touches omit its `weapon-set-2-unarmed` fixture.

@@ -533,7 +533,7 @@ modifier rules, the guide templates' PoB note, `plan-reference.md`.
   `helmet.lua`:462); a type
   feeds a different ailment (fire to shock and the like, `ModParser.lua`:3027–3036); an ailment ties into stun
   (Rupture, `sup_str.lua`:6424; Bloodhound's Mark, a skill, "Marked target receives Heavy Stun buildup equal to 300% of
-  Blood Loss", `Data/Skills/act_dex.lua`:496–568, `Data/StatDescriptions/Specific_Skill_Stat_Descriptions/
+  Blood Loss", `Data/Skills/act_dex.lua`:496–620 (the build-up stat at :570), `Data/StatDescriptions/Specific_Skill_Stat_Descriptions/
   bloodhounds_mark.lua`:52). Search skills as well as modifier lines, in the game's words ("Blood Loss").
 - **PoB:** modelled for the types (one instance unless `<Ailment>CanStack`, `CalcOffence.lua`:5063–5069); Bloodhound's
   Mark's stun build-up isn't (PG-101).
@@ -712,8 +712,9 @@ it: r2-s-1's claim `m-piece-rapid-assault` cites `ledger:boss_m` but states 2. F
 - **A later guide or campaign** (`guide:<id>` after a resume; `campaign:<id>`, `fix-round.md`:124) runs as now: W1,
   then V4's full pass over every claim and every H2, its report numbered after the claims pass's. The claims pass is
   its own stage, so the checker's one-full-pass-per-guide rule (`check-run.mjs`:4031–4033) is untouched.
-- **The checker:** a `file-only` build held to revision 13 has a logged `V4-claims` entry after its last F1 pass, and
-  its report; the step order allows F1 (a pass after `accept:file`) → `V4-claims` → the fix round (the round copy, the
+- **The checker:** a `file-only` build held to revision 13 has a logged `V4-claims` entry after the F1 pass that
+  followed `accept:file` (a fix round's F1 may follow it), and its report; the build stays `designing` in `builds[]`
+  until its end; the step order allows F1 (a pass after `accept:file`) → `V4-claims` → the fix round (the round copy, the
   D1 owners, then the D1 gate and F1 after a recompile) → `V4-recheck` → the build's end; a `V4-claims` entry for a
   build not accepted `file`, or after W1, fails; the report rules (`check-run.mjs`:1432–1452, :5106–5107) count
   `V4-claims` among the passes and read its H1. A build before the boundary keeps today's rule.
@@ -758,8 +759,8 @@ Amends D-367, D-392, D-432, D-442's display rows, `run-log.mjs`, `checkpoints.md
 ## 17. D-476: the PoB gaps, and the fold
 
 - **`docs/build-guide/pob-gaps.md`** gains, in a new section "Found in amendment 13 (2026-10-30)": PG-101, Bloodhound's
-  Mark's Heavy Stun build-up from Blood Loss isn't modelled (gap, confirmed in code: `act_dex.lua`:496–568 maps only
-  the explosion threshold); PG-102, timeless jewels' seeds aren't read (gap, confirmed in code: `PassiveSpec.lua`:
+  Mark's Heavy Stun build-up from Blood Loss isn't modelled (gap, confirmed in code: `act_dex.lua`:496–620, whose
+  stat map at :556–560 holds only the explosion threshold; the build-up stat at :570); PG-102, timeless jewels' seeds aren't read (gap, confirmed in code: `PassiveSpec.lua`:
   1528–1571, "FIXME - continue implementing", the lookup commented out). Each in the file's skeleton.
 - **At integration** the coordinator writes V1's new rows (`tree-shape`'s `alternate-class-start` rule, `corruption`)
   into `02-plan-compiler.md`, HG-27 to HG-31 into the spine's §6.3 (written with this amendment, HG-31 resolved at

@@ -215,7 +215,7 @@ fetch are never cached. The client is constructed with no I/O.
 export class RateLimiter {
   constructor(opts: { now?: () => number; sleep?: (ms: number, signal?: AbortSignal) => Promise<void>; margin?: number /* 1 */ });
   // Wraps one HTTP exchange for an endpoint class; returns the Response after recording its headers.
-  run(endpoint: 'search' | 'fetch', send: () => Promise<Response>, opts?: { deadline?: number; signal?: AbortSignal; maxWaitMs?: number /* default 30000 */ }): Promise<Response>;
+  run(endpoint: 'search' | 'fetch', send: () => Promise<Response>, opts?: { deadline?: number; signal?: AbortSignal; maxWaitMs?: number /* default 60000, D-461 */ }): Promise<Response>;
 }
 ```
 
@@ -247,7 +247,7 @@ greater than 0, or a 429 arrives, `lockedUntil = now + max(active, Retry-After) 
 2. Otherwise compute `wait` = the smallest delay after which, **for every window**, the count of
    timestamps in the trailing `period` plus 1 is ≤ `max − margin`. When `max − margin < 1`, use `max`.
 3. If `now + wait > deadline`, or `wait > maxWaitMs`, throw `TradeError('would_wait', {waitS})` without
-   sleeping. The default `maxWaitMs` of 30 000 applies to every trade tool. A wait that would leave less
+   sleeping. The default `maxWaitMs` of 60 000 (amendment 12's D-461) applies to every trade tool. A wait that would leave less
    than 1 s before the deadline is refused the same way (D-22: no step starts with < 1 s left).
 4. Otherwise sleep `wait` (abortable), record a timestamp, and send. **After any wait** (this sleep, or
    waiting for a class's first request to settle), if less than 1 s remains before the deadline, throw
@@ -450,7 +450,7 @@ the flow checks the caller's `signal`; an abort stops it, and the lock is releas
    - Remove the lowest-weight weighted filters until `200 − estimate ≥ 4`.
 9. **Search (≤ 5 searches, PoB's `SearchWithQueryWeightAdjusted`).** Let `maxFetch = fetch_pages × 10`
    and `min` = the weight group's `value.min`. For `n` = 1…5:
-   1. `r = search(auth:true)`, with `maxWaitMs: 30000` and the deadline.
+   1. `r = search(auth:true)`, with `maxWaitMs: 60000` (`SEARCH_MAX_WAIT_MS`, D-461) and the deadline.
    2. If `(r.total > maxFetch and r.total < 10000)` or `n == 5`, stop searching:
       - if a previous clipped search exists and `r.total < maxFetch`, take `r.result`, then the previous
         search's already-fetched entries, then its unfetched ids, up to `maxFetch`;

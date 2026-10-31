@@ -14,12 +14,16 @@
  * - "A count as a multiplier" beside an unchanged "Filler to satisfy a count", the two pointing to each other.
  * - The four new shapes (supply by family, bank the resource, a tamed rare beast, a rule changer), each in a family
  *   with its search step, how PoB follows it (one of the six labels), examples and cautions.
- * - The library stays under 16,000 words (D-381, raised by D-410 and by amendment 9 §24.1, the user, 2026-10-23;
- *   16,000 and the kits' 4,000 are provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size).
- * AC-W95 (WU-123, amendment 12 §13, D-458), the last describe block: questions 20–24, question 2's means, the enemy's
+ * - The library is at most 17,000 words (D-381, raised by D-410, by amendment 9 §24.1, the user, 2026-10-23, and by
+ *   amendment 13 §11, D-470, the user, 2026-10-30; the cap and the kits' 4,000 are provisional since 2026-10-26: the
+ *   user set the caps aside while the defence entries landed, to review the new size).
+ * AC-W95 (WU-123, amendment 12 §13, D-458), the next describe block: questions 20–24, question 2's means, the enemy's
  * side, the section-4 and section-5 entries, the Attacks kit's Levers, the stale deflection lines with §4's floor, and
  * the trim's kept headings; question 19's text is in `buildGuideDesignPieces.test.ts`, the family list of 12 in
  * `buildGuidePipeline.test.ts` (AC-W28), the word caps in every word-count test.
+ * AC-W101 (WU-131, amendment 13 §11, D-470), the last describe block: "A second ailment type" in section 5 with its five
+ * fields, each pin line it cites holding what it names; the pointer from "Convert into the ailment's type"; the Damage
+ * over time kit's lever beside Contagion; the pivots; Split Personality's line; the 17,000 cap the five cap tests pin.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -245,8 +249,8 @@ describe('AC-W74 (WU-90, D-403, D-409): the pattern library\'s new entries', () 
     });
   });
 
-  it('stays under 16,000 words (D-381, D-410, amendment 9 §24.1; provisional)', () => {
-    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThan(16_000);
+  it('is at most 17,000 words (D-381, D-410, amendment 9 §24.1, D-470; provisional)', () => {
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(17_000);
   });
 });
 
@@ -401,5 +405,256 @@ describe('AC-W95 (WU-123, D-458): the library carries amendment 12', () => {
     ];
     for (const title of named) expect({ title, kept: headings.some((h) => h.title === title) }).toEqual({ title, kept: true });
     expect(folded(bodyOf(h2('Standard kits')!))).toContain('- **Every archetype, for defence:** the class\'s attributes pick the defence family');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W101 (WU-131, amendment 13 §11, D-470; static): "A second ailment type" in section 5 with its five fields, naming
+// Bloodhound's Mark (PG-101) and the three chaos debuffs in its Cautions; the pointer from "Convert into the ailment's
+// type"; the Damage over time kit's lever beside Contagion; the pivots; no line saying the compiler refuses Split
+// Personality's start; the library at most 17,000 words, which the five cap tests pin. Every title, name and number
+// below is read from the amendment, and every pin line the entries cite is read from the pin.
+// ---------------------------------------------------------------------------------------------------
+describe('AC-W101 (WU-131, D-470): the library carries amendment 13', () => {
+  const SPEC_DIR = path.join(REPO, 'docs', 'build-guide', 'spec');
+  const A13 = fs.readFileSync(path.join(SPEC_DIR, 'amendment-13-tree-and-finishing-touches.md'), 'utf8');
+  const S11 = folded(A13.slice(A13.indexOf('## 11. D-470'), A13.indexOf('## 12. ')));
+  const S2 = folded(A13.slice(A13.indexOf('## 2. '), A13.indexOf('## 3. ')));
+  const S4 = folded(A13.slice(A13.indexOf('## 4. D-463'), A13.indexOf('## 5. ')));
+  const spec = (text: string, re: RegExp, what: string) => {
+    const m = re.exec(text);
+    if (!m) throw new Error(`amendment 13 doesn't state ${what}`);
+    return m;
+  };
+  /** A sentence's text without its parentheticals, bold marks and quotes, lower-cased, for comparing wordings. */
+  const plain = (s: string) => s.replace(/\*\*/g, '').replace(/\s*\([^)]*\)/g, '').replace(/["`]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const pinLines = (rel: string) => fs.readFileSync(path.join(PIN_SRC, rel), 'utf8').split(/\r?\n/);
+  /** The name of the unique a line of a `Data/Uniques/` file belongs to: the line after the block's opening `[[`. */
+  const uniqueAt = (rel: string, line: number) => {
+    const ls = pinLines(rel);
+    let i = line - 1;
+    while (i > 0 && !/\[\[\s*$/.test(ls[i - 1])) i--;
+    return ls[i].trim();
+  };
+  /** The `name` of the tree node or skill a pin line sits in: the nearest `name="…"` or `name = "…"` above it. */
+  const nameAbove = (rel: string, line: number) => {
+    const ls = pinLines(rel);
+    for (let i = line - 1; i >= 0; i--) {
+      const m = /\bname ?= ?"([^"]+)"/.exec(ls[i]);
+      if (m) return m[1];
+    }
+    return '';
+  };
+  const [, TITLE, FAMILY_N, FAMILY_NAME] = spec(S11, /\*\*"([^"]+)"\*\*, a new entry in section (\d+) \(([^)]+)\)/, 'the entry and its section');
+  const specField = (name: string, next: string) => spec(S11, new RegExp(`- \\*\\*${name}:\\*\\* (.*?) - \\*\\*${next}`), `the entry's ${name}`)[1];
+
+  it('files "A second ailment type" in section 5 with its five fields in order, its Shape as §11 words it', () => {
+    expect([TITLE, FAMILY_N, FAMILY_NAME]).toEqual(['A second ailment type', '5', 'Copies and rate']);
+    const e = entry(TITLE);
+    expect(e?.family).toBe(`${FAMILY_N}. ${FAMILY_NAME}`);
+    const at = FIELDS.map((f) => e!.body.search(new RegExp(`^- \\*\\*${f}:\\*\\* \\S`, 'm')));
+    expect({ fields: at.every((i) => i >= 0), inOrder: [...at].sort((x, y) => x - y).join() === at.join() }).toEqual({ fields: true, inOrder: true });
+    expect(plain(field(e!.body, 'Shape'))).toBe(plain(specField('Shape', 'Search')));
+  });
+
+  it("searches what §11's Search names, in skills as well as modifiers, in the game's words", () => {
+    const ours = field(entry(TITLE)!.body, 'Search');
+    const theirs = specField('Search', 'PoB');
+    for (const part of ["the skill's other damage types", '`tree "ailments"`', 'Blistering Bond', 'Blood Barbs', 'Plaguefinger', 'Vestige of Darkness', 'fire to shock and the like', 'Rupture', "Bloodhound's Mark", '"Blood Loss"', 'as well as modifier']) {
+      expect({ part, inSpec: theirs.includes(part) || theirs.includes(part.replace('modifier', 'modifier lines')), inLibrary: ours.includes(part) }).toEqual({ part, inSpec: true, inLibrary: true });
+    }
+  });
+
+  it('cites pin lines that hold what the entry says of them', () => {
+    const body = folded(entry(TITLE)!.body);
+    // Every `path:line` the entry cites, a bare `:line` read against the path before it.
+    const cites: string[] = [];
+    let last = '';
+    for (const m of body.matchAll(/`(?:((?:Data|Modules|TreeData)\/[^`:]+))?:(\d+(?:-\d+)?)`/g)) {
+      if (m[1]) last = m[1];
+      cites.push(`${last}:${m[2]}`);
+    }
+    const lines = (cite: string) => {
+      const [rel, range] = cite.split(':');
+      const [from, to] = range.split('-').map(Number);
+      return pinLines(rel).slice(from - 1, (to ?? from)).join('\n');
+    };
+    const checks: Record<string, (text: string) => unknown> = {
+      'Data/Uniques/ring.lua:86': (t) => [t.includes('Fire Damage also Contributes to Bleeding Magnitude'), uniqueAt('Data/Uniques/ring.lua', 86)],
+      'TreeData/0_5/tree.lua:66284': (t) => [t.includes('Elemental Damage also Contributes to Bleeding Magnitude'), nameAbove('TreeData/0_5/tree.lua', 66284)],
+      'Data/Uniques/gloves.lua:377': (t) => [t.includes('All Damage from Hits Contributes to Poison Magnitude'), uniqueAt('Data/Uniques/gloves.lua', 377)],
+      'Data/Uniques/helmet.lua:462': (t) => [t.includes('Physical damage from Hits Contributes to Chill Magnitude and Freeze Buildup'), uniqueAt('Data/Uniques/helmet.lua', 462)],
+      'Modules/ModParser.lua:3027-3036': (t) => [/fire damage from hits contributes to shock chance/.test(t), /cold damage from hits contributes to flammability/.test(t)],
+      'Data/Skills/sup_str.lua:6424': (t) => [/Aggravate Bleeding on Hitting Heavily Stunned Enemies/.test(t), nameAbove('Data/Skills/sup_str.lua', 6424)],
+      'Data/Skills/act_dex.lua:496-620': (t) => [t.split('\n')[0].includes('skills["BloodhoundsMarkPlayer"]'), /^skills\[/.test(pinLines('Data/Skills/act_dex.lua')[620])],
+      'Data/Skills/act_dex.lua:570': (t) => /\{ "hunters_mark_%_of_phys_damage_over_time_as_build_up", \d+ \}/.test(t),
+      'Data/StatDescriptions/Specific_Skill_Stat_Descriptions/bloodhounds_mark.lua:52': (t) => /Heavy Stun buildup equal to\\n\{0\}% of Blood Loss/.test(t),
+      'Modules/CalcOffence.lua:5063-5069': (t) => t.includes('ailment .. "CanStack"'),
+      'Modules/CalcOffence.lua:5874-5882': (t) => [t.includes('local dotCfg = {'), /Ailment/.test(t)],
+      'Modules/CalcOffence.lua:5040-5048': (t) => [/ModFlag\.Ailment/.test(t), /KeywordFlag\.Ailment/.test(t)],
+    };
+    expect(cites.sort()).toEqual(Object.keys(checks).sort());
+    const got = Object.fromEntries(cites.map((c) => [c, checks[c](lines(c))]));
+    expect(got).toEqual({
+      'Data/Uniques/ring.lua:86': [true, 'Blistering Bond'],
+      'TreeData/0_5/tree.lua:66284': [true, 'Blood Barbs'],
+      'Data/Uniques/gloves.lua:377': [true, 'Plaguefinger'],
+      'Data/Uniques/helmet.lua:462': [true, 'Vestige of Darkness'],
+      'Modules/ModParser.lua:3027-3036': [true, true],
+      'Data/Skills/sup_str.lua:6424': [true, 'Rupture'],
+      'Data/Skills/act_dex.lua:496-620': [true, true],
+      'Data/Skills/act_dex.lua:570': true,
+      'Data/StatDescriptions/Specific_Skill_Stat_Descriptions/bloodhounds_mark.lua:52': true,
+      'Modules/CalcOffence.lua:5063-5069': true,
+      // The skill's own damage over time carries no ailment flag; an ailment's carries both.
+      'Modules/CalcOffence.lua:5874-5882': [true, false],
+      'Modules/CalcOffence.lua:5040-5048': [true, true],
+    });
+    // The quoted build-up line is the stat description with the skill's base value.
+    const value = /"hunters_mark_%_of_phys_damage_over_time_as_build_up", (\d+)/.exec(pinLines('Data/Skills/act_dex.lua')[569])![1];
+    expect(body).toContain(`"Marked target receives Heavy Stun buildup equal to ${value}% of Blood Loss"`);
+  });
+
+  it("models the types in PoB and names Bloodhound's Mark's build-up as PG-101, which pob-gaps.md lists", () => {
+    const pob = field(entry(TITLE)!.body, 'PoB');
+    expect(pob).toMatch(/^modelled for the types, one instance each unless `<Ailment>CanStack`/);
+    expect(specField('PoB', 'Examples')).toMatch(/Bloodhound's Mark's stun build-up isn't \(PG-101\)/);
+    expect(pob).toMatch(/Bloodhound's Mark's stun build-up is not modelled \(PG-101\)/);
+    const gaps = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'pob-gaps.md'), 'utf8');
+    expect(gaps).toMatch(/- \*\*PG-101, Bloodhound's Mark's Heavy Stun build-up from Blood Loss isn't modelled\.\*\*/);
+  });
+
+  it("gives §11's example, Spud's Warbringer's ignite beside bleeding through Blistering Bond, as the study measured it", () => {
+    expect(specField('Examples', 'Cautions')).toMatch(/`\[spud\]` \(Warbringer's ignite beside bleed through Blistering Bond/);
+    const examples = field(entry(TITLE)!.body, 'Examples');
+    expect(examples).toMatch(/^Spud's Warbringer: Shield Wall's ignite and bleeding nearly match its hit, the bleeding fed by fire through Blistering Bond \((\d+)% of Shield Wall\) \[spud\] §4\.1, §9\.$/);
+    const study = folded(fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'studies', '2026-10-23-spud-warcryer-comparison.md'), 'utf8'));
+    const [, hit, ignite, bleed] = /\| Shield Wall \| ([\d,]+) DPS \| ([\d,]+) \| ([\d,]+) \|/.exec(study)!.map((x) => Number(x.replace(/,/g, '')));
+    expect(ignite + bleed).toBeGreaterThan(0.9 * hit);
+    expect(ignite + bleed).toBeLessThan(hit);
+    const share = /\((\d+)% of Shield Wall\)/.exec(examples)![1];
+    expect(study).toContain(`Blistering Bond is worth ${share}% of Shield Wall`);
+  });
+
+  it("names the three chaos debuffs in its Cautions, then §11's three other cautions, the figure read from §2", () => {
+    const cautions = field(entry(TITLE)!.body, 'Cautions');
+    const theirs = spec(S11, /- \*\*Cautions:\*\* (.*?) - A pointer from/, "the entry's Cautions")[1];
+    const debuffs = spec(theirs, /^(.*?) aren't ailments/, 'the chaos debuffs')[1];
+    expect(debuffs).toBe("Contagion, Essence Drain and Decaying Hex's debuff");
+    expect(cautions.startsWith(`${debuffs} aren't ailments: in PoB they take damage over time and chaos damage over time lines but not the ailment lines`)).toBe(true);
+    expect(cautions).toContain('PoB\'s model, needs in-game testing');
+    const clauses = theirs.split('; ').slice(-3).map(plain);
+    expect(clauses).toEqual([
+      'each type needs its own chance and damage type',
+      'duration raises damage only where stacks or uptime are short',
+      'a second ailment pays only with its chance sources.',
+    ]);
+    for (const clause of clauses) expect({ clause, held: plain(cautions).includes(clause.replace(/\.$/, '')) }).toEqual({ clause, held: true });
+    const cut = spec(S2, /Poison III and Supercritical in r2-s-2's Shield Wall cut it (\d+)% \(no poison chance beyond the gem/, "§2's figure")[1];
+    expect(cautions).toMatch(new RegExp(`Lexd's Poison III and Supercritical, moved alone into the Titan Rake run's Shield Wall, with no poison chance beyond the gem, cut it ${cut}% \\[amendment-13\\] §2\\.$`));
+    expect(sources.get('amendment-13')).toBe('../../../../docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md');
+  });
+
+  it('points to it from "Convert into the ailment\'s type"', () => {
+    const from = spec(S11, /A pointer from "([^"]+)"/, 'the pointer')[1];
+    expect(from).toBe("Convert into the ailment's type");
+    expect(field(entry(from)!.body, 'Search')).toMatch(new RegExp(`see ${TITLE}\\.$`));
+  });
+
+  it("rewords the Damage over time kit's lever beside Contagion, which no longer calls it an ailment lever", () => {
+    const lever = spec(S11, /the Damage over time kit's "([^"]+)" lever beside Contagion/, "the kit's lever")[1];
+    expect(lever).toBe('ailment magnitude');
+    const kit = h3sUnder(h2('Standard kits')!).find((a) => a.title === 'Damage over time')!;
+    const levers = bullets(kit.body).find((b) => b.startsWith('- **Levers:** '))!;
+    expect(levers).not.toContain(lever);
+    expect(levers).toMatch(/for a spread ailment, its magnitude and enough duration to spread/);
+    expect(levers).toContain(`while Contagion itself isn't an ailment: it takes damage over time lines, not ailment lines (${TITLE})`);
+  });
+
+  describe('the pivots', () => {
+    const pivots = spec(S11, /\*\*The pivots\*\* \(\[finishing\], item 11i\), each a short entry or a kit line: (.*?) \*\*Split Personality/, 'the pivots')[1];
+
+    it("crit guaranteed, then crit damage bonus: a short entry naming Nebuloch's line, Supercritical and the crit clusters", () => {
+      expect(pivots).toMatch(/with crit guaranteed \(Nebuloch's line\), stack crit damage bonus \(Supercritical, crit clusters\)/);
+      const e = entry('Guaranteed crit, then crit damage');
+      expect(e?.family).toBe('7. Conditions');
+      const at = FIELDS.map((f) => e!.body.search(new RegExp(`^- \\*\\*${f}:\\*\\* \\S`, 'm')));
+      expect({ fields: at.every((i) => i >= 0), inOrder: [...at].sort((x, y) => x - y).join() === at.join() }).toEqual({ fields: true, inOrder: true });
+      const body = folded(e!.body);
+      // Nebuloch's line as the pin writes it, and PoB's cache leaving it unparsed.
+      const mace = pinLines('Data/Uniques/mace.lua');
+      const nebuloch = mace.indexOf('Nebuloch');
+      const line = mace.slice(nebuloch, nebuloch + 10).find((l) => /to Critically Hit$/.test(l))!;
+      expect(body).toContain(`(Nebuloch: "${line}")`);
+      const cache = pinLines('Data/ModCache.lua');
+      const cached = cache.findIndex((l) => l.startsWith(`c["${line}"]={nil,`));
+      expect(cached).toBeGreaterThanOrEqual(0);
+      expect(field(e!.body, 'PoB')).toMatch(new RegExp(`^not modelled for Nebuloch's guarantee, which PoB doesn't parse \\(\`Data/ModCache\\.lua:${cached + 1}\`\\)`));
+      // Supercritical's crit chance penalty as the pin has it.
+      const sup = pinLines('Data/Skills/sup_int.lua').join('\n');
+      const block = sup.slice(sup.indexOf('name = "Supercritical"'));
+      const less = -Number(/"support_critical_damage_critical_strike_chance_\+%_final", (-\d+)/.exec(block)![1]);
+      expect(body).toContain(`Supercritical (more damage with crits, ${less}% less crit chance, pin)`);
+      expect(body).toContain('the crit clusters (`tree "Critical Damage Bonus"`)');
+      // The reference build's figures, read from §2.
+      const [, superFig] = spec(S2, /Supercritical (\d+)%;/, "Supercritical's figure");
+      const [, setTwo] = spec(S2, /four set-2 crit damage passives (\d+)%/, 'the set-2 passives figure');
+      expect(field(e!.body, 'Examples')).toBe(`Lexd's Shield Wall + Rake Bleed Titan, on Nebuloch: Supercritical is worth ${superFig}% of its Shield Wall's damage, and four crit damage passives on weapon set 2 ${setTwo}% [amendment-13] §2.`);
+      expect(A13).toContain("Lexd's Shield Wall + Rake Bleed Titan");
+    });
+
+    it("a keystone that multiplies the build's ailment: Crimson Assault for bleeding, a Damage over time kit line", () => {
+      expect(pivots).toMatch(/a keystone that multiplies the build's ailment \(Crimson Assault for bleed\)/);
+      const kit = h3sUnder(h2('Standard kits')!).find((a) => a.title === 'Damage over time')!;
+      const line = bullets(kit.body).find((b) => b.startsWith('- **Keystones:** '))!;
+      const tree = pinLines('TreeData/0_5/tree.lua');
+      const at = tree.findIndex((l) => l.includes('name="Crimson Assault"'));
+      const node = tree.slice(at - 5, at + 12).join('\n');
+      expect(node).toContain('isKeystone=true');
+      const more = /"(\d+)% more Magnitude of Bleeding you inflict"/.exec(node)![1];
+      expect(node).toContain('"Bleeding you inflict is Aggravated"');
+      expect(node).toContain('"Base Bleeding Duration is 1 second"');
+      const [, fig] = spec(S2, /Crimson Assault (\d+)%;/, "Crimson Assault's figure");
+      expect(line).toBe(`- **Keystones:** one that multiplies the build's ailment: Crimson Assault for bleeding (${more}% more bleeding magnitude, aggravated, a 1-second base duration; pin: \`TreeData/0_5/tree.lua\`); Lexd's Titan's Shield Wall loses ${fig}% without it [amendment-13] §2.`);
+    });
+
+    it("the second ailment's chance sources, in the ailment entry", () => {
+      expect(pivots).toMatch(/the second ailment's chance sources \(above\)/);
+      expect(field(entry(TITLE)!.body, 'Cautions')).toContain('A second ailment pays only with its chance sources');
+    });
+
+    it('records the user\'s approval beside the others (D-470)', () => {
+      const review = bullets(bodyOf(h2('How to read an entry')!)).find((b) => b.startsWith('- **Reviewed.**')) ?? '';
+      expect(review).toMatch(/A second ailment type and the pivots \(D-470, 2026-10-30\)\.$/);
+    });
+  });
+
+  it("no line says the compiler doesn't accept Split Personality's start, and the radius-jewel entry says it does", () => {
+    const gone = spec(S4, /The library\*\* then drops "([^"]+)"/, "§4's dropped line")[1];
+    expect(gone).toBe("but our compiler doesn't yet accept that start");
+    expect(folded(text)).not.toContain(gone.replace(/^but /, ''));
+    expect(folded(text)).not.toMatch(/compiler (?:doesn't|does not|can't|cannot) (?:yet )?accept/);
+    const search = field(entry('Radius jewel instead of an anoint')!.body, 'Search');
+    expect(search).toContain('Split Personality, a Ruby, lets the tree also grow from the start its variant names');
+    expect(search).toContain('PoB models it, and our compiler accepts that start while the tree reaches the jewel\'s socket without it');
+  });
+
+  it('is at most 17,000 words, the cap the five cap tests pin', () => {
+    const cap = Number(spec(S11, /The user raised it to \*\*([\d,]+)\*\*/, 'the cap')[1].replace(/,/g, ''));
+    expect(cap).toBe(17_000);
+    expect(text.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(cap);
+    const pinned = `${String(cap).slice(0, -3)}_${String(cap).slice(-3)}`;
+    const test = (name: string) => fs.readFileSync(path.join(REPO, 'tests', 'static', name), 'utf8');
+    const holds = {
+      'buildGuideDesignPieces.test.ts': new RegExp(`^const LIBRARY_WORD_CAP = ${pinned};$`, 'm').test(test('buildGuideDesignPieces.test.ts')),
+      'patternLibraryM22.test.ts': new RegExp(`^const CAP = ${pinned};$`, 'm').test(test('patternLibraryM22.test.ts')),
+      'buildGuideAmendment11Design.test.ts': test('buildGuideAmendment11Design.test.ts').includes(`expect(words(rawRef('patterns.md'))).toBeLessThanOrEqual(${pinned});`),
+      'buildGuidePipeline.test.ts': new RegExp(`^const LIBRARY_WORD_CAP = ${pinned};$`, 'm').test(test('buildGuidePipeline.test.ts')),
+      'patternLibraryEngine.test.ts': test('patternLibraryEngine.test.ts').includes(`expect(text.split(/\\s+/).filter(Boolean).length).toBeLessThanOrEqual(${pinned});`),
+    };
+    expect(holds).toEqual(Object.fromEntries(Object.keys(holds).map((k) => [k, true])));
+    // The old cap, built so this file doesn't hold it either.
+    const old = ['16', '000'].join('_');
+    for (const name of Object.keys(holds)) expect({ name, old: test(name).includes(old) }).toEqual({ name, old: false });
   });
 });

@@ -119,7 +119,7 @@ Ask these after 1–19 (D-458); the defence and sizing studies showed why ([defe
   ailment's type and the corpse-explosion line are the user's, as [amendment-9] §24.1 words them. Approved by the
   user: questions 16–19 and the changes to Cost redirection and Payoff thief (D-431, 2026-10-23); the Defence family
   and the defence edits, from [defence-layers] and the `vid-` keys (2026-10-26); questions 20–24, The enemy's side
-  and the Arbiter's figures (D-458, 2026-10-28).
+  and the Arbiter's figures (D-458, 2026-10-28); A second ailment type and the pivots (D-470, 2026-10-30).
 - **Seen in two or more independent builds:** relay past a self-exclusion, stat-to-damage bridge, cost
   redirection, cost to a gated resource, builder and finisher with a payoff thief, Archon of Undeath with
   Muster on command skills, Concussive Runes shockwaves, Gemling quality [worklog]; placed detonator and condition
@@ -320,15 +320,19 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   §1, or cast by hand beside Essence Drain, a death spreading Contagion, curses and chaos DoT debuffs
   [mob-ed-lich] §2, §3; Wither from Withering Presence [eraser] §1; [mob-ed-lich] §3; Despair on Blasphemy
   [maelstrom] §1 (7) or on set 2 [mob-ed-lich] §3.
-- **Levers:** the skill's level, ailment magnitude, enough duration to spread (an ignite of 2–3 s) [eraser] §1;
-  Swift Affliction, Brutality and Herald of Blood on Corrupted Blood, said to take its host cry's level (unverified,
-  Level-carrier host) [infernal-cry] chain 2, 4.
+- **Levers:** the skill's level; for a spread ailment, its magnitude and enough duration to spread (an ignite of
+  2–3 s) [eraser] §1, while Contagion itself isn't an ailment: it takes damage over time lines, not ailment lines (A
+  second ailment type); Swift Affliction, Brutality and Herald of Blood on Corrupted Blood, said to take its host
+  cry's level (unverified, Level-carrier host) [infernal-cry] chain 2, 4.
 - **Ramp:** Contagion deals 100% more per spread, up to 300% (pin) [mob-ed-lich] §2.
 - **Bosses:** a hit keyed to the DoT: Dark Effigy bombards only enemies with a chaos DoT debuff (pin)
   [mob-ed-lich] §3; Toxic Growth's pustules store the poison Gas Arrow's cloud puts on them [mob-poison] §2.
 - **Poison:** one poison per enemy until stack sources add one each (Escalating Poison, Building Toxins, Snakebite);
   Overwhelming Toxicity doubles them at 50% less duration; Deadly Poison II (100% more magnitude, 30% less hit
   damage) on every poison skill [mob-poison] §3, §4.
+- **Keystones:** one that multiplies the build's ailment: Crimson Assault for bleeding (50% more bleeding magnitude,
+  aggravated, a 1-second base duration; pin: `TreeData/0_5/tree.lua`); Lexd's Titan's Shield Wall loses 16% without
+  it [amendment-13] §2.
 - **Campaign:** Contagion opens six studied campaigns [comparison] §2; [fubgun] §2; [mob-ed-lich] §5;
   [mob-autobomber] §5; [mob-mattjestic] §3; [mob-thyworm] §4.
 
@@ -796,7 +800,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   duration.
 - **Search:** from a conversion line (Avatar of Fire, "Converted to"), the ailment's magnitude, chance and
   duration (`mechanic "Ignite Magnitude"`, "Magnitude of Bleeding", "Flammability"), lines that let another type
-  count ("also Contributes to": Blistering Bond), and the base shares (kind `constant`).
+  count ("also Contributes to": Blistering Bond), and the base shares (kind `constant`). For a second ailment type
+  beside this one, see A second ailment type.
 - **PoB:** modelled: ignite, bleeding and poison read the hit after conversion (pin: `Modules/Data.lua:440`,
   `Data/Misc.lua:86-96`).
 - **Examples:** Spud's warcry Warbringer: Avatar of Fire makes every hit fire, so the whole hit ignites, and
@@ -945,6 +950,31 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Cautions:** the banking is the comparison's reading, not measured, and whether the elemental limits hold
   Verisium Infusions is unchecked; a second spender drains the bank (Payoff thief).
 
+### A second ailment type
+
+- **Shape:** a damaging ailment doesn't stack with itself, but bleed, ignite and poison run side by side, and the
+  generic lines (damage over time, the magnitude of damaging ailments) scale each, so a second type takes every
+  generic line again.
+- **Search:** the skill's other damage types; `tree "ailments"`; and lines that change how ailments work, in skills as
+  well as modifiers, in the game's words ("Blood Loss"): another type feeds an ailment ("Contributes to … Magnitude":
+  Blistering Bond, fire to bleeding, `Data/Uniques/ring.lua:86`; Blood Barbs, elemental to bleeding,
+  `TreeData/0_5/tree.lua:66284`; Plaguefinger, every hit to poison, `Data/Uniques/gloves.lua:377`; for the
+  non-damaging ailments, Vestige of Darkness, physical to chill and freeze, `Data/Uniques/helmet.lua:462`); a type
+  feeds a different ailment (fire to shock and the like, `Modules/ModParser.lua:3027-3036`); an ailment ties into
+  stun (Rupture aggravates bleeding on heavily stunned enemies, `Data/Skills/sup_str.lua:6424`; Bloodhound's Mark, a
+  skill: "Marked target receives Heavy Stun buildup equal to 300% of Blood Loss", `Data/Skills/act_dex.lua:496-620`,
+  the build-up stat at `:570`, `Data/StatDescriptions/Specific_Skill_Stat_Descriptions/bloodhounds_mark.lua:52`).
+- **PoB:** modelled for the types, one instance each unless `<Ailment>CanStack`
+  (`Modules/CalcOffence.lua:5063-5069`); Bloodhound's Mark's stun build-up is not modelled (PG-101).
+- **Examples:** Spud's Warbringer: Shield Wall's ignite and bleeding nearly match its hit, the bleeding fed by fire
+  through Blistering Bond (22% of Shield Wall) [spud] §4.1, §9.
+- **Cautions:** Contagion, Essence Drain and Decaying Hex's debuff aren't ailments: in PoB they take damage over time
+  and chaos damage over time lines but not the ailment lines (`Modules/CalcOffence.lua:5874-5882` against
+  `:5040-5048`; PoB's model, needs in-game testing). Each type needs its own chance and damage type; duration raises
+  damage only where stacks or uptime are short. A second ailment pays only with its chance sources: Lexd's Poison III
+  and Supercritical, moved alone into the Titan Rake run's Shield Wall, with no poison chance beyond the gem, cut it
+  20% [amendment-13] §2.
+
 ## 6. Levels, quality and tags
 
 ### Level-carrier host
@@ -1044,6 +1074,21 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** modelled for your own flames.
 - **Examples:** Chayula: every flame purple [chayula-minions].
 - **Cautions:** relayed to minions, see Buff relay.
+
+### Guaranteed crit, then crit damage
+
+- **Shape:** a pivot: once every hit crits, crit chance buys nothing and the crit damage bonus is the open pool, so a
+  line that trades chance for bonus pays in full.
+- **Search:** `mechanic "to Critically Hit" (unique)` (Nebuloch: "Attacks consume an Endurance Charge to Critically
+  Hit"), `mechanic "always Critical"`; then the crit clusters (`tree "Critical Damage Bonus"`) and Supercritical
+  (more damage with crits, 20% less crit chance, pin).
+- **PoB:** not modelled for Nebuloch's guarantee, which PoB doesn't parse (`Data/ModCache.lua:4794`); the crit damage
+  bonus and Supercritical are modelled.
+- **Examples:** Lexd's Shield Wall + Rake Bleed Titan, on Nebuloch: Supercritical is worth 20% of its Shield Wall's
+  damage, and four crit damage passives on weapon set 2 26% [amendment-13] §2.
+- **Cautions:** the pieces don't transfer alone: Supercritical and Poison III, moved into the Titan Rake run's Shield
+  Wall with no crit bonus to stack, cut it 20% [amendment-13] §2. Nebuloch takes 100 chaos damage per second per
+  Endurance Charge (pin).
 
 ### Saturated type count
 
@@ -1256,8 +1301,9 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Shape:** a radius jewel reaches notables, or saves travel, without a path or the anoint.
 - **Search:** before an anoint, check whether a radius jewel such as From Nothing reaches the notable. For a skill
   off the class's stats (a melee Witch), Split Personality, a Ruby, lets the tree also grow from the start its
-  variant names ("Can Allocate Passive Skills from the Warrior's starting point"); PoB models it, but our compiler
-  doesn't yet accept that start.
+  variant names ("Can Allocate Passive Skills from the Warrior's starting point"); PoB models it, and our compiler
+  accepts that start while the tree reaches the jewel's socket without it (a variant naming a start the build already
+  has adds nothing).
 - **PoB:** modelled.
 - **Examples:** Twister: From Nothing near CI reaches Heavy Frost [twister]. From Nothing in 9 and Controlled
   Metamorphosis in 3 of 30 published league starters, the largest single-jewel effects there: up to ×1.23 EHP
@@ -1553,3 +1599,4 @@ Paths are from this file; each title is the source's patch.
 [vid-secret-defence]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.5"
 [vid-deflection]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.5"
 [vid-build-process]: ../../../../docs/build-guide/studies/2026-10-26-advice-videos.md "0.5"
+[amendment-13]: ../../../../docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md "pin 0.5.4"

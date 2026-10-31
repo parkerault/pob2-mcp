@@ -32,9 +32,10 @@ const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-builds');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'design-pieces-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-/** D-410 and amendment 9 §24.1: the library's word cap; D-410: the Standard kits section's own limit. Both are
- * provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size. */
-const LIBRARY_WORD_CAP = 16_000;
+/** D-410 and amendment 9 §24.1: the library's word cap, 17,000 since amendment 13 §11 (D-470: the user raised it on
+ * 2026-10-30, provisional, HG-24's precedent); D-410: the Standard kits section's own limit. Both are provisional since
+ * 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size. */
+const LIBRARY_WORD_CAP = 17_000;
 const KITS_WORD_LIMIT = 4_000;
 
 const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');

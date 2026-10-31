@@ -1830,9 +1830,9 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
   });
 });
 
-/** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it); 16,000 is
- * provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size. */
-const LIBRARY_WORD_CAP = 16_000;
+/** D-410: the pattern library's word cap, raised from D-381's 10,000 (and D-325's 6,000 before it); 17,000 since
+ * amendment 13 §11 (D-470: the user raised it on 2026-10-30, provisional, HG-24's precedent). */
+const LIBRARY_WORD_CAP = 17_000;
 
 describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () => {
   const file = path.join(SKILL_DIR, 'references', 'patterns.md');
@@ -1935,7 +1935,7 @@ describe('AC-W28: the pattern library (C-53, D-290, D-325, D-381, D-410)', () =>
     for (const id of cited) expect({ id: `PG-${id}`, listed: gaps.includes(`**PG-${id},`) }).toEqual({ id: `PG-${id}`, listed: true });
   });
 
-  it('is at most 16,000 words, so a researcher reads it whole (D-325, D-381, D-410, amendment 9 §24.1; provisional)', () => {
+  it('is at most 17,000 words, so a researcher reads it whole (D-325, D-381, D-410, amendment 9 §24.1, D-470; provisional)', () => {
     const words = text.split(/\s+/).filter(Boolean).length;
     expect(words).toBeGreaterThan(1000);
     expect(words).toBeLessThanOrEqual(LIBRARY_WORD_CAP);

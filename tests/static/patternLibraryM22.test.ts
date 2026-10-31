@@ -8,8 +8,9 @@
  * - A warcry Standard kit, every line cited, from the Warcryer study (`[spud]`) and the work-log's candidate (D-428).
  * - The damage-order rule, "Convert into the ailment's type" (right after "Type conversion so another mechanic
  *   applies") and the corpse-explosion line (the last of the Standard kits preamble), each in §24.1's wording, read
- *   from the spec; `[spud]` defined as the 2026-10-23 comparison study.
- * - The library under its word cap (§24.1's 13,000; 16,000 is provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size), which both word-count tests pin.
+ *   from the spec; `[spud]` defined as the 2026-10-23 comparison study. Amendment 13 §11 (D-470, WU-131) adds one
+ *   sentence to the ailment-conversion entry, its pointer to "A second ailment type", ending its Search.
+ * - The library under its word cap (§24.1's 13,000; 17,000 since amendment 13 §11, D-470, the user, 2026-10-30, provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size), which both word-count tests pin.
  * - `pob-gaps.md`: PG-72 closed, PoB matching the game; PG-73 new, a unique tame's tablet modifier with no line in the
  *   pin, each cited line checked against the pin; PG-71 intact.
  * V1's `skill-slots` is AC-W82's last bullet: `tests/unit/v1SkillSlots.test.ts` and `tests/integration/skillSlots.test.ts`.
@@ -23,7 +24,7 @@ const LIBRARY = path.join(REPO, '.claude', 'skills', 'build-guide', 'references'
 const GAPS = path.join(REPO, 'docs', 'build-guide', 'pob-gaps.md');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-9-endgame-first.md');
 const PIN_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
-const CAP = 16_000;
+const CAP = 17_000;
 
 const read = (f: string) => fs.readFileSync(f, 'utf8');
 const folded = (s: string) => s.replace(/\s*\n\s*/g, ' ').trim();
@@ -134,7 +135,11 @@ describe('AC-W82 (WU-103): the pattern library\'s M-22 additions (D-426, D-427, 
     const before = headings[headings.indexOf(e) - 1];
     expect(before.title).toBe('Type conversion so another mechanic applies');
     expect(parentOf(e)).toBe(parentOf(before));
-    expect(folded(`### ${e.title}\n${ownText(e)}`)).toBe(entry);
+    // Amendment 13 §11 (D-470): the one sentence added since, the pointer to "A second ailment type", ends the Search.
+    const pointer = ' For a second ailment type beside this one, see A second ailment type.';
+    const ours = folded(`### ${e.title}\n${ownText(e)}`);
+    expect(field(ownText(e), 'Search').trim().endsWith(pointer.trim())).toBe(true);
+    expect(ours.replace(pointer, '')).toBe(entry);
   });
 
   it("ends the Standard kits preamble with the corpse-explosion line, in §24.1's wording", () => {
@@ -151,14 +156,14 @@ describe('AC-W82 (WU-103): the pattern library\'s M-22 additions (D-426, D-427, 
     expect(keys.indexOf('spud')).toBe(keys.indexOf('amendment-9') + 1);
   });
 
-  it('stays under the word cap (§24.1; 16,000, provisional), and both word-count tests pin it', () => {
-    expect(words(text)).toBeLessThan(CAP);
+  it('stays within the word cap (§24.1; 17,000 since D-470, provisional), and both word-count tests pin it', () => {
+    expect(words(text)).toBeLessThanOrEqual(CAP);
     const pipeline = read(path.join(REPO, 'tests', 'static', 'buildGuidePipeline.test.ts'));
-    expect(pipeline).toMatch(/^const LIBRARY_WORD_CAP = 16_000;$/m);
-    expect(pipeline).toContain("it('is at most 16,000 words, so a researcher reads it whole");
+    expect(pipeline).toMatch(/^const LIBRARY_WORD_CAP = 17_000;$/m);
+    expect(pipeline).toContain("it('is at most 17,000 words, so a researcher reads it whole");
     const engine = read(path.join(REPO, 'tests', 'static', 'patternLibraryEngine.test.ts'));
-    expect(engine).toContain('toBeLessThan(16_000)');
-    expect(engine).toContain("it('stays under 16,000 words");
+    expect(engine).toContain('toBeLessThanOrEqual(17_000)');
+    expect(engine).toContain("it('is at most 17,000 words");
   });
 });
 

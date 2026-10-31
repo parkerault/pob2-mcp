@@ -247,9 +247,9 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(325);
   });
 
-  it('patterns.md stays within its word cap (provisional 16,000)', () => {
-    // 16,000 is provisional since 2026-10-26: the user set the caps aside while the defence entries landed, to review the new size.
-    expect(words(rawRef('patterns.md'))).toBeLessThanOrEqual(16_000);
+  it('patterns.md stays within its word cap (provisional 17,000)', () => {
+    // 17,000 since amendment 13 §11 (D-470: the user raised it on 2026-10-30, provisional, HG-24's precedent).
+    expect(words(rawRef('patterns.md'))).toBeLessThanOrEqual(17_000);
   });
 });
 

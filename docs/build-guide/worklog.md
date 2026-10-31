@@ -6126,3 +6126,20 @@ the `m17` engine at `b76967b`.
   - **Left:** the design display's Life line prints "(EHP and the lowest max hit held their start)" unconditionally
     and no rule checks it (the tree search holds the targets by construction); no rule checks that a claims pass, or a
     full pass, covers every hinge claim (the full pass never had one).
+- **WU-133 (the design, gate and guide docs) merged** at `6d89d4e` (fast-forward). The D1 stages, F1 and the D2 gate,
+  `checkpoints.md`, `gates.md`, `pricing.md`, W1 and the templates, V4 (its claims mode), the coordinator's rules,
+  `task-header.md`, `fix-round.md`, `SKILL.md`, and the coordinator's and verifier's definitions state amendment 13 as
+  built; AC-W103 and AC-W104 in a new `tests/static/buildGuideAmendment13Design.test.ts` (81 tests), two of them
+  running the D1 gate's design-field example through `run-log.mjs display design` and the checker. Its verifier (fresh
+  context) passed it, re-running the gate (220 suites, 3,854 tests, rc 0; the timing step 2 suites, 4 tests; build rc
+  0) and walking a file-only build through the docs against the checker's route table.
+  - **`SKILL.md` is 331 lines,** 6 over its 325: four lines in §6 and one in §8 for the claims pass (D-477), one net for
+    D1-tree's `stale-server` route in §4; the rest fit after cutting a duplicated paragraph, the hook sentence, the
+    queue's `status` line and the brief-check line (each still stated elsewhere), and pointing the pricing-stop rule at
+    `pricing.md`.
+  - **Choices the spec left open:** the stale-server check reads the first `Best swap:` line when the rebuild line is
+    `Rebuild: none: …`, which names no targets on any server (the old server's text says "target" nowhere); D1-finish
+    measures a buff entry with and without it and writes a `boss-value-<rung>-g<group>` claim, which the D1 gate copies
+    into `valuedBy`; a corrupted unique at or over the cheap line goes back through D-446's route (`build: corruption
+    <stage> <slot>`) for D1-build to drop the line; `pieces.md` gains `## Skill levels` and `## Unique jewels`.
+  - **Left:** a fix round's D1 gate (the claims round's included) may write a draft, which F1 then removes; harmless.

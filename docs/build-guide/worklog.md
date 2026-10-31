@@ -6050,3 +6050,32 @@ the `m17` engine at `b76967b`.
     start (54447). A level-20 Boneshatter with `corrupt: "plus_one_level"` reads level 21, GemCorruptionLevel 1.
   - **R-68 is real:** PoB parses `# Increases and Reductions to Life in Radius are Transformed…` whole as a modifier
     (`ModParser.lua`:6524), so the compiler refuses a reason that parses.
+- **WU-127 (node power) merged** at `f82151d` (three commits). Node power judges the tree on toughness targets
+  (`targets {ehp, maxHit}`) with the repair, the swap search under targets, `pace_exchange`, an always-on attribute
+  guard, `pool_groups` on the boss config, `free` on a pool node, and Split Personality's start in `start_counts` and
+  `unreached`. Its verifier (fresh context) passed everything but one bullet, re-running the gate (208 suites, 3,595
+  tests, rc 0; the timing step 2 suites, 4 tests; build rc 0) and probing r2-s-2 itself.
+  - **The fixtures (HG-6):** the Titan Rake run's two plans, copied byte-equal: r2-s-1
+    `1f477797aaace127e69ba7a64343ba0d761e359d`, r2-s-2 `0a298c1ff83f28241c7c72a7eef55deb64652c17`; no machine path.
+  - **AC-K76's gains (HG-30 doesn't fire):** the rebuild with repair at reach 12, confirmed by compiling the moved tree:
+    r2-s-2's Main damage 170,138 → 313,886 (+84.49%, bar +41%), EHP 20,674 against its target 17,585, lowest max hit
+    3,673 against 3,627 (the 2026-10-29 experiment's own figures); r2-s-1's 363,901 → 672,036 (+84.68%, bar +46%), EHP
+    21,260 against 20,102, max hit 4,026 against 4,019. Repair steps (freed → added): r2-s-2 [44707, 51735] → [36170,
+    53853] (Backup Plan, as in the experiment), [9918] → [19122], [19011] → [4128]; r2-s-1 [7353] → [5710], [9046] →
+    [4128], [21070] → [6529], then seven nodes for seven.
+  - **The spike (R-61):** the first rebuild with repair took 71.9 s (61.9 s of CPU for 3,910 calculations at reach 12).
+    In compact mode a node's with-path figure feeds a list that mode never prints, so node power skips it there: then
+    23–27 s, one swap search under `targets` 29–30 s; in the gate 17–21 s (about 1,370 calculations). The verifier
+    found a non-compact call's lists unchanged.
+  - **The pool's count (R-64), ruled by the coordinator:** a pool move's gain equals the compile's change in the group's
+    boss figure at the same count (+60,258.73 both ways), but the compile sets the plan's `count` as `groupCount` only
+    on the named source's group, so r2-s-2's Shield Wall (2 in the plan) ranks at PoB's count of 1: +13.57% against the
+    record's +13.04%, 11% short of the record's absolute change. AC-K76's "within 1%" can't hold for a counted group
+    without `groupCount` on every counted group, which also multiplies Spirit reservation and so reaches every
+    compile's figures. The order of moves inside one pool barely changes, and the user sees the record's figures, so
+    the coordinator amended the bullet (exact at PoB's count, within 1 point in percent; proceed-on) and R-64, and left
+    the fix for a later amendment.
+  - **Also:** the always-on attribute guard refuses moves on trees that miss PoB's requirements, so three older fixtures
+    gained attributes (`nodePower.test.ts`'s and `nodePowerSearch.test.ts`'s fifteen-stage rungs, which miss ReqDex,
+    82 of 126; `weaponSets.test.ts`'s stage 2, +10 Strength). The rebuild line reads `+84.49% Main damage (+143,748);
+    EHP …`, with the absolute gain beside Appendix A's form. `get_node_power`'s description is 2,037 of 2,048 characters.

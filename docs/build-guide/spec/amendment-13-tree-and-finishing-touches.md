@@ -850,8 +850,11 @@ it wait. Split Personality fixtures for node power and the path tools are built 
   - a fixture whose best unguarded swap leaves Strength under `ReqStr` returns a swap that keeps `Str ≥ ReqStr`, or
     none;
   - with `pool_groups {"2": <Shield Wall's group>}` the set-2 pool line names that group and ranks by its figure;
-    without it the line reads as today; one pool move's gain under `pool_groups` is within 1% of the change in that
-    group's boss figure between measure-only compiles before and after the move (R-64; the 1% is proceed-on);
+    without it the line reads as today; one pool move's gain under `pool_groups` equals the change in that group's
+    boss figure between measure-only compiles before and after the move, both at PoB's own count for the group, and
+    its percentage is within 1 point of the record's (R-64; proceed-on, amended at WU-127's verification: the compile
+    sets the plan's `count` as `groupCount` only on the named source's group, so a group counted above 1 ranks at
+    PoB's count, while the record, whose figures the user sees, counts the plan's);
   - `free` on a set-1 need node (Cranial Impact's [44406, 63451]) returns a gain, not "not measured";
   - a fixture with Split Personality (Warrior) socketed and a tree from the Warrior start: a swap returned keeps that
     tree, and `unreached` counts its nodes as reached; with the socket reached only through the Warrior start, node
@@ -1018,7 +1021,7 @@ AC-K80 and AC-W101, and at integration §17's rows. Human: AC-W106. No test make
 | R-61 | A rebuild with repair at reach 12, or a swap search repairing each of its up to 40 tries, runs past node power's 120 s long action on a large tree | medium / medium | WU-127's timing spike times both; the work-log records the times; AC-K76 holds each call within 120 s |
 | R-62 | The repair can't reach the targets on some rungs, so the rebuild is never taken there | medium / medium | the swap loop still runs; the gate's judge shows the gap; the live test records it |
 | R-63 | Split Personality's socket rule is stricter than PoB's and the game's is unverified | low / low | the stricter rule refuses less than it allows wrongly; the live test or a user report settles it |
-| R-64 | The set-2 pool measured on the boss config may differ from what PoB's misc calculator reads after the switch | medium / medium | WU-127 compares one pool move against a compile on the boss pass |
+| R-64 | The set-2 pool measured on the boss config may differ from what PoB's misc calculator reads after the switch | medium / medium | WU-127 compares one pool move against a compile on the boss pass. Seen in the build: at the same count the two agree exactly (+60,258.73), but a group counted above 1 in the plan (r2-s-2's Shield Wall, 2) ranks at PoB's count of 1 (+13.57% against the record's +13.04%); the order of moves inside one pool barely changes. The fix, `groupCount` on every counted group (it also multiplies Spirit reservation), is left for a later amendment |
 | R-65 | 30 swaps a rung, each compiled, raise D1-tree's cost and time | high / low | the user prefers quality over time; the cap is surfaced; costs in §18 |
 | R-66 | One item in two slots may not round-trip through PoB's save | medium / medium | WU-128's spike first; on failure the unit stops and the coordinator reports (no fallback to copies without the user) |
 | R-67 | A cleaned name or a dated name surprises the user in PoB's list | low / low | the runner records the name and the gates print it |

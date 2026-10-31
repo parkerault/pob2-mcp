@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 8,
+  "roll": { "className": "Warrior", "ascendancy": "Titan", "skill": "Rake" },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": "Forbidden Rites",
+  "stages": [
+    {
+      "id": "m",
+      "variant": "entering-maps",
+      "loadoutName": "Entering maps (L68) {m}",
+      "level": 68,
+      "progress": "endgame",
+      "ascendancyPoints": 6,
+      "variantBasis": {
+        "level": { "kind": "judgment", "ref": "the campaign ends around level 65 and a player entering T1 to T5 maps is a few levels past it; 68 lets a Conqueror Plate on", "confidence": "M" },
+        "gemLevels": { "kind": "judgment", "ref": "gem level 16 needs character level 66, the uncut gems the interludes and first maps drop; 20% quality on the three damage gems from cheap Gemcutter's Prisms", "confidence": "M" },
+        "ascendancyPoints": { "kind": "judgment", "ref": "the third trial opens from Act 4 (data:campaign/ascendancy.json#trial.3.available-from), so six points by the campaign's end; the fourth is an endgame trial", "confidence": "M" }
+      },
+      "tree": {
+        "nodes": [
+          3936, 13397, 1207, 38323,
+          6015, 35426, 48631, 22616, 14654, 58295, 47263, 18448, 30141, 55190, 1200, 59785,
+          25162, 64489, 6952, 750,
+          33452, 52796, 30371, 27687,
+          22928, 27373, 16725, 54811, 57703, 26725, 63114, 18073, 49952, 13856, 18496,
+          22975, 27439, 8600, 43778, 36894, 33137,
+          36163, 31609,
+          48670, 41646, 7628, 55231, 37361, 40043, 54990,
+          45969, 28510, 10247, 28370, 63526,
+          49657, 58109, 14340, 26786,
+          18882, 30047, 21280, 28050, 63888, 35901, 60735, 11825, 54984, 34015, 48116, 2582, 56847, 28835, 43088,
+          48635, 51749,
+          36629, 51921, 13241,
+          51052, 22558, 55933, 32194, 28002, 49938, 18822, 47790, 17625, 10873,
+          36027, 45090
+        ],
+        "ascendancyNodes": [51690, 12000, 19424, 60634, 27418, 30115],
+        "weaponSetNodes": { "set1": [], "set2": [] },
+        "attributeChoices": [
+          { "node": 13397, "attribute": "dexterity" }, { "node": 1207, "attribute": "dexterity" }, { "node": 38323, "attribute": "dexterity" },
+          { "node": 6015, "attribute": "dexterity" }, { "node": 35426, "attribute": "dexterity" }, { "node": 48631, "attribute": "dexterity" },
+          { "node": 22616, "attribute": "dexterity" }, { "node": 14654, "attribute": "dexterity" }, { "node": 58295, "attribute": "dexterity" },
+          { "node": 47263, "attribute": "strength" }, { "node": 18448, "attribute": "strength" }, { "node": 30141, "attribute": "strength" },
+          { "node": 1200, "attribute": "strength" }, { "node": 59785, "attribute": "strength" }, { "node": 22975, "attribute": "strength" },
+          { "node": 27439, "attribute": "strength" }, { "node": 8600, "attribute": "strength" }, { "node": 22928, "attribute": "strength" },
+          { "node": 27373, "attribute": "strength" }, { "node": 16725, "attribute": "strength" }, { "node": 54811, "attribute": "strength" },
+          { "node": 57703, "attribute": "strength" }, { "node": 63114, "attribute": "strength" },
+          { "node": 48670, "attribute": "strength" }, { "node": 41646, "attribute": "strength" }, { "node": 7628, "attribute": "strength" },
+          { "node": 45969, "attribute": "strength" }, { "node": 28510, "attribute": "strength" }, { "node": 10247, "attribute": "strength" },
+          { "node": 28370, "attribute": "strength" }, { "node": 63526, "attribute": "strength" }, { "node": 49657, "attribute": "strength" },
+          { "node": 58109, "attribute": "strength" }, { "node": 14340, "attribute": "strength" }, { "node": 26786, "attribute": "strength" },
+          { "node": 18882, "attribute": "strength" }, { "node": 30047, "attribute": "strength" }, { "node": 21280, "attribute": "strength" },
+          { "node": 28050, "attribute": "strength" }, { "node": 63888, "attribute": "strength" }, { "node": 35901, "attribute": "strength" },
+          { "node": 11825, "attribute": "strength" }, { "node": 54984, "attribute": "strength" }, { "node": 34015, "attribute": "strength" },
+          { "node": 48116, "attribute": "strength" }, { "node": 2582, "attribute": "strength" },
+          { "node": 48635, "attribute": "strength" },
+          { "node": 36629, "attribute": "strength" }, { "node": 51921, "attribute": "strength" }, { "node": 13241, "attribute": "strength" },
+          { "node": 51052, "attribute": "strength" }, { "node": 22558, "attribute": "strength" }, { "node": 55933, "attribute": "strength" },
+          { "node": 32194, "attribute": "strength" }, { "node": 28002, "attribute": "strength" }, { "node": 49938, "attribute": "strength" }
+        ],
+        "scales": "physical damage, bleed and ailment magnitude, Rage, melee skill levels and shield armour, shared by Rake and Shield Wall",
+        "needs": [
+          { "nodes": [750], "claim": "m-need-splash" },
+          { "nodes": [47790, 17625, 10873], "claim": "m-need-rage" },
+          { "nodes": [13397, 1207, 38323, 6015, 35426, 48631, 22616, 14654, 58295], "stat": "Dex", "claim": "m-need-dex" },
+          { "nodes": [47263, 18448, 30141, 1200, 59785, 22975, 27439, 8600, 22928, 27373, 16725, 54811, 57703, 63114, 36629, 51921, 13241, 51052, 22558, 55933, 32194, 28002, 49938, 48670, 41646, 7628, 45969], "stat": "Str", "claim": "m-need-str" },
+          { "nodes": [51749], "claim": "m-need-blood-magic" }
+        ]
+      },
+      "items": {
+        "slots": [
+          { "slot": "Weapon 1", "text": "Rarity: Rare\nHate Spike\nJagged Spear\nQuality: 20\n+2 to Level of all Melee Skills\n110% increased Physical Damage\nAdds 16 to 30 Physical Damage\n+20 to Dexterity" },
+          { "slot": "Weapon 2", "text": "Rarity: Rare\nStone Bulwark\nRoyal Tower Shield\n+70 to maximum Life\n80% increased Armour\n+30% to Fire Resistance\n+30% to Lightning Resistance\n+22% to Chaos Resistance" },
+          { "slot": "Weapon 1 Swap", "text": "Rarity: UNIQUE\nSaitha's Spear\nBarbed Spear\nLeague: Dawn of the Hunt\nQuality: 20\nLevelReq: 33\nImplicits: 2\nGrants Skill: Spear Throw\n{range:0.5}Bleeding you inflict deals Damage (10-20)% faster\n{range:0.5}Adds (14-26) to (27-32) Physical Damage\n{range:0.5}Adds (33-41) to (47-53) Fire Damage\n{range:0.5}(15-25)% chance to cause Bleeding on Hit\nAggravating any Bleeding with this Weapon also Aggravates all Ignites on the target\n{range:0.5}(25-40)% chance to Aggravate Bleeding on Hit" },
+          { "slot": "Weapon 2 Swap", "text": "Rarity: Rare\nStone Bulwark\nRoyal Tower Shield\n+70 to maximum Life\n80% increased Armour\n+30% to Fire Resistance\n+30% to Lightning Resistance\n+22% to Chaos Resistance" },
+          { "slot": "Gloves", "text": "Rarity: UNIQUE\nAtziri's Acuity\nMoulded Mitts\nArmour: 294\nVariant: Pre 0.1.1\nVariant: Pre 0.5.0\nVariant: Current\nSelected Variant: 3\nQuality: 20\nLevelReq: 33\nImplicits: 1\n{variant:3}{range:0.5}Grants Skill: Level (1-20) Herald of the Royal Queen\n{variant:1,2}{range:0.5}(80-100)% increased Armour\n{variant:3}{range:0.5}(150-200)% increased Armour\n{variant:3}{range:0.5}+(100-150) to maximum Life\n{variant:1}{range:0.5}(20-30)% increased Critical Hit Chance\n{variant:2}{range:0.5}(30-50)% increased Critical Hit Chance\n{variant:1,2}{range:0.5}+(20-30) to Intelligence\n{variant:3}Leech 10% of Physical Attack Damage as Life\n{variant:1,2}Leech from Critical Hits is instant\n{variant:3}10% of Physical damage dealt by your Hits causes Blood Loss\n{variant:3}Vaal Pact" },
+          { "slot": "Body Armour", "text": "Rarity: Rare\nIron Hide\nConqueror Plate\n+80 to maximum Life\n80% increased Armour\n+30% to Fire Resistance\n+25% to Cold Resistance\n+18% to Chaos Resistance" },
+          { "slot": "Helmet", "text": "Rarity: Rare\nGrim Brow\nGuardian Greathelm\n+70 to maximum Life\n+30% to Fire Resistance\n+30% to Cold Resistance\n+25% to Lightning Resistance" },
+          { "slot": "Boots", "text": "Rarity: Rare\nDust March\nBulwark Greaves\n30% increased Movement Speed\n+60 to maximum Life\n+30% to Lightning Resistance\n+25% to Cold Resistance\n+17% to Chaos Resistance" },
+          { "slot": "Belt", "text": "Rarity: Rare\nIron Cord\nHeavy Belt\n+70 to maximum Life\n+30% to Lightning Resistance\n+18% to Chaos Resistance\n+20% to Fire Resistance" },
+          { "slot": "Amulet", "text": "Rarity: Rare\nBlood Bead\nStellar Amulet\n+1 to Level of all Melee Skills\n+50 to maximum Life\n+25 to Dexterity\n+25% to Cold Resistance" },
+          { "slot": "Ring 1", "text": "Rarity: Rare\nRed Band\nKinetic Ring\nAdds 7 to 14 Physical Damage to Attacks\n+40 to maximum Life\n+25% to Lightning Resistance\n+28% to Fire Resistance\n+20 to Dexterity" },
+          { "slot": "Ring 2", "text": "Rarity: Rare\nRed Hoop\nKinetic Ring\nAdds 7 to 14 Physical Damage to Attacks\n+40 to maximum Life\n+25 to Strength\n+28% to Cold Resistance\n+20 to Dexterity" }
+        ],
+        "treeJewels": [
+          { "node": 55190, "text": "Rarity: UNIQUE\nPrism of Belief\nDiamond\nLimited to: 1\nImplicits: 0\n+2 to Level of all Rake Skills\nCorrupted" }
+        ],
+        "toggles": [],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rake",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Rake", "level": 16, "quality": 20, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Momentum", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Ancestral Call II", "level": 1, "quality": 0, "enabled": true }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Herald of Blood", "level": 16, "quality": 20, "enabled": true }            ]
+          },
+          {
+            "label": "Shield Wall",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              { "name": "Shield Wall", "level": 16, "quality": 20, "enabled": true },
+              { "name": "Bleed III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Concentrated Area", "level": 1, "quality": 0, "enabled": true }
+            ],
+            "count": 2,
+            "countReason": "two walls (Shield Wall's 'Limit 2 active Shield Walls', gem lookup) shattered together by one Fortifying Cry or Thunderous Leap: two hits land, but only the top bleed applies (one bleed per enemy; the brainstorm gate's interview, interviews/brainstorm-1.md), which the record's Count rule follows by counting the hit twice and the bleed once"
+          },
+          {
+            "label": "Fortifying Cry",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Fortifying Cry", "level": 16, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Thunderous Leap",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Thunderous Leap", "level": 16, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Rapid Assault (Saitha's Spear swap)",
+            "enabled": true,
+            "role": "single_target",
+            "weaponSet": 2,
+            "gems": [{ "name": "Rapid Assault", "level": 16, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Berserk",
+            "enabled": true,
+            "role": "utility",
+            "gems": [{ "name": "Berserk", "level": 16, "quality": 0, "enabled": true }]
+          }
+        ],
+        "main": { "group": 1, "activeSkill": 1, "statSet": 1 },
+        "rolledGroup": 1,
+        "boss": {
+          "entries": [
+            { "group": 3, "activeSkill": 1, "statSet": 1 },
+            { "group": 4, "activeSkill": 2, "statSet": 1 },
+            { "group": 5, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 2, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 3, "turns": true },
+            { "group": 1, "activeSkill": 1, "statSet": 1, "turns": true }
+          ],
+          "note": "Raise two Shield Walls beside the boss, then Thunderous Leap onto it: the slam shatters both walls (two hits, one bleed, 140% more) and detonates any Rapid Assault spearheads. Swap to Saitha's Spear and stab with Rapid Assault to aggravate the wall's bleed and leave a spearhead, swap back, raise the next pair. Fortifying Cry shatters a pair whenever its 8 s cooldown is up, triggering Shield Wave and granting Guard. Rake fills the gaps. One bleed per enemy, only the top one deals damage: the wall's bleed while it runs, Rake's in the gaps, never the sum; shattering one wall at a time with Leap refreshes the bleed where a pair adds only a second hit"
+        }
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "conditionEnemyMoving",
+            "value": true,
+            "producer": { "kind": "gem", "name": "Rake" },
+            "uptime": "map packs walk and run at you while Rake's bleed ticks on them, so most of a bleed counts as moving (an estimate); a pack that stops loses the extra 100% unless Herald of Blood's 59% aggravation lands; on a standing boss the same 100% comes from aggravation, Saitha's Spear's Rapid Assault stabs"
+          },
+          {
+            "option": "ChanceToIgnoreEnemyPhysicalDamageReductionMode",
+            "value": "AVERAGE",
+            "producer": { "kind": "gem", "name": "Brutality III" },
+            "uptime": "Brutality III's 20% chance per hit to ignore physical damage reduction, averaged over hits as PoB does by default"
+          },
+          {
+            "option": "multiplierRage",
+            "value": 30,
+            "producer": { "kind": "passive", "name": "Bestial Rage" },
+            "uptime": "3 Rage per melee hit on each enemy struck (Bestial Rage and its two Rage on Hit small passives), so the 30 cap fills in a pack's first strikes and holds while you keep hitting; it starts draining 4 s after the last hit (BaseRageLossDelayMs 4000), so a long walk between packs restarts it"
+          }
+        ],
+        "scenario": [
+          { "option": "enemyIsBoss", "value": "None", "source": { "file": "enemies/map-monsters.json", "key": "pob-enemy-is-boss" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "resistancePenalty", "value": -60, "source": { "file": "campaign/limits.json", "key": "resistance-penalty.endgame" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 2Valley of the TitansMedallion", "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot", "source": { "file": "campaign/progress.json", "key": "q.act-2-valley-of-the-titans-medallion.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:59-70", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 3Venom CryptsVenom Draught", "value": "25% increased Stun Threshold", "source": { "file": "campaign/progress.json", "key": "q.act-3-venom-crypts-venom-draught.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:109-121", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Eye of HinekoraTribal Medicine", "value": "30% increased Global Armour, Evasion and Energy Shield", "source": { "file": "campaign/progress.json", "key": "q.act-4-eye-of-hinekora-tribal-medicine.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:160-171", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTawhoa's Test", "value": "+5% to Lightning Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:172-183", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTasalio's Test", "value": "+5% to Cold Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:184-195", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadNgamahu's Test", "value": "+5% to Fire Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:196-207", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Abandoned PrisonGoddess of Justice", "value": "30% increased Life Recovery from Flasks", "source": { "file": "campaign/progress.json", "key": "q.act-4-abandoned-prison-goddess-of-justice.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:218-229", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questInterlude 2QimahSeven Pillars", "value": "+5% to all Elemental Resistances", "source": { "file": "campaign/progress.json", "key": "q.interlude-2-qimah-seven-pillars.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:259-275", "patch": "0.5.4", "confidence": "H" } }
+        ],
+        "customMods": [
+          {
+            "text": "Shield Wall deals 140% more Damage",
+            "reason": "Shield Wall's '100% more Damage if destroyed by your Skills' plus 40% from its 20% quality (gem lookup 'Shield Wall'; Data/Skills/act_str.lua), which PoB has no stat map for (check_model_coverage gems Shield Wall: possibly unmodelled); every wall here is shattered by Fortifying Cry or Thunderous Leap, your own Warcry and Slam, so the line holds on each wall; the 80% less when an enemy breaks it inside 0.5 s is left out, a risk"
+          },
+          {
+            "text": "Rake deals 52% more Damage",
+            "reason": "Rake's own 'Deals up to 130% more Damage, based on the distance travelled' (100% plus 30% from 20% quality; gem lookup 'Rake'), which PoB applies none of: its stat map names base_dash_additional_damage_from_distance_+%_final while the gem carries base_additional_damage_from_distance_+%_final (Data/Skills/act_dex.lua:6428-6442; the card's skill-shape probe, check 8). Worked out on PoB's own ramp for the line, full at 50 units (5 m, the dash's base_melee_dash_range 50), at PoB's default enemy distance of 20 units (Modules/ConfigOptions.lua:1621): 20/50 x 130% = 52%. A dash from further pays up to 130%, one from beside the enemy nothing"
+          },
+          {
+            "text": "Rake deals 20% more Damage",
+            "reason": "Momentum's 'After moving at least 2 metres during a single use of a Supported Skill, the rest of that use deals 40% more Damage' (gem lookup 'Momentum'), which PoB never applies to Rake: its config option 'Moved 2m during Skill use?' shows only for skills usable while moving (Modules/ConfigOptions.lua:484), and Rake isn't one (the card's dead-slot audit, check 5). Rake's slash comes after its dash, so a dash of 2 m or more earns the 40%; at the 2 m average the distance line above assumes, about half the uses reach it: 40% x 0.5 = 20% (an estimate; needs in-game testing)"
+          }
+        ]
+      },
+      "claims": [
+        { "id": "m-need-splash", "kind": "reason", "text": "Tribal Fury (750) carries the clear: its 'Strikes deal Splash Damage' makes Rake, a Strike, hit the target's neighbours, and each splash hit leaves Blood Loss through Atziri's Acuity for the Heralds' explosions. PoB ignores the line, so node power counts the notable as travel; the splash's gain is unmeasured and needs in-game testing.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 750 ([unparsed] Strikes deal Splash Damage); lookup_game_data gem \"Rake\" (tags: Strike)" } },
+        { "id": "m-need-rage", "kind": "reason", "text": "Bestial Rage (10873) and its two Rage on Hit passives (47790, 17625) supply the 30 Rage the configuration counts on: 1 Rage on Melee Hit each, 3 a hit, and Bestial Rage's 12% increased Physical Damage per 10 Rage. Node power can't see the supply, because the Rage count is an earned configuration value that stays set without the nodes.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 47790, 17625, 10873 (Gain 1 Rage on Melee Hit; Every 10 Rage also grants 12% increased Physical Damage)" } },
+        { "id": "m-need-dex", "kind": "reason", "text": "The nine attribute passives set to Dexterity hold the Dexterity that Rake, Thunderous Leap and Rapid Assault require, reached only with the gear's Dexterity lines beside them; node power ranks damage and life alone, so it would move these points and leave the requirement unmet.", "source": { "kind": "pob-computed", "ref": "m.Dex" } },
+        { "id": "m-need-str", "kind": "reason", "text": "The twenty-seven attribute passives set to Strength hold the Strength that Shield Wall, Fortifying Cry and the armour bases require; node power ranks damage and life alone, so it would move these points and leave the requirements unmet.", "source": { "kind": "pob-computed", "ref": "m.Str" } },
+        { "id": "m-need-blood-magic", "kind": "reason", "text": "Blood Magic (51749) turns every skill's mana cost into a life cost, so Rake's cost per second comes out of life, which Atziri's Acuity's leech refills while hits land; without it Rake's cost outruns the mana the build regenerates and leeches, a sustain node power doesn't measure.", "source": { "kind": "pob-computed", "ref": "m.g1s1p1.LifePerSecondCost" } },
+        { "id": "m-ascendancy-order", "kind": "reason", "text": "Take the Titan points in this order: Life Regeneration, Mysterious Lineage, Strength, Colossal Capacity, Strength, Hulking Form. Life Regeneration is the small passive on the way in; Mysterious Lineage (15% more maximum life) is the first notable, the pool that meets the hardest hits; the two Strength passives (4% increased Strength each) and Colossal Capacity (an inventory chest, no combat value) are the path to Hulking Form, whose 50% increased effect of small passives reaches the bleed and ailment small passives.", "source": { "kind": "pob-data", "ref": "search_tree_nodes {ascendancy: \"Titan\"}" } },
+        { "id": "m-reward-medallion", "kind": "reason", "text": "Act 2, Valley of the Titans, the Medallion: take 30% increased Charm Charges Gained with its +1 Charm Slot; both options give the slot, and the faster charges keep the charms going through a map.", "source": "data:campaign/progress.json#q.act-2-valley-of-the-titans-medallion.options[0]" },
+        { "id": "m-reward-venom-draught", "kind": "reason", "text": "Act 3, Venom Crypts, the Venom Draught: take 25% increased Stun Threshold, for a melee build that stands in the pack; the mana regeneration option does nothing once Blood Magic leaves no mana.", "source": "data:campaign/progress.json#q.act-3-venom-crypts-venom-draught.options[0]" },
+        { "id": "m-reward-tribal-medicine", "kind": "reason", "text": "Act 4, Eye of Hinekora, Tribal Medicine: take 30% increased Global Armour, Evasion and Energy Shield, more of the armour the hardest physical hits meet; the other option's armour applying to elemental damage repeats the body armour's line, and its deflection and energy shield parts give this build nothing.", "source": "data:campaign/progress.json#q.act-4-eye-of-hinekora-tribal-medicine.options[0]" },
+        { "id": "m-reward-tawhoa", "kind": "reason", "text": "Act 4, Halls of the Dead, Tawhoa's Test: take +5% to Lightning Resistance over +5 Dexterity, toward the capped resistances the endgame needs.", "source": "data:campaign/progress.json#q.act-4-halls-of-the-dead-tawhoa-s-test.options[1]" },
+        { "id": "m-reward-tasalio", "kind": "reason", "text": "Act 4, Halls of the Dead, Tasalio's Test: take +5% to Cold Resistance over +5 Intelligence, which no gem or item here needs.", "source": "data:campaign/progress.json#q.act-4-halls-of-the-dead-tasalio-s-test.options[1]" },
+        { "id": "m-reward-ngamahu", "kind": "reason", "text": "Act 4, Halls of the Dead, Ngamahu's Test: take +5% to Fire Resistance over +5 Strength, toward the capped resistances the endgame needs.", "source": "data:campaign/progress.json#q.act-4-halls-of-the-dead-ngamahu-s-test.options[1]" },
+        { "id": "m-reward-goddess", "kind": "reason", "text": "Act 4, Abandoned Prison, the Goddess of Justice: take 30% increased Life Recovery from Flasks; neither option helps much here, since Blood Magic leaves no mana and Vaal Pact (see the gloves' trap) recovers life from leech alone, and the life option serves a player who later drops Atziri's Acuity.", "source": "data:campaign/progress.json#q.act-4-abandoned-prison-goddess-of-justice.options[0]" },
+        { "id": "m-reward-seven-pillars", "kind": "reason", "text": "Interlude 2, Qimah, the Seven Pillars: take +5% to all Elemental Resistances, the most resistance any option gives, toward the capped resistances the endgame needs.", "source": "data:campaign/progress.json#q.interlude-2-qimah-seven-pillars.options[0]" },
+        { "id": "m-override-supports", "kind": "reason", "text": "PoB's support ranking puts Hourglass first for Rake, with Excise, Execrate and Expanse alike; Rake takes Brutality III, Heavy Swing and Ancestral Call II instead, because each of those four gives the supported skill a cooldown (8 to 10 seconds), which the skill used on every pack can't carry, and PoB's bleed figure, rated per bleed, never sees the cooldown.", "source": { "kind": "pob-data", "ref": "lookup_game_data mechanic \"Supported Skills have a Cooldown\" (Excise, Execrate, Expanse: 8 seconds; Hourglass: 10 seconds)" } },
+        { "id": "m-override-momentum", "kind": "reason", "text": "PoB measures nothing from Momentum on Rake: its 'Moved 2m during Skill use?' option shows only for skills usable while moving, and Rake isn't one. Momentum stays, since Rake's slash follows its dash, and a 20% custom modifier stands for its 40% more on about half the uses; that share needs in-game testing.", "source": { "kind": "pob-data", "ref": "lookup_game_data gem \"Momentum\"; Modules/ConfigOptions.lua:484" } },
+        { "id": "m-lever-crit", "kind": "reason", "text": "Crit stays unpulled: 60% increased critical hit chance with a 30% critical damage bonus added 16% to Rake on a budget-rung probe, but it takes two suffixes that the resistance caps, the amulet's melee levels and the Dexterity lines already hold.", "source": { "kind": "judgment", "ref": "D1-build's probe on b (pieces.md, row cr2-s-1-16)", "confidence": "M" } },
+        { "id": "m-lever-shock", "kind": "reason", "text": "A reliable shock stays unpulled: Thunderous Leap is the only lightning hit, its shock on a Pinnacle boss isn't measured, and the leap's turn in the boss cycle is spent shattering the walls.", "source": { "kind": "judgment", "ref": "D1-build's lever check: no other lightning source in the skill groups; the boss rotation (skills.boss)", "confidence": "M" } },
+        { "id": "m-lever-exposure", "kind": "reason", "text": "Exposure stays unpulled: it lowers an enemy's elemental resistances, and the damage here, the bleeds and the hits that make them, is physical.", "source": { "kind": "pob-data", "ref": "lookup_game_data gem \"Rake\" (tags: Physical); lookup_game_data gem \"Shield Wall\" (tags: Physical)" } },
+        { "id": "m-lever-curse", "kind": "reason", "text": "Curses stay unpulled: Vulnerability, the armour curse, makes hits ignore armour, which the bleeds don't meet, and it needs 137 Intelligence at gem level 18 and 157 at 20, far beyond what this Strength and Dexterity build carries.", "source": { "kind": "pob-data", "ref": "lookup_game_data gem \"Vulnerability\"" } },
+        { "id": "m-lever-bleed-duration", "kind": "reason", "text": "Bleed duration stays thin, Lasting Trauma's 20% and the jewels' lines only: Scent of Blood and the Bleed Duration small passives, which the card planned on, unlock only with the Oracle's The Unseen Path, so a Titan can't take them.", "source": { "kind": "judgment", "ref": "the card's structure check (cards/r2-s-1.md, Found while pathing): nodes 60014, 8248 and 48079 unlock with The Unseen Path (5571)", "confidence": "M" } },
+        { "id": "m-lever-spirit", "kind": "reason", "text": "Spirit is left partly free: War Banner, the obvious taker, waits on 200 Glory and a press every 10 seconds, a third button in a boss cycle already full, so it isn't taken.", "source": { "kind": "pob-computed", "ref": "m.SpiritUnreserved" } },
+        { "id": "m-piece-saitha", "kind": "reason", "text": "Saitha's Spear sits on weapon set 2 for bosses only: its (25-40)% chance to Aggravate Bleeding on Hit gives the wall's bleed on a standing boss the extra 100% that moving packs give for free, and keeping it off set 1 leaves Rake the rare spear's damage.", "source": { "kind": "pob-data", "ref": "lookup_game_data unique \"Saitha's Spear\"" } },
+        { "id": "m-piece-rapid-assault", "kind": "reason", "text": "Rapid Assault is bound to weapon set 2 alone: after each shatter, swap, use it once for Saitha's aggravation and the spearheads, and swap back; the boss estimate counts its hits and gives its bleed only the gaps the wall's bleed leaves.", "source": "ledger:boss_m" },
+        { "id": "m-piece-spearheads", "kind": "reason", "text": "Thunderous Leap, a Slam and a Detonator, both shatters the walls where it lands and explodes the spearheads Rapid Assault left, once a boss cycle; the boss estimate counts that explosion.", "source": "ledger:boss_m" },
+        { "id": "m-piece-crushing-impacts", "kind": "reason", "text": "Crushing Impacts, the card's fourth Titan notable, is left out: the eight ascendancy points go to Mysterious Lineage, Hulking Form and Stone Skin, and its 25% more pays only against heavy-stunned enemies, which nothing here builds.", "source": { "kind": "pob-data", "ref": "search_tree_nodes {ascendancy: \"Titan\"} (Crushing Impacts: 25% more Damage against Heavy Stunned Enemies)" } },
+        { "id": "m-trap-vaal-pact", "kind": "hinge", "text": "Atziri's Acuity brings Vaal Pact: life recovers only from leech, so no life flask or regeneration works, and life comes back only while hits land; the bleeds, which deal most of the damage, are damage over time and leech nothing (judgment).", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes Vaal Pact (33369): Cannot Recover Life other than from Leech; lookup_game_data unique \"Atziri's Acuity\"" } },
+        { "id": "m-trap-wall-break", "kind": "hinge", "text": "A Shield Wall an enemy breaks within 0.5 seconds deals 80% less; the 100% more (140% at 20% quality) comes only when your own Slam, Warcry or Shield Charge shatters it, so shatter each pair with Thunderous Leap or Fortifying Cry as soon as it stands.", "source": { "kind": "pob-data", "ref": "lookup_game_data gem \"Shield Wall\" (gem level 20, quality 20)" } },
+        { "id": "m-trap-life-costs", "kind": "hinge", "text": "Under Blood Magic every skill costs life, and life returns only through the gloves' leech: each wall raised before anything is hit costs its life cost with nothing to refill it, so open on a pack or a boss with Rake or the leap.", "source": { "kind": "pob-computed", "ref": "m.g3s1p1.LifeCost" } },
+        { "id": "m-buy-order", "kind": "reason", "text": "Entering maps, buy in this order toward the 5-divine total: Atziri's Acuity first (the Blood Loss loop and the only life recovery), then the spear with +2 melee levels, Prism of Belief, the resistance pieces as the caps need them, and Saitha's Spear before the first bosses; at the prices seen, the whole rung costs well under one divine.", "source": { "kind": "judgment", "ref": "the build's engine first, then damage, then defences; prices m-* in prices[] (2026-10-29)", "confidence": "M" } }
+      ]
+    },
+    {
+      "id": "b",
+      "variant": "budget",
+      "loadoutName": "Endgame budget (L90) {b}",
+      "level": 90,
+      "progress": "endgame",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": { "kind": "judgment", "ref": "a player clearing T15 maps is around level 90, the level Rake's and the walls' gem level 20 requires", "confidence": "M" },
+        "gemLevels": { "kind": "judgment", "ref": "level-20 gems are bought or levelled by T15 and need character level 90; 20% quality on the three damage gems from Gemcutter's Prisms", "confidence": "M" },
+        "ascendancyPoints": { "kind": "judgment", "ref": "the fourth trial is an endgame trial a T15 player has done", "confidence": "M" }
+      },
+      "tree": {
+        "nodes": [
+          3936, 13397, 1207, 38323,
+          6015, 35426, 48631, 22616, 14654, 58295, 47263, 18448, 30141, 55190, 1200, 59785,
+          25162, 64489, 6952, 750,
+          33452, 52796, 30371, 27687,
+          22928, 27373, 16725, 54811, 57703, 26725, 63114, 18073, 49952, 13856, 18496,
+          22975, 27439, 8600, 43778, 36894, 33137,
+          36163,
+          48670, 41646, 7628, 55231, 37361, 40043, 54990,
+          45969, 28510, 10247, 28370, 63526,
+          49657, 58109, 14340, 26786,
+          18882, 30047, 21280, 28050, 63888, 35901, 60735, 11825, 54984, 34015, 48116, 2582, 56847, 28835, 43088,
+          42250, 16484, 18923, 61976, 36298, 8510, 51749,
+          48635, 21755, 54127,
+          56978, 21274, 22188, 38763, 27859, 57190,
+          36629, 51921, 13241,
+          51052, 22558, 55933, 32194, 28002, 49938, 18822, 47790, 17625, 10873,
+          36027, 45090, 18505, 1170, 41126, 60064, 3027, 54228, 64240, 5710, 64443
+        ],
+        "ascendancyNodes": [51690, 12000, 19424, 60634, 27418, 30115, 29323, 24807],
+        "weaponSetNodes": { "set1": [], "set2": [] },
+        "attributeChoices": [
+          { "node": 13397, "attribute": "dexterity" }, { "node": 1207, "attribute": "dexterity" }, { "node": 38323, "attribute": "dexterity" },
+          { "node": 6015, "attribute": "dexterity" }, { "node": 35426, "attribute": "dexterity" }, { "node": 48631, "attribute": "dexterity" },
+          { "node": 22616, "attribute": "dexterity" }, { "node": 14654, "attribute": "dexterity" }, { "node": 58295, "attribute": "dexterity" },
+          { "node": 47263, "attribute": "strength" }, { "node": 18448, "attribute": "strength" }, { "node": 30141, "attribute": "strength" },
+          { "node": 1200, "attribute": "strength" }, { "node": 59785, "attribute": "strength" }, { "node": 22975, "attribute": "strength" },
+          { "node": 27439, "attribute": "strength" }, { "node": 8600, "attribute": "strength" }, { "node": 22928, "attribute": "strength" },
+          { "node": 27373, "attribute": "strength" }, { "node": 16725, "attribute": "strength" }, { "node": 54811, "attribute": "strength" },
+          { "node": 57703, "attribute": "strength" }, { "node": 63114, "attribute": "strength" },
+          { "node": 48670, "attribute": "strength" }, { "node": 41646, "attribute": "strength" }, { "node": 7628, "attribute": "strength" },
+          { "node": 45969, "attribute": "strength" }, { "node": 28510, "attribute": "strength" }, { "node": 10247, "attribute": "strength" },
+          { "node": 28370, "attribute": "strength" }, { "node": 63526, "attribute": "strength" }, { "node": 49657, "attribute": "strength" },
+          { "node": 58109, "attribute": "strength" }, { "node": 14340, "attribute": "strength" }, { "node": 26786, "attribute": "strength" },
+          { "node": 18882, "attribute": "strength" }, { "node": 30047, "attribute": "strength" }, { "node": 21280, "attribute": "strength" },
+          { "node": 28050, "attribute": "strength" }, { "node": 63888, "attribute": "strength" }, { "node": 35901, "attribute": "strength" },
+          { "node": 11825, "attribute": "strength" }, { "node": 54984, "attribute": "strength" }, { "node": 34015, "attribute": "strength" },
+          { "node": 48116, "attribute": "strength" }, { "node": 2582, "attribute": "strength" }, { "node": 42250, "attribute": "strength" },
+          { "node": 16484, "attribute": "strength" }, { "node": 18923, "attribute": "strength" }, { "node": 61976, "attribute": "strength" },
+          { "node": 48635, "attribute": "strength" }, { "node": 21755, "attribute": "strength" },
+          { "node": 56978, "attribute": "strength" }, { "node": 21274, "attribute": "strength" },
+          { "node": 36629, "attribute": "strength" }, { "node": 51921, "attribute": "strength" }, { "node": 13241, "attribute": "strength" },
+          { "node": 51052, "attribute": "strength" }, { "node": 22558, "attribute": "strength" }, { "node": 55933, "attribute": "strength" },
+          { "node": 32194, "attribute": "strength" }, { "node": 28002, "attribute": "strength" }, { "node": 49938, "attribute": "strength" }
+        ],
+        "scales": "physical damage, bleed and ailment magnitude, Rage, melee skill levels and shield armour, shared by Rake and Shield Wall",
+        "needs": [
+          { "nodes": [750], "claim": "b-need-splash" },
+          { "nodes": [47790, 17625, 10873], "claim": "b-need-rage" },
+          { "nodes": [13397, 1207, 38323, 6015, 35426, 48631, 22616, 14654, 58295], "stat": "Dex", "claim": "b-need-dex" },
+          { "nodes": [47263, 18448, 30141, 1200, 59785, 22975, 27439, 8600, 22928, 27373, 16725, 54811, 57703, 63114, 36629, 51921, 13241, 51052, 22558, 55933, 32194, 28002, 49938, 48670, 41646, 7628, 45969], "stat": "Str", "claim": "b-need-str" },
+          { "nodes": [57190], "claim": "b-need-doomsayer" },
+          { "nodes": [51749], "claim": "b-need-blood-magic" },
+          { "nodes": [43778, 36894, 33137], "claim": "b-need-bleed-chance" }
+        ]
+      },
+      "items": {
+        "slots": [
+          { "slot": "Weapon 1", "text": "Rarity: Rare\nGore Spike\nSpiked Spear\nQuality: 20\n+3 to Level of all Melee Skills\n130% increased Physical Damage\nAdds 24 to 44 Physical Damage\n+25 to Dexterity" },
+          { "slot": "Weapon 2", "text": "Rarity: UNIQUE\nThe Surrender\nVaal Tower Shield\nArmour: 805\nVariant: Pre 0.4.0\nVariant: Current\nSelected Variant: 2\n{variant:1}Stone Tower Shield\n{variant:2}Vaal Tower Shield\nQuality: 20\nLevelReq: 75\nImplicits: 1\nGrants Skill: Raise Shield\n{range:0.5}(40-60)% increased Block chance\n{range:0.5}(150-200)% increased Armour\n{range:0.5}+(150-200) to Stun Threshold\nRecover 4% of maximum Life when you Block" },
+          { "slot": "Weapon 1 Swap", "text": "Rarity: UNIQUE\nSaitha's Spear\nBarbed Spear\nLeague: Dawn of the Hunt\nQuality: 20\nLevelReq: 33\nImplicits: 2\nGrants Skill: Spear Throw\n{range:0.5}Bleeding you inflict deals Damage (10-20)% faster\n{range:0.5}Adds (14-26) to (27-32) Physical Damage\n{range:0.5}Adds (33-41) to (47-53) Fire Damage\n{range:0.5}(15-25)% chance to cause Bleeding on Hit\nAggravating any Bleeding with this Weapon also Aggravates all Ignites on the target\n{range:0.5}(25-40)% chance to Aggravate Bleeding on Hit" },
+          { "slot": "Weapon 2 Swap", "text": "Rarity: UNIQUE\nThe Surrender\nVaal Tower Shield\nArmour: 805\nVariant: Pre 0.4.0\nVariant: Current\nSelected Variant: 2\n{variant:1}Stone Tower Shield\n{variant:2}Vaal Tower Shield\nQuality: 20\nLevelReq: 75\nImplicits: 1\nGrants Skill: Raise Shield\n{range:0.5}(40-60)% increased Block chance\n{range:0.5}(150-200)% increased Armour\n{range:0.5}+(150-200) to Stun Threshold\nRecover 4% of maximum Life when you Block" },
+          { "slot": "Gloves", "text": "Rarity: UNIQUE\nAtziri's Acuity\nMoulded Mitts\nArmour: 294\nVariant: Pre 0.1.1\nVariant: Pre 0.5.0\nVariant: Current\nSelected Variant: 3\nQuality: 20\nLevelReq: 33\nImplicits: 1\n{variant:3}{range:0.5}Grants Skill: Level (1-20) Herald of the Royal Queen\n{variant:1,2}{range:0.5}(80-100)% increased Armour\n{variant:3}{range:0.5}(150-200)% increased Armour\n{variant:3}{range:0.5}+(100-150) to maximum Life\n{variant:1}{range:0.5}(20-30)% increased Critical Hit Chance\n{variant:2}{range:0.5}(30-50)% increased Critical Hit Chance\n{variant:1,2}{range:0.5}+(20-30) to Intelligence\n{variant:3}Leech 10% of Physical Attack Damage as Life\n{variant:1,2}Leech from Critical Hits is instant\n{variant:3}10% of Physical damage dealt by your Hits causes Blood Loss\n{variant:3}Vaal Pact" },
+          { "slot": "Body Armour", "text": "Rarity: Rare\nIron Bastion\nConqueror Plate\n+110 to maximum Life\n100% increased Armour\n+35% of Armour also applies to Elemental Damage\n+40% to Fire Resistance\n+25% to Chaos Resistance" },
+          { "slot": "Helmet", "text": "Rarity: Rare\nGrim Visage\nImperial Greathelm\n+100 to maximum Life\n60% increased Armour\n+40% to Fire Resistance\n+35% to Cold Resistance\n+30% to Lightning Resistance" },
+          { "slot": "Boots", "text": "Rarity: Rare\nGrave Tread\nTasalian Greaves\n35% increased Movement Speed\n+85 to maximum Life\n+40% to Lightning Resistance\n+25% to Cold Resistance\n+25% to Chaos Resistance" },
+          { "slot": "Belt", "text": "Rarity: Rare\nWar Cord\nHeavy Belt\n+100 to maximum Life\n+40% to Lightning Resistance\n+25% to Chaos Resistance\n+20% to Fire Resistance" },
+          { "slot": "Amulet", "text": "Rarity: Rare\nBlood Clasp\nStellar Amulet\n+2 to Level of all Melee Skills\n+60 to maximum Life\n+30 to Dexterity\n+20% to Lightning Resistance" },
+          { "slot": "Ring 1", "text": "Rarity: Rare\nRed Coil\nKinetic Ring\nAdds 10 to 20 Physical Damage to Attacks\n+60 to maximum Life\n+30% to Cold Resistance\n+30% to Fire Resistance\n+25 to Dexterity" },
+          { "slot": "Ring 2", "text": "Rarity: Rare\nRed Loop\nKinetic Ring\nAdds 10 to 20 Physical Damage to Attacks\n+60 to maximum Life\n+30 to Strength\n+30% to Cold Resistance\n+25 to Dexterity" }
+        ],
+        "treeJewels": [
+          { "node": 55190, "text": "Rarity: UNIQUE\nPrism of Belief\nDiamond\nLimited to: 1\nImplicits: 0\n+2 to Level of all Rake Skills\nCorrupted" },
+          { "node": 26725, "text": "Rarity: Rare\nBlood Facet\nRuby\n10% increased Magnitude of Bleeding you inflict\n10% increased Attack Damage\n7% increased Bleeding Duration" },
+          { "node": 54127, "text": "Rarity: Rare\nBlood Facet\nRuby\n10% increased Magnitude of Bleeding you inflict\n10% increased Attack Damage\n7% increased Bleeding Duration" },
+          { "node": 60735, "text": "Rarity: Rare\nBlood Facet\nRuby\n10% increased Magnitude of Bleeding you inflict\n10% increased Attack Damage\n7% increased Bleeding Duration" }
+        ],
+        "toggles": [],
+        "useSecondWeaponSet": false,
+        "anoint": { "notable": "Blood Tearing", "reason": "15% increased Magnitude of Bleeding you inflict and 25% increased Physical Damage, on Rake's bleed and the walls' alike: measured on b, Rake 164,538 to 179,685 against map monsters (+9%) and PoB's boss figure 276,554 to 297,165, with EHP unchanged; it sits 14 points from the tree (past two jewel sockets and two spell-critical small passives), so the amulet takes it with no path" }
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rake",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Rake", "level": 20, "quality": 20, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Momentum", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Ancestral Call II", "level": 1, "quality": 0, "enabled": true }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Herald of Blood", "level": 20, "quality": 20, "enabled": true }            ]
+          },
+          {
+            "label": "Shield Wall",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              { "name": "Shield Wall", "level": 20, "quality": 20, "enabled": true },
+              { "name": "Bleed III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Concentrated Area", "level": 1, "quality": 0, "enabled": true }
+            ],
+            "count": 2,
+            "countReason": "two walls (Shield Wall's 'Limit 2 active Shield Walls', gem lookup) shattered together by one Fortifying Cry or Thunderous Leap: two hits land, but only the top bleed applies (one bleed per enemy; the brainstorm gate's interview, interviews/brainstorm-1.md), which the record's Count rule follows by counting the hit twice and the bleed once"
+          },
+          {
+            "label": "Fortifying Cry",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Fortifying Cry", "level": 20, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Thunderous Leap",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Thunderous Leap", "level": 20, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Rapid Assault (Saitha's Spear swap)",
+            "enabled": true,
+            "role": "single_target",
+            "weaponSet": 2,
+            "gems": [{ "name": "Rapid Assault", "level": 20, "quality": 0, "enabled": true }]
+          },
+          {
+            "label": "Berserk",
+            "enabled": true,
+            "role": "utility",
+            "gems": [{ "name": "Berserk", "level": 20, "quality": 0, "enabled": true }]
+          }
+        ],
+        "main": { "group": 1, "activeSkill": 1, "statSet": 1 },
+        "rolledGroup": 1,
+        "boss": {
+          "entries": [
+            { "group": 3, "activeSkill": 1, "statSet": 1 },
+            { "group": 4, "activeSkill": 2, "statSet": 1 },
+            { "group": 5, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 2, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 3, "turns": true },
+            { "group": 1, "activeSkill": 1, "statSet": 1, "turns": true }
+          ],
+          "note": "Raise two Shield Walls beside the boss, then Thunderous Leap onto it: the slam shatters both walls (two hits, one bleed, 140% more) and detonates any Rapid Assault spearheads. Swap to Saitha's Spear and stab with Rapid Assault to aggravate the wall's bleed and leave a spearhead, swap back, raise the next pair. Fortifying Cry shatters a pair whenever its 8 s cooldown is up, triggering Shield Wave and granting Guard. Rake fills the gaps. One bleed per enemy, only the top one deals damage: the wall's bleed while it runs, Rake's in the gaps, never the sum; shattering one wall at a time with Leap refreshes the bleed where a pair adds only a second hit"
+        }
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "conditionEnemyMoving",
+            "value": true,
+            "producer": { "kind": "gem", "name": "Rake" },
+            "uptime": "map packs walk and run at you while Rake's bleed ticks on them, so most of a bleed counts as moving (an estimate); a pack that stops loses the extra 100% unless Herald of Blood's 59% aggravation lands; on a standing boss the same 100% comes from aggravation, Saitha's Spear's Rapid Assault stabs"
+          },
+          {
+            "option": "ChanceToIgnoreEnemyPhysicalDamageReductionMode",
+            "value": "AVERAGE",
+            "producer": { "kind": "gem", "name": "Brutality III" },
+            "uptime": "Brutality III's 20% chance per hit to ignore physical damage reduction, averaged over hits as PoB does by default"
+          },
+          {
+            "option": "multiplierRage",
+            "value": 30,
+            "producer": { "kind": "passive", "name": "Bestial Rage" },
+            "uptime": "3 Rage per melee hit on each enemy struck (Bestial Rage and its two Rage on Hit small passives), so the 30 cap fills in a pack's first strikes and holds while you keep hitting; it starts draining 4 s after the last hit (BaseRageLossDelayMs 4000), so a long walk between packs restarts it"
+          }
+        ],
+        "scenario": [
+          { "option": "enemyIsBoss", "value": "None", "source": { "file": "enemies/map-monsters.json", "key": "pob-enemy-is-boss" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "resistancePenalty", "value": -60, "source": { "file": "campaign/limits.json", "key": "resistance-penalty.endgame" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 2Valley of the TitansMedallion", "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot", "source": { "file": "campaign/progress.json", "key": "q.act-2-valley-of-the-titans-medallion.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:59-70", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 3Venom CryptsVenom Draught", "value": "25% increased Stun Threshold", "source": { "file": "campaign/progress.json", "key": "q.act-3-venom-crypts-venom-draught.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:109-121", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Eye of HinekoraTribal Medicine", "value": "30% increased Global Armour, Evasion and Energy Shield", "source": { "file": "campaign/progress.json", "key": "q.act-4-eye-of-hinekora-tribal-medicine.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:160-171", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTawhoa's Test", "value": "+5% to Lightning Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:172-183", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTasalio's Test", "value": "+5% to Cold Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:184-195", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadNgamahu's Test", "value": "+5% to Fire Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:196-207", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Abandoned PrisonGoddess of Justice", "value": "30% increased Life Recovery from Flasks", "source": { "file": "campaign/progress.json", "key": "q.act-4-abandoned-prison-goddess-of-justice.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:218-229", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questInterlude 2QimahSeven Pillars", "value": "+5% to all Elemental Resistances", "source": { "file": "campaign/progress.json", "key": "q.interlude-2-qimah-seven-pillars.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:259-275", "patch": "0.5.4", "confidence": "H" } }
+        ],
+        "customMods": [
+          {
+            "text": "Shield Wall deals 140% more Damage",
+            "reason": "Shield Wall's '100% more Damage if destroyed by your Skills' plus 40% from its 20% quality (gem lookup 'Shield Wall'; Data/Skills/act_str.lua), which PoB has no stat map for (check_model_coverage gems Shield Wall: possibly unmodelled); every wall here is shattered by Fortifying Cry or Thunderous Leap, your own Warcry and Slam, so the line holds on each wall; the 80% less when an enemy breaks it inside 0.5 s is left out, a risk"
+          },
+          {
+            "text": "Rake deals 52% more Damage",
+            "reason": "Rake's own 'Deals up to 130% more Damage, based on the distance travelled' (100% plus 30% from 20% quality; gem lookup 'Rake'), which PoB applies none of: its stat map names base_dash_additional_damage_from_distance_+%_final while the gem carries base_additional_damage_from_distance_+%_final (Data/Skills/act_dex.lua:6428-6442; the card's skill-shape probe, check 8). Worked out on PoB's own ramp for the line, full at 50 units (5 m, the dash's base_melee_dash_range 50), at PoB's default enemy distance of 20 units (Modules/ConfigOptions.lua:1621): 20/50 x 130% = 52%. A dash from further pays up to 130%, one from beside the enemy nothing"
+          },
+          {
+            "text": "Rake deals 20% more Damage",
+            "reason": "Momentum's 'After moving at least 2 metres during a single use of a Supported Skill, the rest of that use deals 40% more Damage' (gem lookup 'Momentum'), which PoB never applies to Rake: its config option 'Moved 2m during Skill use?' shows only for skills usable while moving (Modules/ConfigOptions.lua:484), and Rake isn't one (the card's dead-slot audit, check 5). Rake's slash comes after its dash, so a dash of 2 m or more earns the 40%; at the 2 m average the distance line above assumes, about half the uses reach it: 40% x 0.5 = 20% (an estimate; needs in-game testing)"
+          }
+        ]
+      },
+      "claims": [
+        { "id": "b-need-splash", "kind": "reason", "text": "Tribal Fury (750) carries the clear: its 'Strikes deal Splash Damage' makes Rake, a Strike, hit the target's neighbours, and each splash hit leaves Blood Loss through Atziri's Acuity for the Heralds' explosions. PoB ignores the line, so node power counts the notable as travel; the splash's gain is unmeasured and needs in-game testing.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 750 ([unparsed] Strikes deal Splash Damage); lookup_game_data gem \"Rake\" (tags: Strike)" } },
+        { "id": "b-need-rage", "kind": "reason", "text": "Bestial Rage (10873) and its two Rage on Hit passives (47790, 17625) supply the 30 Rage the configuration counts on: 1 Rage on Melee Hit each, 3 a hit, and Bestial Rage's 12% increased Physical Damage per 10 Rage. Node power can't see the supply, because the Rage count is an earned configuration value that stays set without the nodes.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 47790, 17625, 10873 (Gain 1 Rage on Melee Hit; Every 10 Rage also grants 12% increased Physical Damage)" } },
+        { "id": "b-need-dex", "kind": "reason", "text": "The nine attribute passives set to Dexterity hold the Dexterity that Rake, Thunderous Leap and Rapid Assault require, reached only with the gear's Dexterity lines beside them; node power ranks damage and life alone, so it would move these points and leave the requirement unmet.", "source": { "kind": "pob-computed", "ref": "b.Dex" } },
+        { "id": "b-need-str", "kind": "reason", "text": "The twenty-seven attribute passives set to Strength hold the Strength that Shield Wall, Fortifying Cry and the armour bases require; node power ranks damage and life alone, so it would move these points and leave the requirements unmet.", "source": { "kind": "pob-computed", "ref": "b.Str" } },
+        { "id": "b-need-doomsayer", "kind": "reason", "text": "Doomsayer (57190) gives Herald skills 25% increased Area of Effect and 30% increased damage: the wider explosions carry the Heralds' Blood Loss chain across a pack, clear area PoB can't value, since it models neither Herald's share of the exploded enemy's Blood Loss nor the chain, so node power sees only the explosion's small damage.", "source": { "kind": "pob-computed", "ref": "b.g2s1p2.AreaOfEffectRadiusMetres" } },
+        { "id": "b-need-blood-magic", "kind": "reason", "text": "Blood Magic (51749) turns every skill's mana cost into a life cost, so Rake's cost per second comes out of life, which Atziri's Acuity's leech refills while hits land; without it Rake's cost outruns the mana the build regenerates and leeches, a sustain node power doesn't measure.", "source": { "kind": "pob-computed", "ref": "b.g1s1p1.LifePerSecondCost" } },
+        { "id": "b-need-bleed-chance", "kind": "reason", "text": "The two Bleed Chance passives (43778, 36894: 5% chance to inflict Bleeding on Hit each, more under Hulking Form) and Bleed Damage (33137) give Thunderous Leap its own bleed, a boss-rotation entry; Rake and the walls bleed on every hit already, so node power's map figure sees nothing in them, and the tree keeps them for the leap's bleed against a boss.", "source": { "kind": "pob-computed", "ref": "b.g5s1p1.BleedDPS" } },
+        { "id": "b-anoint", "kind": "reason", "text": "Blood Tearing is the amulet's anoint on b and n, from Liquid Despair, Concentrated Liquid Isolation and Diluted Liquid Greed: 15% increased Magnitude of Bleeding and 25% increased Physical Damage reach every bleed, Rake's and the walls'. Measured on b, Rake rose from 164,538 to 179,685 against map monsters with EHP unchanged, and the notable sits 14 points from the tree.", "source": { "kind": "judgment", "ref": "measure-only compiles of b without and with the anoint (D1-finish, 2026-10-29); the record's anoint recipe (stages.b.anoint); find_path_to_node 58183: 14 points", "confidence": "H" } },
+        { "id": "b-trap-spear-dex", "kind": "hinge", "text": "The rare spear's Dexterity line is load-bearing: Rake needs 157 Dexterity at gem level 20, and each of the three best spears the budget search found lacks the line, which left Rake at 138 Dexterity, unusable, in a measure-only compile. Buy a spear with Dexterity, or move about 20 Dexterity to another slot first.", "source": "price:b-weapon1" },
+        { "id": "b-affix-armour-elemental", "kind": "hinge", "text": "Armour also applying to Elemental Damage rolls only on bases with armour (body armours, armour boots, gloves and helmets, and shields), and its top tier, 44-50%, only on body armours and shields: the body armour on b and n, and n's boots, must be armour bases.", "source": { "kind": "pob-data", "ref": "lookup_game_data mechanic \"of Armour also applies to Elemental Damage\" kind mod (ArmourAppliesToElementalDamage1-6 base types)" } },
+        { "id": "b-buy-order", "kind": "reason", "text": "From entering maps, buy in this order: The Surrender first (the walls' damage and Greatest Defence read its armour), then the +3 spear with Dexterity, the body armour with armour applying to elemental damage, Blood Tearing's anoint, and the amulet, rings, belt, boots, helmet and Rubies after; at the prices seen, each rare's best listing costs 5 divines or less.", "source": { "kind": "judgment", "ref": "the walls' damage and Rake's levels first, then the EHP pieces; prices b-* in prices[] (2026-10-29)", "confidence": "M" } }
+      ]
+    },
+    {
+      "id": "n",
+      "variant": "non-budget",
+      "loadoutName": "Endgame non-budget (L95) {n}",
+      "level": 95,
+      "progress": "endgame",
+      "ascendancyPoints": 8,
+      "variantBasis": {
+        "level": { "kind": "judgment", "ref": "a player running T16 and heavily modded waystones three weeks in is around level 95", "confidence": "M" },
+        "gemLevels": { "kind": "judgment", "ref": "every gem at level 20 with 20% quality, the most an uncorrupted gem reaches", "confidence": "M" },
+        "ascendancyPoints": { "kind": "judgment", "ref": "all four trials done, eight points", "confidence": "H" }
+      },
+      "tree": {
+        "nodes": [
+          3936, 13397, 1207, 38323,
+          6015, 35426, 48631, 22616, 14654, 58295, 47263, 18448, 30141, 55190, 1200, 59785,
+          25162, 64489, 6952, 750,
+          33452, 52796, 30371, 27687,
+          22928, 27373, 16725, 54811, 57703, 26725, 63114, 18073, 49952, 13856, 18496,
+          22975, 27439, 8600, 43778, 36894, 33137,
+          36163, 31609,
+          48670, 41646, 7628, 55231, 37361, 40043, 54990,
+          45969, 28510, 10247, 28370, 63526,
+          49657, 58109, 14340, 26786,
+          18882, 30047, 21280, 28050, 63888, 35901, 60735, 11825, 54984, 34015, 48116, 2582, 56847, 28835, 43088,
+          42250, 16484, 18923, 61976, 36298, 8510, 13030, 55, 51749,
+          48635, 21755, 54127,
+          56978, 21274, 22188, 38763, 27859, 57190,
+          36629, 51921, 13241,
+          51052, 22558, 55933, 32194, 28002, 49938, 18822, 47790, 17625, 10873,
+          36027, 45090,
+          18505, 1170, 41126, 64443, 60064, 3027, 54228, 64240, 5710, 53443, 58528
+        ],
+        "ascendancyNodes": [51690, 12000, 19424, 60634, 27418, 30115, 29323, 24807],
+        "weaponSetNodes": { "set1": [], "set2": [] },
+        "attributeChoices": [
+          { "node": 13397, "attribute": "dexterity" }, { "node": 1207, "attribute": "dexterity" }, { "node": 38323, "attribute": "dexterity" },
+          { "node": 6015, "attribute": "dexterity" }, { "node": 35426, "attribute": "dexterity" }, { "node": 48631, "attribute": "dexterity" },
+          { "node": 22616, "attribute": "dexterity" }, { "node": 14654, "attribute": "dexterity" }, { "node": 58295, "attribute": "dexterity" },
+          { "node": 47263, "attribute": "strength" }, { "node": 18448, "attribute": "strength" }, { "node": 30141, "attribute": "strength" },
+          { "node": 1200, "attribute": "strength" }, { "node": 59785, "attribute": "strength" }, { "node": 22975, "attribute": "strength" },
+          { "node": 27439, "attribute": "strength" }, { "node": 8600, "attribute": "strength" }, { "node": 22928, "attribute": "strength" },
+          { "node": 27373, "attribute": "strength" }, { "node": 16725, "attribute": "strength" }, { "node": 54811, "attribute": "strength" },
+          { "node": 57703, "attribute": "strength" }, { "node": 63114, "attribute": "strength" },
+          { "node": 48670, "attribute": "strength" }, { "node": 41646, "attribute": "strength" }, { "node": 7628, "attribute": "strength" },
+          { "node": 45969, "attribute": "strength" }, { "node": 28510, "attribute": "strength" }, { "node": 10247, "attribute": "strength" },
+          { "node": 28370, "attribute": "strength" }, { "node": 63526, "attribute": "strength" }, { "node": 49657, "attribute": "strength" },
+          { "node": 58109, "attribute": "strength" }, { "node": 14340, "attribute": "strength" }, { "node": 26786, "attribute": "strength" },
+          { "node": 18882, "attribute": "strength" }, { "node": 30047, "attribute": "strength" }, { "node": 21280, "attribute": "strength" },
+          { "node": 28050, "attribute": "strength" }, { "node": 63888, "attribute": "strength" }, { "node": 35901, "attribute": "strength" },
+          { "node": 11825, "attribute": "strength" }, { "node": 54984, "attribute": "strength" }, { "node": 34015, "attribute": "strength" },
+          { "node": 48116, "attribute": "strength" }, { "node": 2582, "attribute": "strength" }, { "node": 42250, "attribute": "strength" },
+          { "node": 16484, "attribute": "strength" }, { "node": 18923, "attribute": "strength" }, { "node": 61976, "attribute": "strength" },
+          { "node": 48635, "attribute": "strength" }, { "node": 21755, "attribute": "strength" },
+          { "node": 56978, "attribute": "strength" }, { "node": 21274, "attribute": "strength" },
+          { "node": 36629, "attribute": "strength" }, { "node": 51921, "attribute": "strength" }, { "node": 13241, "attribute": "strength" },
+          { "node": 51052, "attribute": "strength" }, { "node": 22558, "attribute": "strength" }, { "node": 55933, "attribute": "strength" },
+          { "node": 32194, "attribute": "strength" }, { "node": 28002, "attribute": "strength" }, { "node": 49938, "attribute": "strength" }
+        ],
+        "scales": "physical damage, bleed and ailment magnitude, Rage, melee skill levels and shield armour, shared by Rake and Shield Wall",
+        "needs": [
+          { "nodes": [750], "claim": "n-need-splash" },
+          { "nodes": [47790, 17625, 10873], "claim": "n-need-rage" },
+          { "nodes": [13397, 1207, 38323, 6015, 35426, 48631, 22616, 14654, 58295], "stat": "Dex", "claim": "n-need-dex" },
+          { "nodes": [47263, 18448, 30141, 1200, 59785, 22975, 27439, 8600, 22928, 27373, 16725, 54811, 57703, 63114, 36629, 51921, 13241, 51052, 22558, 55933, 32194, 28002, 49938, 48670, 41646, 7628, 45969], "stat": "Str", "claim": "n-need-str" },
+          { "nodes": [57190], "claim": "n-need-doomsayer" },
+          { "nodes": [51749], "claim": "n-need-blood-magic" },
+          { "nodes": [43778, 36894, 33137], "claim": "n-need-bleed-chance" }
+        ]
+      },
+      "items": {
+        "slots": [
+          { "slot": "Weapon 1", "text": "Rarity: Rare\nDread Fang\nSpiked Spear\nQuality: 20\n+4 to Level of all Melee Skills\n165% increased Physical Damage\nAdds 32 to 58 Physical Damage\n+30 to Dexterity\n15% increased Attack Speed" },
+          { "slot": "Weapon 2", "text": "Rarity: UNIQUE\nThe Surrender\nVaal Tower Shield\nArmour: 805\nVariant: Pre 0.4.0\nVariant: Current\nSelected Variant: 2\n{variant:1}Stone Tower Shield\n{variant:2}Vaal Tower Shield\nQuality: 20\nLevelReq: 75\nImplicits: 1\nGrants Skill: Raise Shield\n{range:0.5}(40-60)% increased Block chance\n{range:0.5}(150-200)% increased Armour\n{range:0.5}+(150-200) to Stun Threshold\nRecover 4% of maximum Life when you Block" },
+          { "slot": "Weapon 1 Swap", "text": "Rarity: UNIQUE\nSaitha's Spear\nBarbed Spear\nLeague: Dawn of the Hunt\nQuality: 20\nLevelReq: 33\nImplicits: 2\nGrants Skill: Spear Throw\n{range:0.5}Bleeding you inflict deals Damage (10-20)% faster\n{range:0.5}Adds (14-26) to (27-32) Physical Damage\n{range:0.5}Adds (33-41) to (47-53) Fire Damage\n{range:0.5}(15-25)% chance to cause Bleeding on Hit\nAggravating any Bleeding with this Weapon also Aggravates all Ignites on the target\n{range:0.5}(25-40)% chance to Aggravate Bleeding on Hit" },
+          { "slot": "Weapon 2 Swap", "text": "Rarity: UNIQUE\nThe Surrender\nVaal Tower Shield\nArmour: 805\nVariant: Pre 0.4.0\nVariant: Current\nSelected Variant: 2\n{variant:1}Stone Tower Shield\n{variant:2}Vaal Tower Shield\nQuality: 20\nLevelReq: 75\nImplicits: 1\nGrants Skill: Raise Shield\n{range:0.5}(40-60)% increased Block chance\n{range:0.5}(150-200)% increased Armour\n{range:0.5}+(150-200) to Stun Threshold\nRecover 4% of maximum Life when you Block" },
+          { "slot": "Gloves", "text": "Rarity: UNIQUE\nAtziri's Acuity\nMoulded Mitts\nArmour: 294\nVariant: Pre 0.1.1\nVariant: Pre 0.5.0\nVariant: Current\nSelected Variant: 3\nQuality: 20\nLevelReq: 33\nImplicits: 1\n{variant:3}{range:0.5}Grants Skill: Level (1-20) Herald of the Royal Queen\n{variant:1,2}{range:0.5}(80-100)% increased Armour\n{variant:3}{range:0.5}(150-200)% increased Armour\n{variant:3}{range:0.5}+(100-150) to maximum Life\n{variant:1}{range:0.5}(20-30)% increased Critical Hit Chance\n{variant:2}{range:0.5}(30-50)% increased Critical Hit Chance\n{variant:1,2}{range:0.5}+(20-30) to Intelligence\n{variant:3}Leech 10% of Physical Attack Damage as Life\n{variant:1,2}Leech from Critical Hits is instant\n{variant:3}10% of Physical damage dealt by your Hits causes Blood Loss\n{variant:3}Vaal Pact" },
+          { "slot": "Body Armour", "text": "Rarity: Rare\nTitan Shell\nConqueror Plate\n+140 to maximum Life\n110% increased Armour\n+45% of Armour also applies to Elemental Damage\n+42% to Fire Resistance\n+26% to Chaos Resistance" },
+          { "slot": "Helmet", "text": "Rarity: Rare\nDoom Visage\nImperial Greathelm\n+130 to maximum Life\n70% increased Armour\n+42% to Fire Resistance\n+38% to Cold Resistance\n+36% to Lightning Resistance" },
+          { "slot": "Boots", "text": "Rarity: Rare\nDoom Tread\nTasalian Greaves\n35% increased Movement Speed\n+120 to maximum Life\n+35% of Armour also applies to Elemental Damage\n+42% to Lightning Resistance\n+26% to Chaos Resistance" },
+          { "slot": "Belt", "text": "Rarity: Rare\nTitan Cord\nHeavy Belt\n+150 to maximum Life\n+42% to Lightning Resistance\n+26% to Chaos Resistance\n+35% to Cold Resistance" },
+          { "slot": "Amulet", "text": "Rarity: Rare\nDoom Clasp\nStellar Amulet\n+3 to Level of all Melee Skills\n+90 to maximum Life\n+33 to Dexterity\n+30% to Cold Resistance" },
+          { "slot": "Ring 1", "text": "Rarity: Rare\nDoom Coil\nKinetic Ring\nAdds 14 to 26 Physical Damage to Attacks\n+80 to maximum Life\n+30 to Strength\n+38% to Fire Resistance\n+30 to Dexterity" },
+          { "slot": "Ring 2", "text": "Rarity: Rare\nDoom Loop\nKinetic Ring\nAdds 14 to 26 Physical Damage to Attacks\n+80 to maximum Life\n+30 to Strength\n+38% to Cold Resistance\n+30 to Dexterity" }
+        ],
+        "treeJewels": [
+          { "node": 55190, "text": "Rarity: UNIQUE\nPrism of Belief\nDiamond\nLimited to: 1\nImplicits: 0\n+3 to Level of all Rake Skills\nCorrupted" },
+          { "node": 26725, "text": "Rarity: Rare\nBlood Facet\nRuby\n15% increased Magnitude of Bleeding you inflict\n15% increased Attack Damage\n10% increased Bleeding Duration\n15% increased Warcry Cooldown Recovery Rate" },
+          { "node": 54127, "text": "Rarity: Rare\nBlood Facet\nRuby\n15% increased Magnitude of Bleeding you inflict\n15% increased Attack Damage\n10% increased Bleeding Duration\n15% increased Warcry Cooldown Recovery Rate" },
+          { "node": 60735, "text": "Rarity: Rare\nBlood Facet\nRuby\n15% increased Magnitude of Bleeding you inflict\n15% increased Attack Damage\n10% increased Bleeding Duration\n15% increased Warcry Cooldown Recovery Rate" }
+        ],
+        "toggles": [],
+        "useSecondWeaponSet": false,
+        "anoint": { "notable": "Blood Tearing", "reason": "15% increased Magnitude of Bleeding you inflict and 25% increased Physical Damage, on Rake's bleed and the walls' alike: measured on n, Rake 335,029 to 363,901 against map monsters (+9%) and PoB's boss figure 468,725 to 502,575, with EHP unchanged, which carries the boss estimate (boss_n) over the 250,000 floor; it sits 14 points from the tree (past two jewel sockets and two spell-critical small passives), so the amulet takes it with no path" }
+      },
+      "skills": {
+        "groups": [
+          {
+            "label": "Rake",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Rake", "level": 20, "quality": 20, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Momentum", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Ancestral Call II", "level": 1, "quality": 0, "enabled": true }
+            ]
+          },
+          {
+            "label": "Herald of Blood",
+            "enabled": true,
+            "role": "clear",
+            "gems": [
+              { "name": "Herald of Blood", "level": 20, "quality": 20, "enabled": true }            ]
+          },
+          {
+            "label": "Shield Wall",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              { "name": "Shield Wall", "level": 20, "quality": 20, "enabled": true },
+              { "name": "Bleed III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Deep Cuts II", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Brutality III", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Heavy Swing", "level": 1, "quality": 0, "enabled": true },
+              { "name": "Concentrated Area", "level": 1, "quality": 0, "enabled": true }
+            ],
+            "count": 2,
+            "countReason": "two walls (Shield Wall's 'Limit 2 active Shield Walls', gem lookup) shattered together by one Fortifying Cry or Thunderous Leap: two hits land, but only the top bleed applies (one bleed per enemy; the brainstorm gate's interview, interviews/brainstorm-1.md), which the record's Count rule follows by counting the hit twice and the bleed once"
+          },
+          {
+            "label": "Fortifying Cry",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Fortifying Cry", "level": 20, "quality": 20, "enabled": true }]
+          },
+          {
+            "label": "Thunderous Leap",
+            "enabled": true,
+            "role": "single_target",
+            "gems": [{ "name": "Thunderous Leap", "level": 20, "quality": 20, "enabled": true }]
+          },
+          {
+            "label": "Rapid Assault (Saitha's Spear swap)",
+            "enabled": true,
+            "role": "single_target",
+            "weaponSet": 2,
+            "gems": [{ "name": "Rapid Assault", "level": 20, "quality": 20, "enabled": true }]
+          },
+          {
+            "label": "Berserk",
+            "enabled": true,
+            "role": "utility",
+            "gems": [{ "name": "Berserk", "level": 20, "quality": 20, "enabled": true }]
+          }
+        ],
+        "main": { "group": 1, "activeSkill": 1, "statSet": 1 },
+        "rolledGroup": 1,
+        "engagement": { "kind": "close", "reason": "Rake's dash ends in melee range of the pack it slashes, and the walls go up beside the boss before the leap lands on it" },
+        "boss": {
+          "entries": [
+            { "group": 3, "activeSkill": 1, "statSet": 1 },
+            { "group": 4, "activeSkill": 2, "statSet": 1 },
+            { "group": 5, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 1, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 2, "turns": true },
+            { "group": 6, "activeSkill": 1, "statSet": 3, "turns": true },
+            { "group": 1, "activeSkill": 1, "statSet": 1, "turns": true }
+          ],
+          "note": "Raise two Shield Walls beside the boss, then Thunderous Leap onto it: the slam shatters both walls (two hits, one bleed, 140% more) and detonates any Rapid Assault spearheads. Swap to Saitha's Spear and stab with Rapid Assault to aggravate the wall's bleed and leave a spearhead, swap back, raise the next pair. Fortifying Cry shatters a pair whenever its 8 s cooldown is up, triggering Shield Wave and granting Guard. Rake fills the gaps. One bleed per enemy, only the top one deals damage: the wall's bleed while it runs, Rake's in the gaps, never the sum; shattering one wall at a time with Leap refreshes the bleed where a pair adds only a second hit"
+        }
+      },
+      "defence": {
+        "base": "armour",
+        "chance": "block (The Surrender's tower shield)",
+        "mitigation": "armour (Stone Skin's armour body, The Surrender, Atziri's Acuity), capped resistances",
+        "pool": "life (Mysterious Lineage), refilled by the gloves' leech under Vaal Pact",
+        "physicalHit": "the life pool under Mysterious Lineage, with Stone Skin's armour"
+      },
+      "config": {
+        "earned": [
+          {
+            "option": "conditionEnemyMoving",
+            "value": true,
+            "producer": { "kind": "gem", "name": "Rake" },
+            "uptime": "map packs walk and run at you while Rake's bleed ticks on them, so most of a bleed counts as moving (an estimate); a pack that stops loses the extra 100% unless Herald of Blood's 59% aggravation lands; on a standing boss the same 100% comes from aggravation, Saitha's Spear's Rapid Assault stabs"
+          },
+          {
+            "option": "ChanceToIgnoreEnemyPhysicalDamageReductionMode",
+            "value": "AVERAGE",
+            "producer": { "kind": "gem", "name": "Brutality III" },
+            "uptime": "Brutality III's 20% chance per hit to ignore physical damage reduction, averaged over hits as PoB does by default"
+          },
+          {
+            "option": "multiplierRage",
+            "value": 30,
+            "producer": { "kind": "passive", "name": "Bestial Rage" },
+            "uptime": "3 Rage per melee hit on each enemy struck (Bestial Rage and its two Rage on Hit small passives), so the 30 cap fills in a pack's first strikes and holds while you keep hitting; it starts draining 4 s after the last hit (BaseRageLossDelayMs 4000), so a long walk between packs restarts it"
+          }
+        ],
+        "scenario": [
+          { "option": "enemyIsBoss", "value": "None", "source": { "file": "enemies/map-monsters.json", "key": "pob-enemy-is-boss" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:1964", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "resistancePenalty", "value": -60, "source": { "file": "campaign/limits.json", "key": "resistance-penalty.endgame" }, "tag": { "kind": "pob-data", "ref": "Modules/ConfigOptions.lua:113", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 2Valley of the TitansMedallion", "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot", "source": { "file": "campaign/progress.json", "key": "q.act-2-valley-of-the-titans-medallion.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:59-70", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 3Venom CryptsVenom Draught", "value": "25% increased Stun Threshold", "source": { "file": "campaign/progress.json", "key": "q.act-3-venom-crypts-venom-draught.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:109-121", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Eye of HinekoraTribal Medicine", "value": "30% increased Global Armour, Evasion and Energy Shield", "source": { "file": "campaign/progress.json", "key": "q.act-4-eye-of-hinekora-tribal-medicine.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:160-171", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTawhoa's Test", "value": "+5% to Lightning Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:172-183", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadTasalio's Test", "value": "+5% to Cold Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:184-195", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Halls Of The DeadNgamahu's Test", "value": "+5% to Fire Resistance", "source": { "file": "campaign/progress.json", "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options[1]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:196-207", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questAct 4Abandoned PrisonGoddess of Justice", "value": "30% increased Life Recovery from Flasks", "source": { "file": "campaign/progress.json", "key": "q.act-4-abandoned-prison-goddess-of-justice.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:218-229", "patch": "0.5.4", "confidence": "H" } },
+          { "option": "questInterlude 2QimahSeven Pillars", "value": "+5% to all Elemental Resistances", "source": { "file": "campaign/progress.json", "key": "q.interlude-2-qimah-seven-pillars.options[0]" }, "tag": { "kind": "pob-data", "ref": "Data/QuestRewards.lua:259-275", "patch": "0.5.4", "confidence": "H" } }
+        ],
+        "customMods": [
+          {
+            "text": "Shield Wall deals 140% more Damage",
+            "reason": "Shield Wall's '100% more Damage if destroyed by your Skills' plus 40% from its 20% quality (gem lookup 'Shield Wall'; Data/Skills/act_str.lua), which PoB has no stat map for (check_model_coverage gems Shield Wall: possibly unmodelled); every wall here is shattered by Fortifying Cry or Thunderous Leap, your own Warcry and Slam, so the line holds on each wall; the 80% less when an enemy breaks it inside 0.5 s is left out, a risk"
+          },
+          {
+            "text": "Rake deals 52% more Damage",
+            "reason": "Rake's own 'Deals up to 130% more Damage, based on the distance travelled' (100% plus 30% from 20% quality; gem lookup 'Rake'), which PoB applies none of: its stat map names base_dash_additional_damage_from_distance_+%_final while the gem carries base_additional_damage_from_distance_+%_final (Data/Skills/act_dex.lua:6428-6442; the card's skill-shape probe, check 8). Worked out on PoB's own ramp for the line, full at 50 units (5 m, the dash's base_melee_dash_range 50), at PoB's default enemy distance of 20 units (Modules/ConfigOptions.lua:1621): 20/50 x 130% = 52%. A dash from further pays up to 130%, one from beside the enemy nothing"
+          },
+          {
+            "text": "Rake deals 20% more Damage",
+            "reason": "Momentum's 'After moving at least 2 metres during a single use of a Supported Skill, the rest of that use deals 40% more Damage' (gem lookup 'Momentum'), which PoB never applies to Rake: its config option 'Moved 2m during Skill use?' shows only for skills usable while moving (Modules/ConfigOptions.lua:484), and Rake isn't one (the card's dead-slot audit, check 5). Rake's slash comes after its dash, so a dash of 2 m or more earns the 40%; at the 2 m average the distance line above assumes, about half the uses reach it: 40% x 0.5 = 20% (an estimate; needs in-game testing)"
+          }
+        ]
+      },
+      "claims": [
+        { "id": "n-need-splash", "kind": "reason", "text": "Tribal Fury (750) carries the clear: its 'Strikes deal Splash Damage' makes Rake, a Strike, hit the target's neighbours, and each splash hit leaves Blood Loss through Atziri's Acuity for the Heralds' explosions. PoB ignores the line, so node power counts the notable as travel; the splash's gain is unmeasured and needs in-game testing.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 750 ([unparsed] Strikes deal Splash Damage); lookup_game_data gem \"Rake\" (tags: Strike)" } },
+        { "id": "n-need-rage", "kind": "reason", "text": "Bestial Rage (10873) and its two Rage on Hit passives (47790, 17625) supply the 30 Rage the configuration counts on: 1 Rage on Melee Hit each, 3 a hit, and Bestial Rage's 12% increased Physical Damage per 10 Rage. Node power can't see the supply, because the Rage count is an earned configuration value that stays set without the nodes.", "source": { "kind": "pob-data", "ref": "check_model_coverage nodes 47790, 17625, 10873 (Gain 1 Rage on Melee Hit; Every 10 Rage also grants 12% increased Physical Damage)" } },
+        { "id": "n-need-dex", "kind": "reason", "text": "The nine attribute passives set to Dexterity hold the Dexterity that Rake, Thunderous Leap and Rapid Assault require, reached only with the gear's Dexterity lines beside them; node power ranks damage and life alone, so it would move these points and leave the requirement unmet.", "source": { "kind": "pob-computed", "ref": "n.Dex" } },
+        { "id": "n-need-str", "kind": "reason", "text": "The twenty-seven attribute passives set to Strength hold the Strength that Shield Wall, Fortifying Cry and the armour bases require; node power ranks damage and life alone, so it would move these points and leave the requirements unmet.", "source": { "kind": "pob-computed", "ref": "n.Str" } },
+        { "id": "n-need-doomsayer", "kind": "reason", "text": "Doomsayer (57190) gives Herald skills 25% increased Area of Effect and 30% increased damage: the wider explosions carry the Heralds' Blood Loss chain across a pack, clear area PoB can't value, since it models neither Herald's share of the exploded enemy's Blood Loss nor the chain, so node power sees only the explosion's small damage.", "source": { "kind": "pob-computed", "ref": "n.g2s1p2.AreaOfEffectRadiusMetres" } },
+        { "id": "n-need-blood-magic", "kind": "reason", "text": "Blood Magic (51749) turns every skill's mana cost into a life cost, so Rake's cost per second comes out of life, which Atziri's Acuity's leech refills while hits land; without it Rake's cost outruns the mana the build regenerates and leeches, a sustain node power doesn't measure.", "source": { "kind": "pob-computed", "ref": "n.g1s1p1.LifePerSecondCost" } },
+        { "id": "n-need-bleed-chance", "kind": "reason", "text": "The two Bleed Chance passives (43778, 36894: 5% chance to inflict Bleeding on Hit each, more under Hulking Form) and Bleed Damage (33137) give Thunderous Leap its own bleed, a boss-rotation entry; Rake and the walls bleed on every hit already, so node power's map figure sees nothing in them, and the tree keeps them for the leap's bleed against a boss.", "source": { "kind": "pob-computed", "ref": "n.g5s1p1.BleedDPS" } },
+        { "id": "n-buy-order", "kind": "reason", "text": "From the budget rung, upgrade in this order: the +4 spear first (the dearest piece, about 50 divines, and the base of every damage line; keep its Dexterity, as on b), then Prism of Belief at +3, the +3 amulet, the body armour and boots with armour applying to elemental damage, the belt, and the rings and Rubies last; the top-roll Ruby had a single listing, so two sockets wait on new ones.", "source": { "kind": "judgment", "ref": "Rake's levels and base damage first, then the EHP pieces; prices n-* in prices[] (2026-10-29)", "confidence": "M" } }
+      ]
+    }
+  ],
+  "ledger": [
+    {
+      "id": "boss_m",
+      "claim": "rotation share: two walls, a shatter and one Rapid Assault take turns in a 11.9 s cycle of one Fortifying Cry pair and one Thunderous Leap pair, each at its use time, where PoB sums every hit at once, and Rake gets no turn; trigger rate: Fortifying Cry's Shield Wave, which PoB rates at no uses a second, once a cycle; burst over its cycle: Rapid Assault's spearheads explode once a cycle, at the leap; one ailment: the wall's bleed while it runs, 5.2 s after each shatter (Rake's bleed duration standing for it), and Rapid Assault's final-strike bleed in the gaps, never summed; uptime: the extra 100% of an aggravated bleed on three quarters of the bleeds' time, since Saitha's stabs aggravate about nine uses in ten, from about 1 s into the bleed",
+      "formula": "( 2 * (m.boss.g3s1p1 - m.boss.g3s1p1.bleed) / m.boss.g3s1p1.usesPerSecond + (m.boss.g5s1p1 - m.boss.g5s1p1.bleed) / m.boss.g5s1p1.usesPerSecond + m.g4s2p1.AverageDamage + 2 * (m.boss.g6s1p1 - m.boss.g6s1p1.bleed + m.boss.g6s1p2 - m.boss.g6s1p2.bleed) / m.boss.g6s1p1.usesPerSecond + (m.boss.g6s1p3 - m.boss.g6s1p3.bleed) / m.boss.g6s1p3.usesPerSecond + (1 + aggShare) / 2 * (m.boss.g3s1p1.bleed * 2 * m.BleedDuration + m.boss.g6s1p2.bleed * (4 / m.boss.g3s1p1.usesPerSecond + 1 / m.g4s1p1.CastRate + 1 / m.boss.g5s1p1.usesPerSecond + 2 / m.boss.g6s1p1.usesPerSecond - 2 * m.BleedDuration)) ) / (4 / m.boss.g3s1p1.usesPerSecond + 1 / m.g4s1p1.CastRate + 1 / m.boss.g5s1p1.usesPerSecond + 2 / m.boss.g6s1p1.usesPerSecond)",
+      "inputs": [
+        { "name": "aggShare", "value": 0.75, "tag": { "kind": "judgment", "ref": "the share of the boss bleeds' time that is aggravated: Saitha's Spear's (25-40)% chance to Aggravate Bleeding on Hit, 32.5% at mid-roll, over Rapid Assault's six stabs aggravates 1 - 0.675^6, about 90% of uses (lookup_game_data unique \"Saitha's Spear\"; the card's flip check), and the stabs start about 1 s after the shatter, a fifth of a 5.2-5.8 s bleed: 0.9 x 0.8 = 0.72, rounded to 0.75 for a boss that also moves now and then; PoB's figures carry the extra 100% on every bleed (config conditionEnemyMoving)", "confidence": "L" } }
+      ]
+    },
+    {
+      "id": "boss_b",
+      "claim": "rotation share: two walls, a shatter and one Rapid Assault take turns in a 11.9 s cycle of one Fortifying Cry pair and one Thunderous Leap pair, each at its use time, where PoB sums every hit at once, and Rake gets no turn; trigger rate: Fortifying Cry's Shield Wave, which PoB rates at no uses a second, once a cycle; burst over its cycle: Rapid Assault's spearheads explode once a cycle, at the leap; one ailment: the wall's bleed while it runs, 5.8 s after the cry's shatter (Rake's bleed duration standing for it) and the 5.4 s to the cry's next shatter after the leap's, and Rapid Assault's final-strike bleed in the gap, never summed; uptime: the extra 100% of an aggravated bleed on three quarters of the bleeds' time, since Saitha's stabs aggravate about nine uses in ten, from about 1 s into the bleed",
+      "formula": "( 2 * (b.boss.g3s1p1 - b.boss.g3s1p1.bleed) / b.boss.g3s1p1.usesPerSecond + (b.boss.g5s1p1 - b.boss.g5s1p1.bleed) / b.boss.g5s1p1.usesPerSecond + b.g4s2p1.AverageDamage + 2 * (b.boss.g6s1p1 - b.boss.g6s1p1.bleed + b.boss.g6s1p2 - b.boss.g6s1p2.bleed) / b.boss.g6s1p1.usesPerSecond + (b.boss.g6s1p3 - b.boss.g6s1p3.bleed) / b.boss.g6s1p3.usesPerSecond + (1 + aggShare) / 2 * (b.boss.g3s1p1.bleed * (b.BleedDuration + 1 / b.boss.g6s1p1.usesPerSecond + 2 / b.boss.g3s1p1.usesPerSecond + 1 / b.g4s1p1.CastRate) + b.boss.g6s1p2.bleed * (2 / b.boss.g3s1p1.usesPerSecond + 1 / b.boss.g5s1p1.usesPerSecond + 1 / b.boss.g6s1p1.usesPerSecond - b.BleedDuration)) ) / (4 / b.boss.g3s1p1.usesPerSecond + 1 / b.g4s1p1.CastRate + 1 / b.boss.g5s1p1.usesPerSecond + 2 / b.boss.g6s1p1.usesPerSecond)",
+      "inputs": [
+        { "name": "aggShare", "value": 0.75, "tag": { "kind": "judgment", "ref": "the share of the boss bleeds' time that is aggravated: Saitha's Spear's (25-40)% chance to Aggravate Bleeding on Hit, 32.5% at mid-roll, over Rapid Assault's six stabs aggravates 1 - 0.675^6, about 90% of uses (lookup_game_data unique \"Saitha's Spear\"; the card's flip check), and the stabs start about 1 s after the shatter, a fifth of a 5.2-5.8 s bleed: 0.9 x 0.8 = 0.72, rounded to 0.75 for a boss that also moves now and then; PoB's figures carry the extra 100% on every bleed (config conditionEnemyMoving)", "confidence": "L" } }
+      ]
+    },
+    {
+      "id": "boss_n",
+      "claim": "rotation share: two walls, a shatter and one Rapid Assault take turns in a 11.8 s cycle of one Fortifying Cry pair and one Thunderous Leap pair, each at its use time, where PoB sums every hit at once, and Rake gets no turn; trigger rate: Fortifying Cry's Shield Wave, which PoB rates at no uses a second, once a cycle; burst over its cycle: Rapid Assault's spearheads explode once a cycle, at the leap; one ailment: the wall's bleed while it runs, 5.3 s after each shatter (Rake's bleed duration standing for it), and Rapid Assault's final-strike bleed in the gaps, never summed; uptime: the extra 100% of an aggravated bleed on three quarters of the bleeds' time, since Saitha's stabs aggravate about nine uses in ten, from about 1 s into the bleed",
+      "formula": "( 2 * (n.boss.g3s1p1 - n.boss.g3s1p1.bleed) / n.boss.g3s1p1.usesPerSecond + (n.boss.g5s1p1 - n.boss.g5s1p1.bleed) / n.boss.g5s1p1.usesPerSecond + n.g4s2p1.AverageDamage + 2 * (n.boss.g6s1p1 - n.boss.g6s1p1.bleed + n.boss.g6s1p2 - n.boss.g6s1p2.bleed) / n.boss.g6s1p1.usesPerSecond + (n.boss.g6s1p3 - n.boss.g6s1p3.bleed) / n.boss.g6s1p3.usesPerSecond + (1 + aggShare) / 2 * (n.boss.g3s1p1.bleed * 2 * n.BleedDuration + n.boss.g6s1p2.bleed * (4 / n.boss.g3s1p1.usesPerSecond + 1 / n.g4s1p1.CastRate + 1 / n.boss.g5s1p1.usesPerSecond + 2 / n.boss.g6s1p1.usesPerSecond - 2 * n.BleedDuration)) ) / (4 / n.boss.g3s1p1.usesPerSecond + 1 / n.g4s1p1.CastRate + 1 / n.boss.g5s1p1.usesPerSecond + 2 / n.boss.g6s1p1.usesPerSecond)",
+      "inputs": [
+        { "name": "aggShare", "value": 0.75, "tag": { "kind": "judgment", "ref": "the share of the boss bleeds' time that is aggravated: Saitha's Spear's (25-40)% chance to Aggravate Bleeding on Hit, 32.5% at mid-roll, over Rapid Assault's six stabs aggravates 1 - 0.675^6, about 90% of uses (lookup_game_data unique \"Saitha's Spear\"; the card's flip check), and the stabs start about 1 s after the shatter, a fifth of a 5.2-5.8 s bleed: 0.9 x 0.8 = 0.72, rounded to 0.75 for a boss that also moves now and then; PoB's figures carry the extra 100% on every bleed (config conditionEnemyMoving)", "confidence": "L" } }
+      ]
+    }
+  ],
+  "prices": [
+    { "id": "m-weapon1", "item": "Rare Jagged Spear with +2 to melee skill levels and increased physical damage", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "Jagged Spear", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_9187492", "min": 2 }, { "stat_id": "explicit.stat_1509134228", "min": 100 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 32 listings with the mods" },
+    { "id": "m-weapon2", "item": "Rare Royal Tower Shield with life and fire and lightning resistance (Weapon 2, and Weapon 2 Swap with identical text)", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "Royal Tower Shield", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3299347043", "min": 60 }, { "stat_id": "explicit.stat_3372524247", "min": 25 }, { "stat_id": "explicit.stat_1671376347", "min": 25 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 142 listings with the mods; the swap set holds the same shield, one shield in game (the user: a shield serves both weapon sets)" },
+    { "id": "m-weapon1swap", "item": "Saitha's Spear", "query": { "tool": "get_item_price", "item_name": "Saitha's Spear", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 0.02633, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 7116 listings; reused from r2-s-1-swap-weapon" },
+    { "id": "m-gloves", "item": "Atziri's Acuity", "query": { "tool": "get_item_price", "item_name": "Atziri's Acuity", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 1, "currency": "vaal", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 3205 listings; reused from r2-s-1-gloves" },
+    { "id": "m-bodyarmour", "item": "Rare armour body armour with life and fire and cold resistance", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "body armour", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3299347043", "min": 70 }, { "stat_id": "explicit.stat_3372524247", "min": 25 }, { "stat_id": "explicit.stat_4220027924", "min": 20 }, { "stat_id": "explicit.stat_1062208444", "min": 40 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 3117 listings with the mods; no Conqueror Plate listing had them, so any armour base" },
+    { "id": "m-helmet", "item": "Rare helmet with life and fire and cold resistance", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "helmet", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3299347043", "min": 60 }, { "stat_id": "explicit.stat_3372524247", "min": 25 }, { "stat_id": "explicit.stat_4220027924", "min": 25 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the cheapest by value of the first five of 10,000 listings with the mods (the trade site listed a 1-regal helmet first)" },
+    { "id": "m-boots", "item": "Rare boots with 30% movement speed, life and lightning resistance", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "boots", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_2250533757", "min": 30 }, { "stat_id": "explicit.stat_3299347043", "min": 50 }, { "stat_id": "explicit.stat_1671376347", "min": 25 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 10,000 listings with the mods" },
+    { "id": "m-belt", "item": "Rare belt with life, lightning and chaos resistance", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "belt", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3299347043", "min": 60 }, { "stat_id": "explicit.stat_1671376347", "min": 25 }, { "stat_id": "explicit.stat_2923486259", "min": 15 }] }, "amount": 2, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 3239 listings with the mods" },
+    { "id": "m-amulet", "item": "Rare amulet with +1 to melee skill levels, life and Dexterity", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "amulet", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_9187492", "min": 1 }, { "stat_id": "explicit.stat_3299347043", "min": 40 }, { "stat_id": "explicit.stat_3261801346", "min": 20 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 1698 listings with the mods" },
+    { "id": "m-ring1", "item": "Rare ring with physical damage to attacks, life, and lightning and fire resistance", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "ring", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3032590688", "min": 8 }, { "stat_id": "explicit.stat_3299347043", "min": 30 }, { "stat_id": "explicit.stat_1671376347", "min": 20 }, { "stat_id": "explicit.stat_3372524247", "min": 20 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 2718 listings with the mods" },
+    { "id": "m-ring2", "item": "Rare ring with physical damage to attacks, life, cold resistance and Dexterity", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "ring", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3032590688", "min": 8 }, { "stat_id": "explicit.stat_3299347043", "min": 30 }, { "stat_id": "explicit.stat_4220027924", "min": 20 }, { "stat_id": "explicit.stat_3261801346", "min": 15 }] }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the cheapest by value of the first five of 2000 listings with the mods (the trade site listed a 1-alch ring first)" },
+    { "id": "m-jewel-55190", "item": "Prism of Belief with +2 or more to Level of all Rake Skills", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_name": "Prism of Belief", "item_type": "jewel", "mods": [{ "stat_id": "explicit.stat_448592698|191", "min": 2 }] }, "amount": 1, "currency": "chaos", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 106 listings with the mod; reused from r2-s-1-jewel" },
+    { "id": "b-weapon1", "item": "Rare Spiked Spear with +3 to melee skill levels and increased physical damage", "query": { "slot": "Weapon 1", "required": [{ "affix": "+# to Level of all Melee Skills", "min": 3 }, { "affix": "#% increased Physical Damage", "min": 110 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_9187492", "min": 3 }, { "trade_id": "explicit.stat_1509134228", "min": 110 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 4, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 94%; re-checked by compile: of the three best listings within the budget, this Cataclysm Edge (Akoyan Spear) measured best, Rake 186,492 against map monsters (Dragon Edge, Grand Spear, 7 divines: 162,629; Spirit Edge, Guardian Spear, 5 divines: 146,718; the designed spear: 179,685), but it needs 62 Intelligence where the build has 13, and none of the three carries Dexterity: each left Rake at 138 Dexterity of the 157 it needs at gem level 20" },
+    { "id": "b-weapon2", "item": "The Surrender (Weapon 2, and Weapon 2 Swap with identical text)", "query": { "tool": "get_item_price", "item_name": "The Surrender", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 1491 listings; reused from r2-s-1-shield; the swap set holds the same shield, one shield in game (the user)" },
+    { "id": "b-weapon1swap", "item": "Saitha's Spear", "query": { "tool": "get_item_price", "item_name": "Saitha's Spear", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 0.02633, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 7116 listings; reused from r2-s-1-swap-weapon" },
+    { "id": "b-gloves", "item": "Atziri's Acuity", "query": { "tool": "get_item_price", "item_name": "Atziri's Acuity", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 1, "currency": "vaal", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 3205 listings; reused from r2-s-1-gloves" },
+    { "id": "b-bodyarmour", "item": "Rare Conqueror Plate with life, armour applying to elemental damage and chaos resistance", "query": { "slot": "Body Armour", "required": [{ "affix": "+# to maximum Life", "min": 90 }, { "affix": "+#% of Armour also applies to Elemental Damage", "min": 30 }, { "affix": "+#% to Chaos Resistance", "min": 20 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3299347043", "min": 90 }, { "trade_id": "explicit.stat_3362812763", "min": 30 }, { "trade_id": "explicit.stat_2923486259", "min": 20 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 5, "currency": "chaos", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 105%" },
+    { "id": "b-helmet", "item": "Rare armour helmet with life and fire and cold resistance", "query": { "slot": "Helmet", "required": [{ "affix": "+# to maximum Life", "min": 80 }, { "affix": "+#% to Fire Resistance", "min": 35 }, { "affix": "+#% to Cold Resistance", "min": 30 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3299347043", "min": 80 }, { "trade_id": "explicit.stat_3372524247", "min": 35 }, { "trade_id": "explicit.stat_4220027924", "min": 30 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 2, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 105%" },
+    { "id": "b-boots", "item": "Rare armour boots with 35% movement speed, life and lightning resistance", "query": { "slot": "Boots", "required": [{ "affix": "#% increased Movement Speed", "min": 35 }, { "affix": "+# to maximum Life", "min": 70 }, { "affix": "+#% to Lightning Resistance", "min": 35 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_2250533757", "min": 35 }, { "trade_id": "explicit.stat_3299347043", "min": 70 }, { "trade_id": "explicit.stat_1671376347", "min": 35 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 5, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 100%" },
+    { "id": "b-belt", "item": "Rare belt with life, lightning and chaos resistance", "query": { "slot": "Belt", "required": [{ "affix": "+# to maximum Life", "min": 80 }, { "affix": "+#% to Lightning Resistance", "min": 35 }, { "affix": "+#% to Chaos Resistance", "min": 20 }], "target": { "divines": 5, "day": 7 }, "tool": "search_trade_items", "league": "Forbidden Rites", "item_type": "belt", "item_rarity": "rare", "mods": [{ "stat_id": "explicit.stat_3299347043", "min": 80 }, { "stat_id": "explicit.stat_1671376347", "min": 35 }, { "stat_id": "explicit.stat_2923486259", "min": 20 }] }, "amount": 1, "currency": "chaos", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "over target: the weighted search (max_price 5268) fetched only listings over the budget by poe.ninja's rates, so this is the cheapest of 750 listings with the required affixes, far under the target" },
+    { "id": "b-amulet", "item": "Rare amulet with +2 to melee skill levels, Dexterity and life", "query": { "slot": "Amulet", "required": [{ "affix": "+# to Level of all Melee Skills", "min": 2 }, { "affix": "+# to Dexterity", "min": 25 }, { "affix": "+# to maximum Life", "min": 50 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_9187492", "min": 2 }, { "trade_id": "explicit.stat_3261801346", "min": 25 }, { "trade_id": "explicit.stat_3299347043", "min": 50 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 4, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 113%" },
+    { "id": "b-ring1", "item": "Rare ring with physical damage to attacks and fire and cold resistance", "query": { "slot": "Ring 1", "required": [{ "affix": "Adds # to # Physical Damage to Attacks", "min": 10 }, { "affix": "+#% to Fire Resistance", "min": 25 }, { "affix": "+#% to Cold Resistance", "min": 25 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3032590688", "min": 10 }, { "trade_id": "explicit.stat_3372524247", "min": 25 }, { "trade_id": "explicit.stat_4220027924", "min": 25 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 5, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 101%" },
+    { "id": "b-ring2", "item": "Rare ring with physical damage to attacks, cold resistance and Dexterity", "query": { "slot": "Ring 2", "required": [{ "affix": "Adds # to # Physical Damage to Attacks", "min": 10 }, { "affix": "+#% to Cold Resistance", "min": 25 }, { "affix": "+# to Dexterity", "min": 20 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3032590688", "min": 10 }, { "trade_id": "explicit.stat_4220027924", "min": 25 }, { "trade_id": "explicit.stat_3261801346", "min": 20 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 100%" },
+    { "id": "b-jewel-55190", "item": "Prism of Belief with +2 or more to Level of all Rake Skills", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_name": "Prism of Belief", "item_type": "jewel", "mods": [{ "stat_id": "explicit.stat_448592698|191", "min": 2 }] }, "amount": 1, "currency": "chaos", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 106 listings with the mod; reused from r2-s-1-jewel" },
+    { "id": "b-jewel-26725", "item": "Rare Ruby with bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 26725", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 8 }, { "affix": "#% increased Attack Damage", "min": 8 }, { "affix": "#% increased Bleeding Duration", "min": 6 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 8 }, { "trade_id": "explicit.stat_2843214518", "min": 8 }, { "trade_id": "explicit.stat_1459321413", "min": 6 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 101%; 13 listings had the required affixes, the next at 5 divines" },
+    { "id": "b-jewel-54127", "item": "Rare Ruby with bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 54127", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 8 }, { "affix": "#% increased Attack Damage", "min": 8 }, { "affix": "#% increased Bleeding Duration", "min": 6 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 8 }, { "trade_id": "explicit.stat_2843214518", "min": 8 }, { "trade_id": "explicit.stat_1459321413", "min": 6 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the same item text as b-jewel-26725, priced by its search (fit 101%); 13 listings had the required affixes, the next at 5 divines" },
+    { "id": "b-jewel-60735", "item": "Rare Ruby with bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 60735", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 8 }, { "affix": "#% increased Attack Damage", "min": 8 }, { "affix": "#% increased Bleeding Duration", "min": 6 }], "target": { "divines": 5, "day": 7 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 8 }, { "trade_id": "explicit.stat_2843214518", "min": 8 }, { "trade_id": "explicit.stat_1459321413", "min": 6 }], "max_price": 5268, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the same item text as b-jewel-26725, priced by its search (fit 101%); 13 listings had the required affixes, the next at 5 divines" },
+    { "id": "b-anoint", "item": "Blood Tearing's anoint: Liquid Despair, Concentrated Liquid Isolation and Diluted Liquid Greed", "query": { "emotions": [{ "exchange": "Delirium", "name": "Liquid Despair" }, { "exchange": "Delirium", "name": "Concentrated Liquid Isolation" }, { "exchange": "Delirium", "name": "Diluted Liquid Greed" }] }, "amount": 0.3455, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the three exchange values summed, in divines: Liquid Despair 0.005822, Concentrated Liquid Isolation 0.338 (reused from r2-s-2-anoint-isolation), Diluted Liquid Greed 0.001678" },
+    { "id": "n-weapon1", "item": "Rare Spiked Spear with +4 to melee skill levels and high physical damage", "query": { "slot": "Weapon 1", "required": [{ "affix": "+# to Level of all Melee Skills", "min": 4 }, { "affix": "#% increased Physical Damage", "min": 150 }], "target": { "divines": 35, "day": 21, "reason": "the spear carries both damage groups' base: Rake's hit and bleed read its physical damage and its melee levels raise Rake, Thunderous Leap and Rapid Assault's gem levels" }, "required_mods": [{ "trade_id": "explicit.stat_9187492", "min": 4 }, { "trade_id": "explicit.stat_1509134228", "min": 150 }], "max_price": 35513, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 50, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 94%; re-checked by compile: of the three best listings within the budget, this Entropy Edge (Stalking Spear) measured best, Rake 329,409 against map monsters (Dusk Edge, Grand Spear, 10 divines: 275,320; Dragon Edge, Flying Spear, 20 divines: 253,033; the designed spear: 363,901); none of the three carries Dexterity: each left Rake at 151 Dexterity of the 157 it needs at gem level 20" },
+    { "id": "n-weapon2", "item": "The Surrender (Weapon 2, and Weapon 2 Swap with identical text)", "query": { "tool": "get_item_price", "item_name": "The Surrender", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 1, "currency": "exalted", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 1491 listings; reused from r2-s-1-shield; the swap set holds the same shield, one shield in game (the user)" },
+    { "id": "n-weapon1swap", "item": "Saitha's Spear", "query": { "tool": "get_item_price", "item_name": "Saitha's Spear", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 0.02633, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 7116 listings; reused from r2-s-1-swap-weapon" },
+    { "id": "n-gloves", "item": "Atziri's Acuity", "query": { "tool": "get_item_price", "item_name": "Atziri's Acuity", "rarity": "unique", "league": "Forbidden Rites" }, "amount": 1, "currency": "vaal", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "median of the 10 cheapest of 3205 listings; reused from r2-s-1-gloves" },
+    { "id": "n-bodyarmour", "item": "Rare Conqueror Plate with high life, armour applying to elemental damage and chaos resistance", "query": { "slot": "Body Armour", "required": [{ "affix": "+# to maximum Life", "min": 120 }, { "affix": "+#% of Armour also applies to Elemental Damage", "min": 40 }, { "affix": "+#% to Chaos Resistance", "min": 22 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3299347043", "min": 120 }, { "trade_id": "explicit.stat_3362812763", "min": 40 }, { "trade_id": "explicit.stat_2923486259", "min": 22 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 12, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 103%" },
+    { "id": "n-helmet", "item": "Rare armour helmet with high life and three resistances", "query": { "slot": "Helmet", "required": [{ "affix": "+# to maximum Life", "min": 110 }, { "affix": "+#% to Fire Resistance", "min": 38 }, { "affix": "+#% to Cold Resistance", "min": 35 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3299347043", "min": 110 }, { "trade_id": "explicit.stat_3372524247", "min": 38 }, { "trade_id": "explicit.stat_4220027924", "min": 35 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 2, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 104%" },
+    { "id": "n-boots", "item": "Rare armour boots with 35% movement speed, high life and armour applying to elemental damage", "query": { "slot": "Boots", "required": [{ "affix": "#% increased Movement Speed", "min": 35 }, { "affix": "+# to maximum Life", "min": 100 }, { "affix": "+#% of Armour also applies to Elemental Damage", "min": 30 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_2250533757", "min": 35 }, { "trade_id": "explicit.stat_3299347043", "min": 100 }, { "trade_id": "explicit.stat_3362812763", "min": 30 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 100%" },
+    { "id": "n-belt", "item": "Rare belt with high life, lightning and chaos resistance", "query": { "slot": "Belt", "required": [{ "affix": "+# to maximum Life", "min": 130 }, { "affix": "+#% to Lightning Resistance", "min": 38 }, { "affix": "+#% to Chaos Resistance", "min": 22 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3299347043", "min": 130 }, { "trade_id": "explicit.stat_1671376347", "min": 38 }, { "trade_id": "explicit.stat_2923486259", "min": 22 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 13, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 101%" },
+    { "id": "n-amulet", "item": "Rare amulet with +3 to melee skill levels, Dexterity and life", "query": { "slot": "Amulet", "required": [{ "affix": "+# to Level of all Melee Skills", "min": 3 }, { "affix": "+# to Dexterity", "min": 30 }, { "affix": "+# to maximum Life", "min": 70 }], "target": { "divines": 25, "day": 21, "reason": "+3 to melee skill levels is the most an amulet rolls and raises every damage skill of the build, the walls' included" }, "required_mods": [{ "trade_id": "explicit.stat_9187492", "min": 3 }, { "trade_id": "explicit.stat_3261801346", "min": 30 }, { "trade_id": "explicit.stat_3299347043", "min": 70 }], "max_price": 25367, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 4, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 108%" },
+    { "id": "n-ring1", "item": "Rare ring with high physical damage to attacks, fire resistance and Dexterity", "query": { "slot": "Ring 1", "required": [{ "affix": "Adds # to # Physical Damage to Attacks", "min": 14 }, { "affix": "+#% to Fire Resistance", "min": 35 }, { "affix": "+# to Dexterity", "min": 25 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3032590688", "min": 14 }, { "trade_id": "explicit.stat_3372524247", "min": 35 }, { "trade_id": "explicit.stat_3261801346", "min": 25 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 7, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 100%" },
+    { "id": "n-ring2", "item": "Rare ring with high physical damage to attacks, cold resistance and Dexterity", "query": { "slot": "Ring 2", "required": [{ "affix": "Adds # to # Physical Damage to Attacks", "min": 14 }, { "affix": "+#% to Cold Resistance", "min": 35 }, { "affix": "+# to Dexterity", "min": 25 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3032590688", "min": 14 }, { "trade_id": "explicit.stat_4220027924", "min": 35 }, { "trade_id": "explicit.stat_3261801346", "min": 25 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1 }, "amount": 2, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 99%" },
+    { "id": "n-jewel-55190", "item": "Prism of Belief with +3 to Level of all Rake Skills", "query": { "tool": "search_trade_items", "league": "Forbidden Rites", "item_name": "Prism of Belief", "item_type": "jewel", "mods": [{ "stat_id": "explicit.stat_448592698|191", "min": 3 }] }, "amount": 4, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "cheapest of 30 listings with +3 or more" },
+    { "id": "n-jewel-26725", "item": "Rare Ruby with high bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 26725", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 12 }, { "affix": "#% increased Attack Damage", "min": 12 }, { "affix": "#% increased Bleeding Duration", "min": 8 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 12 }, { "trade_id": "explicit.stat_2843214518", "min": 12 }, { "trade_id": "explicit.stat_1459321413", "min": 8 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "fit 99%; the only listing with the required affixes (the same Ruby that tops b's search), so the other two sockets wait for new listings" },
+    { "id": "n-jewel-54127", "item": "Rare Ruby with high bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 54127", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 12 }, { "affix": "#% increased Attack Damage", "min": 12 }, { "affix": "#% increased Bleeding Duration", "min": 8 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 12 }, { "trade_id": "explicit.stat_2843214518", "min": 12 }, { "trade_id": "explicit.stat_1459321413", "min": 8 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the same item text as n-jewel-26725, priced by its search (fit 99%), whose one listing serves one socket" },
+    { "id": "n-jewel-60735", "item": "Rare Ruby with high bleed magnitude, attack damage and bleeding duration", "query": { "slot": "Jewel 60735", "required": [{ "affix": "#% increased Magnitude of Bleeding you inflict", "min": 12 }, { "affix": "#% increased Attack Damage", "min": 12 }, { "affix": "#% increased Bleeding Duration", "min": 8 }], "target": { "divines": 10, "day": 21 }, "required_mods": [{ "trade_id": "explicit.stat_3166958180", "min": 12 }, { "trade_id": "explicit.stat_2843214518", "min": 12 }, { "trade_id": "explicit.stat_1459321413", "min": 8 }], "max_price": 10147, "currency": "exalted_equivalent", "rank_by": "stat_value", "include_non_upgrades": true, "fetch_pages": 1, "jewel_type": "base" }, "amount": 1, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the same item text as n-jewel-26725, priced by its search (fit 99%), whose one listing serves one socket" },
+    { "id": "n-anoint", "item": "Blood Tearing's anoint: Liquid Despair, Concentrated Liquid Isolation and Diluted Liquid Greed", "query": { "emotions": [{ "exchange": "Delirium", "name": "Liquid Despair" }, { "exchange": "Delirium", "name": "Concentrated Liquid Isolation" }, { "exchange": "Delirium", "name": "Diluted Liquid Greed" }] }, "amount": 0.3455, "currency": "divine", "date": "2026-10-29", "league": "Forbidden Rites", "status": "ok", "note": "the three exchange values summed, in divines: Liquid Despair 0.005822, Concentrated Liquid Isolation 0.338 (reused from r2-s-2-anoint-isolation), Diluted Liquid Greed 0.001678" }
+  ]
+}

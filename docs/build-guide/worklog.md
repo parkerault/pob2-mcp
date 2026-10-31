@@ -6092,3 +6092,22 @@ the `m17` engine at `b76967b`.
     III and Supercritical together cut Shield Wall 20%, as §2 does.
   - **Left:** PoB doesn't model Nebuloch's "Attacks consume an Endurance Charge to Critically Hit" (`Data/ModCache.lua`
     :4794–4795, unparsed); the library says "not modelled", as it does elsewhere; no PoB gap entry yet.
+- **WU-129 (the server tools) merged** at `99f44b2` (six commits). `compile_plan`'s draft mode (`{plan_path,
+  draft_name}`, engine kind `none`; `remove_draft` with a `_before-delete` backup), `first_free` names, the name
+  cleaning, the write ledger's version 2 (`kind`, `plan`; a version-1 entry reads as a final with no plan),
+  `buildFileWriter`'s delete; the pace line on every trade reply (`Pace: 45 s between searches, at most 7 in 5
+  minutes.`, or `Pace: off (test setting).`; last, except before `find_upgrades`' link); `compile_stage` a long action
+  at 120 s; the path tools leaving a start a socketed Split Personality opens, with `jewelStarts` in the engine's tree
+  reply. Its verifier (fresh context) failed the first head on one point, the leading-space trim §7 didn't state; the
+  coordinator amended §7 to the server's rule (leading spaces and a trailing `.xml` go, an empty result is refused),
+  since a name starting with a space hides in PoB's list. After its rebase onto WU-127 and WU-128 (no conflicts; the
+  patches identical by `git range-diff`), the verifier passed it, re-running the gate (218 suites, 3,714 tests, rc 0;
+  the timing step 2 suites, 4 tests; build rc 0).
+  - **The restore trace (AC-K80):** the failed restore after a `compile_stage` timeout ("Engine restarted; the loaded
+    build could not be restored") is the session's books, not the bridge: a compile's new build drops the old snapshot
+    (`commitLoad`, `src/engine/session.ts`:836) and a new one is taken only after a call succeeds, so a timeout in
+    between leaves none, and the next call says so (`session.ts`:631–637). Nothing is lost: the compile had already
+    replaced the build (D-210). The fix is the 120 s long action; nothing else needed.
+  - **The coordinator folded (§17's integration list):** the spine's C-4 and NFR-21 (`compile_stage` bound by the
+    120 s long action; AC-P37's 100 s total stays), C-53's cap (17,000), and C-14's pace line before the link in
+    stabilization's `03-trade.md` (in place, so its cited line numbers hold).

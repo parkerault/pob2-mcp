@@ -553,7 +553,7 @@ Searches <s> · Matches <total> · Fetched <f> · Unavailable <null+unpriced> ·
    <PoB item text, indented 3 spaces>
 …
 No upgrade within budget.                ← when there are no upgrades (always stated)
-Search on the trade site: <searchUrl>    ← always the last line
+Search on the trade site: <searchUrl>    ← always the last line; the pace line (build-guide D-474) just before it
 ```
 
 ### C-15: `trade_query_options` tool (new)
@@ -985,7 +985,7 @@ These are in-process and engine-required unless stated, with the same `fixtureFe
   - with defaults, the call completes in ≤ 15 s of wall time;
   - with `limit: 20, include_non_upgrades: true`, the output is ≤ 30,000 characters, and listings past
     the budget render as compact lines with the compaction note;
-  - the last line starts with `Search on the trade site:`;
+  - the last line starts with `Search on the trade site:`, the pace line just before it (build-guide D-474);
   - `find_upgrades` is not on the truncation list.
 - **AC-T44 (WU-23, D-56).** Synthesized fetch data:
   - **(a)** A page with one `null` entry and one listing without `price` → both dropped, and the output's

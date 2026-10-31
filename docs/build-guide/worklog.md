@@ -6008,14 +6008,14 @@ the `m17` engine at `b76967b`.
   WU-130 builds against Appendix A, rebasing onto WU-128 and WU-129.
 - **Baseline gate** on `e74ed6b`: `mise run test` rc 0 (205 suites, 3,572 tests; the timing step 2 suites, 4 tests),
   `pnpm build` rc 0.
-- **WU-132 (the research docs) merged** at `9210788` (one commit). R1a, R1a-synthesize, R1b and the researcher's
+- **WU-132 (the research docs) merged** at `5564de4` (one commit). R1a, R1a-synthesize, R1b and the researcher's
   definition state the over-budget rune rule (D-465): the "Legacy of " cores and the Raven-Touched Shard stay out
   unless the brief's `around`, `like` or `notes`, or a gate answer's words, name one; each stage names where it reads
   that say. AC-W102's test reads its terms from §6 and pins them. AC-W63's ban on amendment 5's removed finding code
   `over-budget` is narrowed to allow "over-budget rune(s)", the spec's term. Its verifier (fresh context) passed it,
   re-running the gate (205 suites, 3,577 tests, rc 0; build rc 0); mutations removing the rule or any one term from a
   file each failed that file's case. Noted, not fixed: the test checks the rule's terms, not its direction.
-- **WU-134 (the PoB gaps and the fold's leftovers) merged** at `6f37c21` (two commits). `pob-gaps.md` gains "Found in
+- **WU-134 (the PoB gaps and the fold's leftovers) merged** at `c79b31c` (two commits). `pob-gaps.md` gains "Found in
   amendment 13 (2026-10-30)": PG-101 (Bloodhound's Mark's Heavy Stun build-up from Blood Loss isn't modelled) and
   PG-102 (timeless jewels' seeds aren't read); stabilization's `03-trade.md` gives 61 s for both refusal examples
   (:738, :923); amendment 12's §19 lists `pob-api/API/Handlers.lua` under WU-117 (its commit `4abda93` added
@@ -6033,7 +6033,7 @@ the `m17` engine at `b76967b`.
     claims pass follows the F1 pass after `accept:file`, and the build stays `designing` until it ends).
   - **Left:** amendment 12's B3 bullet cites nothing for Controlled Metamorphosis (its code: `PassiveSpec.lua`:1369,
     :1456, :1881); WU-117's touches omit its `weapon-set-2-unarmed` fixture.
-- **WU-128 (plan schema 9 and the compiler) merged** at `8f0de01` (two commits). Schema 9: Split Personality's start
+- **WU-128 (plan schema 9 and the compiler) merged** at `6c6937b` (two commits). Schema 9: Split Personality's start
   in `check_tree`, `tree_starts` and V1's `tree-shape` (`alternate-class-start`), on any schema; the pinned weapon's
   `sameAs`; comment lines `# <reason>` before each custom modifier, with the reason required; a gem's `corrupt:
   "plus_one_level"` and V1's `corruption`; `tree.start`, `tree.end` and `tree.search` accepted. The coordinator wrote
@@ -6050,7 +6050,7 @@ the `m17` engine at `b76967b`.
     start (54447). A level-20 Boneshatter with `corrupt: "plus_one_level"` reads level 21, GemCorruptionLevel 1.
   - **R-68 is real:** PoB parses `# Increases and Reductions to Life in Radius are Transformed…` whole as a modifier
     (`ModParser.lua`:6524), so the compiler refuses a reason that parses.
-- **WU-127 (node power) merged** at `f82151d` (three commits). Node power judges the tree on toughness targets
+- **WU-127 (node power) merged** at `0c83654` (three commits). Node power judges the tree on toughness targets
   (`targets {ehp, maxHit}`) with the repair, the swap search under targets, `pace_exchange`, an always-on attribute
   guard, `pool_groups` on the boss config, `free` on a pool node, and Split Personality's start in `start_counts` and
   `unreached`. Its verifier (fresh context) passed everything but one bullet, re-running the gate (208 suites, 3,595
@@ -6079,7 +6079,7 @@ the `m17` engine at `b76967b`.
     gained attributes (`nodePower.test.ts`'s and `nodePowerSearch.test.ts`'s fifteen-stage rungs, which miss ReqDex,
     82 of 126; `weaponSets.test.ts`'s stage 2, +10 Strength). The rebuild line reads `+84.49% Main damage (+143,748);
     EHP …`, with the absolute gain beside Appendix A's form. `get_node_power`'s description is 2,037 of 2,048 characters.
-- **WU-131 (the pattern library) merged** at `e3e7aad` (two commits, the first splitting amendment 11's mixed `it` so
+- **WU-131 (the pattern library) merged** at `88dce63` (two commits, the first splitting amendment 11's mixed `it` so
   its `SKILL.md` half stays for WU-133). Section 5 gains "A second ailment type" (Bloodhound's Mark as the bleed-to-stun
   example, PG-101 its gap); "Convert into the ailment's type" points to it; the Damage over time kit's lever beside
   Contagion no longer calls it an ailment lever; the pivots (section 7's "Guaranteed crit, then crit damage", Crimson
@@ -6092,7 +6092,7 @@ the `m17` engine at `b76967b`.
     III and Supercritical together cut Shield Wall 20%, as §2 does.
   - **Left:** PoB doesn't model Nebuloch's "Attacks consume an Endurance Charge to Critically Hit" (`Data/ModCache.lua`
     :4794–4795, unparsed); the library says "not modelled", as it does elsewhere; no PoB gap entry yet.
-- **WU-129 (the server tools) merged** at `99f44b2` (six commits). `compile_plan`'s draft mode (`{plan_path,
+- **WU-129 (the server tools) merged** at `35ffcac` (six commits). `compile_plan`'s draft mode (`{plan_path,
   draft_name}`, engine kind `none`; `remove_draft` with a `_before-delete` backup), `first_free` names, the name
   cleaning, the write ledger's version 2 (`kind`, `plan`; a version-1 entry reads as a final with no plan),
   `buildFileWriter`'s delete; the pace line on every trade reply (`Pace: 45 s between searches, at most 7 in 5
@@ -6111,7 +6111,7 @@ the `m17` engine at `b76967b`.
   - **The coordinator folded (§17's integration list):** the spine's C-4 and NFR-21 (`compile_stage` bound by the
     120 s long action; AC-P37's 100 s total stays), C-53's cap (17,000), and C-14's pace line before the link in
     stabilization's `03-trade.md` (in place, so its cited line numbers hold).
-- **WU-130 (the pipeline's scripts) merged** at `ba3e068` (fast-forward, nine commits). The brainstorm display's cuts
+- **WU-130 (the pipeline's scripts) merged** at `716223c` (fast-forward, nine commits). The brainstorm display's cuts
   (D-475); names, drafts and `builds[].draftFile` with the checker's three file-name forms, the checker's name cleaning
   equal to the server's (D-466); the over-budget rune rule, `runes` (D-465); corruption, flasks and charms, the pinned
   weapon's price (D-471, D-472, D-464); the boss display and `boss` trades, the swap cap, rebuild-undone, Life, removed
@@ -6126,7 +6126,7 @@ the `m17` engine at `b76967b`.
   - **Left:** the design display's Life line prints "(EHP and the lowest max hit held their start)" unconditionally
     and no rule checks it (the tree search holds the targets by construction); no rule checks that a claims pass, or a
     full pass, covers every hinge claim (the full pass never had one).
-- **WU-133 (the design, gate and guide docs) merged** at `6d89d4e` (fast-forward). The D1 stages, F1 and the D2 gate,
+- **WU-133 (the design, gate and guide docs) merged** at `d51624a` (fast-forward). The D1 stages, F1 and the D2 gate,
   `checkpoints.md`, `gates.md`, `pricing.md`, W1 and the templates, V4 (its claims mode), the coordinator's rules,
   `task-header.md`, `fix-round.md`, `SKILL.md`, and the coordinator's and verifier's definitions state amendment 13 as
   built; AC-W103 and AC-W104 in a new `tests/static/buildGuideAmendment13Design.test.ts` (81 tests), two of them
@@ -6143,7 +6143,7 @@ the `m17` engine at `b76967b`.
     into `valuedBy`; a corrupted unique at or over the cheap line goes back through D-446's route (`build: corruption
     <stage> <slot>`) for D1-build to drop the line; `pieces.md` gains `## Skill levels` and `## Unique jewels`.
   - **Left:** a fix round's D1 gate (the claims round's included) may write a draft, which F1 then removes; harmless.
-- **M-26's milestone gate passed** on `fc34d81` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
+- **M-26's milestone gate passed** on `e303250` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
   cache cleared): `mise run test` rc 0 (220 suites, 3,854 tests; the timing step 2 suites, 4 tests), `pnpm build` rc
   0. Every §20 criterion but AC-W106 (the user's live test, WU-135) maps to a passing test or its work-log row; the
   gate reproduced node power's gains (+84.49% in 21.5 s, +84.68% in 16.7 s) and R-64's figures; five seams checked

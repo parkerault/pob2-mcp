@@ -22,6 +22,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { buildSha1 } from '../../src/plan/buildHash';
+import { validatePlan } from '../../src/plan/schema';
+import { loadReferenceData } from '../../src/plan/referenceData';
+import { cleanBuildName } from '../../src/plan/compiler';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -277,6 +280,17 @@ describe('AC-W100 (D-475): the brainstorm display of a revision-13 visit', () =>
 // AC-W100, bullet 2: the names, the draft and one file per build (D-466)
 // ---------------------------------------------------------------------------------------------------
 
+describe('AC-W100: run-a13 is a run the amended pipeline could write', () => {
+  it("its plan is a valid schema-9 plan (src/plan/schema.ts as WU-128 built it)", () => {
+    const text = fs.readFileSync(path.join(FIXTURES, 'run-a13', PLAN), 'utf8');
+    const result = validatePlan(text, loadReferenceData());
+    expect(result.ok ? [] : result.errors).toEqual([]);
+    expect((JSON.parse(text) as Json).schemaVersion).toBe(9);
+    // Its record's buildSha1 is the server's projection of it.
+    expect(readJson(path.join(FIXTURES, 'run-a13'), RECORD).buildSha1).toBe(buildSha1(JSON.parse(text)));
+  });
+});
+
 describe('AC-W100 (D-466): the files named by the session name, the draft, one file per build', () => {
   it('a build held to 13 writes <name>.xml, <name> <date>.xml or <name> <date> 2.xml, and never <runName>-<id>.xml', () => {
     passes(copy('run-a13'));
@@ -295,13 +309,27 @@ describe('AC-W100 (D-466): the files named by the session name, the draft, one f
   it("a name with ':' is matched as the server cleans it; builds[].name, when a revision gave one, is the session name", () => {
     const dir = copy('run-a13');
     editJson(dir, 'run-log.json', (l) => {
-      l.builds[0] = { id: l.builds[0].id, roll: l.builds[0].roll, name: 'Blood Hunt: Slam? Clear.', ...Object.fromEntries(Object.entries(l.builds[0]).filter(([k]) => !['id', 'roll'].includes(k))) };
+      l.builds[0] = { id: l.builds[0].id, roll: l.builds[0].roll, name: ' Blood Hunt: Slam? Clear.xml', ...Object.fromEntries(Object.entries(l.builds[0]).filter(([k]) => !['id', 'roll'].includes(k))) };
     });
     expect(node(RENDER, [dir, '--build', ID]).code).toBe(0);
     setFile(dir, 'Blood Hunt Slam Clear.xml');
     passes(dir);
     setFile(dir, 'Blood Hunt: Slam? Clear..xml');
-    expect(lines(check(dir).stderr, 'layout')).toEqual([expect.stringMatching(/session name "Blood Hunt: Slam\? Clear\.", cleaned "Blood Hunt Slam Clear"/)]);
+    expect(lines(check(dir).stderr, 'layout')).toEqual([expect.stringMatching(/session name "Blood Hunt: Slam\? Clear\.xml", cleaned "Blood Hunt Slam Clear"/)]);
+  });
+
+  it("the checker cleans a name as the server's cleanBuildName does: .xml, refused characters, spaces, trailing dots, device names, nothing left", () => {
+    const names = [' Blood Hunt: Slam? Clear.xml', 'Royal Fury: Rake', '  a  <b>  c . . ', 'con', 'COM3', 'Rake.XML', 'x*y|z"w', '???', '...', 'Shield Wall?.'];
+    const server = names.map((n) => {
+      try {
+        return cleanBuildName(n);
+      } catch {
+        return null;
+      }
+    });
+    const r = nodeModule(`import { cleanName } from ${JSON.stringify(CHECKER)}; console.log(JSON.stringify(${JSON.stringify(names)}.map(cleanName)));`);
+    expect(JSON.parse(r.stdout)).toEqual(server);
+    expect(server).toContain(null);
   });
 
   it('two builds recording one file fail', () => {
@@ -560,7 +588,7 @@ describe("AC-W100 (D-467, D-468, D-473): the design field's tree search and boss
       '- Life on n: 5,750 → 5,600 (EHP and the lowest max hit held their start).',
       '- Swap cap on b: 30 swaps, the last +1.4%.',
       '- Rebuild undone on m: the compile refused it (attributes).',
-      '- Removed on n: Herald Damage (2 notables): lines for Herald of Blood.',
+      '- Removed on n: Herald Damage: lines for Herald of Blood.',
       '- Skill levels on n: Blood Hunt +0.',
     ]) expect(shown).toContain(line);
     expect(shown.filter((l) => /^- Swap cap on /.test(l))).toEqual(['- Swap cap on b: 30 swaps, the last +1.4%.']);

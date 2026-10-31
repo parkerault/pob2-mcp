@@ -565,12 +565,15 @@ function userWords(log) {
 }
 
 /**
- * D-466 (amendment 13): a build's name as the server cleans it for a file name: each character Windows refuses (`< > : "
- * / \ | ? *`) a space, runs of spaces one, trailing dots and spaces gone; a name that is a Windows device name whole
- * (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9) gains " (build)".
+ * D-466 (amendment 13, §7 as amended at the M-26 fold): a build's name as the server cleans it for a file name
+ * (`src/plan/compiler.ts`'s `cleanBuildName`): a trailing `.xml` dropped, each character Windows refuses (`< > : " / \ |
+ * ? *`) a space, runs of spaces one, leading spaces and trailing dots and spaces gone; a name that is a Windows device
+ * name whole (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9) gains " (build)". Null when nothing is left, which the server
+ * refuses.
  */
 export function cleanName(name) {
-  const s = String(name ?? '').replace(/[<>:"/\\|?*]/g, ' ').replace(/ {2,}/g, ' ').replace(/[. ]+$/, '');
+  const s = String(name ?? '').replace(/\.xml$/i, '').replace(/[<>:"/\\|?*]/g, ' ').replace(/ {2,}/g, ' ').replace(/^ +/, '').replace(/[. ]+$/, '');
+  if (s === '') return null;
   return /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(s) ? `${s} (build)` : s;
 }
 /**
@@ -580,7 +583,9 @@ export function cleanName(name) {
  * `draft`; `base` the file's name without `.xml`.
  */
 export function nameFits(base, name, date, kind) {
-  const n = cleanName(name).toLowerCase();
+  const cleaned = cleanName(name);
+  if (cleaned === null) return false;
+  const n = cleaned.toLowerCase();
   const b = String(base).toLowerCase();
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (kind === 'draft') return new RegExp(`^${esc(n)} \\(draft(?: (?:[2-9]|[1-9]\\d+))?\\)$`).test(b);

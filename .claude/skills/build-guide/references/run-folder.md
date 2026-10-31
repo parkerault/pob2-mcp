@@ -111,9 +111,9 @@ concept skeletons' and the D1 gate's included, is measure-only and writes only t
 beside its plan.
 
 **From amendment 13** (D-466, §22), a build whose last D1 gate is held to revision 13 names its files by its session
-name, `builds[].name` when a revision renamed it, else its card's name, as the server cleans it: each character Windows
-refuses (`< > : " / \ | ? *`) a space, runs of spaces one, trailing dots and spaces gone, a Windows device name gaining
-` (build)`. F1's first write passes `first_free`: the final file is the first free of `<name>.xml`, `<name> <run
+name, `builds[].name` when a revision renamed it, else its card's name, as the server cleans it: a trailing `.xml` gone,
+each character Windows refuses (`< > : " / \ | ? *`) a space, runs of spaces one, leading spaces and trailing dots and
+spaces gone, a Windows device name gaining ` (build)`; a name with nothing left is refused. F1's first write passes `first_free`: the final file is the first free of `<name>.xml`, `<name> <run
 date>.xml` and `<name> <run date> <k>.xml` (k from 2; the run date the run folder's `<YYYY-MM-DD>`); a campaign's first
 write, the D2 gate's, the same with ` (campaign)` after the date. A re-compile passes the recorded name, without
 `first_free`. Names compare without case, and two builds never record one file. **The draft**: on a D1 gate pass that

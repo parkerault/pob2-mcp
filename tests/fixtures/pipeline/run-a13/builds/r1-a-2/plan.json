@@ -924,7 +924,9 @@
           "rebuild": "taken",
           "removed": [
             {
-              "names": "Herald Damage (2 notables)",
+              "names": [
+                "Herald Damage"
+              ],
               "skill": "Herald of Blood"
             }
           ],

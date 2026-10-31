@@ -156,8 +156,9 @@ describe('AC-W97 (WU-125): D1-build', () => {
     expect(defence).toMatch(/\*\*No custom line for a layer PoB models\*\* \(D-451\)\. A `config\.customMods` line that adds a pool or a defence first shows, through `mcp__pob2__check_model_coverage`, .* its `reason` names that result as `coverage: <status>` .* V1's `custom-defence` names a schema-8 line .* V4 re-runs the coverage check on it/);
   });
 
-  it('writes schemaVersion 8, and moves a plan it edits to 8 (dropping respec, adding defence)', () => {
-    expect(build).toMatch(/at `schemaVersion: 8` .* \*\*A plan at an earlier version goes to 8 whenever you edit it\*\* \(D-452, §22\): write `schemaVersion: 8`, drop every stage's `respec` \(a schema-8 plan refuses it\), and add `defence` on `n`/);
+  // Amendment 13 (WU-133, §22): schema 9, which keeps schema 8's rules (no respec, n's defence) and drops attribute needs.
+  it('writes schemaVersion 9, and moves a plan it edits to 9 (dropping respec, adding defence)', () => {
+    expect(build).toMatch(/at `schemaVersion: 9` .* \*\*A plan at an earlier version goes to 9 whenever you edit it\*\* \(D-452, amendment 13 §22\): write `schemaVersion: 9`, drop every stage's `respec` \(a plan at 8 or later refuses it\), add `defence` on `n`/);
   });
 
   it("seeds each rung's tree from the stage before it, then designs it free", () => {
@@ -169,7 +170,7 @@ describe('AC-W97 (WU-125): D1-build', () => {
   });
 
   it('marks no respec', () => {
-    expect({ none: /\*\*Mark no respec:\*\* a schema-8 plan has no `respec`/.test(build), old: /respec rung|respec \{dropped, goldCost, note\}/.test(build) }).toEqual({ none: true, old: false });
+    expect({ none: /\*\*Mark no respec:\*\* a plan at 8 or later has no `respec`/.test(build), old: /respec rung|respec \{dropped, goldCost, note\}/.test(build) }).toEqual({ none: true, old: false });
   });
 
   it("names temporary stages tmp, letters and digits, and removes a crashed step's", () => {
@@ -207,7 +208,8 @@ describe('AC-W97 (WU-125): D1-build', () => {
 
 describe('AC-W97 (WU-125): D1-tree', () => {
   const tree = stage('D1-tree');
-  const sockets = folded(between(rawStage('D1-tree'), '3. **Jewel sockets** (D-453)', '4. **The swap loop, then the rebuild**'));
+  // Amendment 13 (WU-133): the socket test is step 5, before the swap loop (step 6).
+  const sockets = folded(between(rawStage('D1-tree'), '5. **Jewel sockets** (D-453)', '6. **The swap loop** (D-467)'));
 
   it("keeps the rung's needs only and passes no protect_for", () => {
     expect(tree).toMatch(/- `keep`: the nodes of the rung's `tree\.needs`, and nothing else \(D-452\): .* - \*\*no `protect_for`\*\* \(D-452\)/);
@@ -217,8 +219,10 @@ describe('AC-W97 (WU-125): D1-tree', () => {
     expect({ onRung: /\*\*On that rung only\*\* \(D-452\): a change goes up no ladder/.test(tree), ladder: /Up the ladder|grow links|`respec: <stage>/.test(tree) }).toEqual({ onRung: true, ladder: false });
   });
 
-  it(`tests jewel sockets within ${SOCKET_POINTS} points, at most ${SOCKETS} a rung, against the weakest list on MainDamage and TotalEHP with the ${SWAP_GUARD}% guard`, () => {
-    expect(sockets).toMatch(new RegExp(`each empty jewel socket within ${SOCKET_POINTS} points of the rung's tree, nearest first, at most ${SOCKETS} measured per rung .* free as many points as the socket's path costs from node power's weakest list, ranked on \`\\["MainDamage", "TotalEHP"\\]\` .* its \`TotalEHP\` and lowest max hit fall no more than a swap's ${SWAP_GUARD}%`));
+  // Amendment 13 (WU-133, D-467): the socket test's 2% guard becomes the rung's toughness targets.
+  it(`tests jewel sockets within ${SOCKET_POINTS} points, at most ${SOCKETS} a rung, against the weakest list on MainDamage and TotalEHP, on the targets (once the ${SWAP_GUARD}% guard)`, () => {
+    expect(sockets).toMatch(new RegExp(`each empty jewel socket within ${SOCKET_POINTS} points of the rung's tree, nearest first, at most ${SOCKETS} measured per rung .* free as many points as the socket's path costs from node power's weakest list, ranked on \`\\["MainDamage", "TotalEHP"\\]\` .* its \`TotalEHP\` and lowest max hit stay at or above the rung's targets`));
+    expect(sockets).not.toContain(`fall no more than a swap's ${SWAP_GUARD}%`);
   });
 
   it(`measures at most ${LINE_CANDIDATES} line candidates, b ${B_LINES} middle-roll lines, n ${N_LINES} top-roll, no crafted line`, () => {
@@ -229,8 +233,11 @@ describe('AC-W97 (WU-125): D1-tree', () => {
     expect(sockets).toMatch(/Write the chosen lines and the `tree\.scales` they serve in `pieces\.md`'s `## Jewel lines` .* \*\*Its price entry\*\* \(D-372\): write each taken jewel's `prices\[\]` entry as D1-build writes a rare's, `\{"id": "<rung>-jewel-<node>", .* "query": \{"slot": "Jewel <node>"/);
   });
 
-  it(`undoes its own move that cuts a boss-rotation entry by more than ${BOSS_CUT}% (never a user's request or a taken trade), with the boss need's own claim`, () => {
-    expect(tree).toMatch(new RegExp(`\\*\\*The boss guard\\*\\* \\(D-456\\), for your own moves only \\(the loop's swaps, the rebuild, spare points and sockets\\), never a user's request or a trade the user takes: each boss-rotation entry of the rung's \`measures\\.bossGroups\` .* a move that cuts any entry by more than ${BOSS_CUT}% fails the check\\. .* after the boss guard, a need with no \`stat\` instead, whose claim \\(D1-finish's\\) names the boss-rotation entry it keeps`));
+  // Amendment 13 (WU-133, D-468) supersedes D-456's boss guard: the boss figure is a target on the finished tree (n's
+  // floor), never a per-move veto on an entry.
+  it(`undoes only its own move that takes n's boss figure under the floor (once: a cut over ${BOSS_CUT}% of any entry), never a user's request or a taken trade, with the boss need's own claim`, () => {
+    expect(tree).toMatch(/\*\*The boss target on `n`\*\* \(D-468\), for your own moves only \(the rebuild, the loop's swaps, spare points and sockets\), never a user's request or a trade the user takes: .* a move that takes it from at or above the floor to under it fails the check\. .* No per-move boss guard .* after the boss target, a need with no `stat` instead, whose claim \(D1-finish's\) names the boss floor it keeps/);
+    expect(tree).not.toMatch(new RegExp(`cuts any entry by more than ${BOSS_CUT}%`));
   });
 });
 
@@ -254,9 +261,11 @@ describe('AC-W97 (WU-125): D1-finish', () => {
     expect(trades).toMatch(new RegExp(`\\*\\*The avoidance trade\\*\\* \\(D-450; .* on \`b\` and \`n\` of every evasion build, pure or hybrid .* \\*\\*the next avoidance spend\\*\\*: up to ${AVOIDANCE_POINTS} tree points on deflection and evasion nodes .* taken by hits survived per point.* "the same 20 points on the best EHP nodes: \\+14% EHP, hits survived 45%"; - \\*\\*a gear line\\*\\*, at its price and 0 points: the best deflection or evasion line a rare slot can roll`));
   });
 
-  it(`measures each trade's boss-rotation entries for its bossAfter and names a cut over ${BOSS_CUT}% at its reason's end, in the checker's form`, () => {
-    expect(trades).toMatch(new RegExp(`\\*\\*Each trade is measured on a temporary stage\\*\\* .* \\*\\*each boss-rotation entry\\*\\* of \`measures\\.bossGroups\`, triggered entries included\\. \`bossAfter\` comes from that measure: .* A trade that cuts any entry by more than ${BOSS_CUT}% says so at the end of its \`reason\`, \`; cuts <entry> against a boss by <x>%\``));
-    // The checker's defence reason accepts exactly that suffix (check-run.mjs's DEFENCE_REASON).
+  // Amendment 13 (WU-133, D-468) supersedes the cut line: the boss is judged on the rotation, so a trade names no cut.
+  it(`measures each trade's boss-rotation entries for its bossAfter, and names no cut over ${BOSS_CUT}% (amendment 13)`, () => {
+    expect(trades).toMatch(/\*\*Each trade is measured on a temporary stage\*\* .* \*\*each boss-rotation entry\*\* of `measures\.bossGroups`, triggered entries included\. `bossAfter` comes from that measure: .* The boss is judged on the rotation \(D-468\): a trade's `bossAfter` shows it, and no per-entry cut is named or undone/);
+    expect(trades).not.toMatch(new RegExp(`cuts any entry by more than ${BOSS_CUT}%`));
+    // The checker's defence reason still accepts the suffix, for a build held to revision 12 (check-run.mjs's DEFENCE_REASON).
     expect(CHECKER_TEXT).toContain("(?:; cuts .+ against a boss by [\\d.]+%)?$/;");
   });
 
@@ -268,9 +277,10 @@ describe('AC-W97 (WU-125): D1-finish', () => {
     expect(finish).toMatch(new RegExp(`\\*\\*Weapons by compile\\*\\* \\(D-456\\): never compare weapons by a listing's DPS\\. .* re-check its top ${WEAPON_LISTINGS} weapon listings on the build's own damage figure`));
   });
 
-  it("D1-finish's trades.json example passes the checker at revision 12, and the D1 gate's n trades are its own", () => {
+  // Amendment 13 (WU-133, D-468): the example carries revision 13's 11 fields, so it runs on the revision-13 fixture.
+  it("D1-finish's trades.json example passes the checker at revision 13, and the D1 gate's n trades are its own", () => {
     const fromFinish = JSON.parse(blockAfter(rawStage('D1-finish'), '## Writes')) as Json;
-    const dir = copyFixture('run-a12');
+    const dir = copyFixture('run-a13');
     fs.writeFileSync(path.join(dir, 'builds', BUILD, 'trades.json'), `${JSON.stringify(fromFinish, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
     // The checker names the build's folder before the file: `check-run: [trades] builds/<id>: trades.json's …`.
@@ -511,7 +521,9 @@ describe('AC-W98 (WU-125): V4, pricing.md and SKILL.md', () => {
     expect({ build: /\*\*D1-finish's `build: <ids>` sends an attempt back to D1-build\*\*/.test(SKILL), never: /D1-tree never returns `respec:` \(D-452\)/.test(SKILL), route: /logged `respec`|`done` or `respec:`/.test(SKILL) }).toEqual({ build: true, never: true, route: false });
   });
 
-  it('SKILL.md stays within 325 lines', () => {
-    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(325);
+  // Amendment 13 (WU-133): 325 lines, and the 6 lines the rules that can't do without them take, named in the work-log:
+  // D-477's claims pass (§6, 4 lines; §8's open findings, 1), D1-tree's stale-server route (§4, 1 net).
+  it('SKILL.md stays within 325 lines, or 331 with amendment 13\'s named lines', () => {
+    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(331);
   });
 });

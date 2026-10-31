@@ -134,7 +134,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
   it('D1-build writes tree.scales (and, under amendment 12, no respec), skills.cull, skills.engagement (its reason and the default rule), skills.boss and items.bootsException, and names the boots tier per rung', () => {
     expect(build).toMatch(/Write each rung's `tree\.scales`, one short line naming the stats that scale it/);
     // Amendment 12 (WU-125, D-452) retires D-438's respec rungs: a schema-8 plan has no respec.
-    expect(build).toMatch(/\*\*Mark no respec:\*\* a schema-8 plan has no `respec`/);
+    // Amendment 13 (WU-133, §22): schema 9, like 8, has no respec.
+    expect(build).toMatch(/\*\*Mark no respec:\*\* a plan at 8 or later has no `respec`/);
     expect(build).not.toMatch(/respec rung\*\*: write its `respec/);
     expect(build).toMatch(/\*\*`skills\.cull`\*\*, on a rung whose rotation culls: the user \(2026-10-25\), "Map damage with cull if and only if the build explicitly utilizes culling in its skill rotation\. Otherwise, map damage, no cull\."/);
     // §9's default rule, as the amendment words it, in D1-build with its kinds as code.
@@ -151,7 +152,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
   it('D1-tree runs the rebuild pass, measures unmodelled needs with free, and writes trades.json; amendment 12 retires its respec rungs, grow links and respec: return', () => {
     // Amendment 12 (WU-125, D-452): one tree per loadout, so no serving test, no grow links and no `respec:` return.
     expect(tree).not.toMatch(/A respec rung: keep only|along grow links|`respec: <stage> needs one/);
-    expect(tree).toMatch(/Then \*\*the rebuild pass\*\*, once: the same call with `rebuild: true`, .* When its `Rebuild:` line is legal and gains Main damage, it beats the loop's tree: make it a change/);
+    // Amendment 13 (WU-133, D-467): the rebuild runs first, at reach 12 with repair to the start's targets.
+    expect(tree).toMatch(/\*\*Rebuild first\*\* \(D-467\): the call with `rebuild: true` at `max_distance: 12`, .* When its `Rebuild:` line is legal \(its `\(target …\)` form\) and gains Main damage, make it a change/);
     expect(tree).toMatch(/Measure its cost on each rung that holds it with `free: \[<the need's nodes>\]` \(`free` overrides `keep`\)/);
     expect(tree).toMatch(/`<buildFolder>\/trades\.json` \(D-439, outside `buildSha1`\), the trades the design gate shows: write it whole/);
   });
@@ -166,7 +168,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
   });
 
   it('D1-finish measures a damage trade when the non-budget boss figure is under the floor, and states its three EHP allowances', () => {
-    expect(finish).toMatch(/\*\*A damage trade\*\*, when the rung is over its band or under the floor: node power's best swap ranked by `MainDamage`/);
+    // Amendment 13 (WU-133, D-467): an n under its band shows the best damage move too.
+    expect(finish).toMatch(/\*\*A damage trade\*\*, when the rung is over its band, under it, or under the floor: node power's best swap ranked by `MainDamage`/);
     expect(finish).toMatch(/\*\*the three allowances\*\*: over its band, no lower than the target; within it, no lower than the band's bottom \(90% of the target\); already under it, by at most 15%/);
     expect(SPEC).toMatch(/no lower than the toughness target when the rung is over its band, else no lower than the band's bottom \(90% of the target\), or by at most 15% when the rung is already under the band/);
   });
@@ -244,7 +247,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     expect(CHECKER_TEXT).toMatch(/'D1-finish': .*p\?\.outcome === 'build' \? \['D1-build'\]/);
     const rows = SKILL_RAW.split('\n').filter((l) => /^\| \d+[a-c]? \|/.test(l));
     expect(rows.some((l) => /\bRV\b|\brival/.test(l))).toBe(false);
-    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(325);
+    // Amendment 13 (WU-133): 325 lines and the 6 the work-log names (D-477's claims pass, the stale-server route).
+    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(331);
   });
 
   it('patterns.md stays within its word cap (provisional 17,000)', () => {
@@ -263,8 +267,9 @@ describe('D-437 (§5): one damage figure, against map monsters and a boss, ranke
     expect(description).toMatch(/Also MainDamage \("Main damage"\)/);
     expect(stage('D1-tree')).toMatch(/- `stats: \["MainDamage", "TotalEHP"\]` \(D-437\): `MainDamage` ranks, .* and `cull: true` when the rung has `skills\.cull`\. A need's own stat \(step 3\) asks `\["<the need's stat>", "MainDamage"\]`/);
     expect(stage('D1-gate')).toMatch(/`stats: \["MainDamage", "TotalEHP"\]`, with `cull: true` on a rung with `skills\.cull` \(D-437\)/);
-    expect(stage('D1-tree')).toContain('While its best swap gains at least **3%** Main damage');
-    expect(stage('D1-gate')).toContain('A rung whose best swap gains **5%** damage (`Main damage`) or more fails the part');
+    // Amendment 13 (WU-133, D-467): the loop's floor is 1%; the gate's line stays 5%, on the swap or the rebuild left.
+    expect(stage('D1-tree')).toContain('gains at least **1%** Main damage, make it a change');
+    expect(stage('D1-gate')).toContain('A rung whose swap left or rebuild left gains **5%** damage (`Main damage`) or more fails the part');
     // The display's swap label (run-log.mjs) is "damage" under amendment 11, as checkpoints.md's example prints it.
     expect(RUN_LOG_TEXT).toContain("if (ws !== 1 && ws !== 2) return 'damage';");
   });
@@ -297,7 +302,7 @@ describe('D-438 (§6): respec when the scaling changes, otherwise grow', () => {
   it("D1-tree writes no respec.dropped: amendment 12 retires the respec rungs (D-452)", () => {
     const tree = stage('D1-tree');
     expect(tree).not.toMatch(/respec\.dropped|respec\.note/);
-    expect(tree).toMatch(/no respec \(a schema-8 plan has none\)/);
+    expect(tree).toMatch(/no respec \(a plan at 8 or later has none\)/);
   });
 
   it('D2 makes m a respec rung when its scaling differs from the last campaign stage\'s', () => {
@@ -310,7 +315,9 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
     const props = NODE_POWER.inputSchema.properties as Json;
     for (const input of ['rebuild', 'free', 'cull']) expect({ input, inSchema: input in props, inDoc: stage('D1-tree').includes(`\`${input}`) }).toEqual({ input, inSchema: true, inDoc: true });
     expect(props.max_loss.description).toMatch(/maxHit, the lowest of PoB's five per-type maximum hits taken \(default 2\)/);
-    expect(stage('D1-tree')).toMatch(/`maxHit`, the lowest of PoB's five per-type maximum hits taken, its default 2% \(D-439\)/);
+    // Amendment 13 (WU-133, D-467): D1-tree passes targets, so the 2% maxHit guard no longer judges its moves.
+    for (const input of ['targets', 'pace_exchange', 'pool_groups']) expect({ input, inSchema: input in props, inDoc: stage('D1-tree').includes(`\`${input}`) }).toEqual({ input, inSchema: true, inDoc: true });
+    expect(stage('D1-tree')).toMatch(/- \*\*`targets \{ehp, maxHit\}`\*\* \(D-467\): the rung's `tree\.start` \(step 3\), its `ehp` and its `lowestMaxHit\.value`/);
     expect(stage('D1-tree')).toMatch(/node power frees its 5 weakest branches alone and in pairs and triples, so a path longer than any one branch fits, D-439/);
   });
 
@@ -320,7 +327,7 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
     expect(stage('D1-tree')).toMatch(/Run `mcp__pob2__check_model_coverage \{nodes: \[<the need's nodes>\]\}` on each need of the rung/);
   });
 
-  it("D1-tree's and D1-finish's trades.json examples are Appendix A's shape at revision 12, and the run checker accepts them", () => {
+  it("D1-tree's and D1-finish's trades.json examples are Appendix A's shape at revision 13, and the run checker accepts them", () => {
     const fromTree = JSON.parse(blockAfter(rawStage('D1-tree'), '`<buildFolder>/trades.json` (D-439')) as Json;
     const fromFinish = JSON.parse(blockAfter(rawStage('D1-finish'), '## Writes')) as Json;
     const trades = [...fromTree.trades, ...fromFinish.trades];
@@ -329,8 +336,10 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
     // entry, so the examples go through a revision-12 fixture (the 9 fields fail at revision 11).
     const a12 = folded(read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-12-defence-and-design.md')));
     expect(a12).toMatch(/In a build held to revision 12 every entry carries `maxHit` and `hitsSurvived`, `null` where they don't apply/);
-    for (const t of trades) expect(Object.keys(t)).toEqual([...TRADE_FIELDS, 'maxHit', 'hitsSurvived']);
-    const dir = copyFixture('run-a12');
+    // Amendment 13 (WU-133, D-468, Appendix A): a build held to revision 13 adds bossEntries and nodes, so the examples
+    // go through the revision-13 fixture.
+    for (const t of trades) expect(Object.keys(t)).toEqual([...TRADE_FIELDS, 'maxHit', 'hitsSurvived', 'bossEntries', 'nodes']);
+    const dir = copyFixture('run-a13');
     fs.writeFileSync(path.join(dir, 'builds', A11_BUILD, 'trades.json'), `${JSON.stringify({ trades }, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
     // The checker names the build's folder before the file: `check-run: [trades] builds/<id>: trades.json's …`.
@@ -426,8 +435,10 @@ describe("D-443 (§11) and D-444 (§12): SKILL.md's rows and its pricing stop", 
   });
 
   it("SKILL.md's stop lasts until a gate's retry-pricing, the gate asks first, and every exchange item keeps its price", () => {
-    expect(SKILL).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display, and you log the answer with `run-log\.mjs <runFolder> pricing` \(`references\/run-log\.md`, "Pricing stops"\)/);
-    expect(SKILL).toMatch(/`mcp__pob2__get_item_price` for an item the currency exchange sells reads poe\.ninja's exchange \(not with `--no-ninja`\), so both stay allowed/);
+    // Amendment 13 (WU-133, D-474): the pace stop joins, and the bullet points to pricing.md for the allowed calls.
+    expect(SKILL).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `run-log\.mjs <runFolder> pricing`/);
+    expect(SKILL).toMatch(/the currency exchange stays allowed \(`pricing\.md`\)/);
+    expect(ref('pricing.md')).toMatch(/\*\*poe\.ninja's exchange stays allowed\*\* \(D-422 allows it\), so every item the currency exchange sells keeps its price/);
     // run-log.md gives the command SKILL.md names.
     expect(read(path.join(SKILL_DIR, 'references', 'run-log.md'))).toContain('node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing - <<\'JSON\'');
   });
@@ -478,7 +489,8 @@ describe('Appendix A: the formats in the design docs', () => {
     const n = example.design.rungs.find((r: Json) => r.stage === 'n');
     // Amendment 12 (D-454, D-449): damage gains `resisting`, toughness its four additions.
     expect(Object.keys(n.damage)).toEqual(['map', 'resisting', 'boss']);
-    expect(Object.keys(n.boss)).toEqual(['measured', 'estimate', 'corrections', 'floor', 'under']);
+    // Amendment 13 (WU-133, D-468, Appendix A): the boss gains D1-tree's start, end, entries and the fall's reason.
+    expect(Object.keys(n.boss)).toEqual(['measured', 'estimate', 'corrections', 'floor', 'under', 'start', 'end', 'entries', 'bossFall']);
     expect(Object.keys(n.toughness)).toEqual(['engagement', 'reason', 'target', 'band', 'chanceShare', 'conditioned', 'ailmentCut', 'warning']);
     expect(Object.keys(example.design.pieces)).toEqual(['in', 'scheduled', 'out', 'scheduledNames']);
     expect(SPEC).toMatch(/`toughness \{engagement: "close" \| "distance", reason, target, band: "under" \| "within" \| "over"\}`, `boss \{measured, estimate \| null, corrections: \[<short phrase>\]\}` \(on the non-budget rung also `floor` and `under`/);
@@ -489,6 +501,7 @@ describe('Appendix A: the formats in the design docs', () => {
     // Amendment 12 (D-452): D1-tree has no respec outcome in a new run; an older run's log keeps its route.
     expect(ref('gates.md')).toMatch(/Inside an attempt, D1-finish's `build: <ids>` \(logged `build`\) sends D1 back to D1-build in the same attempt \(D-446\)/);
     expect(ref('gates.md')).toMatch(/An older run's log keeps its routes: there D1-tree's `respec: <stage> needs one: <why>` \(logged `respec`\) sent D1 back to D1-build too \(D-438\)/);
-    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs, tree jewels and their prices), `trades.json`, `pieces.md`\'s jewel lines | `done`, each rung\'s travel; `unspent:` and `jewel:` lines |');
+    // Amendment 13 (WU-133, D-467): D1-tree writes the search's start, end and record, and may return stale-server.
+    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs, tree jewels and their prices, `tree.start`, `tree.end`, `tree.search`), `trades.json`, `pieces.md`\'s jewel lines | `done` or `stale-server`, each rung\'s travel; `unspent:` and `jewel:` lines |');
   });
 });

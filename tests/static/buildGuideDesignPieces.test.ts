@@ -252,7 +252,10 @@ describe('AC-W86: D1-build keeps synthesizing (D-434)', () => {
     const statuses = EXAMPLE_ROWS.map((r) => r[3]);
     for (const s of ['in', 'scheduled', 'out']) expect({ s, shown: statuses.includes(s) }).toEqual({ s, shown: true });
     expect(EXAMPLE_ROWS.every((r) => r.length === 7 && (r[3] === 'in' || r[5] !== ''))).toBe(true);
-    const searched = lines.slice(lines.indexOf('## Searched') + 1).filter((l) => l.startsWith('- '));
+    // Amendment 13 (WU-133, D-473): `## Skill levels` and `## Unique jewels` follow `## Searched`, so its lines end there.
+    const after = lines.slice(lines.indexOf('## Searched') + 1);
+    const next = after.findIndex((l) => l.startsWith('## '));
+    const searched = (next < 0 ? after : after.slice(0, next)).filter((l) => l.startsWith('- '));
     expect(searched.length).toBeGreaterThan(0);
     // Amendment 12 (D-457): the wall rule's searches are question 2's lines, in the same form; the library asks 1–24.
     for (const l of searched) expect({ l, form: /^- Q([1-9]|1\d|2[0-4]) after .+: searched .+; found .+$/.test(l) }).toEqual({ l, form: true });

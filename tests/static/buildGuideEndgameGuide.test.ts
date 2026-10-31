@@ -282,13 +282,14 @@ describe('AC-W77 (WU-97): V4 reads the build\'s folder, holds the guide to its t
   it('§9 names the campaign pass as V4.md does: stage V4-campaign, check campaign, the campaign pass H1, the build\'s next report', () => {
     // The spec's own words (§9, step 4).
     expect(spec).toMatch(/stage `V4-campaign`, header `check: "campaign"`, report H1 `campaign pass of rounds\/<n>`, numbered as the build's next `reports\/V4-<n>\.md`/);
-    expect(v4).toMatch(/`stage: "V4"` \(`"V4-campaign"` for the campaign pass\), `check` \(`full` or `recheck`, or `campaign` for the campaign pass\)/);
+    // Amendment 13 (WU-133, D-477): the claims pass joins, stage V4-claims and check claims.
+    expect(v4).toMatch(/`stage: "V4"` \(`"V4-campaign"` for the campaign pass, `"V4-claims"` for the claims pass\), `check` \(`full` or `recheck`, `campaign` for the campaign pass, or `claims` for the claims pass\)/);
     expect(v4).toMatch(/Then you run once in the \*\*campaign mode\*\*: header `stage: "V4-campaign"`, `check: "campaign"`, `writes` the build's next report, `reports\/V4-<n>\.md`/);
   });
 
   it('gives the campaign pass its H1 exactly, # V4-<n>: campaign pass of rounds/<n-1>, in the form the run checker reads', () => {
     expect(v4).toContain("The campaign pass's H1 is exactly `# V4-<n>: campaign pass of rounds/<n-1>`, `<n>` its number among the build's reports and `<n-1>` the round copy made before the campaign.");
-    expect(v4).toMatch(/`check` is the header's \(`full`, `recheck` or `campaign`\)/);
+    expect(v4).toMatch(/`check` is the header's \(`full`, `recheck`, `campaign` or `claims`\)/);
     expect(v4).toMatch(/Only a re-check or the campaign pass reports `fixed`/);
     // The run checker's H1 rule, once it reads the campaign pass (WU-94): an instance of the form passes it.
     const rule = /const h1 = (\/\^V4-[^\n]*?\$\/)\.exec\(rep\.h1/.exec(read(CHECKER));

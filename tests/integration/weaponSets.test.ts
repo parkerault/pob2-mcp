@@ -31,6 +31,8 @@ import type { CompileRecord } from '../../src/plan/record';
 import { SPIRIT_WARNING } from '../../src/plan/checks/v1';
 
 const FIXTURE = path.resolve(__dirname, '..', 'fixtures', 'plans', 'weapon-sets', 'plan.json');
+/** WU-127 (D-467): room in Strength for a pool move under node power's attribute guard (see beforeAll). */
+const STRENGTH = { text: '+10 to Strength', reason: "test: room in Strength for a pool move, which node power's attribute guard keeps (D-467)" };
 const ENGINE_TIMEOUT = 600_000;
 const TWO_SETS = 'Act 1 two weapon sets (L14) {2}';
 /** The Rattling Sceptre's Spirit (`Data/Bases/sceptre.lua`) and Herald of Ash's at level 1 (`Data/Skills/act_str.lua`). */
@@ -130,7 +132,12 @@ engineDescribe('WU-101: weapon set 2 measured, Spirit on both sets, and pool mov
     const abs = /^Created run folder (.+)$/m.exec(made.text)![1];
     const planPath = /^plan_path for this run: (\S+)$/m.exec(made.text)![1];
     run = { planPath, abs };
-    fs.copyFileSync(FIXTURE, path.join(f.guides, planPath));
+    // WU-127 (D-467): node power's attribute guard keeps PoB's requirements with a pool's set active, and set 2's best move
+    // frees a Strength node its shield's 21 needs (25 → 20): stage 2 gets the room as a custom modifier.
+    const plan = JSON.parse(fs.readFileSync(FIXTURE, 'utf8')) as Json;
+    const st2 = plan.stages.find((s: Json) => s.id === '2');
+    st2.config.customMods = [...(st2.config.customMods ?? []), STRENGTH];
+    fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(plan, null, 2)}\n`);
     await ok('compile_plan', { plan_path: planPath, measure_only: true });
     record = readRecord();
   }, ENGINE_TIMEOUT);

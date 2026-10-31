@@ -2,7 +2,7 @@ import type { BuildService } from "../services/buildService.js";
 import type { TreeService } from "../services/treeService.js";
 import type { TreeAnalysisResult, TreeComparison, PassiveTreeNode, AllocationChange, PassiveTreeData } from "../types.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
-import type { NodePowerParams, NodePowerResult, PowerPool, PowerSwap } from "../engine/schemas.js";
+import type { JewelStart, NodePowerParams, NodePowerResult, PowerPool, PowerSwap, TreeResult } from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import type { LoadedBuild } from "../engine/session.js";
 import type { PobSourceScan } from "../engine/pobSourceNames.js";
@@ -93,25 +93,12 @@ export async function handleCompareTrees(
 }
 
 
-/** D-463: a start a socketed jewel opens, as `get_tree` reports it (`jewelStarts`). */
-interface JewelStart {
-  socket: number;
-  start: number;
-  className: string;
-}
-
 /**
- * D-463: the starts the loaded build's socketed jewels open (`get_tree`'s `jewelStarts`: Split Personality's, while its
- * socket is reached without that start), which the path tools may leave. A reply without the field gives none.
+ * D-463: the starts the loaded build's socketed jewels open (`get_tree`'s `jewelStarts`, `treeSchema`: Split
+ * Personality's, while its socket is reached without that start), which the path tools may leave. None without it.
  */
-function jewelStartsOf(tree: unknown): JewelStart[] {
-  const list = (tree as { jewelStarts?: unknown } | null)?.jewelStarts;
-  if (!Array.isArray(list)) return [];
-  return list.filter(
-    (e): e is JewelStart =>
-      typeof e === "object" && e !== null && Number.isInteger((e as JewelStart).start) && Number.isInteger((e as JewelStart).socket) &&
-      typeof (e as JewelStart).className === "string",
-  );
+function jewelStartsOf(tree: Pick<TreeResult, "jewelStarts">): JewelStart[] {
+  return tree.jewelStarts ?? [];
 }
 
 /** The path tools' line for each start a jewel opens (D-463). */

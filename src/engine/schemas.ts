@@ -305,9 +305,18 @@ export const treeSchema = z
     className: optString,
     ascendClassName: optString,
     nodes: luaArray(z.number().int()),
+    /**
+     * D-463: the starts the active spec's socketed jewels open (Split Personality, while its socket is reached from the
+     * class or ascendancy start without that start; BuildOps `jewel_starts`), by socket. `get_tree` always sends it
+     * (`[]` for none); optional, so a reply from an engine before it still reads.
+     */
+    jewelStarts: luaArray(
+      z.object({ socket: z.number().int(), start: z.number().int(), className: z.string() }).passthrough(),
+    ).optional(),
   })
   .passthrough();
 export type TreeResult = z.infer<typeof treeSchema>;
+export type JewelStart = NonNullable<TreeResult['jewelStarts']>[number];
 
 /** `get_tree` and `set_tree`. */
 export const treeReply = baseReply.extend({ tree: treeSchema });

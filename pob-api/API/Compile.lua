@@ -102,7 +102,8 @@
 --     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
 --     PoB's customMods text option (D-293; D-469, schema 9: each after its `customModReasons` entry's comment line
 --     `# <reason>`, which PoB skips). A pinned weapon (D-464, schema 9): an item with `sameAs` puts the item its
---     set-1 slot got in the Swap slot too (pin), so the item set holds one item in both weapon sets. Then each group's minion skill (WU-78, D-377: select_minion_skills,
+--     set-1 slot got in the Swap slot too (pin), so the item set holds one item in both weapon sets.
+--     Then each group's minion skill (WU-78, D-377: select_minion_skills,
 --     by name against the minion's live list, each group the main group for its call, so a disabled one is built
 --     too; PoB's own fields are written, so the saved file keeps them), the main selection (after the
 --     second-weapon-set flag, which doesn't move it), the level in manual mode, and the measurement: every finite

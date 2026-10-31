@@ -437,7 +437,7 @@ describe("D-443 (§11) and D-444 (§12): SKILL.md's rows and its pricing stop", 
   it("SKILL.md's stop lasts until a gate's retry-pricing, the gate asks first, and every exchange item keeps its price", () => {
     // Amendment 13 (WU-133, D-474): the pace stop joins, and the bullet points to pricing.md for the allowed calls.
     expect(SKILL).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `run-log\.mjs <runFolder> pricing`/);
-    expect(SKILL).toMatch(/the currency exchange stays allowed \(`pricing\.md`\)/);
+    expect(SKILL).toMatch(/the exchange stays allowed \(`references\/pricing\.md`\)/);
     expect(ref('pricing.md')).toMatch(/\*\*poe\.ninja's exchange stays allowed\*\* \(D-422 allows it\), so every item the currency exchange sells keeps its price/);
     // run-log.md gives the command SKILL.md names.
     expect(read(path.join(SKILL_DIR, 'references', 'run-log.md'))).toContain('node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing - <<\'JSON\'');

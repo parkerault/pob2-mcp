@@ -36,7 +36,7 @@ where its card names one.
   server with `/mcp`) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first,
   after its display; log the answer with `run-log.mjs <runFolder> pricing`. Tell every coordinator step until then:
   no `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`,
-  `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the currency exchange stays allowed (`pricing.md`).
+  `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed (`references/pricing.md`).
 - **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
   and that their browser shares the limit; one trade call at a time (`references/pricing.md`, "Pace").
 - **Write only inside the run folder**: the `Known issues` lists (step 14) and the interview notes; by script the

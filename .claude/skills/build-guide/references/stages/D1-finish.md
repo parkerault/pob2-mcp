@@ -148,7 +148,8 @@ and the record through
      weights read the main skill (`references/pricing.md`, "A rare of `b` or `n`").
    - **An over-target rare keeps its item** (D-371). You may add a fallback entry, `<id>-fallback`
      (`b-amulet-fallback`): fewer or lower required affixes, priced the same way, with the same target. The
-     guide shows it beside the slot and says it isn't measured. Never change the build for a price.
+     guide shows it beside the slot and says it isn't measured. Never change the build for a price, but for a
+     corrupted line on a unique at or over the cheap line (D-471, above).
    - An entry: `{id, item, query, amount, currency, date, league, status, note?}`, `league` the plan's, `date`
      the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again

@@ -4013,7 +4013,7 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
     expect(s).toMatch(/- \*\*No trade request after pricing stops, until the user approves a retry\*\* \(D-415, D-422, D-444\)\. A step whose `priceOutcomes` counts a `locked_out`, `rate_limited` or `pace` call \(D-474: then ask the user to reconnect the server with `\/mcp`\) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `run-log\.mjs <runFolder> pricing`/);
     for (const tool of ['get_leagues', 'search_trade_items', 'search_stats', 'find_upgrades']) expect({ tool, named: s.includes(`\`mcp__pob2__${tool}\``) }).toEqual({ tool, named: true });
     expect(s).toMatch(/`mcp__pob2__get_item_price` for an item/);
-    expect(s).toMatch(/the currency exchange stays allowed \(`pricing\.md`\)/);
+    expect(s).toMatch(/the exchange stays allowed \(`references\/pricing\.md`\)/);
     expect(s).not.toMatch(/Pricing stops for the session|for a Distilled Emotion reads/);
     // pricing.md holds the rule as amendment 11 (WU-114, D-444) amends it: the stop holds until a gate's retry, and
     // every exchange item keeps its price from poe.ninja's exchange.

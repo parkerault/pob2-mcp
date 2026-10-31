@@ -32,6 +32,8 @@ request (D-411, D-413).
   - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
     card the verification gate finalized (D-391); the design gate's `revise:<text>`; a final-gate revision. A
     passive node the user asks for is a need (step 5);
+  - D1-finish's `build: corruption <stage> <slot>` (D-471): that unique priced at or over the cheap line
+    uncorrupted, so drop its corrupted line;
   - in the fix round, the V4 findings D1-finish handed on as build changes (`{id, artifact, location, claim,
     issue, evidence, owner}`).
 - **Prompt:** whether to write `plan.json` anew (attempt 1 of a fresh design) or edit it, and the gate's

@@ -12,6 +12,8 @@
  * - the golden build (`grenadator.xml`), whose node 32976 ("5% increased Maximum Life if you have at least 10 Red
  *   Support Gems Socketed") holds up its lowest maximum hit taken;
  * - the three-rung build (`fifteen-stage` stages 13 to 15 as m, b and n), AC-P73's, for the NFR.
+ * WU-127 (D-467): the rungs carry custom modifiers meeting their Dexterity requirement, with room in Intelligence, which
+ * node power's attribute guard keeps (V1's `attributes` would refuse them otherwise).
  * Every expected value comes from PoB itself (its own depends and paths, Lua queries of the specs, `calc_with`, the
  * compile record of the tree with the move applied), never from the tool's own output.
  *
@@ -50,6 +52,15 @@ const M = RUNGS['13'][2];
 const B = RUNGS['14'][2];
 const N = RUNGS['15'][2];
 
+/**
+ * D-467: the Dexterity the three rungs' gear and gems need, and room in Intelligence for a rebuild that frees its nodes
+ * (rung m's 82 against 70), as custom modifiers (see `threeRungPlan`).
+ */
+const ATTRIBUTES = [
+  { text: '+100 to Dexterity', reason: "test: meets the rungs' Dexterity requirement, which node power's attribute guard keeps (D-467)" },
+  { text: '+100 to Intelligence', reason: "test: room in Intelligence for a rebuild that frees its nodes, under node power's attribute guard (D-467)" },
+];
+
 /** The three-rung plan: the fifteen-stage fixture's stages 13-15 as the rungs m, b and n (as nodePower.test.ts). */
 function threeRungPlan(): Json {
   const p = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'plans', 'fifteen-stage', 'plan.json'), 'utf8')) as Json;
@@ -68,6 +79,9 @@ function threeRungPlan(): Json {
         ascendancyPoints: 8,
         variantBasis: { level: judgment('test: the fixture level'), gemLevels: judgment('test: the fixture gems'), ascendancyPoints: judgment('test: 8') },
         skills: { ...s.skills, rolledGroup: 1 },
+        // D-467: node power's attribute guard keeps PoB's requirements, and the fixture's rungs miss their Dexterity
+        // (82 of 126 on m, 82 of 147 on b, 92 of 157 on n), a tree V1's `attributes` refuses: the modifiers meet it.
+        config: { ...s.config, customMods: [...(s.config.customMods ?? []), ...ATTRIBUTES] },
         claims: [],
       };
     });

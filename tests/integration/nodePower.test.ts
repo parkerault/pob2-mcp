@@ -6,7 +6,8 @@
  * and guides folders. The fixtures are the repository's own:
  * - the three-rung build: the committed `fifteen-stage` plan's endgame stages 13, 14 and 15 (a Warrior / Titan whose
  *   trees contain each other and carry weapon-set nodes) made the rungs `m`, `b` and `n`, compiled measure-only in a
- *   run folder that `guide_run {new_run}` made;
+ *   run folder that `guide_run {new_run}` made; WU-127 (D-467) gives the rungs a custom modifier meeting their
+ *   Dexterity requirement, which node power's attribute guard keeps (V1's `attributes` would refuse them otherwise);
  * - the golden build (`grenadator.xml`) and `granted-supports.xml` (node 11641, "Grants Skill: Virtuous Barrier"; at the
  *   pin every passive with a "Grants Skill:" line is an ascendancy node, so its protection holds for ascendancy branches).
  * Every expected value comes from PoB itself (its own `CalcsTab:PowerBuilder`, Lua queries of the specs, the compile
@@ -54,6 +55,9 @@ const M = RUNGS['13'][2];
 const B = RUNGS['14'][2];
 const N = RUNGS['15'][2];
 
+/** D-467: the Dexterity the three rungs' gear and gems need, as a custom modifier (see `threeRungPlan`). */
+const DEXTERITY = { text: '+100 to Dexterity', reason: "test: meets the rungs' Dexterity requirement, which node power's attribute guard keeps (D-467)" };
+
 /** The three-rung plan: the fifteen-stage fixture's stages 13-15 as the rungs m, b and n (D-282's ladder). */
 function threeRungPlan(): Json {
   const p = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'plans', 'fifteen-stage', 'plan.json'), 'utf8')) as Json;
@@ -72,6 +76,9 @@ function threeRungPlan(): Json {
         ascendancyPoints: 8,
         variantBasis: { level: judgment('test: the fixture level'), gemLevels: judgment('test: the fixture gems'), ascendancyPoints: judgment('test: 8') },
         skills: { ...s.skills, rolledGroup: 1 },
+        // D-467: node power's attribute guard keeps PoB's requirements, and the fixture's rungs miss their Dexterity
+        // (82 of 126 on m, 82 of 147 on b, 92 of 157 on n), a tree V1's `attributes` refuses: the modifier meets it.
+        config: { ...s.config, customMods: [...(s.config.customMods ?? []), DEXTERITY] },
         claims: [],
       };
     });

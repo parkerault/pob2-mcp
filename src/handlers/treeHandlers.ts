@@ -814,6 +814,9 @@ export interface NodePowerArgs {
   cull?: unknown;
   rebuild?: unknown;
   free?: unknown;
+  targets?: unknown;
+  pace_exchange?: unknown;
+  pool_groups?: unknown;
 }
 
 /** The default stats (D-417): Full DPS ranks, Effective Hit Pool beside it. */
@@ -892,6 +895,34 @@ export function nodePowerParams(args: NodePowerArgs): NodePowerParams {
     if (params.rebuild) throw new Error('rebuild and free each replace the swap search: pass one of them');
     params.free = args.free as number[];
   }
+  // D-467: the toughness targets, the pace exchange and the pools' groups.
+  const isMain = (s: string) => ['maindamage', 'main damage'].includes(s.trim().toLowerCase());
+  if (args.targets !== undefined) {
+    const t = args.targets as Record<string, unknown> | null;
+    const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+    if (t === null || typeof t !== 'object' || Array.isArray(t) || !num(t.ehp) || !num(t.maxHit) || Object.keys(t).some((k) => k !== 'ehp' && k !== 'maxHit')) {
+      throw new Error('targets must be {ehp, maxHit}: the TotalEHP and the lowest maximum hit taken a move keeps, each a number, 0 or more');
+    }
+    params.targets = { ehp: t.ehp as number, maxHit: t.maxHit as number };
+  }
+  if (args.pace_exchange !== undefined) {
+    const r = args.pace_exchange;
+    if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) {
+      throw new Error('pace_exchange must be a number above 0: the damage gain, in percent, each percent of a pace figure costs (D1-tree passes 3)');
+    }
+    if (!stats.some(isMain)) throw new Error('pace_exchange buys damage with pace, nothing else; name MainDamage in stats');
+    params.paceExchange = r;
+  }
+  if (args.pool_groups !== undefined) {
+    const g = args.pool_groups as Record<string, unknown> | null;
+    if (
+      g === null || typeof g !== 'object' || Array.isArray(g) ||
+      !Object.entries(g).every(([k, v]) => (k === '1' || k === '2') && typeof v === 'number' && Number.isInteger(v) && v >= 1)
+    ) {
+      throw new Error('pool_groups must map a weapon set ("1" or "2") to a plan group number, as compile_plan\'s record numbers the groups');
+    }
+    params.poolGroups = g as Partial<Record<'1' | '2', number>>;
+  }
   return params;
 }
 
@@ -954,15 +985,57 @@ function branchesText(s: PowerSwap): string {
 /** A swap tried, in the tried list: its branch, or its branches joined by `+`. */
 const triedLabel = (s: PowerSwap): string => s.branches.map((b) => `${b.name} [${b.id}]`).join(' + ');
 
+/** D-467: the targets in force for a line: a pool's own (the lower of the call's and its set's figures) or the call's. */
+const targetsOf = (r: NodePowerResult, pool?: PowerPool) => pool?.targets ?? r.targets;
+
+/**
+ * D-467: a measured move's gains under `targets`: the first stat's, then each other stat but TotalEHP, then its EHP and
+ * lowest max hit beside their targets (Appendix A's form): `+<x>% Main damage (+N); EHP <a> (target <t>), lowest max hit
+ * <b> <type> (target <u>)`. Without targets, `gainsText`.
+ */
+function measuredText(targets: NodePowerResult['targets'], stats: NodePowerResult['stats'], s: PowerSwap): string {
+  if (!targets) return gainsText(stats, s);
+  const parts = stats
+    .map((x, i) =>
+      i === 0 ? `${percent(s.gainPercent?.[i])} ${x.label} (${signed(s.gain?.[i])})` : x.id === 'TotalEHP' ? '' : `${x.label} ${percent(s.gainPercent?.[i])} (${signed(s.gain?.[i])})`,
+    )
+    .filter((x) => x !== '');
+  parts.push(
+    `EHP ${figure(s.ehp)} (target ${figure(targets.ehp)}), lowest max hit ${figure(s.maxHit)}${s.maxHitType ? ` ${s.maxHitType}` : ''} (target ${figure(targets.maxHit)})`,
+  );
+  return parts.join('; ');
+}
+
+/** D-467: the repair's steps: `repaired: freed <n> points (<names>), added <m> (<names>); …`, or '' when none ran. */
+function repairText(s: PowerSwap): string {
+  const steps = s.repair ?? [];
+  if (steps.length === 0) return '';
+  const names = (ns: Array<{ id: number; name: string }>) => ns.map(nodeRef).join(', ');
+  return `; repaired: ${steps.map((st) => `freed ${plural(st.freed.length, 'point')} (${names(st.freed)}), added ${st.added.length}${st.added.length > 0 ? ` (${names(st.added)})` : ''}`).join('; ')}`;
+}
+
+/** D-467: a move that misses its targets: `misses its targets[ after repair]: EHP <a> of <t>, lowest max hit <b> of <u>`. */
+function missText(targets: NodePowerResult['targets'], s: PowerSwap): string {
+  const after = s.repair !== undefined ? ' after repair' : '';
+  if (!targets) return `misses its targets${after}`;
+  return `misses its targets${after}: EHP ${figure(s.ehp)} of ${figure(targets.ehp)}, lowest max hit ${figure(s.maxHit)} of ${figure(targets.maxHit)}`;
+}
+
+/** D-467: a pool's line head with `pool_groups`: its set and the group it ranks by on the boss config. */
+const groupHead = (head: string, set: number, group: { group: number; label: string }): string =>
+  `${head} (weapon set ${set}, ranked by group ${group.group}, ${group.label}, against a Pinnacle boss)`;
+
 /**
  * The best swap, or why there is none, in one paragraph (the compact mode's line). For a pool move (C-55a, D-426),
- * `pool` holds its pool's swaps, and the line names the pool, `Best swap (weapon set <n>): …`, in the same form.
+ * `pool` holds its pool's swaps, and the line names the pool, `Best swap (weapon set <n>): …`, in the same form. D-467:
+ * under `targets`, the move's EHP and lowest max hit stand beside their targets, with the repair's steps.
  */
 function swapText(r: NodePowerResult, pool?: PowerPool): string {
   const s = pool ? pool.bestSwap : r.bestSwap;
   const swaps = pool ? pool.swaps : r.swaps;
-  const head = pool ? `Best swap (weapon set ${pool.set})` : 'Best swap';
+  const head = pool ? (pool.group ? groupHead('Best swap', pool.set, pool.group) : `Best swap (weapon set ${pool.set})`) : 'Best swap';
   const stats = statsOf(r, pool);
+  const targets = targetsOf(r, pool);
   if (!s) {
     // The limits in force (the call's max_loss over the defaults); a pool's Full DPS takes MainDamage's.
     const limit = (key: string, fallback: number) => {
@@ -972,35 +1045,56 @@ function swapText(r: NodePowerResult, pool?: PowerPool): string {
     const statLimit = (i: number) => limit(stats[i].id, limit(r.stats[i]?.id ?? '', 2));
     const pctText = (v: number) => `${figure(v)}%`;
     const limits = [
-      ...stats.slice(1).map((x, k) => `${x.label} may lose at most ${pctText(statLimit(k + 1))}`),
-      `movement speed ${pctText(limit('movement', 0))}`,
-      `the clear skill's radius ${pctText(limit('clearRadius', 0))} and uses per second ${pctText(limit('clearUses', 0))}`,
-      `the lowest maximum hit taken ${pctText(limit('maxHit', 2))}`,
+      ...stats
+        .slice(1)
+        .map((x, k) => (targets && x.id === 'TotalEHP' ? '' : `${x.label} may lose at most ${pctText(statLimit(k + 1))}`))
+        .filter((x) => x !== ''),
+      ...(typeof r.paceExchange === 'number'
+        ? [`each pace figure (movement speed, the clear skill's radius and uses per second) may fall L% for ${figure(r.paceExchange)} × L% more damage`]
+        : [
+            `movement speed ${pctText(limit('movement', 0))}`,
+            `the clear skill's radius ${pctText(limit('clearRadius', 0))} and uses per second ${pctText(limit('clearUses', 0))}`,
+          ]),
+      targets
+        ? `EHP and the lowest maximum hit taken at or above their targets, ${figure(targets.ehp)} and ${figure(targets.maxHit)}${pool ? '' : ', each try repaired'}`
+        : `the lowest maximum hit taken ${pctText(limit('maxHit', 2))}`,
     ];
-    const legal = swaps.filter((s) => s.verdict !== 'illegal').length;
+    const legal = swaps.filter((s) => s.verdict !== 'illegal' && s.verdict !== 'misses-targets').length;
     return (
       `${head}: none: of the weakest unprotected branches${pool ? '' : ', alone and together'}, ${plural(swaps.length, 'was', 'were')} tried (${legal} legal), ` +
       `and none gains ${stats[0].label} within the limits (${limits.join('; ')}).`
     );
   }
-  return `${head}: ${gainsText(stats, s)}. ${nodesText(s)} ${branchesText(s)}`;
+  return `${head}: ${measuredText(targets, stats, s)}${repairText(s)}. ${nodesText(s)} ${branchesText(s)}`;
 }
 
 /**
  * D-439: the rebuild's or the free's one move, judged as a swap, in one paragraph: `Rebuild: …` or `Free: …`, its gains
  * and nodes when it is legal; else why it isn't, with what it measured; then what was freed and how much the refill used.
+ * D-467: under `targets`, Appendix A's forms: its EHP and lowest max hit beside their targets and the repair's steps, or
+ * `misses its targets after repair: EHP <a> of <t>, lowest max hit <b> of <u>`; a free within a weapon set's pool is
+ * `Free (weapon set <n>): …`, in that pool's stats.
  */
 function moveText(r: NodePowerResult): string {
   const t = r.swaps[0];
-  const head = r.mode === 'rebuild' ? 'Rebuild' : 'Free';
+  const freeGroup = r.freeGroup;
+  const head =
+    r.mode === 'rebuild' ? 'Rebuild' : r.freePool ? (freeGroup ? groupHead('Free', r.freePool, freeGroup) : `Free (weapon set ${r.freePool})`) : 'Free';
   if (!t) return `${head}: none.`;
+  const stats = r.mode === 'free' && r.freeStats ? r.freeStats : r.stats;
+  // A free within a pool on the set the loadout doesn't hold keeps that pool's targets.
+  const targets = r.mode === 'free' && r.freeTargets ? r.freeTargets : r.targets;
   const what =
     r.mode === 'rebuild'
       ? `Freed every node outside keep, the protected nodes and their paths to the start: ${plural(t.freed, 'point')}`
       : `Freed ${joinAnd((r.freeNodes ?? []).map(nodeRef))} and what their removal disconnects: ${plural(t.freed, 'point')}`;
   const uses = t.used !== undefined ? `; the refill uses ${t.used} of them` : '';
-  if (t.verdict === 'legal') return `${head}: ${gainsText(r.stats, t)}. ${nodesText(t)} ${what}${uses}.`;
-  const measured = t.gain ? ` Measured: ${gainsText(r.stats, t)}. ${nodesText(t)}` : '';
+  if (t.verdict === 'legal') return `${head}: ${measuredText(targets, stats, t)}${repairText(t)}. ${nodesText(t)} ${what}${uses}.`;
+  if (t.verdict === 'misses-targets') {
+    const measured = t.gain ? ` Measured: ${gainsText(stats, t)}. ${nodesText(t)}` : '';
+    return `${head}: ${missText(targets, t)}${repairText(t)}.${measured} ${what}${uses}.`;
+  }
+  const measured = t.gain ? ` Measured: ${gainsText(stats, t)}. ${nodesText(t)}` : '';
   return `${head}: none: ${t.verdict}${t.reason ? `: ${t.reason}` : ''}.${measured} ${what}${uses}.`;
 }
 

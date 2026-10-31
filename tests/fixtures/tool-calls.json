@@ -127,6 +127,9 @@
   { "tool": "get_node_power", "args": { "stats": ["FullDPS"], "free": [32976], "max_distance": 2, "limit": 0 }, "expect": "ok" },
   { "tool": "get_node_power", "args": { "rebuild": true, "free": [32976] }, "expect": "error",
     "reason": "rebuild and free each replace the swap search, so only one is passed (D-439)" },
+  { "tool": "get_node_power", "args": { "stats": ["MainDamage", "TotalEHP"], "targets": { "ehp": 1000, "maxHit": 100 }, "pace_exchange": 3, "pool_groups": { "2": 1 }, "rebuild": true, "max_distance": 2, "limit": 0 }, "expect": "ok" },
+  { "tool": "get_node_power", "args": { "stats": ["Life"], "pace_exchange": 3 }, "expect": "error",
+    "reason": "the pace exchange buys damage with pace, so it needs MainDamage in stats (D-467)" },
 
   { "tool": "select_spec", "args": { "index": 2 }, "expect": "ok",
     "setup": [{ "tool": "create_spec", "args": { "title": "Hygiene spec", "copyFrom": 1, "activate": false } }] },

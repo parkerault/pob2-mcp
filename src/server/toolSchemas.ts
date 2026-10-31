@@ -1640,7 +1640,7 @@ export function getBuildGoalsToolSchemas(): any[] {
     },
     {
       name: "get_node_power",
-      description: "Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. It is PoB's own \"Show node power\" and power report, for 1 to 3 of the stats PoB offers it on, by PoB's id or label (FullDPS, TotalEHP, Life, ManaRegen, Armour, the attributes, the minion stats and the rest; an unknown name, or the combined Offence/Defence view, is refused with the list). One pass of PoB's own calculator measures every node within max_distance points of the tree: each unallocated node alone and with its whole path, ranked by path gain per point on the first stat, and each allocated node with the nodes that depend on it (its branch), ranked by loss per point. It counts travel, the allocated points that give nothing alone on any stat asked for, and searches the best swap: free the 5 weakest branches, each alone and in pairs and triples, then add the best nodes whose new paths fit the freed points, all measured as one change. A swap is returned only when it is legal (every node connected, no more points, no second tree on a start, no weapon-set or ascendancy node added or removed; an added attribute node takes PoB's default choice, which is named) and gains on the first stat with no other stat losing more than max_loss, no loss of movement speed or of the clear skill's radius or uses per second, and no more than 2% off the lowest maximum hit taken. Each weapon-set pool with nodes also gets a pool move, measured with that set active: its weakest branch swapped for nodes tagged to the same pool, the pool holding no more points; its line is \"Best swap (weapon set <1|2>): ...\". No node moves between pools, or into or out of the main tree. Never removed, with any branch holding them: keep, a node that grants a skill, a weapon-set node (but by its pool's move), and a node a loadout in protect_for builds on. The loadout and level are selected inside the call and put back after, so the build is unchanged. Lists what PoB can't fully measure among the nodes listed.",
+      description: "Rank passive nodes by PoB's node power on one loadout of the loaded build, and find the best legal swap its tree has left. It is PoB's own \"Show node power\" and power report, for 1 to 3 of the stats PoB offers it on, by PoB's id or label (FullDPS, TotalEHP, Life, Armour, the attributes, the minion stats and the rest; an unknown name, or the combined Offence/Defence view, is refused with the list). One pass of PoB's own calculator measures every node within max_distance points of the tree: each unallocated node alone and with its whole path, ranked by path gain per point on the first stat, and each allocated node with the nodes that depend on it (its branch), ranked by loss per point. It counts travel, the allocated points that give nothing alone on any stat asked for, and searches the best swap: free the 5 weakest branches, each alone and in pairs and triples, then add the best nodes whose new paths fit the freed points, all measured as one change. A swap is returned only when it is legal (every node connected, no more points, PoB's attribute requirements met, no second tree on a start, no weapon-set or ascendancy node added or removed; an added attribute node takes PoB's default choice, which is named) and gains on the first stat with no other stat losing more than max_loss, no loss of movement speed or of the clear skill's radius or uses per second, and no more than 2% off the lowest maximum hit taken. Each weapon-set pool with nodes also gets a pool move, measured with that set active: its weakest branch swapped for nodes tagged to the same pool, the pool holding no more points; its line is \"Best swap (weapon set <1|2>): ...\". No node moves between pools, or into or out of the main tree. Never removed, with any branch holding them: keep, a node that grants a skill, a weapon-set node (but by its pool's move), and a node a loadout in protect_for builds on. The loadout and level are selected for the call and put back, so the build is unchanged. Lists what PoB can't fully measure among the nodes listed.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1706,7 +1706,31 @@ export function getBuildGoalsToolSchemas(): any[] {
             type: "array",
             items: { type: "integer" },
             minItems: 1,
-            description: "In place of the swap search and the pool moves: free exactly these allocated main-tree nodes (keep doesn't hold them) and the nodes their removal disconnects, refill the points greedily with other nodes, and report the gain, judged as one swap: what the same points would add elsewhere. Its line is \"Free: ...\". Not with rebuild.",
+            description: "In place of the swap search and the pool moves: free exactly these allocated main-tree nodes (keep doesn't hold them) and the nodes their removal disconnects, refill the points greedily with other nodes, and report the gain, judged as one swap: what the same points would add elsewhere. Its line is \"Free: ...\". Nodes all tagged to one weapon set are freed within that set's pool and refilled from it, measured with that set active, as its pool move: \"Free (weapon set <n>): ...\". Not with rebuild.",
+          },
+          targets: {
+            type: "object",
+            properties: {
+              ehp: { type: "number", minimum: 0 },
+              maxHit: { type: "number", minimum: 0 },
+            },
+            required: ["ehp", "maxHit"],
+            additionalProperties: false,
+            description: "The toughness targets {ehp, maxHit}: a TotalEHP and a lowest of PoB's five per-type maximum hits taken. With them, a swap, the rebuild or a free is legal only when its EHP and lowest max hit are at or above them, and max_loss's TotalEHP and maxHit no longer judge it. A main-tree move that misses one is repaired first: the refilled tree's branch with the least first-stat loss per point is freed for the nodes with the most gain on the failing targets per first-stat loss, step by step, until both hold; a swap try the repair can't bring to them doesn't count as a legal try. The line shows the EHP and max hit beside their targets and each repair step's points, or reads \"misses its targets after repair: EHP <a> of <t>, lowest max hit <b> of <u>\". A pool move isn't repaired; on the set the loadout doesn't hold, it keeps the lower of the targets and that set's own figures.",
+          },
+          pace_exchange: {
+            type: "number",
+            exclusiveMinimum: 0,
+            description: "The pace exchange r (3 is the user's rule): each pace figure, movement speed and the clear skill's radius and uses per second, may fall L% when the move gains at least r × L% Main damage, each figure on its own; max_loss's movement, clearRadius and clearUses are then ignored. A figure that falls more reads \"<figure> −<L>% needs +<r×L>% damage, the move gains +<G>%\". Needs MainDamage in stats.",
+          },
+          pool_groups: {
+            type: "object",
+            properties: {
+              "1": { type: "integer", minimum: 1 },
+              "2": { type: "integer", minimum: 1 },
+            },
+            additionalProperties: false,
+            description: "By weapon set (\"1\", \"2\"), a plan group number, as compile_plan's record numbers the groups: that set's pool move ranks by the group's damage figure (MainDamage's Count rule on that group, with PoB's own Count) against a Pinnacle boss, the config set for each such measure and put back, in place of its usual first stat; its other stats and guards stay on the map config. Its line names the group.",
           },
         },
       },

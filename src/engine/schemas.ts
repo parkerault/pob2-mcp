@@ -1700,7 +1700,8 @@ export const powerWeakSchema = powerNodeSchema.extend({
 });
 export type PowerWeak = z.infer<typeof powerWeakSchema>;
 
-export const POWER_SWAP_VERDICTS = ['legal', 'illegal', 'no-candidate', 'no-gain', 'over-loss', 'error'] as const;
+/** D-467: `misses-targets`, a move whose TotalEHP or lowest max hit is under `targets` (a main move's after its repair). */
+export const POWER_SWAP_VERDICTS = ['legal', 'illegal', 'no-candidate', 'no-gain', 'over-loss', 'misses-targets', 'error'] as const;
 
 /**
  * A measured swap's clear entry: the clear skill's radius and uses per second on the set measured. D-460 (B1): on a
@@ -1715,6 +1716,15 @@ const powerSwapClearSchema = z.preprocess(
 /** D-439: a branch a swap frees: its node (the branch's root), and the points it holds (the node and its dependants). */
 export const powerBranchSchema = z.object({ id: z.number().int(), name: z.string(), points: z.number().int() }).passthrough();
 export type PowerBranch = z.infer<typeof powerBranchSchema>;
+
+/** D-467: one repair step under `targets`: the nodes it freed (a branch of the refilled tree) and the nodes it added. */
+export const powerRepairStepSchema = z
+  .object({ freed: luaArray(powerNodeSchema), added: luaArray(powerNodeSchema) })
+  .passthrough();
+export type PowerRepairStep = z.infer<typeof powerRepairStepSchema>;
+
+/** D-467: the toughness targets a move is judged on: TotalEHP and the lowest maximum hit taken. */
+const powerTargetsSchema = z.object({ ehp: z.number(), maxHit: z.number() }).passthrough();
 
 /**
  * One swap tried: the branches it frees (one, or D-439's two or three freed together; none for a rebuild or a free),
@@ -1732,10 +1742,15 @@ export const powerSwapSchema = z
     gainPercent: powerFiguresSchema.optional(),
     movement: optNumber,
     maxHit: optNumber,
+    /** D-467: the move's TotalEHP and its lowest maximum hit's damage type (lowercase). */
+    ehp: optNumber,
+    maxHitType: optString,
     clear: powerSwapClearSchema.optional(),
     used: z.number().int().optional(),
     removed: luaArray(powerNodeSchema).optional(),
     added: luaArray(powerNodeSchema.extend({ attributeChoice: optString })).optional(),
+    /** D-467: under `targets`, the repair's steps (empty when the refill met the targets or no step helped). */
+    repair: luaArray(powerRepairStepSchema).optional(),
   })
   .passthrough();
 export type PowerSwap = z.infer<typeof powerSwapSchema>;
@@ -1750,6 +1765,10 @@ export const powerPoolSchema = z
     set: z.union([z.literal(1), z.literal(2)]),
     nodes: z.number().int(),
     stats: luaArray(powerStatSchema).optional(),
+    /** D-467: with `poolGroups`, the plan group the pool ranks by (its figure on the boss config) and its label. */
+    group: z.object({ group: z.number().int(), label: z.string() }).passthrough().optional(),
+    /** D-467: on the set the loadout doesn't hold, the targets the pool keeps (the lower of the call's and its own). */
+    targets: powerTargetsSchema.optional(),
     base: powerFiguresSchema,
     bestSwap: powerSwapSchema.optional(),
     swaps: luaArray(powerSwapSchema),
@@ -1767,6 +1786,11 @@ const powerResultSchema = z
     movement: optNumber,
     /** D-439: the lowest of PoB's five per-type maximum hits taken, the maxHit guard's base. */
     maxHit: optNumber,
+    /** D-467: the base's lowest maximum hit's type, its TotalEHP, and the targets and pace exchange in force. */
+    maxHitType: optString,
+    ehp: optNumber,
+    targets: powerTargetsSchema.optional(),
+    paceExchange: optNumber,
     /** The limits in force, in percent, by stat id (each stat after the first) and by guard (maxLoss's keys). */
     limits: luaMap(luaNumber).optional(),
     measuredNodes: z.number().int(),
@@ -1794,6 +1818,11 @@ const powerResultSchema = z
     mode: z.enum(['swap', 'rebuild', 'free']),
     /** D-439: with `free`, the nodes named, as they are allocated. */
     freeNodes: luaArray(powerNodeSchema).optional(),
+    /** D-467: with `free` on nodes of one weapon set, that set (a pool move), its own stats and the group it ranks by. */
+    freePool: z.union([z.literal(1), z.literal(2)]).optional(),
+    freeStats: luaArray(powerStatSchema).optional(),
+    freeGroup: z.object({ group: z.number().int(), label: z.string() }).passthrough().optional(),
+    freeTargets: powerTargetsSchema.optional(),
     bestSwap: powerSwapSchema.optional(),
     swaps: luaArray(powerSwapSchema),
     /** C-55a (D-426): the pool moves, one entry per weapon-set pool with nodes, set 1 first; empty without any. */
@@ -1833,7 +1862,9 @@ export const nodePowerReply = baseReply.extend({ result: z.union([powerResultSch
 /**
  * `node_power` params (C-55): the stats by PoB's id or label (`MainDamage` among them, D-437); `maxLoss` a percentage or
  * a map by stat or guard; `cull` multiplies MainDamage by its CullMultiplier; `rebuild` or `free` replaces the swap
- * search (D-439).
+ * search (D-439). D-467: `targets` judges a move on TotalEHP and the lowest max hit (with the repair); `paceExchange`
+ * lets each pace figure fall L% for a MainDamage gain of r × L%; `poolGroups` ranks a weapon-set pool by a plan group's
+ * figure on the boss config.
  */
 export interface NodePowerParams {
   stats: string[];
@@ -1848,6 +1879,9 @@ export interface NodePowerParams {
   cull?: boolean;
   rebuild?: boolean;
   free?: number[];
+  targets?: { ehp: number; maxHit: number };
+  paceExchange?: number;
+  poolGroups?: Partial<Record<'1' | '2', number>>;
 }
 
 /** `node_power` with `upgrades`: `get_passive_upgrades`' candidates and the raw output fields of each path. */

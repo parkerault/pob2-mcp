@@ -321,7 +321,9 @@ with `-campaign` for a campaign's file (D-415, `SKILL.md`:305), held by the chec
 - **The name** is the build's session name: `builds[].name` when a revision renamed it (D-435), else the card's `name`.
   The final file is `<name>.xml`, the draft `<name> (draft).xml`, a campaign's `<name> (campaign).xml`.
 - **Cleaned** by the server (under `first_free` and in the draft mode): each character Windows refuses
-  (`< > : " / \ | ? *`) is replaced with a space, runs of spaces become one, and trailing dots and spaces go; a name
+  (`< > : " / \ | ? *`) is replaced with a space, runs of spaces become one, a trailing `.xml` goes, leading spaces and
+  trailing dots and spaces go (as built, WU-129: a name starting with a space hides in PoB's list), and an empty
+  result is refused; a name
   that is a Windows device name whole (CON, PRN, AUX, NUL, COM1–COM9, LPT1–LPT9) gains " (build)" (proceed-on: the
   user accepted "replaced"; a space is the replacement). Names compare without case (D-52).
 - **The first free name** (`first_free`, on a build's **first** final write, F1's, and on its first campaign write, the
@@ -1114,7 +1116,8 @@ file-only build's claims pass (HG-31, with the approval, 2026-10-30).
 - the draft as its own `compile_plan` mode that copies the last whole-plan measure-only XML, so it runs no engine and is
   written only on a pass, or by the runner on an escalation's `accept` (§7; the gap list's default wrote it with the
   gate's compile); drafts count ` (draft 2)` and have no dated form; the ledger's `kind` and `plan` (§7);
-- a refused character replaced with a space, then runs of spaces collapsed (the user accepted "replaced"); a device
+- a refused character replaced with a space, then runs of spaces collapsed, leading spaces trimmed (the user accepted
+  "replaced"; the trim is the build's, WU-129); a device
   name gains " (build)"; `first_free` only on a build's first final write (§7);
 - under `targets`, tries the repair can't fix don't count toward the 5 legal tries (§8); each pace figure judged on its
   own against the Main damage gain (§8); the attribute guard on by default (§8); a pool ranked on the boss config, its

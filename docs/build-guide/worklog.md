@@ -6079,3 +6079,16 @@ the `m17` engine at `b76967b`.
     gained attributes (`nodePower.test.ts`'s and `nodePowerSearch.test.ts`'s fifteen-stage rungs, which miss ReqDex,
     82 of 126; `weaponSets.test.ts`'s stage 2, +10 Strength). The rebuild line reads `+84.49% Main damage (+143,748);
     EHP …`, with the absolute gain beside Appendix A's form. `get_node_power`'s description is 2,037 of 2,048 characters.
+- **WU-131 (the pattern library) merged** at `e3e7aad` (two commits, the first splitting amendment 11's mixed `it` so
+  its `SKILL.md` half stays for WU-133). Section 5 gains "A second ailment type" (Bloodhound's Mark as the bleed-to-stun
+  example, PG-101 its gap); "Convert into the ailment's type" points to it; the Damage over time kit's lever beside
+  Contagion no longer calls it an ailment lever; the pivots (section 7's "Guaranteed crit, then crit damage", Crimson
+  Assault as a Keystones line, the second ailment's chance sources); the Split Personality line says what the compiler
+  accepts; the cap is 17,000 in the five cap tests. **Counts (AC-W101, HG-28 didn't fire):** 15,988 → 16,560 `wc -w`
+  (16,561 after the coordinator's one-word fold). The finishing-touches study's figures are cited as `[amendment-13]`
+  §2, since the study is in the user's private library. Its verifier (fresh context) passed it, re-running the gate
+  (211 suites, 3,663 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0); eight mutations each failed a test.
+  - **The coordinator folded:** the crit pivot's caution says Nebuloch's wielder takes the chaos damage; §11 says Poison
+    III and Supercritical together cut Shield Wall 20%, as §2 does.
+  - **Left:** PoB doesn't model Nebuloch's "Attacks consume an Endurance Charge to Critically Hit" (`Data/ModCache.lua`
+    :4794–4795, unparsed); the library says "not modelled", as it does elsewhere; no PoB gap entry yet.

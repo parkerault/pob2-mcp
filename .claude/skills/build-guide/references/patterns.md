@@ -1087,8 +1087,8 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Examples:** Lexd's Shield Wall + Rake Bleed Titan, on Nebuloch: Supercritical is worth 20% of its Shield Wall's
   damage, and four crit damage passives on weapon set 2 26% [amendment-13] §2.
 - **Cautions:** the pieces don't transfer alone: Supercritical and Poison III, moved into the Titan Rake run's Shield
-  Wall with no crit bonus to stack, cut it 20% [amendment-13] §2. Nebuloch takes 100 chaos damage per second per
-  Endurance Charge (pin).
+  Wall with no crit bonus to stack, cut it 20% [amendment-13] §2. Nebuloch's wielder takes 100 chaos damage per
+  second per Endurance Charge (pin).
 
 ### Saturated type count
 

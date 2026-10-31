@@ -543,8 +543,8 @@ modifier rules, the guide templates' PoB note, `plan-reference.md`.
 - **Cautions:** Contagion, Essence Drain and Decaying Hex's debuff aren't ailments: in PoB they take "damage over time"
   and "chaos damage over time" lines but not the four ailment lines (`CalcOffence.lua`:5874–5882 against :5040–5048;
   PoB's model, needs in-game testing); each type needs its own chance and damage type; duration raises damage only where
-  stacks or uptime are short; a second ailment pays only with its chance sources ([finishing]: Poison III alone in
-  r2-s-2's Shield Wall cut it 20%).
+  stacks or uptime are short; a second ailment pays only with its chance sources ([finishing]: Poison III and
+  Supercritical together in r2-s-2's Shield Wall cut it 20%, §2).
 - A pointer from "Convert into the ailment's type" (`patterns.md`:791), and the Damage over time kit's "ailment
   magnitude" lever beside Contagion (:323) reworded, since Contagion isn't an ailment.
 

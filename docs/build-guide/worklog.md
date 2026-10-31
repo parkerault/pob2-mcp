@@ -6143,3 +6143,17 @@ the `m17` engine at `b76967b`.
     into `valuedBy`; a corrupted unique at or over the cheap line goes back through D-446's route (`build: corruption
     <stage> <slot>`) for D1-build to drop the line; `pieces.md` gains `## Skill levels` and `## Unique jewels`.
   - **Left:** a fix round's D1 gate (the claims round's included) may write a draft, which F1 then removes; harmless.
+- **M-26's milestone gate passed** on `fc34d81` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
+  cache cleared): `mise run test` rc 0 (220 suites, 3,854 tests; the timing step 2 suites, 4 tests), `pnpm build` rc
+  0. Every §20 criterion but AC-W106 (the user's live test, WU-135) maps to a passing test or its work-log row; the
+  gate reproduced node power's gains (+84.49% in 21.5 s, +84.68% in 16.7 s) and R-64's figures; five seams checked
+  (the name cleaning equal on 22 inputs, schema 9 in the scripts, node power's lines in D1-tree, the draft and pace
+  text, the over-budget rune rule); the built server lists 78 tools with trade and poe.ninja off (85 in the README
+  table: 78 core, 6 trade, 1 ninja); `scripts/fresh-clone-check.sh` exited 0 (85 tools, 84 with poe.ninja off; the
+  golden build's Life 2,977). Both waiver files are `[]`; no dependency changed; no private-library text or machine
+  path entered a file outside the handoff and this log.
+  - **Known, not fixed:** the design display's Life line prints "(EHP and the lowest max hit held their start)"
+    unconditionally; AC-W102's test checks the rule's terms, not its direction; AC-K76 (7)'s removed-node loop would
+    pass on an empty list (the gain and pool assertions still guard it); Nebuloch's unparsed crit has no PoB gap entry;
+    a fix round's D1 gate may write a draft F1 then removes; a counted group's pool ranking at PoB's count (R-64, for a
+    later amendment).

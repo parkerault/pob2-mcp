@@ -1039,7 +1039,9 @@ AC-K80 and AC-W101, and at integration §17's rows. Human: AC-W106. No test make
   when it was dealt at or after it, as amendment 12's `a12Build` does (`check-run.mjs`:1713–1717). A revision-12 log, and a
   build of a stamped log before the boundary, pass the checker unchanged: file names, brainstorm display, trades, the
   per-move boss guard's results, no over-budget, corruption, flask or charm rule, and a file-only build with no claims
-  pass (D-477).
+  pass (D-477). One exception, as built (WU-130): M-25's Arbiter leftover (§15) corrects amendment 12's own rule, so
+  it holds at revision 12 too: a design field that reads "survives" against a rung with an unverdicted Arbiter row
+  now fails on a re-check of an older run.
 - **Plans:** schema 9 adds `sameAs`, a gem's `corrupt`, `tree.start`, `tree.end` and `tree.search`, and requires a
   one-line reason on each custom modifier; the compiler writes comment lines on 9 only. A schema-8 plan compiles as
   before. In a revision-13 run D1-build moves any plan it edits to schema 9, dropping its attribute needs; a tree-only

@@ -6111,3 +6111,18 @@ the `m17` engine at `b76967b`.
   - **The coordinator folded (§17's integration list):** the spine's C-4 and NFR-21 (`compile_stage` bound by the
     120 s long action; AC-P37's 100 s total stays), C-53's cap (17,000), and C-14's pace line before the link in
     stabilization's `03-trade.md` (in place, so its cited line numbers hold).
+- **WU-130 (the pipeline's scripts) merged** at `ba3e068` (fast-forward, nine commits). The brainstorm display's cuts
+  (D-475); names, drafts and `builds[].draftFile` with the checker's three file-name forms, the checker's name cleaning
+  equal to the server's (D-466); the over-budget rune rule, `runes` (D-465); corruption, flasks and charms, the pinned
+  weapon's price (D-471, D-472, D-464); the boss display and `boss` trades, the swap cap, rebuild-undone, Life, removed
+  and skill-levels lines, `valuedBy` (D-467, D-468, D-473); `draftLeft`, `stale-server`, the `pace` stop, the checker
+  fixes and M-25's leftovers (D-474); the file-only claims pass, stage `V4-claims` (D-477); `skillRevision` 13 with
+  every new rule gated per build. It started in wave 1 against Appendix A and rebased onto WU-128 and WU-129, then
+  matched the server's name cleaning and validated its fixture run at schema 9. Its verifier (fresh context) passed it,
+  re-running the gate (219 suites, 3,773 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0); it checked D-477
+  against the step order as built (nobody had reviewed it), found the fixture honest under five mutations, and the
+  name cleaning equal to the server's on 22 inputs of its own.
+  - **The coordinator folded:** §22 notes the one older-run change, the Arbiter fix at revision 12.
+  - **Left:** the design display's Life line prints "(EHP and the lowest max hit held their start)" unconditionally
+    and no rule checks it (the tree search holds the targets by construction); no rule checks that a claims pass, or a
+    full pass, covers every hinge claim (the full pass never had one).

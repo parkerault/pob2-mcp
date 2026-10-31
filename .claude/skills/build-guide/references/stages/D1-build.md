@@ -24,8 +24,9 @@ request (D-411, D-413).
     each failing one names (an `over-target`, `chaos-exception` or `boots-exception` finding is information:
     leave it; a `tree-swap` finding is D1-tree's, which runs after you); a note when an earlier attempt returned
     without writing;
-  - a user's request about the tree alone on a plan still at schema 7 (a build designed before amendment 12):
-    move the plan to schema 8 (step 1) and leave the tree to D1-tree, which makes the request after you (D-452);
+  - a user's request about the tree alone, or a gate `tree-swap` retry, on a plan still at schema 8 or earlier (a
+    build designed before amendment 13): move the plan to schema 9 (step 1) and leave the tree to D1-tree, which
+    makes the request after you (D-452, amendment 13 §22);
   - on a guided retry, the escalated verdict's findings, then the user's guidance (`code: "user-guidance"`),
     which you follow;
   - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
@@ -65,13 +66,14 @@ request (D-411, D-413).
 ## Work
 
 1. **Start.** When the prompt says to write `plan.json` anew, write it whole from the card's skeleton, at
-   `schemaVersion: 8` (`docs/build-guide/plan-reference.md`, "Defence that holds and one tree per loadout"): its
-   `roll` and `versions`, `prices: []` (step 6 adds the rares' entries), and only the endgame stages below. A
-   `plan.json` already in the build's folder belongs to an earlier design and is replaced. Otherwise edit
-   `plan.json`: fix what each finding names, and keep any campaign stage D2 wrote and everything D1-tree and
-   D1-finish wrote that your change doesn't touch. **A plan at an earlier version goes to 8 whenever you edit it**
-   (D-452, §22): write `schemaVersion: 8`, drop every stage's `respec` (a schema-8 plan refuses it), and add
-   `defence` on `n` (step 8); schema 7's fields stay.
+   `schemaVersion: 9` (`docs/build-guide/plan-reference.md`, "Defence that holds and one tree per loadout" and "The
+   tree search's figures and the finishing touches"): its `roll` and `versions`, `prices: []` (step 6 adds the rares'
+   entries), and only the endgame stages below. A `plan.json` already in the build's folder belongs to an earlier
+   design and is replaced. Otherwise edit `plan.json`: fix what each finding names, and keep any campaign stage D2
+   wrote and everything D1-tree and D1-finish wrote that your change doesn't touch. **A plan at an earlier version
+   goes to 9 whenever you edit it** (D-452, amendment 13 §22): write `schemaVersion: 9`, drop every stage's `respec`
+   (a plan at 8 or later refuses it), add `defence` on `n` (step 8), drop every attribute need (step 5), and give
+   each custom modifier a one-line reason (step 4); the older versions' fields stay.
    - **Temporary stages** (D-453): every measuring copy you add, here or in any D1 step, has an id that starts
      `tmp`, then letters and digits like every stage id (`tmpb1`, `tmpn2`); no stage counts it as its
      predecessor. Remove each before you finish, and when you start, remove any `tmp` stage a crashed step left in
@@ -171,7 +173,7 @@ request (D-411, D-413).
      node that feeds only another group is a need (step 5), measured on that group's figure. **Seed each rung's
      tree from the stage before it**, then design it free: `m` from the campaign's last stage, or from the
      skeleton's tree when the plan has none; `b` from `m`; `n` from `b`. A rung keeps none of the rung before's
-     nodes by rule, so it drops what no longer serves it. **Mark no respec:** a schema-8 plan has no `respec`, and
+     nodes by rule, so it drops what no longer serves it. **Mark no respec:** a plan at 8 or later has no `respec`, and
      the record's `treeChange {from, refunded, added}` gives the guide each rung's change from the stage before.
      Gold is a note, never a reason to keep a node. A respec the user asks for is a tree request: D1-tree makes it.
    - **The ascendancy order** (D-413): list `m`'s `tree.ascendancyNodes` in the order to take them, each node
@@ -216,9 +218,9 @@ request (D-411, D-413).
      **`skills.cull`**, on a rung whose rotation
      culls: the user (2026-10-25), "Map damage with cull if and only if the build explicitly utilizes culling in
      its skill rotation. Otherwise, map damage, no cull." Write it only then, a short text naming the culling
-     source and the button that uses it ("Legacy of Deathblow's Culling Strike on Detonate Dead"); the map figure
-     then carries the named source's `CullMultiplier`. A cull only another skill carries isn't counted, nor a
-     skill's own incidental cull (Reap's) unless you state it here.
+     source, confirmed by lookup, and the button that uses it ("Heavy Contact (56997): Detonate Dead's hits that
+     Heavy Stun cull"); the map figure then carries the named source's `CullMultiplier`. A cull only another skill
+     carries isn't counted, nor a skill's own incidental cull (Reap's) unless you state it here.
    - **The boss rotation** (D-447), on each rung: `skills.boss {entries, note}`, what the build presses or procs
      on a boss. Each entry selects one figure as `skills.main` does, `{group, activeSkill, statSet}` (the
      record's key `g<group>s<activeSkill>p<statSet>`); a Cast on Critical group names its spell, not the meta
@@ -231,8 +233,17 @@ request (D-411, D-413).
      `skills.boss` the rotation is the named source alone. Totems and other copies acting at once go in the
      group's `count`, never in the rotation. The compile measures each entry against a Pinnacle boss
      (`measures.bossGroups`, `triggered` by PoB's own trigger test) and sums the untriggered ones into
-     `damage.boss`; D1-finish estimates by hand what PoB can't read (`boss_<stage>`), always for a triggered
-     entry or one with `turns`.
+     `damage.boss`, each ailment that doesn't stack once, ignoring `turns`. **The boss figure** (D-468) is the
+     rotation's: when an entry is `triggered` or has `turns`, write the ledger entry `boss_<stage>` with
+     `skills.boss`, by `D1-finish.md`'s "The boss estimate" (step 3: its formula from the record's boss references,
+     its corrections by name, its `claim`), so D1-tree judges the tree on it; otherwise `measures.damage.boss` is
+     right and no entry is needed. D1-finish re-checks the entry after the anoint and the gear.
+   - **Skill levels** (D-473), on `b` and `n`: more levels "will almost always outperform any other single affix"
+     (the user). Audit every damage skill of the boss rotation and the clear skill for +levels on its own weapon set
+     (a gem's corruption, step 6, among them), and write the audit in `pieces.md`'s `## Skill levels` (Writes).
+     Shared slots (amulet, gloves, helmet) serve the clear skill first, then the boss entry with the largest share of
+     the fight. A +levels slot may take more than its even share of `n`'s budget, its `query.target.reason` saying
+     why ("it carries the build", step 6). Return each damage skill left at +0 as `levels: <rung>: <skill> +0`.
    - **The engagement** (D-441), on `n`: `skills.engagement {kind, reason}`, how close the character stands to
      the enemies while it deals its damage, `close` (in or next to the pack or the boss) or `distance` (well
      away), with the reason from how the build plays ("Reap and the corpse blasts need the pack next to you"). The
@@ -266,16 +277,22 @@ request (D-411, D-413).
      (a node, an item or gem text, with its source). Where PoB doesn't model an effect the build relies on and
      a modifier line can stand for it, add a `config.customMods` entry `{text, reason}`: one PoB modifier line,
      its reason saying what it stands for and how its number was worked out. A missing reason is a V1 finding
-     (`missing-reason`); a line that adds a pool or a defence follows step 8's coverage rule first (D-451). Both
+     (`missing-reason`); a line that adds a pool or a defence follows step 8's coverage rule first (D-451). **The
+     reason is the comment a PoB reader sees** (D-469): on schema 9 the compile writes `# <reason>` before the line
+     in PoB's config tab, so write it as one plain sentence on one line, what PoB misses and the source ("PoB doesn't
+     apply Crimson Assault's aggravation; 20% more Rake damage stands in for it"), which no PoB parse reads as a
+     modifier (the compile refuses one it would). **Whole numbers only** in the line: PoB doesn't parse "33.33%". Both
      are estimates (D-296): the record applies Count to the named source's figures
      (`countedSkillOutputs`) and marks every figure of a stage with a custom modifier
      (`computedWithCustomMods`), and the guide lists each with its reason. **After setting Count** on a group
      whose skill reserves once per copy, on totems under Ancestral Bond, or on a group whose Umbral Well buffs
      it scales, check the stage's reservation and those buffs in the record: Count multiplies them too.
    - **Weapon sets** (D-426). Build the card's `Weapon sets:` line into each rung: set 2's passives in
-     `tree.weaponSetNodes.set2` (set 1's own in `set1`), set 2's weapons in `Weapon 1 Swap` and `Weapon 2 Swap`
-     (an item in both sets is equipped in both slots: PoB has no item in both sets), and `items.useSecondWeaponSet`
-     `false`, so the stage's own measure is set 1's. **Measure every set the card's skills use:** on a stage that
+     `tree.weaponSetNodes.set2` (set 1's own in `set1`), set 2's weapons in `Weapon 1 Swap` and `Weapon 2 Swap`,
+     and `items.useSecondWeaponSet` `false`, so the stage's own measure is set 1's. **A pinned weapon** (D-464,
+     schema 9), one item in both sets as the game lets the player pin it: its Swap slot's entry is `{"slot": "Weapon
+     2 Swap", "sameAs": "Weapon 2"}` (or `Weapon 1 Swap` naming `Weapon 1`) in place of its text, never a second copy;
+     it fills set 2, and it is priced once, with its set-1 slot. **Measure every set the card's skills use:** on a stage that
      uses set 2 (set-2 passives, an item in a Swap slot, or a skill socketed in one), the compile also measures it
      with set 2 active and records the same key figures as `outputsSet2` beside `outputs` (`plan-reference.md`,
      "Weapon set 2's measure"): set 2's Life, defences and Spirit, and the main skill's figures with set 2 active.
@@ -302,10 +319,10 @@ request (D-411, D-413).
      that measures the need, by PoB's id as `mcp__pob2__get_node_power` names it (`ManaRegen`, `TotalEHP`),
      when PoB has one, and none for one it can't measure (area for clear). **Write a need on every rung that holds
      its nodes** (D-452): no rung keeps the rung before's nodes any more, since D1-tree's `keep` is the rung's own
-     needs, so a need written on `m` alone leaves `b` and `n` free to drop it. Node
-     power can't see these, so each is a need:
+     needs, so a need written on `m` alone leaves `b` and `n` free to drop it. **The list is complete** (D-467):
+     D1-tree rebuilds each rung's tree first, keeping only its needs, so a node the rung relies on that isn't a need
+     is lost. Node power can't see these, so each is a need:
      - mana or life sustain the build's skills run on;
-     - an attribute a gem or item of the stage requires;
      - area or movement for clear;
      - a boss-only gain: penetration and exposure count for nothing on a clear config with no enemy
        resistances;
@@ -314,18 +331,25 @@ request (D-411, D-413).
        hits survived, so each avoidance source the design keeps is a need on each rung that holds it, its claim
        saying why;
      - a node that feeds only a damage group other than the named source's (question 23), its `stat` none, as
-       measured on that group's figure;
+       measured on that group's figure, or a mechanic PoB doesn't measure (the Herald Damage passives that feed a
+       second clear skill: Herald of Blood's own figure isn't the named source's);
      - a node the card's engine names, and a node that grants a skill of the stage (`Grants Skill:`);
      - a node a custom modifier depends on (the keystone whose conversion the modifier stands for), so node
        power's swaps never drop it while the modifier stays (D-434);
      - **every producer of the stage's earned config state** that is a passive node
        (`config.earned[].producer`, step 7), which V2 checks is present;
      - a node the user asked for, in a `revise:` or a gate's `changes`.
+
+     **No attribute need** (D-467): node power's attribute guard keeps PoB's own `ReqStr`, `ReqDex` and `ReqInt` on
+     every move, and V1's `attributes` holds them at the compile, so an attribute node is never a need; drop any
+     attribute need a plan you edit carries.
    - **The tree's shape** (D-360, as the coordinator's ruling D-364 states it), on every stage:
      - a tree is a connected group of allocated nodes, the class start not counted;
      - a start holds at most one tree, so a loop through two exits of one start is one tree, and legal;
      - an alternate start, such as Path of the Sorceress (12795, which links exits 4739 and 44871), is opened
        only while its node is allocated: so at most two trees with it, and one without;
+     - a socketed Split Personality opens the start its variant names while the tree reaches its socket without
+       that start (D-463, `plan-reference.md`): one more tree at most;
      - the ascendancy tree is connected to its start;
      - the compile's V1 check `tree-shape` refuses the rest, naming the stage, the start and the trees.
 
@@ -334,8 +358,8 @@ request (D-411, D-413).
    list what PoB can't measure (C-47). The two path tools never open a second tree on a start; the tools that
    follow PoB's own paths (`mcp__pob2__get_passive_upgrades`) are caught only by `tree-shape` at the compile.
    Leave `mcp__pob2__get_node_power` to D1-tree.
-6. **Items.** Every slot the variant uses (`Weapon 1` first) and every tree jewel, flasks and charms with
-   their toggles. `b` and `n` wear an amulet: D1-finish anoints it (D-358), and leaves `m` without an anoint. A
+6. **Items.** Every slot the variant uses (`Weapon 1` first) and every tree jewel, and the flasks (below). `b`
+   and `n` wear an amulet: D1-finish anoints it (D-358), and leaves `m` without an anoint. A
    unique's text comes from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`. A rare is an
    affix target: realistic rolls a buyer finds on trade around its target; nothing is crafted, and no
    item-base or mod-tier search serves crafting (D-348). When an affix can't roll on every base of its slot
@@ -343,6 +367,35 @@ request (D-411, D-413).
    hit's `Base types:` lists the bases that can roll it), fit the slot's item to that base. An off-hand made
    legal only by Giant's Blood, Instruments of Power or Lord of the Wilds needs that node or item in the same
    stage.
+   - **Flasks and charms** (D-472), on `m`, `b` and `n`: `Flask 1` a life flask and `Flask 2` a mana flask, plain
+     normal items of the best base the rung's level allows (Ultimate Life Flask and Ultimate Mana Flask from level
+     60); no mana flask on a build that spends no mana (Blood Magic), with a `reason` claim saying so (D1-finish
+     writes it). Each flask's `items.toggles` entry is `{"slot": "Flask 1", "active": false}`, unless the build uses
+     a flask-effect line ("during any flask effect", PoB's `UsingFlask`): then pick the flask's lines for uptime,
+     write its toggle `active: true` with its `uptime` (earned state, D-114) and measure it. The flasks' lines don't
+     matter otherwise. The charm slots stay empty (charms wait
+     on a survey): the run checker fails a filled one, and an endgame rung without a life flask in `Flask 1`.
+     Flasks are unpriced: no price entry for a Flask slot.
+   - **Over-budget runes** (D-465): no "Legacy of …" soul core (made with Aldur's Legacy) and no Raven-Touched
+     Shard (the helmet rune that adds a second anoint) in any item unless the brief asks for it: `run-log.json`'s
+     `brief` names it in `around`, `like` or `notes` (or "Legacy" cores generally), or a gate answer's words name it
+     (a `checkpoints[]` entry's `answer`, `changes` or `note`). One alone can exceed `n`'s whole budget. An
+     over-budget rune is one whose name starts with "Legacy of ", or the one named "Raven-Touched Shard"; never one
+     whose name merely contains "Legacy" (Coward's Legacy). The run checker fails a rune line of one without that
+     say. No second anoint: the shard is its only way.
+   - **Corruption** (D-471), on `b` and `n` only, the user's rule (corruption is random, so the player buys copies
+     of something cheap and corrupts until one hits): a corrupted line only on a **cheap unique**, one under
+     `references/corruption.json`'s line uncorrupted (1 divine), written as the outcome's `{enchant}` line with a
+     `Corrupted` line; and a skill gem corrupted to +1 level, written at its level with `"corrupt":
+     "plus_one_level"` (a level-20 gem calculates at 21; V1's `corruption` refuses it on `m`, a campaign stage or a
+     support gem). **Never on a rare** (a corrupted rare cuts the trade supply by an order of magnitude or more),
+     nor on a magic or normal item, jewels among them; a cheap unique jewel follows the unique rule. A unique that
+     always drops corrupted (Split Personality) is the item as it drops: no rule. D1-finish prices it uncorrupted.
+   - **Unique jewels** (D-473), on `b` and `n`: propose candidates by lookup (`mcp__pob2__lookup_game_data {mode:
+     "unique"}`) for D1-tree's socket test, which measures them beside the rare jewel: Heart of the Well rolling the
+     build's extra-damage element, a Time-Lost jewel with radius lines, Prism of Belief for a skill the build uses,
+     From Nothing for a keystone's radius, Megalomaniac by what it allocates. No timeless jewel (PoB doesn't read
+     its seed, PG-102). Write them in `pieces.md`'s `## Unique jewels` (Writes).
    - **Required affixes and targets** (D-370, D-372). For each rare gear slot and rare tree jewel of `b` and
      `n`, write its `prices[]` entry for D1-finish to price with PoB2's weighted trade search:
      `{"id": "b-helmet", "item": "<a short description>", "query": {"slot": …, "required": […], "target": {…}},
@@ -392,6 +445,9 @@ request (D-411, D-413).
        needs a producer that hits the attackers.
      - **Wither stacks** (D-456): steady stacks are the duration ÷ the application interval, at most 10, unless
        another Wither source is named.
+     - **The rotation's conditions** (D-473), on `b` and `n`: sweep the conditions the rotation's own skills
+       produce, shown or hidden in PoB (fully broken armour when the build breaks armour), and turn each on as
+       earned state, its producer the skill and its uptime saying how the rotation keeps it.
      - **An ailment's uptime from PoB's figures** (D-456): an earned ailment condition's uptime cites PoB's
        per-hit chance or buildup for the main skill, `<Ailment>ChancePerHit` or `<Ailment>BuildupAvg` in a
        record's `outputs` (else `mcp__pob2__lua_get_stats` on that loaded stage), against the enemy it is read
@@ -502,9 +558,10 @@ never write it anew.
    D1-tree runs after you (it keeps your needs and spends the points you leave), D1-finish then prices and
    claims what moved, and the D1 gate runs after it. A node you add or a need you change is a tree change like
    any other: write a node the user asked for as a need (step 5), on each rung that holds it. A respec the user
-   asks for is a tree request, D1-tree's (D-452): you run for it only on a plan still at schema 7, to move the
-   plan to 8 (step 1).
-2. **Leave the rest to D1-finish.** The anoint, the prices, the ledger and the claims are D1-finish's. A
+   asks for is a tree request, D1-tree's (D-452): you run for it only on a plan still at schema 8 or earlier, to
+   move the plan to 9 (step 1).
+2. **Leave the rest to D1-finish.** The anoint, the prices, the ledger and the claims are D1-finish's, but for
+   `boss_<stage>`, which you write or fix with the rotation it estimates (step 4). A
    change to a ledger entry's formula or inputs needs no recompile: the record's `buildSha1` leaves out the
    ledger, and the run checker re-evaluates the plan's current ledger (D-352).
 3. **`pieces.md`:** when a change moves a piece in, scheduled or out, edit its row; when it asks a question
@@ -540,6 +597,15 @@ writes (D-453) and you leave as it is.
 - Q15 after Blood Magic entered: searched "of Life spent" (gem); found Zerphi's Infamy, out while the cries spent mana, now in
 - Q19 after the cry was named mana-limited on bosses: searched a boss button; found Hammer of the Gods, scheduled on weapon set 1
 - Q2 after b's corpse supply ran dry between packs: searched other means to corpses; found Deidbell's explosion, now in
+
+## Skill levels
+
+- b: Seismic Cry (clear) +2: Amulet +2; Hammer of the Gods (boss) +0
+- n: Seismic Cry (clear) +5: Amulet +3, Helmet +1, gem corrupted +1; Hammer of the Gods (boss) +2: Gloves +2
+
+## Unique jewels
+
+- b, n: Heart of the Well (fire, the build's extra damage); Prism of Belief (Seismic Cry)
 ```
 
 - **Title:** `# Pieces: <build name>`, the build's `name` in `run-log.json`'s `builds[]`, else the card's name.
@@ -553,7 +619,12 @@ writes (D-453) and you leave as it is.
 - **`## Searched`:** one line per question asked again, `- Q<n> after <the change>: searched <what>; found
   <result>`, the line answering question 19, a `Q2` line for each search the wall rule made (step 3) and each
   `- stronger structure: <the means>: <why>` you return; `None.` when no question was asked again.
-- **`## Jewel lines`** (D-453), D1-tree's, after `## Searched` when a socket test chose them: the jewel lines and the
+- **`## Skill levels`** (D-473), after `## Searched`: one line per rung, `b` and `n`, each damage skill of the clear
+  and the boss rotation with its role, its +levels and their sources (`- <rung>: <skill> (<clear | boss>) +<n>:
+  <slot> +<k>, …`); the skills at +0 are your `levels:` lines, which the D1 gate copies into the design field.
+- **`## Unique jewels`** (D-473), after it: the candidates for D1-tree's socket test, each with what it serves;
+  `None.` when the build has none.
+- **`## Jewel lines`** (D-453), D1-tree's, after them when a socket test chose them: the jewel lines and the
   `tree.scales` they serve.
 
 ## Returns
@@ -561,7 +632,8 @@ writes (D-453) and you leave as it is.
 At most 8 lines: your claim, `done` or `infeasible` with its reason in a sentence; how many
 `mcp__pob2__compile_plan` calls you made; your price calls counted by outcome when you made any (`prices: ok
 2`, D-444); `league unverified` when no league could be verified online (step 2);
-each `left out:`, `lever unpulled:`, `override:` and `stronger structure:` line (step 3); with findings, the
+each `left out:`, `lever unpulled:`, `override:` and `stronger structure:` line (step 3), and each `levels:`
+line (step 4); with findings, the
 finding ids you fixed and the locations you changed (`plan.json stages[3].items`); for D1-tree, which runs after
 you, one line `for D1-tree:` with each rung's floor (`floor holds on m, b, n`, or the rungs where it fails) and its
 needs counted (`needs m 3, b 3, n 2`); and one line `pieces: <n> in, <n> scheduled, <n> out`, `pieces.md`'s rows
@@ -572,6 +644,7 @@ D1-build r1-a-2 attempt 1: done
 compiles: 4
 for D1-tree: floor holds on m, b, n; needs m 3, b 3, n 2
 pieces: 5 in, 0 scheduled, 1 out
+levels: b: Hammer of the Gods +0
 ```
 
 ```

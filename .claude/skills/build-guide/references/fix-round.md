@@ -13,8 +13,9 @@ with `--build <id>`.
 Before a fix round or a revision, run `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
 --snapshot <n> --build <id>`, `<n>` the number of the report the round answers (for a revision, the last report's). It
 copies the build's `plan.json`, `compile-record.json` and `guide.md` into its `rounds/<n>/` without you reading
-them, and you never read them, there or in the build's folder. Step 13's `--changed <n> --build <id>` compares the
-build's folder with that copy.
+them, and you never read them, there or in the build's folder; for a build with no guide (a file-only build's claims
+pass, D-477, below) it copies the plan and the record only. Step 13's `--changed <n> --build <id>` compares the
+build's folder with that copy, and lists claims only when there is no guide.
 
 ## Step 12, the fix round
 
@@ -104,12 +105,16 @@ final gate comes back at the end.
 1. **The round copy**: `check-run.mjs <runFolder> --snapshot <n> --build <id>`, `<n>` the number of the build's
    last V4 report, as for a revision.
 2. **D2** (9a): it adds the campaign stages to the build's plan, keeping D1's reward picks (D-413); tell it how to
-   price. **The D2 gate** (9b) checks every stage and runs the final compile with the campaign's `buildName`, the
-   build's PoB name and `-campaign` (`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`; `<slug>-<YYYY-MM-DD>-<n>-campaign` for a
-   build in `.`): a **new** PoB file, so the endgame file F1 wrote, which the user has likely saved in PoB since,
-   stays as it was and the write ledger has nothing to refuse (D-211, D-415). A failure re-runs D2 with the findings,
-   up to 2 counted retries; the third escalates (`SKILL.md` §5). A later fix round or revision of the full build
-   rewrites the `-campaign` file, under the ledger as any re-compile.
+   price. **The D2 gate** (9b) checks every stage and runs the final compile with the campaign's `buildName`: in a
+   build held to amendment 13, the build's session name and ` (campaign)` (`Royal Fury Rake Titan (campaign)`, its
+   `name` in `builds[]`, else its card's), with `firstFree: true` on the campaign's first write, so the server picks
+   the first free of `<name> (campaign)`, `<name> <run date> (campaign)` and `<name> <run date> <k> (campaign)`
+   (D-466); an older build's PoB name and `-campaign` (`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`;
+   `<slug>-<YYYY-MM-DD>-<n>-campaign` for a build in `.`). Either way a **new** PoB file, so the endgame file F1
+   wrote, which the user has likely saved in PoB since, stays as it was and the write ledger has nothing to refuse
+   (D-211, D-415). A failure re-runs D2 with the findings, up to 2 counted retries; the third escalates (`SKILL.md`
+   §5). A later fix round or revision of the full build rewrites the campaign file, passing its recorded name
+   (`builds[].pobFile`) with `firstFree: false`, under the ledger as any re-compile.
 3. **On a pass**: log the build's `pobFile` (the D2 gate verdict's `finalCompile.pobFile`), render `audit.md`
    (`render-audit.mjs <runFolder> --build <id>`), then **W1 in its campaign mode** (`stages/W1.md`): it rewrites the
    guide with the full template, keeping the endgame sections' text where the plan didn't change them.
@@ -121,5 +126,27 @@ final gate comes back at the end.
 5. **Then steps 12 to 16** as after a full pass: the fix round on its open findings with its round copy, the
    re-check, the known issues, and the build's final gate, whose answers are the same.
 
-**A `file-only` build** has no guide and no V4 pass: D2, the D2 gate, `render-audit.mjs <runFolder> --build <id>`,
-W1 writing the full guide in a first pass, V4's full pass (step 11), then steps 12 to 16 as for any build.
+**A `file-only` build** has no guide and no full pass (held to amendment 13, its claims pass ran, below): D2, the
+D2 gate, `render-audit.mjs <runFolder> --build <id>`, W1 writing the full guide in a first pass, V4's full pass
+(step 11, its report numbered after the claims pass's), then steps 12 to 16 as for any build.
+
+## A file-only build's claims pass (D-477)
+
+A build the user took as its PoB file only (`accept:file`) and held to amendment 13 by its last D1 gate doesn't
+end at F1's pass: it stays `designing`, and its claims are checked, since no guide or editor read will catch an
+error later (`SKILL.md` §6):
+1. **The claims pass**: one verifier, stage `V4-claims`, `check: "claims"`, `findings: []`, `writes:
+   ["<buildFolder>/reports/V4-<n>.md"]`, `<n>` as for a full pass (`stages/V4.md`, "The claims pass"). It checks
+   every hinge claim of `plan.json` against its source and reads no guide; its H1 is `# V4-<n>: claims pass`. On a
+   pass the build ends `file-only`.
+2. **Its fix round**, once, only with an `unresolved` finding: the round copy (`--snapshot <n>`, the plan and the
+   record only), then **D1 alone** (D1-finish first; D1-build, D1-tree and D1-finish again when it returns `build:
+   <ids>`): no D2, no W1 and no audit render, since a file-only endgame build has no campaign stage and no guide.
+   A claims-only edit runs no gate (logged `claims-edited`); a recompile runs the D1 gate, then F1, passing the
+   recorded name with `firstFree: false` and no draft to remove; **no design gate**.
+3. **Its re-check**: `check-run.mjs <runFolder> --changed <n> --build <id>` (claims only), then one `V4-recheck`
+   verifier, as step 13. No further round. The build ends `file-only`.
+4. **Its open findings** (the last report's `unresolved` findings) have no `Known issues` list to go in: at the
+   run's end (`SKILL.md` §8) tell the user each one's `reader` sentence, beside the build's PoB file.
+
+A build before amendment 13's boundary keeps the older rule: F1's pass ends it `file-only`, with no claims pass.

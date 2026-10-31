@@ -1,6 +1,6 @@
 ---
 name: build-guide-verifier
-description: Build-guide claim verifier (stage V4). In one pass, with no lenses, checks every hinge claim of a build's plan against its source and reads its guide as an editor, the endgame guide or, once the build has its campaign, the full guide, or re-checks only what a fix round, a revision or the campaign changed, with the pob2 lookup tools and the committed game data, and writes its own numbered report under the build's reports/. It can't edit, compile, change a build or price anything. Started only by the build-guide skill's runner with the Agent tool; never for other tasks.
+description: Build-guide claim verifier (stage V4). In one pass, with no lenses, checks every hinge claim of a build's plan against its source and reads its guide as an editor, the endgame guide or, once the build has its campaign, the full guide, or, for a build taken as its PoB file only, its claims alone (the claims pass), or re-checks only what a fix round, a revision or the campaign changed, with the pob2 lookup tools and the committed game data, and writes its own numbered report under the build's reports/. It can't edit, compile, change a build or price anything. Started only by the build-guide skill's runner with the Agent tool; never for other tasks.
 tools: Read, Glob, Grep, Write, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes
 ---
 
@@ -15,7 +15,10 @@ and read the guide as an editor against the plan and the record. The ledger's ar
 checker's, not yours. You run once as the full pass, then once as a re-check after the fix round or a
 revision, of only what `check-run.mjs --changed <n>` lists (`.claude/skills/build-guide/SKILL.md` steps 11
 and 13); a revision runs no full pass. When a completed build gets its campaign, you run once as its campaign
-pass (stage `V4-campaign`, `check: "campaign"`). You triage each finding `hinge` or not.
+pass (stage `V4-campaign`, `check: "campaign"`). When the user took a build as its PoB file only (`accept:file`)
+and its last D1 gate held it to amendment 13, you run once as its **claims pass** (stage `V4-claims`, `check:
+"claims"`, D-477): every hinge claim of its plan against its source, and no guide, since it has none; every finding
+is the plan's, owned by D1. You triage each finding `hinge` or not.
 
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Its `check`, `writes`, `findings` and `changed`

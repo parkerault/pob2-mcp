@@ -20,7 +20,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 - **Only your step's files.** Write and Edit only the header's `writes`, inside the run folder
   (`runFolder`; paths in `writes` are relative to it). Never write anywhere else: not the repository, not
   another run folder, not another build's folder, not the builds folder (D-177). A PoB file reaches the builds
-  folder only through a final compile, which the server writes.
+  folder only through the server: a final compile, or the design gate's draft (D-466), which the D1 gate writes
+  with `mcp__pob2__compile_plan {plan_path, draft_name}` on a pass and F1 removes with `{plan_path,
+  remove_draft}` after the final file; the server backs a draft up before it deletes it.
 - **The build's folder** (D-412). A run holds one folder per finalized card, the header's `buildFolder` under
   `runFolder`: `builds/<id>`, or `.` for a build migrated from schema 3. A build's `plan.json`,
   `compile-record.json` and compiled XML are there, and its plan's path for the server, `<plan>`, is
@@ -30,7 +32,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   `POESESSID`; put no name or email in any request. The trade session cookie stays with the server.
 - **Compiles.** `mcp__pob2__compile_plan` replaces the engine's loaded build. Call it only as the header's
   `compile` allows: `none`, never; `measure-only`, only with `measure_only: true`; `final` (F1 and the D2 gate),
-  measure-only first and then once with `build_name` equal to the header's `buildName`.
+  measure-only first and then once with `build_name` equal to the header's `buildName`, with `first_free: true`
+  when the header's `firstFree` is (D-466). The draft calls (`draft_name`, `remove_draft`) run no engine and
+  load nothing: only the D1 gate's draft and F1's removal make them (`task-header.md`).
   `mcp__pob2__guide_run {validate}` checks a plan without compiling; never call
   `mcp__pob2__guide_run {new_run}` (the runner made the run folder). A plan follows
   `docs/build-guide/plan-reference.md`. A refused compile is a failed attempt: report it, never work
@@ -107,10 +111,10 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 | Stage | Stage reference | Does |
 |---|---|---|
 | `D1-build` | `.claude/skills/build-guide/references/stages/D1-build.md` | the three endgame rungs in the build's `plan.json` (entering maps, budget, non-budget), built and measured measure-only to a passing survival floor, with their needs and, with no campaign, the reward picks |
-| `D1-tree` | `.claude/skills/build-guide/references/stages/D1-tree.md` | a fresh step: each rung's spare points spent and weak branches swapped for better nodes by PoB's node power (`mcp__pob2__get_node_power`), in ladder order, minimizing travel and keeping the needs and the floor |
+| `D1-tree` | `.claude/skills/build-guide/references/stages/D1-tree.md` | a fresh step: each rung's tree rebuilt, its spare points spent, its jewel sockets tested and its weak branches swapped for better nodes by PoB's node power (`mcp__pob2__get_node_power`), in ladder order, minimizing travel, keeping the needs and the floor, judged on targets: the toughness it started with, and the boss rotation shown (D-467, D-468); `stale-server` when the session's server predates them |
 | `D1-finish` | `.claude/skills/build-guide/references/stages/D1-finish.md` | a fresh step: the anoint on `b` and `n`, every slot and tree jewel priced, the ledger and the claims |
-| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, node power on each rung, and the verdict file on the compile, V1, V2, the survival floor, the budget, the named damage source and the tree, with the design gate's display |
-| `F1` | `.claude/skills/build-guide/references/stages/F1.md` | a fresh check that the plan is the one the user accepted at the design gate, then an endgame-only build's final compile with the header's `buildName`, in the same step |
+| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, node power on each rung, and the verdict file on the compile, V1, V2, the survival floor, the budget, the named damage source and the tree, with the design gate's display; on a pass, the draft PoB file (D-466) |
+| `F1` | `.claude/skills/build-guide/references/stages/F1.md` | a fresh check that the plan is the one the user accepted at the design gate, then an endgame-only build's final compile with the header's `buildName`, in the same step, and the draft's removal |
 | `D2` | `.claude/skills/build-guide/references/stages/D2.md` | a build's campaign, on request: the campaign stages, planned backward from the endgame, keeping D1's reward picks, campaign uniques priced |
 | `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the campaign's final compile with the header's `buildName`, its own `-campaign` file, in the same step |
 
@@ -150,10 +154,13 @@ The rules every design step keeps:
   armour, evasion, resistances and crit from E1. At a region's last progress key either region's
   resistance penalty is accepted (D-251).
 - **One final compile per F1 or D2 gate.** Only F1 (an endgame-only build's, D-413) and the D2 gate (a build's
-  campaign) compile with `build_name`, once, with the header's `buildName` (`<slug>-<YYYY-MM-DD>-<n>-<id>`, D-412; a
-  campaign's D2 gate adds `-campaign`, its own file beside the endgame one, D-415), after the measure-only check
-  passed; every other compile is measure-only. A final compile the write ledger
-  refuses is reported, never worked around.
+  campaign) compile with `build_name`, once, with the header's `buildName`, after the measure-only check passed;
+  every other compile is measure-only. In a build held to amendment 13 (D-466) the name is **the build's session
+  name** (its `name` in `builds[]`, else its card's), a campaign's D2 gate adding ` (campaign)`, its own file
+  beside the endgame one (D-415), with `first_free: true` on a first write only (the server writes the first free
+  of `<name>`, `<name> <run date>`, `<name> <run date> <k>`) and the recorded name without it on a re-compile; an
+  older build keeps `<slug>-<YYYY-MM-DD>-<n>-<id>` (D-412), `-campaign` on the D2 gate's. A final compile the write
+  ledger refuses is reported, never worked around.
 
 ## The fix round and revisions (SKILL.md steps 12 and 16)
 

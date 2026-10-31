@@ -77,6 +77,7 @@ The file is `<the file name of the record's pobFile.path>`. Its loadouts, in ord
 - [only when compile-record.json has versionNotes] <each versionNotes line, in plain words>.
 - [only when compile-record.json has loadoutWarnings] Switching loadouts can drop <the off-hand>: after you switch, check Weapon 2 and Weapon 2 Swap and re-equip it.
 - [only when compile-record.json has saveWarnings] Saving the file in PoB2 drops <the options> from <the loadouts>: set them again after you save.
+- [only when a schema-9 plan has custom modifiers (D-469)] In PoB's Configuration tab, the lines starting with # show in red, PoB's colour for a line it doesn't apply: they are my notes on the custom modifiers, there on purpose.
 
 ## Switching over
 
@@ -122,6 +123,8 @@ Move here when <the trigger>.
 [optional] <a fallback D1 weighed, where one exists>.
 [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
 [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
+[only when a Swap slot holds its set-1 weapon (sameAs, D-464)] Pin <the weapon> to both weapon sets: it's one item, held in both.
+[one line, once, in the first endgame rung (D-472)] Flasks: <Flask 1's base> and <Flask 2's base>, plain, kept on every rung: their lines don't matter[only when the build uses a flask effect: , but <the lines that keep its uptime>][only when the build carries no mana flask: ; no mana flask, because <the claim's reason>].
 
 ### Checks
 
@@ -145,6 +148,9 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 - [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
 - [only on a schema-7 plan, when the stage has a respec] **Respec from the entering-maps loadout:** <the change its note names>: drop <the nodes> for about <gold cost> gold.
 - [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] **Weapon swap:** swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
+- [only when a Swap slot holds its set-1 weapon (sameAs, D-464)] **Pinned weapon:** pin <the weapon> to both weapon sets: it's one item, held in both.
+- [one line per corrupted unique on the rung (D-471)] **Corruption:** Buy several <the unique> and corrupt them until one rolls <the line>: it's cheap uncorrupted, so the budget doesn't count the corruption.
+- [one line per gem corrupted to +1 level on the rung (D-471)] **Corruption:** Corrupt cheap low-level <the gem> gems until one gets +1 level, then level it to 20.
 
 ### Checks
 
@@ -160,6 +166,9 @@ Move here when <the trigger>.
 [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
 [only on a schema-7 plan, when the stage has a respec] Respec from the budget loadout: <the change its note names>: drop <the nodes> for about <gold cost> gold.
 [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
+[only when a Swap slot holds its set-1 weapon (sameAs, D-464)] Pin <the weapon> to both weapon sets: it's one item, held in both.
+[one line per corrupted unique on the rung (D-471)] Buy several <the unique> and corrupt them until one rolls <the line>: it's cheap uncorrupted, so the budget doesn't count the corruption.
+[one line per gem corrupted to +1 level on the rung (D-471)] Corrupt cheap low-level <the gem> gems until one gets +1 level, then level it to 20.
 
 ### Checks
 

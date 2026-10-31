@@ -13,14 +13,18 @@ D2 as findings.
   migrated from schema 3. `plan.json` and `compile-record.json` are there, and `<plan>` is
   `<runFolderRel>/<buildFolder>/plan.json` (`<runFolderRel>/plan.json` when `buildFolder` is `.`).
 - **Header:** `stage: "D2-gate"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
-  `compile: "final"`, `buildName`, `accepted` (the findings the user accepted for this build), `writes`: the
-  verdict file `reports/gates/D2-gate-<concept>-a<attempt>.json` (at the run folder's root).
-- **`buildName`**, as the runner builds it by the run checker's PoB file name rule: the build's PoB name and
+  `compile: "final"`, `buildName`, `firstFree`, `accepted` (the findings the user accepted for this build),
+  `writes`: the verdict file `reports/gates/D2-gate-<concept>-a<attempt>.json` (at the run folder's root).
+- **`buildName`** (D-466), as the runner gives it, in a build held to amendment 13: **the build's session name**
+  (its `name` in `run-log.json`'s `builds[]`, else its card's name) and ` (campaign)`, `Royal Fury Rake Titan
+  (campaign)`, with **`firstFree: true`** on the campaign's first write; on a later D2 gate (a fix round or a
+  revision of the full build), the campaign file's recorded name (`builds[].pobFile`) and `firstFree: false`. A
+  build whose last D1 gate is before amendment 13's boundary keeps the old rule: the build's PoB name and
   `-campaign`, `<slug>-<YYYY-MM-DD>-<n>-<card id>-campaign` (the run folder's last two segments and the card id
   joined with `-`, D-412; for a build in `.`, a migrated run's, `<slug>-<YYYY-MM-DD>-<n>-campaign`). The campaign's
   final compile writes a **new** file and leaves the endgame file F1 wrote as it was (D-415): the user has likely
   saved that one in PoB since, and the write ledger would refuse a rewrite (D-211). A later fix round or revision of
-  the full build rewrites the `-campaign` file, under the ledger. Use the name as given: never pick another.
+  the full build rewrites the campaign file, under the ledger. Use the name as given: never pick another.
 - **Read:** nothing before the compile: you compile `plan.json` by its path and judge only what the compile
   reports. After each compile, `mcp__pob2__compile_plan`'s text: each stage's line with its V1 and V2 verdict,
   and every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
@@ -38,9 +42,13 @@ D2 as findings.
    with any finding is `fail`. One equal to a finding in the header's `accepted` (same plan stage, part and
    code) is reported with `"accepted": true`, and fails no part.
 3. **The final compile**, only when the compile, V1 and V2 pass (accepted findings aside): call
-   `mcp__pob2__compile_plan {plan_path: "<plan>", build_name: "<the header's buildName>"}`
-   exactly once: the whole plan, not measure-only. It writes the PoB file into the builds folder through
-   the server (C-17), and `compile-record.json` with `importCode` and the PoB file's path (D-205).
+   `mcp__pob2__compile_plan {plan_path: "<plan>", build_name: "<the header's buildName>", first_free: true}`
+   exactly once when the header's `firstFree` is true (the campaign's first write), else without `first_free`:
+   the whole plan, not measure-only. With `first_free` the server cleans the name and writes the first free of
+   `<name> (campaign).xml`, `<name> <run date> (campaign).xml` and `<name> <run date> <k> (campaign).xml`; its
+   reply's `Wrote` line and the record's `pobFile.path` name the file it chose. It writes the PoB file into the
+   builds folder through the server (C-17), and `compile-record.json` with `importCode` and the PoB file's path
+   (D-205).
 4. A refusal of the final compile (C-17's "already exists" or changed-on-disk wording, the write ledger's
    rule, D-211) or a compile error is a failed final compile: part `compiled` fails with code
    `final-compile`, the error lines verbatim. Never retry it, never pick another `build_name`, and never work
@@ -63,7 +71,7 @@ record, the XML and the PoB file.
   "attempt": 1,
   "verdict": { "compiled": "pass", "v1": "pass", "v2": "pass" },
   "findings": [],
-  "finalCompile": { "compiled": true, "errors": [], "recordPath": "builds/r1-a-2/compile-record.json", "pobFile": "titan-blood-hunt-2026-10-08-1-r1-a-2-campaign.xml" }
+  "finalCompile": { "compiled": true, "errors": [], "recordPath": "builds/r1-a-2/compile-record.json", "pobFile": "Royal Fury Rake Titan (campaign).xml" }
 }
 ```
 
@@ -80,7 +88,7 @@ it.
 ```
 D2-gate r1-a-2 attempt 1: compiled pass, v1 pass, v2 pass; final compile written
 reports/gates/D2-gate-r1-a-2-a1.json
-titan-blood-hunt-2026-10-08-1-r1-a-2-campaign.xml
+Royal Fury Rake Titan (campaign).xml
 ```
 
 ## Fault directives

@@ -1,7 +1,7 @@
 # Pricing
 
 How a coordinator step prices items (slice 03 §9; D-112, D-133, D-160, D-164, D-169, D-202, D-218,
-D-370…D-373, D-415, D-422, D-442, D-444, D-456, D-461). Only coordinator steps price; no other agent type has a price tool
+D-370…D-373, D-415, D-422, D-442, D-444, D-456, D-461, D-464, D-465, D-471, D-472, D-473, D-474). Only coordinator steps price; no other agent type has a price tool
 (D-178).
 
 ## Never
@@ -25,8 +25,8 @@ D-370…D-373, D-415, D-422, D-442, D-444, D-456, D-461). Only coordinator steps
   essences, omens, uncut and lineage support gems, currency and the rest of poe.ninja's exchange categories), is
   priced from poe.ninja's exchange by its category, an `Exchange value:` in the primary currency, with no trade
   request (D-387); everything else (uniques, gear and tablets) from live trade listings.
-- `mcp__pob2__search_trade_items`: a search with `mods`: magic and normal items, flasks, charms, every slot of
-  `m`, and a rare of `b` or `n` that is over its target (below).
+- `mcp__pob2__search_trade_items`: a search with `mods`: magic and normal items, every slot of `m`, a rare of `b`
+  or `n` that is over its target, and a unique jewel by the line it allocates (below).
 - `mcp__pob2__search_stats`, `mcp__pob2__trade_query_options`: building a query. `trade_query_options {slot}`
   also lists a slot's required-mod choices with their trade ids, for `find_upgrades`; it sends no trade request.
 - `mcp__pob2__get_leagues`: the leagues the trade site lists.
@@ -54,6 +54,8 @@ The league is the price's `league`, and the date part of the `Checked:` time is 
    endgame rungs, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), and
    the anoint of `b` and `n` like a slot (`b-anoint`, `n-anoint`, D-358), each with the tool "Which tool"
    names. Each slot or jewel gets its own entry, except slots holding identical item text, which may share one.
+   **No Flask slot is priced** (D-472: a plain flask costs nothing worth counting), and **a pinned weapon's Swap
+   slot** (`sameAs`, D-464) has no entry of its own: its set-1 slot's entry prices it once.
 3. D2 prices the campaign uniques.
 
 Before any search, reuse an entry with the same item, query and league from any plan in this run
@@ -73,10 +75,29 @@ Before any search, reuse an entry with the same item, query and league from any 
   `Unavailable (…)` line records no price: the item is `unavailable`, its note the line's parenthesis (`Runes;
   trade site: no listings`). With `--no-ninja`, no exchange item is priced: each is `unavailable`, note `no
   poe.ninja`.
-- **A magic or normal item, a flask, a charm, and every slot of `m`:** `mcp__pob2__search_trade_items` with
-  `mods`. `m` is mostly the campaign's own gear.
+- **A magic or normal item, and every slot of `m`:** `mcp__pob2__search_trade_items` with `mods`. `m` is mostly
+  the campaign's own gear. No flask (unpriced, D-472) and no charm (the charm slots stay empty).
+- **A corrupted unique is priced uncorrupted** (D-471): by name, without the corrupted line as a required affix,
+  its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`; the budget doesn't count the
+  corruption. A unique priced at or over `references/corruption.json`'s line (1 divine, at the run's rates) can't
+  carry a corrupted line (D1-finish returns it to D1-build). With no price to judge by (offline, an `unavailable`
+  price, a pricing stop, `--no-ninja` with no rates) the line stays, and the `note` adds `cheapness unchecked:
+  <why>` (offline, `offline run` says it). A gem corrupted to +1 level is priced as the gem.
+- **A unique jewel** (D-473): by name (`mcp__pob2__get_item_price`), or, for one that allocates a notable
+  (Megalomaniac's "Allocates <notable>"), by `mcp__pob2__search_trade_items` on the line it allocates, with **no
+  `target` in its query** (a target sends it to the weighted search); its share of the budget (`b` 5 divines like
+  a rare jewel, `n` its share) goes in its `note`. The option-form stat is unverified until the live test: an
+  `unavailable` price with its note is expected.
+- **No rune over the budget** (D-465): a "Legacy of …" soul core or the Raven-Touched Shard is never priced, on the
+  trade site or the exchange, unless the brief asks for it (its `around`, `like` or `notes`, or a gate answer's
+  words): no plan holds one without that say.
 
 No item-base or mod-tier search serves crafting (D-348): the guide names mods to buy on trade.
+
+**Price notes** (D-473, from the finishing-touches study): **fractured lines** are priced as plain explicit mods
+(never the fractured filter), the roll loosened one tier; **unique jewels** by what they allocate; and the usual
+**price drivers** are +3 or more skill levels with only the top matching damage lines, and amulets with Spirit,
+crit and defences, so a slot that carries them may take more than its even share.
 
 ## Targets and price days (D-370, D-371)
 
@@ -89,7 +110,8 @@ three weeks in. So each rung is priced for a league day, against a target:
 | `b`, budget | day 7 | about 5 divines a rare slot or rare tree jewel |
 | `n`, non-budget | day 21 | 100–200 divines in all. Each rare has its own target, set by D1-build: by default 150 divines shared evenly over `n`'s rares and rare tree jewels (D1-finish shares it again once D1-tree's socket tests add jewels, D-453, keeping a reasoned share); a slot that carries the build (a weapon, a skill-levels amulet) may take more, with a reason; together at most 200 |
 
-- Uniques, magic items, flasks, charms and the anoint count toward a rung's total, with no target of their own.
+- Uniques, magic items and the anoint count toward a rung's total, with no target of their own; flasks are
+  unpriced (D-472), and a corrupted unique counts uncorrupted (D-471).
 - A rare's target travels in its entry's `query` as `target: {divines, day}` (on `n`, with `reason` when the
   slot takes more than its share), so the D1 gate and the run checker read it from the plan.
 - **A target never fails a gate** (D-371). A rare whose converted range has its midpoint above its target, and
@@ -132,7 +154,9 @@ required, never left to the weights.
    currency: "exalted_equivalent", rank_by: "stat_value", include_non_upgrades: true, fetch_pages: 1}`, plus
    `jewel_type` for a tree jewel, as `trade_query_options` gives it. Leave `sort_stats` out: the default
    weights are the build's saved trade weights, else full DPS 1 and EHP 0.5, from the stage's own calculation,
-   custom modifiers included. `exalted_equivalent` counts a listing in any currency. `include_non_upgrades`
+   custom modifiers included. **But for a slot that serves a set-2 skill** (D-473; `pieces.md`'s `## Skill
+   levels`), pass `sort_stats` weighting that skill, from the stats `trade_query_options` lists: the default
+   weights read the main skill. `exalted_equivalent` counts a listing in any currency. `include_non_upgrades`
    matters: the designed item is the baseline, so few listings beat it.
 5. **The price.** PoB2 writes the budget into the trade query and sorts by the weighted sum, so the first
    listing is the best item the budget buys. Its price, as listed, is the entry's `amount` and `currency`; its
@@ -196,6 +220,7 @@ it ran, so record its first listing as any other (`ok`).
 | `would_wait` | the limiter refused a wait over 60 s and sent nothing | price other items, then call this one again later |
 | `locked_out` | the account is locked out | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
 | `rate_limited` | the trade site answered 429 | stop trade-site pricing until the user approves a retry at a gate ("After pricing stops") |
+| `pace` | the step's first trade call's reply had no pace line, or `Pace: off (test setting).` (D-474) | make no more trade calls and return the stop `pace: missing` or `pace: off` ("Pace") |
 | `http`, `network`, `timeout`, `no_session`, `disabled`, … | the call failed | the item is `unavailable` |
 | `error` | an error without the prefix, or a stop without it that returned no listing | the item is `unavailable` |
 
@@ -207,6 +232,15 @@ waits up to 60 s and refuses a longer wait with `would_wait`, sending nothing. L
 floor. `mcp__pob2__find_upgrades` keeps a fixed 90 s budget from the call's arrival, so a call makes at most two
 searches; when the gap cuts its weight-adjust loop short, it still returns the best listings of the searches it ran
 (above, "Classifying outcomes").
+- **The pace line first** (D-474). Every reply of `mcp__pob2__search_trade_items`, `mcp__pob2__get_item_price` and
+  `mcp__pob2__find_upgrades`, an error's included, carries the server's pace: its last line (in `find_upgrades`, the
+  line before the trade-site link, which stays last), `Pace: 45 s between searches, at most 7 in 5 minutes.`. A
+  pricing step's **first trade call reads it**: with no pace line (a session server built before M-26, which may
+  not pace at all) or `Pace: off (test setting).`, the step makes no more trade calls, prices the rest
+  `unavailable` (note `pricing stopped`), counts that call as `pace`, and returns the stop `pace: missing` or
+  `pace: off`. The runner records it as a pricing stop and asks the user to reconnect the server with `/mcp`, then
+  re-runs the step. A first call that errs before it reaches the server's handler (an argument the router refuses)
+  carries no line and doesn't count: read the next call's.
 - **One trade call at a time.** The pricing steps run alone, each making one trade call at a time: calls in
   parallel queue past the 60 s cap and come back `would_wait`.
 - A coordinator has no clock, so it paces by order: on `would_wait`, price other items first and re-call the
@@ -223,7 +257,8 @@ searches; when the gap cuts its weight-adjust loop short, it still returns the b
 ## After pricing stops (D-415, D-422, D-444)
 
 **The stop holds until the user approves a retry at a gate.** A step whose `priceOutcomes` counts a `locked_out` or
-`rate_limited` call stops trade-site pricing: `run-log.mjs` records the stop in the run log's `pricing.stops[]
+`rate_limited` call, or a `pace` call (D-474: the server's pace line missing or off; the user reconnects the server
+with `/mcp` before the retry), stops trade-site pricing: `run-log.mjs` records the stop in the run log's `pricing.stops[]
 {at, step, outcome}` with that step's `stage` entry. The next gate asks first, "Pricing stopped at <step> after
 <outcome>: retry?", and the runner logs the user's answer with `run-log.mjs pricing` as `pricing.retries[]
 {checkpoint, answer, at}`, `retry-pricing` or `no-retry` (`checkpoints.md`, "The pricing question"). **A stop is
@@ -239,8 +274,8 @@ for a unique or any item the exchange doesn't sell, `mcp__pob2__search_trade_ite
 exchange sells keeps its price: `mcp__pob2__get_item_price` for a rune, soul core, idol, Distilled Emotion, lineage
 support gem or any other exchange item reads poe.ninja's exchange and sends no trade request (not with
 `--no-ninja`), counted as `exchange` ("Reporting the calls"). Pass the plan's `league` in the call, so it asks
-the trade site for no league. An exchange item its category doesn't list (a "Legacy of …" rune) goes to the trade
-site by name, which the server doesn't try after its own limit until it restarts, even after a `retry-pricing`: its
+the trade site for no league. An exchange item its category doesn't list goes to the trade site by name (never a
+rune over the budget without the brief's say, D-465), which the server doesn't try after its own limit until it restarts, even after a `retry-pricing`: its
 result is `Unavailable (<category>): …`, and the item is `unavailable`. `mcp__pob2__trade_query_options` (the trade ids, from the server's
 own data) stays allowed too. With a stop open:
 - every item still to price that the trade site would price is `unavailable`, note `rate-limited` (or `locked
@@ -298,8 +333,9 @@ recomputes it from the plan's prices and `data/economy/prices.json`.
 ## Reporting the calls
 
 A coordinator step counts its price-tool calls by outcome and returns the counts in one line,
-`prices: ok 12, exchange 3, would_wait 1` (or `prices: none`). The runner records them as that step's
-`priceOutcomes` in the run log's `stages[]` (`run-log.md`): each key `ok`, `error` or a `[trade:<kind>]` kind, and
+`prices: ok 12, exchange 3, would_wait 1` (or `prices: none`), and the stop `pace: missing` or `pace: off` when the
+pace line stopped it. The runner records them as that step's
+`priceOutcomes` in the run log's `stages[]` (`run-log.md`): each key `ok`, `error`, `pace` or a `[trade:<kind>]` kind, and
 **`exchange`** for a call `mcp__pob2__get_item_price` answered from poe.ninja's currency exchange: its result says
 the item is "a currency-exchange item … priced from poe.ninja's currency exchange" and has an `Exchange value:`
 line, or an `Unavailable (<category>): …` line saying the trade site isn't tried. Such a call sends no trade

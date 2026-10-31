@@ -88,7 +88,10 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   slot **and every tree jewel** (`items.treeJewels`), and the anoint of `b` and `n`, has a `prices[]` entry,
   converted to divines with `mcp__pob2__get_currency_rates`' rates and then to the rung's price day (below). Each
   filled slot or jewel has its own entry, except slots holding identical item text (two identical rings may share
-  one, and each counts). Each rung's total is a range at its price day, never a pass mark:
+  one, and each counts). In a build held to amendment 13: **Flask slots are skipped** (D-472: a plain flask is
+  unpriced, so it has no entry and maps to none), and **a pinned weapon's Swap slot** (`sameAs`, D-464) maps to its
+  set-1 slot's entry, or to none, and that entry counts once for both. Each rung's total is a range at its price
+  day, never a pass mark:
   - every rung's total known: **pass**;
   - any price of a rung `unavailable`, or a currency without a rate: **unverified** (code `unverified`, that
     rung's total `null`), which doesn't fail the gate, and the guide can't state that total (D-164). Offline,
@@ -117,17 +120,20 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   source's by the record's Count rule (D-294, D-437), are that stat set's. On every stage with a `rolledGroup`,
   `skills.main.group` is that group; D1 sets `skills.main.statSet`; and the named source's figure, directly or
   every breakdown field its ledger formula reads, is `<stage>.g<main.group>s<main.activeSkill>p<main.statSet>`.
-- **tree**, the passive tree's travel (D-418, D-419). After the compile, which loads every rung, the gate calls
-  `mcp__pob2__get_node_power` in compact mode on each rung with D1-tree's arguments: the rung's loadout; `keep`,
-  the nodes of its needs (`tree.needs`) and nothing else, and no `protect_for` (D-452: one tree per loadout, so a
-  swap may touch any node of the rung but its needs); `clear_group` and `max_loss`; and `stats: ["MainDamage",
-  "TotalEHP"]`, `cull: true` on a rung with
-  `skills.cull` (D-437; `stages/D1-tree.md`). Node power frees its weakest branches alone and in pairs and
-  triples, and its guards include the lowest maximum hit taken (D-439). A rung **fails** when its best swap
-  left gains at least **5%** damage (`Main damage`; a pool move on a set without the main group, Full DPS) within
-  `max_loss`, with the swap as its finding (code `tree-swap`); the
-  part passes when no rung does. D1-tree stops its loop under 3%, so a finished loop leaves room for the anoint
-  and the prices D1-finish adds. **A tool failure is not a design failure:** when `get_node_power` fails or times
+- **tree**, the passive tree's travel (D-418, D-419, D-467). After the compile, which loads every rung, the gate
+  runs D1-tree's judge at reach 12 on each rung: `mcp__pob2__get_node_power` in compact mode with D1-tree's
+  arguments: the rung's loadout; `keep`, the nodes of its needs (`tree.needs`) and nothing else, and no
+  `protect_for` (D-452: one tree per loadout, so a swap may touch any node of the rung but its needs);
+  `clear_group`; `targets`, the plan's `tree.start` (its EHP and lowest max hit: the finished tree keeps the
+  toughness it started with, and a move may trade it inside itself); `pace_exchange: 3` (each pace figure may fall
+  L% for 3 × L% more damage); `pool_groups`, so a weapon set's pool without the clear group ranks by its own group
+  against a Pinnacle boss; `max_distance: 12`; and `stats: ["MainDamage", "TotalEHP"]`, `cull: true` on a rung
+  with `skills.cull` (D-437; `stages/D1-tree.md`). Two calls a rung: the swap search, which frees its weakest
+  branches alone and in pairs and triples (D-439), and the rebuild with repair (`rebuild: true`); on a rung whose
+  `tree.search.rebuild` is `undone: <why>`, the swap search alone. A rung **fails** when its best swap left, or its
+  rebuild, gains at least **5%** damage (`Main damage`) and is legal on the targets, with the move as its finding
+  (code `tree-swap`); the part passes when no rung does. D1-tree stops its loop under 1%, so a finished loop leaves
+  room for the anoint and the prices D1-finish adds. **A tool failure is not a design failure:** when `get_node_power` fails or times
   out, the part is `unverified` with code `tool-error`, and no `tree-swap` finding (a rung measured at 5% or more
   included): the gate re-runs alone (the outcome table). The design field's rungs carry each one's `tree:
   {travel, points, bestSwap, needs}`: `travel` and `points` whole numbers, the travel at most the points;
@@ -193,6 +199,23 @@ recomputes them from the record and `references/toughness-targets.json`:
   `bossAfter`.
 - **The defence plan** (D-451): a schema-8 plan's `n` has `defence {base, chance, mitigation, pool, physicalHit}`; a
   schema-7 plan's has none to state.
+
+### The tree search, the boss target and the trades (amendment 13)
+
+In a build whose last D1 gate is held to amendment 13's rules (§22), the design field also carries, per rung (D-467,
+D-468, D-473; `stages/D1-gate.md` step 6): in `boss`, `start`, `end`, `entries [{label, start, end, final,
+valuedBy}]` and `bossFall {claim, reason} | null`; and `life {start, end}`, `swapCap`, `rebuild`,
+`removedForOthers` and `levels`. None is a gate part, and none fails the gate. The run checker holds them:
+- **To their sources**, while the gate is fresh: the plan's `tree.start`, `tree.end` and `tree.search` (D1-tree's),
+  and each entry's `final` to the record's boss figure of its group.
+- **The boss target**: a rung whose boss figure, or an entry, fell from start to end carries the designer's reason
+  (`bossFall`, its claim `boss-fall-<rung>` in the plan); a boss figure that fell shows a `boss` trade; on `n`,
+  D1-tree's own change never takes the boss figure under the floor from a start at or above it. Under the floor at
+  the gate, `n` shows a `damage` or `boss` trade; under its toughness band, a `damage` trade beside its `defence`
+  trades (the best damage move, D-467).
+- **`trades.json`** has the 11 fields: the 9, and `bossEntries` and `nodes`, `null` but on a `boss` trade, which also
+  carries `bossAfter`, the alternative tree's boss figure (Appendix A). A defence trade's `reason` names no boss
+  cut: the boss is judged on the rotation (D-468).
 
 ### The basis: what the run checker reads from the D1 gate's file
 
@@ -314,7 +337,7 @@ it never fails (D-371).
 | rolledSkill | `rolled-not-main` | the stage's `skills.main.group` isn't its `rolledGroup` |
 | rolledSkill | `rolled-stat-set` | the stage sets no `skills.main.statSet`, or the rolled figure (or a breakdown field its ledger formula reads) isn't the main skill's stat set |
 | rolledSkill | `rolled-not-compared`, `rolled-no-figure` | a same-role group isn't compared, or its figure isn't in the record |
-| tree | `tree-swap` | a rung's best swap left gains at least 5% damage (`Main damage`, D-437; a pool move on a set without the main group, Full DPS) within `max_loss`: its message names the rung, the gain, and the nodes moved from and to (D-419) |
+| tree | `tree-swap` | a rung's best swap left, or its rebuild with repair, gains at least 5% damage (`Main damage`, D-437; a pool move ranked by its `pool_groups` group) and is legal on the rung's targets, its `tree.start` (D-467): its message names the rung, the gain, and the nodes moved from and to (D-419) |
 | tree | `tool-error` | `mcp__pob2__get_node_power` failed or timed out on a rung: the part is `unverified`, and the gate re-runs alone (D-419) |
 | any part | `tool-refused` | the permission system refused the tool call the part needed: `unverified`, the refused route (D-421) |
 | v1 | `movement-tier` | a schema-7 stage's boots carry less movement speed than its tier: 30% on `m`, 35% on `b` and `n`, a campaign stage's the highest its area level allows (D-440); a valid `items.bootsException` makes it the V1 note `boots-exception` instead |
@@ -346,8 +369,11 @@ and `rolledSkill`, and both before the tree. "D1 re-runs" is its three steps, D1
 | `"forced": "infeasible"` (FI-3) | any | `infeasible`, evidence `FI-3 (injected)` |
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
 
-An escalation's option 2 (guidance) after the D1 gate runs D1 from the step the guidance needs (D1-build, or
-D1-tree for the tree alone), then the gate. Inside an attempt, D1-finish's `build: <ids>` (logged `build`) sends
+**The draft** (D-466): a pass that leads to the design gate writes the design's draft PoB file into the builds
+folder (`stages/D1-gate.md` step 6), and the runner records its path in `builds[].draftFile`; an escalation's
+`accept`, which goes on as if the gate passed, has the runner write it. A route to D1-tree alone on a plan at schema
+8 or earlier (a build designed before amendment 13) runs D1-build first, to move the plan to 9 (§22). An escalation's option 2 (guidance) after
+the D1 gate runs D1 from the step the guidance needs (D1-build, or D1-tree for the tree alone), then the gate. Inside an attempt, D1-finish's `build: <ids>` (logged `build`) sends
 D1 back to D1-build in the same attempt (D-446); D1-tree and D1-finish then run again. In a run held to amendment
 12's rules D1-tree has no `respec` outcome (D-452): a respec the user asks for is a tree request. An older run's
 log keeps its routes: there D1-tree's `respec: <stage> needs one: <why>` (logged `respec`) sent D1 back to D1-build
@@ -372,7 +398,7 @@ V2 hold the final record to the rules the checker reads.
 
 | F1's verdict | Outcome |
 |---|---|
-| compiled, V1 and V2 pass; the final compile written | `render-audit.mjs <runFolder> --build <id>`, then W1; after `accept:file`, the build ends `file-only` |
+| compiled, V1 and V2 pass; the final compile written | `render-audit.mjs <runFolder> --build <id>`, then W1; after `accept:file`, a build held to amendment 13 by its last D1 gate goes to its claims pass (`V4-claims`, D-477: `SKILL.md` §6, `fix-round.md`), its fix round with D1 alone and its re-check, then ends `file-only`; an older build ends `file-only` |
 | a fault, not a design finding: the plan changed since the gate (`plan-changed`), a V1 or V2 failure not in `accepted`, or a compile error on the plan the gate passed (`compile-error`, `final-compile`) | F1 re-runs once, uncounted; a second failure escalates |
 | `ledger-refused` (part `compiled`): the write ledger refused the final compile (D-211: the PoB file already exists, or changed on disk) | escalates at once, since no retry changes it |
 | any failure, after a guided retry or an accepted re-run | escalates again |

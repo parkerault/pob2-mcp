@@ -146,15 +146,27 @@ Shown after every brainstorm round's R1a-synthesize (D-429), which composes the 
 first brainstorm round ran R1a-assemble, after its R1a-assemble (D-287), for every later round too. Recorded as
 checkpoint `brainstorm`.
 
-- **Show** (`display brainstorm`, D-392, D-432) the brief in a line, the deck's header (what the composites share,
-  how they differ), then **each composite** not verified yet, numbered: its round line (its name, its structure,
-  its layers, the limit's answer and its under-played label), then its pieces in short, `in:` and `scheduled:`
-  (each with where it goes), with no `out:` line (D-442: the card's `### Pieces` and the build's `pieces.md` keep
-  the out pieces and their reasons); the composites a later round superseded, still pickable; then **the obvious
-  build's line**, the baseline as its card was written (D-403); then **every plain card's name and structure**, one
-  line each, numbered on (the researchers' and the gate-made cards `## Cards` lists), each one the user can verify
-  too; under a card that draws on a published guide (its Evidence's `external | <url>`), `drawn from <host>`, so the
-  user can tell a known build from the pipeline's own (D-445); ids last, under "For reference". A card whose damage
+- **Show** (`display brainstorm`, D-392, D-432, D-475), in a run held to amendment 13: the brief in a line; the
+  deck's header, the first one or two sentences of `cards.md`'s "what they share" ("How they differ" stays in
+  `cards.md`); **each composite** not verified yet, numbered, **on one first line**, its number, name and
+  structure and whether it is under-played (`1. Royal Fury Rake Titan: spear Rake with Shield Wall on set 2;
+  under-played: yes`), its layers and the judgment left in `cards.md`; under it **its key pieces only**, `in:` at
+  most 8, chosen by kind (its uniques, mechanic-changing supports, keystones, under-played rows, then notables),
+  then `+ <N> more in cards.md`, and `scheduled:` with names only, no `out:` line; the full list on request; the
+  composites a later round superseded, still pickable; **the obvious build's line**; **the plain cards on one line
+  of names**, `Plain cards: <names>.`, numbered on; `drawn from <host>` under a card that draws on a published
+  guide. **No ids** under "For reference": the visit's `displays[]` entry records the number-to-id map, `numbers`,
+  so map the user's numbers to the cards with it, and log the `pick:` by id.
+- **Show, in a run before amendment 13** (`display brainstorm`, D-392, D-432) the brief in a line, the deck's header
+  (what the composites share, how they differ), then **each composite** not verified yet, numbered: its round line
+  (its name, its structure, its layers, the limit's answer and its under-played label), then its pieces in short,
+  `in:` and `scheduled:` (each with where it goes), with no `out:` line (D-442: the card's `### Pieces` and the
+  build's `pieces.md` keep the out pieces and their reasons); the composites a later round superseded, still
+  pickable; then **the obvious build's line**, the baseline as its card was written (D-403); then **every plain
+  card's name and structure**, one line each, numbered on (the researchers' and the gate-made cards `## Cards`
+  lists), each one the user can verify too; under a card that draws on a published guide (its Evidence's
+  `external | <url>`), `drawn from <host>`, so the user can tell a known build from the pipeline's own (D-445); ids
+  last, under "For reference". On both, a card whose damage
   source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
   resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-429: fewer
   than 2 composites, or none taking a piece marked under-played), say so, with the reason R1a-synthesize gave,
@@ -167,7 +179,12 @@ checkpoint `brainstorm`.
   source isn't a skill is marked "can't be finalized yet" (D-303); a minion skill is a skill (D-379); a card
   resting on an entry the PoB pin doesn't know says it waits on PoB (D-400). After a short round (D-339: fewer
   than 6 cards passed, the deck holds fewer than two under-played cards, or one engine filled it, D-405), say so,
-  with the reason R1a-assemble gave, which the run log keeps as its `shortReason`.
+  with the reason R1a-assemble gave, which the run log keeps as its `shortReason`. In a run held to amendment 13 the
+  same cuts apply (D-475): the header's first sentences, one first line a card, its key pieces, no ids.
+- **The pitch** (D-475), your reply's main body under the display: each composite or card in plain words, **its
+  rotation** (what the player presses and when), **its synergy's source** (the piece that makes the pieces work
+  together) and **its catch**, so the user can choose without opening `cards.md`. Aim at 700–900 words for the
+  whole visit, display and pitch together (a target, not machine-checked).
 - **Answers:**
   - **verify** 1–3 composites or cards (D-432), picked and made at the gate together, each named by its number or
     its name as the display shows it (a superseded composite, a plain card or a not-dealt one included), any with
@@ -268,7 +285,10 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   you read no plan or record and call no tool for it; `display design --build <id>` prints it. First, once per
   build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n>
   scheduled (<names>), <n> out`, the out pieces counted without their names (D-442); a build with no `pieces.md`
-  has none. Then one block per endgame rung, in ladder order:
+  has none. Above them, **the draft** (D-466), from the run log's `builds[].draftFile`, `- Draft PoB file: Reaping
+  Bonfire Detonate Dead Blood Mage (draft).xml, in your builds list.`, so the user can open the design in PoB before
+  deciding (it stays after `stop`, and F1 removes it after the final file is written). Then one block per endgame
+  rung, in ladder order:
 
   ```
   Non-budget endgame (level 95):
@@ -280,6 +300,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   - Boss damage: about 320,000 per second against a Pinnacle boss (PoB alone: 222,149 at Detonate Dead's hand-cast 1.46 a second; estimated: trigger rate: Cast on Critical's 2.1 a second from the crit rate).
   - Boss floor: about 320,000 against the 250,000 floor.
   - Resisting rares: 1,700,000 per second (40% fire, cold and lightning resistance).
+  - Boss rotation on n: 330,000 → 320,000 on the tree, about 320,000 at the gate (floor 250,000). Detonate Dead 262,000 → 254,000 (−3%) → 254,000, Reap 68,000 → 66,000 (−3%) → 66,000: the tree gives up 3% on the boss for 12% more Detonate Dead on the clear (the designer).
   - Culls normal monsters at 91%, bosses at 13%.
   - Detonate Dead is triggered by Cast on Critical: PoB rates it at its hand-cast speed (1.46 a second) and doesn't model Energy.
   - Effective HP: 18,900 (against T16 map hits, area 82: 439 physical); 51% of it from chance layers (evade, block, deflection).
@@ -287,16 +308,21 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   - With every condition against it (unlucky rolls, hit recently, not blinded, Wind Dancer at 0): 11,400, under its band (18,000).
   - Deflection cuts ailment damage from hits by about 34% on average; PoB doesn't apply it.
   - Warning: the EHP reads within its band, but the Arbiter's physical hit one-shots this build, and 51% of the EHP is chance layers. The fix is the pool, armour or a physical shift.
+  - Life on n: 3,138 → 2,943 (EHP and the lowest max hit held their start).
   - Anoint: Unbending: Ire, Guilt, Greed
   - Gear: Apron of Emiran; rare boots, 35% movement speed and resistances
   - Gems: Detonate Dead with Cast on Critical; Reap with Bloodlust
   - Passive tree: 13 of 118 points on travel; best swap left: +3.1% damage by moving 5 points from <nodes> to <nodes>
-  - Kept on the tree: the attribute nodes the gems' requirements need
+  - Kept on the tree: Mana on Kill and Mana Regeneration: Reap's mana in long fights
+  - Swap cap on n: 30 swaps, the last +1.4%.
+  - Removed on n: Herald Damage: lines for Herald of Blood.
+  - Skill levels on n: Reap +0.
   - Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.
   - Defence (one-shot): a rare body with +90 life in place of its cold resistance line: the Arbiter's physical max hit (Pinnacle pass) 3,451 → 3,520, survives the full hit, hits survived 79% → 100%; +6% EHP, +0% damage.
-  - Defence (one-shot): 12 points into deflection (<nodes>): hits survived 79% → 84%; +4% EHP, −3% damage; cuts Reap against a boss by 4%.
+  - Defence (one-shot): 12 points into deflection (<nodes>): hits survived 79% → 84%; +4% EHP, −3% damage.
   - Avoidance: 20 points into deflection (<nodes>): hits survived 79% → 90%; +6% EHP, −8% damage (the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%).
   - Avoidance: a rare helmet's deflection rating line (about 2 divines, 0 points): hits survived 79% → 82%; +1% EHP, +0% damage (in place of the helmet's least valuable line).
+  - Boss trade on n: keep the start's crit nodes (remove 4, add 4): boss 320,000 → 331,000, damage −9%, EHP +0%.
   ```
 
   Clear speed and movement speed lead, then the Arbiter lines (D-407, D-449). The movement line names the rung's
@@ -317,7 +343,12 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   figure against the 250,000 floor (`references/boss-floor.json`), `under the 250,000 floor` with a damage trade
   below it; **the resisting figure**, the same damage against the map enemy with 40% fire, cold and lightning
   resistance, where penetration and resistance reduction show (no threshold); the cull line; and the trigger line
-  when a meta gem triggers the named source. The Effective HP line names the hit it was measured against (the
+  when a meta gem triggers the named source. **The boss rotation line** (D-468), on a rung designed under amendment
+  13: the boss figure at the tree search's start and end and at the gate (the floor on `n`), then each entry's
+  start, end and final figure, a fall's percent after its end figure, a buff entry valued by the rotation with and
+  without it in place of its own figure (`valued by <reason>: +<x>% to the rotation, the designer`), and the
+  designer's reason for a fall (`(the designer)`): the boss is judged on the rotation, a target on the finished
+  tree, never a per-move veto. The Effective HP line names the hit it was measured against (the
   rung's `ehpHit`, D-423), and on the non-budget rung the share of it chance layers make. **On the non-budget rung,
   the toughness line** (D-441): its EHP against its target in `references/toughness-targets.json`, 20,000 for a close
   build and 15,000 at a distance, with the engagement and its reason, so the user can correct it, and its band: under
@@ -325,20 +356,27 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   condition against the build, and its band; on a build that deflects, deflection's average cut to ailment damage,
   which PoB doesn't apply (PG-97); and **the warning**, in plain words, when the EHP reads within or over its band
   but the Arbiter one-shots the rung, or the conditioned EHP falls under its band, naming the hit's type and the
-  fix family (the pool, armour or a physical shift for a physical hit). The tree lines follow the Gems line (D-419):
+  fix family (the pool, armour or a physical shift for a physical hit). **The Life line** (D-467), each rung's Life
+  at the search's start and end, beside the EHP and lowest max hit the targets held (Life isn't a target). The tree
+  lines follow the Gems line (D-419):
   the points the rung spends on travel, nodes that give the build nothing themselves and only connect it to nodes
   that do, of its points; the best swap PoB's node power still finds (`+<x>% damage by moving <n> points from <nodes>
   to <nodes>`, or `none`; a move within a weapon set's pool reads `best swap left (weapon set <n>): …`, C-55a); then
-  each need the tree keeps whatever node power says, one line each, so the user sees why a long branch stays.
-  **Then the rung's trades** (D-439, D-440, D-441, D-448, D-450), each with what it gains and what it costs, for the
+  each need the tree keeps whatever node power says, one line each, so the user sees why a long branch stays; then
+  (D-467, D-473) **the swap cap** when the loop stopped at its 30 swaps (`Swap cap on <rung>: 30 swaps, the last
+  +<x>%.`), **a rebuild undone** and why (`Rebuild undone on <rung>: <why>.`), each passive the rebuild **removed**
+  whose lines serve another skill (`Removed on <rung>: <names>: lines for <skill>.`, so a missing need is visible),
+  and each damage skill at **+0 levels** (`Skill levels on <rung>: <skill> +0.`). **Then the rung's trades** (D-439, D-440, D-441, D-448, D-450), each with what it gains and what it costs, for the
   user to take or leave: a need PoB can't measure, with what the same points would add elsewhere; boots under their
   tier by an exception, the speed given up and why; **on a one-shot rung, up to three `Defence (one-shot)` trades**,
   the ones that clear it first, with the deciding row's max hit (Pinnacle pass) and hits survived before and after;
   a defence trade on a non-budget rung under its band; **on an evasion build's `b` and `n`, the avoidance trades**,
   the next avoidance spend and a gear line, with hits survived before and after and what the same points give on the
-  best EHP nodes; a damage trade on a rung over its band or under the floor, with the boss figure it implies (`boss
-  about <n>`); a trade that cuts a boss-rotation entry by more than 2% says so last (`cuts <entry> against a boss by
-  <x>%`); `none found: <why>` when the design found none. No trade is a gate failure. Then the open estimates, one
+  best EHP nodes; a damage trade on a rung over its band, under it or under the floor, with the boss figure it
+  implies (`boss about <n>`); **a boss trade** (D-468) on a rung whose boss figure fell on the tree, the best tree
+  the search measured at or above its start's boss figure (`Boss trade on <rung>: <what> (remove <r>, add <a>):
+  boss <gate figure> → <its boss figure>, damage <±x>%, EHP <±y>%.`), which the user takes as a `revise:`; `none
+  found: <why>` when the design found none. No trade is a gate failure. Then the open estimates, one
   line each from `estimates[]`, the gate's verdict line, and the verdict file's path. Under the display, in your
   reply, give each `not made:` line D1-tree returned in this design (a tree change the user asked for that it
   couldn't make, with its why), each `jewel:` line it returned (a jewel socket taken on `b` or `n`, its lines and
@@ -347,20 +385,27 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   is a successor card, made at the verification gate (`verification`, a new card whose `from` is this card,
   D-391). So the user hears them before deciding.
 - **Taking a trade** is a revise: the user's words name the trade ("take the defence trade"), and the change
-  goes to the step that owns it, below.
+  goes to the step that owns it, below; the boss trade is a tree request, D1-tree's, with its nodes.
+- **The draft PoB file** (D-466) is the design as the gate measured it: the user may open it, and change it in
+  PoB; a draft the user changed is never overwritten or removed (the next draft goes to `(draft 2)`), and after
+  `stop`, `verification` or an escalation's stop it stays, the build's only file.
 - **After a pricing stop** (D-444), the gate asks its pricing question before its other questions; after
   `retry-pricing` at this visit, an `accept` or `accept:file` runs the D1 gate's re-price pass before F1 (a D1
   gate after the answer, then F1, with no second design gate).
 - **Answers:**
   - **accept**: F1, the final compile (step 8), then the endgame guide, its checks and the build's final gate.
-  - **file only** (`accept:file`, D-411): F1 and nothing after it: the build ends `file-only`, its PoB file and no
-    guide. A guide can follow in a later session (`guide:<id>` after `--resume`, D-415).
+  - **file only** (`accept:file`, D-411): F1, its PoB file and no guide. In a build held to amendment 13 by its last
+    D1 gate (D-477), F1's pass is followed by **the claims pass**: one verifier (`V4-claims`) checks every hinge
+    claim of the plan against its source, reading no guide; on an `unresolved` finding, one fix round with D1
+    alone (a recompile runs the D1 gate and F1, no design gate) and one re-check; then the build ends `file-only`,
+    and its open findings are told at the run's end beside its PoB file. An older build ends `file-only` at F1's
+    pass. A guide can follow in a later session (`guide:<id>` after `--resume`, D-415).
   - **revise** (`revise:<text>`): a D1 fix round with the user's text as `findings` (`code: "user-request"`).
     A build change (gear, the gems or the config, with or without the tree) runs D1-build with it, then D1-tree,
     then D1-finish; a change to the tree alone runs D1-tree with it, then D1-finish (a node the user asks for
     becomes a need, D-418), and **a respec the user asks for is a tree request** (D-452: each loadout's tree is its
-    own), D1-tree then D1-finish; on a plan still at schema 7 (a build designed before amendment 12), D1-build runs
-    first, to move the plan to schema 8 (proceed-on). A change to the anoint, the prices, the ledger, the boss
+    own), D1-tree then D1-finish; on a plan still at schema 8 or earlier (a build designed before amendment 13),
+    D1-build runs first, to move the plan to schema 9 (amendment 13 §22). A change to the anoint, the prices, the ledger, the boss
     estimate, the claims or a trade's measure runs D1-finish alone with it, and when it returns `build: <ids>`,
     D1-build with those, D1-tree, then D1-finish with its `changed`. Within the attempt, D1-finish's `build:`
     return sends it back to D1-build (`gates.md`, "The D1 gate's outcome"); D1-tree has no `respec:` return in a
@@ -395,7 +440,9 @@ Checkpoint 2, once per build. Shown after the run checker (step 15). Recorded as
   one DPS figure, `measures.dps`; the known issues (the open V4 findings and the accepted gate
   findings); the run checker's result; each rung's total range at its price day against its target, and its
   over-target slots (the D1 gate's last verdict file, D-371, D-374); when any price is `unavailable`, that the
-  rung's total isn't known (D-164); and in offline mode, that the guide is from an offline run.
+  rung's total isn't known (D-164); in offline mode, that the guide is from an offline run; and when F1 left the
+  draft (its verdict's `draftLeft`, D-466), `Your draft PoB file stays: <file name>, which F1 didn't remove: it
+  changed on disk, or this build didn't write it.`
 - **Answers:**
   - **accept**: the build ends `completed`.
   - **accept, then verification** (`accept:verification`, D-411): the build ends `completed`, and once the queue
@@ -436,7 +483,9 @@ questions, the answers:
    another build's never do. The guide lists each under its H3 `Known issues` in "What PoB can't show", one
    line per finding: a plain sentence the reader can act on, with no id; `audit.md`'s `Known issues` table
    gives its row, with its `code`, its gate (`D1-gate`, `D2-gate` or `F1`) and its plan stage (D-265, D-276); the
-   run checker looks for them there. After the D1 gate the run goes on as if it passed, to the design gate;
+   run checker looks for them there. After the D1 gate the run goes on as if it passed, to the design gate, the
+   runner writing the draft first (`mcp__pob2__compile_plan {plan_path, draft_name}`, D-466, as the D1 gate does on
+   a pass) and recording its path in `builds[].draftFile`;
    after the D2 gate or F1, that step runs once more, uncounted, with them in `accepted`, so it runs the final
    compile. **Not offered when the failure is a compile error**, nor after F1's ledger refusal: nothing compiled
    to continue from. After a ledger refusal, the user can restore or remove the changed PoB file and answer

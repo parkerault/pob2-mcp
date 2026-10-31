@@ -26,7 +26,10 @@ rounded as the totals are ("; fallback price unknown" when it is unavailable). T
 there are none, and kept when the total is unknown but a slot is known to be over its target. <why> is each
 unavailable price's note, or "no rate for <currency>", from the rung's basis slots (the anoint's among them, as
 {stage, slot: "Anoint", priceId}) and the plan's prices named <stage id>-<…>, fallbacks aside: a fallback counts
-in no total.
+in no total. In a build held to amendment 13 no Flask slot counts (flasks are unpriced, D-472), a pinned weapon's
+Swap slot (sameAs) counts once, by its set-1 slot's entry (D-464), and a corrupted unique counts at its uncorrupted
+price (D-471). The custom modifier lines are the record's customModsWritten, the modifier lines only: the "#"
+comment lines the compile writes before them on a schema-9 plan (D-469) aren't listed.
 W1 copies each block under Checks, verbatim, into the guide's Checks H3 of that rung, and writes the accepted
 gate findings' rows under Known issues; the runner fills that table at step 14.
 -->

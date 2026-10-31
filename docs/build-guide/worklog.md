@@ -6033,3 +6033,20 @@ the `m17` engine at `b76967b`.
     claims pass follows the F1 pass after `accept:file`, and the build stays `designing` until it ends).
   - **Left:** amendment 12's B3 bullet cites nothing for Controlled Metamorphosis (its code: `PassiveSpec.lua`:1369,
     :1456, :1881); WU-117's touches omit its `weapon-set-2-unarmed` fixture.
+- **WU-128 (plan schema 9 and the compiler) merged** at `8f0de01` (two commits). Schema 9: Split Personality's start
+  in `check_tree`, `tree_starts` and V1's `tree-shape` (`alternate-class-start`), on any schema; the pinned weapon's
+  `sameAs`; comment lines `# <reason>` before each custom modifier, with the reason required; a gem's `corrupt:
+  "plus_one_level"` and V1's `corruption`; `tree.start`, `tree.end` and `tree.search` accepted. The coordinator wrote
+  V1's rows (`tree-shape`'s Split Personality part, `corruption`, `missing-reason` on schema 9) into
+  `02-plan-compiler.md`, and corrected AC-P86: the jewel's start is in `compile_check`'s `trees[].starts`, not a record
+  field (§22 keeps the record unchanged). Its verifier (fresh context) passed it, re-running the gate (210 suites,
+  3,627 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0) and re-running two spikes itself.
+  - **Spikes (AC-P86, AC-P87; R-66 doesn't fire):** Split Personality (Warrior) in socket 54127 on a Mercenary, with the
+    Warrior-start nodes 3936 and 46325, keeps all 14 nodes through `set_tree`, a save and a reload, and its measure-only
+    compile has no connection defect. One shield in Weapon 2 and Weapon 2 Swap saves as one item whose id fills both
+    slots after a reload; set 2's Life (124) and TotalEHP (113.18) equal a build with two copies, and the compile's set-2
+    figures deep-equal it. Prism of Belief written with two variants makes only the selected line a modifier
+    (Boneshatter level 6 with variant 1, 3 with variant 2); Split Personality's Selected Variant 4 names the Sorceress
+    start (54447). A level-20 Boneshatter with `corrupt: "plus_one_level"` reads level 21, GemCorruptionLevel 1.
+  - **R-68 is real:** PoB parses `# Increases and Reductions to Life in Radius are Transformed…` whole as a modifier
+    (`ModParser.lua`:6524), so the compiler refuses a reason that parses.

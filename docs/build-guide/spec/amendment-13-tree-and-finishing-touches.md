@@ -865,8 +865,9 @@ it wait. Split Personality fixtures for node power and the path tools are built 
     defect and no `tree-shape` finding; the same tree with the jewel removed, or with the socket reached only through
     the Warrior start, is refused;
   - two trees from the jewel's start give `tree-shape` (`one-tree-per-start`); a Warrior's own variant on a Warrior
-    gives `tree-shape` (`alternate-class-start`); the record's stage `starts` holds the jewel's start with `grantedBy`
-    the socket and `grantedByName` "Split Personality".
+    gives `tree-shape` (`alternate-class-start`); `compile_check`'s stage `starts` (its `trees[].starts`, which V1's
+    `tree-shape` reads; the record is unchanged, §22) holds the jewel's start with `jewel: true`, `grantedBy` the
+    socket and `grantedByName` "Split Personality".
 - **AC-P87 (WU-128).** The pinned weapon: the work-log records the spike; a schema-9 stage with `{slot: "Weapon 2 Swap",
   sameAs: "Weapon 2"}` saves one item, whose id fills both slots in the saved file; its set-2 figures equal a compile
   with two copies of the text; `sameAs` on `Helmet`, naming `Weapon 1` from `Weapon 2 Swap`, or naming an empty slot,

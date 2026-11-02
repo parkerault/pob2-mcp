@@ -1,7 +1,8 @@
 /**
- * C-35: the C1 (campaign) and E1 (enemy) data files and their loader (slice 2 §3.4).
+ * C-35: the C1 (campaign) and E1 (enemy) data files, the item facts, and their loader (slice 2 §3.4).
  *
- * The files are repo-root `data/campaign/*.json` and `data/enemies/*.json`, outside `src/` (D-168): cited
+ * The files are repo-root `data/campaign/*.json`, `data/enemies/*.json` and (WU-137, amendment 14 §11) `data/items/*.json`
+ * (the socket table, `items/sockets.json`, which V1's `sockets` reads; any C-35 file there loads), outside `src/` (D-168): cited
  * game facts tied to a patch, read here and by the plan checks, never written as literals in `src/`. Each
  * file is `{schemaVersion: 1, sources[], facts}`; every `sources[]` entry is a C-30 tag with an `id`, and
  * every fact carries its value, the id of its source, its patch and its confidence (gap 18). An invalid
@@ -24,8 +25,14 @@ import { sourceTagWith, type SourceTag } from './sourceTag.js';
 /** The data-file schema versions this server accepts. */
 export const DATA_SCHEMA_VERSIONS: readonly number[] = [1];
 
-/** The two folders under `data/` the loader reads (C1, then E1). */
-export const DATA_FOLDERS = ['campaign', 'enemies'] as const;
+/** The folders under `data/` the loader reads: C1, E1, then (WU-137, D-485) the item facts. */
+export const DATA_FOLDERS = ['campaign', 'enemies', 'items'] as const;
+
+/**
+ * WU-137: the folders a data directory may lack: a missing `items/` loads no file (a data directory from before amendment
+ * 14, or a test's copy of the C1/E1 folders), while a missing `campaign/` or `enemies/` is an error, as before.
+ */
+export const OPTIONAL_DATA_FOLDERS: ReadonlySet<string> = new Set(['items']);
 
 /** A fact id: lowercase letters and digits in runs joined by `.` or `-`. */
 export const FACT_ID_RE = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
@@ -275,9 +282,10 @@ function makeReferenceData(dataDir: string, files: ReadonlyMap<string, DataFile>
 }
 
 /**
- * Load every `*.json` under `<dataDir>/campaign` and `<dataDir>/enemies` (default `<packageRoot>/data`),
- * each through the data-file schema, and check C1's progress keys. Throws `ReferenceDataError` listing every
- * problem, each naming its file. The monster-modifier table (D-402) is read later, on first use.
+ * Load every `*.json` under `<dataDir>/campaign`, `<dataDir>/enemies` and `<dataDir>/items` (default
+ * `<packageRoot>/data`; `items/` may be missing, `OPTIONAL_DATA_FOLDERS`), each through the data-file schema, and check
+ * C1's progress keys. Throws `ReferenceDataError` listing every problem, each naming its file. The monster-modifier table
+ * (D-402) is read later, on first use.
  */
 export function loadReferenceData(dataDir: string = defaultDataDir()): ReferenceData {
   const files = new Map<string, DataFile>();
@@ -288,6 +296,7 @@ export function loadReferenceData(dataDir: string = defaultDataDir()): Reference
     try {
       names = fs.readdirSync(dir).filter((n) => n.endsWith('.json')).sort();
     } catch (e) {
+      if (OPTIONAL_DATA_FOLDERS.has(folder) && (e as NodeJS.ErrnoException).code === 'ENOENT') continue;
       errors.push(`${folder}/: can't read ${dir}: ${(e as Error).message}`);
       continue;
     }

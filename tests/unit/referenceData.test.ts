@@ -89,20 +89,26 @@ const ROWS = questRows();
 const KEYS = ROWS.map(questKey);
 
 describe('AC-P13 (WU-39): the committed C1/E1 data', () => {
-  it('AC-P13: the loader loads <packageRoot>/data with no error, all eight files of the §3.4 table', () => {
+  it('AC-P13: the loader loads <packageRoot>/data with no error, all eight files of the §3.4 table (and, WU-137, the item facts)', () => {
     expect(defaultDataDir()).toBe(DATA);
     const loaded = loadReferenceData();
     expect(loaded.dataDir).toBe(DATA);
-    expect([...loaded.files.keys()].sort()).toEqual([
-      'campaign/areas.json',
-      'campaign/ascendancy.json',
-      'campaign/gems.json',
-      'campaign/limits.json',
-      'campaign/progress.json',
-      'enemies/arbiter-of-divinity.json',
-      'enemies/map-monsters.json',
-      'enemies/waystones.json',
-    ]);
+    // WU-137 (amendment 14 §11, C-35): every file of data/items/ loads too, the socket table among them.
+    const items = fs.readdirSync(path.join(DATA, 'items')).filter((n) => n.endsWith('.json')).map((n) => `items/${n}`);
+    expect(items).toContain('items/sockets.json');
+    expect([...loaded.files.keys()].sort()).toEqual(
+      [
+        'campaign/areas.json',
+        'campaign/ascendancy.json',
+        'campaign/gems.json',
+        'campaign/limits.json',
+        'campaign/progress.json',
+        'enemies/arbiter-of-divinity.json',
+        'enemies/map-monsters.json',
+        'enemies/waystones.json',
+        ...items,
+      ].sort(),
+    );
   });
 
   it('AC-P13: the quest-row parser reads the pin (self-check: 29 rows, Beira first, Siege of Oriath last)', () => {

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "user-sockets-2026-11-02",
+      "kind": "judgment",
+      "ref": "the user's ruling on rune sockets (2026-11-02, citing pob2wiki)",
+      "patch": "0.5.x",
+      "confidence": "H"
+    }
+  ],
+  "facts": {
+    "sockets.body-armour": {
+      "value": 2,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.two-hand-weapon": {
+      "value": 2,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.one-hand-weapon": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.helmet": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.gloves": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.boots": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.shield": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.focus": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.amulet": {
+      "value": 0,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.ring": {
+      "value": 0,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.belt": {
+      "value": 0,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.quiver": {
+      "value": 0,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H",
+      "note": "the user's default; the ruling doesn't name quivers"
+    },
+    "sockets.corona-amulet": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.grasping-ring": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.stalking-belt": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.exceptional-extra": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    },
+    "sockets.corruption-extra": {
+      "value": 1,
+      "source": "user-sockets-2026-11-02",
+      "patch": "0.5.x",
+      "confidence": "H"
+    }
+  }
+}

@@ -1393,6 +1393,45 @@ export const stageSkillOutputSchema = z
   .passthrough();
 
 /**
+ * WU-137 (amendment 14 §11, D-485): an equipped rare's or unique's explicit lines (not rune, enchant or implicit lines), as
+ * `compile_stage`'s checks read them. Each line's numbers in order, `values` the highest (a range's top) and `lows` the
+ * lowest; on a rare, `groups`: the mod groups its base can roll that write the line (the item's affix table with a spawn
+ * weight on the base, the tagged desecrated mods, an essence's mods for the item type, as the lookup counts them), each
+ * with its affix type and tiers (the item level a tier needs and its top roll at each number), none when no mod writes
+ * it; on a unique, `range`: the lowest and highest its data gives each number (absent when no line of the data matches).
+ * A rare carries its affix limit, 3 prefixes and 3 suffixes (2 and 2 on a jewel). For V1's `affix-cap`.
+ */
+export const itemAffixesSchema = z
+  .object({
+    prefixLimit: z.number().int().optional(),
+    suffixLimit: z.number().int().optional(),
+    /** On a unique: whether PoB's data holds it. */
+    unique: z.boolean().optional(),
+    lines: luaArray(
+      z
+        .object({
+          text: z.string(),
+          values: luaArray(z.number()),
+          lows: luaArray(z.number()),
+          groups: luaArray(
+            z
+              .object({
+                key: z.string(),
+                type: z.enum(['Prefix', 'Suffix']),
+                group: z.string(),
+                tiers: luaArray(z.object({ level: z.number(), max: luaArray(z.number()) }).passthrough()),
+              })
+              .passthrough(),
+          ).optional(),
+          range: z.object({ min: luaArray(z.number()), max: luaArray(z.number()) }).passthrough().optional(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+export type ItemAffixes = z.infer<typeof itemAffixesSchema>;
+
+/**
  * `compile_stage`: the stage's tree spec and set ids; PoB's allocation after the import (every allocated
  * node, the class and ascendancy start nodes included and named in `startNodes`); every finite number of
  * the main output; the breakdown keyed `g<group>s<skill>p<statSet>`; the toggles skipped on empty slots;
@@ -1461,6 +1500,24 @@ export const stageChecksSchema = z
           rarity: z.string().optional(),
           /** WU-111 (D-440): the item's unconditional increased movement speed, as PoB parses it. */
           movementSpeed: z.number().optional(),
+          /** WU-137 (D-485): its rune sockets, PoB's `itemSocketCount` from its `Sockets:` line (0 without one). */
+          sockets: z.number().int().optional(),
+          /** WU-137 (D-485): its `Rune:` lines (a rune named `None` isn't one). */
+          runes: z.number().int().optional(),
+          /** WU-137 (D-485): whether it is corrupted (a `Corrupted` line). */
+          corrupted: z.boolean().optional(),
+          /** WU-137 (D-485): its base's PoB type (`Body Armour`, `Two Hand Mace`, `Jewel`) and a weapon's hands (1 or 2). */
+          baseType: z.string().optional(),
+          hands: z.number().int().optional(),
+          /**
+           * WU-137 (D-485): a unique's own socket count: its "Has n Augment Sockets" line, else its data's `Sockets:` line;
+           * absent when it has neither (its base's count applies).
+           */
+          uniqueSockets: z.number().int().optional(),
+          /** WU-137 (D-492): a tree jewel socket's rule: `basic` when its node takes only a non-Unique Basic Jewel. */
+          socketRule: z.string().optional(),
+          /** WU-137 (D-485): a rare's or unique's explicit lines, for V1's `affix-cap` (`itemAffixesSchema`). */
+          affixes: itemAffixesSchema.optional(),
         })
         .passthrough(),
     ),

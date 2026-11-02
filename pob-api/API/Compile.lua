@@ -18,7 +18,8 @@
 --     radius_nodes) or a jewel on a socket the stage connects grants it (Voices' Sinister Jewel sockets,
 --     granted_sockets), and a socket such a jewel grants that the stage doesn't list; a weapon-set tag on a node PoB never tags (an ascendancy node, a keystone, a jewel
 --     socket); an attribute choice on a node that isn't an attribute node, and an allocated attribute
---     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket;
+--     node without one (PoB gives such a node no stat); a tree jewel on a node that isn't a jewel socket, or (D-492,
+--     WU-137) a unique or a subtyped jewel in an ascendancy jewel socket, which PoB refuses there (ItemsTab.lua:2289-2294);
 --     an unknown config option or a bad value (BuildOps' own config check); a main group or main active
 --     skill outside the stage's groups or their active skills; a custom modifier line (`customMods[]`,
 --     D-293) PoB can't parse whole, which PoB's customMods option would skip without a word
@@ -135,7 +136,13 @@
 --     "Pinnacle": the named groups' breakdown, each on its own weapon set, keyed and read as `skillOutputs`, with each
 --     key's meta, in `boss {skillOutputs, skillMeta}`; the config, the weapon-set flag and the weapon-fit flags are put
 --     back and the build recalculated (measure_boss). Each item in `checks.items` gains `rarity` and `movementSpeed`
---     (its unconditional increased movement speed, as PoB parses it), for V1's `movement-tier` (D-440).
+--     (its unconditional increased movement speed, as PoB parses it), for V1's `movement-tier` (D-440). WU-137 (amendment
+--     14 §11, §18; D-485, D-492): and `sockets` (PoB's itemSocketCount, from its Sockets: line), `runes` (its Rune: lines),
+--     `corrupted`, `baseType`, `hands` (a weapon's 1 or 2), a unique's own `uniqueSockets` ("Has n Augment Sockets", else
+--     its data's Sockets: line), a tree jewel socket's `socketRule` ('basic' when its node takes only a non-Unique Basic
+--     Jewel), and a rare's or unique's `affixes`: each explicit line with its numbers and, on a rare, the mod groups its
+--     base can roll that write it (each group's affix type and tiers: item level and top roll), on a unique the range its
+--     data gives the line; for V1's `affix-cap`, `sockets` and `ascendancy-jewel` (item_checks).
 --     -> {id, ids{spec, itemSet, skillSet, configSet}, allocation{nodes[{id, mode}], startNodes[]},
 --         outputs{}, outputsSet2?{}, skillOutputs{}, skillOutputsSet2?{}, travelSkills[{group, activeSkill, skill}],
 --         skillMeta{key: {types[], triggered, triggeredBy?, stacks{dot, ignite, bleed, poison}}}, skillMetaSet2?{},
@@ -1063,8 +1070,17 @@ local function check_stage(tree, roll, st, defect)
       defect(('tree jewel on node %s: %s is no longer obtainable: PoB\'s unique data marks it so'):format(tostring(j.node),
         tostring(item.title or item.name)))
     end
-    if not is_jewel_socket(tree.nodes[j.node]) then
+    local node = tree.nodes[j.node]
+    if not is_jewel_socket(node) then
       defect(('tree jewel on node %s: that node is not a jewel socket'):format(tostring(j.node)))
+    elseif node.containJewelSocket and item and item.base
+        and (item.rarity == 'UNIQUE' or item.rarity == 'RELIC' or item.base.subType ~= nil) then
+      -- D-492 (WU-137): an ascendancy jewel socket (Crystalline Phylactery) takes only a non-Unique Basic Jewel, and PoB
+      -- refuses a unique or a jewel with a subtype there (ItemsTab:IsItemValidForSlot, Classes/ItemsTab.lua:2289-2294), so
+      -- the stage could not be built; V1's `ascendancy-jewel` names any other base PoB takes (a rare Diamond).
+      defect(('tree jewel on node %s: %s takes only a non-Unique Basic Jewel (D-492), and PoB refuses %s there (%s)'):format(
+        tostring(j.node), tostring(node.dn or node.name or j.node), tostring(item.title or item.name),
+        (item.rarity == 'UNIQUE' or item.rarity == 'RELIC') and 'a unique' or ('a ' .. tostring(item.base.subType) .. ' jewel')))
     end
   end
   for _, it in ipairs(list(st.items)) do
@@ -2207,9 +2223,225 @@ local function item_movement_speed(item)
   return total
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- V1's item inputs (WU-137; amendment 14 §11, §18; D-485, D-492): each item's explicit lines against the mods its base
+-- can roll (`affix-cap`), its sockets and runes (`sockets`) and a tree jewel socket's rule (`ascendancy-jewel`).
+
+-- A mod line's template and numbers, in order: each "(a-b)" range and each plain number becomes "#", with its bounds
+-- {lo, hi} (a plain number's are itself). Signs, "%" and words stay in the template, so "+100 to maximum Energy Shield"
+-- and "+(91-96) to maximum Energy Shield" share the template "+# to maximum Energy Shield". Cached per line.
+local templateCache = {}
+local function line_numbers(text)
+  local cached = templateCache[text]
+  if cached then return cached.template, cached.nums end
+  local parts, nums, i = {}, {}, 1
+  while i <= #text do
+    local s, e, a, b = text:find('^%((%-?%d+%.?%d*)%-(%-?%d+%.?%d*)%)', i)
+    if s then
+      nums[#nums + 1] = { lo = tonumber(a), hi = tonumber(b) }
+      parts[#parts + 1] = '#'
+      i = e + 1
+    else
+      s, e = text:find('^%d+%.?%d*', i)
+      if s then
+        local n = tonumber(text:sub(s, e))
+        nums[#nums + 1] = { lo = n, hi = n }
+        parts[#parts + 1] = '#'
+        i = e + 1
+      else
+        parts[#parts + 1] = text:sub(i, i)
+        i = i + 1
+      end
+    end
+  end
+  local template = table.concat(parts)
+  templateCache[text] = { template = template, nums = nums }
+  return template, nums
+end
+
+-- PoB's desecrated-list filter (ItemsTab.lua:3129-3135), as the lookup reads it (Lookup.lua's DESECRATED_TAGS).
+local DESECRATED_TAGS = { ulaman_mod = true, amanamu_mod = true, kurgal_mod = true, unveiled_mod = true }
+local function has_desecrated_tag(mod)
+  for _, tag in ipairs(mod.modTags or {}) do
+    if DESECRATED_TAGS[tag] then return true end
+  end
+  return false
+end
+
+-- The keys an essence names a base's item type by (Data/Essence.lua): its type, and "Buckler" or "Warstaff" for those.
+local function essence_keys(base)
+  local keys = { tostring(base.type) }
+  if base.tags and base.tags.buckler then keys[#keys + 1] = 'Buckler' end
+  if base.subType == 'Warstaff' then keys[#keys + 1] = 'Warstaff' end
+  return keys
+end
+
+-- D-485: the explicit mods `item`'s base can roll, counted as the lookup counts them (Lookup.lua's modBaseTypes and
+-- essence hits): its own affix table's mods with a spawn weight on the base (ItemClass:GetModSpawnWeight), the
+-- Desecrated table's tagged mods with one, and the mods an essence grants on its item type. Prefixes and suffixes only.
+local function rollable_mods(item)
+  local d = game_data()
+  local out, seen = {}, {}
+  local function add(mod, weighed)
+    if type(mod) ~= 'table' or seen[mod] or (mod.type ~= 'Prefix' and mod.type ~= 'Suffix') then return end
+    if weighed and not (type(mod.weightKey) == 'table' and item:GetModSpawnWeight(mod) > 0) then return end
+    seen[mod] = true
+    out[#out + 1] = mod
+  end
+  for _, mod in pairs(item.affixes or {}) do add(mod, true) end
+  for _, mod in pairs(d.itemMods.Desecrated or {}) do
+    if type(mod) == 'table' and has_desecrated_tag(mod) then add(mod, true) end
+  end
+  for _, essence in pairs(d.essences or {}) do
+    for _, key in ipairs(essence_keys(item.base)) do
+      local modId = type(essence) == 'table' and type(essence.mods) == 'table' and essence.mods[key] or nil
+      if modId then add((d.itemMods.Item or {})[modId] or (d.itemMods.Exclusive or {})[modId], false) end
+    end
+  end
+  return out
+end
+
+-- An explicit line's own numbers: `values` the highest (a range's top), `lows` the lowest.
+local function line_values(nums)
+  local values, lows = {}, {}
+  for k, n in ipairs(nums) do values[k], lows[k] = n.hi, n.lo end
+  return values, lows
+end
+
+-- D-485: a rare's explicit lines (not rune, enchant or implicit lines), each with the mod groups its base can roll that
+-- write it: per group its affix type and tiers, each tier's item level and top roll at each "#". A line no mod writes
+-- has no groups. With the rare's affix limit: 3 prefixes and 3 suffixes, 2 and 2 on a jewel (Classes/Item.lua:1302).
+local function rare_affixes(item)
+  local byTemplate = {}
+  for _, mod in ipairs(rollable_mods(item)) do
+    for j = 1, #mod do
+      if type(mod[j]) == 'string' then
+        local template, nums = line_numbers(mod[j])
+        local hits = byTemplate[template]
+        if not hits then
+          hits = {}
+          byTemplate[template] = hits
+        end
+        hits[#hits + 1] = { mod = mod, nums = nums }
+      end
+    end
+  end
+  local lines = {}
+  for _, modLine in ipairs(item.explicitModLines or {}) do
+    if type(modLine.line) == 'string' then
+      local template, nums = line_numbers(modLine.line)
+      local values, lows = line_values(nums)
+      local groups, order = {}, {}
+      for _, hit in ipairs(byTemplate[template] or {}) do
+        local mod = hit.mod
+        local key = mod.type .. ':' .. tostring(mod.group or '')
+        local g = groups[key]
+        if not g then
+          g = { key = key, type = mod.type, group = tostring(mod.group or ''), tiers = {} }
+          groups[key] = g
+          order[#order + 1] = key
+        end
+        local max = {}
+        for k, n in ipairs(hit.nums) do max[k] = n.hi end
+        g.tiers[#g.tiers + 1] = { level = tonumber(mod.level) or 0, max = max }
+      end
+      table.sort(order)
+      local out = {}
+      for _, key in ipairs(order) do
+        table.sort(groups[key].tiers, function(a, b) return a.level < b.level end)
+        out[#out + 1] = groups[key]
+      end
+      lines[#lines + 1] = { text = modLine.line, values = values, lows = lows, groups = out }
+    end
+  end
+  local limit = (item.type == 'Jewel' and not (item.base.subType == 'Abyss' and item.corrupted)) and 2 or 3
+  return { prefixLimit = limit, suffixLimit = limit, lines = lines }
+end
+
+-- D-485: a unique's explicit lines, each with the range its data gives that line's "#"s (every variant's lines that share
+-- its template, Data/Uniques), or none when no line of the unique's data matches.
+local function unique_affixes(item)
+  local db = type(item.GetUniqueDBItem) == 'function' and item:GetUniqueDBItem() or nil
+  local ranges = {}
+  for _, modLine in ipairs(db and db.explicitModLines or {}) do
+    if type(modLine.line) == 'string' then
+      local template, nums = line_numbers(modLine.line)
+      local r = ranges[template]
+      if not r then
+        r = { min = {}, max = {} }
+        ranges[template] = r
+      end
+      for k, n in ipairs(nums) do
+        r.min[k] = r.min[k] and math.min(r.min[k], n.lo) or n.lo
+        r.max[k] = r.max[k] and math.max(r.max[k], n.hi) or n.hi
+      end
+    end
+  end
+  local lines = {}
+  for _, modLine in ipairs(item.explicitModLines or {}) do
+    if type(modLine.line) == 'string' then
+      local template, nums = line_numbers(modLine.line)
+      local values, lows = line_values(nums)
+      lines[#lines + 1] = { text = modLine.line, values = values, lows = lows, range = ranges[template] }
+    end
+  end
+  return { unique = db ~= nil, lines = lines }
+end
+
+-- D-485: a unique's own socket count: its "Has n Augment Sockets" line (the selected variant's), else its data's
+-- Sockets: line (Data/Uniques: nine have one); nil when it has neither, so its base's count applies.
+local function unique_sockets(item)
+  for _, modLine in ipairs(item.explicitModLines or {}) do
+    local n = type(modLine.line) == 'string' and tonumber(modLine.line:match('^Has (%d+) Augment Sockets?$'))
+    if n then return n end
+  end
+  local db = type(item.GetUniqueDBItem) == 'function' and item:GetUniqueDBItem() or nil
+  local n = db and tonumber(db.itemSocketCount) or 0
+  return n > 0 and n or nil
+end
+
+-- D-492: a tree jewel socket's rule from its node's text: 'basic' when it takes only a non-Unique Basic Jewel
+-- (Crystalline Phylactery's "Can Socket a non-Unique Basic Jewel into the Phylactery", which PoB parses to nothing).
+local function socket_rule(slotName)
+  local id = tonumber(tostring(slotName):match('^Jewel (%d+)$'))
+  local node = id and build.spec and build.spec.nodes and build.spec.nodes[id]
+  for _, line in ipairs(node and node.sd or {}) do
+    if type(line) == 'string' and line:find('non%-Unique Basic Jewel') then return 'basic' end
+  end
+  return nil
+end
+
+-- WU-137: V1's item inputs for one equipped item: its rune sockets (PoB's itemSocketCount, from its Sockets: line), its
+-- Rune: lines, whether it is corrupted, its base type and hands, a unique's own socket count, a tree jewel socket's rule,
+-- and a rare's or unique's explicit lines (`affixes`).
+local function item_checks(item, slotName)
+  local runes = 0
+  for _, r in ipairs(item.runes or {}) do
+    if r ~= 'None' then runes = runes + 1 end
+  end
+  local base = item.base or {}
+  local tags = base.tags or {}
+  local out = {
+    sockets = tonumber(item.itemSocketCount) or 0,
+    runes = runes,
+    corrupted = item.corrupted == true,
+    baseType = base.type and tostring(base.type) or nil,
+    hands = tags.twohand and 2 or (tags.onehand and 1 or nil),
+    socketRule = socket_rule(slotName),
+  }
+  if item.rarity == 'UNIQUE' then
+    out.uniqueSockets = unique_sockets(item)
+    out.affixes = unique_affixes(item)
+  elseif item.rarity == 'RARE' and item.base then
+    out.affixes = rare_affixes(item)
+  end
+  return out
+end
+
 -- Every item equipped in `slotNames` of the active item set: its slot, names, level requirement, and for
 -- a flask or charm its toggle (the slot control's `active`, which the calcs read). WU-111 (D-440): its rarity (PoB's
--- `rarity`, `UNIQUE` for a unique) and its movement speed (item_movement_speed), for V1's `movement-tier`.
+-- `rarity`, `UNIQUE` for a unique) and its movement speed (item_movement_speed), for V1's `movement-tier`. WU-137
+-- (D-485, D-492): its sockets, runes, base and explicit lines (item_checks).
 local function stage_items(slotNames)
   local itemsTab = build.itemsTab
   local out = {}
@@ -2218,7 +2450,7 @@ local function stage_items(slotNames)
     local sel = slot and slot.selItemId or 0
     local item = sel ~= 0 and itemsTab.items[sel] or nil
     if item then
-      out[#out + 1] = {
+      local entry = {
         slot = slotName, name = tostring(item.name or ''), title = item.title and tostring(item.title) or nil,
         baseName = tostring(item.baseName or ''),
         levelRequirement = item.requirements and tonumber(item.requirements.level) or 0,
@@ -2226,6 +2458,8 @@ local function stage_items(slotNames)
         rarity = item.rarity and tostring(item.rarity) or nil,
         movementSpeed = item_movement_speed(item),
       }
+      for k, v in pairs(item_checks(item, slotName)) do entry[k] = v end
+      out[#out + 1] = entry
     end
   end
   return out

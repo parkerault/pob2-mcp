@@ -4,7 +4,86 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
-## M-26: amendment 13, a tree search judged on targets and the finishing touches (read this first)
+## M-27: amendment 14, a PoB file at every gate, items as specs, and the tree tools' repairs (read this first)
+
+Added 2026-11-02. For this build, this section overrides the M-26 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-26's formats stay in force where M-27
+doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-14-files-specs-and-repairs.md`, approved revision 2 at `0a2708f`
+  (D-478…D-495, §23's units, owners, order and shared-file split, §24's criteria AC-K81…AC-K87, AC-P90…AC-P95,
+  AC-W107…AC-W113, Appendix A's formats) is binding. The spine and slices are v1.6 with amendments 8 to 13 built
+  (M-26). Read the amendment's status, §23, §25 (which rules a run is held to: revision 14, per build by its last D1
+  gate), §27 (guardrails), your unit's decisions and criteria, and Appendix A.
+- **Approved** by the user on 2026-11-02 ("You may copy this run's two plans (r1-s-4, r1-s-2) from my run folder into
+  the test fixtures (HG-33). Continue."). §28 lists where the spec departs from what the user accepted; a doer who
+  finds another departure stops and reports it.
+- **HG-12 is granted (HG-32) only for** the list in §27: `compile_plan`'s read-back, adopt, notes and trade-links
+  modes, `final-build.xml`, `groupCount` on every counted group, and V1's `affix-cap`, `sockets` and `ascendancy-jewel`
+  (C-41); the record's `chains` and `projectiles` (C-33); the ledger's `baseSha1` and `adopted`, the writer's adoption
+  and `set_build_notes`' refresh (C-17); node power's `exclude`, attribute repair and its illegal form, attribute
+  choice, 0.5 tolerance and rounded reasons (C-55); `find_upgrades`' `link_only`, listing tiers and the fallback's
+  prefixes (C-14); the lookup's tier levels, base socket line and generated-variant filter (C-37); the bridge's parse
+  fix (C-6); plan schema 10 (C-31); `data/items/sockets.json`, `data/items/item-only-skills.json` and the loader's
+  `items` folder (C-35). No tool is added or removed. Any other tool-contract change is HG-12: stop and report.
+- **Integration worktree:** `/home/parker/projects/pob2-mcp-wt/m27`, branch `build-guide/m27`, off `main` at this
+  section's commit. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the integration head when the unit starts. The main checkout
+  is never touched; its `vendor/` is the source for a lane's copy, read only.
+- **Waves** (§23). Wave 1, in parallel: WU-136 (node power), WU-137 (plan schema 10, the compiler and V1), WU-138 (the
+  server tools) and WU-139 (game data and the parse fix). Wave 2: WU-140 (the scripts; it may start in wave 1 against
+  Appendix A's formats and rebases onto WU-137 and WU-138 before it merges) and WU-141 (the research docs and the
+  library). Wave 3, in parallel after WU-140 merges: WU-142 (the design and pricing docs) and WU-143 (the gate, route
+  and guide docs). WU-144 is the live test, run by the user with the coordinator, not a doer's unit.
+- **Merge order** (§23's shared files, binding): WU-136, then WU-137, then WU-138 and WU-139, each rebasing onto
+  `build-guide/m27` and running its gate after the rebase. `src/plan/compiler.ts`: WU-137 owns `stageParams`, the group
+  writer and `MEASURE_FIELDS`, WU-138 the modes and the final path. `src/engine/schemas.ts`: WU-136, WU-137, WU-138 in
+  that order. `src/server/toolSchemas.ts` and the README table: WU-136 first, WU-138 rebases.
+  `tests/integration/nodePowerTitanRake.test.ts`: WU-136 all but the `pool_groups` block, which is WU-137's.
+  `src/plan/referenceData.ts` is WU-137's only; WU-139's `item-only-skills.json` loads once WU-137 merges.
+  `SKILL.md`, `checkpoints.md` and `task-header.md` are WU-143's only; `pricing.md` and `gates.md` WU-142's only. Shared
+  static test files are edited by `describe` block; an `it` that runs a doc's example through a script is the doc's
+  unit's.
+- **The coordinator** merges each unit after its verifier passes, and owns the work-log (the spikes' rows and the rows
+  §24's criteria name, from the units' reports), the spec, and §21's integration fold: V1's new rows (`affix-cap`,
+  `sockets`, `ascendancy-jewel`) in `02-plan-compiler.md`, HG-22 marked settled, D-293's note and C-53's. HG-32 to
+  HG-36 and the HG-12 grant are in the spine's §6.3 already (`0a2708f`).
+- **Spikes first,** each its unit's first step, its result in the unit's report: the open-spell fixtures' copy and a
+  timing of the attribute repair on the attribute-tight fixture (WU-136); a compile of Crystalline Phylactery's node
+  (17788) holding a jewel under schema 10 (WU-137); the links mode on a fixture, its time and the longest link
+  (WU-138); the parse fix's effect on a jewel in 17788, for a Lich and an Abyssal Lich, and PoB's unfixed parse
+  (WU-139). A spike that fails stops its unit, and the coordinator reports to the user; the units that wait on it wait.
+- **The open-spell fixtures are the build's one read of the user's guides folder** (HG-33, granted with the approval).
+  WU-136 only, as its first step: copy `builds/r1-s-4/plan.json` and `builds/r1-s-2/plan.json` of the run folder
+  `/mnt/c/Users/parke/Documents/Path of Building (PoE2)/Guides/open-spell/2026-10-31-1/`, unchanged, into
+  `tests/fixtures/plans/open-spell/`, and record their sha1s in the unit's report. At this section's writing they are
+  `b299771029f529dc3a312e39bdabc34eb3077799` (r1-s-4) and `36c626c3b893738a69c7f59549ce59232b476a79` (r1-s-2), both
+  schema 9, neither holding a machine path; if the sha1s differ, stop and report. No other file of the builds or
+  guides folder is read, listed or written. No machine path enters the repository.
+- **No unit reads the user's private guide library**; the spec carries what the units need from the live test's
+  reviews.
+- **Stops for the user:** HG-34 (WU-136's attribute repair can't return a legal rebuild on the attribute-tight
+  fixture's `n`: the unit stops with the figures and the steps); HG-35 (WU-141's library over 17,000 `wc -w` words
+  after its additions: the unit stops with the count); HG-12 for any tool change outside the grant.
+- **Trade.** No unit sends a trade request; test servers keep trade off (`spawnServer`), and HTTP in tests goes
+  through `fixtureFetch`. Trade fixtures (listing tiers, `link_only`, the fallback's prefixes) are committed JSON.
+- **Room left, measured at `0a2708f`:**
+  - `SKILL.md` is 331 lines; AC-W112's bound is 331 plus the lines the work-log names. WU-143 makes room before adding,
+    or goes over only by named lines a rule can't do without.
+  - `patterns.md` is 16,561 `wc -w` words; its cap is 17,000 (HG-35).
+  - Tool descriptions against AC-F15's 2,048 characters: `get_node_power` 2,037, `lookup_game_data` 2,035,
+    `compile_plan` 1,791, `find_upgrades` 1,780, `get_item_price` 1,205, `search_trade_items` 503, `set_build_notes`
+    306. `get_node_power` and `lookup_game_data` have no room: describe their new inputs and outputs in the parameter
+    schemas, or trim. §23's "about 250 more" for `compile_plan` and `find_upgrades` leaves them under 20 characters
+    each: prefer the parameter schemas there too.
+- **Running the gate:** the M-20 bullet's command, unchanged (one full gate at a time, `nice -n 19`, under the lock);
+  no `rm -rf` inside its `sh -c` script.
+- **Lane bootstrap:** from the integration worktree, `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m27`;
+  in the lane, `git config --worktree commit.gpgsign false`, `mise trust`,
+  `cp -a /home/parker/projects/pob2-mcp/vendor ./vendor`, `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap. No unit has a network allowance.
+
+## M-26: amendment 13, a tree search judged on targets and the finishing touches (built)
 
 Added 2026-10-30. For this build, this section overrides the M-25 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

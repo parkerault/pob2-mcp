@@ -181,8 +181,12 @@ engineDescribe('WU-66: V1 tree-shape on run A\'s trees (D-360, AC-P65)', () => {
       expect((found[0].data as Json).trees).toHaveLength(2);
       expect(found[0].message).toContain(`stage 2: the Ranger start (${RANGER_START}) holds 2 trees`);
       for (const n of stage.tree.nodes) expect(found[0].message).toMatch(new RegExp(`\\b${n}\\b`));
-      // Run A's stage 2 passed V1 otherwise; the shape alone fails it now, and the text prints the finding.
-      expect(record!.stages['2'].v1!.findings.map((x) => x.code)).toEqual(['tree-shape']);
+      // Run A's stage 2 passed V1 otherwise; the shape fails it now, and the text prints the finding. WU-137 (amendment 14
+      // §11, §25: an old plan may get findings it didn't): its bow's "Adds 2 to 22 Lightning Damage" is over what a Recurve
+      // Bow rolls at Candlemass's area level 15 ("Adds 1 to (13-19)", Data/ModItem.lua's LocalLightningDamage for bows),
+      // V1's affix-cap.
+      expect(record!.stages['2'].v1!.findings.map((x) => x.code)).toEqual(['tree-shape', 'affix-cap']);
+      expect(record!.stages['2'].v1!.findings[1].data).toMatchObject({ slot: 'Weapon 1', line: 'Adds 2 to 22 Lightning Damage', cap: [1, 19], itemLevel: 15 });
       expect(record!.stages['2'].v1!.pass).toBe(false);
       expect(text).toContain(`  - tree-shape: ${found[0].message}`);
     },

@@ -6157,3 +6157,67 @@ the `m17` engine at `b76967b`.
     pass on an empty list (the gain and pool assertions still guard it); Nebuloch's unparsed crit has no PoB gap entry;
     a fix round's D1 gate may write a draft F1 then removes; a counted group's pool ranking at PoB's count (R-64, for a
     later amendment).
+
+## 2026-11-02: M-26's live test (WU-135) recorded
+
+- **The run** (`open-spell/2026-10-31-1`, skill revision 13, online): two Witch Lich builds. r1-s-4 "Threaded Hex
+  Coiling Bolts Lich" was taken as its PoB file only; r1-s-2 "Rupture Relay Arc Lich" got its endgame guide. The run
+  checker's 27 violations include 19 cascading from r1-s-4's logged `accept` (below).
+- **The user's judgment** (15 notes; reviews in the private library's `analysis/live-test-open-spell/`): the gates
+  should speak to a player (brainstorm's script section cut, verification formatted, a short design summary) and hand
+  a PoB file from verification on; rares are affix specs priced by market depth, never one listing's copy; add late
+  endgame scaling, PoB notes and weighted trade links; fix socket counts, "test in-game" advice, rares named by item
+  name, and the unmeasured Crystalline Phylactery. The Arc Lich's staff revise, loosened by the runner's brief, ran
+  the whole design chain for dearer staffs (about 1.3M tokens, 69 minutes) where one weapon swap was asked. The notes
+  became amendment 14, approved 2026-11-02 at `0a2708f`.
+- **The draft PoB file at the design gate (D-466): exercised.** Each passing D1 gate wrote it (none at r1-s-2's failed
+  attempt 1), each design display named it, F1 removed it. The run folder keeps no trace once F1 nulls
+  `builds[].draftFile`; the user's notes still ask for it, its line lost in displays of 2,528–3,586 words.
+- **The names: exercised.** The builds folder holds `Threaded Hex Coiling Bolts Lich.xml` and
+  `Rupture Relay Arc Lich.xml`, no draft or dated copy (`run-log.json` `builds[].pobFile`).
+- **The rebuild with repair (a rebuilt tree, then the toughness targets restored, D-467): exercised, never usable
+  unaided.** r1-s-4's every rebuild was illegal on attributes (m +33.38%, n +32.65%; Dexterity 55 of 91 needed);
+  r1-s-2's first was legal (m +55.26%, b +46.06%, n +45.84%) but repaired with Mind Over Matter, which the build rules
+  out. Steps hand-edited them and logged `taken` (`reports/gates/D1-gate-r1-s-4-a1.json` m and b,
+  `D1-gate-r1-s-2-a1.json` all three). **A taken rebuild's gain: not established**; the gate files say only `taken`,
+  the final plans `none`.
+- **Boss entries: exercised.** r1-s-4 one (Coiling Bolts); r1-s-2 four (Ball Lightning, Lightning Warp, Arc, Snap) with
+  ledger `boss_m`, `boss_b`, `boss_n`. The visit-4 staff swap, run as D1-finish alone, dropped n's boss estimate
+  519,477 → 400,434, unexplained (`D1-gate-r1-s-2-a4.json`).
+- **Finishing touches (D-473): exercised.** Skill levels: Coiling Bolts +6/+7 on b/n, Arc +14. Heart of the Well on
+  both builds' b and n; Against the Darkness on r1-s-4's n (105 divines, corrupted). Prism of Belief measured
+  +29%/+47% on r1-s-4 before pricing found its Coiling Bolts variant can't exist; Megalomaniac out on the chaos cap.
+  Rotation conditions as earned states.
+- **Corruption (a cheap unique only, never a rare, D-471): exercised, and evaded.** Liminal Coil's +1 chaos spell
+  levels priced uncorrupted at 0.78 divine. Morior Invictus's five sockets (b 14, n 80 divines, the user's request)
+  carry a bare `Corrupted` line; two-socket Alpha's Howl and four r1-s-2 rares, priced from corrupted listings, carry
+  none, so no rule fired.
+- **Flasks (D-472): exercised.** Ultimate Life and Ultimate Mana, inactive, on every rung.
+- **The pace line: exercised.** All 250 trade-tool replies end with it; no `pace` stop, 429 or `would_wait`
+  (`run-log.json` `.pricing` empty); about 223 trade-site searches.
+- **The file-only claims pass (D-477): exercised by a wrong route.** "Accept as it stands" was logged `accept`; W1
+  ran until the user's "Wait, I didn't say I wanted a guide" (`missing`). V4-claims failed on 3 hinge findings
+  (`builds/r1-s-4/reports/V4-1.md`); the runner forced a claims-only round, and the re-check (`V4-2.md`) left the
+  sapphires' impossible Withered Magnitude line open, so the shipped file keeps it.
+- **Not exercised:** the swap cap (`capHit: false` on every rung), a `boss` trade (no tree fall), a pinned weapon
+  (no `sameAs`), Split Personality.
+- **D1-tree's node power times** (none in the run folder; from the subagent transcripts, per D1-tree step): rebuild
+  median 8–13 s (max 33 s), swap and list median 14–35 s (max 57 s), `free` median 14–16 s; no timeout. **Per rung:
+  not established**; the review timed steps.
+- **The option-form trade search returned listings:** Prism of Belief by "+# to Level of all Arc Skills" with its
+  option value, 36 listed, all corrupted, from 287 divines (`builds/r1-s-2/pieces.md`:52). Megalomaniac's
+  "Allocates <notable>" form, R-71's case, never ran.
+
+## 2026-11-02: M-27 (amendment 14) build started
+
+- **Approved:** amendment 14 revision 2 by the user ("You may copy this run's two plans (r1-s-4, r1-s-2) from my run
+  folder into the test fixtures (HG-33). Continue."), committed at `0a2708f`; the M-27 handoff (`8583779`) fixes the
+  waves, the merge order, the room left in the capped files and the build's one read of the user's guides folder
+  (WU-136's copy of the open-spell run's two plans). Integration worktree `build-guide/m27` off `main` at `8583779`.
+  WU-140 (the scripts) builds against Appendix A from wave 1 and rebases onto WU-137 and WU-138; WU-141 (the research
+  docs and the library) starts early too, since no wave-1 unit touches its files.
+- **The user's ruling on the library cap** (2026-11-02, while wave 1 ran): "Allow exceeding the pattern library cap
+  for this build, and we'll review if it goes over." HG-35 doesn't stop WU-141 in M-27; the final count goes to the
+  user.
+- **Baseline gate** on `8583779`: `mise run test` rc 0 (220 suites, 3,854 tests; the timing step 2 suites, 4 tests),
+  `pnpm build` rc 0.

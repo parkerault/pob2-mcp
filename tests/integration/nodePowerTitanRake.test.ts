@@ -23,6 +23,10 @@
  * - AC-K76 (7): `free` on Cranial Impact's set-1 need nodes [44406, 63451] returns a gain, measured within set 1's pool.
  *
  * The gains, the repair steps and the times are printed (`[WU-127 …]`) for the work-log (AC-K76).
+ *
+ * AC-K81 (WU-136, amendment 14 §16, D-490): with the attribute repair and the attribute choice always on, the same calls
+ * without `exclude` still meet AC-K76's gains (+41% on r2-s-2, the rebuild bullet below); `nodePowerOpenSpell.test.ts`
+ * covers `exclude`, the repair, the choice, the tolerance and the rounded reasons.
  */
 import fs from 'fs';
 import path from 'path';

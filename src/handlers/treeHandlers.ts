@@ -840,6 +840,7 @@ export interface NodePowerArgs {
   targets?: unknown;
   pace_exchange?: unknown;
   pool_groups?: unknown;
+  exclude?: unknown;
 }
 
 /** The default stats (D-417): Full DPS ranks, Effective Hit Pool beside it. */
@@ -946,6 +947,13 @@ export function nodePowerParams(args: NodePowerArgs): NodePowerParams {
     }
     params.poolGroups = g as Partial<Record<'1' | '2', number>>;
   }
+  // D-490: the nodes no move adds, nor paths through.
+  if (args.exclude !== undefined) {
+    if (!Array.isArray(args.exclude) || !args.exclude.every((n) => typeof n === 'number' && Number.isInteger(n))) {
+      throw new Error('exclude must list node ids no move may add or path through');
+    }
+    if (args.exclude.length > 0) params.exclude = args.exclude as number[];
+  }
   return params;
 }
 
@@ -1037,6 +1045,23 @@ function repairText(s: PowerSwap): string {
   return `; repaired: ${steps.map((st) => `freed ${plural(st.freed.length, 'point')} (${names(st.freed)}), added ${st.added.length}${st.added.length > 0 ? ` (${names(st.added)})` : ''}`).join('; ')}`;
 }
 
+/**
+ * D-490: the attribute repair, when it re-pointed or added a node (Appendix A's form): `; attributes repaired: re-pointed
+ * <n> to <attribute>[ and <n> to <attribute>], added <m>[ (<names>)]`, each added attribute node with its attribute; ''
+ * when it changed nothing or didn't run.
+ */
+function attributeRepairText(s: PowerSwap): string {
+  const rep = s.attributeRepair;
+  if (!rep) return '';
+  const added = rep.steps.flatMap((st) => st.added);
+  if (rep.repointed.length === 0 && added.length === 0) return '';
+  const byAttribute = new Map<string, number>();
+  for (const n of rep.repointed) byAttribute.set(n.attributeChoice ?? '?', (byAttribute.get(n.attributeChoice ?? '?') ?? 0) + 1);
+  const repointed = byAttribute.size === 0 ? 're-pointed 0' : `re-pointed ${joinAnd([...byAttribute].map(([a, k]) => `${k} to ${a}`))}`;
+  const names = added.map((n) => `${nodeRef(n)}${n.attributeChoice ? ` (attribute: ${n.attributeChoice})` : ''}`);
+  return `; attributes repaired: ${repointed}, added ${added.length}${added.length > 0 ? ` (${names.join(', ')})` : ''}`;
+}
+
 /** D-467: a move that misses its targets: `misses its targets[ after repair]: EHP <a> of <t>, lowest max hit <b> of <u>`. */
 function missText(targets: NodePowerResult['targets'], s: PowerSwap): string {
   const after = s.repair !== undefined ? ' after repair' : '';
@@ -1088,7 +1113,7 @@ function swapText(r: NodePowerResult, pool?: PowerPool): string {
       `and none gains ${stats[0].label} within the limits (${limits.join('; ')}).`
     );
   }
-  return `${head}: ${measuredText(targets, stats, s)}${repairText(s)}. ${nodesText(s)} ${branchesText(s)}`;
+  return `${head}: ${measuredText(targets, stats, s)}${repairText(s)}${attributeRepairText(s)}. ${nodesText(s)} ${branchesText(s)}`;
 }
 
 /**
@@ -1096,7 +1121,8 @@ function swapText(r: NodePowerResult, pool?: PowerPool): string {
  * and nodes when it is legal; else why it isn't, with what it measured; then what was freed and how much the refill used.
  * D-467: under `targets`, Appendix A's forms: its EHP and lowest max hit beside their targets and the repair's steps, or
  * `misses its targets after repair: EHP <a> of <t>, lowest max hit <b> of <u>`; a free within a weapon set's pool is
- * `Free (weapon set <n>): …`, in that pool's stats.
+ * `Free (weapon set <n>): …`, in that pool's stats. D-490: the attribute repair's re-points and steps, Appendix A's
+ * `; attributes repaired: …`, after the toughness repair's; a shortfall left reads the guard's reason `…, after repair`.
  */
 function moveText(r: NodePowerResult): string {
   const t = r.swaps[0];
@@ -1112,13 +1138,13 @@ function moveText(r: NodePowerResult): string {
       ? `Freed every node outside keep, the protected nodes and their paths to the start: ${plural(t.freed, 'point')}`
       : `Freed ${joinAnd((r.freeNodes ?? []).map(nodeRef))} and what their removal disconnects: ${plural(t.freed, 'point')}`;
   const uses = t.used !== undefined ? `; the refill uses ${t.used} of them` : '';
-  if (t.verdict === 'legal') return `${head}: ${measuredText(targets, stats, t)}${repairText(t)}. ${nodesText(t)} ${what}${uses}.`;
+  if (t.verdict === 'legal') return `${head}: ${measuredText(targets, stats, t)}${repairText(t)}${attributeRepairText(t)}. ${nodesText(t)} ${what}${uses}.`;
   if (t.verdict === 'misses-targets') {
     const measured = t.gain ? ` Measured: ${gainsText(stats, t)}. ${nodesText(t)}` : '';
     return `${head}: ${missText(targets, t)}${repairText(t)}.${measured} ${what}${uses}.`;
   }
   const measured = t.gain ? ` Measured: ${gainsText(stats, t)}. ${nodesText(t)}` : '';
-  return `${head}: none: ${t.verdict}${t.reason ? `: ${t.reason}` : ''}.${measured} ${what}${uses}.`;
+  return `${head}: none: ${t.verdict}${t.reason ? `: ${t.reason}` : ''}${attributeRepairText(t)}.${measured} ${what}${uses}.`;
 }
 
 /**
@@ -1162,6 +1188,8 @@ export async function handleGetNodePower(context: PassiveUpgradesContext, args: 
       );
     }
     lines.push(`Travel: ${r.travel} of ${plural(r.points, 'point')} give nothing alone on ${named}.`);
+    // D-490: the excluded nodes in force, so a caller sees the server honours them.
+    if ((r.exclude ?? []).length > 0) lines.push(`Excluded: ${plural(r.exclude!.length, 'node')}, never added nor pathed through.`);
     lines.push(r.mode === 'swap' ? swapText(r) : moveText(r));
     // C-55a (D-426): each weapon-set pool's move, measured with that set active.
     const pools = r.poolSwaps ?? [];

@@ -13,6 +13,8 @@
  *   `(target …)` form; the rebuilt tree, compiled, gives PoB's own figures to the same effect.
  * - AC-K77: the two Titan Rake plans' sha1s equal the run folder's (recorded at the copy, 2026-10-30); `tool-calls.json`
  *   holds a `get_node_power` sample with `targets`, `pace_exchange` and `pool_groups`.
+ * - AC-K81 (WU-136, amendment 14 §16, D-490): with the attribute repair and the attribute choice always on, the same call
+ *   without `exclude` still meets AC-K76's +46% on r2-s-1.
  */
 import crypto from 'crypto';
 import fs from 'fs';

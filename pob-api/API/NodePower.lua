@@ -3,7 +3,7 @@
 -- report, measured for one to three stats in one pass, with the best legal swap the tree has left (D-418).
 --
 --   node_power {stats[], maxDistance?, loadout?, level?, keep[]?, protectFor[]?, clearGroup?, maxLoss?, limit?, cull?,
---               rebuild?, free[]?, targets?, paceExchange?, poolGroups?}
+--               rebuild?, free[]?, targets?, paceExchange?, poolGroups?, exclude[]?}
 --   node_power {upgrades {fields[]}, maxDistance?}         (get_passive_upgrades' candidates)
 --
 -- The pass is CalcsTab:PowerBuilder's (vendor Classes/CalcsTab.lua:521-680), run once for every stat asked for:
@@ -47,9 +47,9 @@
 -- tooltip measures a spec). It is returned only when it stays legal: every node it keeps or adds stays allocated
 -- under PoB's weapon-set rule (the import drops a node that doesn't connect), no more main-tree points than before,
 -- no start holding more trees than before or more than one (D-360 as D-364 states it), no weapon-set or ascendancy
--- node added or removed. An added attribute node takes PoB's default choice (PassiveSpec:AllocNode switches it to
--- spec.attributeIndex, else option 1) and is returned with it. The best swap gains most on the first stat with no
--- other stat losing more than its `maxLoss` (default 2%) and no guard losing more than its own: movement speed
+-- node added or removed. An added attribute node takes an attribute (D-490's choice, below) and is returned with it.
+-- The best swap gains most on the first stat with no other stat losing more than its `maxLoss` (default 2%) and no
+-- guard losing more than its own: movement speed
 -- (EffectiveMovementSpeedMod, default 0), the lowest of PoB's five per-type maximum hits taken (`maxHit`, D-439,
 -- default 2%), and the clear entry's radius and uses per second (default 0 each), read as
 -- src/plan/record.ts reads them (the minion's when the clear skill summons one), measured with `clearGroup`
@@ -121,6 +121,26 @@
 -- - Always on, the attribute guard: a move is legal only when its result meets PoB's own ReqStr, ReqDex and ReqInt
 --   (Str ≥ ReqStr and so on, as V1's `attributes` reads them, PoB's satisfaction flags already applied,
 --   Modules/CalcPerform.lua:1832-1910).
+-- D-490 (amendment 14 §16):
+-- - `exclude` [ids]: no swap, rebuild, repair (toughness or attribute), pool move or free refill adds an excluded node or
+--   paths through one; an excluded node the loadout has allocated refuses the call, naming it.
+-- - The attribute choice: an attribute node a move adds ("+5 to any Attribute") takes the class's main attribute (its
+--   largest base attribute in the tree's class data; between equals, the one the gear and gems require most, then
+--   Strength, Dexterity, Intelligence), and the attribute repair re-points it to the attribute with the largest shortfall.
+--   A node the loadout already holds keeps its choice.
+-- - Always on, the attribute repair: after a refill (a swap's, the rebuild's or a free's) and the toughness repair, when
+--   the result's Str, Dex or Int is under its requirement (requirements come only from items and gems,
+--   Modules/CalcSetup.lua:1165, so the tree doesn't move them): (1) the move's added attribute nodes are re-pointed, each
+--   to the attribute with the largest shortfall left (what each attribute would be without them, 5 a node), else the
+--   class's main attribute: no points, one measure; (2) on a main-tree move, while a shortfall is left (at most
+--   MAX_ATTRIBUTE_STEPS steps): the refilled tree's branch with the least first-stat loss per point (as the toughness
+--   repair picks it, none holding an attribute node of a short attribute, a node an earlier repair step added, or a node
+--   `free` names) is freed for attribute nodes, as many as the shortfall needs (⌈shortfall/5⌉), whose paths fit, the
+--   points left going to the first stat; each new attribute node takes the attribute with the largest shortfall left.
+--   A step is one swap and one measure, taken when it raises a short attribute, lowers the summed shortfall and keeps the
+--   targets it held; up to REPAIR_BRANCH_TRIES branches are tried for a step. A pool move gets step (1) only, as it
+--   gets no toughness repair. A shortfall left reads the attribute guard's reason with ", after repair".
+-- - A figure within TARGET_TOLERANCE (0.5) of its target meets it; the figures in a reason have at most 2 decimals.
 -- D-463: a socketed Split Personality opens the start its variant names (PoB's alternateClassStart,
 -- Classes/PassiveSpec.lua:1403-1412) only while its socket is reached without that start: start_counts counts the
 -- trees leaving it, and unreached seeds it, under that rule, so a move that frees the class-side path to the socket
@@ -162,8 +182,14 @@ local MAX_HIT_TYPES = { 'Physical', 'Fire', 'Cold', 'Lightning', 'Chaos' }
 -- D-467: the repair's bounds: the steps at most, and the branches tried for one step.
 local MAX_REPAIR_STEPS = 12
 local REPAIR_BRANCH_TRIES = 6
--- D-467: the attribute guard's attributes: PoB's output field and its name.
+-- D-467: the attribute guard's attributes: PoB's output field and its name (an attribute node's option name, in the
+-- options' order).
 local ATTRIBUTES = { { 'Str', 'Strength' }, { 'Dex', 'Dexterity' }, { 'Int', 'Intelligence' } }
+-- D-490: the attribute repair's steps at most, and what an attribute node gives its attribute ("+5 to <Attribute>").
+local MAX_ATTRIBUTE_STEPS = 8
+local ATTRIBUTE_NODE_POINTS = 5
+-- D-490: a figure within this much of its target meets it.
+local TARGET_TOLERANCE = 0.5
 -- D-467: the boss config a pool ranks on (Compile.lua's BOSS_VALUE).
 local BOSS_VALUE = 'Pinnacle'
 local MINUS = '\226\136\146'
@@ -874,6 +900,59 @@ local function attribute_name(treeNode, index)
   return name and tostring(name):lower() or nil
 end
 
+-- D-490: an attribute node's option index for the attribute `key` ('Str', 'Dex' or 'Int'), by the option's name.
+local function option_index(treeNode, key)
+  local want
+  for _, a in ipairs(ATTRIBUTES) do
+    if a[1] == key then want = a[2] end
+  end
+  for i, option in ipairs(treeNode and treeNode.options or {}) do
+    if tostring(option.dn or option.name) == want then return i end
+  end
+  for i, a in ipairs(ATTRIBUTES) do
+    if a[1] == key then return i end
+  end
+  return 1
+end
+
+-- D-490: the attribute ('Str', 'Dex' or 'Int') an allocated attribute node of `spec` gives: its override's name, else
+-- nil.
+local function held_attribute(spec, id)
+  local ov = spec.hashOverrides and spec.hashOverrides[id]
+  local name = ov and tostring(ov.dn or '')
+  for _, a in ipairs(ATTRIBUTES) do
+    if a[2] == name then return a[1] end
+  end
+  return nil
+end
+
+-- D-490: the class's main attribute ('Str', 'Dex' or 'Int'): its largest base attribute (the tree's classes[].base_str,
+-- base_dex, base_int); between equals, the one `req` (by key, the gear's and gems' requirements) asks most of, then the
+-- options' order.
+local function main_attribute(spec, req)
+  local cls = spec.curClass or {}
+  local base = { Str = tonumber(cls.base_str) or 0, Dex = tonumber(cls.base_dex) or 0, Int = tonumber(cls.base_int) or 0 }
+  local best
+  for _, a in ipairs(ATTRIBUTES) do
+    local k = a[1]
+    if best == nil or base[k] > base[best] or (base[k] == base[best] and (req[k] or 0) > (req[best] or 0)) then best = k end
+  end
+  return best
+end
+
+-- D-490: a figure for a reason: at most 2 decimals, trailing zeros dropped.
+local function num2(x)
+  x = tonumber(x)
+  if x == nil or x ~= x then return '?' end
+  if x == math.huge or x == -math.huge then return x > 0 and 'inf' or '-inf' end
+  local s = ('%.2f'):format(x)
+  s = (s:gsub('0+$', ''))
+  s = (s:gsub('%.$', ''))
+  if s == '-0' then s = '0' end
+  return s
+end
+M.num2 = num2
+
 -- C-55a: whether PoB can tag a node to a weapon set (PassiveSpec:AllocNode gives a keystone, a jewel socket or an
 -- ascendancy node allocMode 0, Classes/PassiveSpec.lua:931-936).
 local function taggable(node)
@@ -937,10 +1016,12 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
     end
     return true
   end
+  -- D-490: the call's `exclude` (ctx.exclude) holds for every refill, beside the pick's own.
+  local callExclude = ctx.exclude
   local function path_clear(n)
-    if not pick.exclude then return true end
+    if not pick.exclude and not callExclude then return true end
     for _, p in ipairs(n.path or {}) do
-      if pick.exclude[p.id] then return false end
+      if (pick.exclude and pick.exclude[p.id]) or (callExclude and callExclude[p.id]) then return false end
     end
     return true
   end
@@ -1036,19 +1117,28 @@ local function try_swap(ctx, scratch, orig, origCounts, pick)
   result.used = used
   result.chosen = sorted_ids(chosen)
 
-  -- PoB's default choice for each added attribute node; the kept nodes keep theirs.
+  -- D-490: each added attribute node's attribute: the pick's own (`pick.assign(ids)`, given the added attribute nodes,
+  -- returns a key by node for those it decides), else the one it held in the pick's base (`pick.choices`, by node), else
+  -- the class's main attribute; the kept nodes keep theirs.
   local overrides = overrides_for(final)
-  local index = spec.attributeIndex or 1
-  local attributes = {}
+  local attributes, choices = {}, {}
   scratch.hashOverrides = overrides
+  local attrAdded = {}
   for _, id in ipairs(added) do
     local treeNode = spec.tree.nodes[id]
-    if treeNode and treeNode.isAttribute then
-      scratch:SwitchAttributeNode(id, index)
-      attributes[id] = attribute_name(treeNode, index)
-    end
+    if treeNode and treeNode.isAttribute then attrAdded[#attrAdded + 1] = id end
+  end
+  local assigned = (#attrAdded > 0 and pick.assign) and pick.assign(attrAdded) or {}
+  for _, id in ipairs(attrAdded) do
+    local treeNode = spec.tree.nodes[id]
+    local key = assigned[id] or (pick.choices and pick.choices[id]) or ctx.mainAttribute or 'Str'
+    local index = option_index(treeNode, key)
+    scratch:SwitchAttributeNode(id, index)
+    attributes[id] = attribute_name(treeNode, index)
+    choices[id] = key
   end
   overrides = scratch.hashOverrides
+  result.choices = choices
   local finalIds = sorted_ids(final)
   -- A pool move's chosen nodes are tagged to its pool (a removed node chosen again keeps its tag, the pool's); the kept
   -- nodes keep their tags.
@@ -1156,24 +1246,41 @@ function M.pace_judge(r, gain, figures)
   return nil
 end
 
--- D-467: the attribute guard: nil when `v`'s result meets PoB's own ReqStr, ReqDex and ReqInt, else why not.
-local function attribute_reason(v)
+-- D-467: the attribute guard: nil when `v`'s result meets PoB's own ReqStr, ReqDex and ReqInt, else why not. D-490:
+-- `repaired` (the attribute repair ran) adds ", after repair".
+local function attribute_reason(v, repaired)
   local a = v.attr
   if not a then return nil end
   for _, x in ipairs(ATTRIBUTES) do
     local have, need = a[x[1]], a['Req' .. x[1]]
     if need and need > 0 and (have or 0) < need then
-      return ('%s would be %d, under the %d its gear and gems need'):format(x[2], math.floor((have or 0) + 0.5), math.floor(need + 0.5))
+      return ('%s would be %d, under the %d its gear and gems need%s'):format(x[2], math.floor((have or 0) + 0.5),
+        math.floor(need + 0.5), repaired and ', after repair' or '')
     end
   end
   return nil
 end
 
--- D-467: whether `value` is at or above `target` (a hair of rounding allowed).
+-- D-490: each attribute's shortfall in `v` (by key: its requirement less the attribute, 0 when met) and their sum.
+local function attribute_shortfalls(v)
+  local short, total = {}, 0
+  local a = v.attr or {}
+  for _, x in ipairs(ATTRIBUTES) do
+    local have, need = a[x[1]], a['Req' .. x[1]]
+    local s = 0
+    if need and need > 0 and (have or 0) < need then s = need - (have or 0) end
+    short[x[1]] = s
+    total = total + s
+  end
+  return short, total
+end
+
+-- D-467: whether `value` is at or above `target`; D-490: a figure within TARGET_TOLERANCE of it meets it.
 local function meets(value, target)
   if target == nil then return true end
-  return type(value) == 'number' and value == value and value >= target - 1e-9 * math.max(1, math.abs(target))
+  return type(value) == 'number' and value == value and value >= target - TARGET_TOLERANCE - 1e-9 * math.max(1, math.abs(target))
 end
+M.meets = meets
 
 -- D-467: the targets `v` misses, by key (`ehp`, `maxHit`), and the combined shortfall (each gap as a share of its
 -- target, summed).
@@ -1212,7 +1319,7 @@ local function loss_reason(ctx, swap)
       local p = pct(v.delta[i], ctx.base.value[i])
       local loss = p and -p or (v.delta[i] < 0 and math.huge or 0)
       if loss > ctx.limits[s.stat] + 1e-9 then
-        return ('%s would fall %.2f%%, more than %s%%'):format(s.stat, loss, tostring(ctx.limits[s.stat]))
+        return ('%s would fall %.2f%%, more than %s%%'):format(s.stat, loss, num2(ctx.limits[s.stat]))
       end
     end
   end
@@ -1223,7 +1330,7 @@ local function loss_reason(ctx, swap)
   local function guard(name, before, after, label)
     local loss = lossOf(before, after)
     if loss and loss > ctx.limits[name] + 1e-9 then
-      return ('%s would fall %.2f%%, more than %s%%'):format(label, loss, tostring(ctx.limits[name]))
+      return ('%s would fall %.2f%%, more than %s%%'):format(label, loss, num2(ctx.limits[name]))
     end
     return nil
   end
@@ -1363,6 +1470,12 @@ local function measure_call(params, ctx)
     ctx.freeSet = set
   end
   local unalloc, alloc = run_pass(ctx)
+  -- D-490: the class's main attribute, for the attribute nodes a move adds (ties go to the gear's and gems' larger need).
+  do
+    local req = {}
+    for _, a in ipairs(ATTRIBUTES) do req[a[1]] = ctx.base.attr['Req' .. a[1]] or 0 end
+    ctx.mainAttribute = main_attribute(spec, req)
+  end
   local result = {
     stats = stats_entry(ctx.stats),
     loadout = ctx.loadoutName,
@@ -1379,6 +1492,9 @@ local function measure_call(params, ctx)
   result.maxHitType = ctx.base.maxHitType
   result.targets = ctx.targets
   result.paceExchange = ctx.paceExchange
+  -- D-490: the excluded nodes in force, and the class's main attribute an added attribute node takes by default.
+  if ctx.exclude then result.exclude = sorted_ids(ctx.exclude) end
+  result.mainAttribute = ({ Str = 'strength', Dex = 'dexterity', Int = 'intelligence' })[ctx.mainAttribute]
   -- The limits in force, in percent: each stat after the first, and each guard (maxLoss's keys).
   result.limits = {}
   for i, s in ipairs(ctx.stats) do
@@ -1716,7 +1832,7 @@ local function measure_call(params, ctx)
         end
         local t = try_swap(c, scratch, orig, origCounts, {
           rows = {}, set = row.set, base = R, tags = tags, points = row.points + spare, score = score, thenFirst = true,
-          exclude = row.set, dynamic = true, onPick = onPick,
+          exclude = row.set, dynamic = true, onPick = onPick, choices = cur.choices,
         })
         if t.verdict == 'legal' then
           local _, short2 = shortfall(targets, t.measured)
@@ -1740,6 +1856,235 @@ local function measure_call(params, ctx)
     return cur
   end
 
+  -- D-490: whether `v` keeps `c`'s targets (none set: it does).
+  local function holds(c, v)
+    return not c.targets or next((shortfall(c.targets, v))) == nil
+  end
+
+  -- D-490: `free`'s named nodes, which no repair step adds back.
+  local freeNamed = {}
+  for _, id in ipairs(ctx.free or {}) do freeNamed[id] = true end
+
+  -- D-490: the attribute each attribute node of a move's tree `s` gives, by node: its own choice for the nodes the move
+  -- added (`s.choices`), the loadout's for the nodes it kept.
+  local function attribute_of(s, id)
+    return (s.choices and s.choices[id]) or held_attribute(spec, id)
+  end
+
+  -- D-490: the attribute keys for `ids` (attribute nodes, in order), each to the largest shortfall left in `have`
+  -- against `need` (by key), 5 a node, else the class's main attribute; `have` is updated.
+  local function assign_attributes(ids, have, need, main)
+    local out = {}
+    for _, id in ipairs(ids) do
+      local best, bestShort = nil, 0
+      for _, a in ipairs(ATTRIBUTES) do
+        local k = a[1]
+        local short = (need[k] or 0) - (have[k] or 0)
+        if short > bestShort + 1e-9 then best, bestShort = k, short end
+      end
+      local key = best or main
+      out[id] = key
+      have[key] = (have[key] or 0) + ATTRIBUTE_NODE_POINTS
+    end
+    return out
+  end
+
+  -- D-490: `s` (a legal move) imported with its added attribute nodes' keys `choices` and measured against `c`: a copy
+  -- of `s` with its new figures, choices and attribute names; nil and the error when PoB's calculation fails.
+  local function remeasured(c, s, choices)
+    local ov = {}
+    for id, o in pairs(spec.hashOverrides or {}) do if s.final[id] and orig[id] then ov[id] = o end end
+    scratch.hashOverrides = ov
+    local names = {}
+    for id, key in pairs(choices) do
+      local treeNode = spec.tree.nodes[id]
+      local index = option_index(treeNode, key)
+      scratch:SwitchAttributeNode(id, index)
+      names[id] = attribute_name(treeNode, index)
+    end
+    import(scratch, spec, sorted_ids(s.final), s.tags or {}, scratch.hashOverrides)
+    local v = c.measure(nil, { spec = scratch }, true)
+    if v.err then return nil, v.err end
+    local t = {}
+    for k, x in pairs(s) do t[k] = x end
+    t.measured, t.choices, t.attributes = v, choices, names
+    if c.clearSeparate then t.clear = c.measure_clear(scratch) end
+    return t
+  end
+
+  -- D-490: the attribute repair (see the header) of `s`, a legal move whose result falls under PoB's ReqStr, ReqDex or
+  -- ReqInt: (1) the re-point, then (2), on a main move (not `c.noRepair`), the steps. The repaired move, its `attrRepair`
+  -- {repointed = [{id, key}], steps = [{freed, added}]} (node ids), with `s`'s branches.
+  local function attribute_repair(c, s)
+    local cur = s
+    local rep = { repointed = {}, steps = {} }
+    local main = c.mainAttribute or 'Str'
+    -- (1) The move's added attribute nodes, re-pointed to the largest shortfalls: what each attribute would be without
+    -- them, then each node in id order.
+    local ids = sorted_ids(cur.choices or {})
+    if #ids > 0 then
+      local have, need = {}, {}
+      for _, a in ipairs(ATTRIBUTES) do
+        have[a[1]] = cur.measured.attr[a[1]] or 0
+        need[a[1]] = cur.measured.attr['Req' .. a[1]] or 0
+      end
+      for _, id in ipairs(ids) do
+        local k = cur.choices[id]
+        have[k] = have[k] - ATTRIBUTE_NODE_POINTS
+      end
+      local new = assign_attributes(ids, have, need, main)
+      local moved = {}
+      for _, id in ipairs(ids) do
+        if new[id] ~= cur.choices[id] then moved[#moved + 1] = { id = id, key = new[id] } end
+      end
+      if #moved > 0 then
+        local t = remeasured(c, cur, new)
+        if t then
+          cur = t
+          rep.repointed = moved
+        end
+      end
+    end
+    -- (2) Attribute nodes in freed points, step by step (main moves only).
+    local repairAdded = {}
+    for _, step in ipairs(s.repair or {}) do
+      for _, id in ipairs(step.added or {}) do repairAdded[id] = true end
+    end
+    local tiny = 1e-9 * math.max(1, math.abs(c.base.value[1] or 0))
+    for _ = 1, c.noRepair and 0 or MAX_ATTRIBUTE_STEPS do
+      local short, total = attribute_shortfalls(cur.measured)
+      if total <= 0 then break end
+      local R, tags = cur.final, cur.tags or {}
+      local ov = {}
+      for id, o in pairs(spec.hashOverrides or {}) do if R[id] and orig[id] then ov[id] = o end end
+      import(scratch, spec, sorted_ids(R), tags, ov)
+      local before = unreached(scratch, R, {})
+      -- A node no step may free: protected, added by a repair step, granted, holding a jewel, named by `free`, off the
+      -- main tree or tagged, or an attribute node of a short attribute.
+      local function fixed(id)
+        local n = scratch.nodes[id]
+        if prot[id] or repairAdded[id] or ctx.granted[id] or holds_jewel(spec, id) or freeNamed[id] then return true end
+        if not is_main(n) or (n.allocMode or 0) ~= 0 then return true end
+        local treeNode = spec.tree.nodes[id]
+        if treeNode and treeNode.isAttribute then
+          local k = attribute_of(cur, id)
+          if k and short[k] > 0 then return true end
+        end
+        return false
+      end
+      local rows = {}
+      for _, id in ipairs(sorted_ids(R)) do
+        local n = scratch.nodes[id]
+        if not fixed(id) then
+          local set = { [id] = true }
+          for _, d in ipairs(n.depends or {}) do set[d.id] = true end
+          local ok = true
+          for d in pairs(set) do
+            if fixed(d) then ok = false; break end
+          end
+          if ok and disconnected(scratch, R, set, before) then ok = false end
+          if ok then
+            local value = 0
+            for d in pairs(set) do
+              local ef = effect(d)
+              value = value + (ef and ef.first or 0)
+            end
+            local points = count(set)
+            rows[#rows + 1] = { id = id, set = set, points = points, lossPerPoint = value / points }
+          end
+        end
+      end
+      table.sort(rows, function(a, b)
+        if a.lossPerPoint ~= b.lossPerPoint then return a.lossPerPoint < b.lossPerPoint end
+        if a.points ~= b.points then return a.points > b.points end
+        return a.id < b.id
+      end)
+      local spare = math.max(0, origMain - main_points(R, scratch))
+      -- The attribute nodes the shortfall needs (⌈shortfall/5⌉ by attribute), and what each attribute would be once the
+      -- branch is freed (its attribute nodes' points taken off), for the new nodes' choices.
+      local need = 0
+      for _, a in ipairs(ATTRIBUTES) do need = need + math.ceil(short[a[1]] / ATTRIBUTE_NODE_POINTS - 1e-9) end
+      local req = {}
+      for _, a in ipairs(ATTRIBUTES) do req[a[1]] = cur.measured.attr['Req' .. a[1]] or 0 end
+      local excl = {}
+      for id in pairs(freeNamed) do excl[id] = true end
+      local taken
+      for k = 1, math.min(REPAIR_BRANCH_TRIES, #rows) do
+        local row = rows[k]
+        local blpp = math.max(row.lossPerPoint, 0)
+        local left = need
+        -- A new path's worth: the attribute nodes on it that can serve a short attribute (a node the loadout holds
+        -- keeps its own), at most what is left, per first-stat loss (its points at the branch's loss per point, less its
+        -- own first-stat gain), as the toughness repair scores.
+        local function serves(pid)
+          local treeNode = spec.tree.nodes[pid]
+          if not (treeNode and treeNode.isAttribute) then return false end
+          if not orig[pid] then return true end
+          local key = held_attribute(spec, pid)
+          return key ~= nil and short[key] > 0
+        end
+        local function score(new)
+          if left <= 0 then return nil end
+          local n, first = 0, 0
+          for _, pid in ipairs(new) do
+            if serves(pid) then n = n + 1 end
+            local ef = effect(pid)
+            if ef then first = first + ef.first end
+          end
+          if n == 0 then return nil end
+          return math.min(n, left) / math.max(#new * blpp - first, #new * tiny)
+        end
+        local function onPick(new)
+          for _, pid in ipairs(new) do
+            if serves(pid) then left = left - 1 end
+          end
+        end
+        local function assign(attrIds)
+          local have = {}
+          for _, a in ipairs(ATTRIBUTES) do have[a[1]] = cur.measured.attr[a[1]] or 0 end
+          for id in pairs(row.set) do
+            local treeNode = spec.tree.nodes[id]
+            local key = treeNode and treeNode.isAttribute and attribute_of(cur, id)
+            if key then have[key] = have[key] - ATTRIBUTE_NODE_POINTS end
+          end
+          local fresh = {}
+          for _, id in ipairs(attrIds) do
+            if not (cur.choices and cur.choices[id]) then fresh[#fresh + 1] = id end
+          end
+          return assign_attributes(fresh, have, req, main)
+        end
+        for id in pairs(row.set) do excl[id] = true end
+        local t = try_swap(c, scratch, orig, origCounts, {
+          rows = {}, set = row.set, base = R, tags = tags, points = row.points + spare, score = score, thenFirst = true,
+          exclude = excl, dynamic = true, onPick = onPick, choices = cur.choices, assign = assign,
+        })
+        for id in pairs(row.set) do if not freeNamed[id] then excl[id] = nil end end
+        if t.verdict == 'legal' then
+          local _, total2 = attribute_shortfalls(t.measured)
+          local raised = false
+          for _, a in ipairs(ATTRIBUTES) do
+            local key = a[1]
+            if short[key] > 0 and (t.measured.attr[key] or 0) > (cur.measured.attr[key] or 0) then raised = true end
+          end
+          if raised and total2 < total - 1e-9 and (not holds(c, cur.measured) or holds(c, t.measured)) then
+            taken = t
+            rep.steps[#rep.steps + 1] = { freed = sorted_ids(row.set), added = t.chosen or {} }
+            for _, id in ipairs(t.chosen or {}) do repairAdded[id] = true end
+            break
+          end
+        end
+      end
+      if not taken then break end
+      for _, key in ipairs({ 'branches', 'freed', 'used', 'repair' }) do taken[key] = s[key] end
+      cur = taken
+    end
+    if cur ~= s then
+      for _, key in ipairs({ 'branches', 'freed', 'used', 'repair' }) do cur[key] = s[key] end
+    end
+    cur.attrRepair = rep
+    return cur
+  end
+
   -- A legal swap's figures against `c`'s base (the pass's, or a pool's set's): D-467's targets (after the repair, on a
   -- main move), the attribute guard, no gain, over the limits, or kept.
   local function judge(c, s)
@@ -1755,13 +2100,13 @@ local function measure_call(params, ctx)
         return
       end
     end
-    local why = attribute_reason(s.measured)
+    local why = attribute_reason(s.measured, s.attrRepair ~= nil)
     if why then
       s.verdict = 'illegal'
       s.reason = why
     elseif gain <= 0 then
       s.verdict = 'no-gain'
-      s.reason = ('it changes %s by %s'):format(c.stats[1].stat, tostring(gain))
+      s.reason = ('it changes %s by %s'):format(c.stats[1].stat, num2(gain))
     else
       why = loss_reason(c, s)
       if why then
@@ -1771,10 +2116,14 @@ local function measure_call(params, ctx)
     end
   end
 
-  -- D-467: a measured move judged, repaired first when it is a main move under `targets` that misses one.
+  -- D-467: a measured move judged, repaired first when it is a main move under `targets` that misses one. D-490: then,
+  -- when it keeps its targets and falls under an attribute requirement, the attribute repair.
   local function settle(c, s)
     if s.verdict == 'legal' and c.targets and not c.noRepair and next((shortfall(c.targets, s.measured))) then
       s = repair(c, s)
+    end
+    if s.verdict == 'legal' and holds(c, s.measured) and attribute_reason(s.measured) then
+      s = attribute_repair(c, s)
     end
     judge(c, s)
     return s
@@ -1888,6 +2237,31 @@ local function measure_call(params, ctx)
         for _, id in ipairs(step.added) do addedNodes[#addedNodes + 1] = node_entry(spec.nodes[id]) end
         entry.repair[#entry.repair + 1] = { freed = freedNodes, added = addedNodes }
       end
+    end
+    -- D-490: the result's attributes against their requirements, and the attribute repair's re-points and steps (each
+    -- the points it freed and the nodes it added, an attribute node with its attribute).
+    if s.measured and s.measured.attr then
+      entry.attributes = {}
+      for _, a in ipairs(ATTRIBUTES) do
+        entry.attributes[a[1]] = s.measured.attr[a[1]]
+        entry.attributes['Req' .. a[1]] = s.measured.attr['Req' .. a[1]]
+      end
+    end
+    if s.attrRepair then
+      local function with_choice(id)
+        local n = node_entry(spec.nodes[id])
+        if s.attributes and s.attributes[id] then n.attributeChoice = s.attributes[id] end
+        return n
+      end
+      local rp = { repointed = {}, steps = {} }
+      for _, x in ipairs(s.attrRepair.repointed) do rp.repointed[#rp.repointed + 1] = with_choice(x.id) end
+      for _, step in ipairs(s.attrRepair.steps) do
+        local freedNodes, addedNodes = {}, {}
+        for _, id in ipairs(step.freed) do freedNodes[#freedNodes + 1] = node_entry(spec.nodes[id]) end
+        for _, id in ipairs(step.added) do addedNodes[#addedNodes + 1] = with_choice(id) end
+        rp.steps[#rp.steps + 1] = { freed = freedNodes, added = addedNodes }
+      end
+      entry.attributeRepair = rp
     end
     return entry
   end
@@ -2263,6 +2637,12 @@ function M.node_power(params)
   ctx.limit = params.limit == nil and DEFAULT_LIMIT or int_arg(params.limit, 'limit', 0, nil)
   ctx.compact = ctx.limit == 0
   ctx.keep = id_list(params.keep, 'keep')
+  -- D-490: the nodes no move adds, nor paths through (checked against the loadout's tree once it is selected).
+  local excludeList = id_list(params.exclude, 'exclude')
+  if #excludeList > 0 then
+    ctx.exclude = {}
+    for _, id in ipairs(excludeList) do ctx.exclude[id] = true end
+  end
   -- D-437: `cull` multiplies MainDamage; D-439: `rebuild` and `free` each replace the swap search.
   local function flag(v, name)
     if v == nil then return false end
@@ -2329,6 +2709,12 @@ function M.node_power(params)
   local selection = snapshot_selection()
   local ok, res = pcall(function()
     if target and not same_sets(target) then build:SetActiveLoadout(target) end
+    -- D-490: an excluded node the loadout holds refuses the call, naming it (the first in the list's order).
+    for _, id in ipairs(excludeList) do
+      if build.spec.allocNodes[id] then
+        fail(('Excluded node %d (%s) is allocated'):format(id, node_name(build.spec.nodes[id])))
+      end
+    end
     ctx.loadoutName = target and target.name or active_loadout_name()
     if not level and ctx.loadoutName then level = tonumber(ctx.loadoutName:match('%(L(%d+)%)')) end
     if level then

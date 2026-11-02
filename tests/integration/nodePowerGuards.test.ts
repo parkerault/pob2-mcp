@@ -16,7 +16,9 @@
  * - AC-K76 (4), the pace judge (NodePower.lua's `pace_judge`): a 20% gain for a 2.55% uses loss passes at 3; a 4% gain for a
  *   2.5% loss fails; a gain of exactly 3 × the loss passes; a move that passes on uses but loses 2% radius for a 4% gain
  *   fails (each figure on its own); `pace_exchange` with stats lacking MainDamage is refused.
- * - AC-K76 (5): the golden build's best unguarded swap leaves Strength under ReqStr; the swap returned keeps Str ≥ ReqStr.
+ * - AC-K76 (5), as D-490 (amendment 14 §16, AC-K81) amends it: the golden build's tries whose refill leaves Strength under
+ *   ReqStr run the attribute repair; each repaired try meets PoB's requirements, or reads the guard's reason with ", after
+ *   repair", PoB's own figures; the swap returned keeps Str ≥ ReqStr.
  * - AC-K76 (8), D-463: on (A) node power counts the Warrior's start (one tree) and its tree as reached, and a swap it returns
  *   keeps one tree per start, the Warrior side reached; on (B) it counts no such start, and the Warrior side is unreached.
  */
@@ -164,25 +166,33 @@ engineDescribe('WU-127: node power\'s pace judge, attribute guard and Split Pers
     }
 
     it(
-      "the best unguarded swap leaves Strength under ReqStr, and the swap returned keeps Str ≥ ReqStr (PoB's own figures)",
+      "D-490 (AC-K81): a try whose refill leaves Strength under ReqStr is repaired; each repaired try meets PoB's requirements or reads the guard's reason after repair, and the swap returned keeps Str ≥ ReqStr (PoB's own figures)",
       async () => {
         expect((await f.call('lua_load_build', { build_name: 'grenadator.xml' })).isError).toBe(false);
         // Every other guard loose, so the attribute guard alone decides.
         const r = await power({ stats: ['FullDPS'], limit: 0, maxLoss: { movement: 100, maxHit: 100, clearRadius: 100, clearUses: 100 } });
-        const refused = r.swaps.filter((s) => s.verdict === 'illegal' && /^Strength would be \d+, under the \d+ its gear and gems need$/.test(s.reason ?? ''));
-        expect(refused.length).toBeGreaterThan(0);
-        const unguarded = [...refused].sort((a, b) => (b.gain![0] as number) - (a.gain![0] as number))[0];
+        // Amendment 13's refused tries (Strength under its need) now run the attribute repair, always on (D-490).
+        const repaired = r.swaps.filter((s) => s.attributeRepair !== undefined);
+        expect(repaired.length).toBeGreaterThan(0);
+        for (const s of r.swaps) {
+          if (/would be \d+, under the \d+ its gear and gems need/.test(s.reason ?? '')) {
+            expect({ reason: s.reason, form: /^(Strength|Dexterity|Intelligence) would be \d+, under the \d+ its gear and gems need, after repair$/.test(s.reason!) }).toEqual({ reason: s.reason, form: true });
+          }
+        }
+        for (const s of repaired) {
+          const pob = await attributesWith(s);
+          if (s.verdict === 'illegal') {
+            const m = /^(\w+) would be (\d+), under the (\d+)/.exec(s.reason!)!;
+            const key = ({ Strength: 'Str', Dexterity: 'Dex', Intelligence: 'Int' } as Record<string, string>)[m[1]];
+            expect([Number(m[2]), Number(m[3])]).toEqual([Math.round(pob[key]), Math.round(pob[`Req${key}`])]);
+          } else {
+            for (const a of ['Str', 'Dex', 'Int']) expect({ a, met: pob[a] >= (pob[`Req${a}`] ?? 0), reply: s.attributes?.[a] }).toEqual({ a, met: true, reply: pob[a] });
+          }
+        }
         const best = r.bestSwap!;
         expect(best).toBeDefined();
-        // Unguarded, the refused try would be the best swap; the guard returns the best legal one.
-        expect(unguarded.gain![0]!).toBeGreaterThan(best.gain![0]!);
         const legalGains = r.swaps.filter((s) => s.verdict === 'legal').map((s) => s.gain![0] as number);
         expect(best.gain![0]).toBe(Math.max(...legalGains));
-
-        const under = await attributesWith(unguarded);
-        expect(under.Str).toBeLessThan(under.ReqStr);
-        const m = /^Strength would be (\d+), under the (\d+)/.exec(unguarded.reason!)!;
-        expect([Number(m[1]), Number(m[2])]).toEqual([Math.round(under.Str), Math.round(under.ReqStr)]);
         const kept = await attributesWith(best);
         for (const a of ['Str', 'Dex', 'Int']) expect({ a, met: kept[a] >= (kept[`Req${a}`] ?? 0) }).toEqual({ a, met: true });
       },

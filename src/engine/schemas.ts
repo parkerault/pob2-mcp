@@ -1732,6 +1732,21 @@ export const powerRepairStepSchema = z
   .passthrough();
 export type PowerRepairStep = z.infer<typeof powerRepairStepSchema>;
 
+/** D-490: an attribute node the attribute repair re-pointed or added, with its attribute. */
+const powerAttributeNodeSchema = powerNodeSchema.extend({ attributeChoice: optString });
+
+/**
+ * D-490: the attribute repair (always on): the move's added attribute nodes it re-pointed to the short attributes, and
+ * its steps, each the points it freed and the nodes it added (an attribute node with its attribute).
+ */
+export const powerAttributeRepairSchema = z
+  .object({
+    repointed: luaArray(powerAttributeNodeSchema),
+    steps: luaArray(z.object({ freed: luaArray(powerNodeSchema), added: luaArray(powerAttributeNodeSchema) }).passthrough()),
+  })
+  .passthrough();
+export type PowerAttributeRepair = z.infer<typeof powerAttributeRepairSchema>;
+
 /** D-467: the toughness targets a move is judged on: TotalEHP and the lowest maximum hit taken. */
 const powerTargetsSchema = z.object({ ehp: z.number(), maxHit: z.number() }).passthrough();
 
@@ -1760,6 +1775,10 @@ export const powerSwapSchema = z
     added: luaArray(powerNodeSchema.extend({ attributeChoice: optString })).optional(),
     /** D-467: under `targets`, the repair's steps (empty when the refill met the targets or no step helped). */
     repair: luaArray(powerRepairStepSchema).optional(),
+    /** D-490: the measured result's Str, Dex and Int and their requirements (ReqStr, ReqDex, ReqInt). */
+    attributes: luaMap(luaNumber).optional(),
+    /** D-490: the attribute repair, when it ran: the added attribute nodes it re-pointed and its steps. */
+    attributeRepair: powerAttributeRepairSchema.optional(),
   })
   .passthrough();
 export type PowerSwap = z.infer<typeof powerSwapSchema>;
@@ -1800,6 +1819,9 @@ const powerResultSchema = z
     ehp: optNumber,
     targets: powerTargetsSchema.optional(),
     paceExchange: optNumber,
+    /** D-490: the excluded nodes in force (none: absent), and the attribute an added attribute node takes by default. */
+    exclude: luaArray(z.number().int()).optional(),
+    mainAttribute: optString,
     /** The limits in force, in percent, by stat id (each stat after the first) and by guard (maxLoss's keys). */
     limits: luaMap(luaNumber).optional(),
     measuredNodes: z.number().int(),
@@ -1873,7 +1895,8 @@ export const nodePowerReply = baseReply.extend({ result: z.union([powerResultSch
  * a map by stat or guard; `cull` multiplies MainDamage by its CullMultiplier; `rebuild` or `free` replaces the swap
  * search (D-439). D-467: `targets` judges a move on TotalEHP and the lowest max hit (with the repair); `paceExchange`
  * lets each pace figure fall L% for a MainDamage gain of r × L%; `poolGroups` ranks a weapon-set pool by a plan group's
- * figure on the boss config.
+ * figure on the boss config. D-490: `exclude` names nodes no move adds or paths through; the attribute repair and choice
+ * are always on.
  */
 export interface NodePowerParams {
   stats: string[];
@@ -1891,6 +1914,8 @@ export interface NodePowerParams {
   targets?: { ehp: number; maxHit: number };
   paceExchange?: number;
   poolGroups?: Partial<Record<'1' | '2', number>>;
+  /** D-490: nodes no move (swap, rebuild, repair, pool move or free refill) adds, nor paths through. */
+  exclude?: number[];
 }
 
 /** `node_power` with `upgrades`: `get_passive_upgrades`' candidates and the raw output fields of each path. */

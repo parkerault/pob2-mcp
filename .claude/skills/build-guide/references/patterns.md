@@ -82,7 +82,8 @@ Ask these after 1–19 (D-458); the defence and sizing studies showed why ([defe
 - **Shapes only.** Re-check every use against current game data with a lookup: names, numbers and wording
   change between patches. Each source's patch is in Sources; the pin is 0.5.4.
 - **The studies show what players do, not game truth.** Creators err: a claim marked unverified here needs a
-  lookup, or "needs in-game testing" on the card, and an interaction no game text documents is never used.
+  lookup, or "unconfirmed (<what>; if it fails: <the fallback>)" on the card, and an interaction no game text
+  documents is never used.
 - **Damage order.** Flat damage is converted first. The skill's own conversion comes first, then every
   other conversion once, on what it left, with no chains. Gain-as-extra lines then add a share of each type's damage after conversion and before
   any increase; the gained damage keeps its new type, and no later conversion touches it. Increased and more
@@ -924,7 +925,27 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **PoB:** not modelled: travel is no output; the compile record gives a travel skill's uses a second (`travel`,
   D-427).
 - **Examples:** Boneshatter at 6.76 attacks a second; Lightning Warp to Ball Lightning [nerd-interactions].
-- **Cautions:** a strike's travel needs in-game testing.
+- **Cautions:** a strike's travel is unconfirmed (PoB has no figure for it; if it fails: a Travel skill).
+
+### Moving while using skills
+
+- **Shape:** a skill usable while moving slows you as you use it, most to 30% of your speed (Arc,
+  `Data/Skills/act_int.lua:94`); the penalty's reducers keep the pace of a build that walks as it casts or fires. A
+  card says whether its clear skill is used standing or walking (D-491).
+- **Search:** `mechanic "reduced Movement Speed Penalty from using Skills while moving" (passive)`: notables
+  (`TreeData/0_5/tree.lua`) Unhindered 6% (:76368), Afterimage (:31383), Ether Flow (:50126), Freedom of Movement
+  (:109115), Run and Gun (:112505) and Spray and Pray (:62110), 5% each; the Pathfinder's Running Assault, 30% less
+  (:126975); the Gemling Legionnaire's Gem Studded, 40% less while green supports are the most numerous (:73885);
+  Mobility, 25% less (`Data/Skills/sup_dex.lua:3088`); the boots' Abyss suffix "of Ulaman", 6–10%
+  (`Data/ModVeiled.lua:169`). Deliberation is 30% more penalty for 20% more damage (`sup_dex.lua:1898-1899`).
+- **PoB:** modelled: `MovementSpeedWhileUsingSkillPercent` for a skill usable while moving
+  (`Modules/CalcOffence.lua:3161-3168`; the lines at `Modules/ModParser.lua:6099-6102`). Messages give the regular
+  movement figure, never this one (D-491).
+- **Examples:** Shockchain Arrow Gemling took Gem Studded over quality "because I can actually move", and it later
+  paid for Deliberation's slow [shockchain]; the run-and-gun Witchhunter's crossbow skills fire while moving, with
+  Mobility in its HYPER endgame [mob-witchhunter].
+- **Cautions:** a reducer helps only skills usable while moving; PoB doesn't read Pyromancer's and Flurry's fire- and
+  cold-skill lines as reducers (`Data/ModCache.lua:3105-3106`).
 
 ### Duration to the floor
 
@@ -970,10 +991,10 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
   through Blistering Bond (22% of Shield Wall) [spud] §4.1, §9.
 - **Cautions:** Contagion, Essence Drain and Decaying Hex's debuff aren't ailments: in PoB they take damage over time
   and chaos damage over time lines but not the ailment lines (`Modules/CalcOffence.lua:5874-5882` against
-  `:5040-5048`; PoB's model, needs in-game testing). Each type needs its own chance and damage type; duration raises
-  damage only where stacks or uptime are short. A second ailment pays only with its chance sources: Lexd's Poison III
-  and Supercritical, moved alone into the Titan Rake run's Shield Wall, with no poison chance beyond the gem, cut it
-  20% [amendment-13] §2.
+  `:5040-5048`), unconfirmed (PoB's model only; if it fails: the damage over time lines, which they take either
+  way). Each type needs its own chance and damage type; duration raises damage only where stacks or uptime are
+  short. A second ailment pays only with its chance sources: Lexd's Poison III and Supercritical, moved alone into
+  the Titan Rake run's Shield Wall, with no poison chance beyond the gem, cut it 20% [amendment-13] §2.
 
 ## 6. Levels, quality and tags
 

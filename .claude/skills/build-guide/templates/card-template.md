@@ -22,7 +22,8 @@ Status words, used everywhere on the card, exactly as written here, one per link
   user-supplied; on a seed card, players use it (the user's reference) (D-393); no tool supplies player
   evidence (D-335);
 - not checked yet: nothing has looked;
-- needs in-game testing: no text or tool can settle it.
+- unconfirmed (<what>; if it fails: <the fallback and its cost>): no text or tool can settle it (D-489). A card
+  never tells the user to test something in game: a player can't test a build without levelling a character.
 -->
 
 ## Brainstorm half
@@ -50,11 +51,12 @@ Status words, used everywhere on the card, exactly as written here, one per link
 - Name: <a few words of the build's own, then its main skill (the named damage source, not a skill that feeds
   it), then the ascendancy: "Reaping Bonfire Detonate Dead Blood Mage" (D-442); unique in the run>
 - Why pick it: <the hook in player terms, at most two sentences>
-- How it clears: <how a pack dies, which buttons the player presses, how soon it hits a new pack and how fast
-  it moves between packs; no "(an estimate)" mark: the gate adds it>
+- How it clears: <how a pack dies, which buttons the player presses and how many casts a pack takes, whether the
+  clear skill is used standing or walking (using a skill slows you, so never "hold it as you walk", D-491), how
+  soon it hits a new pack and how fast it moves between packs; no "(an estimate)" mark: the gate adds it>
 - Bosses: <its answer to one tough enemy, in one sentence>
 - Needs: <the key items, gems and passives; when it comes online (level or act); a rough cost, when known>
-- The catch: <the main risk or cost, in one sentence>
+- The catch: <the main risk or cost, in one sentence, with any unconfirmed point it rests on and its fallback>
 - Defence: <the base family from the class's attributes: armour, evasion, energy shield, armour/evasion,
   armour/energy shield or evasion/energy shield>; chance: <evasion, deflection, block | none>; mitigation: <armour,
   resistances, a physical shift, an enemy-damage curse | none>; pool: <life, energy shield, mana taken first>; the

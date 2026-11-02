@@ -68,6 +68,10 @@ rest of the prompt gives the brief, your focus and your letter, or the question.
   (`.claude/skills/build-guide/references/source-markers.md`): PoB's own data and the lookup results are
   `pob-data`; your reasoning is `judgment`, with a confidence. On a card, each link's lookup in its links
   table, and the card template's status words.
+- **No advice to test in game** (D-489). Testing a build means levelling a new character for hours, so nothing you
+  write tells the user to test something in game. A point no text or tool can settle takes the card template's
+  status word `unconfirmed`, with what it is, and what the build does instead if it fails and what that costs, on a
+  card, in a research file and in a gate answer.
 - **Over-budget runes** (D-465). A "Legacy of …" soul core or the Raven-Touched Shard alone can exceed the
   non-budget rung's whole budget, so your cards carry none and your Ideas name none unless the brief asks for it:
   its `around`, `like` or `notes` names it (or "Legacy" cores generally), or a gate answer's words name it. An

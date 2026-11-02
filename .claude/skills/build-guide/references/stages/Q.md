@@ -27,7 +27,8 @@ compiled. **You edit no plan (`plan.json` or a concept plan) and no card.**
    variants"): the stage through `mcp__pob2__guide_run {view: {plan, stage}}`, the other fields by Grep, never
    the plan whole. Compile it measure-only with `mcp__pob2__compile_plan` and compare the records. One variant; no price call.
 3. **Say how you know**, in the cards' status words: confirmed in game text, modelled in PoB, estimate (with
-   its reason), or needs in-game testing. An answer that rests on nothing you looked up says so.
+   its reason), or unconfirmed (<what>; if it fails: <the fallback and its cost>) (D-489). An answer that rests on
+   nothing you looked up says so. Never advise the user to test something in game.
 
 ## Writes
 

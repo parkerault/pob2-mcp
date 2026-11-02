@@ -78,7 +78,8 @@ message: "<why>"}`, `errors: []`, `compiles: 0`, `recordPath: null`, `faultsAppl
 user's words and the line, and fixes only what its findings name, never reworking the change.
 
 At most **two compiles per attempt**, both measure-only: an optional bootstrap compile (step 3), then the
-last compile of the whole skeleton (step 8). Validation comes before any price call, so no trade call (the
+last compile of the whole skeleton (step 8). The skeleton file's draft call (step 10, D-479) compiles nothing and
+isn't one of them. Validation comes before any price call, so no trade call (the
 trade site's limits are shared with the user's account) is spent on an item validation would reject. The
 verification checklist's probe variants (below) come on top: up to 4 per card (D-292), and up to 8 on a composite:
 the checklist's 4, then 4 leave-one-out probes (D-433).
@@ -266,14 +267,14 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
 8. **The last compile**, of the whole skeleton, measure-only and never with `build_name`:
    `mcp__pob2__compile_plan {plan_path: "<runFolderRel>/concepts/<id>/plan.json", measure_only: true}`. It writes
    `concepts/<id>/compile-record.json` and `concepts/<id>/compiled-build.xml` beside the plan and
-   nothing to the builds folder (D-208). If it fails, don't fix and recompile: put its error lines in the
-   verdict. The runner re-runs the step with them as findings. If it succeeds, run the damage check (below);
-   when it passes, the verification checklist (below), on a composite then its leave-one-out probes ("A
-   composite's pieces"), then write the card's verification half (below), before the verdict. When the damage
-   check fails, run no probe (the card's probes count against its cap across attempts): write the verification
-   half with what the check found, every checklist row `not checked`, and on a composite each Pieces measured row
-   `not measured (the damage check failed: <the kind> shows nothing)`.
-9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json`, written last, whatever happened:
+   nothing to the builds folder (D-208; the skeleton file is step 10's). If it fails, don't fix and recompile:
+   put its error lines in the verdict. The runner re-runs the step with them as findings. If it succeeds, run the
+   damage check (below); when it passes, the verification checklist (below), on a composite then its
+   leave-one-out probes ("A composite's pieces"), then write the card's verification half (below), before the
+   verdict. When the damage check fails, run no probe (the card's probes count against its cap across attempts):
+   write the verification half with what the check found, every checklist row `not checked`, and on a composite
+   each Pieces measured row `not measured (the damage check failed: <the kind> shows nothing)`.
+9. **The verdict file** `reports/gates/R1b-<id>-a<attempt>.json`, the last file you write, whatever happened:
 
    ```json
    { "stage": "R1b", "concept": "r1-a-2", "attempt": 1, "verdict": { "compiled": "pass", "damage": "pass" },
@@ -297,13 +298,25 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      (`Rolling Slam (clear)`, `Bellow's explosion's ignite (per corpse)`), `dropPercent` the drop to one decimal,
      negative for a fall (`-18`, `-0.4`). The percentages live here only: the card, the dossier and the displays
      carry the answers, never a figure. A piece PoB can't see, or a probe that wasn't measured, has no entry.
-   - `compiles`: how many `mcp__pob2__compile_plan` calls this attempt made (the bootstrap and the last; at most 2).
+   - `compiles`: how many compiles of the skeleton this attempt made (the bootstrap and the last; at most 2): the
+     probes and the skeleton file's draft call (step 10) aren't counted.
    - `recordPath`: the last compile's record, relative to the run folder; `null` when the last compile
      didn't succeed (a record beside the skeleton is then the bootstrap's or an earlier attempt's; never a
      faulted attempt's, whose first compile failed).
    - `faultsApplied`: `[{"id": "FI-1", "observed": "<the compile error naming the gem>"}]` when you
      applied FI-1, else `[]`.
    - `leagueUnverified`: `true` when trade couldn't be reached online and the league is a fallback (step 4).
+10. **The skeleton file** (D-479), the step's last act, only when the last compile passed the damage check
+    (`verdict.damage: "pass"`): once the verdict file is written, call `mcp__pob2__compile_plan {plan_path:
+    "<runFolderRel>/concepts/<id>/plan.json", draft_name: "<card name> skeleton"}`, the card's name as the prompt
+    gives it. It runs no engine: the server's draft mode copies step 8's `compiled-build.xml` into the builds folder
+    as `<card name> skeleton (draft).xml`, so the user can open the card in PoB at the verification gate (key pieces
+    only: one stage, the tree's targets and paths, the key uniques and plain bases, no flasks or anoint; its numbers
+    aren't the build's). A later attempt or revision that passes replaces it; one the user changed in PoB, unless the
+    runner adopted it, is never overwritten (the server writes ` (draft 2)` beside it). Its reply's first line is
+    `Draft written: <relpath>`: return it as `skeleton: <relpath>`, which the runner records on your stage entry as
+    `skeletonFile`. A refusal writes nothing: return `skeleton: none: <its line>`. You never remove a skeleton: the
+    runner does, once the card's build gets its first design draft.
 
 A `possibly unread` line the card depends on goes under what PoB can't verify; D1-build confirms it by
 measurement (two stages, with and without the line, D-243), not R1b.
@@ -522,20 +535,23 @@ PoB pin"}`: the pin can't compile it until an upgrade.
 Only the header's `writes` (D-338): `concepts/<id>/plan.json`, the verdict file
 `reports/gates/R1b-<id>-a<attempt>.json`, the card `cards/<id>.md` (its verification half, and a gate's
 change), and each probe's `probes/<id>/<n>/plan.json`, `n` from 1 to 4, to 8 on a composite (D-433). The server
-writes each compile's record and XML beside its plan.
+writes each compile's record and XML beside its plan, and the skeleton file into the builds folder at step 10's
+draft call, the step's one write there (D-479).
 
 ## Returns
 
 At most 8 lines: the outcome (`compiled`, with the damage kinds PoB shows; `compiled, damage missing: <the
 finding's message>`, a failed attempt; or `failed: <why>`), the verdict file, the card with its checklist and probe
 counts (`probes <n>`: every probe run, a probe whose compile failed included; on a composite, then its pieces
-measured, `pieces <n> measured (<n> not measured)`), and your price calls counted by outcome (`pricing.md`):
+measured, `pieces <n> measured (<n> not measured)`), your price calls counted by outcome (`pricing.md`), and on a
+damage pass `skeleton: <relpath>` (or `skeleton: none: <why>`) after step 10's draft call:
 
 ```
 R1b r1-a-2 attempt 1: compiled; damage: hit, bleed
 reports/gates/R1b-r1-a-2-a1.json
 cards/r1-a-2.md: checklist 8 run (2 not checked), probes 3
 prices: none (offline)
+skeleton: Hemorrhage Blood Hunt Titan skeleton (draft).xml
 ```
 
 ```
@@ -543,6 +559,7 @@ R1b r1-s-1 attempt 1: compiled; damage: hit, ignite
 reports/gates/R1b-r1-s-1-a1.json
 cards/r1-s-1.md: checklist 8 run (1 not checked), probes 7, pieces 4 measured (1 not measured)
 prices: none (offline)
+skeleton: Ember Seismic Cry Titan skeleton (draft).xml
 ```
 
 ```

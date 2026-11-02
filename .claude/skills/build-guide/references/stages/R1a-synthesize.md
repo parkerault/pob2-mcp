@@ -263,8 +263,8 @@ The example is a fixed roll, so its structures are engines (step 1), and it show
 - **`## Not composed`:** `- <structure>: <why>`, from steps 3, 4 and 5; or `None.`.
 - **`## Superseded`**, only once a later round recomposed: `- <old id> "<name>" → <new id>` (step 9).
 
-Fields are separated by ` | `, as the deck's lines always were. "Not confirmed in game" is every card's default, which
-the display says once: no line repeats it.
+Fields are separated by ` | `, as the deck's lines always were. No line says a card isn't confirmed in game, every
+card's default: a card's unconfirmed point, with its fallback, goes in its catch (D-478, D-489).
 
 ## Returns
 

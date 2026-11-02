@@ -141,8 +141,9 @@ Three engines: bleed from on-hit (3), bleed from on-crit (2), rage from on-hit (
   exempted.
 - **One `## Round <k>` per brainstorm round**, each line one dealt card: its id, its name in quotes, what it adds
   to the shared core, its engine, then its under-played label and `can't be finalized yet: <why>` (D-303) with
-  `waits on the pin: <entry>` where they apply. "Not confirmed in game" is every card's default, which the
-  display says once: no line repeats it, a links count or "no player evidence".
+  `waits on the pin: <entry>` where they apply. No line says a card isn't confirmed in game, every card's
+  default, nor gives a links count or "no player evidence": a card's unconfirmed point, with its fallback, goes in
+  its catch (D-478, D-489).
 - **`## Not dealt`**: every card held back in any round, with its reason in plain words. The user can still ask
   for one at the brainstorm gate. `None.` when nothing was held back.
 - **`## Found, not used`**, the last H2: up to five strong research findings no card uses, each `- <finding>:

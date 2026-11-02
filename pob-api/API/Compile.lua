@@ -98,8 +98,8 @@
 --     `Allocates <notable>`, as PoB's anoint dialog writes it, ItemsTab:anointItem; WU-65, D-358); every
 --     socket group and its gems (D-471, schema 9: a skill gem with `corrupt` gets PoB's corruption state, set_gem_corruption,
 --     so PoB calculates it one level higher), each group with the includeInFullDPS and groupCount it is given
---     (the compiler puts only the named source's group in Full DPS, with its Count:
---     D-293, D-337); every listed config option, then the custom modifier lines, joined by newlines into
+--     (the compiler puts only the named source's group in Full DPS, D-293, D-337, and gives every group with a plan
+--     count that Count, D-493); every listed config option, then the custom modifier lines, joined by newlines into
 --     PoB's customMods text option (D-293; D-469, schema 9: each after its `customModReasons` entry's comment line
 --     `# <reason>`, which PoB skips). A pinned weapon (D-464, schema 9): an item with `sameAs` puts the item its
 --     set-1 slot got in the Swap slot too (pin), so the item set holds one item in both weapon sets.
@@ -1715,8 +1715,8 @@ local function add_to_beast_library(id)
   build.beastList[#build.beastList + 1] = id
 end
 
--- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337); a reused set
--- already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
+-- A new skill set gets every group with the Full DPS flag and Count it is given (D-293, D-337; D-493: every group with
+-- a plan count has its Count); a reused set already holds them, as it holds its groups. The set is the stage's own (stage_set ran before the stage's first
 -- calculation, D-382), so it may already hold PoB's own groups.
 -- D-402: with a companion, the stage's Tame Beast gem goes in as PoB's companion gem, as the game turns the gem when
 -- it captures the beast, with the beast as its minion (skillMinion, which CalcActiveSkill picks from the beast library,

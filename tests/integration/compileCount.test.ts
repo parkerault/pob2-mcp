@@ -14,8 +14,13 @@
  * - AC-P55: every figure of a stage measured with a custom modifier present is marked, defences included, and
  *   so is a ledger value reading it; a stage without one has no mark. A version-1 plan that lists PoB's
  *   customMods option as an earned entry is marked the same way (D-332).
- * - AC-P56 and D-337: the final file sets groupCount and includeInFullDPS on the named source's groups only,
- *   and so does the measure-only XML; PoB computes Full DPS for them.
+ * - AC-P56 and D-337: the final file sets includeInFullDPS on the named source's groups only, and so does the
+ *   measure-only XML; PoB computes Full DPS for them. D-493 (amendment 14 §19, AC-P91): both set groupCount on every
+ *   group with a plan count, the named source's 1 when it has none.
+ * - AC-P91 (WU-137, D-493): two counted groups, the named source ×2 and another ×2, save groupCount 2 on both and
+ *   includeInFullDPS on the named source only; a counted Skeletal Brute group that isn't the named source reserves its
+ *   Spirit × 2 (PoB's MultipleReservation, `Modules/CalcDefence.lua`:284-288). The record's figures don't move: it
+ *   applies Count itself.
  * - D-322 through the compile: a missing reason is a V1 finding in the record, and the compile still succeeds.
  * - C-41 step 5: a custom modifier line PoB can't parse whole is a defect; nothing is compiled.
  *
@@ -319,7 +324,7 @@ engineDescribe('WU-55: Count and custom modifiers through compile_plan (D-293, D
     expect(record.ledger.s1_dps).toMatchObject({ computedWithCustomMods: false, error: null });
   }, ENGINE_TIMEOUT);
 
-  it('AC-P56, D-337: the final file and the measure-only XML put the named source\'s group in Full DPS with its groupCount, and no other group', async () => {
+  it('AC-P56, D-337, AC-P91 (D-493): the final file and the measure-only XML put the named source\'s group in Full DPS, and no other group; every counted group has its groupCount', async () => {
     const r = await newRun('count-final', countedPlan());
     const out = await f.call('compile_plan', { plan_path: r.plan, build_name: 'wu55-count' });
     expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
@@ -337,12 +342,14 @@ engineDescribe('WU-55: Count and custom modifiers through compile_plan (D-293, D
         expect({ which, title, n: groups?.length }).toEqual({ which, title, n: stage.skills.groups.length });
         groups.forEach((g, k) => {
           const named = k + 1 === stage.skills.rolledGroup;
+          // D-493: every group with a plan count carries it; the named source's group carries 1 when it has none.
+          const count: number | undefined = stage.skills.groups[k].count ?? (named ? 1 : undefined);
           expect({ which, stage: stage.id, group: k + 1, full: g.includeInFullDPS, count: g.groupCount }).toEqual({
             which,
             stage: stage.id,
             group: k + 1,
             full: named ? 'true' : 'false',
-            count: named ? String(stage.skills.groups[k].count ?? 1) : undefined,
+            count: count === undefined ? undefined : String(count),
           });
         });
       }
@@ -350,6 +357,54 @@ engineDescribe('WU-55: Count and custom modifiers through compile_plan (D-293, D
     // PoB computed Full DPS for the named groups in the final compile, with stage 1's Count of 2.
     for (const id of ['1', '2']) expect(record.stages[id].outputs.FullDPS).toBeGreaterThan(0);
     expect(record.stages['1'].outputs.FullDPS).toBe(counted.stages['1'].outputs.FullDPS);
+  }, ENGINE_TIMEOUT);
+
+  it('AC-P91 (D-493): the named source ×2 and another group ×2 save groupCount 2 on both, includeInFullDPS on the named source only; the record\'s figures are those of the plain plan', async () => {
+    const plan = plainPlan();
+    const groups = plan.stages[0].skills.groups;
+    Object.assign(groups[0], { count: 2, countReason: 'test: two copies' });
+    Object.assign(groups[1], { count: 2, countReason: 'test: two copies' });
+    const { abs, record } = await measure('count-two-groups', plan);
+    const title = record.sets.find((s) => s.kind === 'skill' && s.stages.includes('1'))!.title;
+    const saved = skillGroups(fs.readFileSync(path.join(abs, 'compiled-build.xml'), 'utf8'))[title];
+    expect(saved.map((g) => ({ label: g.label, full: g.includeInFullDPS, count: g.groupCount }))).toEqual([
+      { label: 'Boneshatter', full: 'true', count: '2' },
+      { label: 'Rolling Slam', full: 'false', count: '2' },
+      { label: 'Essence Drain', full: 'false', count: undefined },
+    ]);
+    // PoB's per-group figures don't read the Count, and the record applies it itself: Rolling Slam's counted figures are
+    // its raw ones × 2, the raw ones those of the plain plan.
+    const s1 = record.stages['1'];
+    expect(s1.skillOutputs).toEqual(plain.stages['1'].skillOutputs);
+    for (const [key, c] of Object.entries(s1.countedSkillOutputs)) {
+      if (!key.startsWith('g2s')) continue;
+      expect({ key, count: c.count }).toEqual({ key, count: 2 });
+      if (s1.skillOutputs[key].fields.TotalDPS !== undefined) expect(c.fields.TotalDPS).toBe(s1.skillOutputs[key].fields.TotalDPS * 2);
+    }
+  }, ENGINE_TIMEOUT);
+
+  it('AC-P91 (D-493): a counted Skeletal Brute group that isn\'t the named source reserves its Spirit × 2 (MultipleReservation)', async () => {
+    // Skeletal Brute is one of the pin's skeleton summons with PoB's MultipleReservation type (Data/Skills/act_int.lua);
+    // Skeletal Warrior is left out because its first two minions reserve nothing ("first_X_minions_have_0_base_spirit_reservation").
+    const withSkeleton = (count?: number): Json => {
+      const plan = plainPlan();
+      plan.stages[0].skills.groups.push({
+        label: 'Skeletal Brute',
+        enabled: true,
+        role: 'utility',
+        gems: [{ name: 'Skeletal Brute', level: 1, quality: 0, enabled: true }],
+        ...(count !== undefined ? { count, countReason: 'test: two brutes' } : {}),
+      });
+      return plan;
+    };
+    const one = (await measure('count-skeleton-1', withSkeleton())).record.stages['1'].outputs;
+    const two = (await measure('count-skeleton-2', withSkeleton(2))).record.stages['1'].outputs;
+    const none = plain.stages['1'].outputs;
+    // SpiritUnreserved is the pool less what is reserved (Modules/CalcDefence.lua:342), uncapped: the brute's reservation
+    // is what it takes from the pool, once without a count and twice at the plan's 2.
+    const reserved = none.SpiritUnreserved - one.SpiritUnreserved;
+    expect(reserved).toBeGreaterThan(0);
+    expect(none.SpiritUnreserved - two.SpiritUnreserved).toBe(2 * reserved);
   }, ENGINE_TIMEOUT);
 
   it('C-41 step 5 (D-293): a custom modifier line PoB can\'t parse whole is a defect naming the stage and the line; nothing is compiled', async () => {

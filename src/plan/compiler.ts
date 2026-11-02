@@ -15,8 +15,9 @@
  *  7. one `compile_stage` per stage builds and measures it; PoB's allocation is compared with the plan's
  *     (`compareAllocation`, D-213), and so are the items its item set holds (`compareItems`): PoB
  *     unequips an off-hand that doesn't fit without a word, so any difference is an error. The named
- *     source's group (`rolledGroup`) is created in PoB's Full DPS with its Count (`groupCount`), and every
- *     other group out of it, in both modes (D-293, D-337); the custom modifiers go into PoB's `customMods`
+ *     source's group (`rolledGroup`) is created in PoB's Full DPS, and every other group out of it, in both
+ *     modes (D-293, D-337); every group with a plan `count` gets it as its Count (`groupCount`, D-493), the
+ *     named source's 1 when it has none; the custom modifiers go into PoB's `customMods`
  *     option after the listed config options (D-293);
  *  8. `compile_finish` checks the loadouts, selects the highest stage's and saves its level in auto mode;
  *     every item set is compared with the plan again;
@@ -1056,14 +1057,19 @@ export function stageParams(
     useSecondWeaponSet: stage.items.useSecondWeaponSet,
     skillSet: refs.skill,
     groups: stage.skills.groups.map((g, k) => {
-      // D-293, D-337: the named source's group (rolledGroup, D-295) is in PoB's Full DPS with its Count in
-      // every compile, so the file shows the reader that Full DPS; every other group stays out (D-306).
+      // D-293, D-337: the named source's group (rolledGroup, D-295) is in PoB's Full DPS in every compile, so the file
+      // shows the reader that Full DPS; every other group stays out (D-306). D-493 (amendment 14 §19): every group with a
+      // plan `count` gets it as PoB's groupCount, in every stage and both modes, so PoB's own uses of the Count (Spirit
+      // reserved × count by a MultipleReservation skill or a totem under Ancestral Bond, Umbral Well's per-minion buff,
+      // node power's figure for a pool group) read the plan's; the named source's group always carries one (1 by
+      // default). The record applies Count itself (`countedFigures`), so its figures don't move.
       const named = stage.skills.rolledGroup === k + 1;
+      const count = g.count ?? (named ? 1 : undefined);
       return {
         ...(g.label !== undefined ? { label: g.label } : {}),
         enabled: g.enabled,
         includeInFullDPS: named,
-        ...(named ? { groupCount: g.count ?? 1 } : {}),
+        ...(count !== undefined ? { groupCount: count } : {}),
         gems: g.gems.map((gem) => ({
           name: gem.name,
           level: gem.level,

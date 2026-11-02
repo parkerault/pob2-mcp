@@ -236,7 +236,7 @@ engineDescribe('WU-127: node power on the Titan Rake r2-s-2 plan: targets with r
     );
   });
 
-  describe("pool_groups: the set-2 pool ranked by Shield Wall's figure on the boss config (AC-K76 (6), R-64)", () => {
+  describe("pool_groups: the set-2 pool ranked by Shield Wall's figure on the boss config (AC-K76 (6), R-64; AC-P91, D-493)", () => {
     /** Shield Wall's group on set 2, the boss rotation's largest entry there. */
     const SHIELD_WALL = 4;
     /** The rung's needs but the set-2 pool's, so the pool has branches to move. */
@@ -262,12 +262,11 @@ engineDescribe('WU-127: node power on the Titan Rake r2-s-2 plan: targets with r
         expect(pool.group).toEqual({ group: SHIELD_WALL, label: n.skills.groups[SHIELD_WALL - 1].label });
         const line = lineOf(pooled.text, /^Best swap \(weapon set 2/);
         expect(line).toMatch(new RegExp(`^Best swap \\(weapon set 2, ranked by group ${SHIELD_WALL}, Shield Wall.*, against a Pinnacle boss\\): \\+[\\d.]+% Boss damage \\(group ${SHIELD_WALL}\\)`));
-        // Its figure is the group's boss figure (the compile's boss measure, the same Count): hits and ailments of group 4.
+        // Its figure is the group's boss figure (the compile's boss measure): hits and ailments of group 4. D-493 (AC-P91):
+        // the compile gives the group its plan count (2 walls) as PoB's groupCount, so PoB's Count and the record's agree.
         const bg = rec.stages.n.measures.bossGroups.find((g: Json) => g.group === SHIELD_WALL);
-        const count = n.skills.groups[SHIELD_WALL - 1].count ?? 1;
-        const ailments = bg.ignite + bg.bleed + bg.poison;
-        const pobCount = (bg.figure - ailments) / count + ailments;
-        expect(Math.abs(pool.base[0]! - pobCount) / pobCount).toBeLessThan(1e-6);
+        expect(n.skills.groups[SHIELD_WALL - 1].count).toBe(2);
+        expect(Math.abs(pool.base[0]! - bg.figure) / bg.figure).toBeLessThan(1e-6);
         expect(pool.bestSwap).toBeDefined();
         // The other set keeps today's ranking (set 1 holds the main group).
         expect(lineOf(pooled.text, /^Best swap \(weapon set 1/)).toMatch(/^Best swap \(weapon set 1\): /);
@@ -276,7 +275,7 @@ engineDescribe('WU-127: node power on the Titan Rake r2-s-2 plan: targets with r
     );
 
     it(
-      "R-64: the pool move's gain agrees with the change in group 4's boss figure between measure-only compiles before and after it",
+      "R-64, AC-P91 (D-493): the pool move's gain agrees with the change in group 4's boss figure between measure-only compiles before and after it, at the plan's count",
       async () => {
         const pool = pooled.reply.poolSwaps!.find((p) => p.set === 2)!;
         const s = pool.bestSwap!;
@@ -285,16 +284,15 @@ engineDescribe('WU-127: node power on the Titan Rake r2-s-2 plan: targets with r
         const after = await compile('tr-s2-pool', plan, ['n']);
         const b0 = rec.stages.n.measures.bossGroups.find((g: Json) => g.group === SHIELD_WALL);
         const b1 = after.stages.n.measures.bossGroups.find((g: Json) => g.group === SHIELD_WALL);
-        const count = stageOf(plan, 'n').skills.groups[SHIELD_WALL - 1].count ?? 1;
-        // The record counts the plan's Count (2 walls); node power's figure is PoB's own Count for the group (1), D-467.
-        const atCount = (g: Json, c: number) => ((g.figure - g.ignite - g.bleed - g.poison) / count) * c + g.ignite + g.bleed + g.poison;
-        const change1 = atCount(b1, 1) - atCount(b0, 1);
+        // D-493 (AC-P91, AC-K76's original bullet): the record counts the plan's Count (2 walls), and so does node power's
+        // figure now that the compile gives the group its groupCount: the gain is the record's change, at the plan's count.
+        const change = b1.figure - b0.figure;
         const recordPct = pct(b1.figure, b0.figure);
         console.error(
-          `[WU-127 R-64] pool move +${(s.gainPercent![0] as number).toFixed(3)}% (${s.gain![0]}); the record's group-4 boss figure ` +
-            `${b0.figure} → ${b1.figure} (+${recordPct.toFixed(3)}%), at PoB's Count ${change1}`,
+          `[WU-137 AC-P91] pool move +${(s.gainPercent![0] as number).toFixed(3)}% (${s.gain![0]}); the record's group-4 boss figure ` +
+            `${b0.figure} → ${b1.figure} (+${recordPct.toFixed(3)}%, ${change}), at the plan's Count`,
         );
-        expect(Math.abs(s.gain![0]! - change1)).toBeLessThanOrEqual(0.01 * Math.abs(change1));
+        expect(Math.abs(s.gain![0]! - change)).toBeLessThanOrEqual(0.01 * Math.abs(change));
         expect(Math.abs((s.gainPercent![0] as number) - recordPct)).toBeLessThanOrEqual(1);
       },
       ENGINE_TIMEOUT,

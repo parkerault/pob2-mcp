@@ -6221,3 +6221,20 @@ the `m17` engine at `b76967b`.
   user.
 - **Baseline gate** on `8583779`: `mise run test` rc 0 (220 suites, 3,854 tests; the timing step 2 suites, 4 tests),
   `pnpm build` rc 0.
+- **WU-141 (the research docs and the pattern library) merged** at `00ea475` (fast-forward, two commits). R1b writes
+  the card's skeleton file as its last act on a damage pass, outside its two compiles, and returns `skeleton:
+  <relpath>` (`skeleton: none: <line>` on a refusal; a failed attempt makes no call); its verdict's `compiles` counts
+  compiles of the skeleton only, which the checker's one reader (`terminalR1b`, `=== 0` on a terminal failure) still
+  meets. "Unconfirmed (<what>; if it fails: <fallback>)" replaces "needs in-game testing" in the card template, `Q.md`
+  and the library; "How it clears" asks standing or walking and casts a pack; the library's new entry "Moving while
+  using skills" cites the pin for the movement-penalty reducers; the R1a docs drop the display's not-confirmed
+  sentence. AC-W109 in new `describe` blocks of `buildGuidePipeline.test.ts` and `patternLibraryEngine.test.ts` (17
+  tests). Its verifier (fresh context) passed it, re-running the gate (220 suites, 3,871 tests, rc 0; the timing step 2
+  suites, 4 tests; build rc 0) and checking the entry's citations against the pin.
+  - **The library is 16,811 `wc -w` words** (+250: the new entry 223, the rewording 27): under 17,000, so the user's
+    waiver of HG-35 wasn't needed.
+  - **For WU-143:** `task-header.md`'s "no other step writes or deletes a draft" and its `compile: "measure-only"` rule,
+    and the coordinator's definition, must admit R1b's draft call; `checkpoints.md`:41 still says "needs in-game
+    testing" (pinned by `buildGuidePipeline.test.ts`:3509); `SKILL.md` records R1b's `skeleton:` as `skeletonFile`.
+  - **Left:** the card template's "Not confirmed: <the link>: <what it would change>" field has no fallback slot (§15
+    doesn't name it).

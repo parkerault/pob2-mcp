@@ -18,6 +18,12 @@
  * - It is written as a temp file then a rename. Its read-modify-writes in this process go one at a time
  *   (`updateWriteLedger`), since the draft mode runs outside the engine lock.
  * - Measure-only compiles never read or write it.
+ *
+ * Amendment 14 (D-479, D-487; the format stays version 2): each entry gains `baseSha1`, the sha1 of the bytes a
+ * compile or a draft wrote, which only a new compile or draft write changes (`compile_plan`'s read-back compares the
+ * user's file with that write's copy beside the plan), and `adopted: true` once `compile_plan {adopt}` took the edited
+ * file as the server's own: its `sha1` is then the edited file's, so the next write replaces it. The notes write and
+ * `set_build_notes`' refresh change `sha1` and leave `baseSha1`. An entry read without `baseSha1` takes its `sha1`.
  */
 import fs from 'fs/promises';
 import path from 'path';
@@ -47,12 +53,18 @@ const v1EntryShape = {
 
 const v1EntrySchema = z.object(v1EntryShape).strict();
 
+const sha1Schema = z.string().regex(/^[0-9a-f]{40}$/, { message: 'a sha1 is 40 lowercase hex digits' });
+
 const v2EntrySchema = z
   .object({
     ...v1EntryShape,
     kind: z.enum(['final', 'draft']),
     /** The plan path (relative to the guides root) that wrote it; absent only on an entry a version-1 ledger held. */
     plan: z.string().min(1).optional(),
+    /** D-479: the sha1 of the bytes the last compile or draft write wrote; left out before amendment 14 (read as `sha1`). */
+    baseSha1: sha1Schema.optional(),
+    /** D-479: the file the user edited was adopted as the server's own (`compile_plan {adopt}`). */
+    adopted: z.literal(true).optional(),
   })
   .strict();
 
@@ -76,8 +88,14 @@ const ledgerSchema = z
   .strict()
   .superRefine((ledger, ctx) => uniquePaths(ledger.entries, ctx));
 
-export type WriteLedger = z.infer<typeof ledgerSchema>;
-export type WriteLedgerEntry = WriteLedger['entries'][number];
+/** An entry as read: `baseSha1` always present (an entry written before amendment 14 takes its `sha1`). */
+export type WriteLedgerEntry = Omit<z.infer<typeof v2EntrySchema>, 'baseSha1'> & { baseSha1: string };
+export type WriteLedger = { ledgerVersion: 2; entries: WriteLedgerEntry[] };
+
+/** D-479: an entry without `baseSha1` takes its `sha1`. */
+function withBase<T extends { sha1: string; baseSha1?: string }>(entry: T): T & { baseSha1: string } {
+  return { ...entry, baseSha1: entry.baseSha1 ?? entry.sha1 };
+}
 
 /** An unreadable or invalid ledger; the message names the file. */
 export class WriteLedgerError extends Error {
@@ -118,11 +136,11 @@ export async function readWriteLedger(stateDir: string): Promise<WriteLedger> {
     // D-466: a version-1 ledger's entries are final files with no plan.
     const v1 = v1LedgerSchema.safeParse(value);
     if (!v1.success) throw invalid(file, v1.error);
-    return { ledgerVersion: WRITE_LEDGER_VERSION, entries: v1.data.entries.map((e) => ({ ...e, kind: 'final' as const })) };
+    return { ledgerVersion: WRITE_LEDGER_VERSION, entries: v1.data.entries.map((e) => withBase({ ...e, kind: 'final' as const })) };
   }
   const parsed = ledgerSchema.safeParse(value);
   if (!parsed.success) throw invalid(file, parsed.error);
-  return parsed.data;
+  return { ledgerVersion: WRITE_LEDGER_VERSION, entries: parsed.data.entries.map(withBase) };
 }
 
 function invalid(file: string, error: z.ZodError): WriteLedgerError {
@@ -133,6 +151,14 @@ function invalid(file: string, error: z.ZodError): WriteLedgerError {
 /** The ledger's entry for a canonical builds-relative path, if any. */
 export function ledgerEntryFor(ledger: WriteLedger, relPath: string): WriteLedgerEntry | undefined {
   return ledger.entries.find((e) => e.path === relPath);
+}
+
+/**
+ * The entry a compile or a draft write records (D-211, D-466, D-479): its `baseSha1` is the sha1 it wrote, and it isn't
+ * adopted (a new write replaces an adopted file's entry whole).
+ */
+export function writtenEntry(entry: Omit<WriteLedgerEntry, 'baseSha1' | 'adopted'>): WriteLedgerEntry {
+  return { path: entry.path, sha1: entry.sha1, runFolder: entry.runFolder, writtenAt: entry.writtenAt, kind: entry.kind, ...(entry.plan !== undefined ? { plan: entry.plan } : {}), baseSha1: entry.sha1 };
 }
 
 /** The ledger with `entry` replacing any entry for its path (a write replaces its target's entry). */

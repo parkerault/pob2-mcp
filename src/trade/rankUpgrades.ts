@@ -20,6 +20,9 @@
  *     when rates are unavailable or the conversion is partial. `is_upgrade` is
  *     `round(score, 4) > round(baseline, 4)`.
  * 13. **Select**: the upgrades, up to `limit`; with `include_non_upgrades`, the top `limit` regardless.
+ *
+ * D-494 (amendment 14): each selected listing names its required affixes' tiers (`listingTiers`), read from the trade
+ * site's `mods[].tier` of each affix line (`src/trade/modLines.ts`), so the caller reads which tiers the budget buys.
  */
 import type { EngineCallContext } from '../engine/session.js';
 import type { TradeEvaluateItemsResult } from '../engine/schemas.js';
@@ -36,6 +39,7 @@ import {
   type SearchStop,
   type UpgradeSearchResult,
 } from './findUpgrades.js';
+import { itemModLines, type LocatedModLine } from './modLines.js';
 import { NO_MATCHES, NO_UPGRADE, type UpgradeReport } from './renderUpgrades.js';
 import type { FetchEntry } from './tradeClient.js';
 
@@ -88,6 +92,40 @@ export interface ListingRow {
   divine: number | null;
   /** Rates were available, but this listing's price could not be converted (D-54). */
   priceNotConverted: boolean;
+  /** D-494: each required affix with its tier, `<affix> T<n>` (`T1+T2` for a line merging two mods); set on the selected rows. */
+  tiers?: string[];
+}
+
+/** A trade tier label (`P2`, `S1`) as `T<n>`, its number; `T?` when it has none. */
+export function tierLabel(tier: string | undefined): string {
+  const n = /(\d+)/.exec(tier ?? '')?.[1];
+  return n === undefined ? 'T?' : `T${n}`;
+}
+
+/** A stat id without its domain (`explicit.stat_123` → `stat_123`), so a fractured or desecrated line still matches. */
+const bareStat = (id: string): string => id.replace(/^[a-z_]+\./, '');
+
+/**
+ * D-494: the required affixes' tiers of a listing, one string each, in the order the ids are given: the affix line's text
+ * and the tier of each mod it merges (`+190 to maximum Life T2`, `140% increased Armour and Evasion T1+T2`). The line is
+ * the one whose stat id is the required id (else the same stat in another domain); an id with no line reads
+ * `<id> (no line)`.
+ */
+export function listingTiers(entry: FetchEntry, requiredIds: readonly string[]): string[] {
+  if (requiredIds.length === 0) return [];
+  let lines: LocatedModLine[] = [];
+  try {
+    lines = itemModLines((entry as unknown as { item?: unknown }).item);
+  } catch {
+    lines = [];
+  }
+  return requiredIds.map((id) => {
+    const found =
+      lines.find((l) => l.line.statId === id) ?? lines.find((l) => l.line.statId !== null && bareStat(l.line.statId) === bareStat(id));
+    if (found === undefined) return `${id} (no line)`;
+    const tiers = found.line.mods.map((m) => tierLabel(m.tier));
+    return `${found.line.text} ${tiers.length > 0 ? tiers.join('+') : 'T?'}`;
+  });
 }
 
 /** PoB's 4-decimal comparison (C-14 step 12). */
@@ -481,6 +519,9 @@ export async function completeUpgradeSearch(searched: Searched, input: FindUpgra
   const ranking = rankRows(pricing.kept, input.rank_by, pricing);
   const listings = selectRows(ranking.ordered, input.limit, input.include_non_upgrades);
   const upgrades = pricing.kept.filter((r) => r.isUpgrade).length;
+  // D-494: each listing's required affixes' tiers.
+  const requiredIds = (input.required_mods ?? []).map((m) => m.trade_id);
+  for (const row of listings) row.tiers = listingTiers(row.entry, requiredIds);
 
   if (stop) notes.push(stoppedEarlyNote(stop));
   if (evaluation.rows.length > 0) notes.push(...pricing.notes);

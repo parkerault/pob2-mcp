@@ -23,8 +23,9 @@
  *     every item set is compared with the plan again;
  *  9. the build is exported, every listed config option PoB's save left out is put back into its set and
  *     checked (D-248), and the XML is encoded as an import code (C-42);
- * 10. final: the builds-folder file through C-17, then its write-ledger entry; measure-only: the XML
- *     beside the plan;
+ * 10. final: the builds-folder file through C-17, then its write-ledger entry (D-479: its `baseSha1` the sha1
+ *     written), then a copy of the bytes beside the plan, `final-build.xml` (a campaign's `final-build-campaign.xml`),
+ *     the base a read-back of the final file compares with; measure-only: the XML beside the plan;
  * 11. V1 and V2 check every compiled stage (`src/plan/checks/`, D-192), the ledger formulas are evaluated and
  *     the record is written beside the plan, with each figure's Count applied beside the raw one and the
  *     custom-modifier marks (`record.ts`, D-321).
@@ -93,6 +94,10 @@
  * `# <reason>` before its line (`customModReasons`), which `compile_check` refuses when PoB would parse it whole. V1 gains
  * `corruption`. What reads the custom lines (the estimate mark, `custom-defence`, `customModsWritten`) reads the lines alone.
  *
+ * Amendment 14 (D-479, D-487, D-488): besides the compile and the draft mode, `compile_plan`'s read-back (`readBackFile`),
+ * adopt (`adoptFile`) and notes (`writeNotes`) modes run with no engine, and its trade-links mode (`writeTradeLinks`) as a
+ * `load` of the final compile's copy; see their own comments at the end of this file.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -116,6 +121,16 @@ import type {
 } from '../engine/schemas.js';
 import { ITEM_SLOTS } from '../server/toolSchemas.js';
 import { BuildFileWriteError, type BuildFileWriter, type WriteGuard } from '../services/buildFileWriter.js';
+import { escapeNotes, replaceNotesXml } from '../services/buildExportService.js';
+import { tradeQueryUrl } from '../trade/links.js';
+import {
+  COMPLEXITY_BUDGET,
+  COMPLEXITY_HEADROOM,
+  dropLowestWeighted,
+  estimateComplexity,
+  weightedFilterCount,
+  type TradeQueryBody,
+} from '../trade/prefit.js';
 import { encodePobCode } from '../utils/buildCode.js';
 import { checkGuidesRoot, realPathInGuides, resolveInGuidesRoot, runFolderOf } from '../utils/guidesPath.js';
 import { canonicalBuildPath } from '../utils/pathSanitizer.js';
@@ -180,11 +195,14 @@ import {
   updateWriteLedger,
   withLedgerEntry,
   withoutLedgerEntry,
+  writtenEntry,
   type WriteLedger,
+  type WriteLedgerEntry,
 } from './writeLedger.js';
 import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline.js';
 import { checkV1, DEFENCE_CHECKS_SINCE, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
+import { compareBuilds, parsePobXml, readBackSummary, type ReadBackFile, type ReadBackNames } from '../services/readBack.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
 export class CompileError extends Error {
@@ -928,7 +946,7 @@ export async function loadPlan(
  * still be the folder read, then the data goes to a fresh temp file (never through an existing link) that
  * is renamed over `name`.
  */
-async function writeBesidePlan(guidesDirectory: string, planPath: string, loaded: LoadedPlan, name: string, data: string): Promise<void> {
+async function writeBesidePlan(guidesDirectory: string, planPath: string, loaded: Pick<LoadedPlan, 'realDir'>, name: string, data: string): Promise<void> {
   const again = await resolveInGuidesRoot(guidesDirectory, planPath, 'plan_path');
   if (path.dirname(again) !== loaded.realDir) {
     throw new CompileError(`the plan's folder changed during the compile (now ${path.dirname(again)}); ${name} was not written`);
@@ -1008,7 +1026,11 @@ async function checkTarget(
   }
   const currentSha1 = sha1(current);
   if (currentSha1 !== entry.sha1) throw changedOnDisk(rel);
-  const guard = await env.writer.checkBuildFile({ name, kind: 'engine', overwrite: true });
+  // D-479, D-487: the ledger vouches for these bytes (the server's own write: a compile, the notes write, an adoption),
+  // so C-17's guard is asked as for a byte copy, which also accepts the writer's own last write to the file. Asked as
+  // the engine's save, it would accept only the engine's fingerprint of the file it loaded at the last final compile,
+  // and refuse every re-compile after a notes write or an adoption.
+  const guard = await env.writer.checkBuildFile({ name, kind: 'bytes', overwrite: true });
   return { name, rel, guard, overwrite: true, existingSha1: currentSha1 };
 }
 
@@ -1413,18 +1435,22 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     });
     replacedFile = saved.replaced;
     // At once after the file: a failure later still leaves the entry, so a retry may overwrite (D-211). D-466: the
-    // entry names its kind and the plan that wrote it.
-    const entry = {
+    // entry names its kind and the plan that wrote it; D-479: its baseSha1 is the sha1 written.
+    const entry = writtenEntry({
       path: saved.path,
       sha1: saved.fingerprint.sha1,
       runFolder,
       writtenAt: env.wallClock().toISOString(),
-      kind: 'final' as const,
+      kind: 'final',
       plan: loaded.relPath,
-    };
+    });
     await updateWriteLedger(env.stateDir, async (ledger) => ({ ledger: withLedgerEntry(ledger, entry), value: undefined }));
     written.builds.push(saved.path);
     pobFile = { location: 'builds', path: saved.path, sha1: saved.fingerprint.sha1, bytes: saved.bytes };
+    // D-479: a copy of the bytes written, beside the record, the base a read-back of the final file compares with.
+    const copy = finalCopyFile(plan.stages);
+    await writeBesidePlan(env.guidesDirectory, request.planPath, loaded, copy, xml);
+    written.guides.push(besideRel(copy));
   } else {
     await writeBesidePlan(env.guidesDirectory, request.planPath, loaded, MEASURE_ONLY_XML_FILE, xml);
     written.guides.push(besideRel(MEASURE_ONLY_XML_FILE));
@@ -1705,7 +1731,7 @@ interface PlanPlace {
   runFolder: string;
 }
 
-async function planPlace(env: DraftEnv, planPath: string): Promise<PlanPlace> {
+async function planPlace(env: Pick<DraftEnv, 'pobDirectory' | 'guidesDirectory'>, planPath: string): Promise<PlanPlace> {
   await checkGuidesRoot(env.guidesDirectory, env.pobDirectory);
   const realPath = await resolveInGuidesRoot(env.guidesDirectory, planPath, 'plan_path');
   const realRoot = await realPathInGuides(env.guidesDirectory);
@@ -1725,7 +1751,7 @@ async function planPlace(env: DraftEnv, planPath: string): Promise<PlanPlace> {
 }
 
 /** A file beside the plan, read through the guides root's confinement; null when it doesn't exist. */
-async function besidePlan(env: DraftEnv, place: PlanPlace, name: string): Promise<Buffer | null> {
+async function besidePlan(env: Pick<DraftEnv, 'guidesDirectory'>, place: PlanPlace, name: string): Promise<Buffer | null> {
   const rel = place.relDir === '.' ? name : `${place.relDir}/${name}`;
   return readIfExists(await resolveInGuidesRoot(env.guidesDirectory, rel, name));
 }
@@ -1792,14 +1818,14 @@ export async function writeDraft(env: DraftEnv, planPath: string, draftName: str
   return updateWriteLedger(env.stateDir, async (ledger) => {
     const chosen = await firstFreeOf(env.pobDirectory, ledger, candidates, place.relPath);
     const saved = await env.writer.writeBuildFile({ name: chosen.rel, bytes, kind: 'bytes', overwrite: chosen.existed });
-    const entry = {
+    const entry = writtenEntry({
       path: saved.path,
       sha1: saved.fingerprint.sha1,
       runFolder: place.runFolder,
       writtenAt: env.wallClock().toISOString(),
-      kind: 'draft' as const,
+      kind: 'draft',
       plan: place.relPath,
-    };
+    });
     return { ledger: withLedgerEntry(ledger, entry), value: { path: saved.path, replaced: saved.replaced, passed: chosen.passed } };
   });
 }
@@ -1825,4 +1851,377 @@ export async function removeDraft(env: DraftEnv, planPath: string, draftPath: st
     const deleted = await env.writer.deleteBuildFile({ name: rel, sha1: entry.sha1 });
     return { ledger: withoutLedgerEntry(ledger, rel), value: { path: deleted.path, backupPath: deleted.backupPath } };
   });
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Amendment 14 (D-479, D-487, D-488): the final file's copy, and the read-back, adopt, notes and trade-links modes
+
+/** D-479: the copy of a final compile's written bytes beside its record, the base a read-back of the final file reads. */
+export const FINAL_COPY_FILE = 'final-build.xml';
+/** D-479: the copy a campaign's final compile writes instead, so the endgame file's copy stays readable. */
+export const FINAL_CAMPAIGN_COPY_FILE = 'final-build-campaign.xml';
+/** D-479: the read-back's result beside the plan (Appendix A). */
+export const READBACK_FILE = 'readback.json';
+/** D-488: the trade links beside the record (Appendix A). */
+export const TRADE_LINKS_FILE = 'trade-links.json';
+
+/**
+ * The copy a final compile of these stages writes (D-479): a plan holding a campaign stage (one that gets no measures:
+ * neither a variant nor `progress: "endgame"`) is a campaign's final compile, the D2 gate's, so its copy is
+ * `final-build-campaign.xml`; an endgame plan's is `final-build.xml`.
+ */
+export function finalCopyFile(stages: readonly Pick<Stage, 'progress' | 'variant'>[]): string {
+  return stages.some((s) => !measuredStage(s)) ? FINAL_CAMPAIGN_COPY_FILE : FINAL_COPY_FILE;
+}
+
+/** What the read-back reads beside the plan for a ledger entry's kind: a draft's or skeleton's base, or a final file's copies. */
+function baseCandidates(kind: WriteLedgerEntry['kind']): string[] {
+  return kind === 'draft' ? [MEASURE_ONLY_XML_FILE] : [FINAL_COPY_FILE, FINAL_CAMPAIGN_COPY_FILE];
+}
+
+/** A file's bytes from the builds folder (its canonical path), or null when it doesn't exist. */
+async function buildsFile(pobDirectory: string, rel: string): Promise<Buffer | null> {
+  return readIfExists(path.join(path.resolve(pobDirectory), ...rel.split('/')));
+}
+
+/** The ledger's entry for `rel`, which this plan's build must have written (D-479: the read-back reads only such a file). */
+function ownEntry(ledger: WriteLedger, rel: string, place: PlanPlace, refused: (why: string) => Error): WriteLedgerEntry {
+  const entry = ledgerEntryFor(ledger, rel);
+  if (entry === undefined) throw refused('no compile_plan wrote it (the write ledger has no entry for it)');
+  if (entry.plan !== place.relPath) {
+    throw refused(`it is ${entry.plan === undefined ? `a file of run ${entry.runFolder}` : `another build's file (${entry.plan})`}, not ${place.relPath}'s`);
+  }
+  return entry;
+}
+
+/**
+ * What the read-back needs: the draft mode's environment, the writer's record of the versions it wrote over (R-83), and
+ * the names of nodes and config inputs.
+ */
+export interface ReadBackEnv extends Omit<DraftEnv, 'writer'> {
+  writer: Pick<BuildFileWriter, 'replacedVersion'>;
+  /** The names (passive tree, config labels), loaded for the tree versions the two files use. */
+  names: (treeVersions: readonly string[]) => Promise<ReadBackNames>;
+}
+
+/** The read-back's result (D-479): `readback.json` as written, and the reply's count and summary. */
+export interface ReadBackResult {
+  readBack: ReadBackFile;
+  /** Where `readback.json` was written, relative to the guides root. */
+  written: string;
+  changes: number;
+  summary: string;
+}
+
+/**
+ * `compile_plan {plan_path, read_back}` (D-479, C-41; engine kind `none`): compare a file this plan's build wrote, as the
+ * user left it, with the copy of what the server last wrote for it: `compiled-build.xml` beside the plan for a draft or a
+ * skeleton, the final compile's copy (`final-build.xml`, or a campaign's `final-build-campaign.xml`) for a final file,
+ * used only while its sha1 equals the ledger entry's `baseSha1`; otherwise it is refused ("the file was written again
+ * since") and nothing is written. Writes `readback.json` beside the plan.
+ */
+export async function readBackFile(env: ReadBackEnv, planPath: string, filePath: string): Promise<ReadBackResult> {
+  const place = await planPlace(env, planPath);
+  const rel = await canonicalBuildPath(filePath, env.pobDirectory);
+  const refused = (why: string) => new CompileError(`${rel} was not read back: ${why}. Nothing was written.`);
+  const ledger = await readWriteLedger(env.stateDir);
+  const entry = ownEntry(ledger, rel, place, refused);
+  const edited = await buildsFile(env.pobDirectory, rel);
+  if (edited === null) throw refused("it doesn't exist in the builds folder");
+  // R-83: an older version of the file, one the server has written over since (a PoB still holding the older draft
+  // saved it back), would show the server's own revision as the user's edit.
+  const editedSha1 = sha1(edited);
+  if (editedSha1 !== entry.sha1 && (await env.writer.replacedVersion({ name: rel, sha1: editedSha1 }))) {
+    throw refused('the file was written again since: it holds an older version of the file, which the server has written over');
+  }
+  const candidates = baseCandidates(entry.kind);
+  let base: { name: string; bytes: Buffer } | null = null;
+  for (const name of candidates) {
+    const bytes = await besidePlan(env, place, name);
+    if (bytes !== null && sha1(bytes) === entry.baseSha1) {
+      base = { name, bytes };
+      break;
+    }
+  }
+  if (base === null) {
+    throw refused(
+      `the file was written again since (${candidates.join(' or ')} beside the plan is no longer the copy of what the server ` +
+        `wrote to ${rel}); the current file is the one the build's latest compile or draft wrote`,
+    );
+  }
+  let baseXml;
+  let editedXml;
+  try {
+    baseXml = parsePobXml(base.bytes.toString('utf8'));
+  } catch (error) {
+    throw refused(`${base.name} beside the plan can't be read: ${(error as Error).message}`);
+  }
+  try {
+    editedXml = parsePobXml(edited.toString('utf8'));
+  } catch (error) {
+    throw refused(`${(error as Error).message}`);
+  }
+  const versions = [...new Set([...baseXml.specs, ...editedXml.specs].map((s) => s.treeVersion).filter((v) => v !== ''))];
+  const readBack = compareBuilds(baseXml, editedXml, await env.names(versions), { file: rel, base: base.name, baseSha1: entry.baseSha1 });
+  await writeBesidePlan(env.guidesDirectory, planPath, { realDir: place.realDir }, READBACK_FILE, `${JSON.stringify(readBack, null, 2)}\n`);
+  const { changes, text } = readBackSummary(readBack);
+  return { readBack, written: place.relDir === '.' ? READBACK_FILE : `${place.relDir}/${READBACK_FILE}`, changes, summary: text };
+}
+
+/**
+ * `compile_plan {plan_path, adopt}` (D-479, C-17; engine kind `none`): take a file this plan's build wrote, as the user
+ * edited it, as the server's own, on the user's yes to its read-back: the ledger entry's `sha1` becomes the file's,
+ * `adopted: true` is set and `baseSha1` stays (so a second read-back of the file still works), and the build-file writer
+ * records the file's fingerprint as its own write, so the next draft or compile replaces it (after the writer's backup)
+ * and a skeleton's `remove_draft` removes it.
+ */
+export async function adoptFile(env: DraftEnv & { writer: Pick<BuildFileWriter, 'adoptBuildFile'> }, planPath: string, filePath: string): Promise<{ path: string }> {
+  const place = await planPlace(env, planPath);
+  const rel = await canonicalBuildPath(filePath, env.pobDirectory);
+  return updateWriteLedger(env.stateDir, async (ledger) => {
+    const refused = (why: string) => new BuildFileWriteError(`${rel} was not adopted: ${why}. Nothing was changed.`);
+    const entry = ownEntry(ledger, rel, place, refused);
+    const bytes = await buildsFile(env.pobDirectory, rel);
+    if (bytes === null) throw refused("it doesn't exist in the builds folder");
+    const found = sha1(bytes);
+    await env.writer.adoptBuildFile({ name: rel, sha1: found });
+    return { ledger: withLedgerEntry(ledger, { ...entry, sha1: found, adopted: true }), value: { path: rel } };
+  });
+}
+
+/** The notes mode's result (D-487): the final file written, and the notes' length in characters. */
+export interface NotesWriteResult {
+  path: string;
+  characters: number;
+}
+
+/**
+ * `compile_plan {plan_path, notes_path}` (D-487, C-41; engine kind `none`): replace `<Notes>` in the final file of the
+ * plan's latest final compile (the record's `pobFile.path`) with the text of `notes_path` (a file in the guides root),
+ * escaped (`& < >`; PoB's `^x` colour codes kept), through the build-file writer (a text edit, backed up first), then
+ * update the ledger entry's `sha1` (not its `baseSha1`: a read-back compares no notes). Refused, writing nothing, when the
+ * file changed on disk since the ledger's write (D-211).
+ */
+export async function writeNotes(env: DraftEnv, planPath: string, notesPath: string): Promise<NotesWriteResult> {
+  const place = await planPlace(env, planPath);
+  const refusedBefore = (why: string) => new CompileError(`no notes were written for ${planPath}: ${why}. Nothing was written.`);
+  const recordBytes = await besidePlan(env, place, RECORD_FILE);
+  if (recordBytes === null) throw refusedBefore(`there is no ${RECORD_FILE} beside the plan; the notes go into a final compile's file`);
+  let record: Partial<CompileRecord>;
+  try {
+    record = JSON.parse(recordBytes.toString('utf8')) as Partial<CompileRecord>;
+  } catch (error) {
+    throw refusedBefore(`${RECORD_FILE} isn't JSON (${(error as Error).message})`);
+  }
+  if (record === null || typeof record !== 'object' || record.mode !== 'final' || record.pobFile?.location !== 'builds') {
+    throw refusedBefore(`the plan's last compile wasn't a final compile (${RECORD_FILE} names no builds-folder file); compile it final first`);
+  }
+  const rel = await canonicalBuildPath(record.pobFile.path, env.pobDirectory);
+  let notes: string;
+  try {
+    notes = await fs.readFile(await resolveInGuidesRoot(env.guidesDirectory, notesPath, 'notes_path'), 'utf8');
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    throw refusedBefore(code === 'ENOENT' ? `notes_path "${notesPath}" names no file in the guides root` : (error as Error).message);
+  }
+  return updateWriteLedger(env.stateDir, async (ledger) => {
+    const refused = (why: string) => new BuildFileWriteError(`no notes were written to ${rel}: ${why}. Nothing was written.`);
+    const entry = ownEntry(ledger, rel, place, refused);
+    const bytes = await buildsFile(env.pobDirectory, rel);
+    if (bytes === null) throw refused("it doesn't exist in the builds folder");
+    if (sha1(bytes) !== entry.sha1) throw refused('it changed on disk since the server wrote it (probably saved in PoB2; D-211)');
+    let xml: string;
+    try {
+      xml = replaceNotesXml(bytes.toString('utf8'), escapeNotes(notes));
+    } catch (error) {
+      throw refused((error as Error).message);
+    }
+    const saved = await env.writer.writeBuildFile({ name: rel, bytes: xml, kind: 'text' });
+    const next: WriteLedgerEntry = { ...entry, sha1: saved.fingerprint.sha1, writtenAt: env.wallClock().toISOString() };
+    return { ledger: withLedgerEntry(ledger, next), value: { path: saved.path, characters: notes.length } };
+  });
+}
+
+// --- The trade links (D-488)
+
+/** One `trade-links.json` entry (Appendix A). */
+export interface TradeLinkEntry {
+  stage: string;
+  slot: string;
+  url: string;
+  ids: 'checked' | 'unchecked';
+}
+
+/** What the links mode needs of the server: the engine (kind `load`), the plan's place and data, and the trade stat cache. */
+export interface TradeLinksEnv {
+  ctx: EngineCallContext;
+  pobDirectory: string;
+  guidesDirectory: string;
+  referenceData: () => ReferenceData;
+  /**
+   * The server's cached `/data/stats` as a lookup (whether it knows a trade stat id), or null when no stat list is
+   * cached (each entry then says `ids unchecked`). The links mode never sends a request.
+   */
+  tradeStats: () => ((id: string) => boolean) | null;
+}
+
+export interface TradeLinksResult {
+  /** The entries written, or null when none were (a plan with no league). */
+  links: TradeLinkEntry[] | null;
+  written: string | null;
+  /** Why nothing was written, when nothing was. */
+  reason?: string;
+}
+
+/** The rungs that get links (D-488, D-372's scope): `b` and `n`. */
+const LINK_VARIANTS: readonly string[] = ['budget', 'non-budget'];
+/** The socket table's file and keys (C-35, `data/items/sockets.json`). */
+const SOCKET_TABLE = 'items/sockets.json';
+const SOCKET_CATEGORIES = [
+  'body-armour', 'two-hand-weapon', 'one-hand-weapon', 'helmet', 'gloves', 'boots', 'shield', 'focus',
+  'amulet', 'ring', 'belt', 'quiver', 'corona-amulet', 'grasping-ring', 'stalking-belt',
+] as const;
+/** At most this many required filters a link carries (the 3-required limit, D-372). */
+const LINK_REQUIRED_MAX = 3;
+/** What PoB's estimate (`estimateComplexity`) doesn't count: the `misc_filters.corrupted` option filter, as a flag filter (3). */
+const CORRUPTED_FILTER_COST = 3;
+
+const isRare = (text: string): boolean => /^\s*Rarity:\s*rare\s*$/im.test(text.split(/\r?\n/)[0] ?? '');
+
+/** The rune-socket minimum by socket category, from the socket table when it is loaded (else none). */
+function socketTableOf(ref: ReferenceData): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const category of SOCKET_CATEGORIES) {
+    const found = ref.resolveFact(SOCKET_TABLE, `sockets.${category}`);
+    if (found.ok && typeof found.fact.value === 'number' && Number.isInteger(found.fact.value) && found.fact.value >= 0) {
+      out[category] = found.fact.value;
+    }
+  }
+  return out;
+}
+
+/** A link's settings from a rare's spec: its weights and required must-haves (each left out without a spec). */
+export interface LinkSpec {
+  weights?: Array<{ stat: string; weight: number }>;
+  required?: Array<{ tradeId: string; min: number }>;
+}
+
+/**
+ * A rare's spec, from its price entry (schema 10's `spec`, D-483): the entry whose id starts with the stage's id and
+ * whose query names the slot. Its weights become the link's, and its 3 most important must-haves the required filters:
+ * one PoB scores at zero first, then the rest in the spec's order. A slot with no spec gets PoB's defaults.
+ */
+export function linkSpecOf(prices: readonly unknown[], stageId: string, slot: string): LinkSpec {
+  for (const raw of prices) {
+    const p = raw as { id?: unknown; query?: { slot?: unknown } | null; spec?: unknown };
+    if (typeof p?.id !== 'string' || !p.id.startsWith(`${stageId}-`) || p.query?.slot !== slot) continue;
+    const spec = p.spec as { weights?: unknown; mustHaves?: unknown } | undefined;
+    if (spec === undefined || spec === null || typeof spec !== 'object') continue;
+    const weights = Array.isArray(spec.weights)
+      ? spec.weights
+          .filter((w): w is { stat: string; weight: number } => typeof w?.stat === 'string' && typeof w?.weight === 'number' && w.weight > 0)
+          .map((w) => ({ stat: w.stat, weight: w.weight }))
+      : [];
+    const mustHaves = Array.isArray(spec.mustHaves)
+      ? spec.mustHaves.filter((m): m is { tradeId: string; min: number; zeroScored?: boolean } => typeof m?.tradeId === 'string' && typeof m?.min === 'number')
+      : [];
+    const ordered = [...mustHaves.filter((m) => m.zeroScored === true), ...mustHaves.filter((m) => m.zeroScored !== true)];
+    return {
+      ...(weights.length > 0 ? { weights } : {}),
+      ...(ordered.length > 0 ? { required: ordered.slice(0, LINK_REQUIRED_MAX).map((m) => ({ tradeId: m.tradeId, min: m.min })) } : {}),
+    };
+  }
+  return {};
+}
+
+/** A query's complexity as the prefit estimates it, plus the corrupted filter it doesn't count. */
+function linkComplexity(query: TradeQueryBody): number {
+  const corrupted = (query.query?.filters?.misc_filters?.filters as Record<string, unknown> | undefined)?.corrupted !== undefined;
+  return estimateComplexity(query) + (corrupted ? CORRUPTED_FILTER_COST : 0);
+}
+
+/** The ids of a query's weighted and required filters dropped when the cached stat list lacks them (C-14 step 7's rule). */
+function dropUnknownIds(query: TradeQueryBody, known: (id: string) => boolean): TradeQueryBody {
+  const copy = JSON.parse(JSON.stringify(query)) as TradeQueryBody;
+  for (const group of copy.query?.stats ?? []) {
+    if (!group || (group.type !== 'weight' && group.type !== 'and') || !Array.isArray(group.filters)) continue;
+    group.filters = group.filters.filter((f) => typeof f?.id === 'string' && known(f.id));
+  }
+  return copy;
+}
+
+/**
+ * `compile_plan {plan_path, trade_links: true}` (D-488, C-41; engine kind `load`, its own request after F1's final
+ * compile): for every rare gear slot and rare tree jewel of `b` and `n`, PoB's weighted query, built headless with no
+ * request from the final compile's copy beside the record: the spec's weights (PoB's defaults without one), its 3 most
+ * important must-haves required, corrupted mods unweighted and a `corrupted: false` filter, the rung's level as the
+ * maximum level, the base's rune sockets from the socket table as the minimum, PoB's own minimum weight (half the
+ * compiled item's score), the prefit's complexity budget and the plan's league; each URL is `tradeQueryUrl(league,
+ * query)`. A stat id the server's cached `/data/stats` lacks is dropped; with no cache the entry says `ids unchecked`.
+ * Writes `trade-links.json` beside the record; a plan with no league (an offline run) gets none.
+ */
+export async function writeTradeLinks(env: TradeLinksEnv, planPath: string): Promise<TradeLinksResult> {
+  await checkGuidesRoot(env.guidesDirectory, env.pobDirectory);
+  const refData = env.referenceData();
+  const loaded = await loadPlan(env.guidesDirectory, planPath, refData);
+  const plan = loaded.plan;
+  if (plan.league === null) return { links: null, written: null, reason: 'the plan names no league (an offline run)' };
+  const league = plan.league;
+  const refused = (why: string) => new CompileError(`no trade links were written for ${planPath}: ${why}. Nothing was written.`);
+  const besideFile = async (name: string) => readIfExists(path.join(loaded.realDir, name));
+  const recordBytes = await besideFile(RECORD_FILE);
+  if (recordBytes === null) throw refused(`there is no ${RECORD_FILE} beside the plan; the links read a final compile's build`);
+  let record: Partial<CompileRecord>;
+  try {
+    record = JSON.parse(recordBytes.toString('utf8')) as Partial<CompileRecord>;
+  } catch (error) {
+    throw refused(`${RECORD_FILE} isn't JSON (${(error as Error).message})`);
+  }
+  if (record?.mode !== 'final' || record.pobFile?.location !== 'builds') {
+    throw refused("the plan's last compile wasn't a final compile; the links read the final build, so compile it final first");
+  }
+  let copy: { name: string; xml: string } | null = null;
+  for (const name of [FINAL_COPY_FILE, FINAL_CAMPAIGN_COPY_FILE]) {
+    const bytes = await besideFile(name);
+    if (bytes !== null && sha1(bytes) === record.pobFile.sha1) copy = { name, xml: bytes.toString('utf8') };
+  }
+  if (copy === null) throw refused(`neither ${FINAL_COPY_FILE} nor ${FINAL_CAMPAIGN_COPY_FILE} beside the plan is the final compile's copy`);
+  const sockets = socketTableOf(refData);
+  const stages = plan.stages.filter((s) => s.variant !== undefined && LINK_VARIANTS.includes(s.variant));
+  const links: TradeLinkEntry[] = [];
+  const { ctx } = env;
+  await ctx.loadXml(copy.xml, { displayName: path.posix.basename(record.pobFile.path).replace(/\.xml$/i, '') });
+  for (const stage of stages) {
+    const slots: Array<{ slot: string; jewelType?: 'Base' | 'Radius' }> = [];
+    for (const s of slotTexts(stage)) if (s.sameAs === undefined && isRare(s.text)) slots.push({ slot: s.slot });
+    for (const j of stage.items.treeJewels) {
+      if (isRare(j.text)) slots.push({ slot: `Jewel ${j.node}`, jewelType: /^\s*Radius:/im.test(j.text) ? 'Radius' : 'Base' });
+    }
+    if (slots.length === 0) continue;
+    await ctx.client.manageSets({ setType: 'loadout', action: 'select', title: stage.loadoutName });
+    await ctx.client.setLevel(stage.level);
+    for (const { slot, jewelType } of slots) {
+      const spec = linkSpecOf(plan.prices, stage.id, slot);
+      const generated = await ctx.client.tradeGenerateQuery({
+        slot,
+        ...(spec.weights ? { statWeights: spec.weights } : {}),
+        ...(spec.required ? { requiredMods: spec.required } : {}),
+        ...(jewelType ? { jewelType } : {}),
+        includeCorrupted: false,
+        excludeCorrupted: true,
+        maxLevel: stage.level,
+        socketsByCategory: sockets,
+      });
+      let query = generated.query as unknown as TradeQueryBody;
+      const known = env.tradeStats();
+      if (known !== null) query = dropUnknownIds(query, known);
+      while (COMPLEXITY_BUDGET - linkComplexity(query) < COMPLEXITY_HEADROOM && weightedFilterCount(query) > 1) {
+        query = dropLowestWeighted(query, 1);
+      }
+      links.push({ stage: stage.id, slot, url: tradeQueryUrl(league, query), ids: known !== null ? 'checked' : 'unchecked' });
+    }
+  }
+  await writeBesidePlan(env.guidesDirectory, planPath, loaded, TRADE_LINKS_FILE, `${JSON.stringify(links, null, 2)}\n`);
+  const relDir = path.posix.dirname(loaded.relPath);
+  return { links, written: relDir === '.' ? TRADE_LINKS_FILE : `${relDir}/${TRADE_LINKS_FILE}` };
 }

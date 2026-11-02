@@ -37,6 +37,14 @@
  *
  * The engine-lock wait happens before this flow runs (the caller's `session.run`); its `EngineBusyError`
  * is the router's to turn into the engine-busy stop (`engineBusyStopText`).
+ *
+ * Amendment 14 (D-494, C-14):
+ * - `link_only: true` ends the flow after step 4 with no request: PoB's ranking of the slot's affixes (the top
+ *   `LINK_ONLY_RANKING`, in PoB's order, each with its gain at the middle roll and its weight per point) and the `?q=`
+ *   link of the generated query, which needs the league from the input or `POE_LEAGUE` (it isn't looked up). It rides
+ *   the fallback's path (`kind: 'fallback'`, `cause: 'link_only'`): no search, a link.
+ * - Every fallback names its cause, `no_session`, `session_rejected` or `too_complex`, which the reply prints as
+ *   `[trade:<cause>]` before `Trade search not run:`, C-49's prefix.
  */
 import { z } from 'zod';
 import type { EngineCallContext, EngineSession } from '../engine/session.js';
@@ -146,6 +154,7 @@ export const findUpgradesInputSchema = z.object({
   report_stats: z.array(z.string().min(1)).max(10).optional(),
   limit: z.number().int().min(1).max(20).default(10),
   include_non_upgrades: z.boolean().default(false),
+  link_only: z.boolean().default(false),
 });
 
 /** The validated `find_upgrades` input, defaults applied. */
@@ -208,8 +217,32 @@ export function reportStatsError(error: unknown): Error | null {
 
 export type Env = Readonly<Record<string, string | undefined>>;
 
+/** Why a fallback ran no search (D-494): C-49's trade kinds, or `link_only` (the caller asked for the link alone). */
+export type FallbackCause = 'no_session' | 'session_rejected' | 'too_complex' | 'link_only';
+
+/** One affix of PoB's ranking (`link_only`, D-494): its trade text, its gain at the middle roll and its weight per point. */
+export interface RankedAffix {
+  affix: string;
+  tradeId: string;
+  gain: number;
+  weight: number;
+}
+
+/** How many affixes `link_only`'s ranking lists (D-483: PoB's top 12). */
+export const LINK_ONLY_RANKING = 12;
+
 export type UpgradeSearchResult =
-  | { kind: 'fallback'; reason: string; hint: string; link: string; notes: string[] }
+  | {
+      kind: 'fallback';
+      cause: FallbackCause;
+      reason: string;
+      hint: string;
+      /** The generated query's `?q=` link; empty only for `link_only` with no league known. */
+      link: string;
+      notes: string[];
+      /** `link_only`'s ranking. */
+      ranking?: RankedAffix[];
+    }
   | {
       kind: 'searched';
       league: string;
@@ -449,6 +482,16 @@ class BudgetExhausted extends Error {
   }
 }
 
+/** PoB's ranking of the generated query (`link_only`): its ranked weights in PoB's order, the first `LINK_ONLY_RANKING`. */
+export function rankingOf(generated: Pick<TradeGenerateQueryResult, 'rankedWeights'>): RankedAffix[] {
+  return generated.rankedWeights.slice(0, LINK_ONLY_RANKING).map((w) => ({
+    affix: typeof w.text === 'string' && w.text !== '' ? w.text : w.tradeId,
+    tradeId: w.tradeId,
+    gain: typeof w.meanStatDiff === 'number' ? w.meanStatDiff : Number.NaN,
+    weight: typeof w.weight === 'number' ? w.weight : Number.NaN,
+  }));
+}
+
 /** The fallback reason and hint for a missing or unusable session (C-14 step 5). */
 function sessionFallback(creds: Credentials): { reason: string; hint: string } {
   if (creds.problem === 'op-reference') {
@@ -664,12 +707,28 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
   const statWeights = generated.statWeights.map((w) => ({ stat: w.stat, label: w.label, weight: w.weight }));
   const generatedQuery = generated.query as unknown as TradeQueryBody;
 
+  // D-494: link_only ends here, with no request: PoB's ranking and the query's link (the league is never looked up).
+  if (input.link_only) {
+    return {
+      kind: 'fallback',
+      cause: 'link_only',
+      reason: 'link_only was asked for',
+      hint:
+        league === null
+          ? 'No link: give league (or set POE_LEAGUE); link_only sends no request, so it doesn\'t look the league up.'
+          : '',
+      link: league === null ? '' : tradeQueryUrl(league, generatedQuery),
+      notes,
+      ranking: rankingOf(generated),
+    };
+  }
+
   // 5. Session (D-49): decided before any request when the league is known.
   const creds = ctx.credentials();
   if (!creds.sessionId || creds.problem) {
     if (league === null) league = await resolveLeague();
     const { reason, hint } = sessionFallback(creds);
-    return { kind: 'fallback', reason, hint, link: tradeQueryUrl(league, generatedQuery), notes };
+    return { kind: 'fallback', cause: 'no_session', reason, hint, link: tradeQueryUrl(league, generatedQuery), notes };
   }
 
   // 6. League (resolve).
@@ -791,8 +850,9 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
       searchUrl: lastSearch?.id ? tradeSearchUrl(leagueName, lastSearch.id) : tradeQueryUrl(leagueName, query),
     };
   };
-  const fallback = (f: { reason: string; hint: string }): UpgradeSearchResult => ({
+  const fallback = (cause: Exclude<FallbackCause, 'link_only'>, f: { reason: string; hint: string }): UpgradeSearchResult => ({
     kind: 'fallback',
+    cause,
     reason: f.reason,
     hint: f.hint,
     link: tradeQueryUrl(leagueName, query),
@@ -840,7 +900,7 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
         if (error instanceof TradeError && error.kind === 'too_complex') {
           const count = weightedFilterCount(query);
           const drop = tooComplexDropCount(count);
-          if (retried || searches >= MAX_SEARCHES || count - drop < 1) return fallback(tooComplexFallback(error));
+          if (retried || searches >= MAX_SEARCHES || count - drop < 1) return fallback('too_complex', tooComplexFallback(error));
           retried = true;
           query = dropLowestWeighted(query, drop);
           notes.push(
@@ -911,11 +971,11 @@ export async function runUpgradeSearch(input: FindUpgradesInput, ctx: UpgradeSea
     if (error instanceof TradeError) {
       switch (error.kind) {
         case 'no_session':
-          return fallback(sessionFallback(ctx.credentials()));
+          return fallback('no_session', sessionFallback(ctx.credentials()));
         case 'session_rejected':
-          return fallback(SESSION_REJECTED);
+          return fallback('session_rejected', SESSION_REJECTED);
         case 'too_complex':
-          return fallback(tooComplexFallback(error));
+          return fallback('too_complex', tooComplexFallback(error));
         case 'timeout':
           // A timeout that leaves too little of the budget for another request is the deadline's cut.
           if (remaining() < REQUEST_TIMEOUT_MS) return searched(sofar, { reason: STOP_BUDGET });

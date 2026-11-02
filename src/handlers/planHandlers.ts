@@ -10,6 +10,10 @@
  * - `compile_plan {plan_path, draft_name}` and `{plan_path, remove_draft}` (D-466) write the design gate's draft,
  *   a copy of the plan's last whole-plan measure-only XML, as `<name> (draft).xml` in the builds folder, or delete
  *   a draft this build wrote; the router runs both as kind `none`: no engine.
+ * - Amendment 14, each with `plan_path` only: `{read_back}` (D-479) compares a file this build wrote, as the user left
+ *   it, with the copy of what the server wrote, and writes `readback.json` beside the plan; `{adopt}` takes that file as
+ *   the server's own; `{notes_path}` (D-487) writes a text file's notes into the final file; all three run as kind
+ *   `none`. `{trade_links: true}` (D-488) writes `trade-links.json` from the final compile's copy, as kind `load`.
  * - `guide_run {new_run}` creates the next run folder `<slug>/<YYYY-MM-DD>-<n>` (D-207) and says whether the
  *   engine's build has unsaved changes the next compile would discard (D-210); it never touches the
  *   engine (the router runs it as kind `none`, D-216). `guide_run {validate, stages?}` checks a plan
@@ -34,17 +38,24 @@ import { readPin } from '../engine/pinCheck.js';
 import { checkGuidesRoot, createRunFolder, realPathInGuides, resolveInGuidesRoot } from '../utils/guidesPath.js';
 import { wrapHandler } from '../utils/errorHandling.js';
 import {
+  adoptFile,
   compilePlan,
   keyFigureLine,
+  readBackFile,
   removeDraft,
   validatePlanFile,
   writeDraft,
+  writeNotes,
+  writeTradeLinks,
+  TRADE_LINKS_FILE,
   type CompileRequest,
   type CompileResult,
   type DraftWriteResult,
 } from '../plan/compiler.js';
 import { buildSha1 } from '../plan/buildHash.js';
 import { RECORD_FILE, RECORD_VERSION, type CompileRecord, type Verdict } from '../plan/record.js';
+import { configLabelsOf, type ReadBackNames } from '../services/readBack.js';
+import type { PassiveTreeData } from '../types.js';
 import type { Stage } from '../plan/schema.js';
 import { loadReferenceData, type ReferenceData } from '../plan/referenceData.js';
 import { OFFENSE_STAT_FIELDS } from './luaHandlers.js';
@@ -57,8 +68,11 @@ export interface PlanContext {
   guidesDirectory: string;
   /** The running engine call's context (C-3). */
   engine: () => EngineCallContext;
-  /** C-17: the only writer into the builds folder (its delete for the draft mode's `remove_draft`, D-466). */
-  buildFileWriter: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile' | 'deleteBuildFile'>;
+  /**
+   * C-17: the only writer into the builds folder (its delete for the draft mode's `remove_draft`, D-466; its adoption for
+   * the adopt mode, D-479).
+   */
+  buildFileWriter: Pick<BuildFileWriter, 'checkBuildFile' | 'writeBuildFile' | 'deleteBuildFile' | 'adoptBuildFile' | 'replacedVersion'>;
   /** The build the engine holds (C-3 `loaded`). */
   loadedBuild: () => LoadedBuild | null;
   /** Whether the engine's build has unsaved changes (`session.isDirty()`, read without the lock). */
@@ -67,11 +81,35 @@ export interface PlanContext {
   referenceData?: () => ReferenceData;
   /** The wall clock (dates the run folder and the record); default `new Date()`. */
   wallClock?: () => Date;
+  /** D-479: the read-back's passive tree, by version (the tree service's); without it, nodes are named by id. */
+  treeData?: (version: string) => Promise<PassiveTreeData>;
+  /** D-479: PoB's source folder (`resolvePobSrc`), whose `Modules/ConfigOptions.lua` labels config inputs. */
+  pobSrc?: () => string;
+  /**
+   * D-488: the server's cached trade stat list as a lookup, or null when none is cached (the links then say `ids
+   * unchecked`). Default: none cached.
+   */
+  tradeStats?: () => ((id: string) => boolean) | null;
 }
 
-const COMPILE_ARGS = ['plan_path', 'build_name', 'measure_only', 'stages', 'first_free', 'draft_name', 'remove_draft'] as const;
-/** D-466: the draft mode's two arguments, each with plan_path only. */
-const DRAFT_ARGS = ['draft_name', 'remove_draft'] as const;
+const COMPILE_ARGS = [
+  'plan_path',
+  'build_name',
+  'measure_only',
+  'stages',
+  'first_free',
+  'draft_name',
+  'remove_draft',
+  'read_back',
+  'adopt',
+  'notes_path',
+  'trade_links',
+] as const;
+/**
+ * The modes that take plan_path only: the draft mode's two arguments (D-466), and amendment 14's read-back, adopt and
+ * notes modes (D-479, D-487) and trade links (D-488).
+ */
+const DRAFT_ARGS = ['draft_name', 'remove_draft', 'read_back', 'adopt', 'notes_path', 'trade_links'] as const;
 const GUIDE_RUN_ARGS = ['new_run', 'resume', 'validate', 'view', 'stages'] as const;
 /** `guide_run`'s modes: a call gives exactly one of them (C-50, D-356, D-415). */
 const GUIDE_RUN_MODES = ['new_run', 'resume', 'validate', 'view'] as const;
@@ -103,16 +141,24 @@ function nonEmptyString(value: unknown, name: string): string {
   return value;
 }
 
-/** `compile_plan`'s requests (C-41, D-466): a compile, the draft's write, or its delete. */
+/**
+ * `compile_plan`'s requests (C-41): a compile, the draft's write or its delete (D-466), and amendment 14's read-back,
+ * adopt, notes and trade-links modes (D-479, D-487, D-488).
+ */
 export type CompilePlanRequest =
   | CompileRequest
   | { mode: 'draft'; planPath: string; draftName: string }
-  | { mode: 'remove-draft'; planPath: string; draftPath: string };
+  | { mode: 'remove-draft'; planPath: string; draftPath: string }
+  | { mode: 'read-back'; planPath: string; filePath: string }
+  | { mode: 'adopt'; planPath: string; filePath: string }
+  | { mode: 'notes'; planPath: string; notesPath: string }
+  | { mode: 'trade-links'; planPath: string };
 
 /**
- * `compile_plan`'s modes (C-41, D-466): measure-only, final (with `first_free` or without), the draft
- * (`draft_name`) and its delete (`remove_draft`), each of those two with `plan_path` only. Any other
- * combination is refused.
+ * `compile_plan`'s modes (C-41): measure-only, final (with `first_free` or without), and the modes that take `plan_path`
+ * only: the draft (`draft_name`) and its delete (`remove_draft`) (D-466), the read-back (`read_back`) and the adoption
+ * (`adopt`) of a file the build wrote (D-479), the notes (`notes_path`, D-487) and the trade links (`trade_links: true`,
+ * D-488). Any other combination is refused.
  */
 export function compileRequestOf(args: Record<string, unknown> | undefined): CompilePlanRequest {
   const a = args ?? {};
@@ -124,11 +170,24 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
     if (given.length > 1) {
       throw new Error(
         `${listed(given)} conflict: draft_name (write the build's draft) and remove_draft (delete it) each take plan_path ` +
-          'only (D-466). Nothing was done.',
+          'only (D-466), as do read_back, adopt, notes_path and trade_links (D-479, D-487, D-488). Nothing was done.',
       );
     }
-    if (drafts[0] === 'draft_name') return { mode: 'draft', planPath, draftName: nonEmptyString(a.draft_name, 'draft_name') };
-    return { mode: 'remove-draft', planPath, draftPath: nonEmptyString(a.remove_draft, 'remove_draft') };
+    switch (drafts[0]) {
+      case 'draft_name':
+        return { mode: 'draft', planPath, draftName: nonEmptyString(a.draft_name, 'draft_name') };
+      case 'remove_draft':
+        return { mode: 'remove-draft', planPath, draftPath: nonEmptyString(a.remove_draft, 'remove_draft') };
+      case 'read_back':
+        return { mode: 'read-back', planPath, filePath: nonEmptyString(a.read_back, 'read_back') };
+      case 'adopt':
+        return { mode: 'adopt', planPath, filePath: nonEmptyString(a.adopt, 'adopt') };
+      case 'notes_path':
+        return { mode: 'notes', planPath, notesPath: nonEmptyString(a.notes_path, 'notes_path') };
+      default:
+        if (a.trade_links !== true) throw new Error('trade_links must be true (write the trade links). Nothing was done.');
+        return { mode: 'trade-links', planPath };
+    }
   }
   if (a.measure_only !== undefined && typeof a.measure_only !== 'boolean') throw new Error('measure_only must be true or false');
   if (a.first_free !== undefined && typeof a.first_free !== 'boolean') throw new Error('first_free must be true or false');
@@ -222,13 +281,80 @@ export function renderDraftText(result: DraftWriteResult): string {
   return lines.join('\n');
 }
 
+/** The read-back's reply (Appendix A): `Read back: <relpath> against <base>: <n> changes (<summary>)`, or no changes. */
+export function renderReadBackText(r: { readBack: { file: string; base: string }; changes: number; summary: string }): string {
+  return r.changes === 0
+    ? `Read back: ${r.readBack.file}: no changes`
+    : `Read back: ${r.readBack.file} against ${r.readBack.base}: ${r.changes} change${r.changes === 1 ? '' : 's'} (${r.summary})`;
+}
+
+/** Config labels per PoB source folder, parsed once per process. */
+const configLabelCache = new Map<string, Map<string, string>>();
+
 /**
- * `compile_plan` (C-41). A compile runs inside the session's `load` run that the router opened; the draft mode and its
- * delete (D-466) run outside the session (kind `none`).
+ * The read-back's names (D-479): the passive tree of each version the two files use (the tree service's, which falls
+ * back to the newest version it has), and PoB's config labels; a node the tree lacks is named by its id.
+ */
+async function readBackNamesOf(context: PlanContext, versions: readonly string[]): Promise<ReadBackNames> {
+  const trees = new Map<string, PassiveTreeData | null>();
+  for (const v of versions) {
+    try {
+      trees.set(v, context.treeData ? await context.treeData(v) : null);
+    } catch (error) {
+      console.error(`[Plan Tools] the passive tree ${v} could not be loaded for the read-back: ${(error as Error).message}`);
+      trees.set(v, null);
+    }
+  }
+  let labels = new Map<string, string>();
+  const src = context.pobSrc?.();
+  if (src !== undefined) {
+    const cached = configLabelCache.get(src);
+    if (cached !== undefined) labels = cached;
+    else {
+      try {
+        labels = configLabelsOf(await fs.readFile(path.join(src, 'Modules', 'ConfigOptions.lua'), 'utf8'));
+        configLabelCache.set(src, labels);
+      } catch (error) {
+        console.error(`[Plan Tools] PoB's config labels could not be read for the read-back: ${(error as Error).message}`);
+      }
+    }
+  }
+  return {
+    node(version, id) {
+      const node = (trees.get(version) ?? trees.values().next().value ?? null)?.nodes.get(String(id));
+      return node === undefined ? null : { name: node.name ?? `node ${id}`, ascendancy: node.ascendancyName !== undefined };
+    },
+    configLabel: (input) => labels.get(input) ?? input,
+  };
+}
+
+/**
+ * `compile_plan` (C-41). A compile and the trade links (D-488) run inside the session's `load` run that the router
+ * opened; the draft mode and its delete (D-466), the read-back, the adoption (D-479) and the notes (D-487) run outside the
+ * session (kind `none`).
  */
 export async function handleCompilePlan(context: PlanContext, args: Record<string, unknown> | undefined) {
   const parsed = await wrapHandler('compile the plan', async () => compileRequestOf(args));
-  if (parsed.mode === 'draft' || parsed.mode === 'remove-draft') {
+  if (parsed.mode === 'trade-links') {
+    return wrapHandler('write the trade links', async () => {
+      const result = await writeTradeLinks(
+        {
+          ctx: context.engine(),
+          pobDirectory: context.pobDirectory,
+          guidesDirectory: context.guidesDirectory,
+          referenceData: context.referenceData ?? (() => loadReferenceData()),
+          tradeStats: context.tradeStats ?? (() => null),
+        },
+        parsed.planPath,
+      );
+      const text =
+        result.links === null
+          ? `Trade links: none written to ${TRADE_LINKS_FILE}: ${result.reason ?? 'nothing to link'}.`
+          : `Trade links: ${result.links.length} written to ${TRADE_LINKS_FILE}`;
+      return { content: [{ type: 'text' as const, text }] };
+    });
+  }
+  if (parsed.mode !== 'measure-only' && parsed.mode !== 'final') {
     const env = {
       pobDirectory: context.pobDirectory,
       stateDir: context.stateDir,
@@ -236,6 +362,24 @@ export async function handleCompilePlan(context: PlanContext, args: Record<strin
       writer: context.buildFileWriter,
       wallClock: context.wallClock ?? (() => new Date()),
     };
+    if (parsed.mode === 'read-back') {
+      return wrapHandler('read back the file', async () => {
+        const result = await readBackFile({ ...env, names: (versions) => readBackNamesOf(context, versions) }, parsed.planPath, parsed.filePath);
+        return { content: [{ type: 'text' as const, text: renderReadBackText(result) }] };
+      });
+    }
+    if (parsed.mode === 'adopt') {
+      return wrapHandler('adopt the file', async () => {
+        const adopted = await adoptFile(env, parsed.planPath, parsed.filePath);
+        return { content: [{ type: 'text' as const, text: `Adopted: ${adopted.path}` }] };
+      });
+    }
+    if (parsed.mode === 'notes') {
+      return wrapHandler('write the notes', async () => {
+        const written = await writeNotes(env, parsed.planPath, parsed.notesPath);
+        return { content: [{ type: 'text' as const, text: `Notes written: ${written.path} (${written.characters} characters)` }] };
+      });
+    }
     if (parsed.mode === 'draft') {
       return wrapHandler('write the draft', async () => {
         const result = await writeDraft(env, parsed.planPath, parsed.draftName);

@@ -19,6 +19,7 @@ import {
   withLedgerEntry,
   withoutLedgerEntry,
   writeWriteLedger,
+  writtenEntry,
   type WriteLedgerEntry,
 } from '../../src/plan/writeLedger';
 
@@ -44,6 +45,7 @@ const entry = (over: Partial<WriteLedgerEntry> = {}): WriteLedgerEntry => ({
   writtenAt: '2026-10-30T10:00:00.000Z',
   kind: 'draft',
   plan: 'titan-rake/2026-10-28-1/builds/r2-s-1/plan.json',
+  baseSha1: over.sha1 ?? SHA_A,
   ...over,
 });
 
@@ -55,8 +57,9 @@ describe('AC-K78: the write ledger at version 2 (D-466)', () => {
     });
     const ledger = await readWriteLedger(state);
     expect(ledger.ledgerVersion).toBe(2);
+    // D-479 (amendment 14): an entry read without baseSha1 takes its sha1.
     expect(ledger.entries).toEqual([
-      { path: 'old.xml', sha1: SHA_A, runFolder: 'old/2026-10-01-1', writtenAt: '2026-10-01T00:00:00Z', kind: 'final' },
+      { path: 'old.xml', sha1: SHA_A, runFolder: 'old/2026-10-01-1', writtenAt: '2026-10-01T00:00:00Z', kind: 'final', baseSha1: SHA_A },
     ]);
     expect(ledger.entries[0]).not.toHaveProperty('plan');
   });
@@ -80,7 +83,7 @@ describe('AC-K78: the write ledger at version 2 (D-466)', () => {
     const raw = readRaw();
     expect(raw.ledgerVersion).toBe(2);
     expect(raw.entries).toEqual([
-      { path: 'old.xml', sha1: SHA_A, runFolder: 'old/2026-10-01-1', writtenAt: '2026-10-01T00:00:00Z', kind: 'final' },
+      { path: 'old.xml', sha1: SHA_A, runFolder: 'old/2026-10-01-1', writtenAt: '2026-10-01T00:00:00Z', kind: 'final', baseSha1: SHA_A },
       entry(),
     ]);
     expect(await readWriteLedger(state)).toEqual(raw);
@@ -137,5 +140,35 @@ describe('AC-K78: the write ledger at version 2 (D-466)', () => {
     await expect(updateWriteLedger(state, async () => Promise.reject(new Error('refused')))).rejects.toThrow('refused');
     await updateWriteLedger(state, async (ledger) => ({ ledger: withLedgerEntry(ledger, entry()), value: 2 }));
     expect(readRaw().entries).toEqual([entry()]);
+  });
+});
+
+describe("AC-K83: the write ledger's baseSha1 and adopted (D-479; the format stays version 2)", () => {
+  it("a compile's or draft's entry (writtenEntry) has baseSha1 equal to the sha1 it wrote, and no adopted", () => {
+    const written = writtenEntry({ path: 'x (draft).xml', sha1: SHA_B, runFolder: 'a/2026-11-02-1', writtenAt: 'now', kind: 'draft', plan: 'a/2026-11-02-1/plan.json' });
+    expect(written).toEqual({ path: 'x (draft).xml', sha1: SHA_B, runFolder: 'a/2026-11-02-1', writtenAt: 'now', kind: 'draft', plan: 'a/2026-11-02-1/plan.json', baseSha1: SHA_B });
+    expect(written).not.toHaveProperty('adopted');
+  });
+
+  it('a version-2 entry without baseSha1 (written before amendment 14) reads with its sha1 as its base', async () => {
+    const { baseSha1: _dropped, ...old } = entry();
+    writeRaw({ ledgerVersion: 2, entries: [old] });
+    expect((await readWriteLedger(state)).entries).toEqual([{ ...old, baseSha1: SHA_A }]);
+  });
+
+  it('an adopted entry keeps its base: sha1 the edited file\'s, baseSha1 the sha1 written, adopted true, round-tripped', async () => {
+    const adopted = entry({ sha1: SHA_B, baseSha1: SHA_A, adopted: true });
+    await writeWriteLedger(state, withLedgerEntry(await readWriteLedger(state), adopted));
+    expect(readRaw().ledgerVersion).toBe(2);
+    expect((await readWriteLedger(state)).entries).toEqual([adopted]);
+  });
+
+  it('adopted other than true, and a baseSha1 that is not a sha1, fail naming the file', async () => {
+    for (const bad of [{ ...entry(), adopted: false }, { ...entry(), baseSha1: 'not-a-sha1' }]) {
+      writeRaw({ ledgerVersion: 2, entries: [bad] });
+      const error = await readWriteLedger(state).catch((e) => e);
+      expect(error).toBeInstanceOf(WriteLedgerError);
+      expect((error as Error).message).toContain(ledgerFile());
+    }
   });
 });

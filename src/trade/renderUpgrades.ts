@@ -1,8 +1,15 @@
 /**
  * `find_upgrades` output (C-14 "Output", "Fallback result"; D-49, D-53).
  *
- * - **Fallback** (a result, not `isError`): `Trade search not run: <reason>.`, the hint, the pace line (D-474), then
- *   the trade-site link for the generated query.
+ * - **Fallback** (a result, not `isError`): `[trade:<cause>] Trade search not run: <reason>.` (D-494: `no_session`,
+ *   `session_rejected` or `too_complex`, C-49's prefix), the hint, the pace line (D-474), then the trade-site link for the
+ *   generated query.
+ * - **Link only** (`link_only: true`, D-494; a fallback with cause `link_only`): `Link only: …`, then `Ranking (PoB's
+ *   order: gain at the middle roll, weight per point): <affix> <gain> <w>; …` (at most 12), the pace line and the link,
+ *   last.
+ * - **Listing tiers** (D-494): with `required_mods`, each listing names its required affixes' tiers, `tiers: <affix> T<n>,
+ *   …`, read from each affix line's `mods[].tier` (a line merging several mods names each, `T1+T2`): a line of its own
+ *   after a full listing's score and stats, and before a compact line's `Buy:`, which stays last.
  * - **Success:** a header (with C-49's `League:` and `Checked:` lines, D-372), this call's notices, the
  *   current item and baseline, the counts line, then the selected listings in rank order. Listings render in full (score, stat deltas, a `Buy:` line,
  *   the PoB item text) while the whole output stays ≤ 30,000 characters; the rest render as one
@@ -12,6 +19,7 @@
  *   is given their length and keeps the whole output, notices included, within the budget.
  */
 import { formatCurrencyValue } from './currency.js';
+import type { FallbackCause, RankedAffix } from './findUpgrades.js';
 import { exactItemUrl } from './links.js';
 import type { ListingRow } from './rankUpgrades.js';
 
@@ -56,9 +64,33 @@ export function checkedTimestamp(epochMs: number): string {
 // ---------------------------------------------------------------------------------------------------
 // Fallback
 
-export function renderFallback(f: { reason: string; hint: string; link: string; notes: string[] }, paceLine?: string): string {
+/** A number with at most `decimals` decimals, no trailing zeros. */
+function trimmed(n: number, decimals: number): string {
+  return Number.isFinite(n) ? String(Number(n.toFixed(decimals))) : 'n/a';
+}
+
+/** `link_only`'s ranking line (D-494, Appendix A): `Ranking (…): <affix> <gain> <w>; …`, PoB's order. */
+export function rankingLine(ranking: readonly RankedAffix[]): string {
+  const items = ranking.map((r) => `${r.affix} ${trimmed(r.gain, 2)} ${trimmed(r.weight, 4)}`);
+  return `Ranking (PoB's order: gain at the middle roll, weight per point): ${items.length > 0 ? items.join('; ') : 'none: PoB found no affix that gains'}`;
+}
+
+export function renderFallback(
+  f: { cause: FallbackCause; reason: string; hint: string; link: string; notes: string[]; ranking?: RankedAffix[] },
+  paceLine?: string,
+): string {
+  const pace = paceLine ? [paceLine] : [];
+  if (f.cause === 'link_only') {
+    return [
+      'Link only: PoB ranked the slot\'s affixes; no trade request was sent.',
+      rankingLine(f.ranking ?? []),
+      ...f.notes,
+      ...pace,
+      ...(f.link !== '' ? [LINK_INTRO, f.link] : [f.hint]),
+    ].join('\n');
+  }
   const reason = f.reason.replace(/\.+$/, '');
-  return [`Trade search not run: ${reason}.`, f.hint, ...f.notes, ...(paceLine ? [paceLine] : []), LINK_INTRO, f.link].join('\n');
+  return [`[trade:${f.cause}] Trade search not run: ${reason}.`, f.hint, ...f.notes, ...pace, LINK_INTRO, f.link].join('\n');
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -130,6 +162,9 @@ function priceText(row: ListingRow, display: string): string {
 
 const flag = (row: ListingRow) => (row.isUpgrade ? 'UPGRADE' : 'not an upgrade');
 
+/** D-494: `tiers: <affix> T<n>, …` for a listing with required affixes, else null. */
+const tiersText = (row: ListingRow): string | null => (row.tiers && row.tiers.length > 0 ? `tiers: ${row.tiers.join(', ')}` : null);
+
 /** The item's own name from the fetched entry (`ListingRow.name` falls back to the type line). */
 function itemName(row: ListingRow): string {
   const item = (row.entry as unknown as { item?: { name?: unknown } } | null)?.item;
@@ -170,6 +205,8 @@ export function fullListing(row: ListingRow, n: number, report: UpgradeReport): 
     `   Score ${row.score.toFixed(4)} vs ${b.toFixed(4)}${scorePct}`,
   ];
   if (stats.length > 0) lines.push(`   ${stats.join(' · ')}`);
+  const tiers = tiersText(row);
+  if (tiers !== null) lines.push(`   ${tiers}`);
   lines.push(`   ${buyLine(row, report)}`, '   Item text:');
   for (const line of row.itemText.split(/\r?\n/)) lines.push(`   ${line}`);
   return lines.join('\n');
@@ -180,7 +217,10 @@ export function fullListing(row: ListingRow, n: number, report: UpgradeReport): 
  * is false (only when even the compact lines with their `Buy:` would not fit the budget).
  */
 export function compactListing(row: ListingRow, n: number, report: UpgradeReport, withBuy = true): string {
-  const line = `${n}. ${title(row)}: ${priceText(row, report.display)} · score ${row.score.toFixed(4)} · ${flag(row)} · seller ${row.account ?? 'unknown'}`;
+  const tiers = tiersText(row);
+  const line =
+    `${n}. ${title(row)}: ${priceText(row, report.display)} · score ${row.score.toFixed(4)} · ${flag(row)} · seller ${row.account ?? 'unknown'}` +
+    (tiers !== null ? ` · ${tiers}` : '');
   return withBuy ? `${line} · ${buyLine(row, report)}` : line;
 }
 

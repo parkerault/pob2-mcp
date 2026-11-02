@@ -14,7 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from '@jest/globals';
-import { getLuaToolSchemas } from '../../src/server/toolSchemas';
+import { getLuaToolSchemas, getTradeToolSchemas } from '../../src/server/toolSchemas';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const read = (...p: string[]) => fs.readFileSync(path.join(REPO, ...p), 'utf8');
@@ -55,6 +55,19 @@ describe("the tools' descriptions (C-56, §24.2)", () => {
   it("compile_plan's description names a group's weapon set", () => {
     expect(tools.compile_plan.description).toContain("its skill groups each on weapon set 1, 2 or both (a group's weaponSet)");
     expect(tools.compile_plan.description.length).toBeLessThanOrEqual(2048);
+  });
+
+  it("AC-K86 (WU-138): compile_plan's and find_upgrades' descriptions stay within AC-F15's 2,048 characters with amendment 14's inputs, which their parameter schemas describe", () => {
+    const trade: Record<string, Tool & { inputSchema: { properties: Record<string, { description?: string }> } }> = Object.fromEntries(
+      (getTradeToolSchemas() as Array<Tool & { inputSchema: { properties: Record<string, { description?: string }> } }>).map((t) => [t.name, t]),
+    );
+    const compile = tools.compile_plan as Tool & { inputSchema: { properties: Record<string, { description?: string }> } };
+    expect(compile.description.length).toBeLessThanOrEqual(2048);
+    expect(trade.find_upgrades.description.length).toBeLessThanOrEqual(2048);
+    for (const k of ['read_back', 'adopt', 'notes_path', 'trade_links']) {
+      expect({ k, described: (compile.inputSchema.properties[k]?.description ?? '').length > 0 }).toEqual({ k, described: true });
+    }
+    expect(trade.find_upgrades.inputSchema.properties.link_only?.description).toMatch(/send no trade request/);
   });
 });
 

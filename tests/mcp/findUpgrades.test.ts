@@ -23,6 +23,7 @@ import { fixtureFetch, type FixtureRoute, type RecordedCall } from '../helpers/f
 import {
   DATA_ROUTES,
   FETCH_HEADERS,
+  FETCH_TEMPLATE,
   FETCH_URL,
   deriveListing,
   fetchRoute,
@@ -996,6 +997,45 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
 
   // -------------------------------------------------------------------------------------------------
 
+  describe("AC-K86 (WU-138, D-494): link_only and the listings' tiers through the tool", () => {
+    it("link_only on the golden build sends no request and replies with PoB's ranking, at most 12 in PoB's order, and the link last", async () => {
+      serve([]);
+      const out = await call({ slot: 'Body Armour', link_only: true });
+      expect(out.isError).toBe(false);
+      expect(http.calls).toEqual([]);
+      const lines = out.text.split('\n');
+      const head = lines.indexOf("Link only: PoB ranked the slot's affixes; no trade request was sent.");
+      expect(head).toBeGreaterThanOrEqual(0);
+      const ranking = /^Ranking \(PoB's order: gain at the middle roll, weight per point\): (.+)$/.exec(lines[head + 1]);
+      expect(ranking).not.toBeNull();
+      const items = ranking![1].split('; ');
+      expect(items.length).toBeGreaterThan(0);
+      expect(items.length).toBeLessThanOrEqual(12);
+      const gains = items.map((item) => Number(item.split(' ').slice(-2)[0]));
+      expect(gains.every((g) => Number.isFinite(g) && g > 0)).toBe(true);
+      expect(gains).toEqual([...gains].sort((a, b) => b - a));
+      expect(lines[lines.length - 1].startsWith(LINK_PREFIX)).toBe(true);
+      expect(lines[lines.length - 2]).toBe('Open this search in a browser where you are logged in to pathofexile.com:');
+    }, TIMEOUT);
+
+    it("with required_mods, each listing names the required affix's tier, read from its line's mods[].tier in the fetch capture", async () => {
+      serve([searchSequence([SESSION_SEARCH]), fetchRoute()]);
+      const out = await call({ slot: 'Body Armour', required_mods: [{ trade_id: LIFE, min: 100 }], include_non_upgrades: true, limit: 10 });
+      expect(out.isError).toBe(false);
+      const shown = listings(out.text);
+      expect(shown.length).toBe(10);
+      for (const s of shown) {
+        const template = FETCH_TEMPLATE.find((e) => s.title.startsWith(`${String(e.item.name)},`))!;
+        expect(template).toBeDefined();
+        const life = (template.item.explicitMods as Array<{ description: string; hash: string; mods: Array<{ tier: string }> }>).find((m) => m.hash === `stat.${LIFE}`)!;
+        const want = `${life.description} ${life.mods.map((m) => `T${/\d+/.exec(m.tier)![0]}`).join('+')}`;
+        expect({ title: s.title, tiers: /^ {3}tiers: (.*)$/m.exec(s.block ?? '')?.[1] }).toEqual({ title: s.title, tiers: want });
+      }
+      // A merged line (two mods) names each mod's tier.
+      if (shown.some((x) => x.title.startsWith('Hypnotic Curtain,'))) expect(out.text).toContain('   tiers: +253 to maximum Life T2+T1');
+    }, TIMEOUT);
+  });
+
   describe('AC-T45 (WU-23): header, reload notice, fallback rendering, disposition', () => {
     it('AC-T45: the Build: line names grenadator and grenadator.xml', async () => {
       serve([searchSequence([SESSION_SEARCH]), fetchRoute()]);
@@ -1076,12 +1116,12 @@ engineDescribe('find_upgrades through the MCP tool (WU-23, C-14 steps 10–13)',
       TIMEOUT,
     );
 
-    it('AC-T45: a fallback renders with isError false, starting "Trade search not run:", and sends no request', async () => {
+    it('AC-T45: a fallback renders with isError false, starting "[trade:no_session] Trade search not run:" (D-494), and sends no request', async () => {
       creds = { sessionId: null, source: null };
       serve([]);
       const out = await call({ slot: 'Body Armour', required_mods: [{ trade_id: LIFE, min: 80 }] });
       expect(out.isError).toBe(false);
-      expect(out.text.startsWith('Trade search not run: no POESESSID set.')).toBe(true);
+      expect(out.text.startsWith('[trade:no_session] Trade search not run: no POESESSID set.')).toBe(true);
       expect(out.text).toMatch(/\nhttps:\/\/www\.pathofexile\.com\/trade2\/search\/poe2\/Forbidden%20Rites\?q=\S+$/);
       // AC-K79 (D-474): the pace line (this test server's pace is off) just before the link's two lines.
       expect(out.text.split('\n').slice(-3)[0]).toBe('Pace: off (test setting).');

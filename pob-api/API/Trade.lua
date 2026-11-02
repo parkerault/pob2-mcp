@@ -2,7 +2,11 @@
 -- Lua trade actions (C-13): PoB2's own weighted-query generator and result evaluator, driven headless.
 --
 --   trade_generate_query  slot + dialog options -> PoB's weighted trade query, the full ranked weights
---                         (an optional reportStats list is checked as trade_evaluate_items would, first)
+--                         (an optional reportStats list is checked as trade_evaluate_items would, first);
+--                         amendment 14 (D-488, D-494): each ranked weight's mod text, the slot item's base, type
+--                         and socket category, and the trade links' settings: `excludeCorrupted` (a
+--                         `misc_filters.corrupted: false` filter) and `socketsByCategory` (the rune-socket
+--                         minimum by the item's socket category, when `sockets` isn't given)
 --   trade_evaluate_items  slot + sanitized /fetch entries -> per-item score, stat deltas, item text
 --   trade_query_options   slot -> what PoB's trade dialog offers for that slot
 --
@@ -368,6 +372,43 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- trade_generate_query
 
+-- D-488: an item's rune-socket category, the key of the socket table (`data/items/sockets.json`, `sockets.<key>`),
+-- from its base's tags and, for the three jewellery bases with a socket, its base name; nil for anything else (a jewel).
+local function socketCategory(item)
+  local base = item and item.base
+  if type(base) ~= 'table' then return nil end
+  local tags = base.tags or {}
+  local name = item.baseName
+  if tags.body_armour then return 'body-armour' end
+  if tags.helmet then return 'helmet' end
+  if tags.gloves then return 'gloves' end
+  if tags.boots then return 'boots' end
+  if tags.shield then return 'shield' end
+  if tags.focus then return 'focus' end
+  if tags.quiver then return 'quiver' end
+  if tags.amulet then return name == 'Corona Amulet' and 'corona-amulet' or 'amulet' end
+  if tags.ring then return name == 'Grasping Ring' and 'grasping-ring' or 'ring' end
+  if tags.belt then return name == 'Stalking Belt' and 'stalking-belt' or 'belt' end
+  if tags.two_hand_weapon or tags.twohand then return 'two-hand-weapon' end
+  if tags.one_hand_weapon or tags.onehand then return 'one-hand-weapon' end
+  return nil
+end
+
+-- The trade mod text of every mod the generator weighs, by trade id (the first found: an explicit's text before an
+-- implicit's or a corrupted one's, as `trade_query_options` lists them).
+local function modTexts(gen)
+  local texts = {}
+  for _, modType in ipairs({ 'Explicit', 'Implicit', 'Corrupted', 'Rune' }) do
+    for _, modData in pairs(gen.modData[modType] or {}) do
+      local mod = modData.tradeMod
+      if type(mod) == 'table' and type(mod.id) == 'string' and texts[mod.id] == nil and mod.text ~= nil then
+        texts[mod.id] = tostring(mod.text)
+      end
+    end
+  end
+  return texts
+end
+
 local function weightOrder(a, b)
   if a.meanStatDiff ~= b.meanStatDiff then return a.meanStatDiff > b.meanStatDiff end
   local wa, wb = math.abs(a.weight), math.abs(b.weight)
@@ -408,6 +449,20 @@ function M.generate_query(params)
   end
   local maxLevel = optionalNumber(params.maxLevel, 'maxLevel', true)
   local sockets = optionalNumber(params.sockets, 'sockets', true)
+  -- D-488: the trade links' settings.
+  local excludeCorrupted = optionalBoolean(params.excludeCorrupted, 'excludeCorrupted')
+  local socketsByCategory = optional(params.socketsByCategory)
+  if socketsByCategory ~= nil and type(socketsByCategory) ~= 'table' then
+    fail('socketsByCategory must be a map of socket category to a count')
+  end
+  local category = socketCategory(existingItem)
+  if sockets == nil and socketsByCategory ~= nil and category ~= nil then
+    local count = socketsByCategory[category]
+    if count ~= nil and (not isFiniteNumber(count) or count < 0 or count ~= math.floor(count)) then
+      fail('socketsByCategory.' .. category .. ' must be a whole number of sockets')
+    end
+    if count ~= nil and count > 0 then sockets = count end
+  end
   local includeCorrupted = optionalBoolean(params.includeCorrupted, 'includeCorrupted')
   if includeCorrupted == nil then
     -- PoB's dialog: on, unless the slot's current item is already corrupted (:1113-1115).
@@ -484,9 +539,10 @@ function M.generate_query(params)
   -- and the pinned LuaJIT randomizes string hashes per process). FinishQuery re-sorts this input with
   -- its own comparator, which is deterministic for a deterministic input.
   table.sort(gen.modWeights, weightOrder)
+  local texts = modTexts(gen)
   local rankedWeights = {}
   for i, w in ipairs(gen.modWeights) do
-    rankedWeights[i] = { tradeId = w.tradeModId, weight = w.weight, meanStatDiff = w.meanStatDiff }
+    rankedWeights[i] = { tradeId = w.tradeModId, weight = w.weight, meanStatDiff = w.meanStatDiff, text = texts[w.tradeModId] }
   end
   local itemCategory = gen.calcContext.itemCategoryQueryStr
 
@@ -495,6 +551,14 @@ function M.generate_query(params)
   if result.err then fail('PoB found no mods to search for in ' .. slotName) end
   local query = dkjson.decode(result.queryJson)
   if type(query) ~= 'table' then fail('PoB\'s query generator produced an unreadable query') end
+  if excludeCorrupted then
+    -- D-488: rares are never corrupted, so a link asks for uncorrupted listings (the trade site's option filter).
+    query.query.filters = query.query.filters or {}
+    local misc = query.query.filters.misc_filters or { disabled = false, filters = {} }
+    misc.filters = misc.filters or {}
+    misc.filters.corrupted = { option = 'false' }
+    query.query.filters.misc_filters = misc
+  end
 
   local _, baseOutput = build.calcsTab:GetMiscCalculator()
   local baseline = baselineScore(getTradeQuery(), weights, baseOutput)
@@ -508,6 +572,14 @@ function M.generate_query(params)
     itemCategory = itemCategory,
     statWeights = weightsReply(weights),
     baselineScore = baseline,
+    -- D-488: the slot's item, and the rune-socket minimum the query asks for.
+    item = existingItem and {
+      base = tostring(existingItem.baseName or ''),
+      type = tostring(existingItem.type or ''),
+      rarity = tostring(existingItem.rarity or ''),
+      socketCategory = category or NULL,
+    } or NULL,
+    sockets = sockets or NULL,
     meta = { calcCount = calcCount, ms = nowMs() - t0 },
   }
 end

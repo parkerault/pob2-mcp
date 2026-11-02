@@ -196,10 +196,10 @@ describe('D-53: the output budget', () => {
     expect(compact.slice(withBuy).every((l) => !/ · Buy: /.test(l))).toBe(true);
   });
 
-  it('a fallback starts with "Trade search not run:" and ends with the link', () => {
-    const text = renderFallback({ reason: 'no POESESSID set', hint: 'Set it.', link: 'https://x/y?q=1', notes: [] });
+  it('a fallback starts with its cause\'s prefix (D-494), then "Trade search not run:", and ends with the link', () => {
+    const text = renderFallback({ cause: 'no_session', reason: 'no POESESSID set', hint: 'Set it.', link: 'https://x/y?q=1', notes: [] });
     expect(text).toBe(
-      'Trade search not run: no POESESSID set.\nSet it.\nOpen this search in a browser where you are logged in to pathofexile.com:\nhttps://x/y?q=1',
+      '[trade:no_session] Trade search not run: no POESESSID set.\nSet it.\nOpen this search in a browser where you are logged in to pathofexile.com:\nhttps://x/y?q=1',
     );
   });
 });

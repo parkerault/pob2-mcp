@@ -40,6 +40,13 @@
  * ledger's) and pass step 3's changed-on-disk guard; it is copied to `<stateDir>/backups/<relpath>/<id>_before-delete.xml`
  * first (a backup failure leaves it in place), then unlinked, and the writer forgets its fingerprints.
  *
+ * `adoptBuildFile({name, sha1})` (D-479, `compile_plan`'s adopt mode) takes a file the user edited as this writer's own,
+ * under the same per-path lock: the file must exist and its bytes hash to `sha1` (what the caller read and the write
+ * ledger now records); its fingerprint becomes this writer's last write to the path, so step 3's guard accepts the
+ * edited bytes and the next write replaces them (after the backup), and the next delete takes them. Nothing is written.
+ * `replacedVersion({name, sha1})` (D-479, R-83) says whether bytes with that sha1 were once in the file and this writer
+ * replaced or deleted them (one of its backups of the path): an older version of a file written over since.
+ *
  * Errors are thrown as `BuildFileWriteError` (handlers fail by throwing; the router makes them `isError`).
  */
 import crypto from "crypto";
@@ -135,6 +142,13 @@ export interface DeleteBuildFileRequest {
   name: string;
   /** The sha1 the file's bytes must have (the write ledger's, D-466); any other refuses the delete. */
   sha1?: string;
+}
+
+export interface AdoptBuildFileRequest {
+  /** Build name relative to `POB_DIRECTORY`; `.xml` is appended when missing. */
+  name: string;
+  /** The sha1 the file's bytes must have: the edited file the caller read (D-479). */
+  sha1: string;
 }
 
 export interface DeleteBuildFileResult {
@@ -327,6 +341,51 @@ export class BuildFileWriter {
       }
       return { path: rel, absPath: target, bytes: current.bytes.length, backupPath };
     });
+  }
+
+  /**
+   * D-479: adopt the file at `req.name` as this writer's own: its current fingerprint becomes the writer's last write to
+   * the path (C-17 step 3's reference). Refused when the file is missing or its bytes don't hash to `req.sha1`.
+   */
+  async adoptBuildFile(req: AdoptBuildFileRequest): Promise<{ path: string; fingerprint: Fingerprint }> {
+    const { rel, target } = await this.resolve(req.name);
+    return this.withTargetLock(target, async () => {
+      const current = await this.read(target);
+      if (!current) throw new BuildFileWriteError(`${rel} doesn't exist, so it was not adopted.`);
+      const hash = sha1(current.bytes);
+      if (hash !== req.sha1) {
+        throw new BuildFileWriteError(`${rel} changed on disk again since it was read, so it was not adopted.`);
+      }
+      const st = await this.fs.stat(target);
+      const fingerprint: Fingerprint = { size: current.bytes.length, mtimeMs: st.mtimeMs, sha1: hash };
+      this.written.set(target, { fp: fingerprint, seq: ++this.seq });
+      return { path: rel, fingerprint };
+    });
+  }
+
+  /**
+   * D-479 (R-83): whether bytes hashing to `req.sha1` were in the file at `req.name` when this writer replaced or deleted
+   * it: one of its backups of the path (`<stateDir>/backups/<relpath>/`) holds them. No backup folder is no.
+   */
+  async replacedVersion(req: { name: string; sha1: string }): Promise<boolean> {
+    const { rel } = await this.resolve(req.name);
+    const dir = path.join(this.opts.stateDir, "backups", ...rel.split("/"));
+    let names: string[];
+    try {
+      names = await this.fs.readdir(dir);
+    } catch (error) {
+      if (errnoOf(error) === "ENOENT" || errnoOf(error) === "ENOTDIR") return false;
+      throw new BuildFileWriteError(`could not read the backups of ${rel}: ${osError(error)}`);
+    }
+    for (const name of names) {
+      if (!name.endsWith(".xml")) continue;
+      try {
+        if (sha1(await this.fs.readFile(path.join(dir, name))) === req.sha1) return true;
+      } catch {
+        // A backup that can't be read holds no known version.
+      }
+    }
+    return false;
   }
 
   /**

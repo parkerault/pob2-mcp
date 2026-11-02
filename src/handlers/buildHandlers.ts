@@ -5,7 +5,9 @@ import type { HandlerContext } from "../utils/contextBuilder.js";
 import type { EngineCallContext } from "../engine/session.js";
 import type { SpecSummary } from "../engine/schemas.js";
 import { EngineActionError, type PoBLuaApiClient } from "../pobLuaBridge.js";
+import crypto from "crypto";
 import { escapeNotes, replaceNotesXml } from "../services/buildExportService.js";
+import { WriteLedgerError, ledgerEntryFor, updateWriteLedger, withLedgerEntry } from "../plan/writeLedger.js";
 import { wrapHandler } from "../utils/errorHandling.js";
 import { judge, type Issue } from "../advice/judge.js";
 import { ADVICE_STAT_FIELDS, JUDGMENT_BASIS, renderIssueSection } from "../advice/report.js";
@@ -397,6 +399,12 @@ export async function handleGetBuildNotes(context: HandlerContext, buildName: st
  * build-file writer (`kind: 'text'`): the previous file is backed up, and the write is refused when the
  * file changed on disk since the engine loaded or saved it. The engine's record of the file is left
  * alone, so the next engine call reloads it (clean engine) or warns (dirty engine), C-3 step 4.
+ *
+ * D-487 (C-17, a defect fix): when `compile_plan` wrote the file (the write ledger has its entry, D-211) and nobody
+ * changed it since (its bytes before the notes hash to the entry's `sha1`), the entry's `sha1` is refreshed to the bytes
+ * written, its `baseSha1` kept, so the build's next re-compile, draft or `remove_draft` isn't refused for the notes. A
+ * file changed on disk before the notes keeps its entry, so the ledger still refuses to replace it. A ledger that can't
+ * be read or written leaves the notes written and says so.
  */
 export async function handleSetBuildNotes(context: HandlerContext, buildName: string, notes: string) {
   return wrapHandler('set build notes', async () => {
@@ -404,6 +412,7 @@ export async function handleSetBuildNotes(context: HandlerContext, buildName: st
     const file = await context.buildService.readBuildFile(buildName);
     const xml = replaceNotesXml(file.bytes.toString('utf8'), escapeNotes(notes));
     const result = await context.buildFileWriter.writeBuildFile({ name: file.rel, bytes: xml, kind: 'text' });
+    const ledgerLines = await refreshLedgerEntry(context.stateDir, result.path, sha1Of(file.bytes), result.fingerprint.sha1);
     return {
       content: [{
         type: 'text' as const,
@@ -411,10 +420,32 @@ export async function handleSetBuildNotes(context: HandlerContext, buildName: st
           ...result.notices,
           `✅ Notes updated in ${result.path} (${notes.length} characters).`,
           result.message,
+          ...ledgerLines,
         ].join('\n'),
       }],
     };
   });
+}
+
+const sha1Of = (bytes: Buffer): string => crypto.createHash('sha1').update(bytes).digest('hex');
+
+/**
+ * D-487: refresh the write ledger's entry for `rel` (if any) to `written`, when its `sha1` was `before`'s: the bytes
+ * `compile_plan` wrote, unchanged until these notes. Returns the reply's lines: none on a refresh or with no entry.
+ */
+async function refreshLedgerEntry(stateDir: string, rel: string, before: string, written: string): Promise<string[]> {
+  try {
+    return await updateWriteLedger(stateDir, async (ledger) => {
+      const entry = ledgerEntryFor(ledger, rel);
+      if (entry === undefined || entry.sha1 !== before) return { ledger: null, value: [] as string[] };
+      return { ledger: withLedgerEntry(ledger, { ...entry, sha1: written, writtenAt: new Date().toISOString() }), value: [] as string[] };
+    });
+  } catch (error) {
+    if (error instanceof WriteLedgerError) {
+      return [`The write ledger wasn't refreshed for ${rel} (${error.message}), so compile_plan may refuse to replace the file.`];
+    }
+    throw error;
+  }
 }
 
 function formatTreeAnalysis(analysis: TreeAnalysisResult): string {

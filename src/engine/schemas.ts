@@ -691,13 +691,24 @@ export const tradeGenerateQueryReply = baseReply.extend({
       query: tradeQuerySchema,
       /** The full ranked list before PoB's 35-filter cap, in D-55 order. */
       rankedWeights: luaArray(
-        // weight = meanStatDiff / the tested mod value, so a zero test value gives inf (encoded null).
-        z.object({ tradeId: z.string(), weight: luaNumber, meanStatDiff: luaNumber }).passthrough(),
+        // weight = meanStatDiff / the tested mod value, so a zero test value gives inf (encoded null). D-494: `text`,
+        // the trade mod's text (`find_upgrades {link_only}`'s ranking).
+        z.object({ tradeId: z.string(), weight: luaNumber, meanStatDiff: luaNumber, text: z.string().optional() }).passthrough(),
       ),
       minWeight: luaNumber,
       itemCategory: z.string(),
       statWeights: luaArray(statWeightSchema),
       baselineScore: luaNumber,
+      /**
+       * D-488 (the trade links): the slot's item, its socket category (the socket table's key, `body-armour`, …, or
+       * null for a jewel), and the rune-socket minimum the query asks for (null for none).
+       */
+      item: z
+        .object({ base: z.string(), type: z.string(), rarity: z.string(), socketCategory: z.string().nullable() })
+        .passthrough()
+        .nullable()
+        .optional(),
+      sockets: z.number().int().nullable().optional(),
       meta: z.object({ calcCount: z.number().int(), ms: z.number() }).passthrough(),
     })
     .passthrough(),
@@ -2145,6 +2156,13 @@ export interface TradeGenerateQueryParams {
   runeBehaviour?: TradeItemBehaviour;
   jewelType?: 'Base' | 'Radius';
   status?: 'securable' | 'available' | 'onlineleague' | 'online' | 'any';
+  /** D-488 (the trade links): true adds a `misc_filters.corrupted: false` filter (the trade site's option form). */
+  excludeCorrupted?: boolean;
+  /**
+   * D-488 (the trade links): the rune-socket minimum by the slot item's socket category (`body-armour`, `helmet`, …, the
+   * socket table's keys), applied when `sockets` isn't given and the count is above 0.
+   */
+  socketsByCategory?: Record<string, number>;
   /**
    * Additive: the report stats a later `trade_evaluate_items` will be asked for, checked here (each a
    * sort stat or a numeric stat of the build's output) so a bad name fails before any trade request.

@@ -38,7 +38,7 @@ import type { Credentials } from "../trade/credentials.js";
 import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleEncodeBuildCode } from "../handlers/buildCodeHandlers.js";
-import { handleCompilePlan, handleGuideRun } from "../handlers/planHandlers.js";
+import { compileRequestOf, handleCompilePlan, handleGuideRun } from "../handlers/planHandlers.js";
 
 export interface ToolRouterDependencies {
   contextBuilder: ContextBuilder;
@@ -143,8 +143,24 @@ const TRADE_TOOLS_WITHOUT_STATS = new Set(["get_leagues", "trade_query_options",
  *   the build unsaved; its other actions are `mutate`.
  * - D-216: `guide_run` carrying `new_run` (or, D-415, `resume`) is `none`; `guide_run {validate}` is its `read`.
  * - D-466: `compile_plan` carrying `draft_name` or `remove_draft` (the draft mode, a copy and a delete in the builds
- *   folder) is `none`; a compile is its `load`.
+ *   folder) is `none`; a compile is its `load`. Amendment 14: so are `read_back` and `adopt` (D-479) and `notes_path`
+ *   (D-487), which read and write files only; `trade_links` (D-488) loads the final build, its `load`.
  */
+/**
+ * `compile_plan`'s kind: its `load` for a compile and the trade links (D-488), `none` for the draft mode, its delete, the
+ * read-back, the adoption and the notes (D-466, D-479, D-487), and `none` for arguments the handler refuses, so a refusal
+ * never starts the engine.
+ */
+function compilePlanKind(args: Record<string, unknown> | undefined): EngineKindMeta | undefined {
+  let mode: string;
+  try {
+    mode = compileRequestOf(args).mode;
+  } catch {
+    return "none";
+  }
+  return mode === "measure-only" || mode === "final" || mode === "trade-links" ? undefined : "none";
+}
+
 const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => EngineKindMeta | undefined> = {
   manage_sets: (args) => (args?.action === "list" ? "read" : undefined),
   // D-216: guide_run's run-folder mode never enters the session: no lock, no event, no engine start. Only a
@@ -156,7 +172,7 @@ const KIND_RULES: Record<string, (args: Record<string, unknown> | undefined) => 
       : undefined,
   // D-466: the draft mode runs no engine: no lock, no event, no engine start, and the engine's build is untouched. Any
   // argument mix with draft_name or remove_draft is refused by the handler, without the engine.
-  compile_plan: (args) => (args?.draft_name !== undefined || args?.remove_draft !== undefined ? "none" : undefined),
+  compile_plan: (args) => compilePlanKind(args),
 };
 
 /** The engine kind a call runs as: its tool's per-call rule, else its `TOOL_META` kind. */
@@ -819,8 +835,21 @@ async function dispatch(
       return await handleEncodeBuildCode(handlerContext, args?.build_name);
 
     // C-41, C-50: the plan compiler and the guide run folders
-    case "compile_plan":
-      return await handleCompilePlan({ ...deps.contextBuilder.buildPlanContext(), isDirty: () => deps.session.isDirty() }, args);
+    case "compile_plan": {
+      // D-479: the read-back names nodes from the tree service's passive tree and config inputs by PoB's labels; D-488:
+      // the trade links check stat ids against the cached /data/stats only, never loading it.
+      const treeService = deps.contextBuilder.buildHandlerContext().treeService;
+      return await handleCompilePlan(
+        {
+          ...deps.contextBuilder.buildPlanContext(),
+          isDirty: () => deps.session.isDirty(),
+          treeData: (version) => treeService.getTreeData(version),
+          pobSrc: () => resolvePobSrc(deps.env),
+          tradeStats: () => (deps.statMapper.isLoaded() ? (id: string) => deps.statMapper.getById(id) !== null : null),
+        },
+        args,
+      );
+    }
 
     case "guide_run":
       return await handleGuideRun({ ...deps.contextBuilder.buildPlanContext(), isDirty: () => deps.session.isDirty() }, args);

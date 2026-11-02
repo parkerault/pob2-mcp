@@ -21,9 +21,12 @@
  * side, the section-4 and section-5 entries, the Attacks kit's Levers, the stale deflection lines with §4's floor, and
  * the trim's kept headings; question 19's text is in `buildGuideDesignPieces.test.ts`, the family list of 12 in
  * `buildGuidePipeline.test.ts` (AC-W28), the word caps in every word-count test.
- * AC-W101 (WU-131, amendment 13 §11, D-470), the last describe block: "A second ailment type" in section 5 with its five
+ * AC-W101 (WU-131, amendment 13 §11, D-470), the next describe block: "A second ailment type" in section 5 with its five
  * fields, each pin line it cites holding what it names; the pointer from "Convert into the ailment's type"; the Damage
  * over time kit's lever beside Contagion; the pivots; Split Personality's line; the 17,000 cap the five cap tests pin.
+ * Its Cautions' status word follows amendment 14 §15 (D-489, WU-141): "unconfirmed" with its fallback.
+ * AC-W109 (WU-141, amendment 14 §17, D-491), the last describe block: "Moving while using skills", the movement-penalty
+ * reducers, each pin line it cites holding what it names.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
@@ -542,7 +545,9 @@ describe('AC-W101 (WU-131, D-470): the library carries amendment 13', () => {
     const debuffs = spec(theirs, /^(.*?) aren't ailments/, 'the chaos debuffs')[1];
     expect(debuffs).toBe("Contagion, Essence Drain and Decaying Hex's debuff");
     expect(cautions.startsWith(`${debuffs} aren't ailments: in PoB they take damage over time and chaos damage over time lines but not the ailment lines`)).toBe(true);
-    expect(cautions).toContain('PoB\'s model, needs in-game testing');
+    // Amendment 14 §15 (D-489, WU-141): "unconfirmed" with its fallback replaces "needs in-game testing".
+    expect(cautions).toMatch(/unconfirmed \(PoB's model only; if it fails: [^)]+\)/);
+    expect(cautions).not.toContain('needs in-game testing');
     const clauses = theirs.split('; ').slice(-3).map(plain);
     expect(clauses).toEqual([
       'each type needs its own chance and damage type',
@@ -656,5 +661,107 @@ describe('AC-W101 (WU-131, D-470): the library carries amendment 13', () => {
     // The old cap, built so this file doesn't hold it either.
     const old = ['16', '000'].join('_');
     for (const name of Object.keys(holds)) expect({ name, old: test(name).includes(old) }).toEqual({ name, old: false });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W109 (WU-141, amendment 14 §17, D-491; static): the movement-penalty reducers' entry, "Moving while using skills",
+// in section 5 with its five fields; every pin line it cites holds what the entry says of it (the node or gem name, the
+// figure, the stat), so the entry invents nothing; it gives the regular movement figure in messages (D-491). The
+// game text and the parser lines are read from the amendment in `buildGuidePipeline.test.ts`'s AC-W109 block.
+// ---------------------------------------------------------------------------------------------------
+describe("AC-W109 (WU-141, D-491): the movement-penalty reducers' entry cites pin lines that hold what it says", () => {
+  const TITLE = 'Moving while using skills';
+  const pinLines = (rel: string) => fs.readFileSync(path.join(PIN_SRC, rel), 'utf8').split(/\r?\n/);
+  const pin = (rel: string, line: number) => pinLines(rel)[line - 1] ?? '';
+  /** The `name` of the tree node or skill a pin line sits in: the nearest `name="…"` or `name = "…"` above it. */
+  const nameAbove = (rel: string, line: number) => {
+    const ls = pinLines(rel);
+    for (let i = line - 1; i >= 0; i--) {
+      const m = /\bname ?= ?"([^"]+)"/.exec(ls[i]);
+      if (m) return m[1];
+    }
+    return '';
+  };
+  /** The tree node block a line of `TreeData/0_5/tree.lua` sits in. */
+  const nodeAt = (line: number) => {
+    const ls = pinLines('TreeData/0_5/tree.lua');
+    let a = line - 1;
+    while (a > 0 && !/^\t\t\[\d+\]=\{$/.test(ls[a])) a--;
+    let b = line - 1;
+    while (b < ls.length && !/^\t\t\},?$/.test(ls[b])) b++;
+    return ls.slice(a, b + 1).join('\n');
+  };
+  const e = entry(TITLE);
+  const search = e ? field(e.body, 'Search') : '';
+
+  it('files the entry in section 5 with its five fields in order, its PoB field modelled', () => {
+    expect(e?.family).toBe('5. Copies and rate');
+    const at = FIELDS.map((f) => e!.body.search(new RegExp(`^- \\*\\*${f}:\\*\\* \\S`, 'm')));
+    expect({ fields: at.every((i) => i >= 0), inOrder: [...at].sort((x, y) => x - y).join() === at.join() }).toEqual({ fields: true, inOrder: true });
+    expect(field(e!.body, 'PoB')).toMatch(/^modelled: `MovementSpeedWhileUsingSkillPercent` for a skill usable while moving/);
+  });
+
+  it("names each tree node by the name at its cited line, each line a reducer with the figure the entry gives", () => {
+    const cites = [...search.matchAll(/\(:(\d+)\)/g)];
+    expect(cites.length).toBe(8);
+    let from = 0;
+    for (const m of cites) {
+      const line = Number(m[1]);
+      const said = search.slice(from, m.index);
+      from = m.index! + m[0].length;
+      const stat = pin('TreeData/0_5/tree.lua', line);
+      const name = nameAbove('TreeData/0_5/tree.lua', line);
+      const figure = [...said.matchAll(/(\d+)%/g)].pop()?.[1] ?? '5'; // the six notables' "5% each" but Unhindered's own
+      expect({ line, reducer: /Movement Speed Penalty from using Skills while moving/i.test(stat), named: said.includes(name), figure: stat.includes(`${figure}%`) }).toEqual({ line, reducer: true, named: true, figure: true });
+    }
+  });
+
+  it('calls the six "notables" notables, and names the two ascendancy nodes by their ascendancies', () => {
+    const notables = ['Unhindered', 'Afterimage', 'Ether Flow', 'Freedom of Movement', 'Run and Gun', 'Spray and Pray'];
+    const said = [...search.matchAll(/(?:\) |, | and )([A-Z][A-Za-z ]+?) (?:\d+% )?\(:(\d+)\)/g)].map((m) => [m[1], Number(m[2])] as const);
+    expect(said.map(([title]) => title)).toEqual(notables);
+    for (const [title, line] of said) {
+      expect({ title, notable: /isNotable=true/.test(nodeAt(line)), ascendancy: /ascendancyName=/.test(nodeAt(line)) }).toEqual({ title, notable: true, ascendancy: false });
+    }
+    const asc = (line: number) => /ascendancyName="([^"]+)"/.exec(nodeAt(line))?.[1];
+    expect(search).toContain("the Pathfinder's Running Assault, 30% less (:126975)");
+    expect({ running: asc(126975), gem: asc(73885) }).toEqual({ running: 'Pathfinder', gem: 'Gemling Legionnaire' });
+    expect(pin('TreeData/0_5/tree.lua', 73885)).toBe('\t\t\t\t[4]="Green: 40% less Movement Speed Penalty from using Skills while Moving"');
+  });
+
+  it('cites the gems, the boots suffix, the skills\' 30% and the parser lines where the pin holds them', () => {
+    expect(search).toContain('Mobility, 25% less (`Data/Skills/sup_dex.lua:3088`)');
+    expect({ name: nameAbove('Data/Skills/sup_dex.lua', 3088), line: pin('Data/Skills/sup_dex.lua', 3088).trim() }).toEqual({ name: 'Mobility', line: '{ "support_mobility_movement_speed_penalty_+%_final_while_performing_action", -25 },' });
+    expect(search).toContain('Deliberation is 30% more penalty for 20% more damage (`sup_dex.lua:1898-1899`)');
+    expect({ name: nameAbove('Data/Skills/sup_dex.lua', 1898), penalty: pin('Data/Skills/sup_dex.lua', 1898).trim(), damage: pin('Data/Skills/sup_dex.lua', 1899).trim() }).toEqual({
+      name: 'Deliberation',
+      penalty: '{ "support_deliberation_movement_speed_penalty_+%_final_while_performing_action", 30 },',
+      damage: '{ "support_deliberation_damage_+%_final", 20 },',
+    });
+    expect(search).toContain('the boots\' Abyss suffix "of Ulaman", 6–10% (`Data/ModVeiled.lua:169`)');
+    expect(pin('Data/ModVeiled.lua', 169)).toMatch(/\["AbyssModBoots[^"]*"\] = \{ type = "Suffix", affix = "of Ulaman", "\(6-10\)% reduced Movement Speed Penalty from using Skills while moving"/);
+    const shape = field(e!.body, 'Shape');
+    expect(shape).toContain('most to 30% of your speed (Arc, `Data/Skills/act_int.lua:94`)');
+    expect({ name: nameAbove('Data/Skills/act_int.lua', 94), line: pin('Data/Skills/act_int.lua', 94).trim() }).toEqual({ name: 'Arc', line: '{ "movement_speed_+%_final_while_performing_action", -70 },' });
+    const pob = field(e!.body, 'PoB');
+    expect(pob).toContain('`Modules/CalcOffence.lua:3161-3168`');
+    expect(pin('Modules/CalcOffence.lua', 3161)).toMatch(/if activeSkill\.skillTypes\[SkillType\.UsableWhileMoving\] then/);
+    expect(pin('Modules/CalcOffence.lua', 3168)).toMatch(/output\.MovementSpeedWhileUsingSkillPercent = /);
+    for (const line of [6099, 6101]) expect(pin('Modules/ModParser.lua', line)).toMatch(/movement speed penalty from using skills while moving"\] = function\(num\) return \{ mod\("MovementSpeedPenalty"/);
+  });
+
+  it("says PoB misreads Pyromancer's and Flurry's lines, as the pin's cache holds them, and gives the regular movement figure in messages", () => {
+    const cautions = field(e!.body, 'Cautions');
+    expect(cautions).toContain("PoB doesn't read Pyromancer's and Flurry's fire- and cold-skill lines as reducers (`Data/ModCache.lua:3105-3106`)");
+    for (const [line, kind] of [[3105, 'Cold'], [3106, 'Fire']] as const) {
+      expect(pin('Data/ModCache.lua', line)).toMatch(new RegExp(`^c\\["5% reduced Movement Speed Penalty from using ${kind} Skills while moving"\\]=\\{\\{\\[1\\]=\\{.*name="MovementSpeed",`));
+    }
+    const tree = pinLines('TreeData/0_5/tree.lua');
+    for (const [name, kind] of [['Pyromancer', 'Fire'], ['Flurry', 'Cold']]) {
+      const line = tree.findIndex((l) => l.includes(`5% reduced Movement Speed Penalty from using ${kind} Skills while moving`)) + 1;
+      expect({ kind, name: nameAbove('TreeData/0_5/tree.lua', line) }).toEqual({ kind, name });
+    }
+    expect(field(e!.body, 'PoB')).toContain('Messages give the regular movement figure, never this one (D-491)');
   });
 });

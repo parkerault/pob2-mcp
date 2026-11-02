@@ -1826,7 +1826,8 @@ describe('AC-W27: the card template holds both halves of §7.5 and the six statu
   });
 
   it("carries the six status words (D-291), the fourth citing the user's notes (D-335)", () => {
-    for (const word of ['confirmed in game text', 'modelled in PoB', 'estimate (', "players use it (the user's notes)", 'not checked yet', 'needs in-game testing']) {
+    // D-489 (WU-141): "unconfirmed" with its fallback replaces "needs in-game testing" (AC-W109's block holds the rest).
+    for (const word of ['confirmed in game text', 'modelled in PoB', 'estimate (', "players use it (the user's notes)", 'not checked yet', 'unconfirmed (<what>; if it fails: <the fallback and its cost>)']) {
       expect({ word, present: text.includes(word) }).toEqual({ word, present: true });
     }
   });
@@ -3579,7 +3580,8 @@ describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text'
     expect(text).toMatch(/\*\*`## Found, not used`\*\*, the last H2: up to five strong research findings no card uses, each `- <finding>: <why no card uses it>`, or `None\.`/);
     // Amendment 11 (WU-114, D-442): the name carries the main skill and the ascendancy.
     expect(text).toMatch(/7\. \*\*Unique names\*\* \(D-392, D-442\)\. No two cards of the run share a name\. \*\*A name carries the main skill and the ascendancy\*\*: .* On a clash with a card already in `cards\.md` or another card of the round, or a name that lacks its main skill or its ascendancy, rename the newer one/);
-    expect(text).toMatch(/"Not confirmed in game" is every card's default, which the display says once: no line repeats it, a links count or "no player evidence"/);
+    // D-478 (WU-141): the revision-14 brainstorm display no longer prints the not-confirmed sentence; no deck line says it.
+    expect(text).toMatch(/No line says a card isn't confirmed in game, every card's default, nor gives a links count or "no player evidence"/);
     expect(folded(readStage('R1a'))).toMatch(/\*\*Pitch\*\* \(D-392\): each field as the template asks, in player terms, its \*\*Name\*\* unique among your cards and the deck's\. \*\*The name carries the main skill and the ascendancy\*\* \(D-442\): .* \*\*How it clears\*\* matters most/);
   });
 
@@ -4250,5 +4252,127 @@ describe("WU-95's fix round: the coordinator's ruling on a campaign's PoB file, 
     const line = fs.readFileSync(path.join(REPO, 'scripts', 'compact-reminder.sh'), 'utf8').split('\n').find((l) => l.startsWith('2. '))!;
     expect(line).toContain('display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate)');
     expect(fs.readFileSync(SKILL_MD, 'utf8').split('\n').slice(0, 40)).toContain(line);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W109 (WU-141, amendment 14 §4, §5, §15, §17; static, one assertion each): R1b writes the skeleton file through
+// the draft mode, returns `skeleton:`, and keeps the draft call outside its two compiles; "unconfirmed" with its
+// fallback replaces "needs in-game testing" in the card template, Q and the library; "How it clears" asks standing or
+// walking; the library's movement-penalty reducers; R1a-synthesize and R1a-assemble no longer say the display carries
+// the not-confirmed sentence; the researcher's definition advises no test in game. Every form is read from the
+// amendment. The library's word count is the unit's report (HG-35, waived for M-27); the cap tests elsewhere hold it.
+// ---------------------------------------------------------------------------------------------------
+describe('AC-W109 (WU-141, D-478, D-479, D-489, D-491): the research docs and the library carry amendment 14', () => {
+  const A14 = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-14-files-specs-and-repairs.md'), 'utf8');
+  const section = (from: string, to: string) => folded(A14.slice(A14.indexOf(from), A14.indexOf(to)));
+  const S4 = section('## 4. D-478', '## 5. D-479');
+  const S5 = section('## 5. D-479', '## 6. D-480');
+  const S15 = section('## 15. D-489', '## 16. D-490');
+  const S17 = section('## 17. D-491', '## 18. D-492');
+  const spec = (text: string, re: RegExp, what: string) => {
+    const m = re.exec(text);
+    if (!m) throw new Error(`amendment 14 doesn't state ${what}`);
+    return m;
+  };
+  // §15: the status word that replaces the old one, as the cards spell their words (lower case).
+  const [, form, OLD] = spec(S15, /\*\*"Unconfirmed (\([^"]+\))"\*\* replaces the status word "([^"]+)"/, 'the status word');
+  const WORD = `unconfirmed ${form}`;
+  // §5: R1b's draft call, the file it writes and its return.
+  const [, CALL, FILE] = spec(S5, /R1b's last act on a damage pass, .*? is `(compile_plan \{[^`]*draft_name[^`]*\})`, which writes `([^`]+)`/, "R1b's draft call");
+  const [, RETURN] = spec(S5, /R1b returns `(skeleton: <relpath>)`/, "R1b's return");
+  const r1b = readStage('R1b');
+  const r1bFlat = folded(r1b);
+  const template = fs.readFileSync(path.join(SKILL_DIR, 'templates', 'card-template.md'), 'utf8');
+  const library = fs.readFileSync(path.join(SKILL_DIR, 'references', 'patterns.md'), 'utf8');
+  const researcherFile = path.join(AGENTS_DIR, 'build-guide-researcher.md');
+
+  it('the amendment states the forms this block reads', () => {
+    expect(WORD).toBe('unconfirmed (<what>; if it fails: <the fallback and its cost>)');
+    expect(OLD).toBe('needs in-game testing');
+    expect(FILE).toBe('<card name> skeleton (draft).xml');
+    expect(S5).toMatch(/The call doesn't count toward R1b's two compiles/);
+    expect(S4).toMatch(/`R1a-synthesize\.md`:266–267 and `R1a-assemble\.md` \(the display's not-confirmed sentence\)/);
+  });
+
+  it("R1b.md writes the skeleton file with §5's draft call, as the step's last act on a damage pass, after the verdict file", () => {
+    expect(r1bFlat).toContain(`\`mcp__pob2__${CALL}\``);
+    expect(r1bFlat).toContain(`\`${FILE}\``);
+    expect(r1bFlat).toMatch(/10\. \*\*The skeleton file\*\* \(D-479\), the step's last act, only when the last compile passed the damage check \(`verdict\.damage: "pass"`\): once the verdict file is written, call/);
+    expect(r1b.indexOf('10. **The skeleton file**')).toBeGreaterThan(r1b.indexOf('9. **The verdict file**'));
+  });
+
+  it("R1b.md returns `skeleton: <relpath>`, which the runner records as skeletonFile, on every passing example", () => {
+    expect(r1bFlat).toContain(`return it as \`${RETURN}\`, which the runner records on your stage entry as \`skeletonFile\``);
+    const returns = r1b.slice(r1b.indexOf('## Returns'), r1b.indexOf('## Fault directives'));
+    expect(folded(returns)).toContain(`on a damage pass \`${RETURN}\` (or \`skeleton: none: <why>\`) after step 10's draft call`);
+    const examples = [...returns.matchAll(/```\n([\s\S]*?)\n```/g)].map((m) => m[1].split('\n'));
+    expect(examples.length).toBeGreaterThanOrEqual(3);
+    for (const lines of examples) {
+      const passed = /: compiled; damage: /.test(lines[0]);
+      const skeleton = lines.filter((l) => /^skeleton: .+ skeleton \(draft\)\.xml$/.test(l));
+      expect({ first: lines[0], skeletonLines: skeleton.length }).toEqual({ first: lines[0], skeletonLines: passed ? 1 : 0 });
+    }
+  });
+
+  it('R1b.md keeps the draft call outside its two compiles, and out of the verdict\'s `compiles`', () => {
+    expect(r1bFlat).toMatch(/At most \*\*two compiles per attempt\*\*, both measure-only: an optional bootstrap compile \(step 3\), then the last compile of the whole skeleton \(step 8\)\. The skeleton file's draft call \(step 10, D-479\) compiles nothing and isn't one of them\./);
+    expect(r1bFlat).toMatch(/`compiles`: how many compiles of the skeleton this attempt made \(the bootstrap and the last; at most 2\): the probes and the skeleton file's draft call \(step 10\) aren't counted/);
+  });
+
+  it('the card template\'s status words carry "unconfirmed (…; if it fails: …)" and not the old word', () => {
+    const words = template.slice(template.indexOf('Status words'), template.indexOf('-->'));
+    expect(words).toContain(`- ${WORD}: no text or tool can settle it`);
+    expect(template).not.toContain(OLD);
+  });
+
+  it("the card template's How it clears asks whether the clear skill is used standing or walking, and how many casts a pack takes (§17)", () => {
+    const [, standing, casts] = spec(S17, /says whether the clear skill is cast (standing or walking) and (how many casts a pack takes)/, 'the How it clears line');
+    const pitch = folded(template.slice(template.indexOf('### Pitch'), template.indexOf('### Chain')));
+    const how = /- How it clears: <([^>]*)>/.exec(pitch)?.[1] ?? '';
+    expect({ standing: how.includes(`used ${standing}`), casts: how.includes(casts), walk: /never "hold it as you walk"/.test(how) }).toEqual({ standing: true, casts: true, walk: true });
+  });
+
+  it('Q.md says how it knows in the same word, and not the old one', () => {
+    const q = folded(readStage('Q'));
+    expect({ word: q.includes(`or ${WORD} (D-489)`), old: q.includes(OLD) }).toEqual({ word: true, old: false });
+  });
+
+  it('patterns.md holds no "needs in-game testing"', () => {
+    expect(library).not.toContain(OLD);
+  });
+
+  it("patterns.md has the movement-penalty reducers' entry, its game text and its ModParser lines as §17 names them", () => {
+    const [, phrase, parser, from, to] = spec(S17, /names the penalty's reducers \("([^"]+)", `([^`]+)`: (\d+)–(\d+)\)/, 'the reducers');
+    const hs = headings(library);
+    const at = hs.find((h) => h.level === 3 && h.title === 'Moving while using skills');
+    expect(at).toBeDefined();
+    const lines = library.split(/\r?\n/);
+    const body = folded(lines.slice(at!.line + 1, hs.find((h) => h.line > at!.line)!.line).join('\n'));
+    expect({ phrase: body.toLowerCase().includes(phrase), parser: body.includes(`\`${parser}:${from}-${to}\``), standing: body.includes('standing or walking') }).toEqual({ phrase: true, parser: true, standing: true });
+  });
+
+  it('R1a-synthesize.md and R1a-assemble.md no longer say the display carries the not-confirmed sentence (§4)', () => {
+    for (const stage of ['R1a-synthesize', 'R1a-assemble']) {
+      const text = folded(readStage(stage));
+      const sentences = text.split(/(?<=\.)\s+/).filter((s) => /confirmed in game/i.test(s));
+      expect({ stage, rule: sentences.some((s) => s.includes("No line says a card isn't confirmed in game")), display: sentences.filter((s) => /display/.test(s)) }).toEqual({ stage, rule: true, display: [] });
+    }
+  });
+
+  it('the researcher\'s definition advises no test in game (§15)', () => {
+    const def = readDefinition(fs.readFileSync(researcherFile, 'utf8'))!;
+    expect(folded(def.body)).toMatch(/\*\*No advice to test in game\*\* \(D-489\)\. Testing a build means levelling a new character for hours, so nothing you write tells the user to test something in game\. A point no text or tool can settle takes the card template's status word `unconfirmed`/);
+  });
+
+  it("none of the unit's files holds the checker's words for test advice, \"needs in-game testing\" or \"in-game test\" (§15)", () => {
+    const [, , inGameTest, needs] = spec(S15, /flags "(test … in game)", "(in-game test)" and "(needs in-game testing)"/, "the checker's words");
+    const files = [
+      path.join(STAGES_DIR, 'R1b.md'), path.join(STAGES_DIR, 'Q.md'), path.join(STAGES_DIR, 'R1a-synthesize.md'),
+      path.join(STAGES_DIR, 'R1a-assemble.md'), path.join(SKILL_DIR, 'templates', 'card-template.md'),
+      path.join(SKILL_DIR, 'references', 'patterns.md'), researcherFile,
+    ];
+    const held = files.map((f) => ({ file: path.basename(f), words: [inGameTest, needs].filter((w) => folded(fs.readFileSync(f, 'utf8')).includes(w)) }));
+    expect(held).toEqual(files.map((f) => ({ file: path.basename(f), words: [] })));
   });
 });

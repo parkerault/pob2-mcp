@@ -6,7 +6,9 @@
  * a ledger-only edit (D-352: an entry's claim, formula or inputs, an entry added or removed; the run checker
  * re-evaluates the plan's current ledger itself) leave it unchanged; a change to an item, a gem, the tree, the
  * config or a price changes it. D-386: a price's `note` is its wording only, so it is left out too: a note-only
- * fix (the Varashta run's) needs no recompile, no gate and no new PoB file. D-418 (schema 6): a tree need's `claim`,
+ * fix (the Varashta run's) needs no recompile, no gate and no new PoB file. D-484, D-483 (schema 10): a price's `listing`
+ * (the listing it was read from) and `spec` (a rare's must-haves, weights and searches) record how it was priced, so they
+ * are left out as well: a re-price that changes only them changes no build figure. D-418 (schema 6): a tree need's `claim`,
  * the id of the claim saying why the tree keeps its nodes, is a citation, so it is left out as well: D1-finish sets it
  * after D1-tree with no recompile. A need's `nodes` and `stat` stay in, since the D1 gate's tree verdict keeps them,
  * so changing them recompiles and re-runs the gate.
@@ -25,8 +27,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 /** The plan's top-level fields that aren't build content: the ledger (D-352). */
 const NON_BUILD_KEYS = new Set(['ledger']);
 
-/** A price's fields that are wording only (D-386): its note. */
-const PRICE_TEXT_KEYS = new Set(['note']);
+/** A price's fields that change no build figure: its note (D-386), its listing (D-484) and a rare's spec (D-483). */
+const PRICE_TEXT_KEYS = new Set(['note', 'listing', 'spec']);
 
 /** A tree need's fields that are citations (D-418): the id of its reason claim. */
 const NEED_CITATION_KEYS = new Set(['claim']);
@@ -47,7 +49,7 @@ function withoutNeedClaims(tree: unknown): unknown {
 
 /**
  * The plan without `ledger`, without `stages[].claims`, without any `source` or `tag` field, without each
- * price's `note` (D-386) and without each tree need's `claim` (D-418).
+ * price's `note` (D-386), `listing` (D-484) and `spec` (D-483), and without each tree need's `claim` (D-418).
  */
 export function buildProjection(plan: unknown): unknown {
   const strip = (v: unknown): unknown => {

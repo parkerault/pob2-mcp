@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 9; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 10; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 9 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 10 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -84,6 +84,19 @@
  * - A custom modifier's `reason` is required and one line (D-469): the compiler writes it as the comment line `# <reason>`
  *   before the entry's line in PoB's custom modifier box (a schema-8 or older plan's box is unchanged).
  *
+ * **Items as specs, the one-item swap and the tree search's repairs** (amendment 14, version 10; WU-137), each a
+ * version-10 addition:
+ * - A price entry's `listing {corrupted, sockets, count, position}` and, on a `b` or `n` rare, `spec {base, weights,
+ *   ranking, mustHaves, leftOut, searches}` (D-483, D-484): what the price records; both left out of `buildSha1`, as `note`.
+ * - `tree.exclude [{nodes, reason}]` (D-490): nodes the tree search may never add on the rung, each entry with its reason.
+ * - `tree.search.targets {ehp, maxHit, why}` and `tree.search.userMoves`, and `rebuild: "none: <the tool's reason>"`
+ *   (D-490); `tree.end.endAfter: "swap"` (D-481): the end figures rewritten by a one-item swap's compile.
+ * - The plan's `itemSwaps [{stages, slot, from, to, bossBefore, bossAfter, reason}]` (D-481): each swap's record; each
+ *   stage it names is a stage of the plan, and its boss figures are keyed by those stages.
+ * - `items.treeJewels` may name an ascendancy jewel socket (D-492): a node of `tree.ascendancyNodes` that is one of the
+ *   tree's jewel sockets (`TREE_JEWEL_SOCKETS`, `containJewelSocket`: Crystalline Phylactery, 17788); any other
+ *   ascendancy node errs at its `node`.
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -92,7 +105,7 @@
  * keeps it equal to this schema.
  */
 import { z } from 'zod';
-import { ACTIVATABLE_SLOTS, ITEM_SLOTS } from '../server/toolSchemas.js';
+import { ACTIVATABLE_SLOTS, ITEM_SLOTS, TREE_JEWEL_SOCKETS } from '../server/toolSchemas.js';
 import { checkLedgerEntry, ledgerErrorText } from './ledger.js';
 import { PROGRESS_KEY_RE, type PlanReferenceData } from './referenceData.js';
 import { claimSourceSchema, isoDateSchema, parseCitation, sourceTagSchema } from './sourceTag.js';
@@ -101,7 +114,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -189,22 +202,48 @@ const treeFiguresSchema = z
   })
   .strict();
 
-/** D-467 (schema 9): the rebuild's outcome on the rung: taken, none, or undone with why. */
-const REBUILD_OUTCOME_RE = /^(taken|none|undone: \S.*)$/;
+/**
+ * D-467 (schema 9): the rebuild's outcome on the rung: taken, none, or undone with why. D-490 (schema 10): or `none: <the
+ * tool's reason>`, a rebuild the tool calls illegal, recorded as it is (no hand edits).
+ */
+const REBUILD_OUTCOME_RE = /^(taken|none|undone: \S.*|none: \S.*)$/;
 
-/** D-467, D-468 (schema 9): what D1-tree's search did on the rung. */
+/** D-490 (schema 10): the rebuild outcome only a schema-10 plan may record. */
+export const REBUILD_NONE_WHY_RE = /^none: \S/;
+
+/** D-481 (schema 10): what rewrote `tree.end`: a one-item swap's measure-only compile. */
+export const END_AFTER = ['swap'] as const;
+
+/**
+ * D-490 (schema 10): the targets D1-tree's search used on the rung, per figure the lower of `tree.start` and the rung's
+ * compile when gear moved after D1-tree, and why.
+ */
+const searchTargetsSchema = z.object({ ehp: figure, maxHit: figure, why: text('why') }).strict();
+
+/** D-467, D-468 (schema 9): what D1-tree's search did on the rung. D-490 (schema 10): its targets and the user's moves. */
 const treeSearchSchema = z
   .object({
     swaps: z.number().int().nonnegative(),
     lastGain: figure.nullable(),
     capHit: z.boolean(),
-    rebuild: z.string().regex(REBUILD_OUTCOME_RE, { message: 'rebuild is "taken", "none" or "undone: <why>"' }),
+    rebuild: z.string().regex(REBUILD_OUTCOME_RE, { message: 'rebuild is "taken", "none", "none: <the tool\'s reason>" or "undone: <why>"' }),
     removed: z.array(
       z
         .object({ names: z.array(text('name')).min(1, { message: 'a removed entry names at least one passive' }), skill: text('skill') })
         .strict(),
     ),
     bossFall: text('bossFall').nullable(),
+    // D-490 (schema 10): the targets the search used, and the user's own tree moves (not counted in `swaps`).
+    targets: searchTargetsSchema.optional(),
+    userMoves: z.number().int().nonnegative().optional(),
+  })
+  .strict();
+
+/** D-490 (schema 10): nodes the tree search may never add on the rung (the tool's `exclude`), and why. */
+const excludeSchema = z
+  .object({
+    nodes: z.array(nodeId).min(1, { message: 'an exclude entry names at least one node' }),
+    reason: text('reason'),
   })
   .strict();
 
@@ -220,9 +259,12 @@ const treeSchema = z
     // D-438 (schema 7): the stats that scale the stage, one short line.
     scales: text('scales').optional(),
     // D-467, D-468 (schema 9): D1-tree's figures at its start and end, and what its search did; no compile reads them.
+    // D-481 (schema 10): `end.endAfter: "swap"` when a one-item swap's compile rewrote the end figures.
     start: treeFiguresSchema.optional(),
-    end: treeFiguresSchema.optional(),
+    end: treeFiguresSchema.extend({ endAfter: z.enum(END_AFTER).optional() }).optional(),
     search: treeSearchSchema.optional(),
+    // D-490 (schema 10): the rung's exclude list, each entry with its reason.
+    exclude: z.array(excludeSchema).optional(),
   })
   .strict()
   .superRefine((tree, ctx) => {
@@ -243,6 +285,13 @@ const treeSchema = z
     });
     tree.attributeChoices.forEach((c, i) => {
       if (!nodes.has(c.node)) issue(ctx, ['attributeChoices', i, 'node'], `node ${c.node} isn't in tree.nodes`);
+    });
+    // D-490: an excluded node is one the tree search may never add, so the stage's tree doesn't hold it (node power
+    // refuses a call whose exclude list names an allocated node).
+    (tree.exclude ?? []).forEach((e, i) => {
+      e.nodes.forEach((n, k) => {
+        if (nodes.has(n)) issue(ctx, ['exclude', i, 'nodes', k], `node ${n} is in tree.nodes: an excluded node is one the tree search may never add (D-490)`);
+      });
     });
   });
 
@@ -266,6 +315,17 @@ const toggleSchema = z
       issue(ctx, ['uptime'], 'an active toggle is earned state and needs uptime (C-32)');
     }
   });
+
+/** The pinned tree's jewel sockets (C-46), each a `type == "Socket"` or `containJewelSocket` node. */
+const JEWEL_SOCKETS: ReadonlySet<number> = new Set(TREE_JEWEL_SOCKETS);
+
+/**
+ * D-492 (schema 10): whether an ascendancy node holds a jewel socket: it is one of the pinned tree's jewel sockets
+ * (`TREE_JEWEL_SOCKETS`, which counts `containJewelSocket` nodes). Called for nodes of `tree.ascendancyNodes` only.
+ */
+export function isAscendancyJewelSocket(node: number): boolean {
+  return JEWEL_SOCKETS.has(node);
+}
 
 /** D-358: the notable the compiler writes on the stage's amulet, and why (schema version 3). */
 const anointSchema = z.object({ notable: text('notable'), reason: text('reason') }).strict();
@@ -572,9 +632,17 @@ const stageSchema = z
     if (s.chaosResistException !== undefined && s.variant === undefined) {
       issue(ctx, ['chaosResistException'], 'chaosResistException is allowed only on an endgame variant stage, one with variant (D-234)');
     }
+    // D-492 (schema 10): a tree jewel sits in a socket of tree.nodes, or in an ascendancy jewel socket of
+    // tree.ascendancyNodes; the version rule (planSchema) reports the latter on a plan before version 10.
     const nodes = new Set(s.tree.nodes);
+    const ascendancy = new Set(s.tree.ascendancyNodes);
     s.items.treeJewels.forEach((j, i) => {
-      if (!nodes.has(j.node)) issue(ctx, ['items', 'treeJewels', i, 'node'], `node ${j.node} isn't in tree.nodes`);
+      if (nodes.has(j.node)) return;
+      const at = ['items', 'treeJewels', i, 'node'];
+      if (!ascendancy.has(j.node)) issue(ctx, at, `node ${j.node} isn't in tree.nodes or tree.ascendancyNodes`);
+      else if (!isAscendancyJewelSocket(j.node)) {
+        issue(ctx, at, `ascendancy node ${j.node} has no jewel socket: only an ascendancy node that contains one (Crystalline Phylactery, 17788) holds a tree jewel (D-492)`);
+      }
     });
   });
 
@@ -602,6 +670,53 @@ const ledgerEntrySchema = z
     });
   });
 
+/**
+ * D-484 (schema 10): the listing a price was read from: its corruption and rune sockets, the search's total and the price's
+ * place in it (1-based, the 5th cheapest is 5). Left out of `buildSha1` (D-386's rule).
+ */
+const listingSchema = z
+  .object({
+    corrupted: z.boolean(),
+    sockets: z.number().int().nonnegative(),
+    count: z.number().int().nonnegative(),
+    position: z.number().int().min(1, { message: 'position is the price\'s place in the search, from 1' }),
+  })
+  .strict()
+  .superRefine((l, ctx) => {
+    if (l.position > l.count) issue(ctx, ['position'], `position ${l.position} is past the search's ${l.count} listings`);
+  });
+
+/** D-483: a trade weight's range, as `find_upgrades`' `sort_stats` takes it. */
+const tradeWeight = z.number().min(0.01, { message: 'a weight is 0.01 to 1' }).max(1, { message: 'a weight is 0.01 to 1' });
+
+/**
+ * D-483 (schema 10): a `b` or `n` rare's spec: its base, the weights that ranked its affixes (each with `why` when it isn't
+ * Full DPS or TotalEHP), PoB's ranking (its top 4 the base can roll; null when the loop couldn't rank), the must-haves at
+ * their tiers (T1 the best the base can roll) with their trade ids and minimums, PoB's top 4 left out with why, and the
+ * trade searches the loop made. Left out of `buildSha1`. The `why` and `leftOut` rules are the run checker's.
+ */
+const specSchema = z
+  .object({
+    base: text('base'),
+    weights: z.array(z.object({ stat: text('stat'), weight: tradeWeight, why: text('why').optional() }).strict()),
+    ranking: z.array(z.object({ affix: text('affix'), gain: figure, weight: figure }).strict()).nullable(),
+    mustHaves: z.array(
+      z
+        .object({
+          affix: text('affix'),
+          tradeId: text('tradeId'),
+          tier: z.number().int({ message: 'tier is a whole number, 1 the best' }).min(1, { message: 'tier is at least 1 (T1 the best)' }),
+          min: figure,
+          zeroScored: z.literal(true).optional(),
+          why: text('why').optional(),
+        })
+        .strict(),
+    ),
+    leftOut: z.array(z.object({ affix: text('affix'), why: text('why') }).strict()),
+    searches: z.number().int().nonnegative(),
+  })
+  .strict();
+
 const priceSchema = z
   .object({
     id: z.string().regex(PRICE_ID_RE, { message: 'a price id matches ^[A-Za-z0-9_-]+$' }),
@@ -613,6 +728,9 @@ const priceSchema = z
     league: text('league').nullable(),
     status: z.enum(['ok', 'unavailable']),
     note: text('note').optional(),
+    // D-484, D-483 (schema 10): the listing the price was read from, and a rare's spec.
+    listing: listingSchema.optional(),
+    spec: specSchema.optional(),
   })
   .strict()
   .superRefine((p, ctx) => {
@@ -626,6 +744,27 @@ const priceSchema = z
       if (p.note === undefined) issue(ctx, ['note'], `an unavailable price gives its reason in note ("${OFFLINE_PRICE_NOTE}" in an offline run)`);
     }
   });
+
+/** D-481 (schema 10): a swap's slot: an item slot, or a tree jewel socket's `Jewel <node>`. */
+const swapSlot = z.string().refine((s) => (ITEM_SLOTS as readonly string[]).includes(s) || /^Jewel \d+$/.test(s), {
+  message: `slot is an item slot (${ITEM_SLOTS.join(', ')}) or a tree jewel socket, "Jewel <node id>"`,
+});
+
+/**
+ * D-481 (schema 10): one one-item swap: the stages (rungs) it changed, the slot, the item before and after (a unique by name,
+ * a rare by its base and affixes), each stage's boss figure before and after, and why (a boss figure that fell needs it).
+ */
+const itemSwapSchema = z
+  .object({
+    stages: z.array(text('stage')).min(1, { message: 'a swap names at least one stage' }),
+    slot: swapSlot,
+    from: text('from'),
+    to: text('to'),
+    bossBefore: z.record(z.string(), figure),
+    bossAfter: z.record(z.string(), figure),
+    reason: text('reason'),
+  })
+  .strict();
 
 const versionMessage = () => ({ message: `schemaVersion must be one of the accepted versions [${PLAN_SCHEMA_VERSIONS.join(', ')}]` });
 
@@ -652,6 +791,8 @@ const planObject = z
     stages: z.array(stageSchema).min(1, { message: 'a plan has at least one stage' }),
     ledger: z.array(ledgerEntrySchema),
     prices: z.array(priceSchema),
+    // D-481 (schema 10): the plan's one-item swaps.
+    itemSwaps: z.array(itemSwapSchema).optional(),
   })
   .strict();
 
@@ -804,6 +945,62 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
       uses: (plan) => plan.stages.flatMap((s, i) => (s.tree[key] !== undefined ? [['stages', i, 'tree', key]] : [])),
     }),
   ),
+  ...(['listing', 'spec'] as const).map(
+    (key): VersionAddition => ({
+      since: 10,
+      what: key === 'listing' ? "a price's listing (D-484)" : "a rare price's spec (D-483)",
+      before: key === 'listing' ? 'prices without their listing' : 'prices without a spec',
+      uses: (plan) => plan.prices.flatMap((p, i) => (p[key] !== undefined ? [['prices', i, key]] : [])),
+    }),
+  ),
+  {
+    since: 10,
+    what: "a tree's exclude list, tree.exclude (D-490)",
+    before: 'no exclude list',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.exclude !== undefined ? [['stages', i, 'tree', 'exclude']] : [])),
+  },
+  ...(['targets', 'userMoves'] as const).map(
+    (key): VersionAddition => ({
+      since: 10,
+      what: key === 'targets' ? "the tree search's targets, tree.search.targets (D-490)" : "the user's tree moves, tree.search.userMoves (D-490)",
+      before: key === 'targets' ? 'no recorded targets' : "no count of the user's tree moves",
+      uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.search?.[key] !== undefined ? [['stages', i, 'tree', 'search', key]] : [])),
+    }),
+  ),
+  {
+    since: 10,
+    what: 'a rebuild recorded as "none: <the tool\'s reason>" (D-490)',
+    before: 'a rebuild "taken", "none" or "undone: <why>"',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) =>
+        s.tree.search !== undefined && REBUILD_NONE_WHY_RE.test(s.tree.search.rebuild) ? [['stages', i, 'tree', 'search', 'rebuild']] : [],
+      ),
+  },
+  {
+    since: 10,
+    what: "a swap's end figures, tree.end.endAfter (D-481)",
+    before: "D1-tree's own end figures",
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.tree.end?.endAfter !== undefined ? [['stages', i, 'tree', 'end', 'endAfter']] : [])),
+  },
+  {
+    since: 10,
+    what: "the plan's one-item swaps, itemSwaps (D-481)",
+    before: 'no swap record',
+    uses: (plan) => (plan.itemSwaps !== undefined ? [['itemSwaps']] : []),
+  },
+  {
+    since: 10,
+    what: 'a tree jewel in an ascendancy jewel socket (D-492)',
+    before: 'tree jewels in tree.nodes only',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) =>
+        s.items.treeJewels.flatMap((j, k) =>
+          !s.tree.nodes.includes(j.node) && s.tree.ascendancyNodes.includes(j.node) && isAscendancyJewelSocket(j.node)
+            ? [['stages', i, 'items', 'treeJewels', k, 'node']]
+            : [],
+        ),
+      ),
+  },
 ];
 
 /** D-469: the first plan schema version whose custom modifiers carry a required one-line reason, written as a comment. */
@@ -892,6 +1089,19 @@ export const planSchema = planObject.superRefine((plan, ctx) => {
     const at = firstStage.get(s.id);
     if (at !== undefined) issue(ctx, ['stages', i, 'id'], `stage id "${s.id}" is already used by stages[${at}]`);
     else firstStage.set(s.id, i);
+  });
+
+  // D-481 (schema 10): a swap names stages of the plan, and its boss figures are keyed by the stages it names.
+  (plan.itemSwaps ?? []).forEach((swap, k) => {
+    swap.stages.forEach((id, j) => {
+      if (!firstStage.has(id)) issue(ctx, ['itemSwaps', k, 'stages', j], `stage "${id}" isn't a stage of the plan; its stage ids: ${stageIds.join(', ')}`);
+    });
+    const named = new Set(swap.stages);
+    for (const key of ['bossBefore', 'bossAfter'] as const) {
+      for (const id of Object.keys(swap[key])) {
+        if (!named.has(id)) issue(ctx, ['itemSwaps', k, key, id], `"${id}" isn't one of the swap's stages (${swap.stages.join(', ')}) (D-481)`);
+      }
+    }
   });
 
   // C-31: the main skill sits at one group index in every stage.

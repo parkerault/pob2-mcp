@@ -1274,6 +1274,11 @@ function itemPath(stage: Pick<Stage, 'items'>, slot: string): string {
   return `items.slots[${stage.items.slots.findIndex((s) => s.slot === slot)}].text`;
 }
 
+/** D-464: whether a slot holds its set-1 slot's item (`sameAs`): that item is checked once, in the slot that writes it. */
+function pinnedSlot(stage: Pick<Stage, 'items'>, slot: string): boolean {
+  return stage.items.slots.some((s) => s.slot === slot && s.sameAs !== undefined);
+}
+
 /** An item as a message names it: its unique title or rare name, and its base when the name doesn't hold it. */
 function itemName(item: StageItem): string {
   const name = item.title ?? item.name;
@@ -1391,7 +1396,7 @@ export function checkAffixCap(
   findings: Finding[],
   notes: Finding[],
 ): void {
-  const withAffixes = checks.items.filter((it) => it.affixes !== undefined);
+  const withAffixes = checks.items.filter((it) => it.affixes !== undefined && !pinnedSlot(stage, it.slot));
   if (withAffixes.length === 0) return;
   const level = stageItemLevel(stage, facts);
   for (const item of withAffixes) {
@@ -1501,7 +1506,7 @@ export function socketFactOf(item: Pick<StageItem, 'baseName' | 'baseType' | 'ha
  */
 export function checkSockets(stage: Pick<Stage, 'items'>, checks: Pick<StageChecks, 'items'>, facts: FactReader, findings: Finding[]): void {
   for (const item of checks.items) {
-    if (item.sockets === undefined) continue;
+    if (item.sockets === undefined || pinnedSlot(stage, item.slot)) continue;
     const factId = socketFactOf(item);
     if (factId === null) continue;
     const sockets = item.sockets;

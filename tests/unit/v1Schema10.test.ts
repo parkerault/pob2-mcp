@@ -162,6 +162,14 @@ describe('WU-137: V1 sockets (D-485)', () => {
     ]);
   });
 
+  it('D-464: a pinned weapon (a Swap slot with sameAs) is checked once, in the set-1 slot that writes it', () => {
+    const s = { items: { slots: [{ slot: 'Weapon 2', text: 'x' }, { slot: 'Weapon 2 Swap', sameAs: 'Weapon 2' }], treeJewels: [], toggles: [], useSecondWeaponSet: true } } as unknown as Stage;
+    const shield = (slot: string) => item(slot, 'Splintered Tower Shield', 'Shield', { sockets: 2 });
+    const findings: Finding[] = [];
+    checkSockets(s, { items: [shield('Weapon 2'), shield('Weapon 2 Swap')] }, new FactReader(ref), findings);
+    expect(findings.map((f) => [f.data!.slot, f.data!.path])).toEqual([['Weapon 2', 'items.slots[0].text']]);
+  });
+
   it('a Rune: line on an item with no Sockets: line, and three runes on two sockets, are findings', () => {
     const found = run([item('Gloves', 'Vaal Gloves', 'Gloves', { runes: 1 }), item('Body Armour', 'Vile Robe', 'Body Armour', { sockets: 2, runes: 3 })]);
     expect(found.map((f) => [f.data!.slot, f.data!.runes, f.data!.sockets])).toEqual([

@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 9)
+# Build plan reference (`plan.json`, schema version 10)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 9`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8` and `9`
-  are accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5, 6, 7, 8, 9]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 8 still validates and compiles, with its
+- **Version first.** A new plan declares `schemaVersion: 10`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9` and
+  `10` are accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
+  `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 9 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -68,6 +68,15 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   - made each custom modifier's `reason` required and one line (D-469): the compiler writes it as the comment line
     `# <reason>` before its line. A schema-8 or older plan's custom modifier box is unchanged, its reasons optional.
   A schema-8 plan compiles as before. Split Personality's start (D-463) and V1's `corruption` apply on any schema.
+
+  Version 10 (amendment 14; see items as specs, the one-item swap and the tree search's repairs below):
+  - added a price entry's `listing` and `spec` (`prices[]`, D-484, D-483), `tree.exclude` (D-490),
+    `tree.search.targets` and `tree.search.userMoves` (D-490), the rebuild outcome `none: <the tool's reason>` (D-490),
+    `tree.end.endAfter` (D-481), the plan's `itemSwaps` (D-481), and a tree jewel in an ascendancy jewel socket
+    (`stages[].items.treeJewels[]`, D-492); in an earlier plan each is an error at its own path, naming version 10.
+  A schema-9 plan compiles as before. Every counted group's `groupCount` (D-493), V1's `affix-cap`, `sockets` and
+  `ascendancy-jewel` (D-485, D-492) and the record's `clearSpeed.chains` and `projectiles` (D-491) apply on any schema, so
+  an older plan may get findings it didn't.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -238,11 +247,16 @@ record marks what rests on it.
   minions each casting the skill. It is a whole number of at least 1, and 1 when absent. Above 1 the group
   needs a `countReason` saying why that many act at once; without one, V1 reports `missing-reason` on the
   stage.
-  - The named source's group, `rolledGroup`, is put in PoB's Full DPS with its count (PoB's `groupCount`).
-    Every other group stays out of Full DPS, and its count lives only in the plan and the record.
-  - PoB applies that group's count in three places. It multiplies the group's damage when it adds up Full
-    DPS. It multiplies the reservation of a skill that reserves once per copy, and of totems under Ancestral
-    Bond. And it scales Umbral Well's buffs by it. A skill's own damage figures stay those of one copy.
+  - The named source's group, `rolledGroup`, is put in PoB's Full DPS; every other group stays out of it. Every
+    group with a `count` gets it as PoB's Count (`groupCount`), in every stage and in both compile modes (D-493), and
+    the named source's group gets 1 when it has none. Before amendment 14 only the named source's group carried it, so
+    PoB counted every other group once (node power ranked a pool group, Shield Wall ×2, at a Count of 1).
+  - PoB applies a group's count in four places. It multiplies the group's damage when it adds up Full DPS (the
+    named source's only). It multiplies the Spirit reservation of a skill that reserves once per copy (PoB's
+    `MultipleReservation`: eight skeleton summons and Summon Spectre at the pin; Skeletal Warrior's first two copies
+    reserve nothing), and of totems under Ancestral Bond, so V1's Spirit warning may fire on a counted group. It scales
+    Umbral Well's per-minion buff by it. And node power's `MainDamage` reads it for any group it ranks. A skill's own
+    damage figures stay those of one copy.
   - The compile record keeps PoB's figures as measured, in `outputs` and `skillOutputs`. Its counted fields,
     `countedOutputs` and `countedSkillOutputs`, apply Count to those per-copy figures by PoB's Full DPS rule:
     hits are multiplied by the count, damage over time only when it stacks, and the ailments count once.
@@ -624,6 +638,97 @@ Personality's start and V1's `corruption` hold on any schema.
 }
 ```
 
+### Items as specs, the one-item swap and the tree search's repairs (D-481 to D-493, schema version 10)
+
+Schema version 10 (amendment 14) adds seven plan fields; Count on every counted group, V1's three item checks and the
+clear measure's chains and projectiles hold on any schema.
+
+- **A price's listing** (D-484): `prices[].listing {corrupted, sockets, count, position}`, the listing the price was
+  read from: whether it is corrupted, its rune sockets, the search's total and the price's place in it (from 1: the
+  depth price, the 5th cheapest of at least 10, is `"position": 5`). The position is at most the count (error at
+  `position`). The priced copy matches the compiled one (the run checker holds that).
+- **A rare's spec** (D-483): on a `b` or `n` rare or rare jewel, `prices[].spec {base, weights, ranking, mustHaves,
+  leftOut, searches}`: the base; the weights that ranked its affixes (`[{stat, weight, why?}]`, PoB's stat ids as
+  `find_upgrades` takes them, each weight 0.01 to 1, `why` on a weight other than `FullDPS` and `TotalEHP`); PoB's
+  ranking, its top 4 the base can roll (`[{affix, gain, weight}]`, the gain at the middle roll and the weight per point),
+  or null when the loop couldn't rank; the must-haves at their tiers (`[{affix, tradeId, tier, min, zeroScored?, why?}]`,
+  tier 1 the best a base can roll, `min` the tier's lowest roll, `zeroScored: true` on one PoB scores at zero, `why` on
+  one outside PoB's top 4); PoB's top 4 left out, each with why (`[{affix, why}]`); and the trade searches the loop made.
+  The `why` and `leftOut` rules are the run checker's, not the schema's.
+- **Not build content**: `buildSha1` leaves out a price's `listing` and `spec`, as it does its `note` (D-386): a re-price
+  that changes only them needs no recompile.
+- **`tree.exclude`** (D-490): `[{nodes, reason}]`, the rung's nodes the tree search may never add (`get_node_power`'s
+  `exclude`), written by D1-build from its "out" decisions (Mind Over Matter on a build that keeps its mana) and by
+  D1-tree, each entry with at least one node and its reason (an entry without one errs at its `reason`). An excluded
+  node is one the stage's tree doesn't hold: a node of `tree.nodes` errs at `exclude[k].nodes[m]`.
+- **`tree.search.targets`** (D-490): `{ehp, maxHit, why}`, the targets D1-tree's search used: when gear moved after
+  D1-tree, per figure the lower of `tree.start` and the rung's compile. **`tree.search.userMoves`**: the user's own tree
+  moves (a whole number), apart from the search's `swaps`. **`rebuild`** may read `none: <the tool's reason>`: a rebuild
+  the tool calls illegal, recorded as the tool said it, with no hand edit.
+- **`tree.end.endAfter: "swap"`** (D-481): the end figures were rewritten by a one-item swap's measure-only compile
+  (`tree.start` stays as written).
+- **`itemSwaps`** (D-481): the plan's one-item swaps, each `{stages, slot, from, to, bossBefore, bossAfter, reason}`: the
+  stages it changed (each a stage of the plan, error at `stages[k]`), the slot (an item slot or `Jewel <node id>`), the
+  item before and after (a unique by name, a rare by its base and affixes), each stage's boss figure before and after
+  (keyed by the swap's own stages, error at the key otherwise) and why; a boss figure that fell is explained there.
+- **An ascendancy jewel socket** (D-492): `items.treeJewels` may name a node of `tree.ascendancyNodes` that holds a jewel
+  socket (`containJewelSocket`: Crystalline Phylactery, 17788, the Lich's); any other ascendancy node errs at its
+  `node`. The compile sockets the jewel before the tree goes in, and its stats reach the record at their face value
+  (PoB parses the node's "100% increased Effect of bonuses gained from Socketed Jewel" only partly; the bridge's parse
+  fix, WU-139, doubles them). PoB refuses a unique, or a jewel with a subtype (a Time-Lost or Timeless jewel), in that
+  socket (`Classes/ItemsTab.lua`:2289-2294), so the compile's check reports one as a defect and nothing compiles; V1's
+  `ascendancy-jewel` reports any other base than a basic jewel (Ruby, Emerald, Sapphire) PoB takes there, such as a rare
+  Diamond, since the node takes only a "non-Unique Basic Jewel".
+- **V1's item checks** (D-485, any schema), each finding with `data.path` the item's text:
+  - `affix-cap`: each explicit line of a rare (not rune, enchant or implicit lines) against the best its base can roll at
+    the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level; a card skeleton's rares are
+    counted, not capped), summed over the mod groups that write that line (the base's affix table, the tagged
+    desecrated mods and an essence's mods, as the lookup counts them), one mod a group, within 3 prefixes and 3
+    suffixes (2 and 2 on a rare jewel) and leaving room for the item's other lines. The finding names the cap: an
+    intelligence body armour with Spirit, maximum Life and "+100 to maximum Energy Shield" reads `the best is "+96 to
+    maximum Energy Shield"` at item level 82 (with a prefix free, a hybrid adds 30). A rare whose lines need more affixes
+    than its limit is a finding naming the count; a unique's line outside its data's range is one; a line no mod (or no
+    line of the unique's data) matches is a note, never a finding.
+  - `sockets`: more rune sockets than the item can have (a unique's own count, its "Has n Augment Sockets" line or its
+    data's `Sockets:` line, else its base's count from `data/items/sockets.json`: body armours and two-handers 2, other
+    armour, shields, foci and one-handers 1, Corona Amulet, Grasping Ring and Stalking Belt 1, other jewellery, belts and
+    quivers 0; +1 when `Corrupted`; the Exceptional +1 never counted on a designed item), a `Rune:` line beyond the
+    sockets, or a rune on an item with no `Sockets:` line (which the compile drops). A socket claim cites the table:
+    `data:items/sockets.json#sockets.body-armour`.
+  - `ascendancy-jewel`: a jewel other than a non-unique Ruby, Emerald or Sapphire in a socket whose node takes only a
+    "non-Unique Basic Jewel".
+
+```json
+"tree": {
+  …,
+  "exclude": [{ "nodes": [45918], "reason": "Mind Over Matter: the build keeps its mana for Arc (D1-build out)" }],
+  "end": { "ehp": 21400, "lowestMaxHit": { "type": "physical", "value": 4150 }, "life": 2943, "boss": 405000,
+           "bossEntries": [{ "group": 1, "label": "Arc", "figure": 325000 }], "endAfter": "swap" },
+  "search": { "swaps": 12, "lastGain": 1.4, "capHit": false, "rebuild": "none: Strength would be 80, under the 112 its gear and gems need, after repair",
+              "removed": [], "bossFall": null, "targets": { "ehp": 20500, "maxHit": 4000, "why": "gear moved after D1-tree" },
+              "userMoves": 2 }
+},
+"items": { …, "treeJewels": [{ "node": 17788, "text": "Rarity: Rare\nPhylactery Glimmer\nRuby\n+1% to Maximum Fire Resistance\n15% increased Armour" }] }
+```
+
+```json
+"prices": [{
+  "id": "n-boots", "item": "Sekhema Sandals: 35% movement speed, +100 to maximum Life, +30% to Fire Resistance", "query": { … },
+  "amount": 3, "currency": "divine", "date": "2026-11-05", "league": "Runes of Aldur", "status": "ok",
+  "note": "14 found, the 5th cheapest",
+  "listing": { "corrupted": false, "sockets": 1, "count": 14, "position": 5 },
+  "spec": { "base": "Sekhema Sandals",
+            "weights": [{ "stat": "FullDPS", "weight": 1 }, { "stat": "TotalEHP", "weight": 0.5 },
+                        { "stat": "MovementSpeed", "weight": 0.3, "why": "boots carry the 35% tier (D-440)" }],
+            "ranking": [{ "affix": "+# to maximum Life", "gain": 1.8, "weight": 0.012 }],
+            "mustHaves": [{ "affix": "#% increased Movement Speed", "tradeId": "explicit.stat_2250533757", "tier": 1, "min": 35, "zeroScored": true, "why": "D-440's tier" }],
+            "leftOut": [], "searches": 1 }
+}],
+"itemSwaps": [{ "stages": ["b", "n"], "slot": "Boots", "from": "Sekhema Sandals: 35% movement speed, +100 to maximum Life",
+                "to": "Bones of Ullr", "bossBefore": { "b": 300000, "n": 410000 }, "bossAfter": { "b": 290000, "n": 405000 },
+                "reason": "the user asked for the unique; the boss figures fall 1-3% for its minion levels" }]
+```
+
 ### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
@@ -657,7 +762,10 @@ its `measures` hold `clearSpeed` and `movementSpeed`, and no `dps`, `ehp` or Arb
   (`longUse`). The clear skill is the first enabled `clear` group, else the main group, and a summon's is its
   minion's (D-397); a clear group with `weaponSet: 2` is read from `skillOutputsSet2`, its own set's figures.
   **`noArea`** is true when PoB gives the clear skill no radius, as for a Skeletal Warrior's strike: its band is then
-  `slow` for want of an area, not from a small one, and a display says `slow (PoB gives no area)`.
+  `slow` for want of an area, not from a small one, and a display says `slow (PoB gives no area)`. With no area,
+  **`chains`** and **`projectiles`** (D-491) say how the skill reaches its pack: PoB's `ChainMax` and `ProjectileCount`
+  for it (a minion clear skill's `MinionChainMax` and `MinionProjectileCount`), 0 when PoB gives none, so a display reads
+  `no area: chains 9, projectiles 1` for Arc; a skill with a radius has neither. The band doesn't move.
 - **`movementSpeed`** is PoB's `EffectiveMovementSpeedMod`, the player's movement speed × action speed as a
   multiplier (the sidebar's "Movement Speed Modifier"): 1.25 is +25%. It is null when PoB gives none.
 - **`clearSpeed.travel`** (D-427) is the stage's travel skill, beside the movement speed: `{group, skill,
@@ -840,7 +948,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8` or `9` | yes | `9` for a new plan; `1` to `8` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9` or `10` | yes | `10` for a new plan; `1` to `9` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471, D-481, D-483, D-484, D-490, D-492 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -922,15 +1030,24 @@ rule may require an optional key in some cases.
 | `stages[].tree.end.bossEntries[].group` | integer | yes | At least 1. The entry's group | D-468 |
 | `stages[].tree.end.bossEntries[].label` | string | yes | Non-empty. The entry's name as the gate shows it | D-468 |
 | `stages[].tree.end.bossEntries[].figure` | number | yes | The entry's figure | D-468 |
+| `stages[].tree.end.endAfter` | `swap` | no | Set when a one-item swap's measure-only compile rewrote these end figures (`tree.start` stays as written; see items as specs above). Schema version 10 | D-481 |
 | `stages[].tree.search` | object | no | What D1-tree's search did on the rung (see the tree search's figures above). No compile reads it. Schema version 9 | D-467, D-468 |
 | `stages[].tree.search.swaps` | integer | yes | At least 0. The swaps tried, undone ones included | D-467 |
 | `stages[].tree.search.lastGain` | number or null | yes | The last swap's Main damage gain in percent; null for none | D-467 |
 | `stages[].tree.search.capHit` | boolean | yes | Whether the cap of 30 swaps was hit | D-467 |
-| `stages[].tree.search.rebuild` | string | yes | `taken`, `none` or `undone: <why>` (error at `rebuild` otherwise) | D-467 |
+| `stages[].tree.search.rebuild` | string | yes | `taken`, `none`, `undone: <why>` or, from schema version 10, `none: <the tool's reason>` for a rebuild the tool calls illegal (error at `rebuild` otherwise) | D-467, D-490 |
 | `stages[].tree.search.removed` | object[] | yes | The passives the rebuild removed whose lines name another skill the build uses | D-467 |
 | `stages[].tree.search.removed[].names` | string[] | yes | At least one. The removed passives' names | D-467 |
 | `stages[].tree.search.removed[].skill` | string | yes | Non-empty. The skill their lines serve | D-467 |
 | `stages[].tree.search.bossFall` | string or null | yes | Non-empty: the designer's reason when the boss figure or an entry fell from `tree.start` to `tree.end`; null when none fell | D-468 |
+| `stages[].tree.search.targets` | object | no | The targets the search used: when gear moved after D1-tree, per figure the lower of `tree.start` and the rung's compile. Schema version 10 | D-490 |
+| `stages[].tree.search.targets.ehp` | number | yes | The `TotalEHP` target | D-490 |
+| `stages[].tree.search.targets.maxHit` | number | yes | The lowest-max-hit target | D-490 |
+| `stages[].tree.search.targets.why` | string | yes | Non-empty. Where the targets come from | D-490 |
+| `stages[].tree.search.userMoves` | integer | no | At least 0. The user's own tree moves, apart from the search's `swaps`. Schema version 10 | D-490 |
+| `stages[].tree.exclude` | object[] | no | The rung's nodes the tree search may never add (node power's `exclude`), from D1-build's "out" decisions and D1-tree's. Schema version 10 | D-490 |
+| `stages[].tree.exclude[].nodes` | integer[] | yes | At least one. Nodes the stage's tree doesn't hold (a node of `tree.nodes` errs at `nodes[m]`) | D-490 |
+| `stages[].tree.exclude[].reason` | string | yes | Non-empty. Why the nodes stay out (error at `reason` without one) | D-490 |
 | `stages[].respec` | object | no | Schema version 7 and earlier: present wherever the tree drops a node the previous stage on its track had (see tree tracks); the guide lists it with its gold cost. A schema-8 plan has none: each loadout's tree is its own, and a respec errs here | D-144, D-282, D-452 |
 | `stages[].respec.dropped` | integer[] | yes | Exactly the node ids dropped from the tree of the previous stage on its track | D-144, D-282 |
 | `stages[].respec.goldCost` | object | yes | The respec's gold cost | D-144 |
@@ -949,7 +1066,7 @@ rule may require an optional key in some cases.
 | `stages[].items.slots[].text` | string | no | Non-empty. Required unless the entry has `sameAs` (schema 9, D-464), and never with it (error at `text` without either, at `sameAs` with both). The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile; a text with no `Implicits:` line, not a unique, gets its base's implicits (see a base's implicits above) | C-31, D-435 |
 | `stages[].items.slots[].sameAs` | item slot | no | A pinned weapon (see the tree search's figures and the finishing touches above): on `Weapon 1 Swap` it names `Weapon 1`, on `Weapon 2 Swap` `Weapon 2`, a slot the stage fills with `text`; the compile puts that one item in both slots. Any other slot or pair, or a named slot without text, errs here. Schema version 9 | D-464 |
 | `stages[].items.treeJewels` | object[] | yes | The jewels socketed in the tree | C-31 |
-| `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` | C-31 |
+| `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` or, from schema version 10, an ascendancy jewel socket in `tree.ascendancyNodes` (Crystalline Phylactery, 17788); any other ascendancy node errs here | C-31, D-492 |
 | `stages[].items.treeJewels[].text` | string | yes | Non-empty. The jewel's item text | C-31 |
 | `stages[].items.toggles` | object[] | yes | Flask and charm activation, kept on the item set as PoB does. An active toggle is earned state, produced by the item in its slot | C-31, C-32 |
 | `stages[].items.toggles[].slot` | `Flask 1`, `Flask 2`, `Charm 1`, `Charm 2` or `Charm 3` | yes | The flask or charm slot | C-31 |
@@ -974,7 +1091,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].gems[].quality` | integer | yes | At least 0 | C-31 |
 | `stages[].skills.groups[].gems[].enabled` | boolean | yes | Whether the gem is enabled | C-31 |
 | `stages[].skills.groups[].gems[].corrupt` | `plus_one_level` | no | The skill gem corrupted to +1 level: PoB calculates it one level higher; V1's `gem-availability` reads `level`. On `m`, a campaign stage or a card skeleton, or on a support gem, V1 reports `corruption` (see the tree search's figures and the finishing touches above). Schema version 9 | D-471 |
-| `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). On the `rolledGroup` it is PoB's Count in Full DPS; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320 |
+| `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). It is the group's Count in PoB (`groupCount`) in every stage and both modes; on the `rolledGroup` PoB's Full DPS counts it; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320, D-493 |
 | `stages[].skills.groups[].countReason` | string | no | Non-empty. Why `count` copies act at once; needed when `count` is above 1, else V1 reports `missing-reason`. Schema version 2 | D-293, D-322 |
 | `stages[].skills.groups[].minionSkill` | string | no | Non-empty. The skill the group's summon's minion uses, as the gem lookup names it (see a minion's skill above). The group holds exactly one summon; the compile resolves the name against the minion's skill list, ignoring case, and refuses a name it can't use, listing its skills. The group's damage figure is then its minion's `MinionTotalDPS`. Schema version 4 | D-377, D-378 |
 | `stages[].skills.groups[].minionStatSet` | integer | no | At least 1; 1 when absent. The minion skill's stat set; only with `minionSkill`. The compile refuses one beyond the skill's stat sets. Schema version 4 | D-377 |
@@ -983,7 +1100,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |
 | `stages[].skills.main.statSet` | integer | no | At least 1. The active skill's stat set | C-44 |
-| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`, or naming `roll.skill` as its `minionSkill` (its summon's minion casts it). Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` | D-217, D-293, D-337, D-379 |
+| `stages[].skills.rolledGroup` | integer | no | At least 1. The group holding a gem named `roll.skill`, or naming `roll.skill` as its `minionSkill` (its summon's minion casts it). Set wherever the stage has the rolled skill; required on an endgame variant stage. The compiler puts this group, and only it, in PoB's Full DPS, with its `count` (1 when it has none) | D-217, D-293, D-337, D-379, D-493 |
 | `stages[].skills.cull` | string | no | Non-empty. The culling source and the button that uses it; with it the map damage figure carries the named source's `CullMultiplier` and the record gains `measures.cull`. Not part of the skill set's content. Schema version 7 | D-437 |
 | `stages[].skills.engagement` | object | no | How close the character stands while it deals its damage, which picks the non-budget toughness target; the run checker requires it on the non-budget rung of a new run. Not part of the skill set's content. Schema version 7 | D-441 |
 | `stages[].skills.engagement.kind` | `close` or `distance` | yes | `close`: in or next to the pack or the boss; `distance`: well away | D-441 |
@@ -1061,6 +1178,40 @@ rule may require an optional key in some cases.
 | `prices[].league` | string or null | yes | Equal to the plan's `league` | D-233 |
 | `prices[].status` | `ok` or `unavailable` | yes | `unavailable` when trade couldn't be reached (no cookie, rate-limited, down, disabled or offline) | D-164 |
 | `prices[].note` | string | no | Non-empty. Required when `unavailable`: the reason, `offline run` in an offline run. On a priced `b` or `n` rare, its fit against the designed item (`fit 85%`), or `over target`. Not build content: `buildSha1` leaves it out (D-386) | C-31, D-233, D-372, D-386 |
+| `prices[].listing` | object | no | The listing the price was read from (see items as specs above). Not build content: `buildSha1` leaves it out. Schema version 10 | D-484, D-386 |
+| `prices[].listing.corrupted` | boolean | yes | Whether the listing is corrupted | D-484 |
+| `prices[].listing.sockets` | integer | yes | At least 0. Its rune sockets | D-484 |
+| `prices[].listing.count` | integer | yes | At least 0. The search's total | D-484 |
+| `prices[].listing.position` | integer | yes | At least 1, at most `count`. The price's place in the search, the 5th cheapest `5` | D-484 |
+| `prices[].spec` | object | no | A `b` or `n` rare's or rare jewel's spec (see items as specs above). Not build content: `buildSha1` leaves it out. Schema version 10 | D-483, D-386 |
+| `prices[].spec.base` | string | yes | Non-empty. The base | D-483 |
+| `prices[].spec.weights` | object[] | yes | The weights that ranked its affixes: Full DPS 1 and `TotalEHP` 0.5, plus the stats the build needs | D-483 |
+| `prices[].spec.weights[].stat` | string | yes | Non-empty. PoB's stat id, as `find_upgrades`' `sort_stats` takes it (`FullDPS`, `TotalEHP`, `Spirit`) | D-483 |
+| `prices[].spec.weights[].weight` | number | yes | 0.01 to 1 | D-483 |
+| `prices[].spec.weights[].why` | string | no | Non-empty. Why the stat is weighted; on a weight other than `FullDPS` and `TotalEHP` (the run checker holds it) | D-483 |
+| `prices[].spec.ranking` | object[] or null | yes | PoB's ranking, its top 4 the base can roll, in PoB's order; null when the loop couldn't rank (offline, no trade tools) | D-483 |
+| `prices[].spec.ranking[].affix` | string | yes | Non-empty. The affix as the ranking names it | D-483 |
+| `prices[].spec.ranking[].gain` | number | yes | Its gain at the middle roll | D-483 |
+| `prices[].spec.ranking[].weight` | number | yes | Its weight per point | D-483 |
+| `prices[].spec.mustHaves` | object[] | yes | The 3 or 4 affixes its figures rely on, each at its tier | D-483 |
+| `prices[].spec.mustHaves[].affix` | string | yes | Non-empty. The affix | D-483 |
+| `prices[].spec.mustHaves[].tradeId` | string | yes | Non-empty. Its trade stat id (`explicit.stat_<n>`) | D-483 |
+| `prices[].spec.mustHaves[].tier` | integer | yes | At least 1: the game's tier numbering, 1 the best the base can roll | D-483 |
+| `prices[].spec.mustHaves[].min` | number | yes | The tier's lowest roll, the search's minimum | D-483 |
+| `prices[].spec.mustHaves[].zeroScored` | `true` | no | On a must-have PoB scores at zero: always required, never lowered or dropped | D-483 |
+| `prices[].spec.mustHaves[].why` | string | no | Non-empty. Why a must-have outside PoB's top 4 is one (the run checker holds it) | D-483 |
+| `prices[].spec.leftOut` | object[] | yes | Each of PoB's top 4 left out | D-483 |
+| `prices[].spec.leftOut[].affix` | string | yes | Non-empty. The affix | D-483 |
+| `prices[].spec.leftOut[].why` | string | yes | Non-empty. Why it is left out | D-483 |
+| `prices[].spec.searches` | integer | yes | At least 0. The trade searches the loop made for the slot | D-483 |
+| `itemSwaps` | object[] | no | The plan's one-item swaps, one slot's item on one or more rungs (see items as specs above). Schema version 10 | D-481 |
+| `itemSwaps[].stages` | string[] | yes | At least one. The stages the swap changed, each a stage of the plan (error at `stages[k]`) | D-481 |
+| `itemSwaps[].slot` | string | yes | An item slot (as `items.slots[].slot`) or a tree jewel socket, `Jewel <node id>` | D-481 |
+| `itemSwaps[].from` | string | yes | Non-empty. The item before: a unique by name, a rare by its base and affixes | D-481 |
+| `itemSwaps[].to` | string | yes | Non-empty. The item after, named the same way | D-481 |
+| `itemSwaps[].bossBefore` | object | yes | Each changed stage's boss figure before the swap, by stage id (a key not in `stages` errs at it) | D-481 |
+| `itemSwaps[].bossAfter` | object | yes | The same after the swap | D-481 |
+| `itemSwaps[].reason` | string | yes | Non-empty. Why the swap; a boss figure that fell is explained here | D-481, D-468 |
 
 ## Worked example
 

@@ -2396,4 +2396,103 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
     },
     ENGINE_TIMEOUT,
   );
+
+  // -------------------------------------------------------------------------------------------------
+  // AC-K87 (WU-139, amendment 14 §20, D-494; Appendix A): a mechanic-mode mod hit lists its tiers, each with its item
+  // level and range, `T<n> (item level <l>): <range>`, T1 the best the base can roll (the game's numbering).
+
+  /** The tier groups under the `[mod] <id> (<table> mods): …` hit: each `Tiers on …` header with its tier lines. */
+  function tierGroupsOf(text: string, table: string, id: string): Array<{ head: string; tiers: string[] }> {
+    const lines = text.split('\n');
+    const at = lines.findIndex((l) => l.startsWith(`[mod] ${id} (${table} mods): `));
+    expect({ id, found: at >= 0 }).toEqual({ id, found: true });
+    const groups: Array<{ head: string; tiers: string[] }> = [];
+    for (let i = at + 1; i < lines.length && lines[i].startsWith('  '); i++) {
+      if (lines[i].startsWith('  Tiers on ')) groups.push({ head: lines[i], tiers: [] });
+      else if (lines[i].startsWith('    ') && groups.length > 0) groups[groups.length - 1].tiers.push(lines[i]);
+    }
+    return groups;
+  }
+
+  /**
+   * PoB's own tiers of the "+(a-b) to maximum Life" prefix (the IncreasedLife group of the Item mods) on one base of an
+   * item type: a real item of the base (`new("Item", …)`), every mod of the family it gives a non-zero spawn weight
+   * (`item:GetModSpawnWeight`), the highest item level first.
+   */
+  const lifeTiers = (itemType: string) =>
+    luaQuery<Array<{ id: string; level: number; line: string }>>(`
+      local base
+      for _, name in ipairs((function() local k = {} for n in pairs(data.itemBaseLists) do k[#k + 1] = n end table.sort(k) return k end)()) do
+        for _, e in ipairs(data.itemBaseLists[name]) do
+          if not base and e.base.type == ${JSON.stringify(itemType)} then base = e end
+        end
+      end
+      local item = new('Item', 'Rarity: RARE\\nTier Test\\n' .. base.name)
+      local out = {}
+      for id, mod in pairs(data.itemMods.Item) do
+        if mod.group == 'IncreasedLife' and mod.type == 'Prefix' and type(mod[1]) == 'string'
+          and mod[1]:match('^%+%(%d+%-%d+%) to maximum Life$') and item:GetModSpawnWeight(mod) > 0 then
+          out[#out + 1] = { id = id, level = mod.level, line = mod[1] }
+        end
+      end
+      table.sort(out, function(a, b) return a.level > b.level end)
+      return out`);
+
+  /** The expected tier lines: `    T<n> (item level <l>): <a>–<b>`, n counted from the highest item level. */
+  const tierLines = (ladder: Array<{ level: number; line: string }>) =>
+    ladder.map((t, i) => {
+      const [, a, b] = /\((\d+)-(\d+)\)/.exec(t.line)!;
+      return `    T${i + 1} (item level ${t.level}): ${a}–${b}`;
+    });
+
+  it(
+    "AC-K87: a mod hit lists its tiers per group of bases, each tier's item level and range, T1 the best each base rolls (IncreasedLife8 on body armours and rings)",
+    async () => {
+      const body = await lifeTiers('Body Armour');
+      const ring = await lifeTiers('Ring');
+      // At the pin: 13 tiers on a body armour (T1 at item level 80), 8 on a ring (T1 at 54).
+      expect({ body: body.length, bodyT1: body[0].level, ring: ring.length, ringT1: ring[0].level }).toEqual({ body: 13, bodyT1: 80, ring: 8, ringT1: 54 });
+
+      const text = await okTool({ mode: 'mechanic', query: '+(100-119) to maximum Life', kind: 'mod', max_results: 30 });
+      const groups = tierGroupsOf(text, 'Item', 'IncreasedLife8');
+      const group = (bases: string) => {
+        const g = groups.find((x) => x.head.startsWith(`  Tiers on ${bases} (this mod: `));
+        expect({ bases, found: g !== undefined, heads: groups.map((x) => x.head) }).toEqual({ bases, found: true, heads: groups.map((x) => x.head) });
+        return g!;
+      };
+      const mine = (ladder: Array<{ id: string }>) => ladder.findIndex((t) => t.id === 'IncreasedLife8') + 1;
+      expect(group('Body Armour (all)')).toEqual({ head: `  Tiers on Body Armour (all) (this mod: T${mine(body)}):`, tiers: tierLines(body) });
+      expect(group('Ring')).toEqual({ head: `  Tiers on Ring (this mod: T${mine(ring)}):`, tiers: tierLines(ring) });
+      expect({ body: mine(body), ring: mine(ring) }).toEqual({ body: 6, ring: 1 });
+      // Every group of the hit names its own tier, and every tier line its item level and range.
+      for (const g of groups) {
+        expect(g.head).toMatch(/^ {2}Tiers on .+ \(this mod: T\d+\):$/);
+        g.tiers.forEach((t, i) => expect(t).toMatch(new RegExp(`^ {4}T${i + 1} \\(item level \\d+\\): \\d+–\\d+$`)));
+      }
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    'AC-K87: a family\'s tiers are written once per reply; a later hit of the family with the same bases says "as listed above"',
+    async () => {
+      const body = await lifeTiers('Body Armour');
+      const text = await okTool({ mode: 'mechanic', query: 'to maximum Life', kind: 'mod', max_results: 30 });
+      const hits = hitLines(text);
+      const first = hits.findIndex((l) => l.startsWith('[mod] IncreasedLife1 (Item mods): '));
+      const later = hits.findIndex((l) => l.startsWith('[mod] IncreasedLife13 (Item mods): '));
+      expect(first).toBeGreaterThanOrEqual(0);
+      expect(later).toBeGreaterThan(first);
+      expect(tierGroupsOf(text, 'Item', 'IncreasedLife1').find((g) => g.head.startsWith('  Tiers on Body Armour (all) '))).toEqual({
+        head: '  Tiers on Body Armour (all) (this mod: T13):',
+        tiers: tierLines(body),
+      });
+      expect(tierGroupsOf(text, 'Item', 'IncreasedLife13')).toEqual([
+        { head: '  Tiers on Body Armour (all) (this mod: T1): as listed above', tiers: [] },
+      ]);
+      // A mod no base rolls has no tiers.
+      expect(tierGroupsOf(text, 'Exclusive', 'AmuletImplicitIncreasedLife1')).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
 });

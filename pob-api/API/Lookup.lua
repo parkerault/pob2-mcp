@@ -1,7 +1,7 @@
 -- API/Lookup.lua
 -- PoB2's loaded game data, read without touching the build (C-37, WU-31):
 --
---   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxLevel?, maxResults?}
+--   lookup_game_data  {mode, query?, level?, quality?, slot?, kind?, maxLevel?, maxResults?, itemOnlySkills?}
 --     gem       data.gems names -> PoB's Tier (D-258), description, weapon, per stat set its base attack
 --               damage and crit chance and its lines from PoB's stat describer (at `level`, default the
 --               gem's natural max level; see defaultLevel; a returned gem without `level` is shown at its
@@ -17,11 +17,13 @@
 --               support's cost and reservation multipliers, from its levels[n] (C-37a, D-425)
 --     unique    main.uniqueDB names, mod lines (every variant's, legacy "Pre x.y" variants skipped) or
 --               type -> name, base, type and the matched lines; BuildRaw() text, ready for add_item,
---               only when exactly one unique is returned (D-239)
+--               only when exactly one unique is returned (D-239). A generated unique's variants named in
+--               `itemOnlySkills` (skills only items grant) are left out, the rest renumbered (PG-105, D-494)
 --     mechanic  gem descriptions, stat-set lines (naming the stat set's number), quality and Gemling
 --               quality lines, unique mod lines (every variant's), passive `sd` lines, data.itemMods text,
 --               the essences' mod lines (or names) and the item bases' implicit lines (or names) -> one hit
---               per matching line; a mod hit carries the base types that can roll it (WU-60, D-277); `kind`
+--               per matching line; a mod hit carries the base types that can roll it (WU-60, D-277) and its
+--               tiers with their item levels, by groups of bases (D-494, see M.modTiers); `kind`
 --               keeps one kind, and `kinds` counts every kind's hits (D-240). A query may hold gaps, `…` or
 --               `...`, each matching any text within the line (WU-53). Data/Misc.lua's game, character and
 --               monster constants whose name matches are hits of kind `constant`, ranked last (C-37d)
@@ -866,20 +868,110 @@ local function lineIsSelected(item, modLine)
 end
 M.lineIsSelected = lineIsSelected
 
+-- PG-105 (amendment 14 §20, D-494): a generated unique's variants (Data/Uniques/Special/Generated.lua) that name a
+-- skill only items grant are dropped, everywhere the lookup shows the unique: PoB's list for Prism of Belief holds
+-- every gem whose skill isn't marked as an item's (:78-104), but the game rolls it only on gem skills (the user's
+-- ruling). The server passes the names, `itemOnlySkills`, from data/items/item-only-skills.json; a skill some unique
+-- grants that is also a gem isn't listed there, and stays. The variants left are numbered afresh, as the item text
+-- (`raw`) numbers them.
+local itemOnlySkills = {}
+
+local generatedTitlesCache
+-- The titles of the generated uniques (the first line of each of data.uniques.generated's texts).
+local function generatedTitles()
+  if generatedTitlesCache then return generatedTitlesCache end
+  local d = _G.data
+  local titles = {}
+  for _, raw in ipairs(d and d.uniques and d.uniques.generated or {}) do
+    if type(raw) == 'string' then
+      local title = raw:match('^([^\n]+)')
+      if title then titles[title] = true end
+    end
+  end
+  generatedTitlesCache = titles
+  return titles
+end
+
+-- The item's variants to drop and the others' new numbers, or nil when it drops none.
+local function droppedVariants(item)
+  if next(itemOnlySkills) == nil or type(item.variantList) ~= 'table' then return nil end
+  if not generatedTitles()[item.title or ''] then return nil end
+  local dropped, newIndex, n, any = {}, {}, 0, false
+  for i, name in ipairs(item.variantList) do
+    if itemOnlySkills[name] then
+      dropped[i], any = true, true
+    else
+      n = n + 1
+      newIndex[i] = n
+    end
+  end
+  return any and { dropped = dropped, newIndex = newIndex } or nil
+end
+
+-- Whether every variant that has the line is dropped.
+local function onlyDropped(modLine, drop)
+  if not drop or type(modLine.variantList) ~= 'table' then return false end
+  for index in pairs(modLine.variantList) do
+    if not drop.dropped[index] then return false end
+  end
+  return true
+end
+
+-- The item text (BuildRaw) without the dropped variants: their `Variant:` lines and the lines only they have go, the
+-- `{variant:}` tags and `Selected Variant:` lines are renumbered (a dropped selected variant becomes the first), and an
+-- `Implicits:` count loses the implicit lines that went.
+local function rawWithout(raw, drop)
+  if not drop then return raw end
+  local out, variant = {}, 0
+  local implicitsAt, implicitsLeft = nil, 0
+  for line in (raw .. '\n'):gmatch('([^\n]*)\n') do
+    local keep = true
+    local inImplicits = implicitsLeft > 0
+    if inImplicits then implicitsLeft = implicitsLeft - 1 end
+    if line:match('^Variant: ') then
+      variant = variant + 1
+      keep = drop.newIndex[variant] ~= nil
+    elseif line:match('^Selected [%a ]*Variant[%a ]*: %d+$') then
+      line = line:gsub('%d+$', function(k) return tostring(drop.newIndex[tonumber(k)] or 1) end)
+    elseif line:find('{variant:', 1, true) then
+      line = line:gsub('{variant:([%d,]+)}', function(spec)
+        local ids = {}
+        for id in spec:gmatch('%d+') do
+          local n = drop.newIndex[tonumber(id)]
+          if n then ids[#ids + 1] = tostring(n) end
+        end
+        if #ids == 0 then keep = false end
+        return '{variant:' .. table.concat(ids, ',') .. '}'
+      end)
+    elseif line:match('^Implicits: %d+$') then
+      implicitsAt, implicitsLeft = #out + 1, tonumber(line:match('%d+'))
+    end
+    if keep then
+      out[#out + 1] = line
+    elseif inImplicits and implicitsAt then
+      out[implicitsAt] = 'Implicits: ' .. (tonumber(out[implicitsAt]:match('%d+')) - 1)
+    end
+  end
+  return table.concat(out, '\n')
+end
+
 -- The item's mod lines across every variant, made one line each. `variants` is absent for a line the
 -- selected variant(s) have; otherwise it lists the non-legacy variants that have it ({index, name}).
--- A line only legacy variants have is skipped.
+-- A line only legacy variants have is skipped, and so is one only dropped variants have (PG-105).
 local function uniqueModLines(item)
   local out = {}
+  local drop = droppedVariants(item)
   for _, key in ipairs(MOD_LINE_LISTS) do
     for _, modLine in ipairs(item[key] or {}) do
-      if type(modLine.line) == 'string' then
+      if type(modLine.line) == 'string' and not onlyDropped(modLine, drop) then
         local entry = { line = oneLine(modLine.line) }
         if not lineIsSelected(item, modLine) then
           local variants = {}
           for index in pairs(modLine.variantList) do
             local name = type(item.variantList) == 'table' and item.variantList[index] or nil
-            if not isLegacyVariant(name) then table.insert(variants, { index = index, name = name }) end
+            if not isLegacyVariant(name) and not (drop and drop.dropped[index]) then
+              table.insert(variants, { index = drop and drop.newIndex[index] or index, name = name })
+            end
           end
           table.sort(variants, function(a, b) return a.index < b.index end)
           entry.variants = variants
@@ -952,9 +1044,17 @@ local function lookupUniques(query, slot, maxResults, leaveOut)
       byName = m.byName, matchedLines = matched, matchedCount = #m.lines,
     }
     if #shown == 1 then
-      result.raw = m.item:BuildRaw()
+      -- PG-105: without the dropped variants, the rest numbered as `raw` numbers them.
+      local drop = droppedVariants(m.item)
+      result.raw = rawWithout(m.item:BuildRaw(), drop)
       if type(m.item.variantList) == 'table' and m.item.variant then
-        result.selectedVariant = { index = m.item.variant, name = m.item.variantList[m.item.variant] }
+        local index = m.item.variant
+        if drop and not drop.newIndex[index] then
+          for old, new in pairs(drop.newIndex) do
+            if new == 1 then index = old end
+          end
+        end
+        result.selectedVariant = { index = drop and drop.newIndex[index] or index, name = m.item.variantList[index] }
       end
     end
     results[i] = result
@@ -1091,6 +1191,133 @@ function M.modBaseTypes(mod, tableName)
   end
   baseTypesCache[mod] = { out = out }
   return out
+end
+
+-- ---------------------------------------------------------------------------------------------------
+-- Mod tiers (amendment 14 §20, D-494; C-37)
+--
+-- A mod hit lists its tiers, so a designer reads a base's best tier allowed at an item level, its floor and each
+-- tier's lowest roll (D-483). A mod's family is the mods of its table with its group, its affix type and its lines'
+-- wording (numbers aside): the game's tiers of one affix. On a base, the tiers are the family's mods that base can
+-- roll (PoB's spawn weight, as for the base types), the highest item level first, T1 the best the base can roll (the
+-- game's numbering). The bases that can roll the hit's mod are grouped by the tiers they share, each group named as
+-- the base types are; each group lists its tiers (number, item level, the hit's line in that tier) and the hit's own
+-- tier there. A mod no base rolls, or one without a group, has none.
+
+local familiesCache = setmetatable({}, { __mode = 'k' })
+local tiersCache = setmetatable({}, { __mode = 'k' })
+
+-- A mod's lines, one each, with every number (and range) as `#`: two mods with the same wording share it.
+local function wordingOf(mod)
+  local parts = {}
+  for _, line in ipairs(mod) do
+    if type(line) == 'string' then
+      parts[#parts + 1] = (oneLine(line):gsub('%(%-?[%d%.]+%-%-?[%d%.]+%)', '#'):gsub('%-?%d+%.?%d*', '#'))
+    end
+  end
+  return table.concat(parts, '\n')
+end
+
+-- The mods of `modTable` by family key (group, affix type, wording), each with its id; read once per table.
+local function familiesOf(modTable)
+  local cached = familiesCache[modTable]
+  if cached then return cached end
+  local families = {}
+  for id, mod in pairs(modTable) do
+    if type(mod) == 'table' and type(mod.group) == 'string' and type(mod.weightKey) == 'table' then
+      local key = mod.group .. '\0' .. tostring(mod.type) .. '\0' .. wordingOf(mod)
+      families[key] = families[key] or {}
+      table.insert(families[key], { id = id, mod = mod })
+    end
+  end
+  familiesCache[modTable] = families
+  return families
+end
+
+-- The tiers of the hit's mod `mod` (line `order` of it, a mod of table `tableName`), by groups of bases; nil when
+-- it has none.
+function M.modTiers(mod, tableName, order)
+  if type(mod) ~= 'table' or type(mod.group) ~= 'string' or type(mod.weightKey) ~= 'table' then return nil end
+  order = tonumber(order) or 1
+  local byOrder = tiersCache[mod]
+  if byOrder and byOrder[order] ~= nil then return byOrder[order] or nil end
+  local baseTypes, notRolled = M.modBaseTypes(mod, tableName)
+  local d = gameData()
+  local modTable = d.itemMods[tostring(tableName)]
+  local result = false
+  if not notRolled and baseTypes and #baseTypes > 0 and modTable then
+    local index = baseIndex(d)
+    local only = index.affixTables[modTable] and modTable or nil
+    local family = familiesOf(modTable)[mod.group .. '\0' .. tostring(mod.type) .. '\0' .. wordingOf(mod)] or {}
+    -- Each base that can roll the mod, with the family's mods it can roll (its ladder), grouped by ladder.
+    local groups, bySignature = {}, {}
+    for _, itemType in ipairs(index.types) do
+      for _, list in ipairs(itemType.lists) do
+        for _, b in ipairs(list.bases) do
+          if (not only or b.affixes == only) and spawnWeight(b.base, mod) > 0 then
+            local ladder = {}
+            for _, member in ipairs(family) do
+              if spawnWeight(b.base, member.mod) > 0 then ladder[#ladder + 1] = member end
+            end
+            table.sort(ladder, function(a, c)
+              local la, lc = tonumber(a.mod.level) or 0, tonumber(c.mod.level) or 0
+              if la ~= lc then return la > lc end
+              return a.id < c.id
+            end)
+            local ids = {}
+            for i, member in ipairs(ladder) do ids[i] = member.id end
+            local signature = table.concat(ids, '\0')
+            local group = bySignature[signature]
+            if not group then
+              group = { ladder = ladder, bases = {} }
+              bySignature[signature] = group
+              groups[#groups + 1] = group
+            end
+            group.bases[b] = true
+          end
+        end
+      end
+    end
+    -- Each group named as the base types are: an item type all of whose bases are in it (with more than one base
+    -- list) as `<type>`, `itemType`; else each base list with a base in it, `count` of `total` bases.
+    local out = {}
+    for _, group in ipairs(groups) do
+      local on = {}
+      for _, itemType in ipairs(index.types) do
+        local entries, count, total = {}, 0, 0
+        for _, list in ipairs(itemType.lists) do
+          local n = 0
+          for _, b in ipairs(list.bases) do
+            if group.bases[b] then n = n + 1 end
+          end
+          count, total = count + n, total + #list.bases
+          if n > 0 then entries[#entries + 1] = { name = list.name, count = n, total = #list.bases } end
+        end
+        if count == total and count > 0 and #itemType.lists > 1 then
+          on[#on + 1] = { name = itemType.name, itemType = true, count = count, total = total }
+        else
+          for _, e in ipairs(entries) do on[#on + 1] = e end
+        end
+      end
+      local tiers, mine = {}, nil
+      for i, member in ipairs(group.ladder) do
+        local n, line = 0, nil
+        for _, l in ipairs(member.mod) do
+          if type(l) == 'string' then
+            n = n + 1
+            if n == order then line = oneLine(l) end
+          end
+        end
+        tiers[i] = { tier = i, level = tonumber(member.mod.level) or 0, line = line or '' }
+        if member.mod == mod then mine = i end
+      end
+      out[#out + 1] = { on = on, tiers = tiers, tier = mine }
+    end
+    result = out
+  end
+  tiersCache[mod] = byOrder or {}
+  tiersCache[mod][order] = result
+  return result or nil
 end
 
 -- Essence hits: one per line of each mod an essence grants, naming the item types it grants that mod on
@@ -1617,9 +1844,14 @@ local function lookupMechanics(match, kind, maxResults, leaveOut)
   end
   local results = cut(listed, maxResults)
   for _, hit in ipairs(results) do
+    local order = hit.order
     hit.order = nil
     if hit.kind == 'passive' then hit.id = tostring(hit.nodeId) end
-    if hit.kind == 'mod' then hit.baseTypes, hit.notRolled = M.modBaseTypes(hit.mod, hit.table) end
+    if hit.kind == 'mod' then
+      hit.baseTypes, hit.notRolled = M.modBaseTypes(hit.mod, hit.table)
+      -- D-494: the tiers of the hit's line, with their item levels, by groups of bases.
+      hit.tiers = M.modTiers(hit.mod, hit.table, order)
+    end
     hit.mod = nil
   end
   return results, #listed, kinds
@@ -1781,6 +2013,11 @@ function M.lookup_game_data(params)
   end
   local query = trimmed(params.query)
   local needle = query and query:lower() or nil
+  -- PG-105: this request's item-only skills, whose variants the generated uniques drop.
+  itemOnlySkills = {}
+  for _, name in ipairs(type(params.itemOnlySkills) == 'table' and params.itemOnlySkills or {}) do
+    if type(name) == 'string' then itemOnlySkills[name] = true end
+  end
   local maxResults = math.floor(tonumber(params.maxResults) or DEFAULT_MAX_RESULTS)
   if maxResults < 1 then maxResults = 1 end
 

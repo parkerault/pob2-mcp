@@ -30,6 +30,10 @@
  * figures; mode `config`, PoB's config options by key or label; and mechanic hits of kind `constant`, PoB's game,
  * character and monster constants by name.
  *
+ * Amendment 14 (D-494): a mod hit's tiers follow its base types, one group per set of bases that roll the same tiers,
+ * each tier with its item level and range, T1 the best those bases roll, and the hit's own tier named; a group an
+ * earlier hit listed says so instead of listing it again.
+ *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
  * active gems, then up to 3 supports under their own header (D-258a); otherwise up to 5. A query too long
@@ -412,6 +416,56 @@ export function renderBaseTypes(baseTypes: LookupBaseType[], notRolled?: string)
   return `${BASE_TYPES_PREFIX}${parts.join("; ")}`;
 }
 
+/**
+ * D-494 (C-37): one group of bases a mod hit's tiers hold for, as `pob-api/API/Lookup.lua`'s `M.modTiers` sends it:
+ * the bases (named as the base types are), the tiers they can roll, the highest item level first and T1 the best
+ * (the game's numbering), each with its item level and the hit's line in that tier, and the hit's own tier there.
+ * The engine's reply schema passes the field through (`lookupHitSchema` is passthrough).
+ */
+export interface ModTierGroup {
+  on: LookupBaseType[];
+  tiers: Array<{ tier: number; level: number; line: string }>;
+  tier?: number;
+}
+
+/** The lines under a mod hit that list its tiers (D-494), one header per group of bases. */
+export const TIERS_PREFIX = "  Tiers on ";
+
+/** A tier's range: its line's values, a `(a-b)` range as `a–b`, in order; the line itself when it has none. */
+export function tierRange(line: string): string {
+  const values = [...line.matchAll(/\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)|(-?\d+(?:\.\d+)?)/g)].map((m) =>
+    m[3] !== undefined ? m[3] : `${m[1]}–${m[2]}`,
+  );
+  return values.length > 0 ? values.join(", ") : line;
+}
+
+/** A group's bases: `<item type> (all)`, `<list> (<n> of <m> bases)` or `<list>`, separated by `; `. */
+function tierBases(on: LookupBaseType[]): string {
+  return on.map((b) => (b.itemType ? `${b.name} (all)` : b.count < b.total ? `${b.name} (${b.count} of ${b.total} bases)` : b.name)).join("; ");
+}
+
+/**
+ * D-494 (Appendix A): a mod hit's tiers, per group of bases: `  Tiers on <bases> (this mod: T<n>):`, then one line per
+ * tier, `    T<n> (item level <l>): <range>`. A group whose bases and tiers an earlier hit of the reply listed says
+ * `as listed above` instead (`listed` holds what was listed), so a family's tiers are written once per reply.
+ */
+export function renderTiers(groups: ModTierGroup[], listed: Set<string>): string[] {
+  const lines: string[] = [];
+  for (const g of groups) {
+    const bases = tierBases(g.on);
+    const tiers = g.tiers.map((t) => `    T${t.tier} (item level ${t.level}): ${tierRange(t.line)}`);
+    const key = `${bases}\0${tiers.join("\n")}`;
+    const head = `${TIERS_PREFIX}${bases}${g.tier !== undefined ? ` (this mod: T${g.tier})` : ""}:`;
+    if (listed.has(key)) {
+      lines.push(`${head} as listed above`);
+    } else {
+      listed.add(key);
+      lines.push(head, ...tiers);
+    }
+  }
+  return lines;
+}
+
 interface Request {
   mode: Mode;
   query?: string;
@@ -543,11 +597,14 @@ function render(req: Request, result: LookupGameDataResult): string {
   }
   lines.push("");
   if (req.mode === "mechanic") {
+    const listed = new Set<string>();
     for (const r of result.results) {
-      const hit = r as LookupHit;
+      const hit = r as LookupHit & { tiers?: ModTierGroup[] };
       lines.push(renderHit(hit));
       // WU-60 (D-277): the base types that can roll a mod, on the line under it.
       if (hit.kind === "mod" && hit.baseTypes) lines.push(renderBaseTypes(hit.baseTypes, hit.notRolled));
+      // D-494: then its tiers with their item levels, by groups of bases.
+      if (hit.kind === "mod" && hit.tiers && hit.tiers.length > 0) lines.push(...renderTiers(hit.tiers, listed));
     }
   } else {
     for (const r of result.results) {

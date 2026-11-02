@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "user-prism-2026-10-31",
+      "kind": "judgment",
+      "ref": "the user: Prism of Belief rolls only gem skills; Coiling Bolts is granted by Liminal Coil (Data/Uniques/wand.lua:57-61)",
+      "patch": "0.5.x",
+      "confidence": "H"
+    }
+  ],
+  "facts": {
+    "item-only-skills.coiling-bolts": {
+      "value": "Coiling Bolts",
+      "source": "user-prism-2026-10-31",
+      "patch": "0.5.x",
+      "confidence": "H"
+    }
+  }
+}

@@ -621,6 +621,48 @@ out (§14). The kinds and statuses are §17's; every `file:line` below was check
   - **Seen in:** 10 of the 36 endgame guides of the finishing-touches study carry one (amendment 13 §2); amendment 13
     leaves them out of designs until a follow-up (§14).
 
+## Found in amendment 14 (2026-11-02)
+
+Amendment 14 (`spec/amendment-14-files-specs-and-repairs.md`, D-495) records three gaps the reviews of the open-spell
+live test (2026-10-31) found: Crystalline Phylactery's line (§18), Event Horizon's cost line and Prism of Belief's
+generated list (§20). Every `file:line` below was checked against the pin on 2026-11-02.
+
+- **PG-103, Crystalline Phylactery's current wording is parsed only partly.** gap, confirmed in code.
+  - **Where:** the Lich's jewel socket, node 17788, and its Abyssal Lich copy say "100% increased Effect of bonuses
+    gained from Socketed Jewel" (`TreeData/0_5/tree.lua:52976`). PoB maps only the older wording, "Effect of the
+    Socketed Jewel" (`Modules/ModParser.lua:895-897`), and reads this one as `LocalEffect` with a remainder
+    (`Data/ModCache.lua:1356`), so the node keeps none of it (`Classes/PassiveTree.lua:473`, `:490`), and the jewel's
+    scale, which reads the node's `SocketedJewelEffect` (`Modules/CalcSetup.lua:1133-1136`), stays at 1.
+  - **Effect:** a jewel in the Phylactery counts once, not twice: a Ruby's "20% increased Armour" reads 20% there, as
+    in a main-tree socket, for a Lich and an Abyssal Lich.
+  - **Seen in:** the open-spell live test's two Lich builds, where 17788 went out unmeasured (amendment 14 §2, the
+    user's note 11).
+  - **Fixed:** in our bridge, not in PoB: `pob-api/API/ParseFixes.lua` sets the line's parse to `SocketedJewelEffect
+    INC 100` and re-processes the node and its switch copies (D-492), so the jewel counts twice.
+    `tests/integration/parseFixes.test.ts` fails once PoB parses the line itself; the entry then goes.
+- **PG-104, Event Horizon's cost line is parsed partly and dropped.** gap, confirmed in code.
+  - **Where:** the notable (node 52191, `TreeData/0_5/tree.lua:110204-110227`) gives "53% increased Chaos Damage" and
+    "Lose 3% of maximum Life and Energy Shield when you use a Chaos Skill" (`:110225`). PoB reads the second as a flat
+    `Life` loss with a remainder (`Data/ModCache.lua:6137`), so the node drops that line (`Classes/PassiveTree.lua:473`,
+    `:490`) and keeps the first.
+  - **Effect:** the chaos damage counts and the cost doesn't, so node power and the tree search see the notable as a
+    free gain.
+  - **Seen in:** the reviews of the open-spell live test (amendment 14 §21).
+  - **Workaround:** the tree search's exclude list (D-490), or a custom modifier with its reason.
+- **PG-105, Prism of Belief's generated list holds skills only items grant.** data, confirmed in code.
+  - **Where:** PoB generates the jewel's variants from every gem that isn't a support, hidden or marked as an item's or
+    the tree's skill (`Data/Uniques/Special/Generated.lua:78-104`, the test at `:85`). Coiling Bolts has a gem entry
+    (`Data/Gems.lua:5924-5925`) and its skill no such mark (`Data/Skills/act_int.lua:3507-3508`), but only Liminal
+    Coil grants it (`Data/Uniques/wand.lua:57-61`), so the list holds a variant the game never rolls. The other way
+    round, Volatile Dead's skill is marked as an item's (`Data/Skills/act_int.lua:22333-22337`; Enezun's Charge grants
+    it, `Data/Uniques/wand.lua:39-42`), so PoB lists no Volatile Dead variant although `Data/Gems.lua:132-133` has a
+    gem for it.
+  - **Effect:** a lookup or a design could take a "+(1-3) to Level of all Coiling Bolts Skills" Prism of Belief, which
+    can't exist (the user's ruling: it rolls only gem skills).
+  - **Seen in:** the open-spell live test (2026-10-31), its Coiling Bolts Lich.
+  - **Workaround:** the lookup drops the skills `data/items/item-only-skills.json` lists from a generated unique's
+    variants (D-494); the user adds names as they're found (R-84).
+
 ## Data: missing, out of range, or stale
 
 - **PG-41, rolls above PoB's data range.** data, reported. Each has to be typed in:

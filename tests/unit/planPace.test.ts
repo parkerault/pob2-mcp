@@ -106,6 +106,21 @@ describe('D-407: a clear skill with no area', () => {
     const death = clearSpeedOf({ radiusMetres: undefined, usesPerSecond: 1, texts: ['Enemies in the area will Combust on death.'] });
     expect({ band: death.band, noArea: death.noArea, onDeath: death.onDeath, speed: death.speed }).toEqual({ band: 'slow', noArea: true, onDeath: true, speed: 'medium' });
   });
+
+  it('AC-P94 (WU-137, D-491): with no area, clearSpeed carries chains and projectiles (0 when PoB gives none); with a radius, neither; the band is unchanged', () => {
+    const arc = clearSpeedOf({ radiusMetres: undefined, usesPerSecond: 1.6, texts: [], chains: 7, projectiles: 1 });
+    expect(arc).toMatchObject({ noArea: true, band: 'slow', speed: 'slow', chains: 7, projectiles: 1 });
+    expect(clearSpeedOf({ radiusMetres: 0, usesPerSecond: 1.6, texts: [] })).toMatchObject({ noArea: true, chains: 0, projectiles: 0 });
+    const quake = clearSpeedOf({ radiusMetres: 2.5, usesPerSecond: 1.2, texts: [], chains: 3, projectiles: 2 });
+    expect('chains' in quake || 'projectiles' in quake).toBe(false);
+    // stageMeasures reads them from the clear skill's breakdown, a minion clear skill from its minion's fields (D-378).
+    const rec = record('area', 1);
+    rec.skillOutputs.g1s1p1.fields = { TotalDPS: 40, Speed: 1.6, ChainMax: 7, ProjectileCount: 1 };
+    expect(stageMeasures(stage(), rec, [], {}).clearSpeed).toMatchObject({ noArea: true, chains: 7, projectiles: 1 });
+    const minion = record('no-area', 1);
+    minion.skillOutputs.g1s1p1.fields = { ...minion.skillOutputs.g1s1p1.fields, ChainMax: 9, MinionChainMax: 2, MinionProjectileCount: 3 };
+    expect(stageMeasures(stage(), minion, [], {}).clearSpeed).toMatchObject({ noArea: true, chains: 2, projectiles: 3 });
+  });
 });
 
 describe("D-407 within the HG-12 grant: compile_plan's key-figure line is unchanged", () => {

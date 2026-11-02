@@ -661,6 +661,14 @@ export interface ClearSpeedMeasure {
    * stage has no clear skill to read (`skill` null).
    */
   noArea: boolean;
+  /**
+   * D-491 (amendment 14 §17; WU-137): on a clear skill with no area (`noArea`), how far it reaches instead: PoB's `ChainMax`
+   * (its chains, 0 when it can't chain) and `ProjectileCount` (its projectiles, 0 when PoB gives none), a minion's
+   * `MinionChainMax` and `MinionProjectileCount` for a minion clear skill (D-378). Absent on a skill with a radius, and from
+   * records written before M-27.
+   */
+  chains?: number;
+  projectiles?: number;
   /** One step faster: a gem text of its group explodes monsters or spreads an effect on death. */
   onDeath: boolean;
   /** Its uses per second (`Speed`, a minion's `MinionSpeed`), null when PoB gives none. */
@@ -732,7 +740,8 @@ export function clearBand(radiusMetres: number): ClearSpeed {
 
 /**
  * D-353: the band, a step faster for an on-death effect, a step slower for a long use, kept within the bands. D-407:
- * `noArea` when PoB gives no radius above 0; the steps still apply, as D-353 sets them.
+ * `noArea` when PoB gives no radius above 0; the steps still apply, as D-353 sets them. D-491 (WU-137): with no area, the
+ * skill's `chains` and `projectiles` (PoB's `ChainMax` and `ProjectileCount`, 0 when PoB gives none); the band doesn't move.
  */
 export function clearSpeedOf(input: {
   radiusMetres: number | undefined;
@@ -741,6 +750,8 @@ export function clearSpeedOf(input: {
   group?: number | null;
   key?: string | null;
   skill?: string | null;
+  chains?: number | undefined;
+  projectiles?: number | undefined;
 }): ClearSpeedMeasure {
   const radiusMetres = typeof input.radiusMetres === 'number' && Number.isFinite(input.radiusMetres) ? input.radiusMetres : 0;
   const usesPerSecond = typeof input.usesPerSecond === 'number' && Number.isFinite(input.usesPerSecond) ? input.usesPerSecond : null;
@@ -749,6 +760,7 @@ export function clearSpeedOf(input: {
   const onDeath = input.texts.some(explodesOnDeath);
   const longUse = usesPerSecond !== null && usesPerSecond < 1;
   const at = CLEAR_SPEEDS.indexOf(band) + (onDeath ? 1 : 0) - (longUse ? 1 : 0);
+  const count = (v: number | undefined): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
   return {
     speed: CLEAR_SPEEDS[Math.min(CLEAR_SPEEDS.length - 1, Math.max(0, at))],
     rough: true,
@@ -758,6 +770,8 @@ export function clearSpeedOf(input: {
     radiusMetres,
     band,
     noArea,
+    // D-491: how a skill with no area reaches its pack.
+    ...(noArea ? { chains: count(input.chains), projectiles: count(input.projectiles) } : {}),
     onDeath,
     usesPerSecond,
     longUse,
@@ -1265,6 +1279,9 @@ export function stageMeasures(
     ...clearSpeedOf({
       radiusMetres: entry?.fields[minion ? 'MinionAreaOfEffectRadiusMetres' : 'AreaOfEffectRadiusMetres'],
       usesPerSecond: entry?.fields[minion ? 'MinionSpeed' : 'Speed'],
+      // D-491 (WU-137): with no area, its chains and projectiles.
+      chains: entry?.fields[minion ? 'MinionChainMax' : 'ChainMax'],
+      projectiles: entry?.fields[minion ? 'MinionProjectileCount' : 'ProjectileCount'],
       texts: clearGemNames(stage).flatMap((name) => (gemTexts[name] !== undefined ? [gemTexts[name]] : [])),
       group: entry?.group ?? null,
       key: entry?.key ?? null,

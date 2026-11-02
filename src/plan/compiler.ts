@@ -1121,7 +1121,9 @@ export function stageParams(
  * (amendment 11 §5, §9b; D-437, D-447): PoB's `CastRate` (a spell's rate before its cooldown caps it,
  * `CalcOffence.lua`:2843-2863) and `Cooldown` where PoB sets them, since a cooldown skill's `Speed` is capped by its
  * cooldown and its `Time` is `1 / Speed` after the cap; and the named source's `CullPercent` and `CullMultiplier`
- * (`CalcOffence.lua`:3903-3911), which `measures.cull` and the culled map figure read.
+ * (`CalcOffence.lua`:3903-3911), which `measures.cull` and the culled map figure read. WU-137 (amendment 14 §17, D-491): a
+ * clear skill with no area's chains and projectiles, PoB's `ChainMax` and `ProjectileCount` (`CalcOffence.lua`:1279,
+ * :968), and a minion's (D-378), which `measures.clearSpeed` reads.
  */
 export const MEASURE_FIELDS: readonly string[] = [
   'AreaOfEffectRadiusMetres',
@@ -1130,6 +1132,10 @@ export const MEASURE_FIELDS: readonly string[] = [
   'Cooldown',
   'CullPercent',
   'CullMultiplier',
+  'ChainMax',
+  'ProjectileCount',
+  'MinionChainMax',
+  'MinionProjectileCount',
 ];
 
 /** WU-111 (D-447): the fields the boss measure reads per skill: the stage's, then a minion's ailments. */

@@ -149,9 +149,30 @@
 //    line, or the pace was off) records its stop as `rate_limited` does;
 //  - a Pieces row's kind `anoint` (D-474).
 //
+// Amendment 14 (WU-140; D-478…D-491, its §25 and Appendix A), for a log at 14 (`init` writes it, a resume stamps it with
+// its boundary, as amendment 12 set up):
+//  - the R1b entry's `skeletonFile` (the card's skeleton PoB file, `<card name> skeleton (draft).xml`, or null, D-479), and
+//    `skeleton '{"concept"}'`, which sets `skeletonRemoved: true` on that card's last R1b entry with a skeleton file once
+//    the runner removed it;
+//  - `answer-change '{"checkpoint": "design", "visit", "from": "accept", "to": "accept:file", "note"}'` (D-480), legal after
+//    the build's F1 pass and before its W1's entry, kept in `answerChanges[]` with its build (`concept`) and `at`, the
+//    stages[] length when written; W1's outcome `cancelled`, only after an answer change; `withdrawals[] {build, files,
+//    at}`, which `render-audit.mjs --withdraw` writes;
+//  - a stage entry's `scope` (D1-finish's `swap` or `scaling`, W1's `notes`, D-481, D-486, D-487) and `requests`
+//    (`[{id, words, result: "made" | "departs: <how>"}]`, D-482); D1-tree's `priceOutcomes` (D-490: any non-zero count
+//    fails the checker);
+//  - the checkpoint `ask` (`{checkpoint: "ask", kind: "departs" | "open-finding", build, visit, answer, answeredBy}`,
+//    D-482), answered `round` or `ship` for an open finding and in the user's words for a departure, its `at` the stages[]
+//    length when written; the design checkpoint's `scaling: true | false` on an accept (D-486);
+//  - the displays (D-478, D-491; Appendix A's revision 14): the brainstorm display's headers and closing lines, the
+//    verification display in bold labels and bullets with each card's skeleton file first, the design display in the
+//    [GR] form from the D1 gate's `summary` (`display design --build <id> --detail` prints today's), the final display's
+//    PoB file first; a clear skill with no area reads `no area: chains <n>, projectiles <m>` once the record has them.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
-// objects `{ask, answer, changes, newCards, note}` scripting an interview. What needs the deck (a new card's `from`
-// and its name) is checked when the gate's checkpoint is written.
+// objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
+// (D-486, default false). What needs the deck (a new card's `from` and its name) is checked when the gate's checkpoint is
+// written.
 // Exit 0: written, the display printed (stdout), or the test config well formed. Exit 1: refused (stderr). Exit 2:
 // usage error.
 
@@ -196,7 +217,8 @@ const OUTCOMES = {
   'D1-gate': ['pass', 'fail', 'infeasible', 'escalated'],
   D2: ['done', 'claims-edited'],
   'D2-gate': ['pass', 'fail', 'escalated'],
-  W1: ['done'],
+  // Amendment 14 (D-480): `cancelled`, a W1 stopped by an answer change (accept to accept:file) after F1.
+  W1: ['done', 'cancelled'],
   V4: ['pass', 'fail'],
   'V4-recheck': ['pass', 'fail'],
   Q: ['done'],
@@ -219,6 +241,8 @@ const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize', 'V4-cl
 const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV'];
 /** The steps that price (pricing.md); D1-build since amendment 11, for its `find_upgrades` calls (D-444). */
 const PRICING = ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'];
+/** D-490 (amendment 14): D1-tree makes no trade call, but a log at 14 records its count, so a call shows (and fails). */
+const PRICING14 = [...PRICING, 'D1-tree'];
 /** D-444: a `priceOutcomes` key for the calls priced from poe.ninja's currency exchange, which send no trade request. */
 export const EXCHANGE = 'exchange';
 /**
@@ -230,13 +254,24 @@ export const PACE = 'pace';
  * §19, amendment 12's §22, amendment 13's §22: the skill revision `init` writes and `resume` stamps; a log without it is
  * held to the rules before amendment 11.
  */
-export const SKILL_REVISION = 13;
+export const SKILL_REVISION = 14;
 /** Amendment 11's revision (§19): its rules hold from its boundary in every log at 11 or later. */
 export const A11 = 11;
 /** Amendment 13's revision (§22): its rules hold a build from its boundary, read by the build's last D1 gate. */
 export const A13 = 13;
+/** Amendment 14's revision (§25): its rules hold a build from its boundary, read by the build's last D1 gate. */
+export const A14 = 14;
 /** Appendix A (amendment 12): the revisions a log can be held to, in order; each one's rules hold from its own boundary. */
-export const REVISIONS = [11, 12, 13];
+export const REVISIONS = [11, 12, 13, 14];
+/** D-481, D-486, D-487 (Appendix A): each step's `scope`, the task header's field that narrows it. */
+export const SCOPES = { 'D1-finish': ['swap', 'scaling'], W1: ['notes'] };
+/** D-482: the steps that take the user's requests and return one `request:` line per request. */
+export const REQUEST_STAGES = ['R1b', 'D1-build', 'D1-tree', 'D1-finish', 'D2', 'W1'];
+/** D-482 (Appendix A): an `ask` checkpoint's kinds, and an open finding's two answers. */
+export const ASK_KINDS = ['departs', 'open-finding'];
+export const OPEN_FINDING_ANSWERS = ['round', 'ship'];
+/** D-482: a request's result, `made` or `departs: <how>`. */
+export const REQUEST_RESULT = /^(?:made|departs: \S[\s\S]*)$/;
 /** A log's skill revision, a whole number, or null for a log without one (an older run's). */
 export const revisionOf = (log) => (isObj(log) && Number.isInteger(log.skillRevision) ? log.skillRevision : null);
 /**
@@ -304,7 +339,10 @@ const FIELDS = {
  */
 const FIELDS4 = {
   ...FIELDS,
-  checkpoint: ['checkpoint', 'concept', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note'],
+  // Amendment 14 (Appendix A): R1b's `skeletonFile`; a step's `scope` and `requests` (D-479, D-481, D-482).
+  stage: ['stage', 'concept', 'attempt', 'outcome', 'priceOutcomes', 'probes', 'skeletonFile', 'shortReason', 'tried', 'scope', 'requests'],
+  // Amendment 14: the `ask` checkpoint's `kind` and `build` (D-482); the design accept's `scaling` (D-486).
+  checkpoint: ['checkpoint', 'concept', 'kind', 'build', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note', 'scaling'],
   set: ['status', 'dossier', 'faults'],
   init: ['slug', 'brief', 'mode', 'testConfig', 'noNinja', 'status'],
   // D-466 (amendment 13): `draftFile`, the latest draft's path, on a log at 13.
@@ -312,7 +350,15 @@ const FIELDS4 = {
   resume: ['noNinja'],
   // D-444: the user's answer to a gate's pricing question after a stop.
   pricing: ['checkpoint', 'answer'],
+  // Amendment 14 (D-479, D-480): a skeleton removed, an answer changed after F1, files withdrawn.
+  skeleton: ['concept'],
+  'answer-change': ['checkpoint', 'visit', 'from', 'to', 'note'],
+  withdrawn: ['build', 'files'],
 };
+/** Amendment 14 (Appendix A): the fields only a log at 14 takes, by kind. */
+const FIELDS14 = { stage: ['skeletonFile', 'scope', 'requests'], checkpoint: ['kind', 'build', 'scaling'] };
+/** The writes only a log at 14 takes (amendment 14, Appendix A). */
+const KINDS14 = ['skeleton', 'answer-change', 'withdrawn'];
 /** A build entry's fields in builds[], in order (D-412); `name` after `roll` once a build entry gave one (D-435). */
 const BUILD_FIELDS = ['id', 'roll', 'status', 'folder', 'guide', 'pobFile'];
 const BUILD_FIELDS_NAMED = ['id', 'roll', 'name', 'status', 'folder', 'guide', 'pobFile'];
@@ -398,11 +444,32 @@ function newCardBody(c) {
  * The problems with an entry of a kind: its fields, as run-log.md's entry form gives them, in the log's schema (3, or 4
  * from amendment 9).
  */
-export function entryProblems(kind, e, schema = 3) {
+export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
   if (!isObj(e)) return ['the entry is a JSON object'];
   const v4 = schema === 4;
-  const allowed = (v4 ? FIELDS4 : FIELDS)[kind] ?? [];
-  const bad = Object.keys(e).filter((k) => !allowed.includes(k)).map((k) => `"${k}" isn't a field of a ${kind} entry (${allowed.join(', ')})`);
+  // Amendment 14 (Appendix A): its fields and writes need a log at 14; an older log is resumed first, which stamps it.
+  const a14 = v4 && revision >= A14;
+  const allowed = ((v4 ? FIELDS4 : FIELDS)[kind] ?? []).filter((k) => a14 || !(FIELDS14[kind] ?? []).includes(k));
+  const at14 = (k) => (v4 && !a14 && (FIELDS14[kind] ?? []).includes(k) ? `; ${k} is amendment 14's (skillRevision ${A14}): resume the run first` : '');
+  const bad = Object.keys(e).filter((k) => !allowed.includes(k)).map((k) => `"${k}" isn't a field of a ${kind} entry (${allowed.join(', ')})${at14(k)}`);
+  if (KINDS14.includes(kind) && !a14) return [`${kind} is amendment 14's (skillRevision ${A14}); this log is at ${revision ?? 'no skillRevision'}: resume it first (§25)`];
+  if (kind === 'skeleton') {
+    if (!CARD.test(String(e.concept))) bad.push(`concept ${show(e.concept)} isn't a card id r<round>-<letter>-<n>: the card whose skeleton file the runner removed (D-479)`);
+    return bad;
+  }
+  if (kind === 'answer-change') {
+    // D-480: the design gate's accept changed to the PoB file only, after F1 and before W1's entry.
+    if (e.checkpoint !== 'design') bad.push(`checkpoint is ${show(e.checkpoint)}; an answer change amends a design checkpoint's accept (D-480)`);
+    if (!isInt(e.visit, 1)) bad.push(`visit ${show(e.visit)} isn't a whole number from 1: the design gate visit whose answer changes`);
+    if (e.from !== 'accept' || e.to !== 'accept:file') bad.push(`from ${show(e.from)} to ${show(e.to)}; an answer change is from "accept" to "accept:file", the guide to the PoB file only (D-480)`);
+    if (!text(e.note)) bad.push("note is the user's words, a non-empty text");
+    return bad;
+  }
+  if (kind === 'withdrawn') {
+    if (!CARD.test(String(e.build))) bad.push(`build ${show(e.build)} isn't a card id`);
+    if (!Array.isArray(e.files) || !e.files.every(text)) bad.push('files lists the paths render-audit.mjs --withdraw removed, relative to the run folder');
+    return bad;
+  }
   if (kind === 'stage') {
     const stages = Object.keys(OUTCOMES).filter((s) => v4 || !SCHEMA4_STAGES.includes(s));
     const outcomes = stages.includes(e.stage) ? OUTCOMES[e.stage] : undefined;
@@ -412,8 +479,22 @@ export function entryProblems(kind, e, schema = 3) {
     // D-421: in schema 4 any step the permission system refused is logged `refused`, then re-run alone, uncounted.
     const any = v4 ? ['missing', 'refused'] : ['missing'];
     if (![...outcomes, ...any].includes(e.outcome)) bad.push(`a ${e.stage} entry's outcome is ${[...outcomes, 'missing'].join(', ')}, not ${show(e.outcome)}`);
+    // D-480: W1's `cancelled` is a log at 14's, and only after an answer change (writeLog holds it to the run).
+    if (e.outcome === 'cancelled' && !a14) bad.push(`outcome cancelled is amendment 14's (skillRevision ${A14}): a W1 stopped by an answer change (D-480)`);
+    // D-479: R1b's skeleton PoB file, or null when it wrote none.
+    // R1b returns `skeleton: <relpath>`, or `skeleton: none: <the refusal's line>` when the draft write was refused, which
+    // the runner logs as null; a failed attempt returns no skeleton line and logs none.
+    if (e.skeletonFile !== undefined && (e.stage !== 'R1b' || !(e.skeletonFile === null || (text(e.skeletonFile) && /\.xml$/i.test(e.skeletonFile.trim()) && !/^none:/i.test(e.skeletonFile.trim()))))) bad.push('skeletonFile is only on R1b: the skeleton PoB file its draft write returned ("skeleton: <relpath>"), "<card name> skeleton (draft).xml", or null when the write was refused ("skeleton: none: <why>") (D-479)');
+    // D-481, D-486, D-487: the scope narrows D1-finish (swap, scaling) and W1 (notes).
+    if (e.scope !== undefined && !(SCOPES[e.stage] ?? []).includes(e.scope)) bad.push(`scope ${show(e.scope)} isn't one of ${e.stage}'s; ${Object.entries(SCOPES).map(([st, xs]) => `${st} takes ${xs.join(' or ')}`).join(', ')} (Appendix A)`);
+    // D-482: one result per request, the user's words verbatim.
+    if (e.requests !== undefined) {
+      if (!REQUEST_STAGES.includes(e.stage)) bad.push(`requests is only on ${REQUEST_STAGES.join(', ')}, the steps that take the user's requests (D-482)`);
+      else if (!Array.isArray(e.requests) || e.requests.length === 0 || !e.requests.every((r) => isObj(r) && Object.keys(r).every((k) => ['id', 'words', 'result'].includes(k)) && text(r.id) && text(r.words) && REQUEST_RESULT.test(String(r.result)))) bad.push('requests is [{"id", "words", "result"}], one per request: its id, the user\'s words verbatim, and "made" or "departs: <how>" (D-482)');
+    }
     if (e.priceOutcomes !== undefined) {
-      if (!PRICING.includes(e.stage)) bad.push(`priceOutcomes is only on ${PRICING.join(', ')}`);
+      const pricing = a14 ? PRICING14 : PRICING;
+      if (!pricing.includes(e.stage)) bad.push(`priceOutcomes is only on ${pricing.join(', ')}`);
       else if (!isObj(e.priceOutcomes) || Object.entries(e.priceOutcomes).some(([k, v]) => !['ok', 'error', ...TRADE_KINDS, EXCHANGE, PACE].includes(k) || !isInt(v, 0))) bad.push('priceOutcomes counts calls by outcome: ok, error or a [trade:<kind>] kind, exchange for the calls priced from poe.ninja\'s currency exchange (D-444), and pace for the trade call whose reply had no pace line or the pace off (D-474), each a whole number');
     }
     if (e.stage === 'R1b' ? !isInt(e.probes, 0) : e.probes !== undefined) bad.push(e.stage === 'R1b' ? 'an R1b entry has probes, the probe variants it ran (0 when none)' : 'probes is only on R1b');
@@ -421,6 +502,21 @@ export function entryProblems(kind, e, schema = 3) {
     // D-408: a rival that found no faster structure says what it tried.
     if (e.stage === 'RV' && e.outcome === 'none-found' ? !text(e.tried) : e.tried !== undefined) bad.push('tried is on an RV entry whose outcome is none-found, and only there: what the rival tried, a non-empty text (D-408)');
   } else if (kind === 'checkpoint') {
+    // D-482 (Appendix A): the ask checkpoint, a question asked outside a gate: a departure from the user's request, or
+    // an open finding after the one re-check.
+    if (a14 && e.checkpoint === 'ask') {
+      if (!ASK_KINDS.includes(e.kind)) bad.push(`kind ${show(e.kind)} isn't one of ${ASK_KINDS.join(', ')} (D-482)`);
+      if (!CARD.test(String(e.build))) bad.push(`build ${show(e.build)} isn't a card id: the build the question is about (D-482)`);
+      for (const k of ['concept', 'questions', 'changes', 'newCards', 'note', 'scaling']) if (e[k] !== undefined) bad.push(`${k} isn't a field of an ask checkpoint (checkpoint, kind, build, visit, answer, answeredBy, rule)`);
+      if (!isInt(e.visit, 1)) bad.push(`visit ${show(e.visit)} isn't a whole number from 1`);
+      if (e.kind === 'open-finding' ? !OPEN_FINDING_ANSWERS.includes(e.answer) : !text(e.answer)) bad.push(e.kind === 'open-finding' ? `an open finding's answer is round (one more fix round and re-check, once a build) or ship (the issue goes in the PoB notes), not ${show(e.answer)} (D-482)` : "a departure's answer is the user's words, a non-empty text (D-482)");
+      if (!['user', 'pre-supplied', 'default'].includes(e.answeredBy)) bad.push('answeredBy is user, pre-supplied or default');
+      if (e.answeredBy === 'user' ? e.rule !== undefined : !text(e.rule)) bad.push(e.answeredBy === 'user' ? "a user's answer has no rule" : 'a pre-supplied or default answer has its rule');
+      return bad;
+    }
+    if (e.kind !== undefined || e.build !== undefined) bad.push('kind and build are only on an ask checkpoint (D-482)');
+    // D-486: the late endgame scaling answer rides on the design gate's accept.
+    if (e.scaling !== undefined && !(e.checkpoint === 'design' && ['accept', 'accept:file'].includes(e.answer) && typeof e.scaling === 'boolean')) bad.push('scaling is true or false, only on the design gate\'s accept or accept:file: the answer to "late endgame scaling, yes or no?" (D-486)');
     const form = (v4 ? ANSWERS4 : ANSWERS)[e.checkpoint];
     if (!form) return [...bad, `checkpoint ${show(e.checkpoint)} isn't one of ${Object.keys(ANSWERS).join(', ')}`];
     if (!isInt(e.visit, 1)) bad.push(`visit ${show(e.visit)} isn't a whole number from 1`);
@@ -540,7 +636,7 @@ export function writeLog(runFolder, kind, entry) {
   const existing = kind === 'init' ? null : readLog(file);
   const schema = existing?.schemaVersion ?? 4;
   if (schema !== 4 && ['build', 'resume', 'pricing'].includes(kind)) throw new Error(`${kind} entry refused: run-log.json is a schema-3 log; ${kind} is schema 4's (amendment 9): run run-log.mjs <runFolder> migrate first`);
-  const problems = entryProblems(kind, entry, schema);
+  const problems = entryProblems(kind, entry, schema, existing === null ? SKILL_REVISION : revisionOf(existing));
   if (problems.length > 0) throw new Error(`${kind} entry refused: ${problems.join('; ')}`);
   let log;
   if (kind === 'init') {
@@ -579,11 +675,36 @@ export function writeLog(runFolder, kind, entry) {
     if (kind === 'stage' && entry.stage === 'D1-tree' && entry.outcome === 'respec' && revisionOf(log) >= 12) {
       throw new Error("stage entry refused: a run held to amendment 12 (skillRevision 12) has no respec: each loadout's tree is its own, so D1-tree never returns respec, and a user's respec request is a tree request, D1-tree then D1-finish (D-452)");
     }
+    // Amendment 14 (Appendix A): the writes that change an entry or a list of their own, and the rules they hold the run to.
+    const against14 = schema === 4 ? amendment14AgainstRun(log, kind, entry) : [];
+    if (against14.length > 0) throw new Error(`${kind} entry refused: ${against14.join('; ')}`);
+    if (kind === 'skeleton') {
+      const r1b = stagesOf(log).filter((s) => s.stage === 'R1b' && s.concept === entry.concept && text(s.skeletonFile)).pop();
+      r1b.skeletonRemoved = true;
+      saveLog(file, log);
+      return `stages[${log.stages.indexOf(r1b)}].skeletonRemoved (${entry.concept}'s skeleton file ${baseName(r1b.skeletonFile)})`;
+    }
+    if (kind === 'answer-change') {
+      const c = objects(log.checkpoints).find((x) => x.checkpoint === 'design' && x.visit === entry.visit);
+      if (!Array.isArray(log.answerChanges)) log.answerChanges = [];
+      log.answerChanges.push({ checkpoint: entry.checkpoint, concept: c.concept, visit: entry.visit, from: entry.from, to: entry.to, note: entry.note, at: stagesOf(log).length });
+      saveLog(file, log);
+      return `answerChanges[${log.answerChanges.length - 1}] (${c.concept}: ${entry.from} to ${entry.to}, at stages[${stagesOf(log).length}])`;
+    }
+    if (kind === 'withdrawn') {
+      if (!Array.isArray(log.withdrawals)) log.withdrawals = [];
+      log.withdrawals.push({ build: entry.build, files: entry.files, at: stagesOf(log).length });
+      saveLog(file, log);
+      return `withdrawals[${log.withdrawals.length - 1}] (${entry.build}: ${entry.files.length > 0 ? entry.files.join(', ') : 'no file'})`;
+    }
     const list = { stage: 'stages', checkpoint: 'checkpoints', escalation: 'escalations' }[kind];
     const fields = (schema === 4 ? FIELDS4 : FIELDS)[kind];
     if (list) {
       if (!Array.isArray(log[list])) log[list] = [];
-      log[list].push(Object.fromEntries(fields.filter((k) => entry[k] !== undefined).map((k) => [k, entry[k]])));
+      const written = Object.fromEntries(fields.filter((k) => entry[k] !== undefined).map((k) => [k, entry[k]]));
+      // D-482: an ask checkpoint records where it was asked, the stages[] length then.
+      if (kind === 'checkpoint' && entry.checkpoint === 'ask') written.at = stagesOf(log).length;
+      log[list].push(written);
       // D-444: a step that hit a rate limit or a lockout stops trade-site pricing until a gate's retry-pricing (or a resume).
       const stop = kind === 'stage' && revisionOf(log) >= A11 ? stopOutcome(entry.priceOutcomes) : null;
       if (stop !== null) {
@@ -632,6 +753,46 @@ export function writeLog(runFolder, kind, entry) {
   saveLog(file, log);
   const list = { stage: 'stages', checkpoint: 'checkpoints', escalation: 'escalations' }[kind];
   return list ? `${list}[${log[list].length - 1}]` : kind === 'init' ? 'the first log' : Object.keys(entry).join(', ');
+}
+
+/**
+ * Amendment 14 (D-479, D-480, D-482; Appendix A): a write against the run: a skeleton removed is a picked card's (a build
+ * of the run) whose last R1b recorded the file and no removal yet; an answer change amends a design visit answered
+ * `accept`, after its build's F1 passed and before any W1 entry after that pass, once; W1's `cancelled` follows an answer
+ * change for its build, with no W1 after it; an ask checkpoint names a build of the run; a withdrawal follows an answer
+ * change for its build.
+ */
+function amendment14AgainstRun(log, kind, entry) {
+  const bad = [];
+  const stages = stagesOf(log);
+  const builds = objects(log.builds);
+  const real = (s) => !['missing', 'refused'].includes(s.outcome);
+  const changes = objects(log.answerChanges);
+  if (kind === 'skeleton') {
+    const r1b = stages.filter((s) => s.stage === 'R1b' && s.concept === entry.concept && text(s.skeletonFile)).pop();
+    if (!r1b) bad.push(`no R1b entry for ${entry.concept} records a skeleton file (skeletonFile); R1b returns skeleton: <relpath> and the runner logs it (D-479)`);
+    else if (r1b.skeletonRemoved === true) bad.push(`${entry.concept}'s skeleton file ${baseName(r1b.skeletonFile)} is already removed`);
+    if (!builds.some((b) => b.id === entry.concept)) bad.push(`${entry.concept} has no build in the run; only a picked card's skeleton is removed, when its build gets its first design draft, and an unpicked card's stays (D-479)`);
+  } else if (kind === 'answer-change') {
+    const c = objects(log.checkpoints).find((x) => x.checkpoint === 'design' && x.visit === entry.visit);
+    if (!c) return [`the design gate has no visit ${entry.visit} in checkpoints[]`];
+    if (c.answer !== entry.from) bad.push(`design visit ${entry.visit} was answered ${show(c.answer)}, not ${show(entry.from)}; an answer change amends the accept the visit logged (D-480)`);
+    if (changes.some((x) => x.checkpoint === 'design' && x.visit === entry.visit)) bad.push(`design visit ${entry.visit}'s answer was already changed`);
+    const f1 = stages.map((s, i) => ({ s, i })).filter(({ s }) => s.stage === 'F1' && s.concept === c.concept && real(s)).pop();
+    if (!f1 || f1.s.outcome !== 'pass') bad.push(`${c.concept}'s F1 hasn't passed; the answer changes after F1's pass and before W1's entry (D-480)`);
+    else if (stages.slice(f1.i + 1).some((s) => s.stage === 'W1' && s.concept === c.concept && real(s))) bad.push(`${c.concept}'s W1 entry is recorded after its F1 pass; the answer changes before W1's entry, and a W1 still running is logged cancelled after it (D-480)`);
+  } else if (kind === 'stage' && entry.outcome === 'cancelled') {
+    const change = changes.filter((x) => x.concept === entry.concept).pop();
+    if (!change) bad.push(`${entry.concept} has no answer change; W1 is cancelled only when the user changed the design gate's accept to the PoB file only after F1 (D-480)`);
+    else if (stages.slice(change.at).some((s) => s.stage === 'W1' && s.concept === entry.concept && real(s))) bad.push(`${entry.concept}'s W1 after its answer change is already logged; one W1 is cancelled, the one running when the answer changed (D-480)`);
+  } else if (kind === 'checkpoint' && entry.checkpoint === 'ask') {
+    if (!builds.some((b) => b.id === entry.build)) bad.push(`build ${entry.build} has no build in the run; builds[] holds ${builds.map((b) => b.id).join(', ') || 'none'} (D-482)`);
+    const next = objects(log.checkpoints).filter((c) => c.checkpoint === 'ask').length + 1;
+    if (entry.visit !== next) bad.push(`the next ask is visit ${next}, not ${entry.visit}`);
+  } else if (kind === 'withdrawn') {
+    if (!changes.some((x) => x.concept === entry.build)) bad.push(`${entry.build} has no answer change; render-audit.mjs --withdraw removes the guide route's files of a build whose answer changed to the PoB file only (D-480)`);
+  }
+  return bad;
 }
 
 /** D-444: the stop a step's `priceOutcomes` holds: `locked_out` when it counts one, else `rate_limited`, else null. */
@@ -934,7 +1095,7 @@ function saveLog(file, log) {
 // ---------------------------------------------------------------------------------------------------
 
 const CONFIG_GATES = ['brainstorm', 'verification', 'design', 'final', 'escalation'];
-const ENTRY_FIELDS = ['ask', 'answer', 'changes', 'newCards', 'note'];
+const ENTRY_FIELDS = ['ask', 'answer', 'changes', 'newCards', 'note', 'scaling'];
 const FAULT_IDS = ['FI-1', 'FI-2', 'FI-3'];
 
 /** One answer entry of a test config: a string, or an object scripting an interview (D-394). */
@@ -947,6 +1108,8 @@ function configEntryProblems(gate, entry) {
   const bad = Object.keys(entry).filter((k) => !ENTRY_FIELDS.includes(k)).map((k) => `"${k}" isn't a field of an answer entry (${ENTRY_FIELDS.join(', ')})`);
   if (typeof entry.answer !== 'string' || !CONFIG_ANSWERS[gate].test(entry.answer)) return [...bad, `answer ${show(entry.answer)} isn't an answers.${gate} value`];
   if (entry.ask !== undefined && !(Array.isArray(entry.ask) && entry.ask.every(text))) bad.push('ask lists the questions to ask before the answer, none of them empty');
+  // D-486 (amendment 14): a design accept may answer the late endgame scaling question; false when it doesn't.
+  if (entry.scaling !== undefined && !(gate === 'design' && ['accept', 'accept:file'].includes(entry.answer) && typeof entry.scaling === 'boolean')) bad.push('scaling is true or false, only on a design answer of accept or accept:file (D-486)');
   if (!['brainstorm', 'verification'].includes(gate)) {
     for (const k of ['changes', 'newCards', 'note']) if (entry[k] !== undefined) bad.push(`${k} is only on a brainstorm or verification answer (D-391)`);
     return bad;
@@ -1435,6 +1598,8 @@ const moveWords = (m) => {
 const noArea = (c) => isObj(c) && c.noArea === true && typeof c.skill === 'string';
 /** A skeleton's measured clear speed in words (D-407): the record's speed, never its band, and why it may read slow. */
 function clearPhrase(c) {
+  // D-491 (amendment 14): a clear skill with no area reads its chains and projectiles, once the record has them (C-33).
+  if (noArea(c) && Number.isInteger(c.chains) && Number.isInteger(c.projectiles)) return `no area: chains ${c.chains}, projectiles ${c.projectiles}`;
   if (noArea(c)) return `${c.speed} (PoB gives no area)`;
   if (typeof c?.skill !== 'string') return `${speedOf(c)} (a rough estimate; PoB measured no clear skill)`;
   return `${speedOf(c)} (a rough estimate from ${c.skill}'s area)`;
@@ -1754,11 +1919,67 @@ function dealtDisplay13(dir, log, deck) {
   return out;
 }
 
+/**
+ * D-478 (amendment 14, Appendix A): a card's header on the brainstorm display of a log at 14, `**<n>. <name>** (<class,
+ * ascendancy, skill>; under-played: yes|no)`, then its `drawn from <host>` line: the runner writes the card's rotation,
+ * what makes it work and the catch under it.
+ */
+function header14(n, d, card, name, plain) {
+  return [`**${n}. ${name(d.id)}** (${plain(d.parts[0] ?? 'no structure given')}; under-played: ${d.underPlayed !== null ? 'yes' : 'no'})`, ...drawnFrom(card, '')];
+}
+/**
+ * D-478 (amendment 14, Appendix A): the brainstorm display of a log at 14, on the composite and the dealt-card paths alike:
+ * the brief, then one header per composite or dealt card not verified yet (`header14`), the superseded composites still
+ * pickable, then the closing lines, one each: the obvious build, the plain cards (a dealt deck's not-dealt cards and its
+ * unused findings) and a short round's reason; then the invitation. The key pieces, `scheduled:` lines, the shared header
+ * and the not-confirmed sentence stay in cards.md; the visit's `displays[]` entry records the number-to-id map.
+ */
+function brainstormDisplay14(dir, log, deck) {
+  const out = [briefLine(log), ''];
+  const { cards, name, plain } = cardsOf(dir, deck);
+  const verified = new Set(stagesOf(log).filter((s) => s.stage === 'R1b').map((s) => s.concept));
+  const numbers = {};
+  let k = 0;
+  const number = (id) => {
+    k += 1;
+    numbers[String(k)] = id;
+    return k;
+  };
+  const composite = composes(log, deck);
+  const superseded = new Set(deck.superseded.map((s) => s.old));
+  const shown = deck.entries.filter((d) => d.round !== null && !verified.has(d.id) && !superseded.has(d.id));
+  for (const d of shown) out.push(...header14(number(d.id), d, cards.get(d.id) ?? parseCard(null), name, plain));
+  if (shown.length === 0) out.push(composite ? 'No composite is left to verify.' : 'No dealt card is left to verify.');
+  const old = deck.superseded.filter((s) => !verified.has(s.old));
+  for (const s of old) out.push(`**${number(s.old)}. ${name(s.old)}** (superseded by ${s.next === null ? 'a later composite' : name(s.next)}, still pickable)`);
+  out.push('');
+  if (composite) {
+    const o = deck.obvious;
+    out.push(`Obvious build: ${o === null ? 'none' : `${name(o.id)} (${plain(o.parts[0] ?? 'no structure given')})`}.`);
+    const plainCards = deck.entries.filter((d) => d.section === 'Cards' && !verified.has(d.id)).map((d) => {
+      const hosts = [...new Set((cards.get(d.id) ?? parseCard(null)).external.map(hostOf))];
+      return `${name(d.id)}${hosts.length > 0 ? ` (drawn from ${hosts.join(', ')})` : ''}`;
+    });
+    out.push(`Plain cards: ${plainCards.length > 0 ? plainCards.join(', ') : 'none left to verify'}.`);
+  } else {
+    const notDealt = deck.entries.filter((d) => d.section === 'Not dealt');
+    out.push(`Not dealt: ${notDealt.length > 0 ? notDealt.map((d) => name(d.id)).join(', ') : 'none'}.`);
+    out.push(`Found, not used: ${deck.found.length > 0 ? deck.found.map((f) => plain(f.text).replace(/\.+$/, '')).join('; ') : 'none'}.`);
+  }
+  const short = lastStage(log, ASSEMBLY_STAGES)?.shortReason;
+  if (text(short)) out.push(`A short round: ${plain(short)}`);
+  out.push('', composite ? INVITE.composites : INVITE.brainstorm);
+  out.numbers = numbers;
+  return out;
+}
+
 function brainstormDisplay(dir, log) {
   const out = [briefLine(log), ''];
   const deckText = readText(dir, 'cards.md');
   if (deckText === null) return [...out, 'No cards.md in the run folder.'];
   const deck = parseDeck(deckText);
+  // D-478 (amendment 14): a log at 14 prints the headers and the closing lines; the runner writes each card's pitch.
+  if (revisionOf(log) >= A14) return brainstormDisplay14(dir, log, deck);
   // D-475 (amendment 13): a log at 13 prints the cut display on both paths.
   if (revisionOf(log) >= A13) return composes(log, deck) ? compositeDisplay13(dir, log, deck) : dealtDisplay13(dir, log, deck);
   if (composes(log, deck)) return compositeDisplay(dir, log, deck);
@@ -1884,6 +2105,51 @@ function verifiedCardLines(k, r, card, name, plain) {
   return out;
 }
 
+/** D-479 (Appendix A): the skeleton file's line says what the file holds. */
+export const SKELETON_NOTE = "key pieces only; its numbers aren't the build's";
+/**
+ * D-479 (amendment 14): a card's skeleton PoB file on the verification display: its last R1b entry's `skeletonFile`,
+ * `{file, removed, left}`, `left` when its build's design ran (a D1 gate) and the runner's cleanup didn't remove it (the
+ * user changed it, so the server refused); null when R1b recorded none.
+ */
+function skeletonOf(log, id) {
+  const r1b = stagesOf(log).filter((s) => s.stage === 'R1b' && s.concept === id && !['missing', 'refused'].includes(s.outcome)).pop();
+  if (!r1b || !text(r1b.skeletonFile)) return null;
+  const removed = r1b.skeletonRemoved === true;
+  const designed = stagesOf(log).some((s) => s.stage === 'D1-gate' && s.concept === id && !['missing', 'refused'].includes(s.outcome));
+  return { file: r1b.skeletonFile, removed, left: designed && !removed };
+}
+/**
+ * D-478 (amendment 14, Appendix A): one card of the verification display in a log at 14: `**<n>. <name>**: <status>`,
+ * then one bullet per field with a bold label, its skeleton file first (D-479; a changed skeleton left in place says
+ * so; a removed one is gone), and the tail as three bullets, Risks, PoB can't verify and Stronger structure. No cuts.
+ */
+function verifiedCardLines14(k, r, card, name, plain, skeleton) {
+  const field = (f) => card.fields.get(f)?.value;
+  const rival = RIVAL_CARD.test(r.id);
+  const out = [`**${k + 1}. ${name(r.id)}${rival ? ', the rival' : ''}**: ${statusWords(r.cell('Status'), plain)}`];
+  const item = (label, v) => out.push(`- **${label}:** ${v}`);
+  if (skeleton !== null && !skeleton.removed) item('PoB file', `${baseName(skeleton.file)} (${SKELETON_NOTE}${skeleton.left ? '; you changed it in PoB, so it stays' : ''})`);
+  const stop = (v) => String(v).trim().replace(/\.+$/, '');
+  const synergy = r.cell('Synergy');
+  if (!emptyCell(synergy)) item('Synergy', plain(synergy));
+  for (const f of PITCH_LINES) if (text(field(f))) item(f, plain(field(f)));
+  for (const g of card.made) item(`Made at the gate (visit ${g.visit})`, plain(g.text));
+  for (const g of card.changed) item(`Changed at the gate (visit ${g.visit})`, plain(g.text));
+  const damage = r.cell('Damage');
+  if (!emptyCell(damage)) item('Damage', `${plain(stop(damage))}.`);
+  const pieces = r.cell('Pieces');
+  if (!emptyCell(pieces)) item('Pieces', `${plain(stop(pieces))}.`);
+  const prices = r.cell('Key prices');
+  const league = r.cell('League');
+  if (!emptyCell(prices)) item('Key prices', `${playersWords(plain(stop(prices)))}${/^none\b/i.test(league) || emptyCell(league) ? '' : ` (league: ${league})`}.`);
+  const risk = r.cell('Main risk');
+  if (!emptyCell(risk)) item('Risks', `${plain(stop(risk))}.`);
+  if (text(card.cantShow)) item("PoB can't verify", `${plain(stop(card.cantShow))}.`);
+  if (text(card.structure?.stronger)) item('Stronger structure', plain(card.structure.stronger));
+  return out;
+}
+
 function verificationDisplay(dir, log) {
   const dossier = readText(dir, 'dossier.md');
   const { cards, name, plain } = cardsOf(dir);
@@ -1895,6 +2161,12 @@ function verificationDisplay(dir, log) {
   // header, keeps its skeleton's figures, in a log a resume stamped too.
   rows.forEach((r, k) => {
     const card = cards.get(r.id) ?? parseCard(null);
+    // D-478 (amendment 14): a log at 14 prints the same content in bold labels and bullets, the skeleton file first.
+    if (a11 && revisionOf(log) >= A14) {
+      out.push(...verifiedCardLines14(k, r, card, name, plain, skeletonOf(log, r.id)), '');
+      ref.push(`${k + 1}. ${name(r.id)}: ${r.id}`);
+      return;
+    }
     if (a11) {
       out.push(...verifiedCardLines(k, r, card, name, plain), '');
       ref.push(`${k + 1}. ${name(r.id)}: ${r.id}`);
@@ -2111,6 +2383,9 @@ function toughnessLines12(r) {
     out.push(`- Warning: the EHP reads ${t.band === 'over' ? 'over' : 'within'} its band, but the Arbiter's ${typeWords(w.type)} hit one-shots this build${share}. The fix is ${String(w.fix ?? '').trim().replace(/\.+$/, '')}.`);
   } else if (isObj(w) && w.kind === 'conditioned') {
     out.push(`- Warning: with every condition against it the EHP falls under its band; its weakest hit is ${typeWords(w.type)}. The fix is ${String(w.fix ?? '').trim().replace(/\.+$/, '')}.`);
+  } else if (isObj(w) && w.kind === 'under') {
+    // D-494 (amendment 14): the EHP is under its band in every condition, not only with every condition against it.
+    out.push(`- Warning: the EHP is under its band in every condition; its weakest hit is ${typeWords(w.type)}. The fix is ${String(w.fix ?? '').trim().replace(/\.+$/, '')}.`);
   }
   return out;
 }
@@ -2296,18 +2571,135 @@ function searchLines(r) {
   if (isObj(r.swapCap)) out.push(`- Swap cap on ${r.stage}: ${isNum(r.swapCap.swaps) ? r.swapCap.swaps : '?'} swaps, the last ${isNum(r.swapCap.lastGain) ? `+${pct(r.swapCap.lastGain)}%` : 'gain not recorded'}.`);
   const undone = /^undone:\s*(.+)$/s.exec(String(r.rebuild ?? ''));
   if (undone) out.push(`- Rebuild undone on ${r.stage}: ${stop(undone[1])}.`);
+  // D-490 (amendment 14): a rebuild node power called illegal, recorded with the tool's reason.
+  const none = /^none:\s*(.+)$/s.exec(String(r.rebuild ?? ''));
+  if (none) out.push(`- Rebuild not taken on ${r.stage}: ${stop(none[1])}.`);
   for (const x of objects(r.removedForOthers)) out.push(`- Removed on ${r.stage}: ${Array.isArray(x.names) ? x.names.map(stop).join(', ') : stop(x.names)}: lines for ${stop(x.skill)}.`);
   for (const x of objects(r.levels)) out.push(`- Skill levels on ${r.stage}: ${stop(x.skill)} +${isNum(x.plus) ? x.plus : 0}.`);
   return out;
 }
 
-function designDisplay(dir, log, id) {
+/** D-478 (Appendix A): a rung's name on the design display of a build held to 14. */
+const RUNG_WORDS = { 'entering-maps': 'entering maps', budget: 'budget endgame', 'non-budget': 'non-budget endgame' };
+/** A figure as the [GR] display writes it: 314K, 1.2M; under 10,000 to one decimal of a thousand, under 1,000 whole. */
+export function shortFigure(v) {
+  if (!isNum(v)) return 'not measured';
+  const a = Math.abs(v);
+  const trim = (x) => String(Number(x.toFixed(1))).replace(/\.0$/, '');
+  if (a >= 1e6) return `${trim(v / 1e6)}M`;
+  if (a >= 1e4) return `${Math.round(v / 1e3)}K`;
+  if (a >= 1e3) return `${trim(v / 1e3)}K`;
+  return String(Math.round(v));
+}
+/**
+ * D-478 (Appendix A): the Arbiter's row of the design table, from the design field's `maxHit` (its deciding row) and the
+ * record's row: `survives its hardest hit (<n>% of your max hit)`, `survives <x>% of its <type> hits by evading or
+ * deflecting`, `one-shot by its <type> hit` (with the share survived), or `not measured`; an older field's `arbiter` in
+ * the verdict label's words.
+ */
+function arbiterCell(r, rec) {
+  const m = r.maxHit;
+  if (!isObj(m)) return r.arbiter === null || r.arbiter === undefined ? 'not measured' : arbiterWords(r.arbiter);
+  const a = isObj(m.arbiter) ? m.arbiter : null;
+  if (a === null || !text(a.type)) return 'not measured';
+  const x = survivedPercent(isNum(a.hitsSurvived) ? a.hitsSurvived : 0);
+  if (m.oneShot === true) return `one-shot by its ${typeWords(a.type)} hit${x > 0 ? `; survives ${x}% of them by evading or deflecting` : ''}`;
+  if (isNum(a.hitsSurvived) && a.hitsSurvived < 100) return `survives ${x}% of its ${typeWords(a.type)} hits by evading or deflecting`;
+  const ratio = objects(rec?.measures?.arbiter?.rows).find((row) => row.type === a.type)?.ratio;
+  return isNum(ratio) ? `survives its hardest hit (${Math.round(ratio * 100)}% of your max hit)` : 'survives its hits';
+}
+/**
+ * D-478, D-491 (Appendix A): the Speed row: the clear word, or a clear skill with no area's chains and projectiles; PoB's
+ * regular movement figure (D-491: never with a skill's use penalty folded in); the travel skill, or "no travel skill".
+ */
+function speedCell(r, rec) {
+  const c = rec?.measures?.clearSpeed;
+  const clear = noArea(c) ? clearPhrase(c) : `clear ${speedOf(typeof r.clearSpeed === 'string' ? r.clearSpeed : c)} (rough)`;
+  const m = moveOf(rec);
+  const move = isNum(m) ? `movement ${Math.round((m - 1) * 100) < 0 ? '' : '+'}${Math.round((m - 1) * 100)}%` : 'movement not measured';
+  const t = isObj(c) && 'travel' in c ? (isObj(c.travel) && text(c.travel.skill) ? `travel skill ${c.travel.skill.trim()}` : 'no travel skill') : null;
+  return `${clear}; ${move}${t !== null ? `, ${t}` : ''}`;
+}
+/** D-486 (Appendix A): a price as the Over budget lines say it, in players' words. */
+const priceWords = (p) => (isObj(p) && isNum(p.amount) && text(p.currency) ? `about ${playersWords(`${p.amount} ${p.currency}`)} more` : 'price not known');
+/**
+ * D-478, D-486 (Appendix A): a rung's Over budget lines, at most 3, from trades.json's `scaling` finds (`from`, `to`,
+ * `price`): measured finds first by their damage gain, then an unmeasured one marked "(estimate)", each `<from> was
+ * swapped for <to>; adding it back: +a% damage, −b% EHP, about N divines more.`; then the rung's other trades (a defence,
+ * avoidance, boss, damage or unmeasured piece's), one line each in plain words.
+ */
+function overBudgetLines(r, rec, finds) {
+  const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
+  const mine = objects(finds).filter((t) => t.kind === 'scaling' && t.stage === r.stage);
+  const gain = (t) => (isNum(t.damage) ? t.damage : -Infinity);
+  const sorted = [...mine.filter((t) => t.measured === true).sort((a, b) => gain(b) - gain(a)), ...mine.filter((t) => t.measured !== true)].slice(0, 3);
+  const lines = sorted.map((t) => `- ${stop(t.from)} was swapped for ${stop(t.to)}; adding it back: ${signed(t.damage)} damage, ${signed(t.ehp)} EHP${t.measured === true ? '' : ' (estimate)'}, ${priceWords(t.price)}.`);
+  const others = objects(r.trades).filter((t) => !['scaling', 'boots'].includes(t.kind));
+  return [...lines, ...tradeLines({ ...r, trades: others }, rec)];
+}
+/**
+ * D-478 (amendment 14, Appendix A): the design display of a build held to revision 14 by its D1 gate, the user's form
+ * [GR]: the PoB file first (the draft, D-479); How it works (the design field's `summary.how`); then each rung, `m` in two
+ * lines (its name and level, its damage and EHP; the draft holds the rest), `b` and `n` in full: the five-row table (map
+ * damage with the resisting figure, the Pinnacle boss, toughness, the Arbiter's hit, speed), Gear from `summary.gear[]`,
+ * Skills from the plan's `skills.groups`, Over budget (`overBudgetLines`); The catch (`summary.catch`); the invitation;
+ * and Options, under which the runner gives its `not made:`, `jewel:` and `stronger structure:` lines, one each. Today's
+ * measurement lines are `--detail`'s (`designDisplay`).
+ */
+function designDisplay14(dir, log, s, gate, plan, record, folder) {
+  const { name } = cardsOf(dir);
+  const b = objects(log.builds).find((x) => x.id === s.concept);
+  const buildName = text(b?.name) ? b.name.trim() : name(s.concept);
+  // The draft the gate wrote (D-479: builds[].draftFile, else the verdict's draft); once F1 removed it, the final file.
+  const draft = text(b?.draftFile) ? b.draftFile : text(b?.pobFile) ? b.pobFile : text(gate.draft) ? gate.draft : null;
+  const summary = isObj(gate.design.summary) ? gate.design.summary : {};
+  const stop = (v) => String(v ?? '').trim();
+  const out = [draft !== null ? `PoB file: ${baseName(draft)} in your Builds folder` : 'PoB file: none written yet', ''];
+  out.push(`**How it works.** ${text(summary.how) ? stop(summary.how) : 'not given'}`, '');
+  const finds = objects(readJson(dir, inFolder(folder, 'trades.json'))?.trades);
+  const stageOf = (id) => objects(plan?.stages).find((x) => x.id === id);
+  const rungs = objects(gate.design.rungs).filter((r) => stageOf(r.stage)?.variant !== undefined).sort((x, y) => RUNGS.indexOf(stageOf(x.stage).variant) - RUNGS.indexOf(stageOf(y.stage).variant));
+  for (const r of rungs) {
+    const st = stageOf(r.stage);
+    const rec = record?.stages?.[r.stage];
+    const level = isNum(st.level) ? ` (level ${st.level})` : '';
+    const head = `**${buildName}: ${RUNG_WORDS[st.variant]}**${level}`;
+    const map = isObj(r.damage) ? r.damage.map : r.dps;
+    if (st.variant === 'entering-maps') {
+      out.push(head, `${shortFigure(map)} damage per second on map packs; ${whole(r.ehp)} effective HP; the draft holds the rest.`, '');
+      continue;
+    }
+    const resisting = isObj(r.damage) && isNum(r.damage.resisting) ? r.damage.resisting : null;
+    const same = resisting !== null && isNum(map) && Math.abs(resisting - map) <= 0.005 * Math.abs(map);
+    const mapCell = `${shortFigure(map)} per second${resisting === null ? '' : same ? ' (the same on 40%-resistance rares)' : `; ${shortFigure(resisting)} on 40%-resistance rares`}`;
+    const bo = isObj(r.boss) ? r.boss : { measured: isObj(r.damage) ? r.damage.boss : null, estimate: null };
+    const bossCell = isNum(bo.estimate) ? `about ${shortFigure(bo.estimate)} per second (estimated by hand)` : `${shortFigure(bo.measured)} per second`;
+    const lowest = isObj(r.maxHit?.lowest) && isNum(r.maxHit.lowest.value) ? `; lowest max hit ${whole(r.maxHit.lowest.value)} (${typeWords(r.maxHit.lowest.type)})` : '';
+    out.push(head, '', '| | |', '|---|---|', `| Damage, map packs | ${mapCell} |`, `| Damage, pinnacle boss | ${bossCell} |`, `| Toughness | ${whole(r.ehp)} effective HP${lowest} |`, `| Arbiter of Divinity | ${arbiterCell(r, rec)} |`, `| Speed | ${speedCell(r, rec)} |`, '');
+    const gear = objects(summary.gear).filter((g) => g.stage === r.stage);
+    out.push('**Gear**', ...(gear.length > 0 ? gear.map((g) => `- ${stop(g.slot)}: ${stop(g.text)}`) : ['- not given']), '');
+    const groups = objects(st.skills?.groups).map((g) => objects(g.gems).map((x) => String(x.name ?? '').trim()).filter((x) => x !== '')).filter((g) => g.length > 0);
+    out.push('**Skills**', ...(groups.length > 0 ? groups.map(([skill, ...supports]) => `- ${skill}${supports.length > 0 ? `: ${supports.join(', ')}` : ''}`) : ['- none']), '');
+    const over = overBudgetLines(r, rec, finds);
+    if (over.length > 0) out.push('**Over budget**', ...over, '');
+  }
+  out.push(`**The catch.** ${text(summary.catch) ? stop(summary.catch) : 'not given'}`, '');
+  out.push(INVITE4.design, '', '**Options**');
+  return out;
+}
+
+function designDisplay(dir, log, id, opts = {}) {
   const s = lastStage(log, ['D1-gate'], id);
   if (!s) return [id ? `No D1 gate for ${id} in the run log.` : 'No D1 gate in the run log.'];
   const file = verdictFile(s);
   const gate = readJson(dir, file);
   if (!isObj(gate?.design)) return [`${file} has no design field.`];
   const folder = folderOf(log, s.concept);
+  // D-478 (amendment 14, §25): a build whose last D1 gate ran at or after 14's boundary shows the [GR] form; --detail
+  // prints today's measurement lines.
+  if (log.stages.indexOf(s) >= heldFrom(log, 'stages', A14) && opts.detail !== true) {
+    return designDisplay14(dir, log, s, gate, readJson(dir, inFolder(folder, 'plan.json')), gateRecord(dir, gate, folder), folder);
+  }
   const plan = readJson(dir, inFolder(folder, 'plan.json'));
   const { name } = cardsOf(dir);
   // D-407: the D1 gate's record (its recordPath) gives each rung's movement speed and the clear skill's no-area flag.
@@ -2383,11 +2775,14 @@ async function finalDisplay(dir, log, id) {
   const card = id ?? d2?.concept ?? d1?.concept;
   const folder = folderOf(log, card);
   const at = (rel) => path.join(dir, ...inFolder(folder, rel).split('/'));
+  const pobLine = `Your PoB file: ${d2gate?.finalCompile?.pobFile ?? "none: the final compile didn't run"}`;
   const out = [
     `The guide${card ? ` for ${name(card)}` : ''}: ${at('guide.md')}`,
     `Its audit, how each number was checked: ${at('audit.md')}`,
-    `Your PoB file: ${d2gate?.finalCompile?.pobFile ?? "none: the final compile didn't run"}`,
   ];
+  // D-478, D-479 (amendment 14): a build held to 14 by its last D1 gate prints its PoB file first.
+  if (d1 && log.stages.indexOf(d1) >= heldFrom(log, 'stages', A14)) out.unshift(pobLine);
+  else out.push(pobLine);
   // D-466 (Appendix A): the draft F1 couldn't remove (changed on disk, or not this build's), its verdict's `draftLeft`.
   const f1 = lastStage(log, ['F1'], card);
   const left = f1 ? readJson(dir, verdictFile(f1))?.draftLeft : null;
@@ -2510,8 +2905,10 @@ const DISPLAYS = { brainstorm: brainstormDisplay, verification: verificationDisp
  * Builds the display of a gate's next visit from the run folder, records the visit in `displays[]` (once), and
  * returns the display's text. Throws an Error saying why not.
  */
-export async function display(runFolder, gate, build) {
+export async function display(runFolder, gate, build, opts = {}) {
   if (!DISPLAYED.includes(gate)) throw new Error(`display: ${JSON.stringify(gate)} isn't one of ${DISPLAYED.join(', ')}`);
+  // D-478 (amendment 14): `--detail` prints the design gate's measurement lines, today's display, on request.
+  if (opts.detail === true && gate !== 'design') throw new Error(`display: --detail goes with the design gate, not ${gate}`);
   const file = path.join(runFolder, 'run-log.json');
   const log = readLog(file);
   // D-411, D-412: in schema 4 the design and final gates are a build's, named with --build <id>; no other gate is.
@@ -2521,7 +2918,7 @@ export async function display(runFolder, gate, build) {
   if (build !== undefined && !perBuild) throw new Error(`display: --build goes with the design and final gates, not ${gate}`);
   if (build !== undefined && !objects(log.builds).some((b) => b.id === build)) throw new Error(`display: ${build} has no build in the run; builds[] holds ${objects(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const visit = (Array.isArray(log.checkpoints) ? log.checkpoints.filter((c) => isObj(c) && c.checkpoint === gate).length : 0) + 1;
-  const body = await DISPLAYS[gate](runFolder, log, build);
+  const body = await DISPLAYS[gate](runFolder, log, build, opts);
   if (!Array.isArray(log.displays)) log.displays = [];
   if (!log.displays.some((d) => isObj(d) && d.checkpoint === gate && d.visit === visit)) {
     // D-475 (amendment 13, Appendix A): the brainstorm display's number-to-id map, so the runner maps the user's numbers.
@@ -2534,10 +2931,13 @@ export async function display(runFolder, gate, build) {
 
 async function main(argv) {
   const args = argv.slice(2);
-  const kinds = ['init', 'stage', 'checkpoint', 'escalation', 'set', 'build', 'resume', 'pricing', 'display', 'test-config', 'migrate'];
-  const displayBuild = args[1] === 'display' && args.length === 5 && args[3] === '--build';
+  // Amendment 14 (Appendix A): `skeleton` and `answer-change` (D-479, D-480).
+  const kinds = ['init', 'stage', 'checkpoint', 'escalation', 'set', 'build', 'resume', 'pricing', 'skeleton', 'answer-change', 'display', 'test-config', 'migrate'];
+  // D-478: `display design --build <id> --detail` prints today's design display.
+  const detail = args[1] === 'display' && args.length === 6 && args[3] === '--build' && args[5] === '--detail';
+  const displayBuild = args[1] === 'display' && (args.length === 5 || detail) && args[3] === '--build';
   if (!kinds.includes(args[1]) || (args[1] === 'migrate' ? args.length !== 2 : args.length !== 3 && !displayBuild)) {
-    process.stderr.write(`usage: node run-log.mjs <runFolder> <${kinds.slice(0, -3).join('|')}> '<json>' | -  (- reads the JSON from stdin), <runFolder> display <${DISPLAYED.join('|')}> [--build <card id>], <runFolder> test-config <path>, or <runFolder> migrate\n`);
+    process.stderr.write(`usage: node run-log.mjs <runFolder> <${kinds.slice(0, -3).join('|')}> '<json>' | -  (- reads the JSON from stdin), <runFolder> display <${DISPLAYED.join('|')}> [--build <card id> [--detail]], <runFolder> test-config <path>, or <runFolder> migrate\n`);
     return 2;
   }
   if (args[1] === 'migrate') {
@@ -2551,7 +2951,7 @@ async function main(argv) {
   }
   if (args[1] === 'display') {
     try {
-      process.stdout.write(await display(path.resolve(args[0]), args[2], displayBuild ? args[4] : undefined));
+      process.stdout.write(await display(path.resolve(args[0]), args[2], displayBuild ? args[4] : undefined, { detail }));
       return 0;
     } catch (e) {
       process.stderr.write(`run-log: ${e.message}\n`);

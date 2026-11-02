@@ -91,7 +91,7 @@ function editText(dir: string, rel: string, from: string | RegExp, to: string): 
   if (typeof from === 'string' ? !t.includes(from) : !from.test(t)) throw new Error(`"${String(from)}" not found in ${rel}`);
   fs.writeFileSync(p, t.replace(from, to));
 }
-const display = (dir: string, gate: string, build?: string) => node(RUN_LOG, [dir, 'display', gate, ...(build ? ['--build', build] : [])]);
+const display = (dir: string, gate: string, build?: string, detail = false) => node(RUN_LOG, [dir, 'display', gate, ...(build ? ['--build', build] : []), ...(detail ? ['--detail'] : [])]);
 const write = (dir: string, kind: string, entry: Json) => node(RUN_LOG, [dir, kind, JSON.stringify(entry)]);
 /** The display's lines before "For reference:", and the lines after it. */
 function splitReference(out: string): { plain: string[]; reference: string[] } {
@@ -804,10 +804,10 @@ describe('AC-W89 (D-443, §11, §19): the rival only in older runs, and the run 
     const before = readJson(dir, 'run-log.json');
     // Amendment 12 (Appendix A): a log from before amendment 11 resumed now is stamped with a boundary per revision;
     // amendment 13 (§22) stamps 13.
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 13 from stages[${before.stages.length}] (the rules of amendments 11, 12 and 13)\n` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 14 from stages[${before.stages.length}] (the rules of amendments 11, 12, 13 and 14)\n` });
     const log = readJson(dir, 'run-log.json');
     const lengths = { stages: before.stages.length, checkpoints: before.checkpoints.length, escalations: 0, displays: before.displays.length };
-    expect(log).toMatchObject({ skillRevision: 13, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths }, pricing: { stops: [], retries: [] } });
+    expect(log).toMatchObject({ skillRevision: 14, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths, 14: lengths }, pricing: { stops: [], retries: [] } });
     expect(log.resumes[log.resumes.length - 1].lengths).toEqual(log.skillRevisionFrom['11']);
     // The entries before the stamp keep their rules (its D1 gates hold no amendment-11 design field); run-log.mjs
     // refuses the rival after it, and so does the checker.
@@ -833,7 +833,7 @@ describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's display
       });
     }
     if (stamp) {
-      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 13 from stages\[25\]/) });
+      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 14 from stages\[25\]/) });
     }
     return dir;
   }
@@ -873,9 +873,10 @@ describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's display
     // R1b-assemble after the stamp writes the dossier in amendment 11's columns (run-a11's, for the same two cards).
     fs.copyFileSync(path.join(FIXTURES, 'run-a11', 'dossier.md'), path.join(dir, 'dossier.md'));
     expect(write(dir, 'stage', { stage: 'R1b-assemble', attempt: 2, outcome: 'done' }).code).toBe(0);
+    // A resume today stamps amendment 14 too (§25), so the visit prints amendment 14's form of the same content.
     const v = display(dir, 'verification').stdout;
-    expect(v).toMatch(/^1\. Blood Hunt bleed burst: works\.$/m);
-    expect(v).toMatch(/^ {3}Damage: Blood Hunt: hit, bleed\.$/m);
+    expect(v).toMatch(/^\*\*1\. Blood Hunt bleed burst\*\*: works$/m);
+    expect(v).toMatch(/^- \*\*Damage:\*\* Blood Hunt: hit, bleed\.$/m);
     expect(v).toContain(NUMBERS_LATER);
     expect(v).not.toMatch(/Toughness:|Clear speed:|per second/);
     // The checker reads it the same way: written after the stamp, in amendment 11's columns; the old one there fails.
@@ -889,7 +890,9 @@ describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's display
     const first = readJson(dir, 'reports/gates/D1-gate-r1-a-1-a1.json');
     writeJson(dir, 'reports/gates/D1-gate-r1-a-1-a2.json', { ...first, attempt: 2, design: { ...a11, pieces: { in: 4, scheduled: 1, out: 2, scheduledNames: ['Seismic Cry'] } } });
     expect(write(dir, 'stage', { stage: 'D1-gate', concept: 'r1-a-1', attempt: 2, outcome: 'pass' }).code).toBe(0);
-    const d = display(dir, 'design', 'r1-a-1').stdout;
+    // Amendment 14 (D-478): its design display is the [GR] form; --detail prints amendment 11's lines from the field.
+    expect(display(dir, 'design', 'r1-a-1').stdout).toMatch(/^\*\*How it works\.\*\* /m);
+    const d = display(dir, 'design', 'r1-a-1', true).stdout;
     expect(d).toContain('damage is the main skill\'s damage per second against map monsters and against a Pinnacle boss');
     expect(d).toContain('- Pieces: 4 in, 1 scheduled (Seismic Cry), 2 out\n');
     expect(d).toContain('- Damage: 50,000 per second against map monsters.\n- Boss damage: 60,000 per second against a Pinnacle boss.\n');

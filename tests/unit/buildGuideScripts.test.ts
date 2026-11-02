@@ -326,7 +326,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     // amendment 12 (WU-121, §22) makes it 12, amendment 13 (WU-130, §22) 13.
     expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
       schemaVersion: 4,
-      skillRevision: 13,
+      skillRevision: 14,
       runFolder: dir,
       slug: 'titan-blood-hunt',
       brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },

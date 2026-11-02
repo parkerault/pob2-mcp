@@ -1,0 +1,130 @@
+{
+  "planSchemaVersion": 2,
+  "planSha1": "0be6a5da382c6fc436ae41ef07c3263d2d8328f0",
+  "buildSha1": "e8e0b013ff3c3b1d90d0ca57e6b467c4499955d8",
+  "compiledAt": "2026-10-08T10:10:00.000Z",
+  "mode": "measure-only",
+  "stagesCompiled": [
+    "r1a1e"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "loadoutWarnings": [],
+  "saveWarnings": [],
+  "pobFile": {
+    "location": "run",
+    "path": "titan-blood-hunt/2026-10-08-1/probes/r1-a-1/1/compiled-build.xml",
+    "sha1": "a80db2d4f51dff9afc59bce0f026b600735a0871",
+    "bytes": 131
+  },
+  "importCode": "eNrtWV1v2zYUfc-vIPS-FixtureImportCode-r1-a-1-probe-1",
+  "savedLevel": {
+    "level": 95,
+    "autoMode": true
+  },
+  "activeLoadout": "Blood Hunt bleed burst (L90) {r1a1e}",
+  "sets": [],
+  "stages": {
+    "r1a1e": {
+      "loadoutName": "Blood Hunt bleed burst (L90) {r1a1e}",
+      "level": 90,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4200,
+        "TotalDPS": 45000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 47,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 28,
+        "PhysicalMaximumHitTaken": 5100,
+        "FireMaximumHitTaken": 9800,
+        "ColdMaximumHitTaken": 9700,
+        "LightningMaximumHitTaken": 9600,
+        "ChaosMaximumHitTaken": 3000,
+        "EnergyShield": 0,
+        "TotalEHP": 31500
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 45000
+        }
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 45000,
+            "AverageHit": 12000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 21000,
+            "AverageHit": 8000
+          }
+        }
+      },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 45000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 21000
+          }
+        }
+      },
+      "configWritten": {},
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    }
+  },
+  "ledger": {},
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 9000,
+    "checkMs": 300,
+    "finishMs": 200,
+    "exportMs": 400
+  },
+  "recordVersion": 2
+}

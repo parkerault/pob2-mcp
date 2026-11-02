@@ -185,7 +185,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12;
     // amendment 13 (§22): 13.
     expect(log).toEqual({
-      schemaVersion: 4, skillRevision: 13, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
+      schemaVersion: 4, skillRevision: 14, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
       noNinja: true, pinCommit: pin, digest: 'runes-of-aldur.md', dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
@@ -241,7 +241,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     });
     // Amendment 11 (§19): the resume stamps the older log with the skill revision, held from here on.
     // Amendment 12 (Appendix A): an older log is stamped with a boundary for each revision; amendment 13 (§22): 13.
-    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 13 from stages[25] (the rules of amendments 11, 12 and 13)\n', stderr: '' });
+    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 14 from stages[25] (the rules of amendments 11, 12, 13 and 14)\n', stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
     expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: 'runes-of-aldur.md', noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);

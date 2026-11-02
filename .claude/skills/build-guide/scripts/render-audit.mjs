@@ -2,6 +2,7 @@
 // The build-guide audit render (slice 03 §7.8, as D-355 amends it).
 //
 //   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> [--build <card id>]
+//   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> --withdraw <card id>
 //
 // A schema-4 run (amendment 9, D-412) renders one build's audit.md, `--build <card id>`: from its folder's plan.json,
 // compile-record.json and audit.md (`builds/<id>/`, or "." for a migrated run's build), and its card's last D1 gate
@@ -59,6 +60,14 @@
 // Amendment 13 (WU-130; D-464, D-472): a pinned weapon's Swap slot (`{slot, sameAs}`) is the set-1 slot's item, priced
 // once by that slot's entry, so `rungBudget` and the seen total count it once for both; a build held to revision 13
 // prices no flask, so `rungBudget` with `flasksUnpriced` counts no Flask slot.
+//
+// Amendment 14 (WU-140; D-480, D-482, D-490): Stage detail lists each rung's `tree.exclude` entries, the nodes the tree
+// search may never add, with their reasons (a plan from before schema 10 has none); in a build held to revision 14 by its
+// last D1 gate, Known issues adds a row `| <id> | V4 | — | <reader> |` for each finding the build's last V4 report leaves
+// unresolved that its lines don't hold yet (the open findings told at once, D-482); and `--withdraw <card id>` removes the
+// audit.md and the partial guide.md the guide route left in a build whose answer changed to the PoB file only after F1
+// (D-480), and logs `withdrawn {build, files}` through run-log.mjs. The `-fallback` entries' readers stay for older builds:
+// a build held to 14 writes none (the run checker fails one).
 //
 // Node built-ins plus the server's compiled ledger evaluator `build/plan/ledger.js` and the conversion table
 // `data/economy/prices.json`. No network. Exit 0: audit.md written (one line on stdout). Exit 1: an input is
@@ -342,11 +351,45 @@ export async function loadAuditInputs(runFolder, build) {
   }
   if (typeof entryOf?.name === 'string' && entryOf.name.trim() !== '') title = entryOf.name.trim();
   const audit = fs.existsSync(file(`${folder}audit.md`)) ? fs.readFileSync(file(`${folder}audit.md`), 'utf8') : null;
+  // D-482 (amendment 14, §25): a build held to 14 by its last D1 gate lists its last V4 report's open findings.
+  const { heldFrom, A14 } = await import('./run-log.mjs');
+  const a14 = log.schemaVersion === 4 && list(log.stages).indexOf(entry) >= heldFrom(log, 'stages', A14);
+  const open = a14 ? openFindings(file(`${folder}reports`)) : [];
   const ledgerFile = ledgerModulePath();
   if (!fs.existsSync(ledgerFile)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, ledgerFile)} is missing; build the server (pnpm build)`);
   const ledgerModule = await import(pathToFileURL(ledgerFile).href);
   const prices = priceTable();
-  return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices };
+  return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices, open };
+}
+
+/**
+ * D-482 (amendment 14): the unresolved findings of the highest-numbered V4 report in a build's `reports/` folder, `[{id,
+ * reader}]`, read from its `### <id>` findings and their `- status:` and `- reader:` lines (stages/V4.md); none when the
+ * folder holds no report.
+ */
+export function openFindings(reportsDir) {
+  let names = [];
+  try {
+    names = fs.readdirSync(reportsDir).filter((f) => /^V4-[1-9]\d*\.md$/.test(f));
+  } catch {
+    return [];
+  }
+  if (names.length === 0) return [];
+  const last = names.sort((a, b) => Number(/\d+/.exec(a)[0]) - Number(/\d+/.exec(b)[0])).pop();
+  const out = [];
+  let cur = null;
+  for (const line of fs.readFileSync(path.join(reportsDir, last), 'utf8').split(/\r?\n/)) {
+    const h = /^###\s+(\S+)\s*$/.exec(line);
+    if (h) {
+      cur = { id: h[1], status: null, reader: null };
+      out.push(cur);
+      continue;
+    }
+    if (/^#{1,2}\s/.test(line)) cur = null;
+    const kv = cur ? /^- (status|reader):\s*(.*)$/.exec(line) : null;
+    if (kv) cur[kv[1]] = kv[2].trim();
+  }
+  return out.filter((f) => f.status === 'unresolved').map((f) => ({ id: f.id, reader: f.reader ?? '' }));
 }
 
 /**
@@ -384,7 +427,7 @@ export function renderAudit(inp) {
   for (const b of checksBlocks(inp)) out.push(`### ${b.loadoutName}`, '', ...b.lines, '');
   out.push("## What PoB doesn't model", '', ...modelGaps(inp), '');
   out.push('## Inputs by confidence', '', ...byConfidence(inp), '');
-  out.push('## Known issues', '', ...knownIssues(inp.audit));
+  out.push('## Known issues', '', ...withOpenFindings(knownIssues(inp.audit), inp.open));
   return `${out.join('\n')}\n`;
 }
 
@@ -397,6 +440,18 @@ export function knownIssues(text) {
   const end = rest.findIndex((l) => /^#{1,2}\s/.test(l));
   const body = (end < 0 ? rest : rest.slice(0, end)).join('\n').trim();
   return body === '' ? ['None.'] : body.split('\n');
+}
+
+/**
+ * D-482 (amendment 14): Known issues' lines with a row `| <id> | V4 | — | <reader> |` for each open finding of the last V4
+ * report whose id no line holds yet, under the table's header when the section said `None.`.
+ */
+export function withOpenFindings(lines, open) {
+  const idOf = (l) => /^\|([^|]*)\|/.exec(l.trim())?.[1]?.replace(/`/g, '').trim();
+  const missing = list(open).filter((f) => !lines.some((l) => idOf(l) === f.id));
+  if (missing.length === 0) return lines;
+  const base = lines.length === 1 && lines[0] === 'None.' ? ['| Id | Lens or gate | Stage | Sentence in the guide |', '|---|---|---|---|'] : lines;
+  return [...base, ...missing.map((f) => `| ${f.id} | V4 | — | ${cell(f.reader)} |`)];
 }
 
 function estimates({ plan, record, ledger }) {
@@ -478,6 +533,10 @@ function stageDetail({ plan, record, ledger }) {
     const reference = endgame ? `${num(cw.enemyPhysicalDamage)} / ${hits.length > 0 ? num(Math.max(...hits)) : '—'}` : '—';
     out.push(`| ${cell(rec.loadoutName ?? s.loadoutName)} | ${num(rec.level ?? s.level)} | ${num(o.Life)} | ${figure} | ${['Fire', 'Cold', 'Lightning', 'Chaos'].map((t) => num(o[`${t}Resist`])).join('/')}% | ${num(o.PhysicalMaximumHitTaken)} / ${others.length > 0 ? num(Math.min(...others)) : '—'} | ${reference} | ${num(endgame ? rec.measures?.ehp : o.TotalEHP)} |`);
   }
+  // D-490 (amendment 14): each rung's exclude list, the nodes the tree search may never add, with the reason D1-build or
+  // D1-tree gave (plan schema 10's tree.exclude).
+  const excluded = stagesOfPlan.flatMap((s) => list(s.tree?.exclude).map((x) => `- Left out of the tree search on stage ${s.id}: ${Array.isArray(x.nodes) ? x.nodes.map(String).join(', ') : '—'}, ${sentence(x.reason ?? 'no reason given')}`));
+  if (excluded.length > 0) out.push('', ...excluded);
   return out;
 }
 
@@ -737,13 +796,48 @@ function byConfidence({ plan, offline }) {
 // Command line
 // ---------------------------------------------------------------------------------------------------
 
+/**
+ * D-480 (amendment 14): `--withdraw <card id>` removes the files the guide route left in a build whose design gate's
+ * accept changed to the PoB file only after F1 (an `answerChanges[]` entry for it): its `audit.md`, which F1's route
+ * rendered, and the partial `guide.md` a cancelled W1 left (a file-only build holds neither), then logs `withdrawn
+ * {build, files}` through run-log.mjs. Returns what it did; throws an Error saying why not, removing nothing.
+ */
+export async function withdraw(runFolder, id) {
+  let log;
+  try {
+    log = JSON.parse(fs.readFileSync(path.join(runFolder, 'run-log.json'), 'utf8'));
+  } catch (e) {
+    throw new Error(`run-log.json can't be read (${e.code ?? e.message})`);
+  }
+  const entry = list(log.builds).find((b) => b.id === id);
+  if (!entry) throw new Error(`run-log.json has no build ${id}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
+  if (!list(log.answerChanges).some((x) => x.concept === id)) throw new Error(`${id} has no answer change; --withdraw removes the guide route's files of a build whose design gate's accept changed to the PoB file only after F1 (run-log.mjs answer-change, D-480)`);
+  const folder = entry.folder === '.' ? '' : `${entry.folder}/`;
+  const files = ['audit.md', 'guide.md'].map((f) => `${folder}${f}`).filter((rel) => fs.existsSync(path.join(runFolder, ...rel.split('/'))));
+  const { writeLog } = await import('./run-log.mjs');
+  for (const rel of files) fs.rmSync(path.join(runFolder, ...rel.split('/')));
+  writeLog(runFolder, 'withdrawn', { build: id, files });
+  return `withdrew ${files.length > 0 ? files.join(' and ') : 'nothing (no audit.md or guide.md)'} for ${id}, and logged withdrawn`;
+}
+
 async function main(argv) {
   const args = argv.slice(2);
   // D-429: a composite's id has the letter s.
-  const withBuild = args.length === 3 && args[1] === '--build' && /^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/.test(args[2]);
-  if ((args.length !== 1 && !withBuild) || args[0].startsWith('--')) {
-    process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id>]\n');
+  const card = (x) => /^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/.test(String(x));
+  const withBuild = args.length === 3 && args[1] === '--build' && card(args[2]);
+  const withdrawing = args.length === 3 && args[1] === '--withdraw' && card(args[2]);
+  if ((args.length !== 1 && !withBuild && !withdrawing) || args[0].startsWith('--')) {
+    process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id> | --withdraw <card id>]\n');
     return 2;
+  }
+  if (withdrawing) {
+    try {
+      process.stdout.write(`render-audit: ${await withdraw(path.resolve(args[0]), args[2])}\n`);
+      return 0;
+    } catch (e) {
+      process.stderr.write(`render-audit: withdraw refused: ${e.message}\n`);
+      return 1;
+    }
   }
   const folder = path.resolve(args[0]);
   let inputs;
@@ -758,6 +852,10 @@ async function main(argv) {
   return 0;
 }
 
+// No top-level await: the render imports run-log.mjs, which imports this file, and a module still awaiting its own main
+// would never finish loading for it (as run-log.mjs's own main says).
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = await main(process.argv);
+  main(process.argv).then((code) => {
+    process.exitCode = code;
+  });
 }

@@ -104,6 +104,9 @@ a user decision, because the golden values move. The procedure (spike S-2,
    new release renames that method, the guard skips it silently and the warning stops; the engine test
    `tests/integration/skillSlots.test.ts` then fails. That test and `tests/unit/v1SkillSlots.test.ts` find PoB's
    warning by its line number in `Modules/Build.lua`, so update those numbers when the release moves the line.
+6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492): each entry corrects PoB's reading of a
+   line PoB parses only partly (PG-103: Crystalline Phylactery). `tests/integration/parseFixes.test.ts` fails once
+   the new release parses a listed line itself, or no longer carries it; remove that entry then.
 
 ## Where things are
 

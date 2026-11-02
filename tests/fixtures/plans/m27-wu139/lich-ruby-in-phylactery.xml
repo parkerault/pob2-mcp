@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build level="90" targetVersion="0_1" className="Witch" ascendClassName="Lich" mainSocketGroup="1" viewMode="ITEMS" characterLevelAutoMode="false">
+	</Build>
+	<Tree activeSpec="1">
+		<Spec title="Default" treeVersion="0_5" classId="1" classInternalId="1" ascendClassId="3" ascendancyInternalId="Witch3" secondaryAscendClassId="nil" nodes="58751,17788,61419,46819,8616,57710,39037,1826,60685,9485,56216,44871" masteryEffects="">
+			<Sockets>
+				<Socket nodeId="17788" itemId="1"/>
+			</Sockets>
+		</Spec>
+	</Tree>
+	<Skills activeSkillSet="1">
+		<SkillSet id="1" title="Default"/>
+	</Skills>
+	<Items activeItemSet="1">
+		<Item id="1">
+Rarity: RARE
+Phylactery Test Ruby
+Ruby
+Item Level: 82
+Implicits: 0
+20% increased Armour
+		</Item>
+		<ItemSet id="1" title="Default"/>
+	</Items>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default"/>
+	</Config>
+	<Notes>
+	</Notes>
+</PathOfBuilding2>

@@ -74,6 +74,14 @@ if _G.main then
   main.disableDevAutoSave = true
 end
 
+-- 5c. The bridge's parse fixes (C-6, D-492): API/ParseFixes.lua corrects PoB's reading of the lines it lists (PoB's
+--     own files stay unmodified). The tree has loaded by now (OnInit), and no build has, so every build sees them.
+--     A failure is logged and the engine starts without them; tests/integration/parseFixes.test.ts then fails.
+do
+  local ok, err = pcall(function() require('API.ParseFixes').apply() end)
+  if not ok then io.stderr:write('[ParseFixes] not applied: ' .. tostring(err) .. '\n') end
+end
+
 -- 6. Safety net: ensure the globals the API relies on exist even if a future
 --    wrapper stops setting them directly.
 if not _G.build and mainObject and mainObject.main and mainObject.main.modes then

@@ -131,6 +131,7 @@ import {
   weightedFilterCount,
   type TradeQueryBody,
 } from '../trade/prefit.js';
+import { EngineActionError } from '../pobLuaBridge.js';
 import { encodePobCode } from '../utils/buildCode.js';
 import { checkGuidesRoot, realPathInGuides, resolveInGuidesRoot, runFolderOf } from '../utils/guidesPath.js';
 import { canonicalBuildPath } from '../utils/pathSanitizer.js';
@@ -2202,16 +2203,23 @@ export async function writeTradeLinks(env: TradeLinksEnv, planPath: string): Pro
     await ctx.client.setLevel(stage.level);
     for (const { slot, jewelType } of slots) {
       const spec = linkSpecOf(plan.prices, stage.id, slot);
-      const generated = await ctx.client.tradeGenerateQuery({
-        slot,
-        ...(spec.weights ? { statWeights: spec.weights } : {}),
-        ...(spec.required ? { requiredMods: spec.required } : {}),
-        ...(jewelType ? { jewelType } : {}),
-        includeCorrupted: false,
-        excludeCorrupted: true,
-        maxLevel: stage.level,
-        socketsByCategory: sockets,
-      });
+      let generated: Awaited<ReturnType<typeof ctx.client.tradeGenerateQuery>>;
+      try {
+        generated = await ctx.client.tradeGenerateQuery({
+          slot,
+          ...(spec.weights ? { statWeights: spec.weights } : {}),
+          ...(spec.required ? { requiredMods: spec.required } : {}),
+          ...(jewelType ? { jewelType } : {}),
+          includeCorrupted: false,
+          excludeCorrupted: true,
+          maxLevel: stage.level,
+          socketsByCategory: sockets,
+        });
+      } catch (error) {
+        // A spec PoB refuses (an unknown sort stat, a bad must-have) is named with its stage and slot.
+        if (error instanceof EngineActionError) throw refused(`stage ${stage.id}'s ${slot}: ${error.error}`);
+        throw error;
+      }
       let query = generated.query as unknown as TradeQueryBody;
       const known = env.tradeStats();
       if (known !== null) query = dropUnknownIds(query, known);

@@ -2309,19 +2309,24 @@ local function line_values(nums)
 end
 
 -- D-485: a rare's explicit lines (not rune, enchant or implicit lines), each with its template and the mod groups its
--- base can roll that write it: per group its affix type, every line template the group's mods write (a hybrid writes two:
--- LocalIncreasedEnergyShieldAndBase's flat and % Energy Shield, Data/ModItem.lua:402-407, so it sits on an item only with
--- both lines), and its tiers, each tier's item level and top roll at each "#". A line no mod writes has no groups. With
--- the rare's affix limit: 3 prefixes and 3 suffixes, 2 and 2 on a jewel (Classes/Item.lua:1302).
+-- base can roll that write it: per group its affix type and its tiers, each tier's item level, top roll at each "#" and
+-- `writes`, every line template that tier's mod writes. A hybrid's mod writes two (LocalIncreasedEnergyShieldAndBase's
+-- flat and % Energy Shield, Data/ModItem.lua:402-407), so it sits on an item only with both lines; a group's tiers may
+-- word one line two ways (AdditionalAmmo's "Loads an additional bolt" and "Loads 2 additional bolts", :1242-1243), so the
+-- lines are each tier's own, never the group's. A line no mod writes has no groups. With the rare's affix limit: 3
+-- prefixes and 3 suffixes, 2 and 2 on a jewel (Classes/Item.lua:1302).
 local function rare_affixes(item)
   local byTemplate, writes = {}, {}
   for _, mod in ipairs(rollable_mods(item)) do
-    local key = mod.type .. ':' .. tostring(mod.group or '')
-    writes[key] = writes[key] or {}
+    local own = {}
+    for j = 1, #mod do
+      if type(mod[j]) == 'string' then own[#own + 1] = (line_numbers(mod[j])) end
+    end
+    table.sort(own)
+    writes[mod] = own
     for j = 1, #mod do
       if type(mod[j]) == 'string' then
         local template, nums = line_numbers(mod[j])
-        writes[key][template] = true
         local hits = byTemplate[template]
         if not hits then
           hits = {}
@@ -2348,16 +2353,12 @@ local function rare_affixes(item)
         end
         local max = {}
         for k, n in ipairs(hit.nums) do max[k] = n.hi end
-        g.tiers[#g.tiers + 1] = { level = tonumber(mod.level) or 0, max = max }
+        g.tiers[#g.tiers + 1] = { level = tonumber(mod.level) or 0, max = max, writes = writes[mod] }
       end
       table.sort(order)
       local out = {}
       for _, key in ipairs(order) do
         table.sort(groups[key].tiers, function(a, b) return a.level < b.level end)
-        local written = {}
-        for t in pairs(writes[key] or {}) do written[#written + 1] = t end
-        table.sort(written)
-        groups[key].writes = written
         out[#out + 1] = groups[key]
       end
       lines[#lines + 1] = { text = modLine.line, template = template, values = values, lows = lows, groups = out }

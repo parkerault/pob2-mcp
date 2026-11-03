@@ -683,8 +683,8 @@ clear measure's chains and projectiles hold on any schema.
   - `affix-cap`: each explicit line of a rare (not rune, enchant or implicit lines) against the best its base can roll at
     the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level; a card skeleton's rares are
     counted, not capped), summed over the mod groups that write that line (the base's affix table, the tagged
-    desecrated mods and an essence's mods, as the lookup counts them), one mod a group, a group counted only when every
-    line it writes is on the item, within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel) and leaving room for the
+    desecrated mods and an essence's mods, as the lookup counts them), one mod a group, a mod counted only when every
+    line it writes is on the item (a group's tiers may word one line two ways, singular and plural, and are no hybrid), within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel) and leaving room for the
     item's other lines. The finding names the cap: an intelligence body armour with Spirit and "+100 to maximum Energy
     Shield" reads `the best is "+96 to maximum Energy Shield"` at item level 82. The hybrid prefix that also writes flat
     Energy Shield (LocalIncreasedEnergyShieldAndBase, +26 to 30) always writes "(39-42)% increased Energy Shield" too, so

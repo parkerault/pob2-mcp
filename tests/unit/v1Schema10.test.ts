@@ -28,20 +28,21 @@ type Line = NonNullable<Item['affixes']>['lines'][number];
 
 const FLAT_ES = '+# to maximum Energy Shield';
 const PCT_ES = '#% increased Energy Shield';
-const tiers = (rows: number[][]) => rows.map(([level, max]) => ({ level, max: [max] }));
+/** A group's tiers as compile_stage gives them: item level, top roll and the lines that tier's mod writes. */
+const tiers = (writes: string[], rows: number[][]) => rows.map(([level, max]) => ({ level, max: [max], writes }));
 /** LocalEnergyShield's tiers on an intelligence body armour (Data/ModItem.lua:199-209): item level and top roll. */
-const BODY_ES = { key: 'Prefix:LocalEnergyShield', type: 'Prefix' as const, group: 'LocalEnergyShield', writes: [FLAT_ES], tiers: tiers([[1, 17], [8, 24], [16, 30], [25, 35], [33, 41], [46, 47], [54, 60], [60, 73], [65, 80], [70, 90], [79, 96]]) };
+const BODY_ES = { key: 'Prefix:LocalEnergyShield', type: 'Prefix' as const, group: 'LocalEnergyShield', tiers: tiers([FLAT_ES], [[1, 17], [8, 24], [16, 30], [25, 35], [33, 41], [46, 47], [54, 60], [60, 73], [65, 80], [70, 90], [79, 96]]) };
 /**
  * LocalIncreasedEnergyShieldAndBase (Data/ModItem.lua:402-407), a hybrid prefix that writes both lines: its flat part under
  * the flat line, its % part under the % line (the group's tiers as compile_stage gives them for each line).
  */
-const HYBRID_FLAT = { key: 'Prefix:LocalIncreasedEnergyShieldAndBase', type: 'Prefix' as const, group: 'LocalIncreasedEnergyShieldAndBase', writes: [FLAT_ES, PCT_ES], tiers: tiers([[8, 7], [16, 13], [33, 16], [46, 20], [60, 25], [78, 30]]) };
-const HYBRID_PCT = { ...HYBRID_FLAT, tiers: tiers([[8, 13], [16, 20], [33, 26], [46, 32], [60, 38], [78, 42]]) };
+const HYBRID_FLAT = { key: 'Prefix:LocalIncreasedEnergyShieldAndBase', type: 'Prefix' as const, group: 'LocalIncreasedEnergyShieldAndBase', tiers: tiers([FLAT_ES, PCT_ES], [[8, 7], [16, 13], [33, 16], [46, 20], [60, 25], [78, 30]]) };
+const HYBRID_PCT = { ...HYBRID_FLAT, tiers: tiers([FLAT_ES, PCT_ES], [[8, 13], [16, 20], [33, 26], [46, 32], [60, 38], [78, 42]]) };
 /** LocalEnergyShieldPercent on the body (Data/ModItem.lua), the plain % prefix. */
-const BODY_PCT = { key: 'Prefix:LocalEnergyShieldPercent', type: 'Prefix' as const, group: 'LocalEnergyShieldPercent', writes: [PCT_ES], tiers: tiers([[2, 26], [16, 42], [33, 55], [46, 67], [54, 79], [60, 91], [65, 100], [75, 110]]) };
+const BODY_PCT = { key: 'Prefix:LocalEnergyShieldPercent', type: 'Prefix' as const, group: 'LocalEnergyShieldPercent', tiers: tiers([PCT_ES], [[2, 26], [16, 42], [33, 55], [46, 67], [54, 79], [60, 91], [65, 100], [75, 110]]) };
 /** BaseSpirit's tiers on a body armour and IncreasedLife's (Data/ModItem.lua), as the probe of compile_stage read them. */
-const SPIRIT = { key: 'Prefix:BaseSpirit', type: 'Prefix' as const, group: 'BaseSpirit', writes: ['+# to Spirit'], tiers: tiers([[16, 33], [25, 37], [33, 42], [46, 46], [54, 50], [60, 53], [65, 56], [78, 61]]) };
-const LIFE = { key: 'Prefix:IncreasedLife', type: 'Prefix' as const, group: 'IncreasedLife', writes: ['+# to maximum Life'], tiers: tiers([[1, 19], [6, 29], [16, 39], [24, 59], [33, 69], [38, 84], [46, 99], [54, 119], [60, 149], [65, 174], [70, 189], [75, 199], [80, 214]]) };
+const SPIRIT = { key: 'Prefix:BaseSpirit', type: 'Prefix' as const, group: 'BaseSpirit', tiers: tiers(['+# to Spirit'], [[16, 33], [25, 37], [33, 42], [46, 46], [54, 50], [60, 53], [65, 56], [78, 61]]) };
+const LIFE = { key: 'Prefix:IncreasedLife', type: 'Prefix' as const, group: 'IncreasedLife', tiers: tiers(['+# to maximum Life'], [[1, 19], [6, 29], [16, 39], [24, 59], [33, 69], [38, 84], [46, 99], [54, 119], [60, 149], [65, 174], [70, 189], [75, 199], [80, 214]]) };
 const SUFFIX = (group: string) => ({ key: `Suffix:${group}`, type: 'Suffix' as const, group, tiers: [{ level: 1, max: [40] }] });
 
 /** A line as compile_stage gives it: its text, its template (each number "#"), its number and its groups. */
@@ -95,6 +96,15 @@ describe('WU-137: V1 affix-cap (D-485)', () => {
     const found = affixFindings(stage('budget'), [only]).findings;
     expect(found.map((f) => f.data!.cap)).toEqual([null]);
     expect(found[0].message).toContain('each writing a line the item lacks');
+  });
+
+  it("a group whose tiers word its line two ways (AdditionalAmmo, Data/ModItem.lua:1242-1243) isn't a hybrid: \"Loads 2 additional bolts\" passes on b", () => {
+    // compile_stage lists, under the line, the group's tiers that write it: tier 2 ("Loads 2 additional bolts", level 82);
+    // tier 1 words it "Loads an additional bolt", a line the item doesn't need.
+    const ammo = { key: 'Suffix:AdditionalAmmo', type: 'Suffix' as const, group: 'AdditionalAmmo', tiers: [{ level: 82, max: [2], writes: ['Loads # additional bolts'] }] };
+    const xbow = rare('Weapon 1', 'Desolate Crossbow', 'Crossbow', [line('Loads 2 additional bolts', 2, [ammo])], { hands: 2 } as Partial<Item>);
+    expect(affixFindings(stage('budget', 'endgame', ['Weapon 1']), [xbow]).findings).toEqual([]);
+    expect(affixFindings(stage('entering-maps', 'endgame', ['Weapon 1']), [xbow]).findings.map((f) => f.data!.cap)).toEqual([null]);
   });
 
   it('on m the cap is the tier at item level 69 (80, LocalEnergyShield9 at level 65); a campaign stage uses its C1 area level', () => {

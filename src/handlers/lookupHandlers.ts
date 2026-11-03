@@ -32,7 +32,10 @@
  *
  * Amendment 14 (D-494): a mod hit's tiers follow its base types, one group per set of bases that roll the same tiers,
  * each tier with its item level and range, T1 the best those bases roll, and the hit's own tier named; a group an
- * earlier hit listed says so instead of listing it again.
+ * earlier hit listed says so instead of listing it again. A generated unique's variants that name a skill only items
+ * grant (`data/items/item-only-skills.json`, read through the C-35 loader and passed as `itemOnlySkills`) are left out
+ * (PG-105). D-485: base mode's socket line gives the socket table's count (`data/items/sockets.json`) beside PoB's
+ * ceiling.
  *
  * Lua sorts every match, then cuts it to `max_results` (default 20, max 30; D-225). When nothing matches,
  * the reply lists Lua's closest names of the kind searched, closest first (D-258): in gem mode up to 5
@@ -52,8 +55,31 @@ import type {
   LookupUnique,
 } from "../engine/schemas.js";
 import { wrapHandler } from "../utils/errorHandling.js";
+import { loadReferenceData, type ReferenceData } from "../plan/referenceData.js";
+import { SOCKET_TABLE, socketFactOf } from "../plan/checks/v1.js";
 
-export type LookupContext = Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient">;
+export type LookupContext = Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient"> & {
+  /** The C-35 data (D-485's socket table, D-494's item-only skills); default: `loadReferenceData()` from the package's `data/`. */
+  referenceData?: () => ReferenceData;
+};
+
+/** PG-105 (D-494): the C-35 file naming the skills only items grant, which a generated unique's variants drop. */
+export const ITEM_ONLY_SKILLS_FILE = "items/item-only-skills.json";
+
+/** PG-105: the skill names `items/item-only-skills.json` lists (its facts' string values), in its order; none without it. */
+export function itemOnlySkillsOf(ref: ReferenceData): string[] {
+  const file = ref.files.get(ITEM_ONLY_SKILLS_FILE);
+  if (!file) return [];
+  return Object.values(file.facts).flatMap((fact) => (typeof fact.value === "string" ? [fact.value] : []));
+}
+
+/** D-485: a base's rune sockets from the socket table (`items/sockets.json`), by its name, type or hands; undefined when the table doesn't count it. */
+export function tableSocketsOf(ref: ReferenceData, base: Pick<LookupItemBase, "name" | "type" | "hands">): number | undefined {
+  const factId = socketFactOf({ baseName: base.name, baseType: base.type, hands: base.hands });
+  if (factId === null) return undefined;
+  const found = ref.resolveFact(SOCKET_TABLE, factId);
+  return found.ok && typeof found.fact.value === "number" ? found.fact.value : undefined;
+}
 
 export interface LookupGameDataArgs {
   mode?: unknown;
@@ -277,10 +303,26 @@ function baseRequirementText(base: LookupItemBase): string {
 }
 
 /**
- * C-37b (D-425): one item base: `## <name>`, its type (and subtype), requirements, each implicit line (naming its
- * variants), defences, weapon figures, Spirit and socket limit, as PoB holds them.
+ * D-485 (amendment 14 §11): a base's socket line. The count is the socket table's (`sockets`, the user's ruling); PoB's
+ * `socketLimit` is named as its ceiling, which counts the Exceptional and corruption sockets. A base the table counts
+ * but PoB's data gives no socket (Corona Amulet, Grasping Ring, Stalking Belt) says so; one the table doesn't count keeps
+ * PoB's ceiling alone; neither, no line.
  */
-function renderItemBase(base: LookupItemBase): string[] {
+export function socketLine(sockets: number | undefined, socketLimit: number | undefined): string | undefined {
+  if (sockets !== undefined && socketLimit !== undefined) {
+    return `Sockets: ${sockets} (PoB's ceiling ${socketLimit} counts Exceptional and corruption)`;
+  }
+  if (sockets !== undefined) return `Sockets: ${sockets}${sockets > 0 ? " (PoB's base data gives it none)" : ""}`;
+  if (socketLimit !== undefined) return `Sockets: PoB's ceiling ${socketLimit}`;
+  return undefined;
+}
+
+/**
+ * C-37b (D-425): one item base: `## <name>`, its type (and subtype), requirements, each implicit line (naming its
+ * variants), defences, weapon figures, Spirit and sockets (D-485: the socket table's count, `sockets`, beside PoB's
+ * ceiling).
+ */
+function renderItemBase(base: LookupItemBase, sockets?: number): string[] {
   const lines: string[] = [`## ${base.name}`, `Type: ${base.type}${base.subType ? ` (${base.subType})` : ""}`];
   lines.push(baseRequirementText(base));
   if (base.implicits.length === 0) lines.push("Implicit: (none)");
@@ -309,7 +351,8 @@ function renderItemBase(base: LookupItemBase): string[] {
     if (bits.length > 0) lines.push(`Weapon: ${bits.join("; ")}`);
   }
   if (base.spirit !== undefined) lines.push(`Spirit: ${base.spirit}`);
-  if (base.socketLimit !== undefined) lines.push(`Sockets: up to ${base.socketLimit}`);
+  const socket = socketLine(sockets, base.socketLimit);
+  if (socket) lines.push(socket);
   return lines;
 }
 
@@ -417,16 +460,12 @@ export function renderBaseTypes(baseTypes: LookupBaseType[], notRolled?: string)
 }
 
 /**
- * D-494 (C-37): one group of bases a mod hit's tiers hold for, as `pob-api/API/Lookup.lua`'s `M.modTiers` sends it:
- * the bases (named as the base types are), the tiers they can roll, the highest item level first and T1 the best
- * (the game's numbering), each with its item level and the hit's line in that tier, and the hit's own tier there.
- * The engine's reply schema passes the field through (`lookupHitSchema` is passthrough).
+ * D-494 (C-37): one group of bases a mod hit's tiers hold for, as `pob-api/API/Lookup.lua`'s `M.modTiers` sends it
+ * (`lookupHitSchema`'s `tiers`): the bases (named as the base types are), the tiers they can roll, the highest item
+ * level first and T1 the best (the game's numbering), each with its item level and the hit's line in that tier, and
+ * the hit's own tier there.
  */
-export interface ModTierGroup {
-  on: LookupBaseType[];
-  tiers: Array<{ tier: number; level: number; line: string }>;
-  tier?: number;
-}
+export type ModTierGroup = NonNullable<LookupHit["tiers"]>[number];
 
 /** The lines under a mod hit that list its tiers (D-494), one header per group of bases. */
 export const TIERS_PREFIX = "  Tiers on ";
@@ -537,7 +576,7 @@ export function leftOutLines(leftOut: LookupGameDataResult["leftOut"]): string[]
   return lines;
 }
 
-function render(req: Request, result: LookupGameDataResult): string {
+function render(req: Request, result: LookupGameDataResult, socketsOf?: (base: LookupItemBase) => number | undefined): string {
   const lines: string[] = [`=== Game Data Lookup (${req.mode}: ${criteria(req)}) ===`, ""];
   const leftOut = leftOutLines(result.leftOut);
   const shown = result.results.length;
@@ -599,7 +638,7 @@ function render(req: Request, result: LookupGameDataResult): string {
   if (req.mode === "mechanic") {
     const listed = new Set<string>();
     for (const r of result.results) {
-      const hit = r as LookupHit & { tiers?: ModTierGroup[] };
+      const hit = r as LookupHit;
       lines.push(renderHit(hit));
       // WU-60 (D-277): the base types that can roll a mod, on the line under it.
       if (hit.kind === "mod" && hit.baseTypes) lines.push(renderBaseTypes(hit.baseTypes, hit.notRolled));
@@ -612,7 +651,7 @@ function render(req: Request, result: LookupGameDataResult): string {
         r.kind === "minion-skill"
           ? renderMinionSkill(r as LookupMinionSkill)
           : r.kind === "item-base"
-            ? renderItemBase(r as LookupItemBase)
+            ? renderItemBase(r as LookupItemBase, socketsOf?.(r as LookupItemBase))
             : r.kind === "config"
               ? renderConfig(r as LookupConfig)
               : req.mode === "gem"
@@ -646,6 +685,10 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
     const kind = kindText as HitKind | undefined;
     const maxResults = resultLimit(args.maxResults);
 
+    // D-485, D-494: the C-35 data the base mode's socket line and the generated-variant filter read.
+    const ref = m === "base" || m === "unique" || m === "mechanic" ? (context.referenceData ?? (() => loadReferenceData()))() : undefined;
+    const itemOnlySkills = ref && (m === "unique" || m === "mechanic") ? itemOnlySkillsOf(ref) : [];
+
     await context.ensureLuaClient();
     const luaClient = context.getLuaClient();
     if (!luaClient) throw new Error("Lua client not initialized. Use lua_start first.");
@@ -658,10 +701,12 @@ export async function handleLookupGameData(context: LookupContext, args: LookupG
       ...(slot ? { slot } : {}),
       ...(kind ? { kind } : {}),
       ...(maxLevel !== undefined ? { maxLevel } : {}),
+      ...(itemOnlySkills.length > 0 ? { itemOnlySkills } : {}),
       maxResults,
     });
     // C-37b: base mode names the item type as PoB spells it.
     const shownSlot = m === "base" && result.results.length > 0 ? (result.results[0] as LookupItemBase).type : slot;
-    return { content: [{ type: "text" as const, text: render({ mode: m, query, slot: shownSlot, kind, level: maxLevel, maxResults }, result) }] };
+    const socketsOf = ref ? (base: LookupItemBase) => tableSocketsOf(ref, base) : undefined;
+    return { content: [{ type: "text" as const, text: render({ mode: m, query, slot: shownSlot, kind, level: maxLevel, maxResults }, result, socketsOf) }] };
   });
 }

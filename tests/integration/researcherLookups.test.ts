@@ -474,6 +474,100 @@ engineDescribe('AC-P75 (WU-100, D-425): the researchers\' lookups with no build 
       },
       ENGINE_TIMEOUT,
     );
+
+    // AC-K87 (WU-139, amendment 14 §11, D-485): the socket line gives the socket table's count beside PoB's ceiling.
+    /** The socket table (`data/items/sockets.json`, the user's ruling), read here: fact id -> count. */
+    const SOCKETS = (() => {
+      const file = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'items', 'sockets.json'), 'utf8')) as { facts: Record<string, { value: number }> };
+      return (id: string) => file.facts[`sockets.${id}`].value;
+    })();
+    /**
+     * §11's table, restated: body armours and two-handers 2; other armour, shields, foci and one-handers 1; Corona Amulet,
+     * Grasping Ring and Stalking Belt 1; other jewellery and belts 0; quivers 0. Undefined for what it doesn't count.
+     */
+    const tableCount = (b: { name: string; type: string; hands?: number }): number | undefined => {
+      const byName: Record<string, string> = { 'Corona Amulet': 'corona-amulet', 'Grasping Ring': 'grasping-ring', 'Stalking Belt': 'stalking-belt' };
+      const byType: Record<string, string> = {
+        'Body Armour': 'body-armour', Helmet: 'helmet', Gloves: 'gloves', Boots: 'boots', Shield: 'shield', Focus: 'focus',
+        Amulet: 'amulet', Ring: 'ring', Belt: 'belt', Quiver: 'quiver',
+      };
+      const id = byName[b.name] ?? byType[b.type] ?? (b.hands === 2 ? 'two-hand-weapon' : b.hands === 1 ? 'one-hand-weapon' : undefined);
+      return id === undefined ? undefined : SOCKETS(id);
+    };
+    /** PoB's bases of the base lists (hidden ones left out, as the lookup lists them): socket limit and hands from tags. */
+    const pobSocketBases = () =>
+      luaQuery<Array<{ name: string; type: string; socketLimit?: number; hands?: number }>>(`
+        local out, seen = {}, {}
+        for _, list in pairs(data.itemBaseLists) do
+          for _, entry in ipairs(list) do
+            local base = entry.base
+            if not seen[entry.name] then
+              seen[entry.name] = true
+              local tags = base.tags or {}
+              table.insert(out, { name = entry.name, type = base.type, socketLimit = base.socketLimit,
+                hands = tags.twohand and 2 or (tags.onehand and 1 or nil) })
+            end
+          end
+        end
+        return out`);
+    const socketLineOf = (block: string) => block.split('\n').find((l) => l.startsWith('Sockets: '));
+
+    it(
+      "AC-K87: base mode prints a body armour's sockets as `Sockets: 2 (PoB's ceiling 4 counts Exceptional and corruption)`",
+      async () => {
+        expect(SOCKETS('body-armour')).toBe(2);
+        const bodies = (await pobSocketBases()).filter((b) => b.type === 'Body Armour');
+        expect(bodies.length).toBeGreaterThan(30);
+        expect(new Set(bodies.map((b) => b.socketLimit))).toEqual(new Set([4]));
+        const shown = blocks(await ok('lookup_game_data', { mode: 'base', slot: 'Body Armour', max_results: 30 }));
+        expect(shown.length).toBe(30);
+        for (const block of shown) {
+          expect({ base: block.split('\n')[0], line: socketLineOf(block) }).toEqual({
+            base: block.split('\n')[0],
+            line: "Sockets: 2 (PoB's ceiling 4 counts Exceptional and corruption)",
+          });
+        }
+        expect(shown.join('\n')).not.toContain('Sockets: up to');
+      },
+      ENGINE_TIMEOUT,
+    );
+
+    it(
+      "AC-K87 (D-485): every item type's shown bases give the socket table's count by base, type or hands, beside PoB's ceiling when PoB has one; Corona Amulet's count says PoB's data gives it none",
+      async () => {
+        const bases = await pobSocketBases();
+        const byName = new Map(bases.map((b) => [b.name, b]));
+        const types = [...new Set(bases.map((b) => b.type))].sort();
+        let withCeiling = 0;
+        for (const type of types) {
+          const shown = blocks(await ok('lookup_game_data', { mode: 'base', slot: type, max_results: 30 }));
+          for (const block of shown) {
+            const name = block.split('\n')[0].replace(/^## /, '');
+            const b = byName.get(name)!;
+            expect({ name, known: b !== undefined }).toEqual({ name, known: true });
+            const count = tableCount(b);
+            const expected =
+              count !== undefined && b.socketLimit !== undefined
+                ? `Sockets: ${count} (PoB's ceiling ${b.socketLimit} counts Exceptional and corruption)`
+                : count !== undefined
+                  ? `Sockets: ${count}${count > 0 ? " (PoB's base data gives it none)" : ''}`
+                  : b.socketLimit !== undefined
+                    ? `Sockets: PoB's ceiling ${b.socketLimit}`
+                    : undefined;
+            expect({ name, type, line: socketLineOf(block) }).toEqual({ name, type, line: expected });
+            if (count !== undefined && b.socketLimit !== undefined) withCeiling++;
+          }
+        }
+        expect(withCeiling).toBeGreaterThan(100);
+        // Every base PoB gives a socket limit is one the table counts.
+        expect(bases.filter((b) => b.socketLimit !== undefined && tableCount(b) === undefined).map((b) => b.name)).toEqual([]);
+        // The table's three jewellery bases, which PoB's data gives no socket.
+        const amulets = blocks(await ok('lookup_game_data', { mode: 'base', slot: 'Amulet', query: 'Corona', max_results: 30 }));
+        expect(amulets.map(socketLineOf)).toEqual([`Sockets: ${SOCKETS('corona-amulet')} (PoB's base data gives it none)`]);
+        expect(SOCKETS('corona-amulet')).toBe(1);
+      },
+      ENGINE_TIMEOUT,
+    );
   });
 
   describe('C-37c: mode config, and get_config\'s labels', () => {

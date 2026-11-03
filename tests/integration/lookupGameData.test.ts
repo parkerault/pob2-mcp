@@ -118,6 +118,40 @@ const suggestionLines = (text: string): string[] => suggestionGroups(text).flatM
 const ENGINE_TIMEOUT = 240_000;
 const FIXTURES = path.resolve(__dirname, '..', 'fixtures');
 
+/** PG-105 (D-494): the skills `data/items/item-only-skills.json` names, read here; a generated unique's variants drop them. */
+const ITEM_ONLY = Object.values(
+  (JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', 'data', 'items', 'item-only-skills.json'), 'utf8')) as {
+    facts: Record<string, { value: string }>;
+  }).facts,
+).map((f) => f.value);
+
+/**
+ * An item text with its variant numbers written as their names (`{variant:…}` tags, `Selected Variant:`), its
+ * `Variant:` lines for `drop` and the lines only those variants have left out: two texts of one item that differ only
+ * by those variants and their numbering compare equal.
+ */
+function byVariantNames(raw: string, drop: readonly string[]): string[] {
+  const lines = raw.split('\n');
+  const names = lines.filter((l) => l.startsWith('Variant: ')).map((l) => l.slice('Variant: '.length));
+  const out: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith('Variant: ') && drop.includes(line.slice('Variant: '.length))) continue;
+    const selected = /^Selected Variant: (\d+)$/.exec(line);
+    if (selected) {
+      out.push(`Selected Variant: ${names[Number(selected[1]) - 1]}`);
+      continue;
+    }
+    let keep = true;
+    const named = line.replace(/\{variant:([\d,]+)\}/g, (_, spec: string) => {
+      const kept = spec.split(',').map((n) => names[Number(n) - 1]).filter((n) => !drop.includes(n));
+      if (kept.length === 0) keep = false;
+      return `{variant:${kept.join(',')}}`;
+    });
+    if (keep) out.push(named);
+  }
+  return out;
+}
+
 interface StatSet {
   label: string;
   /** The base attack damage and crit chance lines (D-241). */
@@ -555,7 +589,8 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       expect(block).toBeDefined();
       expect(block!.type).toBe(prism.type);
       expect(block!.matched).toContain(`${prism.line} (variant ${prism.index}: Blood Hunt)`);
-      if (found.length === 1) expect(block!.raw).toBe(prism.raw);
+      // PG-105 (D-494): the jewel's text is PoB's without the variants of the skills only items grant, renumbered.
+      if (found.length === 1) expect(byVariantNames(block!.raw!, [])).toEqual(byVariantNames(prism.raw, ITEM_ONLY));
 
       const hits = hitLines(await okTool({ mode: 'mechanic', query: 'Level of all Blood' }));
       expect(hits).toContain(`[unique] Prism of Belief (${prism.type}; variant Blood Hunt): ${prism.line}`);
@@ -2492,6 +2527,67 @@ engineDescribe('K1: lookup_game_data on the golden build (WU-31, C-37)', () => {
       ]);
       // A mod no base rolls has no tiers.
       expect(tierGroupsOf(text, 'Exclusive', 'AmuletImplicitIncreasedLife1')).toEqual([]);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  // -------------------------------------------------------------------------------------------------
+  // AC-K87 (WU-139, amendment 14 §20, D-494, PG-105): a generated unique's variants drop the skills only items grant,
+  // named in `data/items/item-only-skills.json`; the rest are renumbered in the item text.
+
+  it(
+    'AC-K87 (PG-105): Prism of Belief lists no Coiling Bolts variant and keeps Spark, Herald of Ash and Arc; its item text, read by PoB, numbers every variant line afresh; Volatile Dead is absent from PoB\'s own list',
+    async () => {
+      expect(ITEM_ONLY).toEqual(['Coiling Bolts']);
+      // PoB's own list at the pin, before the filter.
+      const pob = await luaQuery<{ variants: string[]; selected: string; raw: string }>(`
+        for _, item in pairs(main.uniqueDB.list) do
+          if item.title == "Prism of Belief" then
+            return { variants = item.variantList, selected = item.variantList[item.variant], raw = item:BuildRaw() }
+          end
+        end`);
+      for (const name of ['Coiling Bolts', 'Spark', 'Herald of Ash', 'Arc']) expect({ name, inPob: pob.variants.includes(name) }).toEqual({ name, inPob: true });
+      // Volatile Dead's skill is marked as an item's (Data/Skills/act_int.lua:22337), so PoB's generator never lists it.
+      expect(pob.variants).not.toContain('Volatile Dead');
+
+      const found = blocks(await okTool({ mode: 'unique', query: 'Prism of Belief' })).map(parseUnique);
+      expect(found.map((u) => u.name)).toEqual(['Prism of Belief']);
+      const raw = found[0].raw!;
+      expect(raw).not.toContain('Coiling Bolts');
+      // PoB's text without the item-only variants and the lines only they have, the rest renumbered.
+      expect(byVariantNames(raw, [])).toEqual(byVariantNames(pob.raw, ITEM_ONLY));
+      expect(raw.split('\n').length).toBe(pob.raw.split('\n').length - 2);
+      for (const name of ['Spark', 'Herald of Ash', 'Arc']) {
+        expect({ name, variant: raw.split('\n').includes(`Variant: ${name}`) }).toEqual({ name, variant: true });
+      }
+      // PoB reads the text back: one variant fewer, each variant's line naming its own skill, the same selected variant.
+      const back = await luaQuery<{ count: number; bad: string[]; lines: number; selected: string }>(`
+        local item = new('Item', ${JSON.stringify(raw)})
+        local bad, lines = {}, 0
+        for _, ml in ipairs(item.explicitModLines) do
+          if ml.variantList then
+            for i in pairs(ml.variantList) do
+              lines = lines + 1
+              if not ml.line:find('of all ' .. item.variantList[i] .. ' Skills', 1, true) then bad[#bad + 1] = item.variantList[i] .. ': ' .. ml.line end
+            end
+          end
+        end
+        return { count = #item.variantList, bad = bad, lines = lines, selected = item.variantList[item.variant] }`);
+      expect(back).toEqual({ count: pob.variants.length - 1, bad: [], lines: pob.variants.length - 1, selected: pob.selected });
+      expect(found[0].selected).toMatch(new RegExp(`\\(${pob.selected}\\)$`));
+      // The selected variant's number in the reply is its number in the text.
+      const selectedNumber = Number(/^(\d+)/.exec(found[0].selected!)![1]);
+      expect(raw.split('\n').filter((l) => l.startsWith('Variant: '))[selectedNumber - 1]).toBe(`Variant: ${pob.selected}`);
+
+      // A search for the skill finds the item that grants it, not the jewel; Spark's line names its renumbered variant.
+      const coiling = blocks(await okTool({ mode: 'unique', query: 'Coiling Bolts' })).map(parseUnique);
+      expect(coiling.map((u) => u.name)).toContain('Liminal Coil');
+      expect(coiling.map((u) => u.name)).not.toContain('Prism of Belief');
+      expect(hitLines(await okTool({ mode: 'mechanic', query: 'Level of all Coiling Bolts', kind: 'unique' }))).toEqual([]);
+      const spark = blocks(await okTool({ mode: 'unique', query: 'Level of all Spark Skills' })).map(parseUnique);
+      const sparkNumber = raw.split('\n').filter((l) => l.startsWith('Variant: ')).indexOf('Variant: Spark') + 1;
+      expect(spark.find((u) => u.name === 'Prism of Belief')!.matched).toEqual([`+(1-3) to Level of all Spark Skills (variant ${sparkNumber}: Spark)`]);
+      expect(sparkNumber).toBe(pob.variants.indexOf('Spark'));
     },
     ENGINE_TIMEOUT,
   );

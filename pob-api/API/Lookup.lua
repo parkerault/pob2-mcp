@@ -28,7 +28,8 @@
 --               `...`, each matching any text within the line (WU-53). Data/Misc.lua's game, character and
 --               monster constants whose name matches are hits of kind `constant`, ranked last (C-37d)
 --     base      the bases of item type `slot` (required), of required level at most `maxLevel`, whose name
---               contains `query`: requirements, implicits, defences, weapon figures, Spirit, socket limit;
+--               contains `query`: requirements, implicits, defences, weapon figures, Spirit, socket limit, a
+--               weapon's hands (D-485: the server's socket line reads data/items/sockets.json by them);
 --               sorted by required level, highest first, then by name (C-37b, D-425)
 --     config    PoB's config options whose key or label contains `query`: key, label, type, section, list
 --               values and labels, the conditions that show it and its tooltip's first line (C-37c, D-425)
@@ -1534,6 +1535,8 @@ local function baseResult(entry)
     level = tonumber(req.level), str = nonZero(req.str), dex = nonZero(req.dex), int = nonZero(req.int),
     implicits = implicitLines(base),
     spirit = nonZero(base.spirit), socketLimit = tonumber(base.socketLimit),
+    -- D-485: a weapon's hands, from its tags as the compile reads them, for the socket table's count.
+    hands = type(base.tags) == 'table' and (base.tags.twohand and 2 or (base.tags.onehand and 1 or nil)) or nil,
   }
   if type(base.armour) == 'table' then
     local a = base.armour

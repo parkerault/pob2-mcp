@@ -986,6 +986,8 @@ export const lookupItemBaseSchema = z
       .optional(),
     spirit: z.number().optional(),
     socketLimit: z.number().int().optional(),
+    /** D-485 (WU-139): a weapon's hands (1 or 2), from its tags, for the socket table's count. */
+    hands: z.number().int().optional(),
   })
   .passthrough();
 
@@ -1038,6 +1040,20 @@ export const lookupHitSchema = z
     /** A base hit (WU-53): the base's item type, and the variants its line belongs to. */
     itemType: optString,
     baseVariants: luaArray(z.string()).optional(),
+    /**
+     * D-494 (WU-139): a mod hit's tiers, one group per set of bases that roll the same tiers (`on`, named as `baseTypes`
+     * are): its tiers, the highest item level first and T1 the best those bases roll (the game's numbering), each with
+     * its item level and the hit's line in that tier, and the hit's own tier there. Absent for a mod no base rolls.
+     */
+    tiers: luaArray(
+      z
+        .object({
+          on: luaArray(lookupBaseTypeSchema),
+          tiers: luaArray(z.object({ tier: z.number().int(), level: z.number(), line: z.string() }).passthrough()),
+          tier: z.number().int().optional(),
+        })
+        .passthrough(),
+    ).optional(),
   })
   .passthrough();
 
@@ -2371,6 +2387,11 @@ export interface ActionParamsMap {
     /** C-37b: base mode keeps the bases whose required level is at most this. */
     maxLevel?: number;
     maxResults?: number;
+    /**
+     * PG-105 (D-494, WU-139): the skills only items grant (`data/items/item-only-skills.json`); a generated unique's
+     * variants that name one are left out, the rest renumbered.
+     */
+    itemOnlySkills?: string[];
   };
   /**
    * C-38: one or more of `itemText`, `nodes` (ids or exact names) and `gems` (names), or `build: true`

@@ -6356,3 +6356,22 @@ the `m17` engine at `b76967b`.
   `[]`; no dependency change.
   - **Left:** `compiler.ts`:2080 keeps its own `SOCKET_TABLE` constant beside `checks/v1.ts`'s export (the same file
     today).
+- **WU-140 (the scripts) merged** as `a62022b`, `4034469` and `a40751e` (cherry-picked from `3cfd07f`, `a65a28e`,
+  `d63c5bb`). `run-log.mjs` writes and displays revision 14 (`skillRevision` 14, the per-build boundary): the
+  brainstorm headers, the verification form, the design gate in the user's form with the PoB file first (`--detail`
+  prints the older display), the skeleton and its removal, the answer change and withdrawal, `ask` checkpoints, request
+  words, the swap, the scaling answer; `check-run.mjs` holds amendment 14's flows and rules (the swap, the answer change,
+  notes, scaling, the extra round, specs and listings, sockets read from `data/items/sockets.json`, the percent form,
+  `under`, test advice, rare titles); new `render-notes.mjs`; `render-audit.mjs --withdraw`. AC-W108 in a new
+  `tests/unit/buildGuideAmendment14.test.ts` (42 tests) and the fixture run `run-a14`. Its verifier (fresh context)
+  passed it (gate 234 suites, 4,055 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0): it replayed run-a14's
+  log through `run-log.mjs` (equal but for the run folder, pin and digest), failed 14 mutations each on the right rule,
+  and found 75 display calls on 12 older fixtures byte-identical to `8583779`'s scripts, with the checker's output
+  unchanged; its socket parse equals PoB's data on all 1,768 bases.
+  - **Fixed after the verdict** (targeted: the unit's tests 42, `tests/unit/buildGuide*` 668, `tests/static` 948, all
+    pass; the milestone gate re-checks them): request words joined by a newline now match; a "Has 4 Augment Sockets"
+    line with PoB's `{variant:n}` tag counts.
+  - **Accepted as built:** the brainstorm and verification displays switch for the whole log at revision 14, not per
+    card dealt after the boundary (§25), so a resumed older run shows old cards in the new form; harmless.
+  - **Left:** the checker doesn't flag a boss trade D1-tree left on a swapped rung (§7; AC-W108 doesn't ask it); a
+    pre-amendment-10 resumed run's dealt-card header shows the deck's pitch phrase.

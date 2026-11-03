@@ -46,8 +46,11 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
 2. **The final re-price pass** (§9), online only, and only while pricing isn't stopped: call each
    `prices[]` entry that is `unavailable` because of a rate limit (note `rate-limited`), or of a stop the user's
    `retry-pricing` has since lifted (note `pricing stopped`, D-444), once more, and
-   update it in `plan.json`; a refusal leaves it `unavailable`. A weighted-search entry (its `query` has a
-   `target`) needs its rung loaded: compile measure-only as step 3 does, select the rung's loadout
+   update it in `plan.json`; a refusal leaves it `unavailable`. **A rare's spec** (its entry has a `spec`, D-483) is
+   re-priced as compiled, by one depth check, the `mcp__pob2__search_trade_items` call its `query` records, with its
+   `listing` and `note` written again: the spec loop never runs again here. An older build's weighted-search entry
+   (its `query` has a `target` and `required_mods`) needs its rung loaded: compile measure-only as step 3 does,
+   select the rung's loadout
    (`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<its loadout name>"}`) and call
    `mcp__pob2__find_upgrades` with the arguments its `query` records; step 3 then compiles the re-priced plan. Count every call by its outcome for your return. Offline, or while pricing is stopped, skip it.
    **No trade call once pricing has stopped** (D-422), in any step: no `mcp__pob2__get_leagues`,
@@ -145,7 +148,11 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      (the `g<N>` of its `skillOutputs` keys), else the main group's (the tool's default is the main group);
      **`targets`** the plan's `tree.start` (`{ehp: <its ehp>, maxHit: <its lowestMaxHit.value>}`), **`pace_exchange:
      3`**, and **`pool_groups`** for a weapon set without the clear group, as D1-tree passes them; `max_distance:
-     12`; `stats: ["MainDamage", "TotalEHP"]`, with `cull: true` on a rung with `skills.cull` (D-437), so the gate
+     12`; in a revision-14 build (D-490) **`exclude`**, every node of the rung's `tree.exclude` entries, and, when
+     gear moved after D1-tree (a one-item swap, a revision, D1-finish's changes; the rung's `tree.end` reads
+     `endAfter: "swap"` or its `tree.search.targets` is set), **the targets after gear moved**: per figure the lower
+     of `tree.start` and this compile's figure for the rung (its `TotalEHP` and lowest max hit), a figure within 0.5
+     of its target meeting it; `stats: ["MainDamage", "TotalEHP"]`, with `cull: true` on a rung with `skills.cull` (D-437), so the gate
      ranks by the figure the design shows. The first call is **the swap search**, the second **the rebuild with
      repair** (`rebuild: true`); on a rung whose `tree.search.rebuild` is `undone: <why>`, the swap search alone.
      Step 3's compile loaded every rung. Each reply's `Travel: <T> of <P> points` line gives the rung's `travel`
@@ -212,7 +219,9 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
    - `trades[]` (D-439), the rung's entries of `<buildFolder>/trades.json`, copied as the file holds them (`[]`
      for none, and when the file is absent): D1-tree's `unmodelled` and `boss` and D1-finish's `boots`, `defence`,
      `damage` and `avoidance`, each with its `maxHit` and `hitsSurvived` in a build held to amendment 12 (D-450),
-     and its `bossEntries` and `nodes` in one held to amendment 13 (D-468). A gate that re-runs alone reads the
+     and its `bossEntries` and `nodes` in one held to amendment 13 (D-468); in one held to amendment 14 every entry
+     with its `price`, `from` and `to`, and the rung's `scaling` finds (D1-build's and D1-finish's, D-486), which the
+     display prints under Over budget, at most 3 a rung. A gate that re-runs alone reads the
      same file;
    - on the non-budget rung only: `toughness {engagement, reason, target, band}` (D-441), `engagement` and `reason`
      the plan's `n.skills.engagement`, `target` `toughness-targets.json`'s for that kind, and `band` the record's
@@ -244,6 +253,10 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
        the type: "the pool, armour or a physical shift" for `physical`, "the pool, armour, a physical shift or
        lightning resistance" for `physical-lightning`, else "the pool or <type> resistance" ("the pool or fire
        resistance"). The display adds PG-100's note itself when the record's `avoid.companionDeflected` is set.
+       **In a build held to amendment 14** (D-494), between the two: **`under`** when the plain EHP is under its band,
+       so under it in every condition, `type` the conditioned lowest max hit's, and the guide says the rung is under
+       its band always (never "only with every condition against it", which a plain EHP under its band makes false);
+       `conditioned` then fires only when the plain EHP is within or over its band and the conditioned EHP under it.
    - **amendment 13's tree search and boss target** (D-467, D-468, D-473), per rung, from the plan's `tree.start`,
      `tree.end` and `tree.search` (D1-tree's), copied, and this compile, so a `design:` resume prints them again:
      - in `boss`: `start` and `end`, `tree.start.boss` and `tree.end.boss`; `entries`, one per boss-rotation entry,
@@ -255,12 +268,31 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      - `life {start, end}`, `tree.start.life` and `tree.end.life` (Life isn't a target; the user's toughness
        reading is EHP and the lowest max hit, which the targets held);
      - `swapCap`, `{swaps, lastGain}` from `tree.search` when its `capHit` is true, else `null`;
-     - `rebuild`, `tree.search.rebuild` as written (`taken`, `none` or `undone: <why>`);
+     - `rebuild`, `tree.search.rebuild` as written (`taken`, `none` or `undone: <why>`; in a build held to amendment
+       14 also `none: <the tool's reason>`, D-490, which the display prints as the rebuild not taken);
      - `removedForOthers`, `tree.search.removed` as written, `[{names, skill}]`;
      - `levels`, `[{skill, plus: 0}]` for each damage skill `pieces.md`'s `## Skill levels` leaves at +0 on the
        rung, `[]` for none (and on `m`, which the audit doesn't cover).
 
-     The draft's name isn't in the field: its one home is the run log's `builds[].draftFile` (the draft, below).
+     In a build held to amendment 13 the draft's name isn't in the field: its one home is the run log's
+     `builds[].draftFile` (the draft, below). From amendment 14 the verdict also keeps it, as `draft` (D-479).
+
+   Then, in a build held to amendment 14, **`summary`** (D-478), once for the build, after the rungs: `summary {how,
+   gear: [{stage, slot, text}], catch}`, the design display's prose (the display prints the PoB file, then `how`,
+   each rung's table, `gear` lines and Over budget lines, then `catch`; none of the measurement lines), written from
+   the plan, the card and the record. A design field written under 14's rules without it, or over a cap, fails the
+   run checker's `design-field`:
+   - `how`, at most 400 characters: up to three sentences on how the build plays and why it works;
+   - `gear`, one entry per gear slot of `b` and `n` (`m` shows two lines and no gear), each `text` at most 120
+     characters: a unique by name, with its corruption, sockets or price where it matters ("Blistering Bond, under 1
+     div: corrupt copies until one rolls 25% increased damage"); a rare by its base and key affixes ("rare Iron
+     Greaves, movement speed, life, fire resistance", D-489), never a generated name, with `another source of …`
+     when the spec loop dropped an affix for its price; a boots exception with its movement figure (D-491: the
+     regular figure, never with a skill's use penalty folded in);
+   - `catch`, at most 300 characters: up to two sentences, with any unconfirmed point and its fallback,
+     `unconfirmed (<what>; if it fails: <the fallback and its cost>)` (D-489), never a suggestion to try it out on a character.
+
+   After a one-item swap (D-481) you rewrite the swapped slot's `gear` line and any sentence that names the old item.
 
    Then `estimates[]`, one short line per open estimate the display rests on: a group's Count, a custom
    modifier, a ledger hand calculation (a `boss_<stage>` estimate among them), an `unverified` budget, the rough
@@ -280,7 +312,8 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
    floor, rolledSkill and tree pass, the budget `pass` or `unverified`, and not the re-price pass (F1 runs after
    it, with no design gate) nor FI-3. Once the verdict file is written, call `mcp__pob2__compile_plan {plan_path:
    "<plan>", draft_name: "<the build's session name>"}`: its `name` in `run-log.json`'s `builds[]`, else its
-   card's name. It runs no engine: the server copies step 3's whole-plan `compiled-build.xml` into the builds
+   card's name. In a revision-14 run, then write its path into the verdict file as `draft: <relpath>` (`null` when the
+   write was refused, D-479), so the design display prints the PoB file first even after a resume. It runs no engine: the server copies step 3's whole-plan `compiled-build.xml` into the builds
    folder as `<name> (draft).xml`, the name cleaned (`(draft 2)` beside a draft the user changed), so the user can
    open the design in PoB before deciding; a `revise:` that passes again overwrites it. Its reply's first line is
    `Draft written: <relpath>`: return it as `draft: <relpath>`, which the runner records in `builds[].draftFile`.
@@ -340,10 +373,13 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
         "trades": [ { "stage": "b", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Sure Footing)",
                       "ehpChange": 5, "damageChange": -7, "bossAfter": 112500,
                       "reason": "the same 20 points on the best EHP nodes: +12% EHP, hits survived 82%",
-                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 88.3 }, "bossEntries": null, "nodes": null },
+                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 88.3 }, "bossEntries": null, "nodes": null,
+                      "price": null, "from": null, "to": null },
                     { "stage": "b", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
                       "ehpChange": 1, "damageChange": 0, "bossAfter": 121000, "reason": "in place of the helmet's least valuable line",
-                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 84.1 }, "bossEntries": null, "nodes": null } ] },
+                      "maxHit": null, "hitsSurvived": { "before": 82, "after": 84.1 }, "bossEntries": null, "nodes": null,
+                      "price": { "amount": 2, "currency": "divine", "count": 21, "date": "2026-10-15" },
+                      "from": "Soldier Greathelm: life, cold resistance, stun threshold", "to": "Soldier Greathelm: life, cold resistance, deflection rating" } ] },
       { "stage": "n", "dps": 240100, "ehp": 17900, "ehpHit": "T16 map hits, area 82: 439 physical",
         "arbiter": "one-shot, worst physical 1.01",
         "maxHit": { "lowest": { "type": "physical", "value": 3451 }, "immune": [],
@@ -365,31 +401,45 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
         "trades": [ { "stage": "n", "kind": "defence", "what": "a rare body with +90 life in place of its cold resistance line",
                       "ehpChange": 6, "damageChange": 0, "bossAfter": 180000, "reason": "one-shot by the Arbiter's physical hit",
                       "maxHit": { "type": "physical", "before": 3451, "after": 3520 }, "hitsSurvived": { "before": 79.6, "after": 100 },
-                      "bossEntries": null, "nodes": null },
+                      "bossEntries": null, "nodes": null, "price": { "amount": 3, "currency": "divine", "count": 14, "date": "2026-10-15" },
+                      "from": "Vaal Cuirass: armour, fire resistance, cold resistance", "to": "Vaal Cuirass: armour, fire resistance, life" },
                     { "stage": "n", "kind": "defence", "what": "12 points into deflection (Freedom of Movement, Agile Succession)",
                       "ehpChange": 4, "damageChange": -3, "bossAfter": 172800, "reason": "one-shot by the Arbiter's physical hit",
                       "maxHit": { "type": "physical", "before": 3451, "after": 3451 }, "hitsSurvived": { "before": 79.6, "after": 84.2 },
-                      "bossEntries": null, "nodes": null },
+                      "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null },
                     { "stage": "n", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Agile Succession, Sure Footing)",
                       "ehpChange": 6, "damageChange": -8, "bossAfter": 165600,
                       "reason": "the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%",
-                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 90.1 }, "bossEntries": null, "nodes": null },
+                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 90.1 }, "bossEntries": null, "nodes": null,
+                      "price": null, "from": null, "to": null },
                     { "stage": "n", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
                       "ehpChange": 1, "damageChange": 0, "bossAfter": 180000, "reason": "in place of the helmet's least valuable line",
-                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 82.4 }, "bossEntries": null, "nodes": null },
+                      "maxHit": null, "hitsSurvived": { "before": 79.6, "after": 82.4 }, "bossEntries": null, "nodes": null,
+                      "price": { "amount": 2, "currency": "divine", "count": 21, "date": "2026-10-15" },
+                      "from": "Soldier Greathelm: life, cold resistance, stun threshold", "to": "Soldier Greathelm: life, cold resistance, deflection rating" },
                     { "stage": "n", "kind": "damage", "what": "moving 4 points from Bone Breaker to Vicious Bite",
                       "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor",
                       "maxHit": { "type": "physical", "before": 3451, "after": 3451 }, "hitsSurvived": null,
-                      "bossEntries": null, "nodes": null } ],
+                      "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null },
+                    { "stage": "n", "kind": "scaling", "slot": "Jewel 26725", "from": "Ruby: cold damage, crit damage, cast speed, damage against rares",
+                      "to": "Ruby: cold damage, crit damage, cast speed", "price": { "amount": 30, "currency": "divine", "count": 11, "date": "2026-10-15" },
+                      "damage": 2.1, "ehp": 0, "measured": true, "repriced": false, "by": "D1-finish" } ],
         "toughness": { "engagement": "distance", "reason": "Twister flies across the screen", "target": 15000, "band": "within",
                        "chanceShare": 51, "conditioned": { "ehp": 10900, "band": "under" }, "ailmentCut": 34,
                        "warning": { "kind": "one-shot", "type": "physical", "fix": "the pool, armour or a physical shift" } } }
     ],
-    "estimates": [ "b: clear speed is a rough estimate from the skill's area" ]
+    "estimates": [ "b: clear speed is a rough estimate from the skill's area" ],
+    "summary": { "how": "Twister throws spinning blades that shred packs from across the screen while Rupture bursts the bleeding ones. Herald of Blood's explosions chain the clear, and Hammer of the Gods is the boss button.",
+                 "gear": [ { "stage": "b", "slot": "Body Armour", "text": "Sekhema's Resolve" },
+                           { "stage": "b", "slot": "Boots", "text": "rare Iron Greaves, movement speed, life, fire resistance" },
+                           { "stage": "n", "slot": "Weapon 1", "text": "rare War Spear, physical damage, attack speed" },
+                           { "stage": "n", "slot": "Boots", "text": "rare Iron Greaves, movement speed, life, fire resistance" } ],
+                 "catch": "The Arbiter's physical slam one-shoots n unless a deflection holds it; unconfirmed (the deflected share on that slam; if it fails: a rare body with +90 life, about 3 divines)." }
   },
   "planSha1": "4f0c3b9e1d2a7c6b5e8f9a0b1c2d3e4f5a6b7c8d",
   "recordPath": "builds/r1-a-2/compile-record.json",
-  "faultsApplied": []
+  "faultsApplied": [],
+  "draft": "Twister Deadeye (draft).xml"
 }
 ```
 

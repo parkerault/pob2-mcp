@@ -18,7 +18,8 @@ request (D-411, D-413).
   (`<runFolderRel>/plan.json` when `buildFolder` is `.`). The cards, the dossier and `run-log.json` are at the run
   folder's root.
 - **Header:** `stage: "D1-build"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
-  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]`, `accepted`
+  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/pieces.md"]` (in a revision-14 run
+  also `"<buildFolder>/trades.json"`, for your `scaling` finds only, D-486), `accepted`
   (findings the user accepted at an escalation; they need no fix), and `findings`:
   - on a D1 gate retry, the earlier verdict file and its findings (`{part, code, stage, message}`): fix what
     each failing one names (an `over-target`, `chaos-exception` or `boots-exception` finding is information:
@@ -31,7 +32,14 @@ request (D-411, D-413).
     which you follow;
   - the user's requests (`code: "user-request"`), which you make: on attempt 1, a revision that rode on the
     card the verification gate finalized (D-391); the design gate's `revise:<text>`; a final-gate revision. A
-    passive node the user asks for is a need (step 5);
+    passive node the user asks for is a need (step 5). **The user's words stay literal** (D-482): in a revision-14 run
+    each request carries its `id` and `words`, the user's text verbatim (for a read-back, `readback.json`'s changes),
+    beside any restatement. Make what the words say and nothing they don't: a condition stays a condition ("if it's
+    not a crit build, it doesn't need the crit damage suffix" goes as written, never as "say what goes in that suffix
+    instead"), and no "may" or "where it earns" widens it. An item the user edited in a PoB file is taken literally,
+    its lines as written (D-479). Return one line per request, `request: <id> made` or `request: <id> departs:
+    <how>`, outside your 8 lines (Returns): the runner stops at the first `departs`, or at an item, a price or a
+    latitude the request didn't name, and asks the user before the next step;
   - D1-finish's `build: corruption <stage> <slot>` (D-471): that unique priced at or over the cheap line
     uncorrupted, so drop its corrupted line;
   - in the fix round, the V4 findings D1-finish handed on as build changes (`{id, artifact, location, claim,
@@ -56,7 +64,9 @@ request (D-411, D-413).
     no campaign stage, `data/campaign/progress.json`'s reward choices (step 7);
   - `run-log.json`, at the run folder's root: is pricing stopped (D-444)? A `pricing.stops[]` entry with no
     `retry-pricing` answer in `pricing.retries[]` and no resume (`resumes[].lengths.stages`) after it
-    (`references/run-log.md`, "Pricing stops"): then no trade-site request until a gate's `retry-pricing`;
+    (`references/run-log.md`, "Pricing stops"): then no trade-site request until a gate's `retry-pricing`. And its
+    `skillRevision`: at 14 (amendment 14, §25) the plan goes to schema 10 (step 1) and the spec loop prices the rares
+    (step 6);
   - `.claude/skills/build-guide/references/toughness-targets.json` (D-441), the non-budget rung's toughness targets,
     and its `arbiter.hitsSurvivedFloor` (0.8, D-449): a rung isn't one-shot by an Arbiter hit when it survives the
     full hit or at least 80% of those hits, evading or deflecting them;
@@ -75,7 +85,12 @@ request (D-411, D-413).
    wrote and everything D1-tree and D1-finish wrote that your change doesn't touch. **A plan at an earlier version
    goes to 9 whenever you edit it** (D-452, amendment 13 §22): write `schemaVersion: 9`, drop every stage's `respec`
    (a plan at 8 or later refuses it), add `defence` on `n` (step 8), drop every attribute need (step 5), and give
-   each custom modifier a one-line reason (step 4); the older versions' fields stay.
+   each custom modifier a one-line reason (step 4); the older versions' fields stay. **In a revision-14 run**
+   (`run-log.json`'s `skillRevision` 14), write `schemaVersion: 10` instead, and a plan at 9 or earlier goes to 10
+   whenever you edit it (amendment 14 §25; `plan-reference.md`, "Items as specs, the one-item swap and the tree
+   search's repairs"): schema 10 adds a price's `listing` and `spec`, `tree.exclude`, `tree.search.targets` and
+   `userMoves`, `tree.end.endAfter`, the plan's `itemSwaps` and an ascendancy jewel socket. A step that would write one
+   of them into a schema-9 plan (a swap, D1-tree's targets, D1-finish's `listing`, after a resume) runs you first.
    - **Temporary stages** (D-453): every measuring copy you add, here or in any D1 step, has an id that starts
      `tmp`, then letters and digits like every stage id (`tmpb1`, `tmpn2`); no stage counts it as its
      predecessor. Remove each before you finish, and when you start, remove any `tmp` stage a crashed step left in
@@ -182,6 +197,19 @@ request (D-411, D-413).
      before the one that paths through it, the one the build needs first earliest; `b` and `n` keep that order
      for the nodes they share and add theirs after. D1-finish's claim names them in that order, which the guide
      gives the reader.
+   - **An ascendancy jewel socket** (D-492): an ascendancy notable whose node holds a jewel socket (Crystalline
+     Phylactery, 17788, the Lich's and the Abyssal Lich's) is valued by a **socket test**: a temporary stage that
+     copies the rung with the node in `tree.ascendancyNodes` in place of the notable it displaces, and a basic jewel
+     (a rare Ruby, Emerald or Sapphire with the build's lines; never a unique or a jewel with a subtype, which PoB
+     refuses there, so nothing compiles) in it, `items.treeJewels {node: 17788, text}` (schema 10), compiled
+     measure-only with the rung against the rung as it is. Take the socket when it measures better. The bridge
+     corrects PoB's partial parse of the node's line (PG-103), so the jewel's lines count at their doubled effect;
+     V1's `ascendancy-jewel` names any other base there. Node power never ranks or swaps ascendancy notables (C-55),
+     so this test is the node's only measure.
+   - **A piece left out unmeasured** (D-489): an ascendancy notable you don't measure, or a piece PoB can't measure,
+     that the design leaves out is never left out untold (Crystalline Phylactery went out untold once): its
+     `pieces.md` row is `out`, its Why `unmeasured (estimate: <your estimate of what it would give>): <why it's out>`
+     (Writes), and D1-tree writes its `unmodelled` trade line from that row, which the design gate shows.
 4. **Skills** (D-120, D-122, D-148, D-217, D-295). The card's named damage source is the plan's
    `roll.skill` (D-286).
    - **The build's named damage source is the main source of damage, never a token role.** (D-122, as D-295
@@ -288,7 +316,12 @@ request (D-411, D-413).
      (`countedSkillOutputs`) and marks every figure of a stage with a custom modifier
      (`computedWithCustomMods`), and the guide lists each with its reason. **After setting Count** on a group
      whose skill reserves once per copy, on totems under Ancestral Bond, or on a group whose Umbral Well buffs
-     it scales, check the stage's reservation and those buffs in the record: Count multiplies them too.
+     it scales, check the stage's reservation and those buffs in the record: Count multiplies them too. **The
+     compile writes PoB's count on every counted group** (D-493), not only the named source's (which alone keeps
+     `includeInFullDPS`): a counted group that isn't the named source now reserves its Spirit × its count (the
+     skeleton summons and Summon Spectre, PoB's `MultipleReservation`; totems under Ancestral Bond), takes Umbral
+     Well's buff per copy, and ranks at its count in node power's `pool_groups`, so V1's Spirit warning may fire on a
+     plan that passed before. It is right: fix the Spirit, never the count.
    - **Weapon sets** (D-426). Build the card's `Weapon sets:` line into each rung: set 2's passives in
      `tree.weaponSetNodes.set2` (set 1's own in `set1`), set 2's weapons in `Weapon 1 Swap` and `Weapon 2 Swap`,
      and `items.useSecondWeaponSet` `false`, so the stage's own measure is set 1's. **A pinned weapon** (D-464,
@@ -344,7 +377,17 @@ request (D-411, D-413).
 
      **No attribute need** (D-467): node power's attribute guard keeps PoB's own `ReqStr`, `ReqDex` and `ReqInt` on
      every move, and V1's `attributes` holds them at the compile, so an attribute node is never a need; drop any
-     attribute need a plan you edit carries.
+     attribute need a plan you edit carries. Node power also repairs a rebuild's or a swap's attributes itself (D-490:
+     it re-points the move's added attribute nodes, then adds attribute nodes for the largest shortfall), and a move it
+     can't repair is illegal: still no attribute need.
+   - **The exclude list** (D-490, schema 10): `tree.exclude [{nodes, reason}]` on each rung, from your "out" decisions
+     about nodes node power can't judge: a node the build leaves out for a reason PoB's figures don't see (Mind Over
+     Matter on a build that keeps its mana for its skills), or one whose cost PoB drops (Event Horizon's "Lose 3% of
+     maximum Life and Energy Shield when you use a Chaos Skill", parsed partly and dropped, PG-104), each entry with
+     its reason. D1-tree and the D1 gate pass the rung's list to node power as `exclude`, so no rebuild, swap, repair
+     or refill adds an excluded node or paths through one. Exclude only a node the rung doesn't allocate (the tool
+     refuses the call when one is allocated, naming it). D1-tree may add an entry, with its reason, which the audit
+     shows.
    - **The tree's shape** (D-360, as the coordinator's ruling D-364 states it), on every stage:
      - a tree is a connected group of allocated nodes, the class start not counted;
      - a start holds at most one tree, so a loop through two exits of one start is one tree, and legal;
@@ -362,13 +405,30 @@ request (D-411, D-413).
    Leave `mcp__pob2__get_node_power` to D1-tree.
 6. **Items.** Every slot the variant uses (`Weapon 1` first) and every tree jewel, and the flasks (below). `b`
    and `n` wear an amulet: D1-finish anoints it (D-358), and leaves `m` without an anoint. A
-   unique's text comes from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`. A rare is an
-   affix target: realistic rolls a buyer finds on trade around its target; nothing is crafted, and no
-   item-base or mod-tier search serves crafting (D-348). When an affix can't roll on every base of its slot
+   unique's text comes from `mcp__pob2__lookup_game_data {mode: "unique", query: <exact name>}`. A rare is a
+   **spec** in a revision-14 run (D-483, "Rares as specs" below): its must-haves at their tiers' lowest rolls, its
+   base's implicits and its runes in its sockets, and nothing else (before revision 14, an affix target: realistic
+   rolls a buyer finds on trade around its target). Nothing is crafted, and no item-base or mod-tier search serves
+   crafting (D-348). When an affix can't roll on every base of its slot
    (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`: each `[mod]`
    hit's `Base types:` lists the bases that can roll it), fit the slot's item to that base. An off-hand made
    legal only by Giant's Blood, Instruments of Power or Lord of the Wilds needs that node or item in the same
    stage.
+   - **A rare is titled by its key affixes** (D-489): its name line, the line after `Rarity: Rare`, is its key
+     affixes, `+2 spell levels, Spirit, chaos resistance` (PoB shows `<title>, <base>`), each comma-separated part
+     naming one of its explicit lines; never a generated name ("Relay Rod" means nothing to the user). The run
+     checker's `rare-title` fails a part that names none of its lines. Everything the user reads (the design field,
+     the trades, the gate's answers, the guide, the notes) names a rare by its base and key affixes.
+   - **Sockets and caps** (D-485), which V1 checks at your own compile, before D1-tree measures: a rare holds its
+     base's standard rune sockets, `data/items/sockets.json` (body armours and two-handers 2; other armour, shields,
+     foci and one-handers 1; amulets, rings, belts and quivers 0; Corona Amulet, Grasping Ring and Stalking Belt 1),
+     and never the Exceptional base's extra; a unique its data's `Sockets:` line, else its base's count, and one more
+     only when `Corrupted` (below). The base lookup prints `Sockets: 2 (PoB's ceiling 4 counts Exceptional and
+     corruption)`: the first number is the count, never the ceiling. V1's `sockets` names more sockets than that, a
+     rune line past the sockets, or runes on an item with no `Sockets:` line (which PoB drops). V1's `affix-cap` names
+     an explicit line over the best its base can roll at the rung's item level (69 on `m`, 82 on `b` and `n`; a
+     campaign stage's area level), summed over the mod groups that write it, within 3 prefixes and 3 suffixes (2 and
+     2 on a rare jewel): fix either like any finding.
    - **Flasks and charms** (D-472), on `m`, `b` and `n`: `Flask 1` a life flask and `Flask 2` a mana flask, plain
      normal items of the best base the rung's level allows (Ultimate Life Flask and Ultimate Mana Flask from level
      60); no mana flask on a build that spends no mana (Blood Magic), with a `reason` claim saying so (D1-finish
@@ -393,13 +453,20 @@ request (D-411, D-413).
      support gem). **Never on a rare** (a corrupted rare cuts the trade supply by an order of magnitude or more),
      nor on a magic or normal item, jewels among them; a cheap unique jewel follows the unique rule. A unique that
      always drops corrupted (Split Personality) is the item as it drops: no rule. D1-finish prices it uncorrupted.
+     **A unique that isn't cheap** (D-484, the user's ruling of 2026-11-02) may be bought corrupted **with an extra
+     socket** when that corrupted copy is in budget: its `Corrupted` line and one socket more than its own (its
+     `Sockets:` line), priced as that copy. Its corruption implicits never enter `m`, `b` or `n`; one may be a find over
+     the budget (below). A bare `Corrupted` line goes only on a unique PoB's data marks always corrupted, a cheap
+     unique, or one with the extra socket (the run checker's `corruption`).
    - **Unique jewels** (D-473), on `b` and `n`: propose candidates by lookup (`mcp__pob2__lookup_game_data {mode:
      "unique"}`) for D1-tree's socket test, which measures them beside the rare jewel: Heart of the Well rolling the
      build's extra-damage element, a Time-Lost jewel with radius lines, Prism of Belief for a skill the build uses,
      From Nothing for a keystone's radius, Megalomaniac by what it allocates. No timeless jewel (PoB doesn't read
      its seed, PG-102). Write them in `pieces.md`'s `## Unique jewels` (Writes).
    - **Required affixes and targets** (D-370, D-372). For each rare gear slot and rare tree jewel of `b` and
-     `n`, write its `prices[]` entry for D1-finish to price with PoB2's weighted trade search:
+     `n`, write its `prices[]` entry: in a revision-14 run priced by you, by the spec loop below, with its `listing`
+     and `spec` (`references/pricing.md`, "Recording a price"); in an older run, for D1-finish to price with PoB2's
+     weighted trade search:
      `{"id": "b-helmet", "item": "<a short description>", "query": {"slot": …, "required": […], "target": {…}},
      "amount": null, "currency": null, "date": "<the run folder's date>", "league": <the plan's league>,
      "status": "unavailable", "note": "not priced yet"}` (offline, `"note": "offline run"`, which a null league
@@ -407,22 +474,86 @@ request (D-411, D-413).
      entry again this way.
      - `slot`: the slot as `mcp__pob2__find_upgrades` names it (`Helmet`, `Ring 1`, `Jewel <node id>` for a
        tree jewel).
-     - `required`: the slot's **required affixes**, at most 3, each `{"affix": "+# to maximum Life", "min":
-       60}`: what the slot can't do without, such as the build's damage type, a resistance the floor needs, or
-       skill levels. They become the trade search's AND group, and PoB's weights value the item's other
-       affixes. An affix PoB can't value (one it doesn't parse) is always required.
+     - `required` (an older run's): the slot's **required affixes**, at most 3, each `{"affix": "+# to maximum
+       Life", "min": 60}`: what the slot can't do without, such as the build's damage type, a resistance the floor
+       needs, or skill levels. They become the trade search's AND group, and PoB's weights value the item's other
+       affixes. An affix PoB can't value (one it doesn't parse) is always required. In a revision-14 run the spec's
+       must-haves take their place.
      - `target`: on `b`, `{"divines": 5, "day": 7}`. On `n`, `{"divines": <its share>, "day": 21}`: by default
        150 divines shared evenly over `n`'s rare slots and rare tree jewels. A slot that carries the build (a
        weapon, a skill-levels amulet) may take more, with `"reason"` saying why; `n`'s targets together are at
        most 200. D1-tree adds the jewels its socket tests take (D-453), and D1-finish re-splits `n`'s default
        share over them before pricing.
-     A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371).
+     A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371). A
+     rare's affixes aren't pieces: the spec loop sets their tiers, and drops the least important, for the rare's
+     price (D-483, which supersedes D-371's "an over-target slot keeps its designed item" for rares).
+   - **Rares as specs: the spec loop** (D-483, revision 14; `references/pricing.md`, "A rare of `b` or `n`", has
+     each call whole). For each rare gear slot of `b` and `n`, as you design it, so D1-tree measures items the
+     budget buys. The rung's item level is 69 on `m` and 82 on `b` and `n`; an affix's best tier allowed is the best
+     its base rolls at that level, its floor two tiers under it (T3 when T1 is allowed).
+     1. **Rank**: after a measure-only compile with the slot's base in the slot and the rung's loadout selected,
+        `mcp__pob2__find_upgrades {slot, link_only: true, sort_stats: <the build's weights>,
+        weight_corrupted_mods: false, league}` sends no request and returns PoB's ranking of the slot's affixes,
+        each with its weight per point. **The build's weights**: `FullDPS` 1 and `TotalEHP` 0.5, plus what the build
+        needs from PoB's stat list (`Spirit` for its reservations, `ManaRegen` for its sustain, `Str`, `Dex` or `Int`
+        for a requirement, `EffectiveMovementSpeedMod` on boots), each with a one-line `why`.
+     2. **The base's tiers by lookup**: `mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>,
+        kind: "mod"}` for each ranked affix: drop an affix the base can't roll (its `Base types:`), and read each
+        tier's item level and range (`    T<n> (item level <l>): <range>`): the best tier allowed, the floor, each
+        tier's lowest roll. PoB's top 4 are the first four the base can roll.
+     3. **The must-haves**: 3 or 4 from the top of the ranking, plus what PoB scores at zero but the build needs (an
+        effect PoB doesn't model, a requirement, the boots' movement speed), `zeroScored: true`, within 3 prefixes
+        and 3 suffixes (2 and 2 on a rare jewel). One outside PoB's top 4 carries its `why`; each of the top 4 you
+        leave out goes in `leftOut` with its `why`. **A must-have PoB scores at zero is always required**, never
+        lowered or dropped for its importance. Order them most important first, a zero-scored one first (the trade
+        link requires the first three, D-488). Importance is the loss of one tier step, the weight per point × (this
+        tier's lowest roll − the next tier's), with no compile.
+     4. **`n` first, at T1**: `n`'s must-haves at their best tier allowed, and a **depth check**,
+        `mcp__pob2__search_trade_items` with them as `mods` at their tiers' lowest rolls, `corrupted: false`, the
+        base's standard rune sockets and `limit: 10`: with at least 10 found and the 5th cheapest within `n`'s
+        target, that is its price; `b` takes it too when its must-haves are the same and it fits `b`'s target.
+     5. **The budget search** (`b`, and `n` when its check fails): `mcp__pob2__find_upgrades` with the 3 most
+        important must-haves at their floor tiers' lowest rolls as `required_mods`, the weights, `include_non_upgrades:
+        true`, `max_price` the target, `rune_behaviour: "remove"`: each listing names its must-haves' tiers, and each
+        must-have takes the best tier at which at least 5 listings meet them all. Then **the depth check** at that
+        mix prices the slot.
+     6. **Over the target or thin** (under 10 found): lower the least important must-have a tier (never under its
+        floor, never a zero-scored one), check again; at the floors, drop the least important, recorded in the spec's
+        `leftOut` as `dropped for its price; another source of <stat>: <where>` (another slot, the tree, a unique),
+        which you take or the gate shows. **At most 5 trade searches a slot**, the budget search counting as 2; past
+        it, move the stat to another source, else the entry is `unavailable`, `note` `thin: <count>`.
+     7. **The compiled rare** holds each must-have at its tier's lowest roll, the tier the loop ended at, so every
+        listing found meets the PoB file's figures, with its base's implicit lines and its runes in its sockets, and
+        nothing else, titled by its key affixes.
+     When the loop can't run (offline, a pricing stop, no session cookie, `--no-ninja`), `references/pricing.md`
+     says what it does instead: offline the spec's `ranking` is `null`, the must-haves are yours with their reasons,
+     and the rares compile at their floor tiers' lowest rolls. `m`'s rares are specs too, their must-haves at their
+     floor tiers' lowest rolls, priced by D1-finish's depth check, with no `spec` field. Never write a listing's lines
+     into the plan.
+   - **Finds over the budget** (D-486). When the loop leaves a dearer spec out (the one it started from, before a tier
+     was lowered or an affix dropped) and it gains anything, or a choice of yours leaves a dearer item out for its
+     price (a unique, a better base, a non-cheap unique's corruption implicit), write it to
+     `<buildFolder>/trades.json` as a `scaling` find: `{stage, kind: "scaling", slot, from: <the dear item>, to: <the
+     item kept>, price: {amount, currency, count, date} | null, damage, ehp, measured, repriced: false, by:
+     "D1-build"}`, `from` and `to` by unique name or base and key affixes, `damage` and `ehp` in percent against the
+     rung (your estimate with `measured: false`, or measured on a temporary stage, `measured: true`), `price` the
+     dearer spec's depth price when the loop saw it, else `null`. Write the file whole: every other entry as it is
+     (D1-tree's and D1-finish's kinds, and D1-finish's `scaling` finds, `by: "D1-finish"`), yours in place of your
+     old ones; every other kind's entry carries `price`, `from` and `to` too, `null` where they don't apply. The
+     design gate shows the largest 3 a rung under Over budget; D1-finish measures and re-prices them.
+
+     ```json
+     {"stage": "n", "kind": "scaling", "slot": "Amulet", "from": "Solar Amulet: +3 spell levels, Spirit, cast speed",
+      "to": "Solar Amulet: +2 spell levels, Spirit, cast speed", "price": {"amount": 140, "currency": "divine",
+      "count": 12, "date": "2026-10-15"}, "damage": 9, "ehp": 0, "measured": false, "repriced": false, "by": "D1-build"}
+     ```
    - **Boots carry the best movement speed for the level** (D-440). The user (2026-10-25): "Any build should
      always be using the highest movement speed tier for that level. 30% on entering maps, 35% on budget and
      non-budget." The tier per rung: **30% on `m`, 35% on `b` and `n`** (the boots tiers, `Data/ModItem.lua`:
      30% from item level 65, 35% from 82); a corruption's extra is never required. `b`'s and `n`'s rare boots
      name the tier's movement speed in `query.required` (`{"affix": "#% increased Movement Speed", "min": 35}`, one
-     of the 3), and D1-finish prices `m`'s boots with it among `mods`. Boots under the tier are V1's
+     of the 3; in a revision-14 run a must-have of the spec, held at the tier and never lowered or dropped, as a
+     zero-scored one is), and D1-finish prices `m`'s boots with it among `mods`. Boots under the tier are V1's
      `movement-tier` finding, unless the stage carries `items.bootsException {kind, reason}` (schema 7), and
      only then: `kind: "travel"` when the build moves with its travel skill (the record's
      `measures.clearSpeed.travel`), `reason` naming the affix the boots slot gains in place of the speed; `kind:
@@ -435,7 +566,11 @@ request (D-411, D-413).
      loadout selected) while pricing isn't stopped, one call at a time (`references/pricing.md`, "Pace"): count
      its calls by outcome for your return, which the runner logs as your `priceOutcomes`. Never while pricing is
      stopped (Read, above); offline, never. Never judge a weapon by a listing's DPS (D-456): D1-finish re-checks
-     weapons on the build's own figure.
+     weapons on the build's own figure. In a revision-14 run the spec loop's calls are your gear searches, its depth
+     checks (`mcp__pob2__search_trade_items`) counted with them, and the runner's pricing notice counts their trade
+     searches before you start; `link_only` sends no request and isn't counted, so it stays allowed while pricing is
+     stopped. **Weapons by compile** (D-456, D-483): compare weapon specs, never listings, each on a temporary stage
+     on the build's own figure, and run the loop on the one that measures best.
 7. **Config** (C-32, D-114; `config.earned` and `config.scenario`).
    - **Earned state**, `{option, value, producer, uptime}`: every stack, charge, buff or condition the
      numbers rely on, with the producer present in the stage (V2 checks it) and an honest uptime. Every
@@ -571,8 +706,9 @@ never write it anew.
 
 ## Writes
 
-`<buildFolder>/plan.json` and `<buildFolder>/pieces.md` (D-434), nothing else. The server writes the record and
-the XML beside the plan.
+`<buildFolder>/plan.json` and `<buildFolder>/pieces.md` (D-434), nothing else, but in a revision-14 run your
+`scaling` finds in `<buildFolder>/trades.json` (D-486, step 6), the file written whole with every other entry as it
+is. The server writes the record and the XML beside the plan.
 
 **`pieces.md`**, the build's pieces as designed: written whole on attempt 1 of a fresh design (one already in the
 build's folder belongs to an earlier design and is replaced), edited after. No round copy takes it, and the
@@ -592,6 +728,7 @@ writes (D-453) and you leave as it is.
 | cr1-b-2-3 | Zerphi's Infamy | support | in | group 1 | the cries' life cost makes its Glory | r1-b-2 |
 | cr1-a-3-2 | Hammer of the Gods | skill | scheduled | weaponSet 1, single_target | boss button | r1-a-3 |
 | i1a-7 | Elemental Focus | support | out | — | forbids the ignite and bleeding layers | i1a-7 |
+| cr1-a-1-4 | Jade Heritage | ascendancy notable | out | — | unmeasured (estimate: about +6% EHP, no damage): Encase in Jade is a button the slam rotation can't spare | design |
 
 ## Searched
 
@@ -617,7 +754,8 @@ writes (D-453) and you leave as it is.
   from the table's largest such key, else from 1), its From `design`. Where is the plan's place (a slot, `group
   <n>`, `weaponSet <n>`, or `tree` for a node or keystone); Why is required for
   `scheduled` and `out`, and for a piece you measured gives its drops as the card's Pieces measured writes them,
-  `<group> (<clear | per corpse | boss>) −<x>%`, for D1-finish's claim.
+  `<group> (<clear | per corpse | boss>) −<x>%`, for D1-finish's claim. A piece left out unmeasured (D-489, step
+  3) reads `unmeasured (estimate: <the estimate>): <why it's out>`, which D1-tree turns into its `unmodelled` trade.
 - **`## Searched`:** one line per question asked again, `- Q<n> after <the change>: searched <what>; found
   <result>`, the line answering question 19, a `Q2` line for each search the wall rule made (step 3) and each
   `- stronger structure: <the means>: <why>` you return; `None.` when no question was asked again.
@@ -639,7 +777,9 @@ line (step 4); with findings, the
 finding ids you fixed and the locations you changed (`plan.json stages[3].items`); for D1-tree, which runs after
 you, one line `for D1-tree:` with each rung's floor (`floor holds on m, b, n`, or the rungs where it fails) and its
 needs counted (`needs m 3, b 3, n 2`); and one line `pieces: <n> in, <n> scheduled, <n> out`, `pieces.md`'s rows
-counted by Status (D-434).
+counted by Status (D-434). Then, outside the 8 lines, one line per user request your header carried (D-482):
+`request: <id> made`, or `request: <id> departs: <how>` when you made something other than its words say (the runner
+stops there and asks the user).
 
 ```
 D1-build r1-a-2 attempt 1: done
@@ -655,6 +795,16 @@ compiles: 1
 fixed: v4-1-3
 changed: plan.json stages[6].items, plan.json stages[6].tree
 pieces: 5 in, 0 scheduled, 1 out
+```
+
+```
+D1-build r1-a-2 attempt 2: done
+compiles: 3
+prices: ok 9, exchange 2
+changed: plan.json stages[5].items, plan.json stages[6].items
+pieces: 5 in, 0 scheduled, 2 out
+request: u1 made
+request: u2 departs: under 10 staffs with +3 spell levels list within 5 divines, so the spec holds +2
 ```
 
 ## Fault directives

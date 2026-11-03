@@ -27,17 +27,29 @@ path.
     change is to the tree alone, a respec the user asks for among them (D-452), or the `boss` trade the user takes
     (D-468): make them first (step 2);
   - on a guided retry after an escalation, the escalated verdict's findings, then the user's guidance (`code:
-    "user-guidance"`), which you follow as a request.
+    "user-guidance"`), which you follow as a request;
+  - in a revision-14 run, each user request with its `id` and `words`, the user's text verbatim (for a read-back of a
+    tree change, `readback.json`'s changes) beside any restatement (D-482): make what the words say and nothing more,
+    and return one `request:` line per request (Returns).
+- **No trade call** (D-490): you price nothing and call no tool that searches the trade site or prices an item
+  (`mcp__pob2__get_leagues`, `mcp__pob2__get_item_price`, `mcp__pob2__search_trade_items`,
+  `mcp__pob2__search_stats`, `mcp__pob2__find_upgrades`, `link_only` included): a jewel you take is priced by
+  D1-finish. A brief that tells you how to price is the runner's mistake: price nothing. Your stage entry's
+  `priceOutcomes`, when the runner logs one, counts none, and the run checker fails a non-zero count.
 - **Prompt:** D1-build's `for D1-tree:` line, when it ran before you: each rung's floor and needs. Your first
   compile confirms it.
 - **Read**, the independent calls in one response: each rung through `mcp__pob2__guide_run {view: {plan:
   "<plan>", stage: "<id>"}}` for `m`, `b` and `n`, batched (its `tree`: `nodes`, `ascendancyNodes`,
   `weaponSetNodes`, `attributeChoices`, `needs`, `scales`, `start`; its `level`, `loadoutName`, `skills.groups`,
-  `skills.cull`, `skills.boss`, `items.anoint` and `items.treeJewels`), `data/campaign/limits.json`
+  `skills.cull`, `skills.boss`, `items.anoint` and `items.treeJewels`; in a schema-10 plan its `tree.exclude` and
+  `tree.search`), `data/campaign/limits.json`
   (`passive-points.max` and `passive-points.from-levels`), `.claude/skills/build-guide/references/boss-floor.json`
   (D-448: `n`'s boss floor, 250,000), `<buildFolder>/trades.json` when it exists, and `<buildFolder>/pieces.md`'s
-  `## Unique jewels` and `## Jewel lines` when it has them (Grep). Grep or Read `plan.json` at a place to anchor an
-  Edit; never Read it whole. A plan still at schema 8 or earlier never reaches you: D1-build moves it to 9 first.
+  `## Unique jewels` and `## Jewel lines` when it has them, and its `out` rows whose Why starts `unmeasured` (Grep;
+  step 3.8's `unmodelled` lines). Grep or Read `plan.json` at a place to anchor an
+  Edit; never Read it whole. A plan still at schema 8 or earlier never reaches you: D1-build moves it to 9 first; in a
+  revision-14 run a plan at 9 never reaches you either (D1-build moves it to 10, §25), since you write schema 10's
+  `tree.search.targets` and `userMoves`.
 
 ## Work
 
@@ -67,7 +79,17 @@ compile that loaded the rung (`mcp__pob2__compile_plan {stages}` loads only the 
   A move is legal when its result's `TotalEHP` and lowest max hit are at or above them: a move may trade toughness
   inside itself, but the finished tree keeps both (the user's choice, target "A"). Under `targets` a main move that
   misses one is **repaired** first: the tool frees the allocated branch with the least damage per point and adds
-  the nodes with the most gain on the failing target, until both hold;
+  the nodes with the most gain on the failing target, until both hold. A figure within 0.5 of its target meets it
+  (D-490), so write `tree.start` unrounded. **Targets after gear moved** (D-490): when the rung's gear changed after
+  D1-tree last ran (a one-item swap, a revision, D1-finish's own changes), the targets are, per figure, the lower of
+  `tree.start` and the rung's current compile (as node power already does for the other weapon set's pool);
+  `tree.start` stays as written, and you record the targets you used in `tree.search.targets {ehp, maxHit, why}`
+  (schema 10; `why` says what moved: "gear moved after D1-tree: the swapped staff");
+- **`exclude`** (D-490, schema 10): every node of the rung's `tree.exclude` entries (D1-build's "out" decisions,
+  and yours): no rebuild, swap, repair or `free` refill adds an excluded node or paths through one. A node the rung
+  allocates can't be excluded (the call is refused, `Excluded node <id> (<name>) is allocated`). You may add an
+  entry, `{nodes, reason}`, a reason required (a node the search keeps bringing back that the design leaves out),
+  which the audit lists;
 - **`pace_exchange: 3`** (D-467, the user's 3× rule), in place of `max_loss`'s pace guards: each pace figure (the
   clear skill's uses per second and radius, movement speed) may fall L% when the move gains at least 3 × L% Main
   damage, each figure on its own;
@@ -80,8 +102,15 @@ compile that loaded the rung (`mcp__pob2__compile_plan {stages}` loads only the 
 - `limit: 0`, the compact mode, for a swap or the rebuild; `limit: 15` when you need its best unallocated list
   (step 3's needs and spare points), and `limit: 50` for its weakest allocated branches (step 3's socket tests).
 
-The gate passes the same arguments, with the plan's `tree.start` as `targets`. The tool's attribute guard is always
-on: a move is legal only when the result meets PoB's own `ReqStr`, `ReqDex` and `ReqInt`.
+The gate passes the same arguments, with the plan's `tree.start` as `targets` (or the targets after gear moved), and
+the rung's `exclude`. The tool's attribute guard is always on: a move is legal only when the result meets PoB's own
+`ReqStr`, `ReqDex` and `ReqInt`. **The attribute repair** (D-490) is always on too: after a refill (a rebuild's or a
+swap's) and the toughness repair, a result short of an attribute is repaired, first by re-pointing the move's added
+attribute nodes to the short attribute, then by adding attribute nodes (the largest shortfall's attribute, else the
+class's main one), each step freeing the weakest damage per point, and its line says so, `; attributes repaired:
+re-pointed <n> to <attribute>, added <m> (<names>)`. A shortfall it can't close leaves the move illegal, `<Attribute>
+would be <x>, under the <y> its gear and gems need, after repair`. **No hand edits**: never change a rebuild or a swap
+the tool calls illegal to make it legal; record it as the tool said it (step 3.2).
 
 **The server check** (D-467): a session server built before M-26 ignores `targets`, `pace_exchange` and
 `pool_groups` without a word. Your first call is `m`'s rebuild (step 3): its `Rebuild:` line names its targets, as
@@ -89,7 +118,9 @@ on: a move is legal only when the result meets PoB's own `ReqStr`, `ReqDex` and 
 lowest max hit <b> of <u>` (a `Rebuild: none: …` line names none on any server: read the first swap call's `Best
 swap:` line instead, which names them as `(target …)` or `at or above their targets`). When it doesn't, change
 nothing more, remove your `tmp` stages, and return `stale-server`: the runner asks the user to reconnect the server
-with `/mcp`, then runs you again.
+with `/mcp`, then runs you again. Likewise a server built before M-27 ignores `exclude`: a call that passes it
+answers with the line `Excluded: <n> nodes, never added nor pathed through.`, and a first call that passed it with no
+such line is `stale-server` too.
 
 The compact reply's lines: `Travel: <T> of <P> points give nothing alone on …`, the rung's travel and its points,
 which count its untagged main-tree nodes only (no weapon-set or ascendancy node); and `Best swap: none: …`, or
@@ -153,7 +184,9 @@ a user's request. Each one runs the same way:
    with its path (`mcp__pob2__find_path_to_node {target_node_id}` on the loaded build), or remove what the user
    asked to remove, as a change on the rung the request names (else each rung it fits); write each asked-for node
    as a need on that rung, `{"nodes": [<the node>]}`, so no swap removes it. A request the check refuses is undone
-   and returned as `not made: <the request>: <why>`.
+   and returned as `not made: <the request>: <why>`. **The user's own moves** (D-490) count in the rung's
+   `tree.search.userMoves` (schema 10), one per change a request made, never in `tree.search.swaps`, which counts
+   the search's own.
 3. Then the rungs, **`m`, then `b`, then `n`**, each to the end before the next:
    1. **The start** (D-467): write the rung's `tree.start`, its figures from its compile (above), `{ehp,
       lowestMaxHit: {type, value}, life, boss, bossEntries: [{group, label, figure}]}` (Writes). Write it
@@ -164,10 +197,12 @@ a user's request. Each one runs the same way:
    2. **Rebuild first** (D-467): the call with `rebuild: true` at `max_distance: 12`, `keep` the rung's needs,
       `targets`, `pace_exchange: 3`, `pool_groups` and `stats: ["MainDamage", "TotalEHP"]`, compact. It frees every
       node outside `keep` and the paths that connect it to the start, refills the points greedily by gain per
-      point, repairs the result to the targets, and judges it as one swap on the whole rung. When its `Rebuild:`
-      line is legal (its `(target …)` form) and gains Main damage, make it a change: `rebuild` `"taken"`, or
-      `"undone: <why>"` when the check undoes it; otherwise (`misses its targets after repair`, or `none`)
-      `"none"`. The rebuild isn't one of the swaps.
+      point, repairs the result to the targets and the attributes, and judges it as one swap on the whole rung. When
+      its `Rebuild:` line is legal (its `(target …)` form) and gains Main damage, make it a change: `rebuild`
+      `"taken"`, or `"undone: <why>"` when the check undoes it; otherwise (`misses its targets after repair`, or
+      `none`) `"none"`. **A rebuild the tool calls illegal** (D-490) is recorded with the tool's own reason, `rebuild:
+      "none: <the tool's reason>"` (`"none: Strength would be 80, under the 112 its gear and gems need, after
+      repair"`), and never hand-edited into a legal one. The rebuild isn't one of the swaps.
    3. **A need with a stat** is met by node power on it: for each of the rung's needs with a `stat`, call the
       tool with `stats: ["<the need's stat>", "MainDamage"]` and `limit: 15`, leaving that need's own nodes out
       of `keep`. A stat the tool refuses (it answers with its list) is set to the list's id that names it, or left
@@ -203,8 +238,11 @@ a user's request. Each one runs the same way:
         serves the build's scaling (`tree.scales`), from `mcp__pob2__lookup_game_data {mode: "mechanic", query:
         <the stat>, kind: "mod"}` (each `[mod]` hit's `Base types:`), at most 8 candidates, each measured alone
         on a temporary stage (a jewel with that one line in the socket) on the map figure, the boss figure read
-        beside it. `b`'s jewel carries the best 3 lines at a middle roll, `n`'s the best 4 at the top roll. No
-        crafted "Effect of Prefixes" or "Effect of Suffixes" line: PoB doesn't read it (PG-99). A line of damage
+        beside it. `b`'s jewel carries the best 3 lines, `n`'s the best 4 (2 prefixes and 2 suffixes at most), each
+        a must-have at its best tier allowed at the rung's item level (82), at that tier's lowest roll (D-483; the
+        tiers from the same lookup's `    T<n> (item level <l>): <range>` lines); D1-finish's spec loop may lower a
+        tier or drop a line for the jewel's price. (Before revision 14, `b`'s at a middle roll, `n`'s at the top
+        roll.) No crafted "Effect of Prefixes" or "Effect of Suffixes" line: PoB doesn't read it (PG-99). A line of damage
         against rares is judged on the map figure like any other (the user judges builds on clear). Write the
         chosen lines and the `tree.scales` they serve in `pieces.md`'s `## Jewel lines` (Writes), and reuse them
         while `tree.scales` is unchanged.
@@ -226,7 +264,10 @@ a user's request. Each one runs the same way:
         "required": [<the chosen lines, each {affix, min}: on n the best 3 of its 4, the fourth left to PoB's
         weights>], "target": <b's {"divines": 5, "day": 7}, or n's {"divines": <its share>, "day": 21}>},
         "amount": null, "currency": null, "date": "<the run folder's date>", "league": <the plan's league>,
-        "status": "unavailable", "note": "not priced yet"}` (offline, `"note": "offline run"`). A taken **unique**
+        "status": "unavailable", "note": "not priced yet"}` (offline, `"note": "offline run"`). In a revision-14 run
+        the entry has no `required` (D-483): its `item` is the jewel's base and key affixes, as its title is
+        (D-489), its `query` `{"slot": "Jewel <node>", "target": …}`, and it stays `not priced yet`: D1-finish ranks
+        its lines, runs the spec loop on it and writes its `spec` and `listing`. A taken **unique**
         jewel's entry differs, priced by name: `{"id": "<rung>-jewel-<node>", "item": "<its name>", "query": {"slot":
         "Jewel <node>"}, …}`, **no `target`** (one would send it to the weighted search), its budget share in its
         `note` (`not priced yet; share 5 divines` on `b`, like a rare jewel, `n` its share). D1-finish re-splits
@@ -252,6 +293,11 @@ a user's request. Each one runs the same way:
       would add elsewhere. Each becomes an `unmodelled` trade (Writes):
       "Kept for <the mechanic>, which PoB can't measure: the same <n> points elsewhere would add <x>% damage."
       The mechanic is what the nodes' lines serve ("Cast on Critical's Energy"). Change nothing for it.
+      **A piece left out unmeasured** (D-489) reaches the user the same way: for each `out` row of `pieces.md`
+      whose Why starts `unmeasured (estimate: …)` (an ascendancy notable D1-build didn't measure, a piece PoB can't
+      measure), write one `unmodelled` trade on `n` (on the rung the row names, when it names one): `what` the piece
+      and "left out unmeasured", `ehpChange` and `damageChange` its estimate in percent (`null` where the estimate
+      gives none), `reason` what PoB can't measure about it, the other fields `null`. You measure nothing for it.
    9. **What the rebuild removed for other skills** (D-467): each passive a taken rebuild removed whose lines name
       a skill or skill type the build uses other than the named source (a Herald, a warcry, a minion), grouped by
       that skill: `{"names": ["Herald Damage"], "skill": "Herald of Blood"}`, so a missing need shows at the design
@@ -260,7 +306,9 @@ a user's request. Each one runs the same way:
        D1-finish, and `tree.search {swaps, lastGain, capHit, rebuild, removed, bossFall}`: the swaps tried, undone
        ones included; the last swap's gain in percent (null for none); whether the cap of 30 was hit; the
        rebuild's outcome (step 3.2); step 9's passives; and the boss reason below, else null. The D1 gate copies
-       them into the design field.
+       them into the design field. In a schema-10 plan (D-490) `tree.search` also holds `targets {ehp, maxHit, why}`
+       when you judged on the targets after gear moved ("The arguments"), and `userMoves` when the user's requests
+       moved the tree (step 2); your `tree.end` drops a one-item swap's `endAfter: "swap"`, since the tree ran again.
        - **A boss fall says why** (D-468): when the boss figure or any entry is lower at the end than at the
          start, write `bossFall`, one reason that may cover several entries, why the fall is fine ("Shield Wall
          gives up 5% for 8% more Rake on the clear"). D1-finish turns it into the claim `boss-fall-<rung>`, which
@@ -282,12 +330,14 @@ it reports no error.
 ## Writes
 
 `<buildFolder>/plan.json`: its rungs' `tree` (`nodes`, `attributeChoices`, `needs`, a pool move's
-`weaponSetNodes`, and `start`, `end` and `search`), the sockets' `items.treeJewels` entries and their `prices[]`
+`weaponSetNodes`, and `start`, `end` and `search`; in a schema-10 plan an `exclude` entry you add, and `search`'s
+`targets` and `userMoves`), the sockets' `items.treeJewels` entries and their `prices[]`
 entries, and a removed `items.anoint`. The server writes the record and the XML beside it.
 
 ```json
 "tree": {
   …,
+  "exclude": [{"nodes": [45918], "reason": "Mind Over Matter: the build keeps its mana for its skills (D1-build's out)"}],
   "start": {"ehp": 21000, "lowestMaxHit": {"type": "physical", "value": 4100}, "life": 3138, "boss": 380000,
             "bossEntries": [{"group": 1, "label": "Rake", "figure": 310000}, {"group": 3, "label": "Shield Wall", "figure": 690000}]},
   "end": {"ehp": 21400, "lowestMaxHit": {"type": "physical", "value": 4150}, "life": 2943, "boss": 405000,
@@ -296,6 +346,17 @@ entries, and a removed `items.anoint`. The server writes the record and the XML 
              "removed": [{"names": ["Herald Damage"], "skill": "Herald of Blood"}],
              "bossFall": "Shield Wall gives up 5% for 8% more Rake on the clear"}
 }
+```
+
+After gear moved (a retry after a one-item swap), a schema-10 rung's `search` carries the targets it was judged on, and
+a rebuild the tool called illegal its reason:
+
+```json
+"search": {"swaps": 3, "lastGain": 1.1, "capHit": false,
+           "rebuild": "none: Strength would be 80, under the 112 its gear and gems need, after repair",
+           "removed": [], "bossFall": null,
+           "targets": {"ehp": 20500, "maxHit": 4000, "why": "gear moved after D1-tree: the swapped staff lowered both"},
+           "userMoves": 2}
 ```
 
 `<buildFolder>/pieces.md`'s `## Jewel lines` (D-453), after `## Unique jewels`, written at the first socket test and
@@ -310,26 +371,32 @@ replaced only when `tree.scales` changes; the rest of the file is D1-build's:
 ```
 
 `<buildFolder>/trades.json` (D-439, outside `buildSha1`), the trades the design gate shows: write it whole, the
-entries of other kinds as they are (D1-finish's `boots`, `defence`, `damage` and `avoidance`) and your
-`unmodelled` and `boss` entries in place of the old ones, one per rung and unmodelled need, and one `boss` entry on
-a rung whose boss figure fell; `{"trades": []}` when it holds none. Every entry carries `maxHit` and `hitsSurvived`
-(D-450) and `bossEntries` and `nodes` (D-468, a build held to amendment 13), `null` but where your kind sets them:
+entries of other kinds as they are (D1-finish's `boots`, `defence`, `damage` and `avoidance`, and D1-build's and
+D1-finish's `scaling` finds) and your `unmodelled` and `boss` entries in place of the old ones, one per rung and
+unmodelled need, one per piece left out unmeasured, and one `boss` entry on a rung whose boss figure fell;
+`{"trades": []}` when it holds none. Every entry carries `maxHit` and `hitsSurvived` (D-450), `bossEntries` and
+`nodes` (D-468, a build held to amendment 13), and `price`, `from` and `to` (D-486, a build held to amendment 14),
+`null` but where your kind sets them (yours never set the last three):
 
 ```json
 {"trades": [
   {"stage": "n", "kind": "unmodelled", "what": "the same 6 points elsewhere", "ehpChange": 0.4,
    "damageChange": 17, "bossAfter": null, "reason": "Cast on Critical's Energy", "maxHit": null,
-   "hitsSurvived": null, "bossEntries": null, "nodes": null},
+   "hitsSurvived": null, "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null},
+  {"stage": "n", "kind": "unmodelled", "what": "Jade Heritage, left out unmeasured", "ehpChange": 6,
+   "damageChange": null, "bossAfter": null, "reason": "Encase in Jade's stacks, a button the rotation can't spare",
+   "maxHit": null, "hitsSurvived": null, "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null},
   {"stage": "n", "kind": "boss", "what": "keep the start's set-2 crit nodes", "ehpChange": 0,
    "damageChange": -3, "bossAfter": 430000, "reason": "the boss figure fell on the tree", "maxHit": null,
    "hitsSurvived": null, "bossEntries": [{"label": "Shield Wall", "before": 655000, "after": 690000},
    {"label": "Rake", "before": 340000, "after": 330000}], "nodes": {"remove": [1009, 1010, 1011, 1012],
-   "add": [2009, 2010, 2011, 2012]}}
+   "add": [2009, 2010, 2011, 2012]}, "price": null, "from": null, "to": null}
 ]}
 ```
 
 An `unmodelled` entry: `what` a short phrase, `ehpChange` and `damageChange` the `Free:` line's Total EHP and Main
-damage changes in percent, `bossAfter`, `maxHit`, `hitsSurvived`, `bossEntries` and `nodes` null, `reason` the
+damage changes in percent (for a piece left out unmeasured, its estimate), `bossAfter`, `maxHit`, `hitsSurvived`,
+`bossEntries` and `nodes` null, `reason` the
 mechanic. A `boss` entry: `what` the alternative in a short phrase, its changes against the final tree, `bossAfter`
 its boss figure, `bossEntries` each entry's figure on the final tree (`before`) and on it (`after`), `nodes` the
 node ids to remove from and add to the final tree, `reason` `the boss figure fell on the tree`.
@@ -343,7 +410,8 @@ swaps and how many were undone (`cap hit` when it reached 30), the rebuild (`reb
 unless step 7 couldn't spend them); `no loop: <rungs>' floor fails` when step 1 stopped; the trades counted
 (`trades: 1 unmodelled, 1 boss`); each `unspent:` and `not made:` line. Then, outside the 8 lines, one `jewel:
 <rung> <node>: <lines>: +<x>% damage, boss <+y>%` line per socket taken (D-453), which the runner prints under the
-design gate's display.
+design gate's display, and one `request: <id> made` or `request: <id> departs: <how>` line per user request (D-482).
+You return no price counts: you make no trade call (D-490).
 
 ```
 D1-tree r1-a-2 attempt 1: done

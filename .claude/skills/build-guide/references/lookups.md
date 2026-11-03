@@ -67,6 +67,15 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
       Desecrated mods without a desecrated tag, say the same.
 
     A rune's mod has no line. Desecrated mods (table `Desecrated`) are often limited to a defence type.
+  - **A mod hit's tiers and their item levels** (C-37, D-494). After its base types, a `[mod]` hit lists its tiers per
+    group of bases that roll the same ones: `  Tiers on <bases> (this mod: T<n>):`, then one line a tier,
+    `    T<n> (item level <l>): <range>`, the highest item level first and T1 the best those bases roll (the game's
+    numbering), the hit's own tier named in the head; a group an earlier hit of the reply listed reads
+    `  Tiers on <bases> (this mod: T<n>): as listed above`. A base's **best tier allowed** at an item level is the best
+    tier whose item level is at most it (69 on `m`, 82 on `b` and `n`; a campaign stage its area level), its
+    **floor** two tiers under it, and a tier's **lowest roll** the low end of its range: the spec loop's tiers
+    (`pricing.md`, D-483). Example: on boots, maximum Life lists `    T1 (item level 60): 120–149` and
+    `    T3 (item level 46): 85–99`, so at item level 82 its best tier allowed is T1 and its floor T3, lowest roll 85.
   - **Essences** (D-277). An `[essence]` hit names the essence, the item types it applies that mod to,
     and Prefix or Suffix when PoB gives one. Example: `[essence] Greater Essence of Haste (Bow,
     Crossbow; Suffix): (14-16)% increased Attack Speed`. A hit matches on the mod line or on the
@@ -78,8 +87,15 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
   - `{mode: "base", slot, level?, query?}` (C-37b, D-425): the bases of PoB's item type `slot` (`Wand`, `Body Armour`;
     an unknown type fails with the list), only those up to required level `level` and named like `query` when given,
     highest required level first. Each shows its requirements, implicits, defences (armour, evasion, energy shield,
-    ward, block, movement penalty), weapon damage by type, critical hit chance, attacks per second, range, Spirit and
-    socket limit, as PoB holds them.
+    ward, block, movement penalty), weapon damage by type, critical hit chance, attacks per second, range and Spirit,
+    as PoB holds them, and its **rune sockets** (D-485): `Sockets: <count> (PoB's ceiling <socketLimit> counts
+    Exceptional and corruption)`. The count is the socket table's (`data/items/sockets.json`, the user's ruling of
+    2026-11-02): body armours and two-handers 2; other armour, shields, foci and one-handers 1; amulets, rings, belts
+    and quivers 0; Corona Amulet, Grasping Ring and Stalking Belt 1, which read `Sockets: 1 (PoB's base data gives it
+    none)`. PoB's ceiling is the count plus the Exceptional base's extra and the corruption's: a designed rare holds the
+    count and never the Exceptional extra, a unique its data's `Sockets:` line (or its "Has n Augment Sockets" line)
+    else its base's count, and a `Corrupted` unique one more. V1's `sockets` names an item with more (D-485), and a
+    socket claim cites the table (`data:items/sockets.json#sockets.body-armour`).
   - `{mode: "config", query}` (C-37c, D-425): PoB's config options whose key or label contains `query`, each with its
     key, label, type, section, list values and labels, `Shown when:` (the `if…` conditions that show it: each must
     hold, and any of one condition's values does) and its tooltip's first line. `get_config` prints each option's

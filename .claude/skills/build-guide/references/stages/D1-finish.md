@@ -6,7 +6,9 @@ their needs, and D1-tree spent their spare points and shortened their travel; yo
 price every slot, re-check D1-build's boss estimate and write the rest of the ledger and the claims, the needs',
 the ascendancy order's and the boss fall's among them, measure the trades the design gate shows, and read the plan
 and the record through
-`mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`D1-gate.md`) then checks the plan.
+`mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`D1-gate.md`) then checks the plan. In a revision-14
+run two narrower jobs come to you by the header's `scope` (D-481, D-486): a one-item swap (`swap`) and the late endgame
+scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope").
 
 ## Inputs
 
@@ -16,15 +18,21 @@ and the record through
   (`<runFolderRel>/plan.json` when `buildFolder` is `.`). The cards, `run-log.json` and the other builds' folders
   are at the run folder's root.
 - **Header:** `stage: "D1-finish"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`,
-  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/trades.json"]`, `accepted`
-  (findings the user accepted; they need no fix), and `findings`:
+  `compile: "measure-only"`, `writes: ["<buildFolder>/plan.json", "<buildFolder>/trades.json"]` (the `scaling` kind
+  beside your own kinds, D-486), `scope` (amendment 14, when the step is narrower: `"swap"` or `"scaling"`; absent,
+  the whole step below), `accepted` (findings the user accepted; they need no fix), and `findings`:
   - on a D1 gate retry, the findings D1-build had: fix the ones that are yours (a price, the anoint, a claim);
   - on a D1 gate retry for its `tree` part (`tree-swap`), or a tree revision, D1-tree ran before you and moved
     the trees: re-measure the anoint (step 1), anoint a rung D1-tree left without one (it removes an anoint whose
     notable a swap allocated), write the claims of the needs it added and of its boss fall (step 4), and fix every
     claim that names a node the tree no longer holds;
   - the user's request from the design gate's `revise:<text>` or a final-gate revision (`code:
-    "user-request"`), when it concerns the anoint, the prices, the ledger or the claims, which you make;
+    "user-request"`), when it concerns the anoint, the prices, the ledger or the claims, or is a one-item swap
+    (`scope: "swap"`), which you make. In a revision-14 run each carries its `id` and `words`, the user's text
+    verbatim (for a read-back, `readback.json`'s changes) beside any restatement (D-482): make what the words say and
+    nothing they don't, a condition as a condition, and return one `request:` line per request (Returns). **Never
+    rewrite an item to match a listing** (D-483), whatever a brief says: a rare is a spec, and its price the depth
+    of the market for it;
   - in the fix round, the V4 findings routed to D1 (`{id, artifact, location, claim, issue, evidence, hinge,
     owner}`).
 - **`changed`**, only when D1-build ran before you in the same fix round, revision or design-gate `revise:`:
@@ -52,7 +60,7 @@ and the record through
     `.claude/skills/build-guide/references/boss-floor.json` (D-448: the non-budget rung's boss figure floor,
     250,000), for step 5, `.claude/skills/build-guide/references/corruption.json` (D-471: the cheap line, an
     uncorrupted price under 1 divine), and `<buildFolder>/trades.json` when it exists (D1-tree's `unmodelled` and
-    `boss` entries);
+    `boss` entries, and in a revision-14 build D1-build's `scaling` finds);
   - `n`'s defence plan, `stages[].defence` (D-451; in its view): an evasion `base`, pure or hybrid, makes the
     build an evasion build for step 5's avoidance trade;
   - prices to reuse: Grep the run's other plans (`concepts/*/plan.json`, `builds/*/plan.json`) for `"prices"`
@@ -96,26 +104,39 @@ and the record through
      over-target jewel keeps its lines, like any over-target rare (a minion build's `b` jewel among them).
    - **One trade call at a time** (D-461): the server waits at least 45 s between one search and the next, inside
      the call, and refuses a wait over 60 s (`would_wait`); calls in parallel queue past it, so never batch them.
-   - **The rares of `b` and `n`: the weighted search** (D-372), `mcp__pob2__find_upgrades`, PoB2's "trade for
-     these items", from the entry D1-build wrote (`query.slot`, `query.required`, `query.target`). Step 1's
-     measure-only compile loaded `b` and `n` (with no step 1 compile, as in a fix round, make it first);
-     select `b`'s loadout (`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<b's
-     loadout name, as the record has it>"}`) and price its rares, then `n`'s. Per rare: map each required
-     affix to its trade id with `mcp__pob2__trade_query_options {slot}`, and call `mcp__pob2__find_upgrades`
-     with `required_mods` (those ids with their minimums), `max_price` (below), `currency:
-     "exalted_equivalent"`, `rank_by: "stat_value"`, `include_non_upgrades: true` and `fetch_pages: 1`, plus
-     `jewel_type` for a tree jewel, as `mcp__pob2__trade_query_options` gives it. The first listing is the best item the budget buys: its price is the entry's `amount`
-     and `currency`, its score against the designed item the `note` (`fit 85%`). When no listing fits, the
-     slot is over its target: call `mcp__pob2__search_trade_items` with the slot's item type and its required
-     affixes as `mods` (`{stat_id, min}`, the same trade ids); the trade site sorts that search by price, so
-     its first listing is the cheapest with the required affixes, and its price is the entry's, with the
-     `note` `over target`. The entry's `query` keeps `slot`, `required` and `target` and adds the call's
-     arguments. With `--no-ninja`, make only the `mcp__pob2__search_trade_items` call.
+   - **The rares of `b` and `n`: specs** (D-483; `references/pricing.md`, "A rare of `b` or `n`: the spec loop"). In a
+     revision-14 run D1-build priced each rare gear slot of `b` and `n` by the spec loop as it designed it; you
+     **re-price each spec as compiled**, by one depth check at its must-haves' tiers (the `mcp__pob2__search_trade_items`
+     call its `query` records: the base, the must-haves as `mods` at their tiers' lowest rolls, `corrupted: false`, the
+     base's standard rune sockets, `limit: 10`), writing its `amount`, `currency`, `date`, `listing` and `note` again;
+     reuse D1-build's entry while its query and league are the same (D-169). You never re-run the loop on a gear slot,
+     **never edit an item for its price, and never rewrite an item to a listing**: a listing's lines never enter the
+     plan. A spec whose depth check now fails its target stays as compiled, its price recorded (an `over-target`
+     finding at the gate). With `--no-ninja`, make only the `mcp__pob2__search_trade_items` call.
+   - **D1-tree's rare jewels: the loop** (D-483). D1-tree wrote each rare jewel it took with its lines as must-haves at
+     their best tier allowed and left its entry `not priced yet`. For each, with its rung loaded (step 1's compile,
+     the rung's loadout selected): rank its lines, `mcp__pob2__find_upgrades {slot: "Jewel <node>", link_only: true,
+     sort_stats: <the build's weights>, weight_corrupted_mods: false, jewel_type}` (the loop's step 1), to order their
+     importance (step 4), then run the loop's steps 5 to 10 on it: the depth check at its tiers (`n` first), the
+     budget search, the depth check at the mix, lowering the least important line a tier or dropping it. The one
+     exception to "never edit an item for its price": you may lower that jewel's tiers or drop a line as the loop
+     says, never add one; then re-measure it on its rung (a measure-only compile) and write its `spec` (its `ranking`
+     PoB's top 4 the jewel's base can roll; 2 prefixes and 2 suffixes at most) and `listing`. The dearer jewel the loop
+     started from is your `scaling` find (step 5).
+   - **`m`'s rares** are specs too (D-483): their must-haves at their floor tiers' lowest rolls, priced by one depth
+     check (`mcp__pob2__search_trade_items`, `limit: 10`) by the depth rule, with no `spec` field; `m`'s magic and
+     normal items by `mods` as below.
+   - **The depth rule** (D-483): a price is the 5th-cheapest of at least 10 listings sorted by price, its `listing`
+     `{corrupted, sockets, count, position}` (the search's `Found:` count, `position` 5) and its `note` the count and
+     the position (`18 found, the 5th cheapest`), never a listing's name. Under 10 found, the loop's step 8 (lower,
+     drop, another source) applies to a spec it may change (a jewel); a spec it may not change is `unavailable`, note
+     `thin: <count>`. Pass `rune_behaviour: "remove"` on every `mcp__pob2__find_upgrades` pricing call.
    - **Weapons by compile** (D-456): never compare weapons by a listing's DPS. `mcp__pob2__find_upgrades` scores
-     by PoB's Full DPS, which isn't the build's figure (D-437), so re-check its top 3 weapon listings on the
-     build's own damage figure: each on a temporary stage (id `tmp…`, D-453) that copies the rung with that weapon,
-     compiled measure-only with the rung, its map figure read and the stage removed; the entry records the
-     listing that measures best within the budget, and its `note` says it was re-checked by compile.
+     by PoB's Full DPS, which isn't the build's figure (D-437), so compare weapon specs on the build's own damage
+     figure (D-483: specs, never listings): each on a temporary stage (id `tmp…`, D-453) that copies the rung with
+     that weapon, compiled measure-only with the rung, its map figure read and the stage removed; the entry records the
+     spec that measures best within the budget, and its `note` says it was re-checked by compile. A build priced
+     before revision 14 re-checked its top 3 weapon listings this way.
    - **`max_price`** (D-373) is the target turned into today's market: the target over the midpoint of its
      factors in `data/economy/prices.json`, times the run's exalts per divine, a whole number. The factors are
      the rung's price day's (`conversion.under-10.to-day-<7|21>`; when that puts the budget at 10 divines or
@@ -127,7 +148,12 @@ and the record through
      socket, an anoint's Distilled Emotions, a lineage support gem), by `mcp__pob2__get_item_price`, by name:
      exchange items from poe.ninja's exchange by their category, with no trade request, the trade site for the
      rest (D-444, `references/pricing.md`); a magic or normal item, and every slot of `m` by
-     `mcp__pob2__search_trade_items` with `mods`. One item per call. **Boots** (D-440): `m`'s boots search carries
+     `mcp__pob2__search_trade_items` with `mods`. One item per call. **A unique whose corruption or sockets matter**
+     (D-484): `mcp__pob2__get_item_price` can't filter or show either, so a unique whose plan copy is corrupted (but
+     under the cheap rule below) or holds more sockets than its own is priced by `mcp__pob2__search_trade_items
+     {item_name, corrupted: <as the plan's copy>, min_rune_sockets: <the plan's count when above the unique's own>,
+     limit: 10}` by the depth rule, its `listing` matching the compiled copy; a random-roll unique (Morior Invictus)
+     adds `mods`, each line the figures rely on at its range's midpoint. **Boots** (D-440): `m`'s boots search carries
      its tier's movement speed among `mods` (30%), and `b`'s and `n`'s rare boots name theirs in `required` (35%,
      D1-build wrote it).
    - **A corrupted unique is priced uncorrupted** (D-471): by name, without the corrupted line as a required
@@ -137,7 +163,10 @@ and the record through
      attempt back to D1-build to drop the line (D-446's route). With no price to judge by (offline, an
      `unavailable` price, pricing stopped, `--no-ninja` with no rates) the line stays and the `note` adds
      `cheapness unchecked: <why>` (offline, the note `offline run` says it). A gem's corruption costs nothing to
-     price: the gem is priced as any gem.
+     price: the gem is priced as any gem. **A unique that isn't cheap with the extra socket** (D-484): its corrupted
+     copy, `Corrupted` and one socket more than its own, is allowed when that copy is in budget: price it as that
+     corrupted copy (`corrupted: true`, `min_rune_sockets` the plan's count), never uncorrupted; its corruption
+     implicits never enter a rung (return `build: corruption <stage> <slot>` for one that does).
    - **A unique jewel** (D-473) is priced by name (Megalomaniac by `mcp__pob2__search_trade_items` on the line it
      allocates), with **no `target`** in its query, which would send it to the weighted search; its budget share
      (`b` 5 divines like a rare jewel, `n` its share) stays in its `note`. An option-form stat (Megalomaniac's
@@ -146,25 +175,36 @@ and the record through
    - **A slot that serves a set-2 skill** (D-473; `pieces.md`'s `## Skill levels`): pass `mcp__pob2__find_upgrades`
      `sort_stats` weighting that skill (from the stats `mcp__pob2__trade_query_options` lists), since the default
      weights read the main skill (`references/pricing.md`, "A rare of `b` or `n`").
-   - **An over-target rare keeps its item** (D-371). You may add a fallback entry, `<id>-fallback`
-     (`b-amulet-fallback`): fewer or lower required affixes, priced the same way, with the same target. The
-     guide shows it beside the slot and says it isn't measured. Never change the build for a price, but for a
-     corrupted line on a unique at or over the cheap line (D-471, above).
-   - An entry: `{id, item, query, amount, currency, date, league, status, note?}`, `league` the plan's, `date`
-     the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`.
+   - **No fallback entry** in a revision-14 build (D-483): the dearer spec is a find over the budget (`trades.json`,
+     kind `scaling`, step 5), never a `<id>-fallback` entry (the run checker's `budget` fails one). A build whose last
+     D1 gate ran before revision 14 keeps its older rule: an over-target rare kept its item (D-371), and you may add
+     its fallback entry, `<id>-fallback` (`b-amulet-fallback`), with fewer or lower required affixes, priced the same
+     way, which the guide shows beside the slot. Never change the build for a price, but for a
+     corrupted line on a unique at or over the cheap line (D-471, above) and D1-tree's jewels (the loop, above).
+   - An entry: `{id, item, query, amount, currency, date, league, status, note?, listing?, spec?}`, `league` the
+     plan's, `date` the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`;
+     `listing` on a price read from a search's listings (D-484), `spec` on a `b` or `n` rare (D-483), both outside
+     `buildSha1` (`references/pricing.md`, "Recording a price"). **The priced copy matches the compiled copy**: a
+     listing's corruption is the item's `Corrupted` line and its rune sockets at least the item's, but for a cheap
+     unique priced uncorrupted, whose `note` says so.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again
      later; its third refusal makes it `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (stop
      trade-site pricing until a gate's `retry-pricing` or a resume, D-444: every remaining item the trade site
      prices `unavailable`, while exchange items keep their price); any other kind, `unavailable`. The
      prefix may stand anywhere in the line: `mcp__pob2__find_upgrades` reads `Stopped early: [trade:<kind>]
      <reason>.`. Its stop with no prefix, `Stopped early: the 45 s gap between trade searches cut the loop short
-     after <n> search(es).`, returned the best listings of the searches it ran: price from them (D-461).
+     after <n> search(es).`, returned the best listings of the searches it ran: price from them (D-461). Its
+     **fallback** (D-494) starts `[trade:no_session] `, `[trade:session_rejected] ` or `[trade:too_complex] `, then
+     `Trade search not run: …`: the first two are a session problem for this step (price the rest by depth checks,
+     which search anonymously; the runner tells the user), the third a cue to drop the least important must-have
+     and call again; an item is `unavailable` only after its own failed call.
    - Offline: no price call; every entry is `unavailable`, note `offline run`, `league` null, dated the run
      folder's date, D1-build's `not priced yet` entries included. Pricing stopped: no trade-site call;
      `unavailable`, note `pricing stopped`, and no tool that sends a trade request at all (D-422, D-444:
      `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item the trade site prices,
      `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats`, `mcp__pob2__find_upgrades`);
-     `mcp__pob2__trade_query_options` sends none, and `mcp__pob2__get_item_price` for an exchange item reads
+     `mcp__pob2__trade_query_options` and `mcp__pob2__find_upgrades {link_only: true}` send none (a jewel's spec is
+     ranked, its tiers kept as D1-tree wrote them), and `mcp__pob2__get_item_price` for an exchange item reads
      poe.ninja's currency exchange, so both stay allowed (the latter not with `--no-ninja`). League `unverified`
      (D1-build's return): `unavailable`, note `trade unreachable`. Count every call by its outcome for your
      return, an exchange item's as `exchange`.
@@ -250,6 +290,10 @@ and the record through
        id `boss-fall-<rung>`, saying why the fall of the boss figure or its entries is fine, citing the figures it
        compares (`tree.start` and `tree.end`) and what the fall buys, from the record (`<stageId>.<Field>`): V4
        checks it against its source as it checks a hinge claim, and the D1 gate's design field names it;
+     - **a boss fall after gear moved** (D-490): when gear changed after D1-tree (your own prices' re-measures, a
+       jewel the loop lowered, a one-item swap) and the rung's boss figure at your last compile is more than 2% under
+       `tree.end`'s, the same claim `boss-fall-<rung>` (one claim covering D1-tree's reason too) names the item that
+       moved it and why the fall is fine; after a swap it cites the plan's `itemSwaps[]` record;
      - **a buff entry's value** (D-468): a boss-rotation entry whose own figure misleads (a warcry whose own hit is
        its figure, while its buff carries the rotation) is valued by the boss figure with and without it, each on a
        temporary stage: one `reason` claim, id `boss-value-<rung>-g<group>`, its text starting `valued by <the buff,
@@ -275,7 +319,9 @@ and the record through
      monster-table entry cites its lookup, or a `judgment` naming the entry (D-400). Its source supports every
      part of it, each number, mechanic and qualifier; it cites each fact it rests on; and it carries its source's
      caveats (a confidence M or L, a disputed fact, a `judgment`). A `ledger:<id>` claim's numbers are the
-     entry's value or its inputs, an input as written or × 100 as a percentage.
+     entry's value or its inputs, an input as written or × 100 as a percentage. **The value too** (D-494): the
+     entry's value × 100 is its percentage, so a claim of 86% against an entry evaluating to 0.86 holds, as the run
+     checker's ledger rule reads it.
    - **Affix sources** (D-277): for each rare affix target, look the affix up
      (`mcp__pob2__lookup_game_data {mode: "mechanic", query: <the affix text>, kind: "mod"}`; with `kind:
      "essence"`, each `[essence]` hit names an essence and the item types it applies to). When the base types
@@ -286,7 +332,20 @@ and the record through
      `external source unavailable (offline run)`, with a confidence).
 5. **The trades** (D-439, D-440, D-441, D-448, D-450, D-468), which the design gate shows for the user to take or
    leave: write `<buildFolder>/trades.json` whole (Writes), D1-tree's `unmodelled` and `boss` entries as they are
-   and your `boots`, `defence`, `damage` and `avoidance` entries in place of the old ones. None is a gate failure.
+   and your `boots`, `defence`, `damage` and `avoidance` entries in place of the old ones. None is a gate failure. In
+   a revision-14 build D1-build's `scaling` finds stay too, but for the measure and the price you add (below), and
+   your own `scaling` finds (`by: "D1-finish"`) replace only your old ones.
+   - **Revision 14's fields** (D-486): every entry also carries `price {amount, currency, count, date} | null`, `from`
+     and `to` (by unique name or base and key affixes, or `null`): on a trade that buys gear (a defence trade's rare,
+     the avoidance trade's gear line, a swap's item) `from` the item it replaces, `to` the one it puts in and `price`
+     the new item's depth price; on a tree move or a finding of none, all three `null`.
+   - **Finds over the budget** (D-486, D-483): your own loops' dearer specs (a D1-tree jewel the loop lowered, a
+     swap's rare) are `scaling` finds, `{stage, kind: "scaling", slot, from, to, price, damage, ehp, measured,
+     repriced, by: "D1-finish"}`. **Measure the finds**, at most 5 a build, the largest gains first (D1-build's
+     estimates among them): each on a temporary stage that copies the rung with the dear item in the slot, compiled
+     measure-only with the rung, its `damage` and `ehp` the changes in percent and `measured: true` written on the
+     entry, whoever wrote it (its `by` stays); the plan is restored after. Finds stay out of the rungs and their
+     totals: no price entry and no `basis.budget.slots` entry names one.
    - **Boots** (D-440): one `boots` trade for each rung whose `items.bootsException` holds (its V1 note
      `boots-exception`): `what` the boots, their movement speed and how far under the tier ("Trampletoe, 25%
      movement speed, 10% under the tier"), `reason` the exception's, both changes null. Unique boots get this
@@ -388,6 +447,55 @@ and the record through
 7. **Claim.** `done`. A price over its target is information for the user (D-371): it never sends the design
    back.
 
+## The `swap` scope (D-481)
+
+Your header's `scope: "swap"` (revision 14): the user asked, at the design gate or the final gate, for **one slot's
+item**, on one or more rungs, and nothing else: a unique by name, a rare by the affixes the user names, or the one item
+a read-back found changed (`readback.json`), with no gem, tree or config change. The runner routes it to you alone,
+then the D1 gate (about 0.5M tokens, against about 1.3M for the full chain): no D1-build or D1-tree runs. A plan still
+at schema 9 gets D1-build first, to move it to 10 (§25). Do only this:
+
+1. **Write the item as the user gave it**: a read-back's item exactly as edited; a unique as named (its text from
+   `mcp__pob2__lookup_game_data {mode: "unique"}`); a rare whose affixes the user named, those affixes as its
+   must-haves, the spec loop (`references/pricing.md`) only setting the tiers the user didn't state and pricing it.
+   Nothing the user didn't ask for is added (D-482): no extra affix, no "better roll" on `n`. A departure (the market
+   holds no such item, a must-have the base can't roll) is returned as `request: <id> departs: <how>`, and the runner
+   asks the user before the gate.
+2. **Compile** the swapped rungs measure-only, and rewrite each one's `tree.end` from that compile with `endAfter:
+   "swap"` (schema 10); `tree.start` stays as written.
+3. **Re-measure your own trades** on the swapped rungs, each on its temporary stage as step 5 does, the plan restored
+   after, so no trade is "measured on the earlier item" and every defence trade's reason stays one of its two forms.
+4. **Drop D1-tree's `boss` trades** on the swapped rungs: they were measured on the old item, and stay out until the
+   tree runs again. Its `unmodelled` trades stay (they name pieces, not measures of the item).
+5. **Re-check the claims** that cite the slot or a figure that moved, **re-price the slot** (a `scaling` find when
+   its loop left a dearer spec), and **record the swap** in the plan's `itemSwaps[]` (schema 10): `{stages, slot,
+   from, to, bossBefore: {<stage>: <n>}, bossAfter: {<stage>: <n>}, reason}`, `from` and `to` by unique name or base
+   and affixes, the boss figures before and after on each swapped rung; a boss figure that fell needs its `reason`,
+   and the claim `boss-fall-<rung>` (step 4). On a rung whose `tree.end` reads `endAfter: "swap"`, the run checker
+   takes that reason in place of the `boss` trade a fall on the tree needs, and of the `damage` or `boss` trade an
+   `n` under the floor needs; a swap with no `itemSwaps[]` entry fails (`swap`).
+
+```json
+"itemSwaps": [{"stages": ["b", "n"], "slot": "Weapon 1", "from": "Voltaic Staff: +4 lightning spell levels, spell damage, cast speed",
+               "to": "Voltaic Staff: +3 lightning spell levels, spell damage", "bossBefore": {"b": 310000, "n": 520000},
+               "bossAfter": {"b": 296000, "n": 500000},
+               "reason": "the user's 5-divine staff: one lightning spell level less, about 4% under the old staff's boss figure"}]
+```
+
+At the final gate (a guide build's), the swap then runs the D1 gate, F1, W1's patch and the re-check (`fix-round.md`).
+
+## The `scaling` scope (D-486)
+
+Your header's `scope: "scaling"` (revision 14): the user answered yes to "late endgame scaling, yes or no?" at the
+design gate's accept, and you run before F1. Re-price the finds over the budget in `trades.json` (kind `scaling`) by
+the depth rule (`references/pricing.md`), one depth check each, announced by the runner and paced like any pricing
+step, **at most 15 trade searches a build**, and measure any of the top 5 (by gain) not yet measured, each on a
+temporary stage as step 5 does. **Write only `trades.json`**: each find's `price` and `repriced: true`, and for a find
+you measure, its `damage`, `ehp` and `measured: true`. **Restore the plan byte for byte**: Read its text before your
+first temporary stage and Write that text back when you're done, so F1's check of the plan the gate passed (its
+`planSha1`) holds. Finds stay out of the rungs and their totals. Offline, nothing is priced: the finds stay listed
+unpriced (`price: null`). No claim, no price entry, no other file.
+
 ## The fix round and revisions (D-264, D-352)
 
 With V4 findings or the user's requests in `findings`, you edit the plan in place; you never write it anew.
@@ -429,22 +537,28 @@ compile). The server writes the record and the XML beside it.
   {"stage": "n", "kind": "defence", "what": "a rare body with +90 life in place of its cold resistance line",
    "ehpChange": 6, "damageChange": 0, "bossAfter": 180000, "reason": "one-shot by the Arbiter's physical hit",
    "maxHit": {"type": "physical", "before": 3451, "after": 3520}, "hitsSurvived": {"before": 79.6, "after": 100},
-   "bossEntries": null, "nodes": null},
+   "bossEntries": null, "nodes": null, "price": {"amount": 3, "currency": "divine", "count": 14, "date": "2026-10-15"},
+   "from": "Vaal Cuirass: armour, fire resistance, cold resistance", "to": "Vaal Cuirass: armour, fire resistance, life"},
   {"stage": "n", "kind": "defence", "what": "12 points into deflection (Freedom of Movement, Agile Succession)",
    "ehpChange": 4, "damageChange": -3, "bossAfter": 172800, "reason": "one-shot by the Arbiter's physical hit",
    "maxHit": {"type": "physical", "before": 3451, "after": 3451}, "hitsSurvived": {"before": 79.6, "after": 84.2},
-   "bossEntries": null, "nodes": null},
+   "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null},
   {"stage": "n", "kind": "avoidance", "what": "20 points into deflection (Freedom of Movement, Agile Succession, Sure Footing)",
    "ehpChange": 6, "damageChange": -8, "bossAfter": 165600,
    "reason": "the same 20 points on the best EHP nodes: +14% EHP, hits survived 79%",
-   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 90.1}, "bossEntries": null, "nodes": null},
+   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 90.1}, "bossEntries": null, "nodes": null, "price": null, "from": null, "to": null},
   {"stage": "n", "kind": "avoidance", "what": "a rare helmet's deflection rating line (about 2 divines, 0 points)",
    "ehpChange": 1, "damageChange": 0, "bossAfter": 180000, "reason": "in place of the helmet's least valuable line",
-   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 82.4}, "bossEntries": null, "nodes": null},
+   "maxHit": null, "hitsSurvived": {"before": 79.6, "after": 82.4}, "bossEntries": null, "nodes": null,
+   "price": {"amount": 2, "currency": "divine", "count": 21, "date": "2026-10-15"},
+   "from": "Soldier Greathelm: life, cold resistance, stun threshold", "to": "Soldier Greathelm: life, cold resistance, deflection rating"},
   {"stage": "n", "kind": "damage", "what": "moving 4 points from Bone Breaker to Vicious Bite",
    "ehpChange": -6, "damageChange": 12, "bossAfter": 201600, "reason": "under the boss floor",
    "maxHit": {"type": "physical", "before": 3451, "after": 3451}, "hitsSurvived": null, "bossEntries": null,
-   "nodes": null}
+   "nodes": null, "price": null, "from": null, "to": null},
+  {"stage": "n", "kind": "scaling", "slot": "Jewel 26725", "from": "Ruby: cold damage, crit damage, cast speed, damage against rares",
+   "to": "Ruby: cold damage, crit damage, cast speed", "price": {"amount": 30, "currency": "divine", "count": 11, "date": "2026-10-15"},
+   "damage": 2.1, "ehp": 0, "measured": true, "repriced": false, "by": "D1-finish"}
 ]}
 ```
 
@@ -456,7 +570,10 @@ or `pace: off` when the pace line stopped your pricing (D-474); the trades by
 kind (`trades: boots 1, defence 2, avoidance 2, damage 1`, or `trades: none`); and in the fix round or a
 revision, `recompiled: yes` or `recompiled: no`, the finding ids you fixed and the locations you changed
 (`plan.json stages[3].claims[2]`, `plan.json ledger[4]`), and `build: <ids>` when D1-build must make a change
-(`build: corruption <stage> <slot>` for a unique too dear to carry its corrupted line, step 2).
+(`build: corruption <stage> <slot>` for a unique too dear to carry its corrupted line, step 2). With a `scope`, the
+first line names it (`D1-finish r1-s-2 attempt 2 (swap): done`), and a swap returns its `swap:` line, `swap: <slot> on
+<stages>: <from> → <to>`; the scaling pass returns `finds: <n> repriced, <m> measured` and its price counts. Then,
+outside the 8 lines, one `request: <id> made` or `request: <id> departs: <how>` line per user request (D-482).
 
 ```
 D1-finish r1-a-2 attempt 1: done
@@ -472,6 +589,15 @@ recompiled: no
 fixed: v4-1-2, v4-1-4
 changed: plan.json stages[6].claims[2], plan.json ledger[4]
 build: v4-1-3
+```
+
+```
+D1-finish r1-s-2 attempt 2 (swap): done
+compiles: 4
+swap: Weapon 1 on b, n: Voltaic Staff: +4 lightning spell levels, spell damage, cast speed → Voltaic Staff: +3 lightning spell levels, spell damage
+prices: ok 2
+trades: defence 1, damage 1, scaling 1
+request: u1 made
 ```
 
 ## Fault directives

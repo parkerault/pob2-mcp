@@ -6298,3 +6298,28 @@ the `m17` engine at `b76967b`.
     defect, since PoB refuses it there, `Classes/ItemsTab.lua`:2289–2294); V1's three rows in `02-plan-compiler.md`.
   - **For WU-140:** the schema doesn't limit a price's `spec` to `b` and `n` rares, and the weights' `why` and
     `leftOut` are the checker's (§9).
+- **WU-138 (the server tools) merged** at `a967180` (fast-forward; rebased onto `36e96c4`). `compile_plan` gains the
+  read-back (`readback.json`, no engine), adopt, notes and trade-links modes, and a final compile writes
+  `final-build.xml` (`final-build-campaign.xml` for a campaign); the write ledger gains `baseSha1` and `adopted`, and an
+  adoption updates the writer's fingerprint too; `set_build_notes` refreshes a ledgered file's entry when the file is
+  unchanged; `find_upgrades` gains `link_only`, listing tiers and the fallback's cause prefix. AC-K83 to AC-K86 in new
+  `compileReadBack.test.ts`, `compileNotes.test.ts`, `compileTradeLinks.test.ts`, `buildFileWriterAdopt.test.ts` and
+  `findUpgradesLinkOnly.test.ts`, and in `writeLedger.test.ts` and `findUpgrades.test.ts`; descriptions `compile_plan`
+  1,900, `find_upgrades` 1,977 characters. Its verifier (fresh context) failed it once: the fresh-clone check (AC-G4)
+  still expected the fallback to start "Trade search not run:"; fixed in the check, its comments and `README.md`:103,
+  then passed it (gate 231 suites, 3,995 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0; the check's MCP
+  half rc 0). It probed the user's route on the real engine: a hand-edited final file refused by a re-compile and by
+  the notes mode, read back (one gem change), adopted (`adopted: true`, `baseSha1` kept), then replaced by the next
+  compile with a backup of the edit and `final-build.xml` refreshed; the draft route the same.
+  - **The spike (R-80):** the links mode on `titan-rake/r2-s-2`, 18 links (6 rare gear slots and 3 rare jewels on each
+    of `b` and `n`), 19.8 s (17.8 s in the test); the longest 3,810 characters (a rare jewel: 29 weighted filters,
+    complexity 181 + 3, none dropped), about three times the user's tested 1,222. The live test should open one.
+  - **The coordinator folded:** D-49's wording in the stabilization spine and C-14's fallback block in `03-trade.md`
+    (the cause prefix).
+  - **For WU-142 and WU-143:** a link requires the first three must-haves in the plan's order, the one PoB scores at zero
+    first, so D1-build lists must-haves most important first; `readback.json` titles loadouts by PoB's full titles
+    ("Act 1 Clearfell (L5) {1}"), not stage ids.
+  - **Left:** filters a link drops for complexity or an unknown stat aren't reported; the read-back's older-version
+    refusal catches only a byte-exact copy (PoB re-serializes on save), so the restatement and the user's yes stay R-83's
+    guard; adopt takes the file on disk at the call, with no check that it is the one read back (`readback.json` records
+    no sha1 of the edited file; the spec is silent).

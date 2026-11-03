@@ -524,9 +524,10 @@ increasing `progress` (no `total`). Messages, in order:
   type: <base type>, filters: {trade_filters: {filters: {account: {input: <seller account>}, price: {min:
   <amount>, max: <amount>, option: <listing currency>}}}}}}`. It has no `stats` array.
 
-**Fallback result** (FR-T7, D-49: a result, `isError: false`):
+**Fallback result** (FR-T7, D-49: a result, `isError: false`; since build-guide D-494, the first line starts with its
+cause, `[trade:no_session] `, `[trade:session_rejected] ` or `[trade:too_complex] `):
 ```
-Trade search not run: <reason>.
+[trade:<cause>] Trade search not run: <reason>.
 <hint: how to fix>
 Open this search in a browser where you are logged in to pathofexile.com:
 <link>

@@ -6423,3 +6423,19 @@ the `m17` engine at `b76967b`.
   (estimate: …): <reason>." (§15); a dealt card's brainstorm header names its class, ascendancy and skill from the
   card (§4; `parseCard` gains an additive `identity`). Tests in `buildGuideAmendment14.test.ts` ("WU-140b …");
   `tests/static` 1,052 and `tests/unit/buildGuide*` 672 pass; no pin changed. The milestone gate verifies it.
+- **M-27's milestone gate passed** on `25ee592` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
+  cache cleared): `mise run test` rc 0 (234 suites, 4,163 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0,
+  the engine suites run. Every §24 criterion but AC-W113 (the user's live test, WU-144) maps to a passing test or its
+  work-log row; spot checks against the pin held (the Energy Shield caps, Vile Robe's socket limit, the unique refused in
+  17788, Volatile Dead's `fromItem`, the boots' Life tiers, corrupted mods' `enchant.` ids). The fixes made after a
+  verdict (WU-140's two, WU-140b's four) and the coordinator's folds match the code; five seams checked (`readback.json`
+  and `trade-links.json` as the scripts read them, node power's lines in D1-tree, the server's replies in F1 and
+  `checkpoints.md`, the lookup's lines in `lookups.md`). The built server lists 78 tools with trade and poe.ninja off (85
+  in the README table: 78 core, 6 trade, 1 ninja); `scripts/fresh-clone-check.sh` rc 0 (85 tools, 84 with poe.ninja
+  off; the golden build's Life 2,977). Both waiver files `[]`; no dependency changed; `SKILL.md` 349 lines, its three
+  pins 349; `patterns.md` 16,811 words.
+  - **Known, not fixed:** the r1-s-4 rebuild on `n` still reads no-gain (−12.93% damage; R-79 by toughness, not
+    attributes); adopt has no check against the read-back; the lookup reloads its data files uncached; `compiler.ts`
+    keeps its own copy of the socket table; `D1-tree.md`:122 writes "Excluded: <n> nodes" where the server prints "1
+    node" for one; the r1-s-2 fixture keeps one of the user's design-gate revise lines as a ledger source (copied
+    unchanged under HG-33).

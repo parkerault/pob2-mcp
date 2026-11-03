@@ -723,13 +723,19 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(changed(before, treeOf(f.tmp))).toEqual([]);
   }, ENGINE_TIMEOUT);
 
-  it('AC-B8 (D-211): a final compile writes only the target file, its ledger entry and the record (plus the backup when it replaces)', async () => {
+  it('AC-B8 (D-211): a final compile writes only the target file, its ledger entry, the record and (D-479) the copy beside it (plus the backup when it replaces)', async () => {
     const r = await newRun('write-roots');
     const before = treeOf(f.tmp);
     const out = await compile({ plan_path: r.plan, build_name: 'write-roots' });
     expect(out.isError).toBe(false);
+    // The two-stage fixture's stages are campaign stages, so its copy is final-build-campaign.xml.
     expect(changed(before, treeOf(f.tmp))).toEqual(
-      ['builds/write-roots.xml', `guides/${r.rel}/compile-record.json`, `state/${WRITE_LEDGER_FILE}`].sort(),
+      [
+        'builds/write-roots.xml',
+        `guides/${r.rel}/compile-record.json`,
+        `guides/${r.rel}/final-build-campaign.xml`,
+        `state/${WRITE_LEDGER_FILE}`,
+      ].sort(),
     );
   }, ENGINE_TIMEOUT);
 

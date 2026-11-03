@@ -208,7 +208,7 @@ describe('AC-K79 (D-474): find_upgrades has the line just before the search link
   });
 
   it('a fallback has the line before its link, the link last', () => {
-    const text = renderFallback({ reason: 'no trade session', hint: 'Log in.', notes: ['A note.'], link: 'https://x/trade2/search/poe2/L/q' }, PACE_OFF);
+    const text = renderFallback({ cause: 'no_session', reason: 'no trade session', hint: 'Log in.', notes: ['A note.'], link: 'https://x/trade2/search/poe2/L/q' }, PACE_OFF);
     expect(text.split('\n').slice(-3)).toEqual([PACE_OFF, LINK_INTRO, 'https://x/trade2/search/poe2/L/q']);
   });
 

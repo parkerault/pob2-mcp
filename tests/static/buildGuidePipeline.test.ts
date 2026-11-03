@@ -348,7 +348,7 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
     expect(readDefinition(text)!.fm.description).toMatch(/Started only by the build-guide skill's runner with the Agent tool/);
     // Amendment 14 (WU-143, D-489): S1's fallback is the workflow's; the "unconfirmed" form's fallback and the
     // verifier's fallback check are D-489's words, not it.
-    expect(text).not.toMatch(/workflow|fallback(?! and its cost>| check)|dossier-fix|revise-map|V3/);
+    expect(text).not.toMatch(/workflow|fallback(?! and its cost>| check\b)|dossier-fix|revise-map|V3/);
   });
 
   it.each(definitionFiles)('%s breaks none of R-1…R-5', (file) => {
@@ -2978,9 +2978,9 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
     // needs every run, its gate detail in checkpoints.md. Amendment 9 (WU-95) adds the compaction rule, the builds
     // and their queue, D1-tree, F1, the campaign and the resume, the refused route and the stop of trade requests:
     // the detail of each in checkpoints.md, start.md and fix-round.md. Amendment 13 (WU-133): 6 lines over, the work-log
-    // naming them (D-477's claims pass, the stale-server route). Amendment 14 (WU-143, AC-W112): 20 more, the work-log
+    // naming them (D-477's claims pass, the stale-server route). Amendment 14 (WU-143, AC-W112): 18 more, the work-log
     // naming them (the swap, the answer change, the skeleton, the read-back, the notes, the scaling pass, the extra round).
-    expect(lines).toBeLessThanOrEqual(351);
+    expect(lines).toBeLessThanOrEqual(349);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/Each step below is a short card: read a reference only where its card names one/);
     expect(skill).toMatch(/Read `references\/start\.md` and do it, in its order, before any agent runs/);
@@ -4430,8 +4430,8 @@ describe('AC-W112 (WU-143, D-478…D-489, D-494): the gate, route and guide docs
   const ADOPT = spec(APPX, /Adopt: `\{plan_path, (adopt): <relpath>\}`/, 'the adopt call')[1];
   const NOTES = spec(APPX, /Notes: `\{plan_path, (notes_path)\}`/, 'the notes call')[1];
   const [, LINKS_CALL, LINKS_REPLY] = spec(APPX, /Trade links: `(\{plan_path, trade_links: true\})`, engine kind `load`; reply `([^`]+)`/, 'the links call');
-  /** The 20 lines over 331 the work-log names (WU-143's report): the routes, tools, reads and Bash of D-479…D-487. */
-  const NAMED = 20;
+  /** The 18 lines over 331 the work-log names (WU-143's report): the routes, tools, reads and Bash of D-479…D-487. */
+  const NAMED = 18;
 
   const SKILL_RAW = fs.readFileSync(SKILL_MD, 'utf8');
   const SKILL = folded(SKILL_RAW);
@@ -4561,8 +4561,13 @@ describe('AC-W112 (WU-143, D-478…D-489, D-494): the gate, route and guide docs
     expect(SKILL).toMatch(new RegExp(`an accept asks, unless the user's words answered them, "${esc(ASK_FILE)}" \\("accept" alone is never the guide\\) and "${esc(ASK_SCALING)}" \\(logged \`scaling\`\\); a yes runs D1-finish's scaling pass \\(\`scope: "scaling"\`\\) before F1`));
   });
 
-  it("SKILL.md runs one more round only behind its ask, once a build, and tells open findings at once", () => {
-    expect(SKILL).toMatch(/\*\*One more round\*\* \(D-482\): a finding it leaves open that needs a gear change is asked at once, an `ask` checkpoint `open-finding`: `round` runs one more fix round and `V4-recheck`, once a build; `ship` leaves it open\. Tell each open finding at once, before the next build starts/);
+  it("SKILL.md runs one more round only behind its ask, once a build, and its retries rule says so (§8 amends one re-check)", () => {
+    expect({
+      round: /\*\*One more round\*\* \(D-482\), behind an `ask` \(`open-finding`\) on a finding left open that needs gear: `round`, one fix round and `V4-recheck` once a build/.test(SKILL),
+      retries: /verification never re-checks beyond one re-check after a fix round or a revision, but for one more round behind its `ask` \(D-482, §6\)/.test(SKILL),
+      // The rules SKILL.md points to, stated once there: the open findings told at once, an owner's brief of ids.
+      once: /tell the user every open finding at once/.test(FIX) && /an owner's `findings` are the V4 finding ids and their report's path/.test(HEADER),
+    }).toEqual({ round: true, retries: true, once: true });
   });
 
   it("SKILL.md's tools hold read_back, adopt, notes_path and a skeleton's remove_draft, each with no engine", () => {
@@ -4862,6 +4867,49 @@ describe('AC-W112 (WU-143, D-478…D-489, D-494): the gate, route and guide docs
 
   it("the writer's definition names the notes scope", () => {
     expect(agent('build-guide-writer')).toMatch(/or, with the header's `scope: "notes"` \(D-487\), `<buildFolder>\/notes\.txt` alone: a file-only build's PoB notes/);
+  });
+
+  it("checkpoints.md counts an ask's visit over the run, so a second build's first ask is the run's next, as run-log.mjs takes it", () => {
+    const dir = copyRun();
+    editJson(dir, 'run-log.json', (l) => {
+      l.builds.push({ id: 'r1-a-1', roll: l.builds[0].roll, status: 'designing', folder: 'builds/r1-a-1', guide: null, pobFile: null, draftFile: null });
+    });
+    const first = run('run-log.mjs', [dir, 'checkpoint', '-'], example(GATES_RAW, 'checkpoint', '"kind": "departs"').json);
+    const second = (visit: number) => run('run-log.mjs', [dir, 'checkpoint', JSON.stringify({ checkpoint: 'ask', kind: 'departs', build: 'r1-a-1', visit, answer: 'keep the old boots', answeredBy: 'user' })]);
+    const asBuild = second(1);
+    const asRun = second(2);
+    expect({ doc: GATES.includes("`visit` counts the run's ask checkpoints from 1"), first: first.code, asBuild: asBuild.code, asRun: asRun.code }).toEqual({ doc: true, first: 0, asBuild: 1, asRun: 0 });
+  });
+
+  it("checkpoints.md keeps a read-back's words in the gate's answer, so the checker finds them after a later read-back overwrites readback.json", () => {
+    const words = '+60 to maximum Life';
+    const later = { file: 'Blood Hunt with Rolling Slam clear (draft).xml', base: 'compiled-build.xml', baseSha1: '0'.repeat(40), unmatched: [], loadouts: [{ title: 'Endgame budget (L90) {b}', items: [{ slot: 'Boots', removed: ['+20 to Dexterity'], added: ['+25 to Dexterity'] }], gems: [], tree: { added: [], removed: [], ascendancy: [], jewels: [], attributes: [] }, config: [] }] };
+    const requested = (kept: boolean) => {
+      const dir = copyRun();
+      editJson(dir, 'run-log.json', (l) => {
+        if (kept) l.checkpoints[1].changes = { [ID]: words };
+        l.stages[7].requests = [{ id: 'r1', words, result: 'made' }];
+      });
+      fs.writeFileSync(path.join(dir, BUILD, 'readback.json'), JSON.stringify(later));
+      return rule(run('check-run.mjs', [dir]).stderr, 'requests').length;
+    };
+    expect({
+      doc: GATES.includes("A later read-back overwrites `readback.json`, so **the gate's answer keeps those words too**: the `revise:<text>` at the design or final gate, or the picked card's `changes` at the verification gate, holds them verbatim"),
+      kept: requested(true),
+      lost: requested(false),
+    }).toEqual({ doc: true, kept: 0, lost: 1 });
+  });
+
+  it("W1.md's slot table gives a spec's must-haves as values, each its tier's lowest roll, never a tier label (rule 15)", () => {
+    expect({
+      values: W1.includes("its must-have affixes with the values its item text holds (each its tier's lowest roll), never a tier label (rule 15)"),
+      held: W1.includes('an atlas section, affix tier labels, trade links and a vendor search regex'),
+    }).toEqual({ values: true, held: true });
+  });
+
+  it("AC-W5's ban keeps the workflow's fallback out of the definitions: only D-489's \"fallback and its cost>\" and \"fallback check\" pass it", () => {
+    const BAN = /workflow|fallback(?! and its cost>| check\b)|dossier-fix|revise-map|V3/;
+    expect(['<the fallback and its cost>', 'The fallback check (D-489)', 'a fallback checkpoint', 'fallback checks', 'a fallback'].map((t) => BAN.test(t))).toEqual([false, false, true, true, true]);
   });
 
   it("the verifier's definition names the fallback check", () => {

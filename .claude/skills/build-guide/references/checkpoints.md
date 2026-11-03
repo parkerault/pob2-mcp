@@ -137,8 +137,11 @@ needs the user's yes before anything is taken (R-83):
    it. **On a no**, adopt nothing: the edited file keeps its protection, never overwritten or removed (the next draft
    goes to `(draft 2)`).
 4. **The changes go as the user's revision**, the request's `words` being `readback.json`'s change texts verbatim
-   (several joined by "; " or a newline), your restatement beside them (D-482, below). Routing: **one item changed**,
-   the one-item swap (the design gate's answers); **a tree change only**, D1-tree; **anything else**, the full chain
+   (several joined by "; " or a newline), your restatement beside them (D-482, below). A later read-back overwrites
+   `readback.json`, so **the gate's answer keeps those words too**: the `revise:<text>` at the design or final gate,
+   or the picked card's `changes` at the verification gate, holds them verbatim, and the run checker still finds a
+   request's words after another read-back. Routing: **one item changed**, the one-item swap (the design gate's
+   answers); **a tree change only**, D1-tree; **anything else**, the full chain
    from D1-build. At the verification gate they join the picked card's `changes`, its build's first design brief; at
    the design gate they are a `revise:`; at the final gate a `revise:` there. An edited item is taken literally: the
    plan takes its lines as the user wrote them, priced at the depth price of a search for its lines (`pricing.md`).
@@ -158,12 +161,13 @@ departs from it.
   build (an answer, its changes or note, a new card's words), an answer change's note or `readback.json`.
 - **Stop at the first departure**: a `departs` line, or an item, a price or a latitude the request didn't name, stops
   the run before the next step starts. Ask the user, and log the question's answer as an `ask` checkpoint (no display
-  goes with it; `visit` counts the build's asks from 1), its answer the user's words, which the next brief carries:
+  goes with it; `visit` counts the run's ask checkpoints from 1), its answer the user's words, which the next brief
+  carries:
 
   ```
   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
   {"checkpoint": "ask", "kind": "departs", "build": "r1-a-2", "visit": 1, "answer": "keep the crit suffix after all", "answeredBy": "user"}
-JSON
+  JSON
   ```
 - **An open finding after the one re-check** (a guide build's fix round, or a file-only build's claims pass) that needs
   a gear change: ask the user at once, before the next step, `kind: "open-finding"`: **`round`**, one more fix round and
@@ -517,7 +521,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     ```
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
     {"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "accept", "answeredBy": "user", "questions": 0, "scaling": true}
-JSON
+    JSON
     ```
   - **file only** (`accept:file`, D-411): F1, its PoB file and no guide. In a build held to amendment 13 by its last
     D1 gate (D-477), F1's pass is followed by **the claims pass**: one verifier (`V4-claims`) checks every hinge
@@ -538,10 +542,10 @@ JSON
     ```
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> answer-change - <<'JSON'
     {"checkpoint": "design", "visit": 1, "from": "accept", "to": "accept:file", "note": "Wait, I didn't say I wanted a guide"}
-JSON
+    JSON
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
     {"stage": "W1", "concept": "r1-a-2", "attempt": 1, "outcome": "cancelled"}
-JSON
+    JSON
     ```
   - **a one-item swap** (`revise:<text>`, D-481), in a build held to amendment 14: a revise that changes one slot's
     item, on one or more rungs, and nothing else (a unique by name, a rare by the affixes the user names, or a

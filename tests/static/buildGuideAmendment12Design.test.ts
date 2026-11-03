@@ -531,8 +531,8 @@ describe('AC-W98 (WU-125): V4, pricing.md and SKILL.md', () => {
 
   // Amendment 13 (WU-133): 325 lines, and the 6 lines the rules that can't do without them take, named in the work-log:
   // D-477's claims pass (§6, 4 lines; §8's open findings, 1), D1-tree's stale-server route (§4, 1 net).
-  // Amendment 14 (WU-143, AC-W112): 331, and the 20 lines its routes, tools, reads and Bash take, named in the work-log.
-  it('SKILL.md stays within 325 lines, or 351 with amendment 13\'s and 14\'s named lines', () => {
-    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(351);
+  // Amendment 14 (WU-143, AC-W112): 331, and the 18 lines its routes, tools, reads and Bash take, named in the work-log.
+  it('SKILL.md stays within 325 lines, or 349 with amendment 13\'s and 14\'s named lines', () => {
+    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(349);
   });
 });

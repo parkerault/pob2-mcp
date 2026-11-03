@@ -97,9 +97,8 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 a
 - **The prompt** is the task header (`references/task-header.md`), a fenced `json` block, then `Read
   .claude/skills/build-guide/references/stages/<stage>.md and do that step.` Add only what the card lists. A
   build's steps carry its folder, `buildFolder` (`builds/<id>`, or `.`), and their `writes` under it.
-- **The user's words** (D-482; `references/checkpoints.md`): a request goes verbatim, with nothing of yours added; a
-  fix round's owner gets only the V4 report's path and its finding ids. Log the step's `request: <id> made|departs:
-  <how>` lines (outside its 8) as `requests`, and stop at the first departure to ask the user (an `ask` checkpoint).
+- **The user's words** (D-482; `references/checkpoints.md`): a request goes verbatim, nothing of yours added. Log a
+  step's `request: <id> made|departs: <how>` lines (outside its 8) as `requests`; stop at a departure to ask (`ask`).
 - **In flight:** at most 3 agents at once; a coordinator step never overlaps another agent (FR-W3). R1a's
   researchers and a gate's research questions run in parallel, `run_in_background: true`; any other step alone.
 - **Returns.** At most 8 lines. A gate step's verdict is its file under `reports/gates/`, and the verifier writes
@@ -155,7 +154,7 @@ uncounted, and its second failure escalates (D-413). Uncounted: an attempt faile
 1 only (a persistent one's count: S6), a guided retry, the fix round, a revision, the design gate's `revise:`, the
 re-run after a missing return, a refused step's re-run (D-421), and the D1 gate's lone re-run after a `tool-error`
 (D-419). The D1 gate, the D2 gate and F1 escalate; verification never re-checks beyond one re-check after a fix
-round or a revision.
+round or a revision, but for one more round behind its `ask` (D-482, §6).
 
 ## 1. Start (step 1)
 
@@ -305,9 +304,8 @@ changed PoB file and answer accept: F1 runs again and accepts no finding.
   `audit.md` before W1.
 - **Step 13, the re-check** (`references/fix-round.md`): `check-run.mjs <runFolder> --changed <n> --build <id>`,
   then one verifier, `check: "recheck"`, `changed` the lines it printed, verbatim. It re-checks only those, whether
-  or not an owner recompiled: no re-check covers every claim (D-352). **One more round** (D-482): a finding it leaves
-  open that needs a gear change is asked at once, an `ask` checkpoint `open-finding`: `round` runs one more fix round
-  and `V4-recheck`, once a build; `ship` leaves it open. Tell each open finding at once, before the next build starts.
+  or not an owner recompiled: no re-check covers every claim (D-352). **One more round** (D-482), behind an `ask`
+  (`open-finding`) on a finding left open that needs gear: `round`, one fix round and `V4-recheck` once a build.
 - **Step 14, known issues** (`references/fix-round.md`): replace both `Known issues` lists whole with the last
   report's open findings and W1's accepted-finding lines, reading only the lines you edit. Then **the notes**
   (D-487), every cycle: `render-notes.mjs <runFolder> --build <id>`, then `mcp__pob2__compile_plan {plan_path,

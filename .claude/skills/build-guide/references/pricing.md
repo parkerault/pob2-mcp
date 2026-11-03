@@ -65,9 +65,9 @@ The league is the price's `league`, and the date part of the `Checked:` time is 
    endgame rungs, entering maps, budget and non-budget (ids `m-<slot>`, `b-<slot>` and `n-<slot>`, D-281), and
    the anoint of `b` and `n` like a slot (`b-anoint`, `n-anoint`, D-358), each with the tool "Which tool"
    names. Each slot or jewel gets its own entry, except slots holding identical item text, which may share one.
-   In a revision-14 run it runs the loop's steps 4 to 10 on D1-tree's rare jewels, and re-prices each rare's spec as
-   compiled by one depth check (reusing D1-build's entry while its query and league are the same, D-169); it never
-   re-runs the loop on a gear slot, and never rewrites an item to a listing.
+   In a revision-14 run it ranks D1-tree's rare jewels' lines and runs the loop's steps 4 to 10 on them, and re-prices
+   each rare's spec as compiled by one depth check (reusing D1-build's entry while its query and league are the same,
+   D-169); it never re-runs the loop on a gear slot, and never rewrites an item to a listing.
    **No Flask slot is priced** (D-472: a plain flask costs nothing worth counting), and **a pinned weapon's Swap
    slot** (`sameAs`, D-464) has no entry of its own: its set-1 slot's entry prices it once.
 3. D2 prices the campaign uniques.
@@ -107,8 +107,8 @@ Before any search, reuse an entry with the same item, query and league from any 
   min_rune_sockets: <the plan's count>, limit: 10}`. Its corruption implicits never enter `m`, `b` or `n`; one may be
   a find over the budget (`trades.json`, kind `scaling`, D-486), which the guide's late endgame scaling section names.
 - **A unique by name, unless its corruption or sockets matter** (D-484): `mcp__pob2__get_item_price` can't filter or
-  show either, so a unique whose plan copy is corrupted (but under the cheap rule above) or holds more sockets than
-  its own goes to `mcp__pob2__search_trade_items` with `item_name`, `corrupted` (as the plan's copy) and
+  show either, so a unique whose plan copy is corrupted (but for the cheap rule above, priced uncorrupted by name) or
+  holds more sockets than its own goes to `mcp__pob2__search_trade_items` with `item_name`, `corrupted` (as the plan's copy) and
   `min_rune_sockets` (the plan's count, when above the unique's own), priced by the depth rule.
 - **A random-roll unique** (Morior Invictus, D-483): its figures rest on rolled lines, so price it by
   `mcp__pob2__search_trade_items {item_name, corrupted: <as the plan's copy>, min_rune_sockets: <the plan's count when
@@ -177,10 +177,11 @@ it are the entry's `listing`, and the spec is its `spec` ("Recording a price").
   lets the base roll at that item level; its **floor** is two tiers under it (T3 when T1 is allowed); a tier's
   **lowest roll** is the low end of its range.
 - **Who** (D-444): D1-build runs the loop for each rare gear slot of `b` and `n` while it designs it, so D1-tree
-  measures items the budget buys and its targets aren't stranded by a later gear change; D1-finish runs steps 4 to 10
-  for D1-tree's rare jewels, and re-prices each spec as compiled by one depth check. `m`'s rares are specs too, their
-  must-haves at their floor tiers' lowest rolls, priced by one depth check (step 5's call) with no `spec` field (a
-  `spec` is a `b` or `n` rare's); `m`'s other slots go by `mcp__pob2__search_trade_items` with `mods`, as above.
+  measures items the budget buys and its targets aren't stranded by a later gear change; D1-finish ranks D1-tree's rare
+  jewels' lines (step 1, the jewel's socket as the slot) and runs steps 4 to 10 on them, and re-prices each spec as
+  compiled by one depth check. `m`'s rares are specs too, their must-haves at their floor tiers' lowest rolls, priced
+  by one depth check (step 5's call) with no `spec` field (a `spec` is a `b` or `n` rare's); `m`'s other slots go by
+  `mcp__pob2__search_trade_items` with `mods`, as above.
 
 1. **Rank** (no request). Load the rung: a measure-only compile with the slot's base in the slot, then select the
    rung's loadout, `mcp__pob2__manage_sets {set_type: "loadout", action: "select", title: "<the rung's loadout name,
@@ -248,8 +249,8 @@ it are the entry's `listing`, and the spec is its `spec` ("Recording a price").
   plan's runes, and sockets up to the plan's count, on every listing (`Classes/ItemsTab.lua`:1761–1763), so the scores
   would read the plan's item, not the listing.
 - **Sockets** (D-484): a rare's searches ask for its base's standard rune sockets (`data/items/sockets.json`: none on
-  jewellery, belts and quivers), never the Exceptional extra, so the price, the listing and the trade link describe one
-  item.
+  jewellery, belts and quivers but Corona Amulet, Grasping Ring and Stalking Belt, which have 1), never the Exceptional
+  extra, so the price, the listing and the trade link describe one item.
 - **When the loop can't run:**
   - **offline**, or without the trade tools: no ranking (`ranking: null`, `searches: 0`); the designer picks the
     must-haves with their reasons (the run checker holds no `why` or `leftOut` rule on that spec), and the rares
@@ -488,8 +489,8 @@ request. Count an exchange call as `exchange`, never as `ok`: once pricing has s
 step whose counts hold any key but `exchange` (D-444). An exchange item the server priced from trade listings by
 its name instead (its result says so; `Unavailable (<category>; trade site: …)` when it found none) is a trade
 call, counted by its outcome. The pricing steps are R1b, D1-build (its `find_upgrades`
-calls and, in a revision-14 run, its spec loop's depth checks), D1-finish, the D1 gate and D2; D1-tree makes no
-trade call, and the run checker fails a non-zero count on its entry (D-490). When a step's counts hold a `locked_out` or `rate_limited` call, its `stage`
+calls), D1-finish, the D1 gate and D2. In a revision-14 run D1-build's spec loop counts its depth checks with them;
+D1-tree makes no trade call, and the run checker fails a non-zero count on its entry (D-490). When a step's counts hold a `locked_out` or `rate_limited` call, its `stage`
 entry records the stop, and the runner tells every later coordinator step so until a gate's `retry-pricing` or a
 resume ("After pricing stops"). A `find_upgrades` call is a price call, but for `link_only`, which sends no request
 and isn't counted, like `manage_sets` and `trade_query_options`.

@@ -330,7 +330,9 @@ describe('D-439 (§7): the tree search frees several branches, rebuilds, and sho
   it("D1-tree's and D1-finish's trades.json examples are Appendix A's shape at revision 13, and the run checker accepts them", () => {
     const fromTree = JSON.parse(blockAfter(rawStage('D1-tree'), '`<buildFolder>/trades.json` (D-439')) as Json;
     const fromFinish = JSON.parse(blockAfter(rawStage('D1-finish'), '## Writes')) as Json;
-    const trades = [...fromTree.trades, ...fromFinish.trades];
+    // Amendment 14 (WU-142, D-486): the examples carry revision 14's price, from and to and a scaling find, which a
+    // revision-13 build has none of; less them they are revision 13's (AC-W110's block runs them whole at revision 14).
+    const trades = [...fromTree.trades, ...fromFinish.trades].filter((t: Json) => t.kind !== 'scaling').map(({ price: _p, from: _f, to: _t, ...t }: Json) => t);
     expect(TRADE_FIELDS).toEqual(['stage', 'kind', 'what', 'ehpChange', 'damageChange', 'bossAfter', 'reason']);
     // Amendment 12 (D-450, §22, Appendix A): a build held to revision 12 carries maxHit and hitsSurvived on every
     // entry, so the examples go through a revision-12 fixture (the 9 fields fail at revision 11).

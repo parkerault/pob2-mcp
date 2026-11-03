@@ -662,11 +662,13 @@ describe('WU-45: the design stage references', () => {
     expect(text).toMatch(/Only when capping it is \*\*infeasible\*\*/);
   });
 
-  it('D1 prices every slot and tree jewel of every rung, m-, b- and n-, with its own entry unless the text is identical; the rares of b and n by the weighted search (D-249, D-281, D-372)', () => {
+  // Amendment 14 (WU-142, D-483) replaces D-372's weighted search with the spec loop: D1-build prices the rares of b and
+  // n as specs, and D1-finish re-prices each as compiled by a depth check (AC-W110's block holds the rest).
+  it('D1 prices every slot and tree jewel of every rung, m-, b- and n-, with its own entry unless the text is identical; the rares of b and n as specs (D-249, D-281, D-483)', () => {
     const text = folded(readD1());
     expect(text).toMatch(/One `prices\[\]` entry per filled slot and tree jewel of \*\*every\*\* rung \(D-249, D-281\), ids `m-<slot>`, `b-<slot>` and `n-<slot>`/);
     expect(text).toContain('Two slots share an entry only when their item text is identical');
-    expect(text).toContain('**The rares of `b` and `n`: the weighted search** (D-372), `mcp__pob2__find_upgrades`');
+    expect(text).toContain('**The rares of `b` and `n`: specs** (D-483;');
     expect(text).toContain('every slot of `m` by `mcp__pob2__search_trade_items` with `mods`');
   });
 
@@ -2938,7 +2940,8 @@ describe("WU-70 (AC-W60's static clause, D-362, A-35): the design gate between t
     const example = /```json\n([\s\S]*?)\n```/.exec(readStage('D1-gate'))?.[1] ?? '';
     const verdict = JSON.parse(example);
     // Amendment 10 (WU-107, D-434): the build's `pieces` first, once, before the rungs.
-    expect(Object.keys(verdict.design)).toEqual(['pieces', 'rungs', 'estimates']);
+    // Amendment 14 (WU-142, D-478): the build's `summary` after the estimates.
+    expect(Object.keys(verdict.design)).toEqual(['pieces', 'rungs', 'estimates', 'summary']);
     // Amendment 9 (WU-96): `ehpHit`, the hit the EHP was measured against (D-423); `tree` the node-power summary (D-419).
     // Amendment 11 (WU-115, Appendix A): each rung's damage {map, boss}, cull, trigger, boss and trades; the non-budget
     // rung's toughness too.
@@ -3260,7 +3263,9 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     expect(text).toMatch(/\| `n`, non-budget \| day 21 \| 100–200 divines in all\. Each rare has its own target, set by D1-build: by default 150 divines shared evenly over `n`'s rares and rare tree jewels \(D1-finish shares it again once D1-tree's socket tests add jewels, D-453, keeping a reasoned share\); a slot that carries the build \(a weapon, a skill-levels amulet\) may take more, with a reason; together at most 200 \|/);
     expect(text).toContain("A rare's target travels in its entry's `query` as `target: {divines, day}`");
     expect(text).toMatch(/\*\*A target never fails a gate\*\* \(D-371\)/);
-    expect(text).toMatch(/\*\*An over-target rare keeps its designed item\.\*\* D1-finish may add a fallback/);
+    // Amendment 14 (WU-142, D-483) supersedes D-371's "keeps its designed item" for rares: the spec loop, and no
+    // -fallback entry in a revision-14 build (AC-W111's block holds the loop).
+    expect(text).toMatch(/\*\*An over-target rare\*\* \(D-483, which supersedes D-371's "an over-target slot keeps its designed item" for rares\)/);
     // D-372: which tool, and the call.
     expect(text).toContain('**A rare gear slot or rare tree jewel of `b` or `n`:** `mcp__pob2__find_upgrades`');
     expect(text).toContain('**A unique, and an item the currency exchange sells:** `mcp__pob2__get_item_price`');
@@ -3270,12 +3275,8 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
       '`mcp__pob2__manage_sets {set_type: "loadout", action: "select", title:',
       '`mcp__pob2__trade_query_options {slot}` lists the slot\'s required-mod choices with their trade ids',
       'the target turned into today\'s market, the target over the midpoint of its conversion factors',
-      '`mcp__pob2__find_upgrades {slot, required_mods: [{trade_id, min}, …], max_price, currency: "exalted_equivalent", rank_by: "stat_value", include_non_upgrades: true, fetch_pages: 1}`',
-      "the entry's `note`, `fit 85%`",
-      'Search for the cheapest listing with the required affixes: `mcp__pob2__search_trade_items` with the slot\'s item type (`jewel` for a tree jewel) and its required affixes as `mods`, each `{stat_id, min}`',
-      'The trade site sorts that search by price, so its first listing is the cheapest with the required affixes',
-      'With `--no-ninja` there is no rate for `max_price`: make only the `search_trade_items` call of step 6.',
-      'keeps `slot`, `required` and `target` and adds the arguments of the call',
+      // Amendment 14 (WU-142, D-483): D-372's weighted-search price (its first listing, the fit note, the over-target
+      // search) is superseded by the spec loop's depth price, which AC-W111's block pins.
     ]) {
       expect({ part, present: text.includes(part) }).toEqual({ part, present: true });
     }
@@ -3283,7 +3284,7 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     // ranking re-sorts only the page it fetched (WU-75's review, carried by WU-76).
     const finish = folded(readStage('D1-finish'));
     for (const t of [text, finish]) expect(t).not.toMatch(/rank_by: "price"|second call/);
-    expect(finish).toContain('call `mcp__pob2__search_trade_items` with the slot\'s item type and its required affixes as `mods`');
+    expect(finish).toContain('the `mcp__pob2__search_trade_items` call its `query` records: the base, the must-haves as `mods` at their tiers\' lowest rolls');
     expect(finish).toContain('With `--no-ninja`, make only the `mcp__pob2__search_trade_items` call.');
     // Its stops classify by the prefix wherever it is; the date comes from Checked:, not the run log.
     expect(text).toContain('`find_upgrades` names a stop for a trade-site limit as `Stopped early: [trade:<kind>] <reason>.`');

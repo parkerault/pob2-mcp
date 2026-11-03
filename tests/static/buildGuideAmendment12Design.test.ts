@@ -225,8 +225,10 @@ describe('AC-W97 (WU-125): D1-tree', () => {
     expect(sockets).not.toContain(`fall no more than a swap's ${SWAP_GUARD}%`);
   });
 
-  it(`measures at most ${LINE_CANDIDATES} line candidates, b ${B_LINES} middle-roll lines, n ${N_LINES} top-roll, no crafted line`, () => {
-    expect(sockets).toMatch(new RegExp(`at most ${LINE_CANDIDATES} candidates, each measured alone on a temporary stage .* \`b\`'s jewel carries the best ${B_LINES} lines at a middle roll, \`n\`'s the best ${N_LINES} at the top roll\\. No crafted "Effect of Prefixes" or "Effect of Suffixes" line: PoB doesn't read it \\(PG-99\\)`));
+  // Amendment 14 (WU-142, D-483) amends the rolls: each line is a must-have at its best tier allowed, the middle and
+  // top rolls kept for the runs before revision 14.
+  it(`measures at most ${LINE_CANDIDATES} line candidates, b ${B_LINES} lines, n ${N_LINES} (middle and top rolls before revision 14), no crafted line`, () => {
+    expect(sockets).toMatch(new RegExp(`at most ${LINE_CANDIDATES} candidates, each measured alone on a temporary stage .* \`b\`'s jewel carries the best ${B_LINES} lines, \`n\`'s the best ${N_LINES} \\(2 prefixes and 2 suffixes at most\\), each a must-have at its best tier allowed .* \\(Before revision 14, \`b\`'s at a middle roll, \`n\`'s at the top roll\\.\\) No crafted "Effect of Prefixes" or "Effect of Suffixes" line: PoB doesn't read it \\(PG-99\\)`));
   });
 
   it("writes each jewel's prices[] entry and the lines in pieces.md's ## Jewel lines", () => {
@@ -273,15 +275,20 @@ describe('AC-W97 (WU-125): D1-finish', () => {
     expect(finish).toMatch(/\*\*`n`'s shares, re-split\*\* \(D-453\), before you price: .* share `n`'s default 150 divines evenly again over its rares and rare tree jewels, keeping any share an entry's `query\.target\.reason` gives/);
   });
 
-  it(`re-checks the top ${WEAPON_LISTINGS} weapon listings on the build's own figure, never a listing's DPS`, () => {
-    expect(finish).toMatch(new RegExp(`\\*\\*Weapons by compile\\*\\* \\(D-456\\): never compare weapons by a listing's DPS\\. .* re-check its top ${WEAPON_LISTINGS} weapon listings on the build's own damage figure`));
+  // Amendment 14 (WU-142, D-483): weapons by compile compares specs, never listings; the top 3 listings were the rule
+  // before revision 14.
+  it(`compares weapon specs on the build's own figure, never a listing's DPS (the top ${WEAPON_LISTINGS} listings before revision 14)`, () => {
+    expect(finish).toMatch(new RegExp(`\\*\\*Weapons by compile\\*\\* \\(D-456\\): never compare weapons by a listing's DPS\\. .* compare weapon specs on the build's own damage figure \\(D-483: specs, never listings\\): .* A build priced before revision 14 re-checked its top ${WEAPON_LISTINGS} weapon listings this way`));
   });
 
   // Amendment 13 (WU-133, D-468): the example carries revision 13's 11 fields, so it runs on the revision-13 fixture.
-  it("D1-finish's trades.json example passes the checker at revision 13, and the D1 gate's n trades are its own", () => {
+  // Amendment 14 (WU-142, D-486) adds price, from and to and the scaling kind, which a revision-13 build has none of:
+  // the example less them runs here (AC-W110's block runs it whole at revision 14).
+  it("D1-finish's trades.json example, less amendment 14's additions, passes the checker at revision 13, and the D1 gate's n trades are its own", () => {
     const fromFinish = JSON.parse(blockAfter(rawStage('D1-finish'), '## Writes')) as Json;
+    const at13 = { trades: (fromFinish.trades as Json[]).filter((t) => t.kind !== 'scaling').map(({ price: _p, from: _f, to: _t, ...t }) => t) };
     const dir = copyFixture('run-a13');
-    fs.writeFileSync(path.join(dir, 'builds', BUILD, 'trades.json'), `${JSON.stringify(fromFinish, null, 2)}\n`);
+    fs.writeFileSync(path.join(dir, 'builds', BUILD, 'trades.json'), `${JSON.stringify(at13, null, 2)}\n`);
     const r = node(CHECKER, [dir]);
     // The checker names the build's folder before the file: `check-run: [trades] builds/<id>: trades.json's …`.
     const tradeLines = r.stderr.split('\n').filter((l) => /\[trades\] [^:]+: trades\.json/.test(l));
@@ -496,8 +503,9 @@ describe('AC-W98 (WU-125): V4, pricing.md and SKILL.md', () => {
     expect(v4).toMatch(/\*\*A custom defence line's model status\*\* \(D-451\): .* `coverage: <status>` .* Re-run `mcp__pob2__check_model_coverage` on the line's text: when the status it reports differs from the one the reason names, it is a finding for `D1`, `hinge: yes`/);
   });
 
-  it(`pricing.md states the weapon rule: never by a listing's DPS, the top ${WEAPON_LISTINGS} re-checked by compile`, () => {
-    expect(ref('pricing.md')).toMatch(new RegExp(`\\*\\*Weapons by compile\\*\\* \\(D-456\\)\\. Never compare weapons by a listing's DPS: .* re-check its top ${WEAPON_LISTINGS} weapon listings on the build's own damage figure`));
+  // Amendment 14 (WU-142, D-483): specs, never listings.
+  it(`pricing.md states the weapon rule: never by a listing's DPS, specs compared by compile (once the top ${WEAPON_LISTINGS} listings)`, () => {
+    expect(ref('pricing.md')).toMatch(/\*\*Weapons by compile\*\* \(D-456\)\. Never compare weapons by a listing's DPS: .* Compare weapon specs, never listings: each candidate .* on a temporary stage .* A listing's lines never enter a plan/);
   });
 
   it(`pricing.md states the ${WAIT_CAP_S} s wait (would_wait over it) and the ${PACE_S} s gap`, () => {

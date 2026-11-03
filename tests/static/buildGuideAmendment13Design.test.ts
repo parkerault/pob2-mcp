@@ -18,12 +18,21 @@
  * fixture, and the design gate's example lines are the display's forms. SKILL.md's line cap is pinned where the earlier
  * amendments pinned it (`buildGuideAmendment12Design.test.ts`, `buildGuideAmendment11Design.test.ts`,
  * `buildGuidePipeline.test.ts`).
+ *
+ * Amendment 14 (M-27), WU-142: AC-W110 and AC-W111, the design and pricing docs (D1-build, D1-tree, D1-finish, D1-gate,
+ * D2, `pricing.md`, `gates.md`, `lookups.md`), in their own blocks at the end, read against amendment 14
+ * (`amendment-14-files-specs-and-repairs.md`) and the revision-14 fixture `run-a14`.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { loadReferenceData } from '../../src/plan/referenceData';
+import { validatePlan } from '../../src/plan/schema';
+import { renderTiers, socketLine } from '../../src/handlers/lookupHandlers';
+import { renderFallback } from '../../src/trade/renderUpgrades';
+import { getTradeToolSchemas } from '../../src/server/toolSchemas';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -574,5 +583,559 @@ describe('AC-W104 (WU-133): SKILL.md', () => {
 
   it('cites references/corruption.json', () => {
     expect(SKILL).toContain("corruption's cheap line `references/corruption.json` (D-471)");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Amendment 14 (M-27), WU-142: AC-W110 and AC-W111, the design and pricing docs, one assertion each. The forms are read
+// from amendment 14 (`docs/build-guide/spec/amendment-14-files-specs-and-repairs.md`); the docs' examples go through the
+// real scripts (`run-log.mjs`, `check-run.mjs`) on the revision-14 fixture `run-a14`, the plan schema's own validation
+// (`validatePlan`) and the server's own renderers, so the text is held to the spec and its examples to the code.
+// ---------------------------------------------------------------------------------------------------
+
+const A14_RAW = read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-14-files-specs-and-repairs.md'));
+const A14 = folded(A14_RAW);
+/** A form amendment 14 states, by a pattern; it throws when the spec doesn't state it. */
+function a14(re: RegExp, what: string): RegExpExecArray {
+  const m = re.exec(A14);
+  if (!m) throw new Error(`amendment 14 doesn't state ${what}`);
+  return m;
+}
+const REF14 = loadReferenceData(path.join(REPO, 'data'));
+const RUN14 = 'run-a14';
+const PLAN14 = `builds/${BUILD}/plan.json`;
+const TRADES14 = `builds/${BUILD}/trades.json`;
+/** The run checker's lines of one rule, on a run folder. */
+function ruleLines(dir: string, rule: string): string[] {
+  return node(CHECKER, [dir]).stderr.split('\n').filter((l) => l.includes(`[${rule}] `));
+}
+/** Every fenced block of a text, its body. */
+const blocks = (text: string) => [...text.matchAll(/```(?:json)?\n([\s\S]*?)\n *```/g)].map((m) => m[1]);
+/** A stage of a plan. */
+const stageOf = (plan: Json, id: string): Json => (plan.stages as Json[]).find((s) => s.id === id)!;
+
+// The spec's numbers and forms.
+const [, DEPTH_POSITION, DEPTH_MIN] = a14(/the \*\*depth price\*\* is the (\d+)th-cheapest of at least (\d+) listings sorted by price/, 'the depth price').map(Number);
+const [, SEARCH_CAP] = a14(/\*\*At most (\d+) trade searches a slot\*\*, the budget search counting as 2/, 'the search cap').map(Number);
+const [, LEVEL_M, LEVEL_BN] = a14(/A rung's \*\*item level\*\* for affix tiers is (\d+) on `m` and (\d+) on `b` and `n`/, 'the rung item levels').map(Number);
+const [, CAP_HOW, CAP_GEAR, CAP_CATCH] = a14(/`how` at most (\d+) characters, each `gear` text at most (\d+), `catch` at most (\d+)/, "the summary's caps").map(Number);
+const [, REQUEST_MADE, REQUEST_DEPARTS] = a14(/one line per request\*\*, outside its 8-line return .*?: `(request: <id> made)` or `(request: <id> departs: <how>)`/, 'the request lines');
+const [, VOLUME_LOW, VOLUME_HIGH, MINUTES_LOW, MINUTES_HIGH] = a14(/about (\d+) to (\d+) a build, (\d+) to (\d+) minutes at the 45 s pace \(D-461\)\. The pricing notice counts them/, 'the search volume').map(Number);
+const [, SCALING_CAP] = a14(/\(announced, paced, at most (\d+) trade searches a build\)/, "the scaling pass's cap").map(Number);
+const [, FINDS_MEASURED] = a14(/D1-finish measures the finds on temporary stages, as today, at most (\d+) a build, the largest gains first/, 'the finds measured').map(Number);
+const [, BOSS_FALL_PERCENT] = a14(/D1-finish writes `boss-fall-<rung>` when the final boss figure is more than (\d+)% under `tree\.end`'s/, 'the boss fall after gear moved').map(Number);
+const [, ILLEGAL_FORM] = a14(/an unclosed shortfall reads `([^`]+)`/, "the attribute repair's illegal form");
+const [, CAUSE_A, CAUSE_B, CAUSE_C] = a14(/The fallback reads `(\[trade:no_session\]) …`, `(\[trade:session_rejected\]) …` or `(\[trade:too_complex\]) Trade search not run: <reason>\.`/, "the fallback's causes");
+const [, TIER_FORM] = a14(/A mechanic-mode mod hit lists its tiers: `([^`]+)`/, "the lookup's tier line");
+const [, SOCKET_FORM] = a14(/The base mode's socket line: `([^`]+)`/, "the base mode's socket line");
+const CAMPAIGN_QUOTE = a14(/"(a T8 item at item level 20 will be nearly as expensive as a T1 or T2 item at item level 82)"; "(Usually the solution to this is to only use two or three affixes in campaign guide gear)"/, "the user's campaign note");
+const CORRUPTION_QUOTE = a14(/\*\*Corruption:\*\* "(extra sockets allowed within budget, corruption implicits out)/, "the user's corruption ruling")[1];
+
+describe("amendment 14's forms, as AC-W110 and AC-W111 read them", () => {
+  it('reads the depth price, the caps, the rung item levels, the request lines and the volume as approved', () => {
+    expect({ DEPTH_POSITION, DEPTH_MIN, SEARCH_CAP, LEVEL_M, LEVEL_BN, CAP_HOW, CAP_GEAR, CAP_CATCH, SCALING_CAP, FINDS_MEASURED, BOSS_FALL_PERCENT })
+      .toEqual({ DEPTH_POSITION: 5, DEPTH_MIN: 10, SEARCH_CAP: 5, LEVEL_M: 69, LEVEL_BN: 82, CAP_HOW: 400, CAP_GEAR: 120, CAP_CATCH: 300, SCALING_CAP: 15, FINDS_MEASURED: 5, BOSS_FALL_PERCENT: 2 });
+    expect([REQUEST_MADE, REQUEST_DEPARTS]).toEqual(['request: <id> made', 'request: <id> departs: <how>']);
+    expect([VOLUME_LOW, VOLUME_HIGH, MINUTES_LOW, MINUTES_HIGH]).toEqual([20, 35, 15, 26]);
+    expect([CAUSE_A, CAUSE_B, CAUSE_C]).toEqual(['[trade:no_session]', '[trade:session_rejected]', '[trade:too_complex]']);
+    // The server's own forms are the spec's (WU-136, WU-139).
+    expect(ILLEGAL_FORM).toBe('<Attribute> would be <x>, under the <y> its gear and gems need, after repair');
+    expect(TIER_FORM).toBe('T<n> (item level <l>): <range>');
+    expect(SOCKET_FORM).toBe("Sockets: <count> (PoB's ceiling <socketLimit> counts Exceptional and corruption)");
+  });
+});
+
+// D1-build's Returns examples and pieces.md example, its request lines and its unmeasured rows.
+const D1_BUILD_RAW = rawStage('D1-build');
+const BUILD_RETURNS = between(D1_BUILD_RAW, '## Returns', '## Fault directives');
+const RETURN_EXAMPLES = blocks(BUILD_RETURNS).map((b) => b.split('\n'));
+const PIECES_ROWS = blocks(between(D1_BUILD_RAW, "**`pieces.md`**, the build's", '- **Title:**'))[0]
+  .split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Key')).map((l) => l.slice(1, -1).split('|').map((c) => c.trim()));
+const UNMEASURED = PIECES_ROWS.filter((r) => r[3] === 'out' && /^unmeasured \(estimate: /.test(r[5]));
+/** The user's words of D1-build's example requests (`request: u1 made`, `request: u2 departs: …`), as a gate logs them. */
+const EXAMPLE_WORDS: Record<string, string> = { u1: 'use the 5 divine staff', u2: "if it's not a crit build, it doesn't need the crit damage suffix" };
+
+describe('AC-W110 (WU-142): D1-build', () => {
+  const build = stage('D1-build');
+
+  it("returns one request: line per request (:32–34), outside its 8 lines, each in §8's form, and its example's requests log and check through the scripts", () => {
+    const inputs = folded(between(D1_BUILD_RAW, "  - the user's requests (`code: \"user-request\"`)", "  - D1-finish's `build: corruption"));
+    expect(inputs).toMatch(/\*\*The user's words stay literal\*\* \(D-482\): in a revision-14 run each request carries its `id` and `words`, the user's text verbatim .* a condition stays a condition .* Return one line per request, `request: <id> made` or `request: <id> departs: <how>`, outside your 8 lines \(Returns\)/);
+    expect(folded(BUILD_RETURNS)).toContain(`Then, outside the 8 lines, one line per user request your header carried (D-482): \`${REQUEST_MADE}\`, or \`${REQUEST_DEPARTS}\``);
+    // Each example: at most 8 lines but its request lines, each request line in §8's form.
+    for (const ex of RETURN_EXAMPLES) {
+      const requests = ex.filter((l) => l.startsWith('request: '));
+      expect({ ex, eight: ex.length - requests.length <= 8, forms: requests.every((l) => /^request: \S+ (?:made|departs: \S.*)$/.test(l)) }).toEqual({ ex, eight: true, forms: true });
+    }
+    const lines = RETURN_EXAMPLES.flat().filter((l) => l.startsWith('request: '));
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    const requests = lines.map((l) => {
+      const [, id, rest] = /^request: (\S+) (.*)$/.exec(l)!;
+      return { id, words: EXAMPLE_WORDS[id], result: rest };
+    });
+    // run-log.mjs takes the entry; the checker finds the words in the design checkpoint's note, and not without it.
+    const dir = copyFixture(RUN14);
+    const r = node(RUN_LOG, [dir, 'stage', '-'], JSON.stringify({ stage: 'D1-build', concept: BUILD, attempt: 2, outcome: 'done', requests }));
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    const unsaid = ruleLines(dir, 'requests');
+    editJson(dir, 'run-log.json', (log) => {
+      (log.checkpoints as Json[]).find((c) => c.checkpoint === 'design')!.note = Object.values(EXAMPLE_WORDS).join('; ');
+    });
+    expect({ unsaid: unsaid.length, said: ruleLines(dir, 'requests') }).toEqual({ unsaid: requests.length, said: [] });
+  });
+
+  it('marks a piece left out unmeasured in pieces.md with its estimate, which D1-tree writes as its unmodelled line', () => {
+    expect(build).toMatch(/\*\*A piece left out unmeasured\*\* \(D-489\): an ascendancy notable you don't measure, or a piece PoB can't measure, that the design leaves out is never left out untold .* its `pieces\.md` row is `out`, its Why `unmeasured \(estimate: <your estimate of what it would give>\): <why it's out>` \(Writes\), and D1-tree writes its `unmodelled` trade line from that row/);
+    expect(UNMEASURED.length).toBeGreaterThan(0);
+  });
+
+  it("ranks with link_only, the build's weights and weight_corrupted_mods: false, the weights PoB's own stat ids", () => {
+    expect(build).toContain("`mcp__pob2__find_upgrades {slot, link_only: true, sort_stats: <the build's weights>, weight_corrupted_mods: false, league}` sends no request and returns PoB's ranking of the slot's affixes");
+    const weights = /\*\*The build's weights\*\*: `FullDPS` 1 and `TotalEHP` 0\.5, plus what the build needs from PoB's stat list \(`Spirit` for its reservations, `ManaRegen` for its sustain, `Str`, `Dex` or `Int` for a requirement, `EffectiveMovementSpeedMod` on boots\), each with a one-line `why`/.test(build);
+    // Each stat id is one of PoB's power stats (`Modules/Data.lua`'s `data.powerStatList`), as find_upgrades' sort_stats takes them.
+    const pob = read(path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src', 'Modules', 'Data.lua'));
+    const ids = ['FullDPS', 'TotalEHP', 'Spirit', 'ManaRegen', 'Str', 'Dex', 'Int', 'EffectiveMovementSpeedMod'];
+    const schema = (getTradeToolSchemas() as Json[]).find((t) => t.name === 'find_upgrades')!.inputSchema.properties as Json;
+    expect({ weights, pob: ids.filter((id) => !pob.includes(`stat="${id}"`)), linkOnly: 'link_only' in schema, corrupted: 'weight_corrupted_mods' in schema }).toEqual({ weights: true, pob: [], linkOnly: true, corrupted: true });
+  });
+
+  it("drops an affix the base can't roll by lookup, and reads its tiers in the lookup's own line form", () => {
+    expect(build).toContain("2. **The base's tiers by lookup**: `mcp__pob2__lookup_game_data {mode: \"mechanic\", query: <the affix text>, kind: \"mod\"}` for each ranked affix: drop an affix the base can't roll (its `Base types:`)");
+    expect(build).toContain(`(\`    ${TIER_FORM}\`)`);
+  });
+
+  it("takes 3 or 4 must-haves, a `why` outside PoB's top 4 and each of the top 4 left out in `leftOut`", () => {
+    expect(build).toMatch(/3\. \*\*The must-haves\*\*: 3 or 4 from the top of the ranking, plus what PoB scores at zero but the build needs .* One outside PoB's top 4 carries its `why`; each of the top 4 you leave out goes in `leftOut` with its `why`/);
+  });
+
+  it('keeps a must-have PoB scores at zero required, never lowered or dropped', () => {
+    expect(build).toMatch(/\*\*A must-have PoB scores at zero is always required\*\*, never lowered or dropped for its importance/);
+  });
+
+  it('starts n at T1 with a depth check of at least 10 listings', () => {
+    expect(build).toMatch(new RegExp(`4\\. \\*\\*\`n\` first, at T1\\*\\*: \`n\`'s must-haves at their best tier allowed, and a \\*\\*depth check\\*\\*, \`mcp__pob2__search_trade_items\` .* \`limit: ${DEPTH_MIN}\`: with at least ${DEPTH_MIN} found and the ${DEPTH_POSITION}th cheapest within \`n\`'s target, that is its price`));
+  });
+
+  it('runs the budget search with include_non_upgrades: true, then the depth check at the mix', () => {
+    expect(build).toMatch(/5\. \*\*The budget search\*\* \(`b`, and `n` when its check fails\): `mcp__pob2__find_upgrades` with the 3 most important must-haves at their floor tiers' lowest rolls as `required_mods`, the weights, `include_non_upgrades: true`, `max_price` the target, `rune_behaviour: "remove"`: .* Then \*\*the depth check\*\* at that mix prices the slot/);
+  });
+
+  it(`holds a slot to ${SEARCH_CAP} trade searches`, () => {
+    expect(build).toContain(`**At most ${SEARCH_CAP} trade searches a slot**, the budget search counting as 2`);
+  });
+
+  it("compiles each must-have at its tier's lowest roll", () => {
+    expect(build).toMatch(/7\. \*\*The compiled rare\*\* holds each must-have at its tier's lowest roll, the tier the loop ended at, so every listing found meets the PoB file's figures/);
+  });
+
+  it('titles rares by their key affixes, never a generated name', () => {
+    expect(build).toMatch(/\*\*A rare is titled by its key affixes\*\* \(D-489\): its name line, the line after `Rarity: Rare`, is its key affixes, `\+2 spell levels, Spirit, chaos resistance` .* each comma-separated part naming one of its explicit lines; never a generated name/);
+  });
+
+  it('writes tree.exclude with reasons, which D1-tree and the gate pass as exclude', () => {
+    expect(build).toMatch(/\*\*The exclude list\*\* \(D-490, schema 10\): `tree\.exclude \[\{nodes, reason\}\]` on each rung, from your "out" decisions .* each entry with its reason\. D1-tree and the D1 gate pass the rung's list to node power as `exclude`/);
+  });
+
+  it("socket-tests Crystalline Phylactery's jewel socket (17788) against the notable it displaces", () => {
+    expect(build).toMatch(/\*\*An ascendancy jewel socket\*\* \(D-492\): .* \(Crystalline Phylactery, 17788, the Lich's and the Abyssal Lich's\) is valued by a \*\*socket test\*\*: a temporary stage that copies the rung with the node in `tree\.ascendancyNodes` in place of the notable it displaces, and a basic jewel .* `items\.treeJewels \{node: 17788, text\}`/);
+  });
+
+  it('writes scaling finds, its example a find the checker takes and the design display prints under Over budget', () => {
+    expect(build).toMatch(/\*\*Finds over the budget\*\* \(D-486\)\. When the loop leaves a dearer spec out .* write it to `<buildFolder>\/trades\.json` as a `scaling` find: .* by: "D1-build"\}`/);
+    const find = JSON.parse(blocks(between(D1_BUILD_RAW, '**Finds over the budget** (D-486)', '- **Boots carry'))[0]) as Json;
+    const dir = copyFixture(RUN14);
+    editJson(dir, TRADES14, (t) => (t.trades as Json[]).push(find));
+    editJson(dir, GATE, (g) => (g.design.rungs as Json[]).find((r) => r.stage === find.stage)!.trades.push(find));
+    const shown = node(RUN_LOG, [dir, 'display', 'design', '--build', BUILD]).stdout.split('\n');
+    expect({ trades: ruleLines(dir, 'trades'), by: find.by, printed: shown.some((l) => l.startsWith(`- ${find.from} was swapped for ${find.to}; adding it back: +${find.damage}% damage`) && l.includes('(estimate)')) })
+      .toEqual({ trades: [], by: 'D1-build', printed: true });
+  });
+
+  it('carries the Count note: every counted group gets PoB\'s count, so a Spirit warning may fire', () => {
+    expect(build).toMatch(/\*\*The compile writes PoB's count on every counted group\*\* \(D-493\), not only the named source's .* so V1's Spirit warning may fire on a plan that passed before/);
+  });
+
+  it("picks the must-haves the rung's toughness needs (R-74)", () => {
+    expect(build).toMatch(/\*\*Pick the must-haves the rung's toughness needs\*\* \(R-74\): a rare holding only its must-haves at their lowest rolls loses every other line/);
+  });
+});
+
+// D1-tree's examples: its tree fragment, its search after gear moved, its trades.
+const D1_TREE_RAW = rawStage('D1-tree');
+const TREE_WRITES = between(D1_TREE_RAW, '## Writes', '## Returns');
+const TREE_JSON = blocks(TREE_WRITES);
+/** D1-tree's `"tree": {…}` example and its `"search": {…}` example, as JSON objects (their `…` placeholder dropped). */
+const TREE_EXAMPLE = JSON.parse(`{${TREE_JSON[0].replace('  …,\n', '')}}`).tree as Json;
+const SEARCH_EXAMPLE = JSON.parse(`{${TREE_JSON[1]}}`).search as Json;
+const TREE_TRADES = JSON.parse(TREE_JSON[3]) as Json;
+
+describe('AC-W110 (WU-142): D1-tree', () => {
+  const tree = stage('D1-tree');
+
+  it("writes a rare jewel's lines as must-haves at their best tier allowed", () => {
+    expect(tree).toMatch(/`b`'s jewel carries the best 3 lines, `n`'s the best 4 \(2 prefixes and 2 suffixes at most\), each a must-have at its best tier allowed at the rung's item level \(82\), at that tier's lowest roll \(D-483/);
+  });
+
+  it("writes an unmodelled line for each piece pieces.md marks out unmeasured, the example's naming D1-build's, and the checker takes them", () => {
+    expect(tree).toMatch(/\*\*A piece left out unmeasured\*\* \(D-489\) reaches the user the same way: for each `out` row of `pieces\.md` whose Why starts `unmeasured \(estimate: …\)` .* write one `unmodelled` trade on `n`/);
+    const piece = UNMEASURED[0][1];
+    const line = (TREE_TRADES.trades as Json[]).find((t) => t.kind === 'unmodelled' && String(t.what).startsWith(piece));
+    const estimate = Number(/about \+(\d+)% EHP/.exec(UNMEASURED[0][5])?.[1]);
+    const dir = copyFixture(RUN14);
+    editJson(dir, TRADES14, (t) => {
+      t.trades = TREE_TRADES.trades;
+    });
+    editJson(dir, GATE, (g) => {
+      for (const r of g.design.rungs as Json[]) r.trades = (TREE_TRADES.trades as Json[]).filter((t) => t.stage === r.stage);
+    });
+    expect({ named: line !== undefined, ehp: line?.ehpChange, trades: ruleLines(dir, 'trades').filter((l) => /trades\.json's trades\[/.test(l)) }).toEqual({ named: true, ehp: estimate, trades: [] });
+  });
+
+  it('passes exclude, and its tree example with an exclude entry validates as schema 10', () => {
+    expect(tree).toMatch(/- \*\*`exclude`\*\* \(D-490, schema 10\): every node of the rung's `tree\.exclude` entries .* no rebuild, swap, repair or `free` refill adds an excluded node or paths through one/);
+    const plan = JSON.parse(read(path.join(FIXTURES, RUN14, PLAN14))) as Json;
+    stageOf(plan, 'n').tree.exclude = TREE_EXAMPLE.exclude;
+    const ok = validatePlan(plan, REF14);
+    stageOf(plan, 'n').tree.exclude = [{ nodes: TREE_EXAMPLE.exclude[0].nodes }];
+    const noReason = validatePlan(plan, REF14);
+    expect({ ok: ok.ok, noReason: noReason.ok ? [] : noReason.errors.map((e) => e.path) }).toEqual({ ok: true, noReason: ['stages[2].tree.exclude[0].reason'] });
+  });
+
+  it('uses the targets after gear moved and writes tree.search.targets, a figure within 0.5 meeting its target', () => {
+    expect(tree).toMatch(/\*\*Targets after gear moved\*\* \(D-490\): when the rung's gear changed after D1-tree last ran .* the targets are, per figure, the lower of `tree\.start` and the rung's current compile .* you record the targets you used in `tree\.search\.targets \{ehp, maxHit, why\}`/);
+    expect(tree).toContain('A figure within 0.5 of its target meets it (D-490), so write `tree.start` unrounded.');
+    expect(Object.keys(SEARCH_EXAMPLE.targets)).toEqual(['ehp', 'maxHit', 'why']);
+  });
+
+  it("counts the user's own moves in userMoves, and the search example validates as schema 10", () => {
+    expect(tree).toMatch(/\*\*The user's own moves\*\* \(D-490\) count in the rung's `tree\.search\.userMoves` \(schema 10\), one per change a request made, never in `tree\.search\.swaps`/);
+    const plan = JSON.parse(read(path.join(FIXTURES, RUN14, PLAN14))) as Json;
+    stageOf(plan, 'n').tree.search = SEARCH_EXAMPLE;
+    const r = validatePlan(plan, REF14);
+    expect({ ok: r.ok, userMoves: SEARCH_EXAMPLE.userMoves }).toEqual({ ok: true, userMoves: 2 });
+  });
+
+  it("records an illegal rebuild as `none: <the tool's reason>`, the tool's own form, which the checker and the display take", () => {
+    expect(tree).toMatch(/\*\*A rebuild the tool calls illegal\*\* \(D-490\) is recorded with the tool's own reason, `rebuild: "none: <the tool's reason>"`/);
+    const reason = /^none: (.+)$/.exec(SEARCH_EXAMPLE.rebuild)![1];
+    const form = new RegExp(`^${ILLEGAL_FORM.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('<Attribute>', '(?:Strength|Dexterity|Intelligence)').replace(/<[xy]>/g, '\\d+')}$`);
+    const dir = copyFixture(RUN14);
+    editJson(dir, GATE, (g) => {
+      (g.design.rungs as Json[]).find((r) => r.stage === 'n')!.rebuild = SEARCH_EXAMPLE.rebuild;
+    });
+    const detail = node(RUN_LOG, [dir, 'display', 'design', '--build', BUILD, '--detail']).stdout.split('\n');
+    expect({ form: form.test(reason), shape: ruleLines(dir, 'design-field').filter((l) => /has rebuild/.test(l)), printed: detail.includes(`- Rebuild not taken on n: ${reason}.`) }).toEqual({ form: true, shape: [], printed: true });
+  });
+
+  it('hand-edits no rebuild or swap the tool calls illegal', () => {
+    expect(tree).toContain("**No hand edits**: never change a rebuild or a swap the tool calls illegal to make it legal; record it as the tool said it (step 3.2).");
+  });
+
+  it('makes no trade call, and a non-zero count on its entry fails the checker', () => {
+    expect(tree).toMatch(/- \*\*No trade call\*\* \(D-490\): you price nothing and call no tool that searches the trade site or prices an item .* `link_only` included/);
+    const dir = copyFixture(RUN14);
+    const at = (JSON.parse(read(path.join(dir, 'run-log.json'))) as Json).stages.findIndex((s: Json) => s.stage === 'D1-tree');
+    editJson(dir, 'run-log.json', (log) => {
+      log.stages[at].priceOutcomes = { ok: 0 };
+    });
+    const zero = ruleLines(dir, 'pricing').filter((l) => l.includes('D1-tree makes no trade call'));
+    editJson(dir, 'run-log.json', (log) => {
+      log.stages[at].priceOutcomes = { ok: 1 };
+    });
+    expect({ zero, one: ruleLines(dir, 'pricing').filter((l) => l.includes('D1-tree makes no trade call')).length }).toEqual({ zero: [], one: 1 });
+  });
+});
+
+// D1-finish's examples: its trades and its swap record.
+const D1_FINISH_RAW = rawStage('D1-finish');
+const FINISH_TRADES = JSON.parse(blocks(between(D1_FINISH_RAW, '## Writes', '## Returns'))[0]) as Json;
+const SWAP_EXAMPLE = JSON.parse(`{${blocks(between(D1_FINISH_RAW, '## The `swap` scope (D-481)', '## The `scaling` scope (D-486)'))[0]}}`).itemSwaps as Json[];
+
+describe('AC-W110 (WU-142): D1-finish', () => {
+  const finish = stage('D1-finish');
+
+  it("accepts a ledger value × 100 as its percentage (:276–278)", () => {
+    expect(finish).toContain("A `ledger:<id>` claim's numbers are the entry's value or its inputs, an input as written or × 100 as a percentage. **The value too** (D-494): the entry's value × 100 is its percentage, so a claim of 86% against an entry evaluating to 0.86 holds");
+  });
+
+  it('has the swap scope and its steps, its record validating and holding the checker', () => {
+    const swap = folded(between(D1_FINISH_RAW, '## The `swap` scope (D-481)', '## The `scaling` scope (D-486)'));
+    const steps = ['1. **Write the item as the user gave it**', '2. **Compile** the swapped rungs measure-only, and rewrite each one\'s `tree.end` from that compile with `endAfter: "swap"`', '3. **Re-measure your own trades** on the swapped rungs', "4. **Drop D1-tree's `boss` trades** on the swapped rungs", '5. **Re-check the claims** that cite the slot or a figure that moved, **re-price the slot**'];
+    expect(steps.map((x) => swap.indexOf(x))).toEqual([...steps.map((x) => swap.indexOf(x))].sort((x, y) => x - y));
+    expect({ missing: steps.filter((x) => !swap.includes(x)), record: swap.includes('**record the swap** in the plan\'s `itemSwaps[]` (schema 10): `{stages, slot, from, to, bossBefore: {<stage>: <n>}, bossAfter: {<stage>: <n>}, reason}`') }).toEqual({ missing: [], record: true });
+    // The example validates, and the checker holds a logged swap to it.
+    const dir = copyFixture(RUN14);
+    const r = node(RUN_LOG, [dir, 'stage', '-'], JSON.stringify({ stage: 'D1-finish', concept: BUILD, attempt: 2, outcome: 'done', scope: 'swap' }));
+    const unrecorded = ruleLines(dir, 'swap');
+    editJson(dir, PLAN14, (p) => {
+      p.itemSwaps = SWAP_EXAMPLE;
+    });
+    const valid = validatePlan(JSON.parse(read(path.join(dir, PLAN14))), REF14);
+    expect({ code: r.code, unrecorded: unrecorded.length, recorded: ruleLines(dir, 'swap'), valid: valid.ok }).toEqual({ code: 0, unrecorded: 1, recorded: [], valid: true });
+  });
+
+  it(`has the scaling scope and its steps: at most ${SCALING_CAP} searches, the top ${FINDS_MEASURED} measured, only trades.json`, () => {
+    const scaling = folded(between(D1_FINISH_RAW, '## The `scaling` scope (D-486)', '## The fix round and revisions'));
+    expect(scaling).toMatch(new RegExp(`Re-price the finds over the budget in \`trades\\.json\` \\(kind \`scaling\`\\) by the depth rule .* \\*\\*at most ${SCALING_CAP} trade searches a build\\*\\*, and measure any of the top ${FINDS_MEASURED} \\(by gain\\) not yet measured.* \\*\\*Write only \`trades\\.json\`\\*\\*: each find's \`price\` and \`repriced: true\``));
+  });
+
+  it("runs the loop on D1-tree's rare jewels, lowering or dropping a line, never adding one", () => {
+    expect(finish).toMatch(/- \*\*D1-tree's rare jewels: the loop\*\* \(D-483\)\. .* then run the loop's steps 5 to 10 on it.* you may lower that jewel's tiers or drop a line as the loop says, never add one/);
+  });
+
+  it('never edits an item to a listing', () => {
+    expect({ prices: finish.includes('**never edit an item for its price, and never rewrite an item to a listing**: a listing\'s lines never enter the plan'), brief: finish.includes('**Never rewrite an item to match a listing** (D-483), whatever a brief says') }).toEqual({ prices: true, brief: true });
+  });
+
+  it('measures on temporary stages and restores the plan', () => {
+    expect({ finds: /\*\*Measure the finds\*\*, at most 5 a build, the largest gains first .* each on a temporary stage that copies the rung with the dear item in the slot.* the plan is restored after/.test(finish), scaling: /\*\*Restore the plan byte for byte\*\*: Read its text before your first temporary stage and Write that text back when you're done/.test(finish), swap: /3\. \*\*Re-measure your own trades\*\* on the swapped rungs, each on its temporary stage as step 5 does, the plan restored after/.test(finish) })
+      .toEqual({ finds: true, scaling: true, swap: true });
+  });
+
+  it("writes its own loops' scaling finds, by D1-finish, replacing only its own", () => {
+    expect(finish).toMatch(/- \*\*Finds over the budget\*\* \(D-486, D-483\): your own loops' dearer specs .* are `scaling` finds, `\{stage, kind: "scaling", slot, from, to, price, damage, ehp, measured, repriced, by: "D1-finish"\}`/);
+    expect((FINISH_TRADES.trades as Json[]).filter((t) => t.kind === 'scaling').map((t) => t.by)).toEqual(['D1-finish']);
+  });
+
+  it(`writes the boss fall after gear moved, more than ${BOSS_FALL_PERCENT}% under tree.end's`, () => {
+    expect(finish).toMatch(new RegExp(`\\*\\*a boss fall after gear moved\\*\\* \\(D-490\\): when gear changed after D1-tree .* more than ${BOSS_FALL_PERCENT}% under \`tree\\.end\`'s, the same claim \`boss-fall-<rung>\` .* names the item that moved it`));
+  });
+
+  it("writes the trades' price, from and to, its example the checker's 14 fields at revision 14", () => {
+    expect(finish).toMatch(/- \*\*Revision 14's fields\*\* \(D-486\): every entry also carries `price \{amount, currency, count, date\} \| null`, `from` and `to`/);
+    const dir = copyFixture(RUN14);
+    editJson(dir, TRADES14, (t) => {
+      t.trades = FINISH_TRADES.trades;
+    });
+    editJson(dir, GATE, (g) => {
+      for (const r of g.design.rungs as Json[]) r.trades = (FINISH_TRADES.trades as Json[]).filter((t) => t.stage === r.stage);
+    });
+    const plain = (FINISH_TRADES.trades as Json[]).filter((t) => t.kind !== 'scaling');
+    expect({ fields: plain.every((t) => ['price', 'from', 'to'].every((k) => k in t) && Object.keys(t).length === 14), trades: ruleLines(dir, 'trades').filter((l) => /trades\.json's trades\[/.test(l)) }).toEqual({ fields: true, trades: [] });
+  });
+});
+
+// D1-gate's verdict example.
+const GATE_EXAMPLE = JSON.parse(blockAfter(rawStage('D1-gate'), '## Writes')) as Json;
+
+describe('AC-W110 (WU-142): D1-gate', () => {
+  const gate = stage('D1-gate');
+
+  it(`writes summary (gear per rung of b and n) within ${CAP_HOW}, ${CAP_GEAR} and ${CAP_CATCH} characters, and the checker and the display take its example`, () => {
+    expect(gate).toMatch(new RegExp(`\\*\\*\`summary\`\\*\\* \\(D-478\\), once for the build, after the rungs: \`summary \\{how, gear: \\[\\{stage, slot, text\\}\\], catch\\}\`.* - \`how\`, at most ${CAP_HOW} characters: .* - \`gear\`, one entry per gear slot of \`b\` and \`n\` .* each \`text\` at most ${CAP_GEAR} characters: .* - \`catch\`, at most ${CAP_CATCH} characters`));
+    const sm = GATE_EXAMPLE.design.summary as Json;
+    const dir = copyFixture(RUN14);
+    editJson(dir, GATE, (g) => {
+      g.design.summary = sm;
+    });
+    const shown = node(RUN_LOG, [dir, 'display', 'design', '--build', BUILD]).stdout.split('\n');
+    expect({
+      caps: sm.how.length <= CAP_HOW && sm.catch.length <= CAP_CATCH && (sm.gear as Json[]).every((x) => x.text.length <= CAP_GEAR),
+      stages: [...new Set((sm.gear as Json[]).map((x) => x.stage))].sort(),
+      checker: ruleLines(dir, 'design-field').filter((l) => /summary/.test(l)),
+      how: shown.includes(`**How it works.** ${sm.how}`),
+      gear: (sm.gear as Json[]).filter((x) => ['b', 'n'].includes(x.stage)).every((x) => shown.includes(`- ${x.slot}: ${x.text}`)),
+    }).toEqual({ caps: true, stages: ['b', 'n'], checker: [], how: true, gear: true });
+  });
+
+  it('has the under wording (:241–243): under when the plain EHP is under its band, conditioned only within or over it', () => {
+    expect(gate).toMatch(/\*\*In a build held to amendment 14\*\* \(D-494\), between the two: \*\*`under`\*\* when the plain EHP is under its band, so under it in every condition, .* `conditioned` then fires only when the plain EHP is within or over its band and the conditioned EHP under it/);
+  });
+
+  it("keeps the draft in its verdict, which the checker takes and the display prints first", () => {
+    expect(gate).toMatch(/In a revision-14 run, then write its path into the verdict file as `draft: <relpath>` \(`null` when the write was refused, D-479\)/);
+    const dir = copyFixture(RUN14);
+    editJson(dir, GATE, (g) => {
+      g.draft = GATE_EXAMPLE.draft;
+    });
+    editJson(dir, 'run-log.json', (log) => {
+      Object.assign(log.builds[0], { draftFile: null, pobFile: null });
+    });
+    const first = node(RUN_LOG, [dir, 'display', 'design', '--build', BUILD]).stdout.split('\n').find((l) => l.startsWith('PoB file:'));
+    expect({ draft: typeof GATE_EXAMPLE.draft, checker: ruleLines(dir, 'gate-report').filter((l) => /draft is/.test(l)), first }).toEqual({ draft: 'string', checker: [], first: `PoB file: ${GATE_EXAMPLE.draft} in your Builds folder` });
+  });
+
+  it('passes the judge exclude and the targets after gear moved', () => {
+    expect(gate).toMatch(/in a revision-14 build \(D-490\) \*\*`exclude`\*\*, every node of the rung's `tree\.exclude` entries, and, when gear moved after D1-tree .* \*\*the targets after gear moved\*\*: per figure the lower of `tree\.start` and this compile's figure for the rung .* a figure within 0\.5 of its target meeting it/);
+  });
+});
+
+describe('AC-W110 (WU-142): D2', () => {
+  it("has the campaign note, in the user's words: two or three affixes on a campaign rare late in a league", () => {
+    const d2 = stage('D2');
+    expect({ quote: d2.includes(`"${CAMPAIGN_QUOTE[1]}"`), affixes: d2.includes(`**a campaign rare carries two or three affixes**`), solution: d2.includes(`("${CAMPAIGN_QUOTE[2]}")`) }).toEqual({ quote: true, affixes: true, solution: true });
+  });
+});
+
+// pricing.md's example price entry: the spec loop's record.
+const PRICING_RAW = rawRef('pricing.md');
+const PRICE_EXAMPLE = JSON.parse(blockAfter(PRICING_RAW, '## Recording a price')) as Json;
+/** The compiled rare the example prices: its title its key affixes, its must-haves at their tiers' lowest rolls, a rune in its socket. */
+const PRICED_RARE = ['Rarity: Rare', PRICE_EXAMPLE.item.split(': ')[1], PRICE_EXAMPLE.spec.base, 'Sockets: S', 'Rune: Greater Desert Rune', 'Implicits: 1', '{rune}+18% to Fire Resistance', '35% increased Movement Speed', '+100 to maximum Life', '+31% to Fire Resistance'].join('\n');
+
+describe('AC-W111 (WU-142): pricing.md', () => {
+  const pricing = ref('pricing.md');
+  const loop = folded(between(PRICING_RAW, '## A rare of `b` or `n`: the spec loop (D-483)', '## Recording a price'));
+
+  it(`prices a rare at the ${DEPTH_POSITION}th-cheapest of at least ${DEPTH_MIN} listings, the example's listing so`, () => {
+    expect(loop).toContain(`Its price is the **depth price**: the ${DEPTH_POSITION}th-cheapest of at least ${DEPTH_MIN} listings of a search for its must-haves, sorted by price. No slot is priced from fewer than ${DEPTH_MIN} listings.`);
+    expect({ position: PRICE_EXAMPLE.listing.position, enough: PRICE_EXAMPLE.listing.count >= DEPTH_MIN }).toEqual({ position: DEPTH_POSITION, enough: true });
+  });
+
+  it('starts n at T1, its first search a depth check', () => {
+    expect(loop).toMatch(/5\. \*\*`n` first, at T1\.\*\* `n`'s must-haves start at their best tier allowed, and its first search is a \*\*depth check\*\* there/);
+  });
+
+  it("runs the budget search with tiers: the floor tiers required, each listing's tiers in find_upgrades' own form", () => {
+    expect(loop).toMatch(/6\. \*\*The budget search\*\* .* `mcp__pob2__find_upgrades \{slot, required_mods: <the 3 most important must-haves at their floor tiers' lowest rolls, a zero-scored one always among them>, .* Each listing names its required affixes' tiers, `tiers: <affix> T<n>, …` .* Set each must-have to the best tier at which at least 5 of the listings under the budget meet all of them together/);
+    const schema = (getTradeToolSchemas() as Json[]).find((t) => t.name === 'find_upgrades')!.inputSchema.properties as Json;
+    expect(schema.required_mods.description).toContain("'tiers: <affix> T<n>, …'");
+  });
+
+  it('passes rune_behaviour: "remove" on every find_upgrades pricing call', () => {
+    expect(loop).toContain('**`rune_behaviour: "remove"`** on every pricing call of `mcp__pob2__find_upgrades`');
+  });
+
+  it('records listing, and its example entry validates, matches its compiled copy and holds the spec rules', () => {
+    expect(pricing).toMatch(/\*\*`listing`\*\* \(D-484, schema 10; outside `buildSha1`, like `note`\): `\{corrupted, sockets, count, position\}`.* \*\*The priced copy matches the compiled copy\*\*/);
+    const dir = copyFixture(RUN14);
+    editJson(dir, PLAN14, (p) => {
+      stageOf(p, 'b').items.slots.find((x: Json) => x.slot === PRICE_EXAMPLE.query.slot).text = PRICED_RARE;
+      p.prices = (p.prices as Json[]).map((x) => (x.id === PRICE_EXAMPLE.id ? PRICE_EXAMPLE : x));
+    });
+    // run-a14 is an offline run: online, the plan and every price carry the example's league (D-233).
+    const online = JSON.parse(read(path.join(dir, PLAN14))) as Json;
+    online.league = PRICE_EXAMPLE.league;
+    for (const x of online.prices as Json[]) x.league = PRICE_EXAMPLE.league;
+    const valid = validatePlan(online, REF14);
+    const rules = ['listing', 'spec', 'rare-title', 'budget'].flatMap((rule) => ruleLines(dir, rule));
+    // The same entry priced from a corrupted listing with no socket fails the match.
+    editJson(dir, PLAN14, (p) => {
+      p.prices.find((x: Json) => x.id === PRICE_EXAMPLE.id).listing = { ...PRICE_EXAMPLE.listing, corrupted: true, sockets: 0 };
+    });
+    expect({ valid: valid.ok, rules, mismatch: ruleLines(dir, 'listing').length }).toEqual({ valid: true, rules: [], mismatch: 2 });
+  });
+
+  it('prices a unique whose corruption or sockets matter by search_trade_items, with item_name, corrupted and min_rune_sockets', () => {
+    expect(pricing).toMatch(/- \*\*A unique by name, unless its corruption or sockets matter\*\* \(D-484\): `mcp__pob2__get_item_price` can't filter or show either, so a unique .* goes to `mcp__pob2__search_trade_items` with `item_name`, `corrupted` \(as the plan's copy\) and `min_rune_sockets`/);
+    const schema = (getTradeToolSchemas() as Json[]).find((t) => t.name === 'search_trade_items')!.inputSchema.properties as Json;
+    expect(['item_name', 'corrupted', 'min_rune_sockets', 'limit'].filter((k) => !(k in schema))).toEqual([]);
+  });
+
+  it("states the corrupted-unique rule in the user's words: cheap, the extra socket, implicits out", () => {
+    expect({
+      cheap: /This is the cheap unique's rule: one under 1 divine uncorrupted may carry a corruption outcome, an implicit or an extra socket/.test(pricing),
+      socket: pricing.includes(`- **A unique that isn't cheap, bought corrupted with an extra socket** (D-484, the user's ruling of 2026-11-02: "${CORRUPTION_QUOTE}")`),
+      implicits: pricing.includes('Its corruption implicits never enter `m`, `b` or `n`'),
+    }).toEqual({ cheap: true, socket: true, implicits: true });
+  });
+
+  it('says what the loop does offline, during a pricing stop and without a session cookie', () => {
+    expect({
+      offline: /\*\*offline\*\*, or without the trade tools: no ranking \(`ranking: null`, `searches: 0`\); .* the rares compile at their floor tiers' lowest rolls/.test(loop),
+      stop: /\*\*a pricing stop open\*\* .* `link_only` sends no request, so the ranking stays allowed; no search runs; the rares compile at the tiers the loop reached, else their floors/.test(loop),
+      session: /\*\*no session cookie\*\* .* the loop runs as depth checks alone, which search anonymously, from the best tier allowed down one step at a time, within the cap/.test(loop),
+    }).toEqual({ offline: true, stop: true, session: true });
+  });
+
+  it("reads the fallback's three causes, each the server's own prefix", () => {
+    const outcomes = folded(between(PRICING_RAW, '## Classifying outcomes (D-218)', '## Pace'));
+    const replies = (['no_session', 'session_rejected', 'too_complex'] as const).map((cause) => renderFallback({ cause, reason: 'x', hint: 'h', link: 'https://example.invalid/', notes: [] }));
+    expect({
+      named: [CAUSE_A, CAUSE_B, CAUSE_C].every((c) => outcomes.includes(`\`${c} \``)),
+      server: replies.map((r) => r.split(' ')[0]),
+      session: outcomes.includes('Read the first two as a session problem for this step'),
+      complex: outcomes.includes('Read `too_complex` as a cue to drop the least important must-have'),
+      own: outcomes.includes('**An item is `unavailable` only after its own failed call**'),
+    }).toEqual({ named: true, server: [CAUSE_A, CAUSE_B, CAUSE_C], session: true, complex: true, own: true });
+  });
+
+  it(`counts trade searches in its notice: about ${VOLUME_LOW} to ${VOLUME_HIGH} a build`, () => {
+    expect(pricing).toMatch(new RegExp(`\\*\\*It counts trade searches, not calls\\*\\* \\(D-483\\): .* usually makes 3 a \`b\` rare .* and 1 an \`n\` rare, at most ${SEARCH_CAP} a slot, about ${VOLUME_LOW} to ${VOLUME_HIGH} a build \\(${MINUTES_LOW} to ${MINUTES_HIGH} minutes at the 45 s pace\\)`));
+  });
+
+  it('prices an edited item on its four heaviest lines', () => {
+    expect(loop).toContain("its price is the depth price of a search for its lines at their values (the four heaviest by the slot's weights when it has more)");
+  });
+
+  it('re-prices a spec as compiled, by one depth check, never re-running the loop', () => {
+    expect({ loop: loop.includes('**Re-pricing a spec**: D1-finish\'s re-price and the D1 gate\'s final re-price pass price a spec as compiled, by one depth check at its must-haves\' tiers (its `query`\'s call); the loop never runs again.'), pass: /\*\*A spec is re-priced as compiled\*\* \(D-483\)/.test(pricing) }).toEqual({ loop: true, pass: true });
+  });
+
+  it("has the campaign note in the user's words", () => {
+    expect({ quote: loop.includes(`"${CAMPAIGN_QUOTE[1]}"`), affixes: loop.includes('so campaign rares use two or three affixes') }).toEqual({ quote: true, affixes: true });
+  });
+
+  it('has no "first listing", and no -fallback but for a build before revision 14', () => {
+    const sentences = pricing.split(/(?<=\.)\s+/).filter((x) => x.includes('-fallback'));
+    expect({ first: /first listing/i.test(pricing), fallback: sentences.filter((x) => !/before revision 14|writes no `<id>-fallback`|^`<id>-fallback` with fewer/.test(x)) }).toEqual({ first: false, fallback: [] });
+  });
+
+  it(`thins a slot past the cap to unavailable with its count, shown at the gate (R-75), and the notice's volume (R-76)`, () => {
+    expect({ thin: loop.includes("with none, the slot's entry is `unavailable`, `note` `thin: <count>`, and the gate shows it"), volume: loop.includes(`about ${VOLUME_LOW} to ${VOLUME_HIGH} a build, ${MINUTES_LOW} to ${MINUTES_HIGH} minutes at the 45 s pace (D-461). The pricing notice counts them before the step starts`) }).toEqual({ thin: true, volume: true });
+  });
+});
+
+describe("AC-W111 (WU-142): gates.md and lookups.md", () => {
+  const gates = ref('gates.md');
+  const lookups = ref('lookups.md');
+
+  it("gates.md's budget part: the depth price, listing and spec, no -fallback, thin unavailable", () => {
+    expect(gates).toMatch(/- \*\*In a build held to amendment 14\*\* \(D-483, D-484\): a rare's price is its spec's \*\*depth price\*\*, the 5th-cheapest of at least 10 listings .* \*\*No `<id>-fallback` entry\*\*: the dearer spec is a find over the budget .* `thin: <count>`/);
+  });
+
+  it("gates.md's tree part: exclude and the targets after gear moved", () => {
+    expect(gates).toMatch(/\*\*In a build held to amendment 14\*\* \(D-490\) the judge also passes `exclude`, the rung's `tree\.exclude` nodes, .* its `targets` are \*\*the targets after gear moved\*\*: per figure the lower of `tree\.start` and the gate's compile of the rung/);
+  });
+
+  it("gates.md's swap fall rule: on a rung whose tree.end reads endAfter: \"swap\", the swap's reason stands in for the boss trade, as the checker holds", () => {
+    expect(gates).toMatch(/\*\*On a rung whose `tree\.end` reads `endAfter: "swap"`, the swap's `reason` stands in\*\* for the `boss` trade a boss fall on the tree needs .* and for the `damage` or `boss` trade an `n` under the floor at the gate needs/);
+    // run-a14's n fell on its tree: with no boss trade it fails, and a swap's reason on a rung that ends after it stands in.
+    const dir = copyFixture(RUN14);
+    editJson(dir, TRADES14, (t) => {
+      t.trades = (t.trades as Json[]).filter((x) => x.kind !== 'boss');
+    });
+    editJson(dir, GATE, (g) => {
+      for (const r of g.design.rungs as Json[]) r.trades = (r.trades as Json[]).filter((x) => x.kind !== 'boss');
+    });
+    const fall = () => ruleLines(dir, 'trades').filter((l) => /the boss figure fell .* no boss trade is shown/.test(l));
+    const without = fall().length;
+    editJson(dir, PLAN14, (p) => {
+      stageOf(p, 'n').tree.end.endAfter = 'swap';
+      p.itemSwaps = [{ ...SWAP_EXAMPLE[0], stages: ['n'], bossBefore: { n: 220000 }, bossAfter: { n: 210000 } }];
+    });
+    expect({ without, with: fall() }).toEqual({ without: 1, with: [] });
+  });
+
+  it("lookups.md's socket counts: the socket table's, in the base mode's own line", () => {
+    const count = (key: string) => {
+      const r = REF14.resolveFact('items/sockets.json', `sockets.${key}`);
+      return r.ok ? r.fact.value : null;
+    };
+    expect([count('body-armour'), count('two-hand-weapon'), count('helmet'), count('shield'), count('focus'), count('one-hand-weapon'), count('amulet'), count('ring'), count('belt'), count('quiver'), count('corona-amulet')]).toEqual([2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 1]);
+    expect({
+      table: lookups.includes('body armours and two-handers 2; other armour, shields, foci and one-handers 1; amulets, rings, belts and quivers 0; Corona Amulet, Grasping Ring and Stalking Belt 1'),
+      form: lookups.includes(`\`${SOCKET_FORM}\``),
+      server: socketLine(2, 4),
+      none: lookups.includes(`\`${socketLine(1, undefined)}\``),
+    }).toEqual({ table: true, form: true, server: "Sockets: 2 (PoB's ceiling 4 counts Exceptional and corruption)", none: true });
+  });
+
+  it("lookups.md's tier levels: the lookup's own lines, and its example the game data's", () => {
+    // The server's renderer writes the form the doc shows.
+    const lines = renderTiers([{ on: [{ name: 'Boots', itemType: true, count: 1, total: 1 }], tiers: [{ tier: 1, level: 60, line: '+(120-149) to maximum Life' }], tier: 1 }], new Set());
+    expect({ head: lines[0], tier: lines[1], doc: lookups.includes('`  Tiers on <bases> (this mod: T<n>):`, then one line a tier, `    T<n> (item level <l>): <range>`') }).toEqual({ head: '  Tiers on Boots (all) (this mod: T1):', tier: '    T1 (item level 60): 120–149', doc: true });
+    // PoB's maximum Life tiers on boots (Data/ModItem.lua), the best first: T1 and T3, as the example names them.
+    const mods = read(path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src', 'Data', 'ModItem.lua'));
+    const boots = [...mods.matchAll(/\["IncreasedLife\d+"\] = \{ type = "Prefix", affix = "[^"]+", "\+\((\d+)-(\d+)\) to maximum Life", statOrder = \{ \d+ \}, level = (\d+), group = "IncreasedLife", weightKey = \{ ([^}]*) \}, weightVal = \{ ([^}]*) \}/g)]
+      .filter((m) => {
+        const keys = m[4].split(',').map((x) => x.trim().replace(/"/g, '')).filter(Boolean);
+        const vals = m[5].split(',').map((x) => Number(x.trim())).filter((x) => !Number.isNaN(x));
+        return vals[keys.indexOf('boots')] > 0;
+      })
+      .map((m) => ({ low: Number(m[1]), high: Number(m[2]), level: Number(m[3]) }))
+      .sort((x, y) => y.level - x.level);
+    const allowed = boots.filter((t) => t.level <= LEVEL_BN);
+    expect(lookups).toContain(`maximum Life lists \`    T1 (item level ${allowed[0].level}): ${allowed[0].low}–${allowed[0].high}\` and \`    T3 (item level ${allowed[2].level}): ${allowed[2].low}–${allowed[2].high}\`, so at item level ${LEVEL_BN} its best tier allowed is T1 and its floor T3, lowest roll ${allowed[2].low}`);
   });
 });

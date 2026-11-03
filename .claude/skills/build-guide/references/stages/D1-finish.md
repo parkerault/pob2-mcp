@@ -150,7 +150,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      rest (D-444, `references/pricing.md`); a magic or normal item, and every slot of `m` by
      `mcp__pob2__search_trade_items` with `mods`. One item per call. **A unique whose corruption or sockets matter**
      (D-484): `mcp__pob2__get_item_price` can't filter or show either, so a unique whose plan copy is corrupted (but
-     under the cheap rule below) or holds more sockets than its own is priced by `mcp__pob2__search_trade_items
+     for the cheap rule below, priced uncorrupted by name) or holds more sockets than its own is priced by `mcp__pob2__search_trade_items
      {item_name, corrupted: <as the plan's copy>, min_rune_sockets: <the plan's count when above the unique's own>,
      limit: 10}` by the depth rule, its `listing` matching the compiled copy; a random-roll unique (Morior Invictus)
      adds `mods`, each line the figures rely on at its range's midpoint. **Boots** (D-440): `m`'s boots search carries

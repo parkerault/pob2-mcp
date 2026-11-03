@@ -507,7 +507,10 @@ request (D-411, D-413).
         leave out goes in `leftOut` with its `why`. **A must-have PoB scores at zero is always required**, never
         lowered or dropped for its importance. Order them most important first, a zero-scored one first (the trade
         link requires the first three, D-488). Importance is the loss of one tier step, the weight per point × (this
-        tier's lowest roll − the next tier's), with no compile.
+        tier's lowest roll − the next tier's), with no compile. **Pick the must-haves the rung's toughness needs**
+        (R-74): a rare holding only its must-haves at their lowest rolls loses every other line, so the pool and the
+        resistances the floor rests on are must-haves, and your compile after the loop reads the floor and the
+        toughness again.
      4. **`n` first, at T1**: `n`'s must-haves at their best tier allowed, and a **depth check**,
         `mcp__pob2__search_trade_items` with them as `mods` at their tiers' lowest rolls, `corrupted: false`, the
         base's standard rune sockets and `limit: 10`: with at least 10 found and the 5th cheapest within `n`'s

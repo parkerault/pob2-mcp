@@ -290,7 +290,8 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      when the spec loop dropped an affix for its price; a boots exception with its movement figure (D-491: the
      regular figure, never with a skill's use penalty folded in);
    - `catch`, at most 300 characters: up to two sentences, with any unconfirmed point and its fallback,
-     `unconfirmed (<what>; if it fails: <the fallback and its cost>)` (D-489), never a suggestion to try it out on a character.
+     `unconfirmed (<what>; if it fails: <the fallback and its cost>)` (D-489), never a suggestion to try it out
+     on a character.
 
    After a one-item swap (D-481) you rewrite the swapped slot's `gear` line and any sentence that names the old item.
 

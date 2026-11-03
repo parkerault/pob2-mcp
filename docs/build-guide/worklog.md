@@ -6344,3 +6344,15 @@ the `m17` engine at `b76967b`.
   - **Left:** `lookup_game_data` reloads the C-35 data folder on every base, unique and mechanic lookup, uncached, so
     an invalid data file fails those lookups; PoB's trap-tool bases would print "Sockets: 2 (PoB's base data gives it
     none)", harmless while the game has no trap tools.
+- **Wave 1's gate passed** on `d8b5ffc` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's cache
+  cleared): `mise run test` rc 0 (233 suites, 4,013 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0. The
+  five units' suites pass together; `src/engine/schemas.ts` holds all four units' fields, each read by its caller. Its
+  probe on the built server put a schema-10 Lich plan through a final compile: V1's `affix-cap`, `sockets` and
+  `ascendancy-jewel` all fired; `final-build.xml` written; the read-back, the trade links (3, each with `corrupted:
+  false` and the socket table's minimum) and the notes all ran; the lookup's socket line read the same table. The
+  Phylactery jewel reads `MissingFireResist` 125 → 127. `scripts/fresh-clone-check.sh` rc 0 (85 tools, 84 with
+  poe.ninja off; the golden build's Life 2,977; the fallback `[trade:no_session] Trade search not run: …`). README
+  table 85 rows, every description within 2,048 characters (`get_node_power` 2,041 the longest). Both waiver files
+  `[]`; no dependency change.
+  - **Left:** `compiler.ts`:2080 keeps its own `SOCKET_TABLE` constant beside `checks/v1.ts`'s export (the same file
+    today).

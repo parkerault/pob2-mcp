@@ -6323,3 +6323,24 @@ the `m17` engine at `b76967b`.
     refusal catches only a byte-exact copy (PoB re-serializes on save), so the restatement and the user's yes stay R-83's
     guard; adopt takes the file on disk at the call, with no check that it is the one read back (`readback.json` records
     no sha1 of the edited file; the spec is silent).
+- **WU-139 (game data and the parse fix) merged** as `a22c4a9` and the four commits before it (cherry-picked from
+  `51b6974`…`671f4f8`; no conflict with WU-138's `schemas.ts`). The bridge's new `pob-api/API/ParseFixes.lua`, loaded
+  by `bootstrap.lua`, makes Crystalline Phylactery's current line apply (17788 and its Abyssal Lich copy); the lookup
+  shows each mod tier's item level, prints a base's socket count from `data/items/sockets.json` with PoB's ceiling
+  named, and drops the item-only skills of `data/items/item-only-skills.json` from Prism of Belief's variants; PG-103 to
+  PG-105 in `pob-gaps.md`; `CLAUDE.md`'s pin-upgrade list names the fix. AC-P95, AC-K87 and AC-W107 in new
+  `parseFixes.test.ts` and `amendment14GameData.test.ts`, and in `lookupGameData.test.ts` and
+  `researcherLookups.test.ts`. Its verifier (fresh context) passed it (gate 228 suites, 3,965 tests, rc 0; the timing
+  step 2 suites, 4 tests; build rc 0; `vendor/` unmodified at the pin).
+  - **The spike (AC-P95):** a Ruby with "20% increased Armour". PoB's own parse reads the node's line as `LocalEffect
+    INC 100` with the remainder "of bonuses gained from Socketed Jewel"; 17788 and its Abyssal Lich copy have
+    `SocketedJewelEffect` 0, and the Ruby gives 20 in 17788, as in main-tree socket 61419, for a Lich and an Abyssal
+    Lich. With the fix: `SocketedJewelEffect` 100, no remainder, 40 in 17788 against 20 in 61419, for both. The older
+    wording parses to exactly `SocketedJewelEffect INC 100`. The verifier's own run (a Sapphire, "12% increased
+    Accuracy Rating") gave 12 and 12 unfixed, 24 against 12 fixed; PoB's `CalcSetup.lua`:1133–1136 applies it.
+    Through `compile_plan`, WU-137's spike plan now reads `MissingFireResist` 125 → 127 (126 before the fix).
+  - **The coordinator folded:** AC-K87's and §20's Volatile Dead (PoB's generator leaves out a skill its data marks
+    `fromItem`, `act_int.lua`:22337, `Generated.lua`:85, so it was never in PoB's list).
+  - **Left:** `lookup_game_data` reloads the C-35 data folder on every base, unique and mechanic lookup, uncached, so
+    an invalid data file fails those lookups; PoB's trap-tool bases would print "Sockets: 2 (PoB's base data gives it
+    none)", harmless while the game has no trap tools.

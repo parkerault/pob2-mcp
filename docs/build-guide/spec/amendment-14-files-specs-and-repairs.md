@@ -824,7 +824,9 @@ Amends D-293's file clause ("on the named source's groups only", settled by the 
 - **Generated unique variants** (C-37): a lookup of a generated unique's variants (Prism of Belief) drops the skills
   listed in `data/items/item-only-skills.json` (a C-35 fact file: skills only items grant, the first Coiling Bolts, the
   user's ruling that Prism of Belief rolls only gem skills). A skill some unique grants that is also a gem (Spark,
-  Volatile Dead, Herald of Ash) stays. PG-105.
+  Herald of Ash) stays. PoB's generator already leaves out a skill its data marks `fromItem` (Volatile Dead,
+  `Data/Skills/act_int.lua`:22337; `Data/Uniques/Special/Generated.lua`:85), though the game has its gem (folded at
+  WU-139's merge). PG-105.
 
 Amends C-14, C-37, D-449, D-365, `check-run.mjs`, `D1-finish.md`:276–278, `pricing.md`'s outcome table (:207–225),
 `renderUpgrades.ts`, `findUpgrades.ts`, `Lookup.lua`, `lookupHandlers.ts`.
@@ -984,7 +986,7 @@ user; the units that wait on it wait.
   with the fix list off, PoB's own parse of the line leaves a remainder (the test says it fails once PoB parses the
   line); AC-B5's golden values hold.
 - **AC-K87 (WU-139).** Engine: `lookup_game_data` for Prism of Belief lists no Coiling Bolts variant and keeps Spark,
-  Volatile Dead, Herald of Ash and Arc; a mechanic-mode mod hit shows each tier's item level and range; the base mode
+  Herald of Ash and Arc (Volatile Dead is absent from PoB's own list at the pin, §20; folded at WU-139's merge); a mechanic-mode mod hit shows each tier's item level and range; the base mode
   prints a body armour's sockets as `Sockets: 2 (PoB's ceiling 4 counts Exceptional and corruption)`.
 - **AC-W107 (WU-139).** Static: `pob-gaps.md` holds PG-103 to PG-105 with kind, status and Where; CLAUDE.md's
   pin-upgrade steps name `pob-api/API/ParseFixes.lua`; `data/items/item-only-skills.json` is a C-35 fact file.

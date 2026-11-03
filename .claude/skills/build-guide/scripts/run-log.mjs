@@ -1296,6 +1296,22 @@ function cantShow(lines) {
 }
 
 /**
+ * D-478 (amendment 14): a card's `### Identity` (`templates/card-template.md`): its `Class`, `Ascendancy` and `Named damage
+ * source` items, `{className, ascendancy, skill}`, each the text after its label; null without the heading or the three.
+ */
+function identityOf(lines) {
+  const at = lines.findIndex((l) => /^###\s+Identity\s*$/.test(l));
+  if (at < 0) return null;
+  const items = new Map();
+  for (let i = at + 1; i < lines.length && !/^#{1,3}\s/.test(lines[i]); i += 1) {
+    const m = /^[-*]\s+([^:]+?):\s*(.+)$/.exec(lines[i]);
+    if (m) items.set(m[1].trim(), m[2].trim());
+  }
+  const id = { className: items.get('Class'), ascendancy: items.get('Ascendancy'), skill: items.get('Named damage source') };
+  return Object.values(id).every(text) ? id : null;
+}
+
+/**
  * A card file's Pitch (D-392): each top-level item `- <Field>: <text>` under `### Pitch`, its indented lines
  * joined to it (a nested item with "; "). Returns `{name, fields, changed, made, structure, pieces, measured}`: the
  * name (`Name`, or a card from before amendment 7's `Title`), every field by its name (`Obvious build` among them,
@@ -1306,9 +1322,10 @@ function cantShow(lines) {
  * 4's detail, the risks PoB can't show (D-436).
  */
 export function parseCard(textOrNull) {
-  const out = { name: null, fields: new Map(), changed: [], made: [], structure: null, pieces: null, measured: null, external: [], cantShow: null };
+  const out = { name: null, fields: new Map(), changed: [], made: [], structure: null, pieces: null, measured: null, external: [], cantShow: null, identity: null };
   if (typeof textOrNull !== 'string') return out;
   const lines = textOrNull.replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, '')).split('\n');
+  out.identity = identityOf(lines);
   out.structure = structureCheck(lines);
   out.pieces = piecesTable(lines);
   out.measured = measuredTable(lines);
@@ -1671,6 +1688,8 @@ const INVITE4 = {
   verification: 'Ask anything about these builds first. Then say in your own words which 1 to 3 to finalize, in your order, with any changes; or verify other cards, make a new one, brainstorm more, or stop.',
   resumed: 'For a build of this run, you can also have its guide written (a PoB file only), add its campaign, or see its design gate again.',
   design: 'Ask anything about this build first. Then accept it (its endgame guide follows), take its PoB file only, ask for changes, go back to the verification gate to finalize another card, or stop.',
+  // D-480, D-486 (amendment 14): accept alone never means the guide; the gate asks guide or file, and late endgame scaling.
+  design14: "Ask anything about this build first. Then accept it (I'll ask: its endgame guide or its PoB file only, and late endgame scaling), ask for changes, go back to the verification gate to finalize another card, or stop.",
   final: 'Ask anything about the guide first. Then accept it, accept it and go back to the verification gate for more builds, add the campaign, ask for changes, or say that you decline it.',
 };
 /** D-412: a build's status in words, for the verification display's list of the run's builds. */
@@ -1924,8 +1943,10 @@ function dealtDisplay13(dir, log, deck) {
  * ascendancy, skill>; under-played: yes|no)`, then its `drawn from <host>` line: the runner writes the card's rotation,
  * what makes it work and the catch under it.
  */
-function header14(n, d, card, name, plain) {
-  return [`**${n}. ${name(d.id)}** (${plain(d.parts[0] ?? 'no structure given')}; under-played: ${d.underPlayed !== null ? 'yes' : 'no'})`, ...drawnFrom(card, '')];
+function header14(n, d, card, name, plain, composite = true) {
+  // A dealt deck's line leads with its pitch, not the identity: a dealt card's class, ascendancy and skill are its card's.
+  const id = !composite && card.identity !== null ? `${card.identity.className}, ${card.identity.ascendancy}, ${card.identity.skill}` : null;
+  return [`**${n}. ${name(d.id)}** (${id ?? plain(d.parts[0] ?? 'no structure given')}; under-played: ${d.underPlayed !== null ? 'yes' : 'no'})`, ...drawnFrom(card, '')];
 }
 /**
  * D-478 (amendment 14, Appendix A): the brainstorm display of a log at 14, on the composite and the dealt-card paths alike:
@@ -1948,7 +1969,7 @@ function brainstormDisplay14(dir, log, deck) {
   const composite = composes(log, deck);
   const superseded = new Set(deck.superseded.map((s) => s.old));
   const shown = deck.entries.filter((d) => d.round !== null && !verified.has(d.id) && !superseded.has(d.id));
-  for (const d of shown) out.push(...header14(number(d.id), d, cards.get(d.id) ?? parseCard(null), name, plain));
+  for (const d of shown) out.push(...header14(number(d.id), d, cards.get(d.id) ?? parseCard(null), name, plain, composite));
   if (shown.length === 0) out.push(composite ? 'No composite is left to verify.' : 'No dealt card is left to verify.');
   const old = deck.superseded.filter((s) => !verified.has(s.old));
   for (const s of old) out.push(`**${number(s.old)}. ${name(s.old)}** (superseded by ${s.next === null ? 'a later composite' : name(s.next)}, still pickable)`);
@@ -2466,6 +2487,13 @@ function tradeLines(r, rec = null) {
       return `- Boss trade on ${t.stage}: ${stop(t.what)} (remove ${count(n.remove)}, add ${count(n.add)}): boss ${whole(now)} → ${whole(t.bossAfter)}${changes.length > 0 ? `, ${changes.join(', ')}` : ''}.`;
     }
     const none = /^none found\b/i.test(String(t.what ?? '').trim());
+    // D-489 (amendment 14, §15): a piece the design leaves out unmeasured (its `what` says so) reaches the user as left out,
+    // with its estimate; a null part of the estimate is left out.
+    const outUnmeasured = t.kind === 'unmodelled' ? /^(.*?)[,;:]?\s*left out unmeasured\b/i.exec(String(t.what ?? '').trim()) : null;
+    if (outUnmeasured) {
+      const est = [isNum(t.ehpChange) ? `EHP ${signed(t.ehpChange)}` : null, isNum(t.damageChange) ? `damage ${signed(t.damageChange)}` : null].filter(Boolean);
+      return `- Left out unmeasured: ${stop(outUnmeasured[1])}${est.length > 0 ? ` (estimate: ${est.join(', ')})` : ''}: ${stop(t.reason)}.`;
+    }
     if (t.kind === 'unmodelled') return `- Kept for ${stop(t.reason)}, which PoB can't measure: ${stop(t.what)}${isNum(t.damageChange) ? ` would ${t.damageChange < 0 ? 'cost' : 'add'} ${pct(Math.abs(t.damageChange))}% damage` : ''}.`;
     if (t.kind === 'boots') return `- Boots: ${stop(t.what)}${text(t.reason) ? `, for ${stop(t.reason)}` : ''}.`;
     const a12 = 'maxHit' in t || 'hitsSurvived' in t;
@@ -2684,7 +2712,7 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     if (over.length > 0) out.push('**Over budget**', ...over, '');
   }
   out.push(`**The catch.** ${text(summary.catch) ? stop(summary.catch) : 'not given'}`, '');
-  out.push(INVITE4.design, '', '**Options**');
+  out.push(INVITE4.design14, '', '**Options**');
   return out;
 }
 
@@ -2697,7 +2725,8 @@ function designDisplay(dir, log, id, opts = {}) {
   const folder = folderOf(log, s.concept);
   // D-478 (amendment 14, §25): a build whose last D1 gate ran at or after 14's boundary shows the [GR] form; --detail
   // prints today's measurement lines.
-  if (log.stages.indexOf(s) >= heldFrom(log, 'stages', A14) && opts.detail !== true) {
+  const held14 = log.stages.indexOf(s) >= heldFrom(log, 'stages', A14);
+  if (held14 && opts.detail !== true) {
     return designDisplay14(dir, log, s, gate, readJson(dir, inFolder(folder, 'plan.json')), gateRecord(dir, gate, folder), folder);
   }
   const plan = readJson(dir, inFolder(folder, 'plan.json'));
@@ -2760,7 +2789,8 @@ function designDisplay(dir, log, id, opts = {}) {
   const ids = new Set(objects(gate.design.rungs).map((r) => r.stage));
   const estimates = (Array.isArray(gate.design.estimates) ? gate.design.estimates.filter(text) : []).map((e) => e.replace(/^(\w+):\s*/, (m, rung) => (ids.has(rung) ? `${rungLabel(plan, rung)}: ` : m)));
   if (estimates.length > 0) out.push('Still estimates:', ...estimates.map((e) => `- ${e}`), '');
-  out.push(verdictWords('D1-gate', gate.verdict), '', log.schemaVersion === 4 ? INVITE4.design : INVITE.design);
+  // D-480 (amendment 14): a build held to 14 asks guide or file at its accept, in --detail too.
+  out.push(verdictWords('D1-gate', gate.verdict), '', log.schemaVersion === 4 ? (held14 ? INVITE4.design14 : INVITE4.design) : INVITE.design);
   const rungs = objects(gate.design.rungs).map((r) => `${rungLabel(plan, r.stage)}: ${r.stage}`);
   return [...out, ...reference([`Verdict: ${parts(gate.verdict)}`, `Verdict file: ${file}`, ...(rungs.length > 0 ? [`Rungs: ${rungs.join(', ')}`] : [])])];
 }

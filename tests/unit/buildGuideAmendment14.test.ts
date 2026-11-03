@@ -1141,3 +1141,64 @@ describe('AC-W108 (C-31, §9, §10, §11): run-a14 against the merged plan schem
     expect(table.facts['sockets.helmet'].value).toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------------------------------
+// WU-140b: the fixes WU-142's and WU-143's verifiers found
+// ---------------------------------------------------------------------------------------------------
+
+describe('WU-140b (D-478, D-480, D-488, D-489): the link blocks, the design invitation, a piece left out unmeasured, a dealt header', () => {
+  it("the guide's word cap skips W1's trade link blocks (§14): prose under the cap with a link block over it passes", () => {
+    const pad = (dir: string, extra: string) => editText(dir, GUIDE, '## Changelog\n', `${extra}\n\n## Changelog\n`);
+    // The guide's own count, read from the cap's message with 3,000 words of padding.
+    const probe = copy('run-a14');
+    pad(probe, 'word '.repeat(3000));
+    const base = Number(/guide\.md has (\d+) words/.exec(lines(check(probe).stderr, 'word-cap')[0])![1]) - 3000;
+    const url = 'https://www.pathofexile.com/trade2/search/poe2/Standard?q=%7B%22query%22%3A%7B%7D%7D';
+    const block = ['```text', ...Array.from({ length: 30 }, (_, k) => `${k % 2 === 0 ? 'Body Armour' : 'Jewel 1001'}: ${url}${k}`), '```'].join('\n');
+    const prose = 'word '.repeat(2300 - base - 10);
+    const fenced = copy('run-a14');
+    pad(fenced, `${prose}\n\n${block}`);
+    expect(lines(check(fenced).stderr, 'word-cap')).toEqual([]);
+    // The same lines as prose count, and take the guide over its cap.
+    const loose = copy('run-a14');
+    pad(loose, `${prose}\n\n${block.split('\n').slice(1, -1).join('\n')}`);
+    expect(lines(check(loose).stderr, 'word-cap')).toEqual([expect.stringMatching(/guide\.md has \d+ words, over the 2300-word cap of the endgame guide/)]);
+  });
+
+  it("the design invitation of a build held to 14 asks guide or file; revision 13's keeps its words", () => {
+    const A14 = "Ask anything about this build first. Then accept it (I'll ask: its endgame guide or its PoB file only, and late endgame scaling), ask for changes, go back to the verification gate to finalize another card, or stop.";
+    const A13 = 'Ask anything about this build first. Then accept it (its endgame guide follows), take its PoB file only, ask for changes, go back to the verification gate to finalize another card, or stop.';
+    const dir = copy('run-a14');
+    expect(body(display(dir, 'design', ID).stdout)).toContain(A14);
+    expect(body(display(dir, 'design', ID, true).stdout)).toContain(A14);
+    const old = body(display(copy('run-a13'), 'design', ID).stdout);
+    expect(old).toContain(A13);
+    expect(old).not.toContain(A14);
+  });
+
+  it("a piece left out unmeasured reads as left out, with its estimate (D1-tree.md's Jade Heritage example)", () => {
+    const dir = copy('run-a14');
+    const jade = { stage: 'n', kind: 'unmodelled', what: 'Jade Heritage, left out unmeasured', ehpChange: 6, damageChange: null, bossAfter: null, reason: "Encase in Jade's stacks, a button the rotation can't spare", maxHit: null, hitsSurvived: null, bossEntries: null, nodes: null, price: null, from: null, to: null };
+    setTrades(dir, (ts) => [...ts, jade]);
+    passes(dir);
+    const want = "- Left out unmeasured: Jade Heritage (estimate: EHP +6%): Encase in Jade's stacks, a button the rotation can't spare.";
+    expect(body(display(dir, 'design', ID).stdout)).toContain(want);
+    expect(body(display(dir, 'design', ID, true).stdout)).toContain(want);
+    // An unmodelled need that is kept reads as before.
+    const kept = copy('run-a14');
+    setTrades(kept, (ts) => [...ts, { ...jade, what: 'the same 6 points elsewhere', ehpChange: 0.4, damageChange: 17, reason: "Cast on Critical's Energy" }]);
+    expect(body(display(kept, 'design', ID).stdout)).toContain("- Kept for Cast on Critical's Energy, which PoB can't measure: the same 6 points elsewhere would add 17% damage.");
+  });
+
+  it("a dealt card's brainstorm header names its class, ascendancy and skill from its card", () => {
+    const dir = copy('run-a14');
+    const headers = body(display(dir, 'brainstorm').stdout).filter((l) => l.startsWith('**'));
+    expect(headers).toEqual([
+      '**1. Blood Hunt on a two-hander** (Warrior, Titan, Blood Hunt; under-played: no)',
+      '**2. Blood Hunt armour stacker** (Warrior, Titan, Blood Hunt; under-played: yes)',
+      '**3. Blood Hunt with Titan slam notables** (Warrior, Titan, Blood Hunt; under-played: no)',
+      '**4. Blood Hunt block tank** (Warrior, Titan, Blood Hunt; under-played: yes)',
+      '**5. Blood Hunt rage cycling** (Warrior, Titan, Blood Hunt; under-played: no)',
+    ]);
+  });
+});

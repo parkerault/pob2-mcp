@@ -232,6 +232,8 @@ export const ENDGAME_GUIDE_H2 = [
  * design gate's accept answered `scaling: true`; GUIDE_H2 and ENDGAME_GUIDE_H2 keep their 14 and 12.
  */
 export const SCALING_H2 = 'Late endgame scaling';
+/** D-488 (amendment 14): a line of W1's trade link block, `<slot>: <url>`, which the word cap doesn't count (§14). */
+const TRADE_LINK_LINE = /^[^:\s][^:]*:\s*https?:\/\/\S+$/;
 /** D-414: the endgame guide's word cap (the full guide's stays WORD_CAP), the H1, the import code and Known issues aside. */
 const ENDGAME_WORD_CAP = 2300;
 /** D-414: the endgame guide's H2 that names each campaign reward pick D1 makes (D-413). */
@@ -1813,8 +1815,12 @@ async function checkBuild(c) {
     // issues list not counted (D-283).
     const kiH3 = showH3.find((h) => h.title === KNOWN_ISSUES) ?? null;
     const ki = kiH3 ? guide.sectionOf(kiH3) : null;
+    // D-488 (amendment 14, §14): W1's trade link blocks sit outside the cap too: a fenced block whose lines are all
+    // `<slot>: <url>`.
+    const linkBlocks = guide.fences.filter((f) => f !== importBlock && f.lines.some((l) => l.trim() !== '') && f.lines.every((l) => l.trim() === '' || TRADE_LINK_LINE.test(l.trim())));
     const words = countWords(guide.lines, (i) =>
-      h1.some((h) => h.line === i) || (importBlock !== null && i >= importBlock.start && i <= importBlock.end) || (ki !== null && i > ki.start && i < ki.end));
+      h1.some((h) => h.line === i) || (importBlock !== null && i >= importBlock.start && i <= importBlock.end) || (ki !== null && i > ki.start && i < ki.end)
+      || linkBlocks.some((f) => i >= f.start && i <= f.end));
     if (words > cap) {
       fail('word-cap', `guide.md has ${words} words, over the ${cap}-word cap${template === 'endgame' ? " of the endgame guide (D-414)" : ''} (the H1, the import code and the Known issues list not counted; D-276, D-283)`);
     }

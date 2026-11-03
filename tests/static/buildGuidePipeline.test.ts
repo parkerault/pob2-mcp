@@ -344,7 +344,9 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
   it.each(definitionFiles)('%s says the runner starts it with the Agent tool, and names no workflow or fallback (S1)', (file) => {
     const text = fs.readFileSync(path.join(AGENTS_DIR, file), 'utf8');
     expect(readDefinition(text)!.fm.description).toMatch(/Started only by the build-guide skill's runner with the Agent tool/);
-    expect(text).not.toMatch(/workflow|fallback|dossier-fix|revise-map|V3/);
+    // Amendment 14 (WU-143, D-489): S1's fallback is the workflow's; the "unconfirmed" form's fallback and the
+    // verifier's fallback check are D-489's words, not it.
+    expect(text).not.toMatch(/workflow|fallback(?! and its cost>| check)|dossier-fix|revise-map|V3/);
   });
 
   it.each(definitionFiles)('%s breaks none of R-1…R-5', (file) => {
@@ -870,13 +872,17 @@ describe('AC-W11 (as WU-62 amends it, D-276): the guide template is the reader l
 
   it("has the reader layer's 14 H2s in order, the same list the run checker holds, under one H1 naming the roll", () => {
     expect(hs.filter((h) => h.level === 1).map((h) => h.title)).toEqual(['<Ascendancy> / <Skill>: <concept title>']);
-    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(GUIDE_H2);
+    // Amendment 14 (WU-143, D-486): the template also holds "Late endgame scaling" after "Endgame: non-budget", the one
+    // H2 kept only when the design accept answered scaling: true; the checker keeps its 14 and SCALING_H2 apart.
+    const at = GUIDE_H2.indexOf('Endgame: non-budget') + 1;
+    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual([...GUIDE_H2.slice(0, at), 'Late endgame scaling', ...GUIDE_H2.slice(at)]);
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
     const listed = /export const GUIDE_H2 = (\[[\s\S]*?\]);/.exec(checker);
     expect(listed).not.toBeNull();
     // The checker's list is a JS literal of single- and double-quoted strings.
     const items = [...listed![1].matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2]);
     expect(items).toEqual(GUIDE_H2);
+    expect(checker).toContain("export const SCALING_H2 = 'Late endgame scaling';");
   });
 
   it('has the H3 Checks under each endgame rung, and only Checks there', () => {
@@ -1446,7 +1452,7 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the two scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\), each with `--build <id>`, the build's folder \(D-412\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder> --build <id>` \(D-355\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), its migration, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> migrate` \(D-415\), a gate's display, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` \(D-367\), and `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> test-config <path>` \(D-394\); - `git status --porcelain` from the repository root, \*\*the stray-file check\*\* \(D-474\): keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing\. Nothing else/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the three scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `node \.claude\/skills\/build-guide\/scripts\/check-run\.mjs <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\), each with `--build <id>`, the build's folder \(D-412\); - the audit render, `node \.claude\/skills\/build-guide\/scripts\/render-audit\.mjs <runFolder> --build <id>` \(D-355\), and its withdrawal after an answer change, `render-audit\.mjs <runFolder> --withdraw <id>` \(D-480\); - the notes render, `node \.claude\/skills\/build-guide\/scripts\/render-notes\.mjs <runFolder> --build <id>` \(D-487\); - the run log, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), its migration, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> migrate` \(D-415\), a gate's display, `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> display <gate>` \(D-367\), and `node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> test-config <path>` \(D-394\); - `git status --porcelain` from the repository root, \*\*the stray-file check\*\* \(D-474\): keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing\. Nothing else/);
     // Amendment 13 (WU-133, D-474): `git status --porcelain` is the one git call, for the stray-file check.
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no other `git`, no `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
@@ -2970,8 +2976,9 @@ describe('WU-70 (A-34, D-356): the round copy, the per-step card, and what WU-69
     // needs every run, its gate detail in checkpoints.md. Amendment 9 (WU-95) adds the compaction rule, the builds
     // and their queue, D1-tree, F1, the campaign and the resume, the refused route and the stop of trade requests:
     // the detail of each in checkpoints.md, start.md and fix-round.md. Amendment 13 (WU-133): 6 lines over, the work-log
-    // naming them (D-477's claims pass, the stale-server route).
-    expect(lines).toBeLessThanOrEqual(331);
+    // naming them (D-477's claims pass, the stale-server route). Amendment 14 (WU-143, AC-W112): 20 more, the work-log
+    // naming them (the swap, the answer change, the skeleton, the read-back, the notes, the scaling pass, the extra round).
+    expect(lines).toBeLessThanOrEqual(351);
     const skill = folded(fs.readFileSync(SKILL_MD, 'utf8'));
     expect(skill).toMatch(/Each step below is a short card: read a reference only where its card names one/);
     expect(skill).toMatch(/Read `references\/start\.md` and do it, in its order, before any agent runs/);
@@ -3507,7 +3514,8 @@ describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text'
     expect(gates).toMatch(/Your sources, cheapest first: - the display, the deck, the gate verdict files and your run log, and on demand the card files \(`cards\/<id>\.md`\) and research files \(`research\/`\); never `plan\.json`, a compile record, `dossier\.md` or `guide\.md`; - your lookups: `mcp__pob2__lookup_game_data`, `mcp__pob2__search_tree_nodes`, and `mcp__pob2__check_model_coverage`/);
     expect(gates).toMatch(/a research question goes to a `build-guide-researcher`; one about a compiled build, or that needs a measurement, to a `build-guide-coordinator`\. At the brainstorm gate nothing is compiled: a researcher gives a labelled estimate, or you offer to verify the card\. Before starting one, say in one line what you start and why; don't ask first, but the user can say not to/);
     expect(gates).toMatch(/Up to 3 research steps run in parallel; a coordinator step runs alone\. Log each as `\{"stage": "Q", "attempt": 1, "outcome": "done"\}`, and give the user its answer and its report's path/);
-    expect(gates).toMatch(/Say how you know, in the cards' status words: confirmed in game text, modelled in PoB, estimate \(with its reason\), or needs in-game testing\. An answer that rests on nothing you looked up says so/);
+    // Amendment 14 (WU-143, D-489): "unconfirmed" with its fallback replaces the old status word.
+    expect(gates).toMatch(/Say how you know, in the cards' status words: confirmed in game text, modelled in PoB, estimate \(with its reason\), or unconfirmed \(<what>; if it fails: <the fallback and its cost>\) \(D-489\)\. An answer that rests on nothing you looked up says so/);
     // The coordinator's and the researcher's allowlists reach check_model_coverage; the runner's is the session's.
     expect(ref('lookups.md')).toMatch(/the coordinator, and the runner at a gate\) use the game-data tools/);
   });

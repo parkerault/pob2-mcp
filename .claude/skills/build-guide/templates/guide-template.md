@@ -7,7 +7,8 @@ It is a game guide, not a design document.
 - Headings: keep the H1 (it names the roll) and the fourteen H2s below exactly, in this order, and add no other
   H2. Under Leveling, one H3 per campaign stage, titled with its loadout name exactly as compile-record.json has
   it, in plan order, and no other H3. Under each Endgame H2, the H3 Checks. What PoB can't show ends with the H3
-  Known issues.
+  Known issues. Late endgame scaling, between Endgame: non-budget and How to play it, is the one H2 kept only when
+  the design gate's accept answered scaling: true (D-486); otherwise delete it with its lines.
 - The guide renders the plan and the record: every fact and number is one they hold, rounded as a guide rounds
   it ("about 2,740"). Advice is in the first person ("I", "my"). Each caveat appears once, where the reader acts
   on it. No markers, confidence labels, finding ids or pipeline words, and no stage ids outside loadout names.
@@ -29,6 +30,13 @@ It is a game guide, not a design document.
   by evading or deflecting them) and a rough clear speed. No kill time and no hits to kill anywhere (D-353).
 - Never tell the reader to save or use Jeweller's Orbs for a skill a passive grants: they add sockets to items
   only (D-359).
+- A build held to amendment 14 (its last D1 gate at or after the boundary): one level a rung, the plan's stage
+  level, every character level of 40 and over in Switching over, Survival by stage, the Endgame H2s and Late
+  endgame scaling being a rung's, with "gear from level <the record's requirements.level>" once and each Move here
+  trigger named by its rung's level (D-494); no advice to test in game: a point no text or tool settles reads
+  "unconfirmed (<what>; if it fails: <the fallback and its cost>)" (D-489); a rare by its base and key affixes,
+  never a generated name (D-489); movement as PoB's regular figure (D-491); the weighted trade links from
+  trade-links.json under the budget and non-budget rungs' gear, outside the word cap (D-488).
 Replace every <placeholder>. Keep a line marked [only when ...] only when it applies, and a line marked
 [optional] only where the build has it; drop the mark. Delete every line that is only a note in square brackets,
 such as [About 120 words.], and this comment.
@@ -142,6 +150,12 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 |---|---|---|---|
 | <slot> | <its required affixes with their minimums, as text: what to buy; where an affix's source limits the base, say so ("Arcane Surge on Crit is desecrated, so the gloves need energy shield")> | <its other affixes, in priority order> | <only for an over-target slot: its fallback's affixes and price, the price as the Checks block's "Over target" sentence gives it (a range at the rung's price day), and that the fallback isn't measured; else empty> |
 
+[only when trade-links.json has links for this rung (D-488); outside the word cap; the copy line once, before the first block of the guide] Copy the whole line into your browser: a link doesn't open reliably from a terminal.
+
+```
+<slot>: <its url from trade-links.json, copied exactly>
+```
+
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
 - **Tree:** <the keystones and notables, each with what it buys>.
 - **Anoint:** <the notable>, from <its three Distilled Emotions, as the record names them> (<its price, or unavailable>): <its reason, as the plan gives it>.
@@ -163,6 +177,12 @@ Move here when <the trigger>.
 <About 180 words. The upgrade order from the budget variant:> 1. <the upgrade with the most gain per divine>; 2. <…>. <Affix sources as in the budget variant.>
 
 **Anoint:** <the notable>, from <its three Distilled Emotions> (<its price, or unavailable>): <its reason, as the plan gives it>.
+
+[only when trade-links.json has links for this rung (D-488); outside the word cap]
+
+```
+<slot>: <its url from trade-links.json, copied exactly>
+```
 [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.
 [only on a schema-7 plan, when the stage has a respec] Respec from the budget loadout: <the change its note names>: drop <the nodes> for about <gold cost> gold.
 [only when the stage's record has outputsSet2 with less Life than its outputs, D-426] Weapon swap: swapping to weapon set 2 drops your Life from about <outputs.Life> to about <outputsSet2.Life> while set 2 is out, because <what set 2's tree or items hold less of>.
@@ -173,6 +193,15 @@ Move here when <the trigger>.
 ### Checks
 
 [this rung's block from audit.md's Checks, copied verbatim: its chaos exception line when it has one, its budget around day 21 against the 100–200 target with its over-target slots, the Arbiter of Divinity's verdict in its three forms, its rough clear speed and movement speed]
+
+## Late endgame scaling
+
+[only when the design gate's accept answered late endgame scaling yes, scaling: true in run-log.json (D-486): keep this H2 and its lines; otherwise delete them. About 150 words, inside the cap, on top of the budgets above.]
+
+<One line: these are dearer items the design left out for their price, for a player with more to spend; none is in the rungs or their totals.>
+
+- [up to 5, the largest gains first, from trades.json's scaling finds] <the rung>: <the dear item, a unique by name or a rare by its base and key affixes> in place of <the kept item>: +<damage>% damage, <±ehp>% EHP[only when not measured: , an estimate], about <its price at its day>[offline: unpriced].
+- [optional, the corruption ruling] <a dear unique's corruption implicit, as one of the 5 finds>.
 
 ## How to play it
 
@@ -197,7 +226,7 @@ The headline figures assume <the plan's config they rest on: charges, stacks, co
 
 [only when the record's measures.trigger is set (D-437)] PoB rates <Skill> at its hand-cast speed and doesn't model <the meta gem>'s Energy, so <how I read the damage figures>.
 
-[only when the D1 gate's design field gives n a toughness warning (D-449, D-459); one line, in plain words] <The EHP reads fine, but the Arbiter's <type> hit one-shots this build | With every condition against it (unlucky rolls, hit recently, not blinded) the EHP falls under its band, its weakest hit <type>>: <the fix family the warning names, as what I'd change first>.
+[only when the D1 gate's design field gives n a toughness warning (D-449, D-459, D-494); one line, in plain words, by its kind] <one-shot: The EHP reads fine, but the Arbiter's <type> hit one-shots this build | conditioned: With every condition against it (unlucky rolls, hit recently, not blinded) the EHP falls under its band, its weakest hit <type> | under: The EHP is under its band whatever the conditions (about <EHP> against the <target> target), its weakest hit <type>>: <the fix family the warning names, as what I'd change first>.
 
 [only when the build deflects (D-459, PG-97)] Deflection: a big hit that gets past evasion loses <its deflected share, 40% at base> most of the time, which PoB's max hit ignores, and deflection cuts ailment damage from hits by about <the design field's ailmentCut>% on average, which PoB doesn't apply.
 

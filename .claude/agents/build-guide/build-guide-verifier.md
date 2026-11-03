@@ -18,7 +18,10 @@ and 13); a revision runs no full pass. When a completed build gets its campaign,
 pass (stage `V4-campaign`, `check: "campaign"`). When the user took a build as its PoB file only (`accept:file`)
 and its last D1 gate held it to amendment 13, you run once as its **claims pass** (stage `V4-claims`, `check:
 "claims"`, D-477): every hinge claim of its plan against its source, and no guide, since it has none; every finding
-is the plan's, owned by D1. You triage each finding `hinge` or not.
+is the plan's, owned by D1. You triage each finding `hinge` or not. **The fallback check** (D-489): in a build held
+to amendment 14, an unconfirmed hinge claim, or a guide sentence, says what to do if it fails, `unconfirmed (<what>;
+if it fails: <the fallback and its cost>)`; one that doesn't, or that tells the reader to test something in game, is
+a finding.
 
 Your prompt starts with a task header, a fenced `json` block
 (`.claude/skills/build-guide/references/task-header.md`). Its `check`, `writes`, `findings` and `changed`

@@ -22,7 +22,9 @@ two are equal; a total the basis leaves null reads "unknown" in place of "about 
 gate's order, each as its slot (a tree jewel as "Jewel <node id>") with its own range, joined by ", "; a slot
 with a fallback (the plan's price <its priceId>-fallback) adds "; fallback about <low>–<high>" inside its
 parentheses, the fallback's price converted to the rung's price day at the D1 gate's market and rates and
-rounded as the totals are ("; fallback price unknown" when it is unavailable). The sentence is left out when
+rounded as the totals are ("; fallback price unknown" when it is unavailable); a build held to amendment 14 has
+no fallback entry (D-483: a dearer item is a find over the budget, in trades.json's scaling finds), so only an
+older build's slot carries the clause. The sentence is left out when
 there are none, and kept when the total is unknown but a slot is known to be over its target. <why> is each
 unavailable price's note, or "no rate for <currency>", from the rung's basis slots (the anoint's among them, as
 {stage, slot: "Anoint", priceId}) and the plan's prices named <stage id>-<…>, fallbacks aside: a fallback counts
@@ -48,6 +50,8 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 | Loadout | Level | Life | Damage, map / resisting / boss | Fire / cold / lightning / chaos | Max hit, physical / least of the others | Reference hit, physical / largest of the others | Effective HP |
 |---|---|---|---|---|---|---|---|
 | <loadoutName> | <level> | <Life> | <on an endgame rung, the named source's damage figure against map monsters, measures.damage.map, then the same against the map enemy with 40% fire, cold and lightning resistance, measures.damage.resisting (D-454), then its boss figure against a Pinnacle boss, the plan's boss_<stage> ledger value (its current formula over the record) when it has one, else measures.damage.boss (D-437, D-447); a campaign stage keeps its one figure, the named source's Count-scaled one, MinionTotalDPS for a group that names a minion skill (D-378)> | <n>/<n>/<n>/<n>% | <n> / <n> | <on an endgame rung, its configWritten hits; — on a campaign stage> | <TotalEHP; measures.ehp on an endgame rung> |
+
+- [only for a plan whose stages hold tree.exclude entries (schema 10, D-490); one line per entry, in plan order] Left out of the tree search on stage <id>: <its node ids>, <the entry's reason>.
 
 [A record from before amendment 12, with no measures.damage.resisting, keeps two figures: `| Loadout | Level | Life | Damage, map / boss | …`. A record from before amendment 11, with no measures.damage, keeps the older column: `| Loadout | Level | Life | Named source DPS | …`, the named source's Count-scaled figure, measures.dps on an endgame rung.]
 
@@ -90,7 +94,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 ## Known issues
 
-[The render writes the one line "None.". W1 replaces it with the table head and one row per gate finding the user accepted at an escalation, when there is one; at step 14 the runner replaces it with those rows and one row per V4 finding open after the re-check, or "None." (SKILL.md step 14). The sentence cell is the line the guide's Known issues prints.]
+[The render writes the one line "None.". W1 replaces it with the table head and one row per gate finding the user accepted at an escalation, when there is one; at step 14 the runner replaces it with those rows and one row per V4 finding open after the re-check, or "None." (SKILL.md step 14). The sentence cell is the line the guide's Known issues prints. In a build held to amendment 14 the render also writes one row per finding the last V4 report leaves unresolved, so the open findings are listed at once (D-482).]
 
 | Id | Lens or gate | Stage | Sentence in the guide |
 |---|---|---|---|

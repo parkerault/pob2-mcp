@@ -1,4 +1,4 @@
-# The fix round, the re-check, the known issues and a build's campaign (steps 12 to 14, 9a and 9b)
+# The fix round, the re-check, the known issues, the notes and a build's campaign (steps 12 to 14, 9a and 9b)
 
 The runner's steps 12 to 14 in full, the chain a revision at the final gate runs (slice 03 §5.2, as D-264
 and D-352 amend it; `SKILL.md` §6), and a build's campaign (D-415, `SKILL.md` §7). Read this when the full pass's
@@ -19,13 +19,15 @@ build's folder with that copy, and lists claims only when there is no guide.
 
 ## Step 12, the fix round
 
-Once, only when the report has an `unresolved` finding (D-264, D-352), after the round copy. Send each
-`unresolved` finding to its `owner`: D1, D2 or W1. A finding marked `hinge: no` is fixed by removing or
-narrowing the statement, never by new research or a recompile. Each owner fixes, in place with Edit, every
-claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source. It
-recompiles only when a finding needs a build change: gear, tree, gems or config. A change to a ledger entry's
-formula or inputs, like a claim edit, needs no recompile and no gate: the run checker re-evaluates the ledger.
-It returns the ids it fixed, the locations it changed and whether it recompiled.
+Once, only when the report has an `unresolved` finding (D-264, D-352), after the round copy. Send each `unresolved`
+finding to its `owner`: D1, D2 or W1. **The brief** (D-482), in a build held to amendment 14: the finding ids and
+their report's path only (`findings: [{id, report}]`, `task-header.md`), with no scope and no facts of yours; the
+owner reads each finding in the report and decides what to recompile. A finding marked `hinge: no` is fixed by
+removing or narrowing the statement, never by new research or a recompile. Each owner fixes, in place with Edit, every
+claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source. It recompiles
+only when a finding needs a build change: gear, tree, gems or config. A change to a ledger entry's formula or inputs,
+like a claim edit, needs no recompile and no gate: the run checker re-evaluates the ledger. It returns the ids it
+fixed, the locations it changed and whether it recompiled.
 
 - **D1 is D1-finish first** (D-356): D1's findings go to D1-finish, which fixes the claims, ledger, prices and
   anoint. When it returns `build: <ids>`, run D1-build with those findings, then D1-tree (D-418: every D1-build is
@@ -66,7 +68,23 @@ guide's changed H2s, one per line (`claim stages[<i>].claims[<k>] (<id>)`, `sect
 verifier, `check: "recheck"`, `writes: ["<buildFolder>/reports/V4-<n+1>.md"]`, `findings` the ids of report `<n>`'s
 `unresolved` findings, and `changed` the lines the checker printed, as printed. It re-checks only those,
 whether or not an owner recompiled: no re-check covers every claim (D-352). After a fix round's re-check there
-is no further round: what stays open is a known issue; after a revision's, steps 12 to 16 follow (step 16).
+is no further round: what stays open is a known issue; after a revision's, steps 12 to 16 follow (step 16). In a
+build held to amendment 14, one more round may follow behind its `ask` (below).
+
+## One more round, behind its `ask` (D-482)
+
+In a build held to amendment 14, after the one re-check (step 13's, or a claims pass's re-check below), a finding
+it leaves `unresolved` that needs a gear change is asked **at once**, before the next step: one more round, with its
+token cost (about what the build's last fix round and re-check took), or ship with the issue as it stands. Log the
+answer as an `ask` checkpoint, `{"checkpoint": "ask", "kind": "open-finding", "build", "visit", "answer",
+"answeredBy"}` (`checkpoints.md`):
+- **`round`**: one more fix round (its round copy, its owners, step 12) and one more `V4-recheck` (step 13), **at
+  most once a build**: an exception to "no further round", allowed only behind that checkpoint;
+- **`ship`**: the finding stays open, its `reader` sentence in the Known issues (step 14) and the PoB notes.
+
+Either way, **tell the user every open finding at once**, each one's `reader` sentence, after the build's last
+re-check and before the next build starts (amending D-477's "at the run's end"); `audit.md`'s render lists them
+under its known issues, from the last report.
 
 ## Step 14, known issues
 
@@ -84,7 +102,27 @@ it), down to the next heading or the end of the file:
 
 Drop every other line and row: one from an earlier cycle is stale.
 
+## The notes (D-487)
+
+A build's PoB file carries its notes, which PoB shows in its Notes tab. In a build held to amendment 14:
+- **A guide build**, after step 14, on every cycle (a revision's and the campaign's included): render them with
+  `node .claude/skills/build-guide/scripts/render-notes.mjs <runFolder> --build <id>` (it writes
+  `<buildFolder>/notes.txt` from `guide.md` and `trade-links.json`), then write them into the build's final file,
+  `mcp__pob2__compile_plan {plan_path, notes_path: "<runFolderRel>/<buildFolder>/notes.txt"}` (no engine), whose
+  reply is `Notes written: <file> (<n> characters)`. After a campaign the notes go into the campaign file, from the
+  full guide; the endgame file keeps its own.
+- **A file-only build**, after its claims pass, or its re-check when one ran, whichever is last: W1 with `scope:
+  "notes"` and `writes: ["<buildFolder>/notes.txt"]` (`stages/W1.md`, "The notes"), then the same `notes_path` call;
+  the build then ends `file-only`.
+- **A refusal** (the final file changed on disk since the server wrote it: the user saved it in PoB, R-81) writes
+  nothing: tell the user, and leave it. The import code stays the record's, with no notes.
+
 ## A revision (the final gate's changes)
+
+**A one-item revision** (D-481), in a build held to amendment 14: one slot's item, on one or more rungs, and nothing
+else (as the design gate's one-item swap, `checkpoints.md`) runs D1-finish with `scope: "swap"`, the D1 gate, F1,
+then W1's patch (`changed: "all"`) and step 13's re-check, in place of the owners' full chain; the round copy comes
+first, as for any revision, and the restatement names that route and its cost. Anything more is a revision as below.
 
 Asking for changes at the final gate is a revision (D-236), for guide-level changes; a build change belongs at
 the design gate (D-362), though one asked here still runs through its owner. Map each request to D1, D2 or W1
@@ -145,8 +183,12 @@ error later (`SKILL.md` §6):
    A claims-only edit runs no gate (logged `claims-edited`); a recompile runs the D1 gate, then F1, passing the
    recorded name with `firstFree: false` and no draft to remove; **no design gate**.
 3. **Its re-check**: `check-run.mjs <runFolder> --changed <n> --build <id>` (claims only), then one `V4-recheck`
-   verifier, as step 13. No further round. The build ends `file-only`.
+   verifier, as step 13. No further round, but for one more behind its `ask` (above), in a build held to amendment
+   14. The build ends `file-only`.
 4. **Its open findings** (the last report's `unresolved` findings) have no `Known issues` list to go in: at the
-   run's end (`SKILL.md` §8) tell the user each one's `reader` sentence, beside the build's PoB file.
+   run's end (`SKILL.md` §8) tell the user each one's `reader` sentence, beside the build's PoB file. In a build held
+   to amendment 14 they are told at once, after the last re-check (above), and go into its notes.
+5. **Its notes**, in a build held to amendment 14 (D-487): W1 with `scope: "notes"`, then the notes write ("The
+   notes", above); the build ends `file-only` after them.
 
 A build before amendment 13's boundary keeps the older rule: F1's pass ends it `file-only`, with no claims pass.

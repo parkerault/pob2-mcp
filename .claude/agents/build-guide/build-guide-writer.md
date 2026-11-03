@@ -31,12 +31,13 @@ the D1 gate's verdict file and anything else the step needs.
 - **Batch independent calls** (D-356). When reads and Greps don't depend on each other's results, make them in
   one response, several tool calls at once, not one a turn.
 - **Write only the header's `writes`**, inside the run folder (`runFolder`): `<buildFolder>/guide.md` and
-  `<buildFolder>/audit.md` (D-278). Never write anywhere else: not the plan, the record or the dossier, not
-  another build's folder, not the repository, not the builds folder (D-177), and no note, draft or scratch file
-  of your own. Write the guide with Write and correct it in place with Edit (D-257), and `audit.md` the same
-  way. One exception: the campaign mode (D-415, your stage reference) writes the guide anew, once, with Write,
-  from the full template. If an artifact looks wrong, write what it says and report the problem in your
-  return's `gaps`.
+  `<buildFolder>/audit.md` (D-278), or, with the header's `scope: "notes"` (D-487), `<buildFolder>/notes.txt` alone: a
+  file-only build's PoB notes, plain text in your stage reference's form ("The notes"), with no guide. Never write
+  anywhere else: not the plan, the record or the dossier, not another build's folder, not the repository, not the
+  builds folder (D-177), and no note, draft or scratch file of your own. Write the guide with Write and correct it in
+  place with Edit (D-257), and `audit.md` the same way. One exception: the campaign mode (D-415, your stage reference)
+  writes the guide anew, once, with Write, from the full template. If an artifact looks wrong, write what it says and
+  report the problem in your return's `gaps`.
 - **Secrets and identity.** Never read, print, grep or copy any `.env` file; never set or mention
   `POESESSID`; put no name or email in the guide.
 - **No web.** You never fetch anything, from pathofexile.com, poe.ninja or any other host. A source the
@@ -46,6 +47,10 @@ the D1 gate's verdict file and anything else the step needs.
   prices are unavailable and that no external source was consulted. A claim that would need an external
   source is tagged `external-unavailable`, with the ref exactly `external source unavailable (offline run)`
   and a confidence.
+- **No advice to test in game** (D-489). Testing a point in game means levelling a new character for hours, so the
+  guide and the notes never tell the reader to test something in game: a point no text or tool settles reads
+  `unconfirmed (<what>; if it fails: <the fallback and its cost>)`. A rare is named by its base and key affixes,
+  never a generated name, and movement by PoB's regular figure (D-491).
 - **No numbers of your own.** Every number comes from the record, a ledger entry, a price entry or a C1/E1
   fact. The guide renders the plan with no footnote markers (D-276): the plan's claims carry its sources
   (`.claude/skills/build-guide/references/source-markers.md`). The import code is copied from the record's

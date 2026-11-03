@@ -92,6 +92,17 @@ const SPEC_BUDGET = Number((/about ([\d,]+) words of budget/.exec(s8)?.[1] ?? 'N
 const SPEC_SWITCHING = Number(/\*\*Switching over\*\* \(about (\d+) words\)/.exec(s8)?.[1] ?? 'NaN');
 const RUNG_H2 = ['Endgame: entering maps', 'Endgame: budget', 'Endgame: non-budget'];
 
+// Amendment 14 §12 (D-486) and §20 (D-494), as the spec states them: the late endgame scaling H2 after "Endgame:
+// non-budget", kept only on the user's yes; and one level a rung, the gear's level said as "gear from level <n>".
+const A14 = folded(read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-14-files-specs-and-repairs.md')));
+const A14_S12 = A14.slice(A14.indexOf('## 12. D-486'), A14.indexOf('## 13. D-487'));
+const SCALING_H2 = /\*\*The guide\*\*: an H2, "([^"]+)", after "Endgame: non-budget"/.exec(A14_S12)?.[1] ?? '';
+/** The template's H2s: §8's twelve, with amendment 14's scaling H2 after Endgame: non-budget. */
+const TEMPLATE_H2 = (() => {
+  const at = SPEC_H2.indexOf('Endgame: non-budget') + 1;
+  return [...SPEC_H2.slice(0, at), SCALING_H2, ...SPEC_H2.slice(at)];
+})();
+
 describe('amendment 9 §8, as the test reads it', () => {
   it('names twelve H2s, the cap, the budget and Switching over\'s length', () => {
     expect(SPEC_H2).toHaveLength(12);
@@ -113,10 +124,11 @@ describe('AC-W77 (WU-97, D-414): the endgame guide template', () => {
   const hs = headings(text);
   const comment = commentOf(text);
 
-  it('exists, with one H1 naming the roll and the twelve H2s of §8, in its order', () => {
+  it('exists, with one H1 naming the roll and the twelve H2s of §8, in its order, and amendment 14\'s scaling H2 after Endgame: non-budget', () => {
     expect(fs.existsSync(ENDGAME_TEMPLATE)).toBe(true);
+    expect(SCALING_H2).toBe('Late endgame scaling');
     expect(hs.filter((h) => h.level === 1).map((h) => h.title)).toEqual(['<Ascendancy> / <Skill>: <concept title>']);
-    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(SPEC_H2);
+    expect(hs.filter((h) => h.level === 2).map((h) => h.title)).toEqual(TEMPLATE_H2);
     for (const gone of ['Leveling', 'Campaign route and rewards', 'Gem and ascendancy timing']) {
       expect({ gone, h2: hs.some((h) => h.title === gone) }).toEqual({ gone, h2: false });
     }
@@ -154,7 +166,8 @@ describe('AC-W77 (WU-97, D-414): the endgame guide template', () => {
   it('gives Switching over its four parts, in order, from the record, the claim and the campaign data (D-413, D-414)', () => {
     // The comment's rules.
     expect(comment).toMatch(/Switching over, about 250 words, says four things, in this order:/);
-    expect(comment).toMatch(/level with any build of the class \(the card's Class\); the build works from level <m's requirements\.level in compile-record\.json>, because of <what sets it: m's requirements\.by\[\] in the record, an item \{kind: "item", name, slot\} by its name and slot, a gem \{kind: "gem", name, group, gemLevel\} by its name and gem level>/);
+    // Amendment 14 (WU-143, D-494): one level a rung: the switch at m's stage level, the gear's level said once.
+    expect(comment).toMatch(/level with any build of the class \(the card's Class\); switch at m's stage level \(the plan's level\), gear from level <m's requirements\.level in compile-record\.json> \(said once, D-494\), because of <what sets it: m's requirements\.by\[\] in the record, an item \{kind: "item", name, slot\} by its name and slot, a gem \{kind: "gem", name, group, gemLevel\} by its name and gem level>/);
     expect(comment).toMatch(/the ascendancy, and the order to take its nodes: the order the plan's reason claim on m names them in \(D1-finish writes it, D-413\), with the reason it gives\. W1 reads no node ids/);
     expect(comment).toMatch(/each campaign reward pick the plan makes .* its quest, then the option by its first line exactly as data\/campaign\/progress\.json lists it \(the run checker looks for it in this section\), then the reason its claim gives\. Never list a choice's options without its pick/);
     expect(comment).toMatch(/for a respec, or a player switching from a levelling build: the PoB file holds the whole tree for each rung, so refund what the rung doesn't use; the gold cost isn't computed/);
@@ -162,7 +175,7 @@ describe('AC-W77 (WU-97, D-414): the endgame guide template', () => {
     const body = sectionOf(text, 'Switching over').join('\n');
     const at = (s: string) => body.indexOf(s);
     const parts = [
-      'Level with any <the card\'s Class> build you like: this one works from level <m\'s requirements.level in compile-record.json>, because <what sets it',
+      'Level with any <the card\'s Class> build you like, and switch to this one at level <m\'s level in the plan>, gear from level <m\'s requirements.level in compile-record.json>, because <what sets it',
       '**Ascendancy:** <the ascendancy>. I take its nodes in this order: <the nodes, in the order the plan\'s reason claim names them>',
       'take <the first line of the option the plan picks, exactly as data/campaign/progress.json lists it>; <the reason its claim gives>.',
       'the PoB file holds the whole tree for each rung, so refund every point the rung you move to doesn\'t use',
@@ -239,7 +252,8 @@ describe('AC-W77 (WU-97): W1 picks the template by the plan and has its campaign
 
   it("fills Switching over from m's requirements, the ascendancy order's claim and the reward picks, with no gold cost for the switch (D-413)", () => {
     expect(w1).toMatch(/\*\*Switching over\*\* \(the endgame guide only, D-413, D-414; about 250 words\)/);
-    expect(w1).toMatch(/level with any build of the class \(the card's `Class`\); the build works from level `m`'s `requirements\.level` in the record, because of what sets it, its `requirements\.by\[\]`/);
+    // Amendment 14 (WU-143, D-494): the switch at m's stage level, the gear's level said once as "gear from level <n>".
+    expect(w1).toMatch(/level with any build of the class \(the card's `Class`\); switch at `m`'s stage level \(the plan's `level`\), gear from level `m`'s `requirements\.level` in the record \(said once, as `gear from level <n>`, rule 19, D-494\), because of what sets it, its `requirements\.by\[\]`/);
     expect(w1).toMatch(/`m`'s `requirements` \(`\{level, by\[\]\}`: the level the build works from, and the items `\{kind: "item", name, slot\}` and gems `\{kind: "gem", name, group, gemLevel\}` that set it, D-413\)/);
     expect(w1).toMatch(/the nodes as the plan's `reason` claim on `m` names them, in its order, with the reason it gives\. You read no node ids/);
     expect(w1).toMatch(/the picked option by its first line exactly as `data\/campaign\/progress\.json` lists it \(the run checker looks for it in this section\)/);

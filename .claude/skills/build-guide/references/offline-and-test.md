@@ -22,6 +22,8 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
   finding, and the run checker fails it.
 - The guide's `Your PoB file` says the run was offline and no price was checked (D-276); `audit.md`'s
   `Inputs by confidence` lists the claims that would need an external source (D-278).
+- **No trade links** (D-488): F1's links call writes none for a plan with no league, so the guide and the PoB notes
+  have no link block; **late endgame scaling**, when the accept asked for it, lists its finds unpriced (D-486).
 
 ## No currency rates (`--no-ninja`; D-333, D-335)
 
@@ -69,7 +71,11 @@ The answers are `brainstorm`, `verification`, `design` and `final`, one per gate
 - `answers.verification[]`: `first-viable`, `pick:<id>[,<id>…]` (1–3 cards finalized, in order), `verify:<id>[,<id>…]`,
   `more` or `stop`;
 - `answers.design[]`, one per design gate visit, whichever build is at it: `accept`, `accept:file` (F1 only: the
-  build ends `file-only`), `revise:<text>`, `verification` or `stop`;
+  build ends `file-only`), `revise:<text>`, `verification` or `stop`. **A test `accept` still means the guide**
+  (D-480): the guide-or-file question is the user's, and a test config's `accept` and `accept:file` already answer
+  it. **The late endgame scaling answer** (D-486) rides on a design entry's object, `{"answer": "accept", "scaling":
+  true}`, `false` when the entry doesn't say (a plain string included), and is logged on the checkpoint as
+  `scaling`; in an offline run the scaling pass prices nothing, so its finds are listed unpriced;
 - `answers.final[]`, one per final gate visit: `accept`, `accept:verification`, `campaign`, `revise:<text>`,
   `decline:<note>`, or `not-accept`, which resolves to `decline:<note>`, its note saying the test config declined
   (recorded as that answer, `rule` `not-accept`).

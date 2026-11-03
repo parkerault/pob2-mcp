@@ -248,7 +248,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
     const rows = SKILL_RAW.split('\n').filter((l) => /^\| \d+[a-c]? \|/.test(l));
     expect(rows.some((l) => /\bRV\b|\brival/.test(l))).toBe(false);
     // Amendment 13 (WU-133): 325 lines and the 6 the work-log names (D-477's claims pass, the stale-server route).
-    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(331);
+    // Amendment 14 (WU-143): 331 and the 20 the work-log names (AC-W112: the routes, tools, reads and Bash of D-479…D-487).
+    expect(SKILL_RAW.split('\n').length - 1).toBeLessThanOrEqual(351);
   });
 
   it('patterns.md stays within its word cap (provisional 17,000)', () => {

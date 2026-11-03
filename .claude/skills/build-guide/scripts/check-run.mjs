@@ -6407,13 +6407,14 @@ function checkCorruption({ plan, planStages, gate, guide, offline, fail, a14 = f
 
 /**
  * PoB's own item data, read from the pinned checkout (`vendor/PathOfBuilding-PoE2/src/Data/`), as the corruption rule needs
- * it (D-484): each base's `socketLimit`, each unique's `Sockets:` count, and the uniques whose text ends `Corrupted` (they
- * drop corrupted: Split Personality, Voices). Empty maps when the checkout isn't there.
+ * it (D-484): each base's item type and hands (`Bases/*.lua`'s `type` and its `twohand` or `onehand` tag, as
+ * `pob-api/API/Compile.lua` reads them for V1), each unique's `Sockets:` count, and the uniques whose text ends `Corrupted`
+ * (they drop corrupted: Split Personality, Voices). Empty maps when the checkout isn't there.
  */
 let pobItems;
 function pobItemData() {
   if (pobItems !== undefined) return pobItems;
-  pobItems = { limits: new Map(), uniqueSockets: new Map(), alwaysCorrupted: new Set() };
+  pobItems = { bases: new Map(), uniqueSockets: new Map(), alwaysCorrupted: new Set() };
   const dataDir = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src', 'Data');
   const read = (dir) => {
     try {
@@ -6424,8 +6425,10 @@ function pobItemData() {
   };
   for (const text of read('Bases')) {
     for (const m of text.matchAll(/itemBases\["([^"]+)"\] = \{([\s\S]*?)\n\}/g)) {
-      const limit = /\bsocketLimit = (\d+)/.exec(m[2])?.[1];
-      if (limit !== undefined) pobItems.limits.set(m[1], Number(limit));
+      const type = /\btype = "([^"]+)"/.exec(m[2])?.[1] ?? null;
+      const tags = /\btags = \{([^}]*)\}/.exec(m[2])?.[1] ?? '';
+      const hands = /\btwohand = true\b/.test(tags) ? 2 : /\bonehand = true\b/.test(tags) ? 1 : null;
+      pobItems.bases.set(m[1], { type, hands });
     }
   }
   for (const text of read('Uniques')) {
@@ -6442,19 +6445,33 @@ function pobItemData() {
 }
 /** D-484: a unique PoB's data marks always corrupted (its text ends `Corrupted`: it drops so). */
 const alwaysCorrupted = (name) => typeof name === 'string' && pobItemData().alwaysCorrupted.has(name.trim());
+/** D-485, C-35: the socket table, `data/items/sockets.json` (the user's ruling of 2026-11-02), V1's `sockets` source too. */
+const SOCKET_TABLE = 'items/sockets.json';
+/** D-485: the bases the socket table counts by name, then each PoB base type's fact, as V1's `socketFactOf` maps them. */
+const SOCKET_BASE_FACTS = { 'Corona Amulet': 'sockets.corona-amulet', 'Grasping Ring': 'sockets.grasping-ring', 'Stalking Belt': 'sockets.stalking-belt' };
+const SOCKET_TYPE_FACTS = {
+  'Body Armour': 'sockets.body-armour', Helmet: 'sockets.helmet', Gloves: 'sockets.gloves', Boots: 'sockets.boots', Shield: 'sockets.shield',
+  Focus: 'sockets.focus', Amulet: 'sockets.amulet', Ring: 'sockets.ring', Belt: 'sockets.belt', Quiver: 'sockets.quiver',
+};
 /**
- * D-485 (the user's ruling of 2026-11-02): an item's standard rune sockets: a unique's own `Sockets:` line in PoB's data,
- * else its base's, PoB's `socketLimit` less 2 (Exceptional and corruption) on an armour or weapon base, 1 on Corona
- * Amulet, Grasping Ring and Stalking Belt, 0 on other jewellery; null when PoB's data can't say.
+ * D-485 (the user's ruling of 2026-11-02): an item's standard rune sockets, as V1's `sockets` check counts them
+ * (`src/plan/checks/v1.ts`'s `checkSockets`): a unique's own count, its "Has <n> Augment Sockets" line, else its data's
+ * `Sockets:` line; else its base's count from the socket table, `data/items/sockets.json`, by the base's name, its PoB item
+ * type, or a weapon's hands (PoB's base data). Null when neither says (a jewel, a flask, or no pinned checkout).
  */
 function standardSockets(textOrNull) {
   const item = itemOf(textOrNull);
   const data = pobItemData();
-  if (item.rarity === 'UNIQUE' && data.uniqueSockets.has(String(item.name ?? '').trim())) return data.uniqueSockets.get(item.name.trim());
-  const base = String(item.lines[2] ?? '').trim();
-  if (['Corona Amulet', 'Grasping Ring', 'Stalking Belt'].includes(base)) return 1;
-  if (data.limits.has(base)) return Math.max(0, data.limits.get(base) - 2);
-  return data.limits.size > 0 && /\b(?:Amulet|Ring|Belt)\b/.test(base) ? 0 : null;
+  if (item.rarity === 'UNIQUE') {
+    const augment = item.lines.map((l) => /^Has (\d+) Augment Sockets?$/.exec(l)?.[1]).find((n) => n !== undefined);
+    if (augment !== undefined) return Number(augment);
+    if (data.uniqueSockets.has(String(item.name ?? '').trim())) return data.uniqueSockets.get(item.name.trim());
+  }
+  const baseName = String(item.lines[2] ?? '').trim();
+  const base = data.bases.get(baseName);
+  const fact = SOCKET_BASE_FACTS[baseName] ?? SOCKET_TYPE_FACTS[base?.type] ?? (base?.hands === 2 ? 'sockets.two-hand-weapon' : base?.hands === 1 ? 'sockets.one-hand-weapon' : null);
+  const value = fact === null ? undefined : factValue(SOCKET_TABLE, fact);
+  return isInt(value) ? value : null;
 }
 /** D-484: a corrupted unique bought with the extra socket: more rune sockets than its standard count. */
 function hasExtraSocket(textOrNull) {
@@ -6587,7 +6604,10 @@ const socketCount = (textOrNull) => {
  * basis maps to it: its corruption the item's `Corrupted` line, its rune sockets at least the item's, but for a cheap
  * unique priced uncorrupted (its note says "uncorrupted"). A rare's `spec`, `ranking` PoB's top 4 the base can roll:
  * each must-have outside it gives its `why`, each of its affixes left out has a `leftOut` entry with its `why`, and a
- * spec with `ranking: null` (the loop couldn't rank) is held to neither; at most 5 trade searches a slot.
+ * spec with `ranking: null` (the loop couldn't rank) is held to neither; a weight other than Full DPS and TotalEHP gives
+ * its `why`; the must-haves in order of importance, most important first, a must-have PoB scores at zero (`zeroScored`)
+ * ahead of the others (the trade link requires the first three, §14); at most 5 trade searches a slot; and a spec only on
+ * a rare (gear or tree jewel) of `b` or `n` (D-372's scope), the slot the D1 gate's basis maps to it.
  */
 function checkPrices14({ plan, planStages, gate, fail }) {
   const items = new Map();
@@ -6598,7 +6618,7 @@ function checkPrices14({ plan, planStages, gate, fail }) {
   const mapped = new Map();
   for (const x of list(gate?.basis?.budget?.slots)) {
     const text = items.get(`${x.stage}|${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`);
-    if (typeof text === 'string' && !mapped.has(x.priceId)) mapped.set(x.priceId, { text, where: `${x.stage} ${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}` });
+    if (typeof text === 'string' && !mapped.has(x.priceId)) mapped.set(x.priceId, { text, where: `${x.stage} ${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`, variant: planStages.find((st) => st.id === x.stage)?.variant });
   }
   const norm14 = (a) => String(a ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
   for (const p of list(plan.prices)) {
@@ -6624,6 +6644,15 @@ function checkPrices14({ plan, planStages, gate, fail }) {
         continue;
       }
       if (sp.searches > 5) fail('spec', `${at}'s spec counts ${sp.searches} trade searches; at most 5 a slot, the budget search counting as 2 (D-483)`);
+      // §9 (D-372's scope): a spec prices a rare of b or n, gear or a tree jewel.
+      const m = mapped.get(p.id);
+      if (m !== undefined && (itemOf(m.text).rarity !== 'RARE' || !['budget', 'non-budget'].includes(m.variant))) fail('spec', `${at} has a spec, but it prices ${m.where}, ${itemOf(m.text).rarity === 'RARE' ? `a rare of the ${m.variant ?? 'campaign'} stage` : `a ${String(itemOf(m.text).rarity ?? 'unknown').toLowerCase()} item`}; a spec is a rare's of b or n, gear or a tree jewel (§9, D-483)`);
+      // §9 step 1: each weight beside Full DPS 1 and TotalEHP 0.5 says what the build needs it for.
+      for (const w of list(sp.weights)) if (!/^(?:full ?dps|totalehp)$/i.test(String(w.stat ?? '').replace(/\s+/g, ' ').trim()) && !textOk(w.why)) fail('spec', `${at}'s spec weights ${show(w.stat)} with no why; a weight beside Full DPS and TotalEHP gives its one-line reason (§9, D-483)`);
+      // §9, §14: most important first, a must-have PoB scores at zero ahead of the others: the link requires the first three.
+      const firstOther = list(sp.mustHaves).findIndex((mh) => mh.zeroScored !== true);
+      const lateZero = list(sp.mustHaves).findIndex((mh, k) => mh.zeroScored === true && firstOther >= 0 && k > firstOther);
+      if (lateZero >= 0) fail('spec', `${at}'s must-have ${show(sp.mustHaves[lateZero].affix)}, which PoB scores at zero, comes after ${show(sp.mustHaves[firstOther].affix)}; the must-haves go most important first, one PoB scores at zero ahead of the others, as the trade link requires the first three (§9, §14, D-488)`);
       if (sp.ranking === null) continue;
       const ranked = list(sp.ranking).map((r) => norm14(r.affix));
       const musts = list(sp.mustHaves);

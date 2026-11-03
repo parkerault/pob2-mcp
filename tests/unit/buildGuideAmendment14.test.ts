@@ -19,6 +19,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { buildSha1 } from '../../src/plan/buildHash';
+import { validatePlan } from '../../src/plan/schema';
+import { loadReferenceData } from '../../src/plan/referenceData';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -104,6 +106,14 @@ function setTrades(dir: string, edit: (ts: Json[]) => Json[]): void {
   });
 }
 const st = (stg: string, attempt: number, outcome: string, extra: Json = {}): Json => ({ stage: stg, concept: ID, attempt, outcome, ...extra });
+/**
+ * A `readback.json` as `compile_plan`'s read-back writes it (`src/services/readBack.ts`'s `ReadBackFile`): each loadout with
+ * a change, titled by PoB's loadout title (the record's `loadoutName`), never a stage id; `items` the given changes.
+ */
+const readback = (file: string, base: string, items: Json[] = []): Json => ({
+  file, base, baseSha1: '0'.repeat(40), unmatched: [],
+  loadouts: items.length === 0 ? [] : [{ title: 'Endgame budget (L90) {b}', items, gems: [], tree: { added: [], removed: [], ascendancy: [], jewels: [], attributes: [] }, config: [] }],
+});
 
 // ---------------------------------------------------------------------------------------------------
 // The fixture itself, and the revision boundary (§25)
@@ -370,10 +380,10 @@ describe('AC-W108 (§25): the layout lists admit the new files at revision 13 an
     for (const fixture of ['run-a13', 'run-a14']) {
       const dir = copy(fixture);
       for (const f of ['final-build.xml', 'final-build-campaign.xml']) fs.writeFileSync(path.join(dir, BUILD, f), '<PathOfBuilding2/>\n');
-      writeJson(dir, `${BUILD}/readback.json`, { file: `${NAME}.xml`, base: 'final-build.xml', baseSha1: '0'.repeat(40), loadouts: [], unmatched: [] });
+      writeJson(dir, `${BUILD}/readback.json`, readback(`${NAME}.xml`, 'final-build.xml'));
       fs.writeFileSync(path.join(dir, BUILD, 'notes.txt'), '^xE0C080At a glance\nBlood Hunt lunges.\n');
       writeJson(dir, `${BUILD}/trade-links.json`, []);
-      writeJson(dir, `concepts/${ID}/readback.json`, { file: `${NAME} skeleton (draft).xml`, base: 'compiled-build.xml', baseSha1: '0'.repeat(40), loadouts: [], unmatched: [] });
+      writeJson(dir, `concepts/${ID}/readback.json`, readback(`${NAME} skeleton (draft).xml`, 'compiled-build.xml'));
       expect({ fixture, layout: lines(check(dir).stderr, 'layout') }).toEqual({ fixture, layout: [] });
       passes(dir);
     }
@@ -771,10 +781,10 @@ describe('AC-W108 (D-482): request words and the ask of a departure', () => {
     expect(lines(check(requested([{ id: 'u1', words: 'make it tankier', result: 'made' }])).stderr, 'requests')).toEqual([expect.stringMatching(/stages\[7\] \(D1-build r1-a-2 attempt 1\) logs request "u1" with the words "make it tankier", which aren't in a checkpoint's answer, its note or the read-back's readback\.json/)]);
     // A read-back's changes, verbatim.
     const rb = requested([{ id: 'r1', words: 'Helmet: removed +60 to maximum Life', result: 'made' }]);
-    writeJson(rb, `${BUILD}/readback.json`, { file: `${NAME} (draft).xml`, base: 'compiled-build.xml', baseSha1: '0'.repeat(40), loadouts: [{ title: 'b', items: [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }] }], unmatched: [] });
+    writeJson(rb, `${BUILD}/readback.json`, readback(`${NAME} (draft).xml`, 'compiled-build.xml', [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }]));
     expect(lines(check(rb).stderr, 'requests')).toEqual([expect.stringMatching(/"Helmet: removed \+60 to maximum Life"/)]);
     const rb2 = requested([{ id: 'r1', words: '+60 to maximum Life; +45 to maximum Life', result: 'made' }]);
-    writeJson(rb2, `${BUILD}/readback.json`, { file: `${NAME} (draft).xml`, base: 'compiled-build.xml', baseSha1: '0'.repeat(40), loadouts: [{ title: 'b', items: [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }] }], unmatched: [] });
+    writeJson(rb2, `${BUILD}/readback.json`, readback(`${NAME} (draft).xml`, 'compiled-build.xml', [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }]));
     expect(lines(check(rb2).stderr, 'requests')).toEqual([]);
   });
 
@@ -1053,5 +1063,74 @@ describe("AC-W108 (Appendix A): run-log.mjs's writes for a log at 14", () => {
       expect.stringMatching(/D1-gate-r1-a-2-a1\.json: draft is 3; the draft PoB file the gate wrote/),
       expect.stringMatching(/F1-r1-a-2-a1\.json: draftRemoved is ""; the draft F1 removed/),
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// After WU-137 and WU-138: the fixtures at schema 10, the spec's rules the schema leaves to the checker, one socket table
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W108 (C-31, §9, §10, §11): run-a14 against the merged plan schema 10, and the checker\'s spec rules', () => {
+  it("run-a14's plan, and the schema-10 fields the tests write into it, pass validatePlan; its record's buildSha1 leaves out spec and listing", () => {
+    const ref = loadReferenceData();
+    const plan = readJson(path.join(FIXTURES, 'run-a14'), PLAN);
+    const ok = (p: Json) => {
+      const r = validatePlan(JSON.stringify(p), ref);
+      return r.ok ? [] : r.errors;
+    };
+    expect(ok(plan)).toEqual([]);
+    const full = JSON.parse(JSON.stringify(plan)) as Json;
+    full.itemSwaps = [{ stages: ['n'], slot: 'Ring 1', from: 'rare Iron Ring, fire resistance', to: 'rare Iron Ring, fire resistance, life', bossBefore: { n: 220000 }, bossAfter: { n: 210000 }, reason: 'the new ring trades 5% of the boss figure for its life' }];
+    stage(full, 'n').tree.end.endAfter = 'swap';
+    stage(full, 'b').tree.search.rebuild = 'none: Strength would be 160, under the 177 its gear and gems need, after repair';
+    Object.assign(full.prices.find((x: Json) => x.id === 'b-body'), { listing: { corrupted: false, sockets: 0, count: 14, position: 5 } });
+    expect(ok(full)).toEqual([]);
+    // spec and listing are outside the build's hash (D-386's rule, C-31), so the record's buildSha1 stands without them.
+    const bare = JSON.parse(JSON.stringify(plan)) as Json;
+    delete bare.prices.find((x: Json) => x.id === 'b-body').spec;
+    expect(buildSha1(bare as never)).toBe(readJson(path.join(FIXTURES, 'run-a14'), RECORD).buildSha1);
+    expect(buildSha1(plan as never)).toBe(readJson(path.join(FIXTURES, 'run-a14'), RECORD).buildSha1);
+  });
+
+  it('a spec only on a rare of b or n; a weight beside Full DPS and TotalEHP with its why; a must-have PoB scores at zero first', () => {
+    const SPEC = readJson(path.join(FIXTURES, 'run-a14'), PLAN).prices.find((x: Json) => x.id === 'b-body').spec;
+    const specOn = (id: string, spec: Json = SPEC) => {
+      const dir = copy('run-a14');
+      replan(dir, (p) => {
+        p.prices.find((x: Json) => x.id === id).spec = spec;
+      });
+      return lines(check(dir).stderr, 'spec');
+    };
+    expect(specOn('n-body')).toEqual([]);
+    expect(specOn('m-body')).toEqual([expect.stringMatching(/price entry "m-body" has a spec, but it prices m Body Armour, a rare of the entering-maps stage; a spec is a rare's of b or n/)]);
+    expect(specOn('n-ring2')).toEqual([expect.stringMatching(/price entry "n-ring2" has a spec, but it prices n Ring 2, a unique item/)]);
+    expect(specOn('b-body', { ...SPEC, weights: [...SPEC.weights, { stat: 'Spirit', weight: 0.4 }] })).toEqual([expect.stringMatching(/spec weights "Spirit" with no why; a weight beside Full DPS and TotalEHP gives its one-line reason/)]);
+    expect(specOn('b-body', { ...SPEC, weights: [...SPEC.weights, { stat: 'Spirit', weight: 0.4, why: "Herald of Blood's reservation" }] })).toEqual([]);
+    const zero = { affix: '+#% to Chaos Resistance', tradeId: 'explicit.stat_2923486259', tier: 2, min: 20, zeroScored: true, why: 'PoB scores chaos resistance at zero, and n needs it' };
+    expect(specOn('b-body', { ...SPEC, mustHaves: [zero, ...SPEC.mustHaves] })).toEqual([]);
+    expect(specOn('b-body', { ...SPEC, mustHaves: [...SPEC.mustHaves, zero] })).toEqual([expect.stringMatching(/must-have "\+#% to Chaos Resistance", which PoB scores at zero, comes after "\+# to maximum Life"; the must-haves go most important first, one PoB scores at zero ahead of the others/)]);
+  });
+
+  it("a corrupted rare fails: rares are never corrupted (§10, §11); the extra socket is counted by data/items/sockets.json", () => {
+    const dir = copy('run-a14');
+    replan(dir, (p) => {
+      const s = stage(p, 'b').items.slots.find((x: Json) => x.slot === 'Helmet');
+      s.text = `${s.text}\nCorrupted`;
+    });
+    expect(lines(check(dir).stderr, 'corruption')).toEqual([expect.stringMatching(/stage b slot "Helmet" holds a corrupted rare item; corruption is only on cheap uniques and skill gems, never on a rare/)]);
+    // A unique's own count before the table's (V1's rule): Greymake's "Has 4 Augment Sockets" (Data/Uniques/helmet.lua), so
+    // a corrupted copy with 5 has the extra socket and passes over 1 divine, one with 4 doesn't; a helmet's table count is 1.
+    const greymake = (sockets: number) => {
+      const copyDir = copy('run-a14');
+      replan(copyDir, (p) => {
+        stage(p, 'n').items.slots.find((x: Json) => x.slot === 'Helmet').text = ['Rarity: Unique', 'Greymake', 'Brimmed Helm', `Sockets: ${Array(sockets).fill('S').join(' ')}`, '+40 to Strength', '+40 to Dexterity', '+40 to Intelligence', '-1 to all Attributes per Level', 'Has 4 Augment Sockets', 'Corrupted'].join('\n');
+        Object.assign(p.prices.find((x: Json) => x.id === 'n-helmet'), { status: 'ok', amount: 5, currency: 'divine', note: undefined });
+      });
+      return lines(check(copyDir).stderr, 'corruption');
+    };
+    expect(greymake(5)).toEqual([]);
+    expect(greymake(4)).toEqual([expect.stringMatching(/holds Greymake with a bare Corrupted line, priced 5 divine\(s\)/)]);
+    const table = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'items', 'sockets.json'), 'utf8')) as Json;
+    expect(table.facts['sockets.helmet'].value).toBe(1);
   });
 });

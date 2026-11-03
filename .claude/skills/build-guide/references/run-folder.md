@@ -190,7 +190,9 @@ one stderr line `check-run: [<rule>] <message>`.
   `listing {corrupted, sockets, count, position}` matching the compiled copy (its corruption the item's `Corrupted` line,
   its sockets at least the item's, a cheap unique priced uncorrupted saying so in its note; `listing`, D-484); a rare's
   `spec`, each must-have outside PoB's top 4 with its `why`, each of the top 4 left out in `leftOut` with its `why`, held
-  to neither when `ranking` is `null`, at most 5 trade searches (`spec`, D-483); a bare `Corrupted` unique only when PoB's
+  to neither when `ranking` is `null`, each weight beside Full DPS and TotalEHP with its `why`, the must-haves most
+  important first with one PoB scores at zero ahead of the others (the trade link requires the first three, D-488), at
+  most 5 trade searches, and a spec only on a rare, gear or tree jewel, of `b` or `n` (`spec`, D-483); a bare `Corrupted` unique only when PoB's
   data marks it always corrupted, it has the extra socket, or it's cheap (`corruption`, D-484); each one-item swap
   (D1-finish, scope swap) since the last D1-build recorded in the plan's `itemSwaps[]`, a fall with its reason (`swap`,
   `boss-fall`, D-481), and on a rung whose `tree.end` reads `endAfter: "swap"` that reason standing in for a fall's boss

@@ -6238,3 +6238,30 @@ the `m17` engine at `b76967b`.
     testing" (pinned by `buildGuidePipeline.test.ts`:3509); `SKILL.md` records R1b's `skeleton:` as `skeletonFile`.
   - **Left:** the card template's "Not confirmed: <the link>: <what it would change>" field has no fallback slot (§15
     doesn't name it).
+- **WU-136 (node power) merged** as `6e9c87a` and `f453260` (cherry-picked from `308462e`, `324549b`). Node power
+  takes `exclude` (no tree holds an excluded node or paths through it; naming an allocated node refuses the call), its
+  rebuild and swap moves repair attributes (the illegal form reads ", after repair" when the repair can't close the
+  shortfall), an added attribute node takes the largest shortfall or else the class's main attribute, a figure within
+  0.5 of its target meets it, and reasons carry at most 2 decimals. AC-K81 and AC-K82 in a new
+  `tests/integration/nodePowerOpenSpell.test.ts` (engine; expected values from PoB's own compiles); AC-K76 (5) in
+  `nodePowerGuards.test.ts` rewritten, since a try refused for Strength now runs the repair; `get_node_power`'s
+  description 2,041 characters. Its verifier (fresh context) passed it, re-running the gate (221 suites, 3,875 tests,
+  rc 0; the timing step 2 suites, 4 tests; build rc 0) and probing `exclude` (a swap search's 21 tries add node 59775
+  without it, none with it).
+  - **The fixtures (HG-33, AC-K82):** the open-spell run's `builds/r1-s-4/plan.json` and `builds/r1-s-2/plan.json`,
+    from the run folder in the user's guides folder, copied unchanged into `tests/fixtures/plans/open-spell/`: r1-s-4
+    `b299771029f529dc3a312e39bdabc34eb3077799`, r1-s-2 `36c626c3b893738a69c7f59549ce59232b476a79`, equal to the run
+    folder's (both schema 9, no machine path). Nothing else of the folder was read.
+  - **The spike (R-79):** D1-tree's rebuild on r1-s-4's `n` (reach 12, needs kept, targets EHP 19,772.14 and max hit
+    6,799, `pace_exchange` 3, compact). Before: 12.2 s, refused "Intelligence would be 143, under the 147" (its two
+    added attribute nodes took PoB's default, Strength). Now: 9.8–13.3 s (18.4 s under the verifier's load), Str
+    67/41, Dex 92/91, Int 153/147, legal, so HG-34 didn't fire; the choice alone gave both nodes to Intelligence, no
+    repair step ran. The repair's steps show on the rebuild that keeps only the two core needs (Potent Incantation's
+    and Spell Haste's branches freed; Str 82/41, Dex 92/91, Int 148/147; 12.6–13.5 s). A swap search under targets
+    takes 55 s (54 s before).
+  - **R-79's symptom stays on this rung, for another reason:** the legal rebuild reads `no-gain` (−12.93% Main damage)
+    because the toughness repair's five steps under `tree.start`'s targets cost the damage (+2.52% damage and −32% EHP
+    without targets). Told to the user.
+  - **Left:** AC-K81's "reply names the repair's steps" is shown on the core-needs rebuild, not D1-tree's call; the
+    cut-node test exercised only the "or none" branch; the Titan Rake tests assert `ehp >= target` with no 0.5 slack;
+    `compile_plan` leaves its build loaded, so a later node power call measures that tree (the tests compile again).

@@ -783,6 +783,10 @@ describe('AC-W108 (D-482): request words and the ask of a departure', () => {
     const rb = requested([{ id: 'r1', words: 'Helmet: removed +60 to maximum Life', result: 'made' }]);
     writeJson(rb, `${BUILD}/readback.json`, readback(`${NAME} (draft).xml`, 'compiled-build.xml', [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }]));
     expect(lines(check(rb).stderr, 'requests')).toEqual([expect.stringMatching(/"Helmet: removed \+60 to maximum Life"/)]);
+    // Two of its texts joined by a newline, as the runner may quote them.
+    const rb3 = requested([{ id: 'r1', words: '+60 to maximum Life\n+45 to maximum Life', result: 'made' }]);
+    writeJson(rb3, `${BUILD}/readback.json`, readback(`${NAME} (draft).xml`, 'compiled-build.xml', [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }]));
+    expect(lines(check(rb3).stderr, 'requests')).toEqual([]);
     const rb2 = requested([{ id: 'r1', words: '+60 to maximum Life; +45 to maximum Life', result: 'made' }]);
     writeJson(rb2, `${BUILD}/readback.json`, readback(`${NAME} (draft).xml`, 'compiled-build.xml', [{ slot: 'Helmet', removed: ['+60 to maximum Life'], added: ['+45 to maximum Life'] }]));
     expect(lines(check(rb2).stderr, 'requests')).toEqual([]);
@@ -1120,16 +1124,19 @@ describe('AC-W108 (C-31, §9, §10, §11): run-a14 against the merged plan schem
     expect(lines(check(dir).stderr, 'corruption')).toEqual([expect.stringMatching(/stage b slot "Helmet" holds a corrupted rare item; corruption is only on cheap uniques and skill gems, never on a rare/)]);
     // A unique's own count before the table's (V1's rule): Greymake's "Has 4 Augment Sockets" (Data/Uniques/helmet.lua), so
     // a corrupted copy with 5 has the extra socket and passes over 1 divine, one with 4 doesn't; a helmet's table count is 1.
-    const greymake = (sockets: number) => {
+    const greymake = (sockets: number, augment = 'Has 4 Augment Sockets') => {
       const copyDir = copy('run-a14');
       replan(copyDir, (p) => {
-        stage(p, 'n').items.slots.find((x: Json) => x.slot === 'Helmet').text = ['Rarity: Unique', 'Greymake', 'Brimmed Helm', `Sockets: ${Array(sockets).fill('S').join(' ')}`, '+40 to Strength', '+40 to Dexterity', '+40 to Intelligence', '-1 to all Attributes per Level', 'Has 4 Augment Sockets', 'Corrupted'].join('\n');
+        stage(p, 'n').items.slots.find((x: Json) => x.slot === 'Helmet').text = ['Rarity: Unique', 'Greymake', 'Brimmed Helm', `Sockets: ${Array(sockets).fill('S').join(' ')}`, '+40 to Strength', '+40 to Dexterity', '+40 to Intelligence', '-1 to all Attributes per Level', augment, 'Corrupted'].join('\n');
         Object.assign(p.prices.find((x: Json) => x.id === 'n-helmet'), { status: 'ok', amount: 5, currency: 'divine', note: undefined });
       });
       return lines(check(copyDir).stderr, 'corruption');
     };
     expect(greymake(5)).toEqual([]);
     expect(greymake(4)).toEqual([expect.stringMatching(/holds Greymake with a bare Corrupted line, priced 5 divine\(s\)/)]);
+    // The line as PoB's data writes it, behind its variant's tag, counts the same.
+    expect(greymake(5, '{variant:2}Has 4 Augment Sockets')).toEqual([]);
+    expect(greymake(4, '{variant:2}Has 4 Augment Sockets')).toEqual([expect.stringMatching(/holds Greymake with a bare Corrupted line, priced 5 divine\(s\)/)]);
     const table = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'items', 'sockets.json'), 'utf8')) as Json;
     expect(table.facts['sockets.helmet'].value).toBe(1);
   });

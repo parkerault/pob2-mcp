@@ -6463,7 +6463,8 @@ function standardSockets(textOrNull) {
   const item = itemOf(textOrNull);
   const data = pobItemData();
   if (item.rarity === 'UNIQUE') {
-    const augment = item.lines.map((l) => /^Has (\d+) Augment Sockets?$/.exec(l)?.[1]).find((n) => n !== undefined);
+    // PoB's data writes the line behind its variant's tag (`{variant:2}Has 4 Augment Sockets`), as a copied text keeps it.
+    const augment = item.lines.map((l) => /^Has (\d+) Augment Sockets?$/.exec(l.replace(/^(?:\{[^}]*\})+/, '').trim())?.[1]).find((n) => n !== undefined);
     if (augment !== undefined) return Number(augment);
     if (data.uniqueSockets.has(String(item.name ?? '').trim())) return data.uniqueSockets.get(item.name.trim());
   }
@@ -6763,7 +6764,9 @@ function checkRequestWords({ log, stages, build, runFolder, readText, fail }) {
       const w = plainWords(r.words);
       if (w === '') continue;
       const inSaid = said.some((t) => t.includes(w));
-      const inReadback = joined.includes(w) || w.split(/\s*[\n;]\s*/).filter((x) => x !== '').every((x) => readback.some((t) => t.includes(x)));
+      // Several read-back texts joined by newlines or "; ": each part, split before its spaces collapse, is one of them.
+      const parts = String(r.words).split(/\r?\n|;\s*/).map(plainWords).filter((x) => x !== '');
+      const inReadback = joined.includes(w) || (parts.length > 0 && parts.every((x) => readback.some((t) => t.includes(x))));
       if (!inSaid && !(readback.length > 0 && inReadback)) fail('requests', `run-log.json stages[${log.stages.indexOf(s)}] (${describe(s)}) logs request ${show(r.id)} with the words ${show(r.words)}, which aren't in a checkpoint's answer, its note or the read-back's readback.json; a request goes to the step as the user said it, verbatim (D-482)`);
     }
   }

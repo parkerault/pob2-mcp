@@ -6221,7 +6221,7 @@ the `m17` engine at `b76967b`.
   user.
 - **Baseline gate** on `8583779`: `mise run test` rc 0 (220 suites, 3,854 tests; the timing step 2 suites, 4 tests),
   `pnpm build` rc 0.
-- **WU-141 (the research docs and the pattern library) merged** at `00ea475` (fast-forward, two commits). R1b writes
+- **WU-141 (the research docs and the pattern library) merged** at `3deaaf7` (fast-forward, two commits). R1b writes
   the card's skeleton file as its last act on a damage pass, outside its two compiles, and returns `skeleton:
   <relpath>` (`skeleton: none: <line>` on a refusal; a failed attempt makes no call); its verdict's `compiles` counts
   compiles of the skeleton only, which the checker's one reader (`terminalR1b`, `=== 0` on a terminal failure) still
@@ -6238,7 +6238,7 @@ the `m17` engine at `b76967b`.
     testing" (pinned by `buildGuidePipeline.test.ts`:3509); `SKILL.md` records R1b's `skeleton:` as `skeletonFile`.
   - **Left:** the card template's "Not confirmed: <the link>: <what it would change>" field has no fallback slot (§15
     doesn't name it).
-- **WU-136 (node power) merged** as `6e9c87a` and `f453260` (cherry-picked from `308462e`, `324549b`). Node power
+- **WU-136 (node power) merged** as `496d0c4` and `0e077b6` (cherry-picked from `308462e`, `324549b`). Node power
   takes `exclude` (no tree holds an excluded node or paths through it; naming an allocated node refuses the call), its
   rebuild and swap moves repair attributes (the illegal form reads ", after repair" when the repair can't close the
   shortfall), an added attribute node takes the largest shortfall or else the class's main attribute, a figure within
@@ -6265,7 +6265,7 @@ the `m17` engine at `b76967b`.
   - **Left:** AC-K81's "reply names the repair's steps" is shown on the core-needs rebuild, not D1-tree's call; the
     cut-node test exercised only the "or none" branch; the Titan Rake tests assert `ehp >= target` with no 0.5 slack;
     `compile_plan` leaves its build loaded, so a later node power call measures that tree (the tests compile again).
-- **WU-137 (plan schema 10, the compiler and V1) merged** at `a4b7b53` (fast-forward; rebased onto `386a3a5`). Plan
+- **WU-137 (plan schema 10, the compiler and V1) merged** at `ff41950` (fast-forward; rebased onto `66298cb`). Plan
   schema 10 (a price's `listing` and `spec`, outside `buildSha1`; `tree.exclude` with reasons; `tree.search.targets` and
   `userMoves`; `rebuild: "none: <why>"`; `tree.end.endAfter: "swap"`; `itemSwaps`; an ascendancy socket in
   `items.treeJewels`), `groupCount` on every counted group, V1's `affix-cap`, `sockets` and `ascendancy-jewel` with
@@ -6298,7 +6298,7 @@ the `m17` engine at `b76967b`.
     defect, since PoB refuses it there, `Classes/ItemsTab.lua`:2289–2294); V1's three rows in `02-plan-compiler.md`.
   - **For WU-140:** the schema doesn't limit a price's `spec` to `b` and `n` rares, and the weights' `why` and
     `leftOut` are the checker's (§9).
-- **WU-138 (the server tools) merged** at `a967180` (fast-forward; rebased onto `36e96c4`). `compile_plan` gains the
+- **WU-138 (the server tools) merged** at `6e8ed5a` (fast-forward; rebased onto `16a89e4`). `compile_plan` gains the
   read-back (`readback.json`, no engine), adopt, notes and trade-links modes, and a final compile writes
   `final-build.xml` (`final-build-campaign.xml` for a campaign); the write ledger gains `baseSha1` and `adopted`, and an
   adoption updates the writer's fingerprint too; `set_build_notes` refreshes a ledgered file's entry when the file is
@@ -6323,7 +6323,7 @@ the `m17` engine at `b76967b`.
     refusal catches only a byte-exact copy (PoB re-serializes on save), so the restatement and the user's yes stay R-83's
     guard; adopt takes the file on disk at the call, with no check that it is the one read back (`readback.json` records
     no sha1 of the edited file; the spec is silent).
-- **WU-139 (game data and the parse fix) merged** as `a22c4a9` and the four commits before it (cherry-picked from
+- **WU-139 (game data and the parse fix) merged** as `f65de8b` and the four commits before it (cherry-picked from
   `51b6974`…`671f4f8`; no conflict with WU-138's `schemas.ts`). The bridge's new `pob-api/API/ParseFixes.lua`, loaded
   by `bootstrap.lua`, makes Crystalline Phylactery's current line apply (17788 and its Abyssal Lich copy); the lookup
   shows each mod tier's item level, prints a base's socket count from `data/items/sockets.json` with PoB's ceiling
@@ -6344,7 +6344,7 @@ the `m17` engine at `b76967b`.
   - **Left:** `lookup_game_data` reloads the C-35 data folder on every base, unique and mechanic lookup, uncached, so
     an invalid data file fails those lookups; PoB's trap-tool bases would print "Sockets: 2 (PoB's base data gives it
     none)", harmless while the game has no trap tools.
-- **Wave 1's gate passed** on `d8b5ffc` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's cache
+- **Wave 1's gate passed** on `6b3b28f` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's cache
   cleared): `mise run test` rc 0 (233 suites, 4,013 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0. The
   five units' suites pass together; `src/engine/schemas.ts` holds all four units' fields, each read by its caller. Its
   probe on the built server put a schema-10 Lich plan through a final compile: V1's `affix-cap`, `sockets` and
@@ -6356,7 +6356,7 @@ the `m17` engine at `b76967b`.
   `[]`; no dependency change.
   - **Left:** `compiler.ts`:2080 keeps its own `SOCKET_TABLE` constant beside `checks/v1.ts`'s export (the same file
     today).
-- **WU-140 (the scripts) merged** as `a62022b`, `4034469` and `a40751e` (cherry-picked from `3cfd07f`, `a65a28e`,
+- **WU-140 (the scripts) merged** as `26c55d2`, `3a87228` and `af3fbbd` (cherry-picked from `3cfd07f`, `a65a28e`,
   `d63c5bb`). `run-log.mjs` writes and displays revision 14 (`skillRevision` 14, the per-build boundary): the
   brainstorm headers, the verification form, the design gate in the user's form with the PoB file first (`--detail`
   prints the older display), the skeleton and its removal, the answer change and withdrawal, `ask` checkpoints, request
@@ -6375,7 +6375,7 @@ the `m17` engine at `b76967b`.
     card dealt after the boundary (§25), so a resumed older run shows old cards in the new form; harmless.
   - **Left:** the checker doesn't flag a boss trade D1-tree left on a swapped rung (§7; AC-W108 doesn't ask it); a
     pre-amendment-10 resumed run's dealt-card header shows the deck's pitch phrase.
-- **WU-142 (the design and pricing docs) merged** at `a3b8d50` (fast-forward; three commits). D1-build runs the spec
+- **WU-142 (the design and pricing docs) merged** at `48200e0` (fast-forward; three commits). D1-build runs the spec
   loop (§9: PoB's ranking with the build's weights, 3 or 4 must-haves with `why` and `leftOut`, tiers by lookup, `n`
   from T1 with a depth check, the budget search, at most 5 trade searches a slot, each must-have compiled at its tier's
   lowest roll), titles rares by their affixes, writes `tree.exclude` and scaling finds; D1-tree takes `exclude`, the
@@ -6394,7 +6394,7 @@ the `m17` engine at `b76967b`.
     `unverified` (folded into §9).
   - **For the scripts' follow-up:** `run-log.mjs`:2469 shows a piece left out unmeasured as "Kept for <reason>, which
     PoB can't measure" with only its damage change, not its estimate (§15).
-- **WU-143 (the gate, route and guide docs) merged** at `6a9bffc` (fast-forward; three commits). `SKILL.md` routes the
+- **WU-143 (the gate, route and guide docs) merged** at `fd364f3` (fast-forward; three commits). `SKILL.md` routes the
   one-item swap with its cost line, the answer change and `cancelled`, the skeleton and its removal, a read-back and an
   adoption at each gate, the notes write, the scaling question and pass, and one more round behind its `ask`;
   `checkpoints.md` holds each gate's revision-14 form, the guide-or-file question, the user's words verbatim with
@@ -6416,14 +6416,14 @@ the `m17` engine at `b76967b`.
     report}` and a user request `{code, id: "u<k>", words, restatement}`; AC-W5's ban on "fallback" in the agent
     definitions narrowed to admit D-489's "the fallback and its cost" and the verifier's "fallback check".
   - **Left:** the AC-W5 boundary test checks its own copy of the ban's regex.
-- **WU-140b (the scripts' follow-up) merged** (cherry-picked from `2dfee39`): the four defects WU-142's and WU-143's
+- **WU-140b (the scripts' follow-up) merged** as `dd5d11a` (cherry-picked from `2dfee39`): the four defects WU-142's and WU-143's
   verifiers found in WU-140's merged scripts. The guide's word cap skips W1's trade-link blocks (§14); a revision-14
   design display ends with its own invitation, "accept it (I'll ask: its endgame guide or its PoB file only, and late
   endgame scaling)", revision 13's kept (D-480); a piece left out unmeasured reads "- Left out unmeasured: <piece>
   (estimate: …): <reason>." (§15); a dealt card's brainstorm header names its class, ascendancy and skill from the
   card (§4; `parseCard` gains an additive `identity`). Tests in `buildGuideAmendment14.test.ts` ("WU-140b …");
   `tests/static` 1,052 and `tests/unit/buildGuide*` 672 pass; no pin changed. The milestone gate verifies it.
-- **M-27's milestone gate passed** on `25ee592` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
+- **M-27's milestone gate passed** on `ab5e188` (a fresh verifier, from clean: `build` and `coverage` removed, Jest's
   cache cleared): `mise run test` rc 0 (234 suites, 4,163 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0,
   the engine suites run. Every §24 criterion but AC-W113 (the user's live test, WU-144) maps to a passing test or its
   work-log row; spot checks against the pin held (the Energy Shield caps, Vile Robe's socket limit, the unique refused in

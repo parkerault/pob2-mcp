@@ -504,7 +504,10 @@ check alone, its other slots by `search_trade_items` with `mods` as today (`pric
   their floor tiers' lowest rolls. With a pricing stop open: `link_only` (no request) stays allowed; no search runs;
   rares compile at the tiers the loop reached (else their floors) and their entries are `unavailable`, as today. With no
   session cookie (`find_upgrades` returns only its link): the loop runs as depth checks alone (`search_trade_items`
-  searches anonymously), from the best tier down one step at a time within the cap. The final re-price pass
+  searches anonymously), from the best tier down one step at a time within the cap. With `--no-ninja` (no rate, so no
+  target becomes a `max_price`): no budget search; one depth check a spec, at its floor tiers on `b` and its best tiers
+  allowed on `n`, recorded as seen, and the totals `unverified` (D-333; a gap WU-142 filled, folded at its merge). The
+  final re-price pass
   (`pricing.md`:288–294) prices each spec as compiled, by a depth check, and never re-runs the loop.
 - **D1-tree's rare jewels.** D1-tree writes a rare jewel's lines as must-haves at their best tier allowed (amending the
   middle and top rolls, `D1-tree.md`:206) and leaves its entry `not priced yet`; D1-finish ranks its lines (step 1, the jewel's socket as the slot) to order

@@ -6375,3 +6375,22 @@ the `m17` engine at `b76967b`.
     card dealt after the boundary (§25), so a resumed older run shows old cards in the new form; harmless.
   - **Left:** the checker doesn't flag a boss trade D1-tree left on a swapped rung (§7; AC-W108 doesn't ask it); a
     pre-amendment-10 resumed run's dealt-card header shows the deck's pitch phrase.
+- **WU-142 (the design and pricing docs) merged** at `a3b8d50` (fast-forward; three commits). D1-build runs the spec
+  loop (§9: PoB's ranking with the build's weights, 3 or 4 must-haves with `why` and `leftOut`, tiers by lookup, `n`
+  from T1 with a depth check, the budget search, at most 5 trade searches a slot, each must-have compiled at its tier's
+  lowest roll), titles rares by their affixes, writes `tree.exclude` and scaling finds; D1-tree takes `exclude`, the
+  targets after gear moved, `userMoves`, `none: <why>` and no trade call; D1-finish has the `swap` and `scaling` scopes
+  on temporary stages and re-prices specs as compiled; D1-gate writes `summary`; `pricing.md`, `gates.md`, `lookups.md`
+  and D2 follow (the campaign note in the user's words). AC-W110 and AC-W111 in `buildGuideAmendment13Design.test.ts`,
+  the docs' examples run through `run-log.mjs`, `check-run.mjs`, `validatePlan` and the server's renderers. Its verifier
+  (fresh context) failed it once (a shared-test edit dropped the `--no-ninja` pin, which amendment 14 doesn't retire),
+  then passed it (gate 234 suites, 4,114 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0; after the fix
+  `tests/static` 41 suites, 1,008 tests). With the fix: D1-gate's `gear` has one entry per filled slot of `b` and `n`;
+  D1-finish's boots carry their movement speed as a must-have at revision 14 (`required` before).
+  - **Choices the spec left open, accepted:** `m`'s rares hold their must-haves at the floor tiers with one depth check
+    and no `spec` (Appendix A puts `spec` on `b` and `n`); D1-finish reuses D1-build's spec entry while its query and
+    league are unchanged (D-169); `link_only` isn't counted in `priceOutcomes`; the socket minimum is `find_upgrades`'
+    `min_empty_rune_sockets`, left out on socketless bases; `--no-ninja` runs one depth check a spec, totals
+    `unverified` (folded into §9).
+  - **For the scripts' follow-up:** `run-log.mjs`:2469 shows a piece left out unmeasured as "Kept for <reason>, which
+    PoB can't measure" with only its damage change, not its estimate (§15).

@@ -56,8 +56,10 @@
  * references' schema 4, build folders and answers; the agent definitions' get_node_power, refused rule, league rule,
  * build-folder paths and two guides. The pins this file held on the schema-3 text follow the amendment.
  */
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, afterAll } from '@jest/globals';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { TOOL_META } from '../../src/server/toolMeta';
 import { parseDataFile, type DataFile } from '../../src/plan/referenceData';
@@ -4383,5 +4385,486 @@ describe('AC-W109 (WU-141, D-478, D-479, D-489, D-491): the research docs and th
     ];
     const held = files.map((f) => ({ file: path.basename(f), words: [inGameTest, needs].filter((w) => folded(fs.readFileSync(f, 'utf8')).includes(w)) }));
     expect(held).toEqual(files.map((f) => ({ file: path.basename(f), words: [] })));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// AC-W112 (WU-143, amendment 14: D-478…D-489, D-494; risks R-81 to R-83): the gate, route and guide docs. The forms
+// are read from the amendment where it states them, and the docs' examples run through run-log.mjs, check-run.mjs,
+// render-audit.mjs and render-notes.mjs on copies of the revision-14 fixture run (`tests/fixtures/pipeline/run-a14`).
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W112 (WU-143, D-478…D-489, D-494): the gate, route and guide docs carry amendment 14', () => {
+  const A14 = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-14-files-specs-and-repairs.md'), 'utf8');
+  const section = (from: string, to: string) => folded(A14.slice(A14.indexOf(from), A14.indexOf(to)));
+  const S6 = section('## 6. D-480', '## 7. D-481');
+  const S7 = section('## 7. D-481', '## 8. D-482');
+  const S8 = section('## 8. D-482', '## 9. D-483');
+  const S12 = section('## 12. D-486', '## 13. D-487');
+  const S14 = section('## 14. D-488', '## 15. D-489');
+  const S15 = section('## 15. D-489', '## 16. D-490');
+  const S20 = section('## 20. D-494', '## 21. D-495');
+  const S24 = section('## 24. Acceptance criteria', '## 25. Migration');
+  const APPX = folded(A14.slice(A14.indexOf('## Appendix A. Formats')));
+  const spec = (text: string, re: RegExp, what: string) => {
+    const m = re.exec(text);
+    if (!m) throw new Error(`amendment 14 doesn't state ${what}`);
+    return m;
+  };
+  const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // The forms, in the amendment's words.
+  const [, COST] = spec(S7, /The restatement names the route and its cost before the yes \("([^"]+)"/, "the swap's cost line");
+  const [, ASK_FILE] = spec(S6, /the restatement asks "([^"]+)" as its own question/, 'the guide-or-file question');
+  const [, ASK_SCALING] = spec(S12, /beside "guide or file" \(§6\): "([^"]+)"/, 'the scaling question');
+  const [, SCALING_H2] = spec(S12, /an H2, "([^"]+)", after "Endgame: non-budget"/, 'the scaling H2');
+  const [, COPY] = spec(S14, /with "([^"]+)" once/, "the links' copy line");
+  const [, UNCONFIRMED] = spec(S15, /\*\*"Unconfirmed (\([^"]+\))"\*\* replaces the status word "([^"]+)"/, 'the status word');
+  const OLD_WORD = spec(S15, /\*\*"Unconfirmed \([^"]+\)"\*\* replaces the status word "([^"]+)"/, 'the old status word')[1];
+  const [, GEAR_FROM] = spec(S20, /with "(gear from level) <the record's `requirements\.level`>" once/, 'the gear level line');
+  const [, CONDITION] = spec(S8, /\("(if it's not a crit build, it doesn't need the crit damage suffix)" goes as written/, "the condition kept as written");
+  const [, BASE] = spec(S24, /it is at most (\d+) lines plus the lines the work-log names/, "SKILL.md's bound");
+  const [, NOTES_SECTIONS] = spec(APPX, /a file-only build's sections: ([^.]+)\./, "the notes' sections");
+  const [, HEADING] = spec(APPX, /PoB's colour codes for headings \(`(\^x[0-9A-F]{6})<heading>`\)/, "the notes' heading colour");
+  const READ_BACK = spec(APPX, /Read-back: `\{plan_path, (read_back): <relpath>\}`/, 'the read-back call')[1];
+  const ADOPT = spec(APPX, /Adopt: `\{plan_path, (adopt): <relpath>\}`/, 'the adopt call')[1];
+  const NOTES = spec(APPX, /Notes: `\{plan_path, (notes_path)\}`/, 'the notes call')[1];
+  const [, LINKS_CALL, LINKS_REPLY] = spec(APPX, /Trade links: `(\{plan_path, trade_links: true\})`, engine kind `load`; reply `([^`]+)`/, 'the links call');
+  /** The 20 lines over 331 the work-log names (WU-143's report): the routes, tools, reads and Bash of D-479…D-487. */
+  const NAMED = 20;
+
+  const SKILL_RAW = fs.readFileSync(SKILL_MD, 'utf8');
+  const SKILL = folded(SKILL_RAW);
+  const refRaw = (name: string) => fs.readFileSync(path.join(SKILL_DIR, 'references', name), 'utf8');
+  const GATES_RAW = refRaw('checkpoints.md');
+  const GATES = folded(GATES_RAW);
+  const HEADER = folded(refRaw('task-header.md'));
+  const FIX = folded(refRaw('fix-round.md'));
+  const OFFLINE_RAW = refRaw('offline-and-test.md');
+  const OFFLINE = folded(OFFLINE_RAW);
+  const F1_RAW = readStage('F1');
+  const F1 = folded(F1_RAW);
+  const W1_RAW = readStage('W1');
+  const W1 = folded(W1_RAW);
+  const V4 = folded(readStage('V4'));
+  const TEMPLATES = ['guide-endgame-template.md', 'guide-template.md'].map((name) => ({ name, text: fs.readFileSync(path.join(SKILL_DIR, 'templates', name), 'utf8') }));
+  const agent = (name: string) => folded(readDefinition(fs.readFileSync(path.join(AGENTS_DIR, `${name}.md`), 'utf8'))!.body);
+  /** A bullet of a folded text, from its start to the next bullet. */
+  const bullet = (text: string, start: string) => {
+    const at = text.indexOf(start);
+    if (at < 0) throw new Error(`no "${start}"`);
+    const end = text.indexOf(' - **', at + start.length);
+    return text.slice(at, end < 0 ? undefined : end);
+  };
+  /** A doc's form turned into a pattern: each `<placeholder>` matches any text. */
+  const form = (t: string) => new RegExp(`^${esc(t).replace(/<[^<>]*>/g, '.+').replace('yes\\|no', '(?:yes|no)')}$`);
+
+  // The scripts, on copies of the revision-14 fixture run.
+  const SCRIPTS = path.join(SKILL_DIR, 'scripts');
+  const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'a14-docs-'));
+  afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
+  const ENV = { PATH: '/usr/bin:/bin', LANG: 'C' };
+  const run = (script: string, args: string[], input?: string) => {
+    const r = spawnSync(process.execPath, [path.join(SCRIPTS, script), ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 30000, input });
+    return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+  };
+  const ID = 'r1-a-2';
+  const BUILD = `builds/${ID}`;
+  let copies = 0;
+  const copyRun = () => {
+    const dir = path.join(TMP, `run-a14-${++copies}`);
+    fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-a14'), dir, { recursive: true });
+    return dir;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type Json = Record<string, any>;
+  const editJson = (dir: string, rel: string, edit: (j: Json) => void) => {
+    const file = path.join(dir, rel);
+    const j = JSON.parse(fs.readFileSync(file, 'utf8')) as Json;
+    edit(j);
+    fs.writeFileSync(file, `${JSON.stringify(j, null, 2)}\n`);
+  };
+  /** run-a14 cut back to a point of its build: its first `stages` steps, `checkpoints` answers and `displays` visits. */
+  const cut = (stages: number, checkpoints: number, displays: number, build: Json) => {
+    const dir = copyRun();
+    editJson(dir, 'run-log.json', (l) => {
+      l.stages = l.stages.slice(0, stages);
+      l.checkpoints = l.checkpoints.slice(0, checkpoints);
+      l.displays = l.displays.slice(0, displays);
+      Object.assign(l.builds[0], build);
+      l.status = 'running';
+    });
+    return dir;
+  };
+  /** A doc's run-log examples, `run-log.mjs <runFolder> <kind> - <<'JSON'`, each its kind and entry. */
+  const examples = (raw: string) => [...raw.matchAll(/run-log\.mjs <runFolder> ([\w-]+) - <<'JSON'\n\s*(\{.*\})\n\s*JSON/g)].map((m) => ({ kind: m[1], json: m[2] }));
+  const example = (raw: string, kind: string, has: string) => {
+    const e = examples(raw).find((x) => x.kind === kind && x.json.includes(has));
+    if (!e) throw new Error(`no ${kind} example holding ${has}`);
+    return e;
+  };
+  const rule = (stderr: string, name: string) => stderr.split('\n').filter((l) => l.startsWith(`check-run: [${name}] `));
+
+  it('the amendment states the forms this block reads', () => {
+    expect({ COST, ASK_FILE, ASK_SCALING, SCALING_H2, COPY, UNCONFIRMED, OLD_WORD, GEAR_FROM, BASE, NOTES_SECTIONS, HEADING, READ_BACK, ADOPT, NOTES, LINKS_CALL, LINKS_REPLY }).toEqual({
+      COST: 'a one-item swap: the finishing step and the design check, about 0.5M tokens',
+      ASK_FILE: 'the endgame guide, or the PoB file only?',
+      ASK_SCALING: 'late endgame scaling, yes or no?',
+      SCALING_H2: 'Late endgame scaling',
+      COPY: 'copy the whole line into your browser',
+      UNCONFIRMED: '(<what>; if it fails: <the fallback and its cost>)',
+      OLD_WORD: 'needs in-game testing',
+      GEAR_FROM: 'gear from level',
+      BASE: '331',
+      NOTES_SECTIONS: 'How to play, When to switch (levels), Late endgame scaling (if taken), Trade links, Open findings',
+      HEADING: '^xE0C080',
+      READ_BACK: 'read_back',
+      ADOPT: 'adopt',
+      NOTES: 'notes_path',
+      LINKS_CALL: '{plan_path, trade_links: true}',
+      LINKS_REPLY: 'Trade links: <n> written to trade-links.json',
+    });
+  });
+
+  // SKILL.md
+
+  it('SKILL.md routes the one-item swap, D1-finish (scope swap) then the D1 gate, with §7\'s cost line, and at the final gate', () => {
+    expect({
+      design: new RegExp(`A revise of one slot's item and nothing else is a one-item swap, D1-finish \\(\`scope: "swap"\`\\) then the D1 gate and this gate, its restatement naming the route and its cost: "${esc(COST)}"`).test(SKILL),
+      final: /a one-item swap runs D1-finish \(`swap`\), the D1 gate, F1, W1's patch and the re-check \(D-481\)/.test(SKILL),
+    }).toEqual({ design: true, final: true });
+  });
+
+  it('SKILL.md routes the answer change: answer-change, W1 cancelled, render-audit.mjs --withdraw, then the claims pass', () => {
+    expect(SKILL).toMatch(/\*\*An answer change\*\* \(D-480\): after F1's pass on `accept` and before W1's entry, the user may take the file only: log `answer-change`, a W1 still running `cancelled`, run `render-audit\.mjs <runFolder> --withdraw <id>`, then the claims pass/);
+  });
+
+  it("SKILL.md records R1b's skeleton as skeletonFile and removes a picked card's skeleton at its build's first draft", () => {
+    expect({
+      record: SKILL_RAW.split('\n').some((l) => l.startsWith('| 3 | R1b') && l.includes('`skeleton: <relpath>`, its skeleton file in the builds folder, logged `skeletonFile` (D-479)')),
+      removal: /At the build's first draft, remove its card's skeleton \(D-479\), `remove_draft: <its skeletonFile>` on the plan `concepts\/<id>\/plan\.json` \(under `runFolderRel`\), and log `skeleton \{"concept"\}`; one the user changed stays, as does an unpicked card's/.test(SKILL),
+    }).toEqual({ record: true, removal: true });
+  });
+
+  it('SKILL.md reads back and adopts at each gate: the verification, design and final gates', () => {
+    expect(SKILL).toMatch(/\*\*The user's edits\*\* \(D-479\), here and at the design and final gates: the user changed the gate's PoB file\? Read it back, show the changes, and on a yes adopt it and take them as a revision \(`references\/checkpoints\.md`\)/);
+  });
+
+  it("SKILL.md writes the notes after step 14 (a guide build's) and after the claims steps (a file-only build's)", () => {
+    expect({
+      guide: /\*\*Step 14, known issues\*\* .* Then \*\*the notes\*\* \(D-487\), every cycle: `render-notes\.mjs <runFolder> --build <id>`, then `mcp__pob2__compile_plan \{plan_path, notes_path: "<runFolderRel>\/<buildFolder>\/notes\.txt"\}`/.test(SKILL),
+      fileOnly: /\*\*The claims pass\*\* .* then it ends `file-only`\. Held to amendment 14, it ends after its notes \(D-487\): W1 with `scope: "notes"`, then the `notes_path` write/.test(SKILL),
+    }).toEqual({ guide: true, fileOnly: true });
+  });
+
+  it('SKILL.md asks the guide-or-file and scaling questions at an accept, and runs the scaling pass before F1', () => {
+    expect(SKILL).toMatch(new RegExp(`an accept asks, unless the user's words answered them, "${esc(ASK_FILE)}" \\("accept" alone is never the guide\\) and "${esc(ASK_SCALING)}" \\(logged \`scaling\`\\); a yes runs D1-finish's scaling pass \\(\`scope: "scaling"\`\\) before F1`));
+  });
+
+  it("SKILL.md runs one more round only behind its ask, once a build, and tells open findings at once", () => {
+    expect(SKILL).toMatch(/\*\*One more round\*\* \(D-482\): a finding it leaves open that needs a gear change is asked at once, an `ask` checkpoint `open-finding`: `round` runs one more fix round and `V4-recheck`, once a build; `ship` leaves it open\. Tell each open finding at once, before the next build starts/);
+  });
+
+  it("SKILL.md's tools hold read_back, adopt, notes_path and a skeleton's remove_draft, each with no engine", () => {
+    const tools = bullet(SKILL, '- **Your pob2 tools**');
+    expect({ engineFree: tools.includes("`mcp__pob2__compile_plan`'s engine-free calls"), readBack: tools.includes(`\`${READ_BACK}\``), adopt: tools.includes(`\`${ADOPT}\``), notes: tools.includes(`\`${NOTES}\`, the notes`), skeleton: tools.includes("`remove_draft`, a picked card's skeleton") }).toEqual({ engineFree: true, readBack: true, adopt: true, notes: true, skeleton: true });
+  });
+
+  it("SKILL.md's reads hold readback.json", () => {
+    expect(bullet(SKILL, '- **Read only what routes the run:**')).toContain("a read-back's `readback.json` (D-479)");
+  });
+
+  it("SKILL.md's Bash runs render-notes.mjs and render-audit.mjs --withdraw, each a script that takes that call", () => {
+    const bash = bullet(SKILL, '- **Your Bash reads');
+    const notes = run('render-notes.mjs', []);
+    const audit = run('render-audit.mjs', []);
+    expect({
+      notes: bash.includes('`node .claude/skills/build-guide/scripts/render-notes.mjs <runFolder> --build <id>` (D-487)'),
+      withdraw: bash.includes('`render-audit.mjs <runFolder> --withdraw <id>` (D-480)'),
+      notesUsage: /usage: node render-notes\.mjs <runFolder> --build <card id>/.test(notes.stderr),
+      withdrawUsage: /--withdraw <card id>/.test(audit.stderr),
+    }).toEqual({ notes: true, withdraw: true, notesUsage: true, withdrawUsage: true });
+  });
+
+  it(`SKILL.md stays within ${BASE} lines plus the ${NAMED} the work-log names, the cap set in all three pins`, () => {
+    const cap = Number(BASE) + NAMED;
+    const pins = [
+      path.join(REPO, 'tests', 'static', 'buildGuidePipeline.test.ts'),
+      path.join(REPO, 'tests', 'static', 'buildGuideAmendment11Design.test.ts'),
+      path.join(REPO, 'tests', 'static', 'buildGuideAmendment12Design.test.ts'),
+    ].map((f) => fs.readFileSync(f, 'utf8').includes(`SKILL_RAW.split('\\n').length - 1).toBeLessThanOrEqual(${cap})`) || fs.readFileSync(f, 'utf8').includes(`expect(lines).toBeLessThanOrEqual(${cap})`));
+    expect({ within: SKILL_RAW.split('\n').length - 1 <= cap, pins }).toEqual({ within: true, pins: [true, true, true] });
+  });
+
+  // checkpoints.md
+
+  it("checkpoints.md gives each gate's revision-14 form, the form each display prints", () => {
+    const dir = copyRun();
+    const shown = (gate: string, build?: string) => run('run-log.mjs', [dir, 'display', gate, ...(build ? ['--build', build] : [])]).stdout.split('\n').slice(2);
+    const header = form(spec(GATES, /the script prints its header, `([^`]+)`/, 'x')[1]);
+    const skeleton = form(spec(GATES, /the card's \*\*skeleton file\*\* first, `- \*\*PoB file:\*\* <card name> skeleton \(draft\)\.xml \(key pieces only; its numbers aren't the build's\)`/, 'x')[0].replace(/^.*?`(- \*\*PoB file:\*\*.*)`$/, '$1'));
+    const draft = form(spec(GATES, /you print it as it is: `([^`]+)` first/, 'x')[1]);
+    expect({
+      brainstorm: shown('brainstorm').filter((l) => l.startsWith('**')).every((l) => header.test(l)),
+      verification: shown('verification').some((l) => skeleton.test(l)),
+      design: draft.test(shown('design', ID).find((l) => l !== '')!),
+      final: /In a build held to amendment 14 the display prints the PoB file's line first \(D-478\)/.test(GATES) && /^Your PoB file: /.test(shown('final', ID).find((l) => l !== '')!),
+    }).toEqual({ brainstorm: true, verification: true, design: true, final: true });
+  });
+
+  it("checkpoints.md's accept asks the two questions, and its design example, an accept with scaling: true, is one run-log.mjs takes", () => {
+    const dir = cut(11, 2, 3, { status: 'designing', guide: null, pobFile: null });
+    const e = example(GATES_RAW, 'checkpoint', '"scaling": true');
+    const r = run('run-log.mjs', [dir, 'checkpoint', '-'], e.json);
+    const written = JSON.parse(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).checkpoints.pop();
+    expect({
+      questions: GATES.includes(`**"${ASK_FILE}"** (\`accept\` or \`accept:file\`; "accept" alone never maps to the guide), and **"${ASK_SCALING}"**, logged on the checkpoint as \`scaling: true\` or \`false\``),
+      code: r.code,
+      scaling: written.scaling,
+    }).toEqual({ questions: true, code: 0, scaling: true });
+  });
+
+  it("checkpoints.md keeps the user's words verbatim, a condition a condition, and gives the request lines", () => {
+    expect({
+      literal: GATES.includes('**The user\'s words stay literal** (D-482): your restatement rides beside them, never in their place; you add no request of your own'),
+      condition: GATES.includes(`a condition stays a condition ("${CONDITION}" goes as written`),
+      lines: GATES.includes('`request: <id> made` or `request: <id> departs: <how>`'),
+      finding: GATES.includes('`{"code": "user-request", "id": "u<k>", "words": "<the user\'s text, verbatim>", "restatement": "<yours>"}`'),
+    }).toEqual({ literal: true, condition: true, lines: true, finding: true });
+  });
+
+  it("checkpoints.md's ask example follows a departure as run-log.mjs and check-run.mjs take it", () => {
+    /** run-a14 at its D1-build, which departs from the user's words; the ask (or none), then D1-tree, the next step. */
+    const departed = (ask: boolean) => {
+      const dir = cut(8, 2, 2, { status: 'designing', guide: null, pobFile: null });
+      editJson(dir, 'run-log.json', (l) => {
+        l.checkpoints[1].changes = { [ID]: CONDITION };
+        l.stages[7].requests = [{ id: 'u1', words: CONDITION, result: 'departs: kept the crit suffix' }];
+      });
+      const next = (JSON.parse(fs.readFileSync(path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-a14', 'run-log.json'), 'utf8')) as Json).stages[8];
+      const r = ask ? run('run-log.mjs', [dir, 'checkpoint', '-'], example(GATES_RAW, 'checkpoint', '"kind": "departs"').json) : { code: 0 };
+      run('run-log.mjs', [dir, 'stage', JSON.stringify(next)]);
+      const err = run('check-run.mjs', [dir]).stderr;
+      return { code: r.code, missing: rule(err, 'order').filter((l) => /no ask checkpoint \(kind departs\)/.test(l)).length, requests: rule(err, 'requests') };
+    };
+    expect({ without: departed(false), with: departed(true) }).toEqual({ without: { code: 0, missing: 1, requests: [] }, with: { code: 0, missing: 0, requests: [] } });
+  });
+
+  it('checkpoints.md tells open findings at once, and asks for one more round behind an open-finding ask', () => {
+    expect({
+      atOnce: /\*\*Open findings are told at once\*\* \(amending D-477's "at the run's end"\): after a build's last re-check, before the next build starts, tell the user each open finding's `reader` sentence/.test(GATES),
+      ask: /ask the user at once, before the next step, `kind: "open-finding"`: \*\*`round`\*\*, one more fix round and one more `V4-recheck`, at most once a build, with its token cost .* or \*\*`ship`\*\*/.test(GATES),
+    }).toEqual({ atOnce: true, ask: true });
+  });
+
+  it(`checkpoints.md says "unconfirmed ${UNCONFIRMED}" in place of "${OLD_WORD}"`, () => {
+    expect({ word: GATES.includes(`or unconfirmed ${UNCONFIRMED} (D-489)`), old: GATES.includes(OLD_WORD) }).toEqual({ word: true, old: false });
+  });
+
+  it('checkpoints.md and W1.md give the regular movement figure, a skill\'s use penalty never folded in (D-491)', () => {
+    expect({
+      gates: /movement by PoB's regular figure, a skill's use penalty never folded in \(D-491\)/.test(GATES) && /\*\*Movement is PoB's regular figure\*\* \(D-491\)/.test(GATES),
+      w1: /\*\*Movement speed\*\* \(D-491\): the record's regular figure, `EffectiveMovementSpeedMod`, never with a skill's use penalty folded in/.test(W1),
+    }).toEqual({ gates: true, w1: true });
+  });
+
+  it('R-83: checkpoints.md reads back against the server\'s copy, names the visit, and adopts only on the yes, reading back again after another edit', () => {
+    const rb = folded(GATES_RAW.slice(GATES_RAW.indexOf("## Reading back the user's edits (D-479)"), GATES_RAW.indexOf("## The user's words, the request lines")));
+    expect({
+      call: rb.includes(`\`mcp__pob2__compile_plan {plan_path, ${READ_BACK}: "<the file, as its line gave it>"}\``),
+      refused: rb.includes('A refusal, "the file was written again since", means the user edited a file the pipeline wrote over since'),
+      visit: rb.includes("Say which visit's file you read them against"),
+      adopt: rb.includes(`**On the yes, adopt it at once**: \`mcp__pob2__compile_plan {plan_path, ${ADOPT}: "<the file>"}\``) && rb.includes('read it back again and ask again before you adopt'),
+      route: rb.includes('**one item changed**, the one-item swap') && rb.includes('**a tree change only**, D1-tree; **anything else**, the full chain from D1-build'),
+    }).toEqual({ call: true, refused: true, visit: true, adopt: true, route: true });
+  });
+
+  it("R-82: checkpoints.md's answer change, W1 cancelled and the withdrawal, run as written, leave no audit.md or partial guide", () => {
+    const dir = cut(12, 3, 3, { status: 'writing', guide: null });
+    const change = run('run-log.mjs', [dir, 'answer-change', '-'], example(GATES_RAW, 'answer-change', '"to": "accept:file"').json);
+    const cancelled = run('run-log.mjs', [dir, 'stage', '-'], example(GATES_RAW, 'stage', '"outcome": "cancelled"').json);
+    const cmd = spec(GATES, /`node \.claude\/skills\/build-guide\/scripts\/(render-audit\.mjs) <runFolder> (--withdraw) <id>`/, 'the withdrawal');
+    const withdrawn = run(cmd[1], [dir, cmd[2], ID]);
+    expect({ change: change.code, cancelled: cancelled.code, withdrawn: withdrawn.code, left: ['audit.md', 'guide.md'].filter((f) => fs.existsSync(path.join(dir, BUILD, f))) }).toEqual({ change: 0, cancelled: 0, withdrawn: 0, left: [] });
+  });
+
+  // task-header.md, fix-round.md, offline-and-test.md
+
+  it('task-header.md has scope: D1-finish\'s swap and scaling, W1\'s notes', () => {
+    expect(HEADER).toMatch(/\| `scope` \| D1-finish and W1 only, in a build held to amendment 14 \(D-481, D-486, D-487; Appendix A\), recorded on the stage entry as its `scope`: D1-finish's `swap` .* or `scaling` .*; W1's `notes`/);
+  });
+
+  it("task-header.md's writes give D1-build its scaling trades and W1 notes.txt", () => {
+    expect({
+      d1build: HEADER.includes("D1-build's `<buildFolder>/trades.json` too, for its `scaling` finds only, D1-finish's taking `scaling` beside its own kinds"),
+      notes: HEADER.includes('with `scope: "notes"`, W1\'s is `<buildFolder>/notes.txt` alone (D-487)'),
+    }).toEqual({ d1build: true, notes: true });
+  });
+
+  it("task-header.md admits R1b's skeleton draft beside the D1 gate's and F1's, under measure-only", () => {
+    expect({
+      draft: /R1b, as its last act on a damage pass \(D-479\), calls `\{plan_path: "<runFolderRel>\/concepts\/<id>\/plan\.json", draft_name: "<card name> skeleton"\}`, which writes the card's skeleton file, `<card name> skeleton \(draft\)\.xml`, and returns it as `skeleton: <relpath>`\. No other step writes or deletes a draft/.test(HEADER),
+      measureOnly: /R1b makes its skeleton file's under `measure-only`, and F1 its draft's removal and its links under `final`/.test(HEADER),
+    }).toEqual({ draft: true, measureOnly: true });
+  });
+
+  it("task-header.md carries the user's words and the request lines, and fix-round briefs of finding ids only", () => {
+    expect({
+      words: /\*\*The user's words\*\* \(D-482\)\. A user request's `words` are the user's, verbatim; the prompt adds no request, item, price or latitude they didn't name, and keeps a condition a condition\. A step that takes requests returns one line per request outside its 8-line return, as D1-tree's `jewel:` lines are: `request: <id> made` or `request: <id> departs: <how>`/.test(HEADER),
+      briefs: /\*\*The fix round's briefs\*\* \(D-482\), in a build held to amendment 14: an owner's `findings` are the V4 finding ids and their report's path, `\{id, report\}`, with no scope and no facts of the runner's/.test(HEADER),
+    }).toEqual({ words: true, briefs: true });
+  });
+
+  it('fix-round.md has the extra round behind its ask, at most once a build, and the final-gate swap', () => {
+    expect({
+      round: /## One more round, behind its `ask` \(D-482\) .* \*\*`round`\*\*: one more fix round \(its round copy, its owners, step 12\) and one more `V4-recheck` \(step 13\), \*\*at most once a build\*\*: an exception to "no further round", allowed only behind that checkpoint/.test(FIX),
+      swap: /\*\*A one-item revision\*\* \(D-481\), in a build held to amendment 14: .* runs D1-finish with `scope: "swap"`, the D1 gate, F1, then W1's patch \(`changed: "all"`\) and step 13's re-check, in place of the owners' full chain/.test(FIX),
+    }).toEqual({ round: true, swap: true });
+  });
+
+  it("R-81: fix-round.md's notes write is refused over a file PoB saved, and the runner tells the user and leaves it", () => {
+    expect(FIX).toMatch(/\*\*A refusal\*\* \(the final file changed on disk since the server wrote it: the user saved it in PoB, R-81\) writes nothing: tell the user, and leave it/);
+  });
+
+  it("offline-and-test.md says a test accept is the guide and carries scaling, and its test config with that answer is one run-log.mjs takes", () => {
+    const [, entry] = spec(OFFLINE, /The late endgame scaling answer\*\* \(D-486\) rides on a design entry's object, `(\{[^`]+\})`/, 'the scaling entry');
+    const cfg = JSON.parse(/## The test config[\s\S]*?```json\n([\s\S]*?)\n```/.exec(OFFLINE_RAW)![1]) as Json;
+    cfg.answers.design = [JSON.parse(entry)];
+    const dir = fs.mkdtempSync(path.join(TMP, 'cfg-'));
+    fs.writeFileSync(path.join(dir, 'test-config.json'), JSON.stringify(cfg));
+    expect({ guide: OFFLINE.includes('**A test `accept` still means the guide** (D-480)'), code: run('run-log.mjs', [dir, 'test-config', path.join(dir, 'test-config.json')]).code }).toEqual({ guide: true, code: 0 });
+  });
+
+  // F1, W1, V4
+
+  it("F1.md records draftRemoved, which check-run.mjs takes, and makes the links call after the final write", () => {
+    const verdict = JSON.parse(/## Writes[\s\S]*?```json\n([\s\S]*?)\n```/.exec(F1_RAW)![1]) as Json;
+    const dir = copyRun();
+    editJson(dir, `reports/gates/F1-${ID}-a1.json`, (g) => {
+      g.draftRemoved = verdict.draftRemoved;
+      g.draftLeft = verdict.draftLeft;
+    });
+    expect({
+      removed: typeof verdict.draftRemoved,
+      checker: run('check-run.mjs', [dir]).stderr,
+      links: F1.includes(`7. **The trade links** (D-488), F1's second call, only after the final file is written: \`mcp__pob2__compile_plan ${LINKS_CALL.replace('{plan_path', '{plan_path: "<plan>"')}\``) && F1.includes(`its reply is \`${LINKS_REPLY}\``),
+    }).toEqual({ removed: 'string', checker: '', links: true });
+  });
+
+  it('W1.md has the notes scope, writing notes.txt alone in Appendix A\'s form and sections, the heading colour render-notes.mjs uses', () => {
+    const notes = folded(W1_RAW.slice(W1_RAW.indexOf('## The notes (`scope: "notes"`, D-487)'), W1_RAW.indexOf('## The campaign mode (D-415)')));
+    const order = ['**How to play**', '**When to switch**', '**Late endgame scaling**', '**Trade links**', '**Open findings**'].map((s) => notes.indexOf(s));
+    const colour = /export const HEADING_COLOUR = '([^']+)';/.exec(fs.readFileSync(path.join(SCRIPTS, 'render-notes.mjs'), 'utf8'))![1];
+    expect({
+      writes: notes.includes('The header\'s `writes` is `["<buildFolder>/notes.txt"]`') && notes.includes('no `guide.md`, no `audit.md`'),
+      sections: order.every((at) => at > 0) && order.join() === [...order].sort((a, b) => a - b).join() && NOTES_SECTIONS.split(', ').length === order.length,
+      heading: notes.includes(`\`${HEADING}<heading>\``) && colour === HEADING,
+    }).toEqual({ writes: true, sections: true, heading: true });
+  });
+
+  it(`W1.md has the "${SCALING_H2}" H2 only after an accept with scaling: true, and the templates' section passes the checker there`, () => {
+    const add = (scaling: boolean) => {
+      const dir = copyRun();
+      editJson(dir, 'run-log.json', (l) => {
+        l.checkpoints.find((c: Json) => c.checkpoint === 'design').scaling = scaling;
+      });
+      const template = TEMPLATES[0].text;
+      const find = template.split('\n').find((l) => l.startsWith('- [up to 5, the largest gains first'))!
+        .replace(/\[[^\]]*\] ?/g, '').replace('<the rung>', 'Budget').replace(/<the dear item[^>]*>/, 'rare War Spear, physical damage, attack speed')
+        .replace('<the kept item>', 'rare War Spear, physical damage').replace('<damage>', '21').replace('<±ehp>', '+0').replace('<its price at its day>', '100 divines');
+      const guide = path.join(dir, BUILD, 'guide.md');
+      fs.writeFileSync(guide, fs.readFileSync(guide, 'utf8').replace('## How to play it', `## ${SCALING_H2}\n\n${find}\n\n## How to play it`));
+      return rule(run('check-run.mjs', [dir]).stderr, 'guide-sections');
+    };
+    expect({
+      rule: W1.includes(`17. **${SCALING_H2}** (D-486), the H2 after \`Endgame: non-budget\`, only when the build's last design accept answered \`scaling: true\``),
+      yes: add(true),
+      no: add(false).length,
+    }).toEqual({ rule: true, yes: [], no: 1 });
+  });
+
+  it("W1.md and both templates give the link block with its copy line, which render-notes.mjs turns into the notes' Trade links", () => {
+    const dir = copyRun();
+    const url = 'https://www.pathofexile.com/trade2/search/poe2/Standard?q=%7B%22query%22%3A%7B%7D%7D';
+    fs.writeFileSync(path.join(dir, BUILD, 'trade-links.json'), JSON.stringify([{ stage: 'b', slot: 'Weapon 1', url, ids: 'checked' }]));
+    const block = TEMPLATES[0].text.slice(TEMPLATES[0].text.indexOf('## Endgame: budget'));
+    const copyLine = block.split('\n').find((l) => l.toLowerCase().includes(COPY))!.replace(/^\[[^\]]*\] /, '');
+    const guide = path.join(dir, BUILD, 'guide.md');
+    fs.writeFileSync(guide, fs.readFileSync(guide, 'utf8').replace('## Endgame: non-budget', `${copyLine}\n\n\`\`\`\nWeapon 1: ${url}\n\`\`\`\n\n## Endgame: non-budget`));
+    const r = run('render-notes.mjs', [dir, '--build', ID]);
+    const notes = fs.readFileSync(path.join(dir, BUILD, 'notes.txt'), 'utf8');
+    expect({
+      w1: W1.toLowerCase().includes(`"${COPY}: a link doesn't open reliably from a terminal."`) && W1.includes('one fenced block of that rung\'s links, one line per rare slot or rare tree jewel, `<slot>: <url>`') && W1.includes('outside the word cap'),
+      templates: TEMPLATES.map((t) => ['## Endgame: budget', '## Endgame: non-budget'].every((h2) => t.text.slice(t.text.indexOf(h2)).split('\n## ')[0].includes('<slot>: <its url from trade-links.json, copied exactly>'))),
+      code: r.code,
+      fences: notes.includes('```'),
+      once: notes.split(url).length - 1,
+      trade: notes.includes(`${HEADING}Trade links`),
+    }).toEqual({ w1: true, templates: [true, true], code: 0, fences: false, once: 1, trade: true });
+  });
+
+  it('W1.md names one level a rung, and the endgame template\'s Switching over line, filled in, passes the checker\'s levels rule', () => {
+    const switching = (line: string) => {
+      const dir = copyRun();
+      editJson(dir, `${BUILD}/compile-record.json`, (r) => {
+        r.stages.m.requirements = { level: 59, by: [{ kind: 'gem', name: 'Blood Hunt', group: 1, gemLevel: 16 }] };
+      });
+      const guide = path.join(dir, BUILD, 'guide.md');
+      fs.writeFileSync(guide, fs.readFileSync(guide, 'utf8').replace(/^Level with any Warrior build\..*$/m, line));
+      return rule(run('check-run.mjs', [dir]).stderr, 'levels');
+    };
+    const template = TEMPLATES[0].text.split('\n').find((l) => l.startsWith('Level with any <the card\'s Class> build you like'))!;
+    const filled = template.replace(/ \[.*$/, '').replace("<the card's Class>", 'Warrior').replace("<m's level in the plan>", '65')
+      .replace("<m's requirements.level in compile-record.json>", '59').replace(/<what sets it[^>]*>/, 'Blood Hunt needs gem level 16');
+    expect({
+      rule: W1.includes(`19. **One level a rung** (D-494).`) && W1.includes(`\`${GEAR_FROM} <the record's requirements.level>\``),
+      filled: switching(filled),
+      older: switching('Level with any Warrior build you like: this one works from level 59, because Blood Hunt needs gem level 16.').length,
+    }).toEqual({ rule: true, filled: [], older: 1 });
+  });
+
+  it("W1.md advises no test in game, and gives an unconfirmed point its fallback", () => {
+    expect(W1).toMatch(new RegExp(`20\\. \\*\\*No advice to test in game\\*\\* \\(D-489\\)\\. Testing a point in game means levelling a new character for hours, so the guide never tells the reader to test something in game\\. A point no text or tool settles reads \`unconfirmed ${esc(UNCONFIRMED)}\``));
+  });
+
+  it("W1.md and both templates give the toughness warning's under kind its own wording (D-494)", () => {
+    const kinds = /const kinds = a14 \? \[([^\]]+)\]/.exec(fs.readFileSync(path.join(SCRIPTS, 'check-run.mjs'), 'utf8'))![1];
+    expect({
+      checker: kinds.includes("'under'"),
+      w1: /\*\*the `under` warning\*\* \(D-494\), an EHP under its band in every condition, plain or not, has its own wording: the EHP is under its band whatever the conditions, never "only with every condition against it"/.test(W1),
+      templates: TEMPLATES.map((t) => t.text.includes('| under: The EHP is under its band whatever the conditions (about <EHP> against the <target> target), its weakest hit <type>>')),
+    }).toEqual({ checker: true, w1: true, templates: [true, true] });
+  });
+
+  it('V4.md checks that an unconfirmed claim states its fallback', () => {
+    expect(V4).toMatch(new RegExp(`\\*\\*An unconfirmed claim states its fallback\\*\\* \\(D-489\\), in a build held to amendment 14: a hinge claim that rests on a point no text or tool settles says so as \`unconfirmed ${esc(UNCONFIRMED)}\`, its fallback named\\. One that leaves the fallback out, or that tells the reader to test something in game .* is a finding for its writer, \`hinge: yes\``));
+  });
+
+  it(`both templates carry the "${SCALING_H2}" H2 after Endgame: non-budget, kept only on scaling: true`, () => {
+    expect(TEMPLATES.map((t) => {
+      const h2 = headings(t.text).filter((h) => h.level === 2).map((h) => h.title);
+      return h2[h2.indexOf('Endgame: non-budget') + 1] === SCALING_H2 && t.text.includes('[only when the design gate\'s accept answered late endgame scaling yes, scaling: true in run-log.json (D-486)');
+    })).toEqual([true, true]);
+  });
+
+  // The agent definitions
+
+  it("the coordinator's definition names R1b's skeleton call, F1's links call, D1-finish's scopes, D1-tree's no-trade rule and link_only during a stop", () => {
+    const def = agent('build-guide-coordinator');
+    expect({
+      skeleton: def.includes("R1b's last act on a damage pass writes the card's skeleton file the same way (D-479), `{plan_path: \"<runFolderRel>/concepts/<id>/plan.json\", draft_name: \"<card name> skeleton\"}`"),
+      links: def.includes(`F1's second call, \`${LINKS_CALL}\` after its final write (D-488)`),
+      scopes: def.includes('with `scope: "swap"`, a one-item swap (D-481), and with `scope: "scaling"`, the late endgame scaling pass (D-486)'),
+      noTrade: def.includes('**D1-tree makes no trade call** (D-490), stop or no stop'),
+      linkOnly: def.includes('`mcp__pob2__find_upgrades {slot, link_only: true}` alone stays allowed, since it sends no request'),
+    }).toEqual({ skeleton: true, links: true, scopes: true, noTrade: true, linkOnly: true });
+  });
+
+  it("the writer's definition names the notes scope", () => {
+    expect(agent('build-guide-writer')).toMatch(/or, with the header's `scope: "notes"` \(D-487\), `<buildFolder>\/notes\.txt` alone: a file-only build's PoB notes/);
+  });
+
+  it("the verifier's definition names the fallback check", () => {
+    expect(agent('build-guide-verifier')).toMatch(new RegExp(`\\*\\*The fallback check\\*\\* \\(D-489\\): in a build held to amendment 14, an unconfirmed hinge claim, or a guide sentence, says what to do if it fails, \`unconfirmed ${esc(UNCONFIRMED)}\``));
   });
 });

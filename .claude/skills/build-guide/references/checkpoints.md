@@ -162,7 +162,7 @@ departs from it.
 
   ```
   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
-  {"checkpoint": "ask", "kind": "departs", "build": "r1-s-2", "visit": 1, "answer": "keep the crit suffix after all", "answeredBy": "user"}
+  {"checkpoint": "ask", "kind": "departs", "build": "r1-a-2", "visit": 1, "answer": "keep the crit suffix after all", "answeredBy": "user"}
 JSON
   ```
 - **An open finding after the one re-check** (a guide build's fix round, or a file-only build's claims pass) that needs
@@ -381,10 +381,11 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   and the travel skill or `no travel skill`), then **Gear** by slot (uniques by name; rares by base and key affixes,
   never a generated name, D-489; a boots exception with its movement figure), **Skills** (each group's skill and
   supports) and **Over budget** (at most 3 lines a rung, each find over the budget measured first by its gain: `<from>
-  was swapped for <to>; adding it back: +<a>% damage, −<b>% EHP, about <price> more.`, `(estimate)` on one not
-  measured; then the rung's defence, avoidance, damage and boss trades, one line each); **The catch**, with any
-  unconfirmed point and its fallback; the invitation; and **Options** last, under which you give D1-tree's `not made:`
-  and `jewel:` lines and D1-build's `stronger structure:` lines, one each. The measurement lines of the older form
+  was swapped for <to>; adding it back: +<a>% damage, −<b>% EHP, about <price> more.`, its price `price not
+  known` when unpriced, `(estimate)` on one not measured; then the rung's defence, avoidance, damage and boss
+  trades, one line each); **The catch**, with any unconfirmed point and its fallback; the invitation; and **Options**
+  last, under which you give D1-tree's `not made:` and `jewel:` lines and D1-build's `stronger structure:` lines, one
+  each. The measurement lines of the older form
   (boss entries, Life, the swap cap, the rebuild, the removed nodes, skill levels, estimates, the verdict's parts)
   leave it: `display design --build <id> --detail` prints that form, the one below, when the user asks for a figure; a
   build designed before amendment 14 keeps it. **Movement is PoB's regular figure** (D-491): your answers state it as
@@ -515,7 +516,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
 
     ```
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
-    {"checkpoint": "design", "concept": "r1-a-2", "visit": 2, "answer": "accept", "answeredBy": "user", "questions": 0, "scaling": true}
+    {"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "accept", "answeredBy": "user", "questions": 0, "scaling": true}
 JSON
     ```
   - **file only** (`accept:file`, D-411): F1, its PoB file and no guide. In a build held to amendment 13 by its last
@@ -536,7 +537,7 @@ JSON
 
     ```
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> answer-change - <<'JSON'
-    {"checkpoint": "design", "visit": 2, "from": "accept", "to": "accept:file", "note": "Wait, I didn't say I wanted a guide"}
+    {"checkpoint": "design", "visit": 1, "from": "accept", "to": "accept:file", "note": "Wait, I didn't say I wanted a guide"}
 JSON
     node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
     {"stage": "W1", "concept": "r1-a-2", "attempt": 1, "outcome": "cancelled"}

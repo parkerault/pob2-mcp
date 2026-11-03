@@ -182,11 +182,16 @@ engineDescribe('WU-66: V1 tree-shape on run A\'s trees (D-360, AC-P65)', () => {
       expect(found[0].message).toContain(`stage 2: the Ranger start (${RANGER_START}) holds 2 trees`);
       for (const n of stage.tree.nodes) expect(found[0].message).toMatch(new RegExp(`\\b${n}\\b`));
       // Run A's stage 2 passed V1 otherwise; the shape fails it now, and the text prints the finding. WU-137 (amendment 14
-      // §11, §25: an old plan may get findings it didn't): its bow's "Adds 2 to 22 Lightning Damage" is over what a Recurve
-      // Bow rolls at Candlemass's area level 15 ("Adds 1 to (13-19)", Data/ModItem.lua's LocalLightningDamage for bows),
-      // V1's affix-cap.
-      expect(record!.stages['2'].v1!.findings.map((x) => x.code)).toEqual(['tree-shape', 'affix-cap']);
-      expect(record!.stages['2'].v1!.findings[1].data).toMatchObject({ slot: 'Weapon 1', line: 'Adds 2 to 22 Lightning Damage', cap: [1, 19], itemLevel: 15 });
+      // §11, §25: an old plan may get findings it didn't): three of its rares' lines are over what their bases roll at
+      // Candlemass's area level 15 (Data/ModItem.lua), V1's affix-cap: the bow's "Adds 2 to 22 Lightning Damage" (bows'
+      // LocalLightningDamage "Adds 1 to (13-19)"), and the helmet's and body's maximum Life (IncreasedLife's 29; the life
+      // hybrids also write a % defence line these items lack).
+      expect(record!.stages['2'].v1!.findings.map((x) => x.code)).toEqual(['tree-shape', 'affix-cap', 'affix-cap', 'affix-cap']);
+      expect(record!.stages['2'].v1!.findings.slice(1).map((x) => [x.data!.slot, x.data!.line, x.data!.cap, x.data!.itemLevel])).toEqual([
+        ['Weapon 1', 'Adds 2 to 22 Lightning Damage', [1, 19], 15],
+        ['Helmet', '+30 to maximum Life', [29], 15],
+        ['Body Armour', '+34 to maximum Life', [29], 15],
+      ]);
       expect(record!.stages['2'].v1!.pass).toBe(false);
       expect(text).toContain(`  - tree-shape: ${found[0].message}`);
     },

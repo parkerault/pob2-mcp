@@ -683,16 +683,20 @@ clear measure's chains and projectiles hold on any schema.
   - `affix-cap`: each explicit line of a rare (not rune, enchant or implicit lines) against the best its base can roll at
     the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level; a card skeleton's rares are
     counted, not capped), summed over the mod groups that write that line (the base's affix table, the tagged
-    desecrated mods and an essence's mods, as the lookup counts them), one mod a group, within 3 prefixes and 3
-    suffixes (2 and 2 on a rare jewel) and leaving room for the item's other lines. The finding names the cap: an
-    intelligence body armour with Spirit, maximum Life and "+100 to maximum Energy Shield" reads `the best is "+96 to
-    maximum Energy Shield"` at item level 82 (with a prefix free, a hybrid adds 30). A rare whose lines need more affixes
+    desecrated mods and an essence's mods, as the lookup counts them), one mod a group, a group counted only when every
+    line it writes is on the item, within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel) and leaving room for the
+    item's other lines. The finding names the cap: an intelligence body armour with Spirit and "+100 to maximum Energy
+    Shield" reads `the best is "+96 to maximum Energy Shield"` at item level 82. The hybrid prefix that also writes flat
+    Energy Shield (LocalIncreasedEnergyShieldAndBase, +26 to 30) always writes "(39-42)% increased Energy Shield" too, so
+    it adds its 30 only on a body that has that line: with "40% increased Energy Shield" on it, the cap is 126. A line
+    that only such a hybrid writes, its other line missing, is a finding too. A rare whose lines need more affixes
     than its limit is a finding naming the count; a unique's line outside its data's range is one; a line no mod (or no
     line of the unique's data) matches is a note, never a finding.
   - `sockets`: more rune sockets than the item can have (a unique's own count, its "Has n Augment Sockets" line or its
     data's `Sockets:` line, else its base's count from `data/items/sockets.json`: body armours and two-handers 2, other
     armour, shields, foci and one-handers 1, Corona Amulet, Grasping Ring and Stalking Belt 1, other jewellery, belts and
-    quivers 0; +1 when `Corrupted`; the Exceptional +1 never counted on a designed item), a `Rune:` line beyond the
+    quivers 0; +1 on a `Corrupted` unique, never on a rare, which is never corrupted; the Exceptional +1 never counted on a
+    designed item), a `Rune:` line beyond the
     sockets, or a rune on an item with no `Sockets:` line (which the compile drops). A socket claim cites the table:
     `data:items/sockets.json#sockets.body-armour`.
   - `ascendancy-jewel`: a jewel other than a non-unique Ruby, Emerald or Sapphire in a socket whose node takes only a

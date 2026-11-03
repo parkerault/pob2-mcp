@@ -9,9 +9,10 @@
  * are the live test's four (an intelligence body armour's flat Energy Shield 96, a helmet's 73, gloves' 60, a belt's maximum
  * Mana 124).
  *
- * - AC-P92 (b, item level 82): an intelligence body armour with Spirit, a third prefix (maximum Life) and "+100 to maximum
- *   Energy Shield" is a finding naming 96; at +96 none. With the third prefix taken, only one group writes the flat Energy
- *   Shield; the unit shows the hybrid adding its 30 when a prefix is free. A helmet's +90 names 73; gloves' +70 names 60; a
+ * - AC-P92 (b, item level 82): an intelligence body armour with Spirit and "+100 to maximum Energy Shield" is a finding
+ *   naming 96; at +96 none. The hybrid prefix that also writes flat Energy Shield (LocalIncreasedEnergyShieldAndBase,
+ *   Data/ModItem.lua:402-407) always writes "(39-42)% increased Energy Shield" too, so it counts only on a body that has
+ *   that line: with "40% increased Energy Shield" on it, +126 (96 + 30) is no finding. A helmet's +90 names 73; gloves' +70 names 60; a
  *   belt's "+150 to maximum Mana" names 124; a rare with 4 prefixes, and a rare jewel with 3, are findings; a line no mod
  *   matches is a note and no finding; a unique line over its data's range is a finding. On `m` the body's finding names
  *   the cap at item level 69, and a campaign stage's gloves the cap at its C1 area level, each read from the data.
@@ -89,8 +90,8 @@ function stageOf(id: string, kind: 'budget' | 'entering-maps' | 'campaign', slot
 }
 
 const INT_BODY = baseTags('body', 'Vile Robe');
-/** The body with Spirit and a third prefix (maximum Life), so one group writes its flat Energy Shield. */
-const BODY = (es: number) => ({ slot: 'Body Armour', text: rare('Doom Shell', 'Vile Robe', `+${es} to maximum Energy Shield`, '+55 to Spirit', '+100 to maximum Life') });
+/** AC-P92's body: an intelligence body armour with Spirit and the flat Energy Shield line, and `more` lines. */
+const BODY = (es: number, ...more: string[]) => ({ slot: 'Body Armour', text: rare('Doom Shell', 'Vile Robe', `+${es} to maximum Energy Shield`, '+55 to Spirit', ...more) });
 
 engineDescribe('WU-137: V1 affix-cap and sockets through compile_plan (amendment 14 §11, AC-P92, AC-P93)', () => {
   let f: SessionFixture;
@@ -132,6 +133,8 @@ engineDescribe('WU-137: V1 affix-cap and sockets through compile_plan (amendment
       stageOf('sock6', 'budget', [
         { slot: 'Body Armour', text: rare('Doom Shell', 'Vile Robe', 'Sockets: S S', 'Rune: Iron Rune', 'Rune: Iron Rune', 'Rune: Iron Rune', '+60 to maximum Energy Shield') },
       ]),
+      stageOf('hybrid', 'budget', [BODY(126, '40% increased Energy Shield')]),
+      stageOf('hybrid2', 'budget', [BODY(127, '40% increased Energy Shield')]),
     ];
     // AC-P93: a claim citing the socket table compiles.
     plan.stages[4].claims = [{ id: 'body-sockets', text: 'A body armour has two rune sockets.', kind: 'hinge', source: 'data:items/sockets.json#sockets.body-armour' }];
@@ -172,6 +175,12 @@ engineDescribe('WU-137: V1 affix-cap and sockets through compile_plan (amendment
 
     it('the same body at +96 is no finding', () => {
       expect(findingsOf('fits', 'affix-cap')).toEqual([]);
+    });
+
+    it("with the hybrid's % line on the body, the hybrid adds its flat 30: +126 is no finding, +127 names 126", () => {
+      expect(bestRoll('LocalIncreasedEnergyShieldAndBase', INT_BODY, 82)).toBe(30);
+      expect(findingsOf('hybrid', 'affix-cap')).toEqual([]);
+      expect(findingsOf('hybrid2', 'affix-cap').map((x) => [x.data!.line, x.data!.cap])).toEqual([['+127 to maximum Energy Shield', [126]]]);
     });
 
     it('a rare with 4 prefixes and a rare jewel with 3 are findings naming the count; a line no mod matches is a note and no finding', () => {

@@ -2308,15 +2308,20 @@ local function line_values(nums)
   return values, lows
 end
 
--- D-485: a rare's explicit lines (not rune, enchant or implicit lines), each with the mod groups its base can roll that
--- write it: per group its affix type and tiers, each tier's item level and top roll at each "#". A line no mod writes
--- has no groups. With the rare's affix limit: 3 prefixes and 3 suffixes, 2 and 2 on a jewel (Classes/Item.lua:1302).
+-- D-485: a rare's explicit lines (not rune, enchant or implicit lines), each with its template and the mod groups its
+-- base can roll that write it: per group its affix type, every line template the group's mods write (a hybrid writes two:
+-- LocalIncreasedEnergyShieldAndBase's flat and % Energy Shield, Data/ModItem.lua:402-407, so it sits on an item only with
+-- both lines), and its tiers, each tier's item level and top roll at each "#". A line no mod writes has no groups. With
+-- the rare's affix limit: 3 prefixes and 3 suffixes, 2 and 2 on a jewel (Classes/Item.lua:1302).
 local function rare_affixes(item)
-  local byTemplate = {}
+  local byTemplate, writes = {}, {}
   for _, mod in ipairs(rollable_mods(item)) do
+    local key = mod.type .. ':' .. tostring(mod.group or '')
+    writes[key] = writes[key] or {}
     for j = 1, #mod do
       if type(mod[j]) == 'string' then
         local template, nums = line_numbers(mod[j])
+        writes[key][template] = true
         local hits = byTemplate[template]
         if not hits then
           hits = {}
@@ -2349,9 +2354,13 @@ local function rare_affixes(item)
       local out = {}
       for _, key in ipairs(order) do
         table.sort(groups[key].tiers, function(a, b) return a.level < b.level end)
+        local written = {}
+        for t in pairs(writes[key] or {}) do written[#written + 1] = t end
+        table.sort(written)
+        groups[key].writes = written
         out[#out + 1] = groups[key]
       end
-      lines[#lines + 1] = { text = modLine.line, values = values, lows = lows, groups = out }
+      lines[#lines + 1] = { text = modLine.line, template = template, values = values, lows = lows, groups = out }
     end
   end
   local limit = (item.type == 'Jewel' and not (item.base.subType == 'Abyss' and item.corrupted)) and 2 or 3

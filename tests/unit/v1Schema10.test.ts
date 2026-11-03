@@ -26,16 +26,26 @@ const ref = loadReferenceData(path.join(REPO, 'data'));
 type Item = StageChecks['items'][number];
 type Line = NonNullable<Item['affixes']>['lines'][number];
 
+const FLAT_ES = '+# to maximum Energy Shield';
+const PCT_ES = '#% increased Energy Shield';
+const tiers = (rows: number[][]) => rows.map(([level, max]) => ({ level, max: [max] }));
 /** LocalEnergyShield's tiers on an intelligence body armour (Data/ModItem.lua:199-209): item level and top roll. */
-const BODY_ES = { key: 'Prefix:LocalEnergyShield', type: 'Prefix' as const, group: 'LocalEnergyShield', tiers: [[1, 17], [8, 24], [16, 30], [25, 35], [33, 41], [46, 47], [54, 60], [60, 73], [65, 80], [70, 90], [79, 96]].map(([level, max]) => ({ level, max: [max] })) };
-/** LocalIncreasedEnergyShieldAndBase's flat part (Data/ModItem.lua:402-407), a hybrid prefix. */
-const HYBRID_ES = { key: 'Prefix:LocalIncreasedEnergyShieldAndBase', type: 'Prefix' as const, group: 'LocalIncreasedEnergyShieldAndBase', tiers: [[8, 7], [16, 13], [33, 16], [46, 20], [60, 25], [78, 30]].map(([level, max]) => ({ level, max: [max] })) };
+const BODY_ES = { key: 'Prefix:LocalEnergyShield', type: 'Prefix' as const, group: 'LocalEnergyShield', writes: [FLAT_ES], tiers: tiers([[1, 17], [8, 24], [16, 30], [25, 35], [33, 41], [46, 47], [54, 60], [60, 73], [65, 80], [70, 90], [79, 96]]) };
+/**
+ * LocalIncreasedEnergyShieldAndBase (Data/ModItem.lua:402-407), a hybrid prefix that writes both lines: its flat part under
+ * the flat line, its % part under the % line (the group's tiers as compile_stage gives them for each line).
+ */
+const HYBRID_FLAT = { key: 'Prefix:LocalIncreasedEnergyShieldAndBase', type: 'Prefix' as const, group: 'LocalIncreasedEnergyShieldAndBase', writes: [FLAT_ES, PCT_ES], tiers: tiers([[8, 7], [16, 13], [33, 16], [46, 20], [60, 25], [78, 30]]) };
+const HYBRID_PCT = { ...HYBRID_FLAT, tiers: tiers([[8, 13], [16, 20], [33, 26], [46, 32], [60, 38], [78, 42]]) };
+/** LocalEnergyShieldPercent on the body (Data/ModItem.lua), the plain % prefix. */
+const BODY_PCT = { key: 'Prefix:LocalEnergyShieldPercent', type: 'Prefix' as const, group: 'LocalEnergyShieldPercent', writes: [PCT_ES], tiers: tiers([[2, 26], [16, 42], [33, 55], [46, 67], [54, 79], [60, 91], [65, 100], [75, 110]]) };
 /** BaseSpirit's tiers on a body armour and IncreasedLife's (Data/ModItem.lua), as the probe of compile_stage read them. */
-const SPIRIT = { key: 'Prefix:BaseSpirit', type: 'Prefix' as const, group: 'BaseSpirit', tiers: [[16, 33], [25, 37], [33, 42], [46, 46], [54, 50], [60, 53], [65, 56], [78, 61]].map(([level, max]) => ({ level, max: [max] })) };
-const LIFE = { key: 'Prefix:IncreasedLife', type: 'Prefix' as const, group: 'IncreasedLife', tiers: [[1, 19], [6, 29], [16, 39], [24, 59], [33, 69], [38, 84], [46, 99], [54, 119], [60, 149], [65, 174], [70, 189], [75, 199], [80, 214]].map(([level, max]) => ({ level, max: [max] })) };
+const SPIRIT = { key: 'Prefix:BaseSpirit', type: 'Prefix' as const, group: 'BaseSpirit', writes: ['+# to Spirit'], tiers: tiers([[16, 33], [25, 37], [33, 42], [46, 46], [54, 50], [60, 53], [65, 56], [78, 61]]) };
+const LIFE = { key: 'Prefix:IncreasedLife', type: 'Prefix' as const, group: 'IncreasedLife', writes: ['+# to maximum Life'], tiers: tiers([[1, 19], [6, 29], [16, 39], [24, 59], [33, 69], [38, 84], [46, 99], [54, 119], [60, 149], [65, 174], [70, 189], [75, 199], [80, 214]]) };
 const SUFFIX = (group: string) => ({ key: `Suffix:${group}`, type: 'Suffix' as const, group, tiers: [{ level: 1, max: [40] }] });
 
-const line = (text: string, value: number, groups: Line['groups']): Line => ({ text, values: [value], lows: [value], groups });
+/** A line as compile_stage gives it: its text, its template (each number "#"), its number and its groups. */
+const line = (text: string, value: number, groups: Line['groups']): Line => ({ text, template: text.replace(/\d+(?:\.\d+)?/g, '#'), values: [value], lows: [value], groups });
 
 function rare(slot: string, baseName: string, baseType: string, lines: Line[], extra: Partial<Item> = {}): Item {
   return {
@@ -55,44 +65,51 @@ function affixFindings(s: Stage, items: Item[]): { findings: Finding[]; notes: F
 }
 
 describe('WU-137: V1 affix-cap (D-485)', () => {
-  const body = (es: number, third: Line | null) =>
-    rare('Body Armour', 'Vile Robe', 'Body Armour', [
-      line(`+${es} to maximum Energy Shield`, es, [BODY_ES, HYBRID_ES]),
-      line('+55 to Spirit', 55, [SPIRIT]),
-      ...(third ? [third] : []),
-    ]);
+  /** AC-P92's body: Spirit and the flat Energy Shield line, and `more` lines. */
+  const body = (es: number, ...more: Line[]) =>
+    rare('Body Armour', 'Vile Robe', 'Body Armour', [line(`+${es} to maximum Energy Shield`, es, [BODY_ES, HYBRID_FLAT]), line('+55 to Spirit', 55, [SPIRIT]), ...more]);
 
   it('the rung item levels are this amendment\'s: 69 on m, 82 on b and n; a card skeleton has none', () => {
     expect(RUNG_ITEM_LEVEL).toEqual({ 'entering-maps': 69, budget: 82, 'non-budget': 82 });
     expect(stageItemLevel(stage(undefined, 'endgame'), new FactReader(ref))).toBeNull();
   });
 
-  it('with Spirit and a third prefix taking the slot, "+100 to maximum Energy Shield" is over the 96 of one group at item level 82; +96 passes', () => {
-    const { findings } = affixFindings(stage('budget'), [body(100, line('+100 to maximum Life', 100, [LIFE]))]);
+  it('AC-P92: with Spirit, "+100 to maximum Energy Shield" is over the 96 one group gives at item level 82, the hybrid left out (its % line isn\'t on the item); +96 passes', () => {
+    const { findings } = affixFindings(stage('budget'), [body(100)]);
     expect(findings.map((f) => f.data!.cap)).toEqual([[96]]);
     expect(findings[0].message).toContain('the best is "+96 to maximum Energy Shield"');
     expect(findings[0].data).toMatchObject({ slot: 'Body Armour', path: 'items.slots[0].text', itemLevel: 82, values: [100] });
-    expect(affixFindings(stage('budget'), [body(96, line('+100 to maximum Life', 100, [LIFE]))]).findings).toEqual([]);
+    expect(affixFindings(stage('budget'), [body(96)]).findings).toEqual([]);
+    // A free prefix doesn't bring the hybrid in: 127 is still over 96.
+    expect(affixFindings(stage('budget'), [body(127)]).findings.map((f) => f.data!.cap)).toEqual([[96]]);
   });
 
-  it('with a free prefix the hybrid group adds its flat part: the cap is 96 + 30 = 126', () => {
-    expect(affixFindings(stage('budget'), [body(126, null)]).findings).toEqual([]);
-    expect(affixFindings(stage('budget'), [body(127, null)]).findings.map((f) => f.data!.cap)).toEqual([[126]]);
+  it('with the hybrid\'s % line on the item, the hybrid adds its flat part: the cap is 96 + 30 = 126, the % line covered by the hybrid', () => {
+    const pct = line('40% increased Energy Shield', 40, [BODY_PCT, HYBRID_PCT]);
+    expect(affixFindings(stage('budget'), [body(126, pct)]).findings).toEqual([]);
+    expect(affixFindings(stage('budget'), [body(127, pct)]).findings.map((f) => f.data!.cap)).toEqual([[126]]);
+  });
+
+  it('a line only a hybrid writes, its other line missing, is a finding saying no mod that writes it sits on the item', () => {
+    const only = rare('Body Armour', 'Vile Robe', 'Body Armour', [line('+20 to maximum Energy Shield', 20, [HYBRID_FLAT])]);
+    const found = affixFindings(stage('budget'), [only]).findings;
+    expect(found.map((f) => f.data!.cap)).toEqual([null]);
+    expect(found[0].message).toContain('each writing a line the item lacks');
   });
 
   it('on m the cap is the tier at item level 69 (80, LocalEnergyShield9 at level 65); a campaign stage uses its C1 area level', () => {
-    expect(affixFindings(stage('entering-maps'), [body(90, line('+100 to maximum Life', 100, [LIFE]))]).findings.map((f) => f.data!.cap)).toEqual([[80]]);
+    expect(affixFindings(stage('entering-maps'), [body(90)]).findings.map((f) => f.data!.cap)).toEqual([[80]]);
     const area = ref.resolveFact('campaign/progress.json', 'q.act-1-ogham-manor-candlemass.area-level');
     expect(area.ok).toBe(true);
     const level = (area as { ok: true; fact: { value: number } }).fact.value;
     const best = Math.max(...BODY_ES.tiers.filter((t) => t.level <= level).map((t) => t.max[0]));
-    // The campaign body carries no Spirit line a low area level can't roll: its ES line alone, beside two life prefixes' worth.
+    // The campaign body carries no Spirit line a low area level can't roll: its ES line alone, beside a life prefix.
     const camp = affixFindings(stage(undefined, 'q.act-1-ogham-manor-candlemass'), [
-      rare('Body Armour', 'Vile Robe', 'Body Armour', [line(`+${best + 1} to maximum Energy Shield`, best + 1, [BODY_ES]), line('+10 to maximum Life', 10, [LIFE])]),
+      rare('Body Armour', 'Vile Robe', 'Body Armour', [line(`+${best + 1} to maximum Energy Shield`, best + 1, [BODY_ES, HYBRID_FLAT]), line('+10 to maximum Life', 10, [LIFE])]),
     ]);
     expect(camp.findings.map((f) => [f.data!.cap, f.data!.itemLevel])).toEqual([[[best], level]]);
-    // A line with no tier at the item level still takes its affix: the Spirit line on a level-1 campaign body is a finding
-    // of its own ("none of its tiers rolls"), and the ES line's room is still two prefixes.
+    // A line with no tier at the item level still takes its affix: the Spirit line on a level-2 campaign body is a finding
+    // of its own ("none of its tiers rolls").
     const low = affixFindings(stage(undefined, 'q.act-1-clearfell-beira'), [body(17, line('+10 to maximum Life', 10, [LIFE]))]);
     expect(low.findings.map((f) => [f.data!.line, f.data!.cap])).toEqual([['+55 to Spirit', null]]);
   });
@@ -140,6 +157,12 @@ describe('WU-137: V1 sockets (D-485)', () => {
     expect(socketFactOf({ baseName: 'Stalking Belt', baseType: 'Belt' })).toBe('sockets.stalking-belt');
     expect(socketFactOf({ baseName: 'Gothic Quarterstaff', baseType: 'Staff', hands: 2 })).toBe('sockets.two-hand-weapon');
     expect(socketFactOf({ baseName: 'Ruby', baseType: 'Jewel' })).toBeNull();
+  });
+
+  it('§11: a corrupted rare gets no corruption socket (a rare is never corrupted): a corrupted rare body with three is a finding', () => {
+    const found = run([item('Body Armour', 'Vile Robe', 'Body Armour', { sockets: 3, corrupted: true })]);
+    expect(found.map((f) => [f.data!.slot, f.data!.sockets, f.data!.allowed, f.data!.corrupted])).toEqual([['Body Armour', 3, 2, true]]);
+    expect(found[0].message).not.toContain('more corrupted');
   });
 
   it('a rare helmet with two sockets and a rare body with three are findings; a body with two isn\'t', () => {

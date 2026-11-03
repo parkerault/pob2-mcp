@@ -1395,10 +1395,11 @@ export const stageSkillOutputSchema = z
 /**
  * WU-137 (amendment 14 §11, D-485): an equipped rare's or unique's explicit lines (not rune, enchant or implicit lines), as
  * `compile_stage`'s checks read them. Each line's numbers in order, `values` the highest (a range's top) and `lows` the
- * lowest; on a rare, `groups`: the mod groups its base can roll that write the line (the item's affix table with a spawn
- * weight on the base, the tagged desecrated mods, an essence's mods for the item type, as the lookup counts them), each
- * with its affix type and tiers (the item level a tier needs and its top roll at each number), none when no mod writes
- * it; on a unique, `range`: the lowest and highest its data gives each number (absent when no line of the data matches).
+ * lowest; on a rare, its `template` (each number "#") and `groups`: the mod groups its base can roll that write the line
+ * (the item's affix table with a spawn weight on the base, the tagged desecrated mods, an essence's mods for the item
+ * type, as the lookup counts them), each with its affix type, `writes` (every line template the group's mods write: a
+ * hybrid's two) and tiers (the item level a tier needs and its top roll at each number), none when no mod writes it; on a
+ * unique, `range`: the lowest and highest its data gives each number (absent when no line of the data matches).
  * A rare carries its affix limit, 3 prefixes and 3 suffixes (2 and 2 on a jewel). For V1's `affix-cap`.
  */
 export const itemAffixesSchema = z
@@ -1411,6 +1412,7 @@ export const itemAffixesSchema = z
       z
         .object({
           text: z.string(),
+          template: z.string().optional(),
           values: luaArray(z.number()),
           lows: luaArray(z.number()),
           groups: luaArray(
@@ -1419,6 +1421,7 @@ export const itemAffixesSchema = z
                 key: z.string(),
                 type: z.enum(['Prefix', 'Suffix']),
                 group: z.string(),
+                writes: luaArray(z.string()).optional(),
                 tiers: luaArray(z.object({ level: z.number(), max: luaArray(z.number()) }).passthrough()),
               })
               .passthrough(),

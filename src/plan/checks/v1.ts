@@ -30,8 +30,8 @@
  * | `movement-tier` | (WU-111, D-440; schema 7 and later) the stage's boots carry less movement speed than its tier: 30% on `entering-maps`, 35% on `budget` and `non-budget`, on a campaign stage the highest tier its area level allows; unless `items.bootsException` holds (`travel` with a travel skill in the stage, `unique` with unique boots), which makes it a `boots-exception` note, information only (`checkMovementTier`) |
  * | `curse-level-cap` | (WU-119, D-455; schema 8 and later) an enabled gem whose curse, Frost Bomb's exposure or Thunderstorm's Wet stops at a monster level above 0 and below the stage's area level: the rung's (`rungAreaLevel`: 69, 79, 82), a campaign stage's C1 `<progress>.area-level`; a card skeleton is skipped. The cap is PoB's stat at the level PoB calculates the gem at, gear's +levels included (`checks.gems[].curseCap`); PoB never reads it (PG-86) (`checkCurseLevelCap`) |
  * | `corruption` | (WU-128, D-471) a gem written with `corrupt` (schema 9) that is a support gem (PoB's kind, `checks.gems`), or on a stage other than `b` and `n`: the entering-maps rung `m`, a campaign stage or a card skeleton. Corruption is for the finishing-touch rungs, on skill gems only (`checkCorruption`) |
- * | `affix-cap` | (WU-137, D-485) a rare's explicit line over the best its base can roll at the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level), summed over the mod groups that write it within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel); a rare whose lines need more affixes than that; a unique's line outside its data's range. A line no mod matches is a note (`checkAffixCap`) |
- * | `sockets` | (WU-137, D-485) more rune sockets than the item can have (a unique's own count, else its base's from `data/items/sockets.json`, +1 corrupted; the Exceptional +1 never counted), a `Rune:` line beyond the sockets, or a rune on an item with no `Sockets:` line (`checkSockets`) |
+ * | `affix-cap` | (WU-137, D-485) a rare's explicit line over the best its base can roll at the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level), summed over the mod groups that write it (a group counted only when every line it writes is on the item) within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel); a rare whose lines need more affixes than that; a unique's line outside its data's range. A line no mod matches is a note (`checkAffixCap`) |
+ * | `sockets` | (WU-137, D-485) more rune sockets than the item can have (a unique's own count, else its base's from `data/items/sockets.json`, +1 on a corrupted unique only; the Exceptional +1 never counted), a `Rune:` line beyond the sockets, or a rune on an item with no `Sockets:` line (`checkSockets`) |
  * | `ascendancy-jewel` | (WU-137, D-492) a unique, or a base other than a basic jewel (Ruby, Emerald, Sapphire), in a socket whose node takes only a "non-Unique Basic Jewel" (Crystalline Phylactery, 17788) (`checkAscendancyJewel`) |
  * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken: PoB's names in `DEFENCE_MODS`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
  *
@@ -1301,10 +1301,16 @@ interface GroupAt {
   max: number[];
 }
 
-/** A line's groups with a tier at `level` or below (every tier when `level` is null), each at its best roll there. */
-function groupsAt(line: AffixLine, level: number | null): GroupAt[] {
+/**
+ * A line's groups with a tier at `level` or below (every tier when `level` is null), each at its best roll there. With
+ * `present`, the item's line templates, only the groups whose every line is on the item: a hybrid mod writes all its lines
+ * (LocalIncreasedEnergyShieldAndBase's "+# to maximum Energy Shield" with "#% increased Energy Shield"), so an item
+ * without one of them can't hold it. A group whose lines the checks don't give (`writes`) counts as writing its line only.
+ */
+function groupsAt(line: AffixLine, level: number | null, present: ReadonlySet<string> | null): GroupAt[] {
   const out: GroupAt[] = [];
   for (const g of line.groups ?? []) {
+    if (present !== null && (g.writes ?? []).some((t) => !present.has(t))) continue;
     const tiers = g.tiers.filter((t) => level === null || t.level <= level);
     if (tiers.length === 0) continue;
     const max = line.values.map((_, k) => Math.max(...tiers.map((t) => t.max[k] ?? 0)));
@@ -1383,8 +1389,9 @@ export const AFFIX_CAP = 'affix-cap';
  * `affix-cap` (WU-137; amendment 14 §11, D-485). Each explicit line of a rare (not rune, enchant or implicit lines) against
  * the best its base can roll at the stage's item level (`stageItemLevel`: 69 on `m`, 82 on `b` and `n`, a campaign stage's
  * C1 area level): per number, the sum over the mod groups that write that line (`checks.items[].affixes`, as the lookup
- * counts them: the base's affix table, the tagged desecrated mods, an essence's mods), one mod a group, within 3 prefixes
- * and 3 suffixes (2 and 2 on a rare jewel) and leaving room for the item's other lines. A line over it is a finding naming
+ * counts them: the base's affix table, the tagged desecrated mods, an essence's mods), one mod a group, a group counted only
+ * when every line it writes is on the item (a hybrid needs its other line), within 3 prefixes and 3 suffixes (2 and 2 on
+ * a rare jewel) and leaving room for the item's other lines. A line over it is a finding naming
  * the cap; a rare whose lines need more affixes than its limit is a finding naming the count. A unique's line outside the
  * range its data gives it is a finding too. A line no mod (or no line of the unique's data) matches is a note, never a
  * finding. A card skeleton's rares are counted, not capped (no rung, so no item level). `data.path` is the item's text.
@@ -1429,8 +1436,15 @@ export function checkAffixCap(
       if ((line.groups ?? []).length > 0) continue;
       notes.push({ code: AFFIX_CAP, message: `${item.slot} (${name}): no mod a ${item.baseName} can roll writes "${line.text}" (a note, D-485)`, data: { ...at, line: line.text } });
     }
-    // The count: each line covered by a group its base can roll at any item level, within the limit.
-    const anyLevel = affixes.lines.map((l) => groupsAt(l, null));
+    // The item's line templates: a group sits on it only when each line it writes is there (a hybrid's two).
+    const templates = affixes.lines.flatMap((l) => (l.template !== undefined ? [l.template] : []));
+    const present = templates.length === affixes.lines.length ? new Set(templates) : null;
+    // The count: each line covered by a group its base can roll at any item level, within the limit (a line no group can
+    // sit on with the item's other lines still takes one of its own groups' affixes).
+    const anyLevel = affixes.lines.map((l) => {
+      const fitting = groupsAt(l, null, present);
+      return fitting.length > 0 ? fitting : groupsAt(l, null, null);
+    });
     const counted = covers(anyLevel, new Map());
     if (!counted.some((c) => fits(c, limit))) {
       const excess = (c: { p: number; s: number }) => Math.max(0, c.p - limit.p) + Math.max(0, c.s - limit.s);
@@ -1445,10 +1459,15 @@ export function checkAffixCap(
     if (level === null) continue;
     affixes.lines.forEach((line) => {
       if ((line.groups ?? []).length === 0 || line.values.length === 0) return;
-      const own = groupsAt(line, level.level);
+      const own = groupsAt(line, level.level, present);
       const cap = own.length > 0 ? lineCap(own, anyLevel, limit) : null;
       if (cap !== null && line.values.every((v, k) => v <= cap[k])) return;
-      const capText = cap === null ? `none of its tiers rolls at item level ${level.level}` : `the best is "${withValues(line.text, cap)}"`;
+      const capText =
+        cap !== null
+          ? `the best is "${withValues(line.text, cap)}"`
+          : groupsAt(line, level.level, null).length > 0
+            ? `no mod that writes it at item level ${level.level} sits on this item, each writing a line the item lacks`
+            : `none of its tiers rolls at item level ${level.level}`;
       findings.push({
         code: AFFIX_CAP,
         message:
@@ -1498,9 +1517,10 @@ export function socketFactOf(item: Pick<StageItem, 'baseName' | 'baseType' | 'ha
 /**
  * `sockets` (WU-137; amendment 14 §10, §11, D-485). An item's rune sockets (its `Sockets:` line, `checks.items[].sockets`)
  * against what it can have: a unique its own count (`uniqueSockets`: its "Has n Augment Sockets" line, else its data's
- * `Sockets:` line), else its base's count from the socket table (`data/items/sockets.json`, the user's ruling), and +1 when
- * it is corrupted (`sockets.corruption-extra`). The Exceptional +1 is never counted: a designed rare is written without it
- * on the standard rungs (the user's default). More sockets than that, a `Rune:` line beyond the sockets, or a rune on an
+ * `Sockets:` line), else its base's count from the socket table (`data/items/sockets.json`, the user's ruling), and +1 on a
+ * `Corrupted` unique (`sockets.corruption-extra`; §11 counts it for a unique only: a rare is never corrupted, the user's
+ * rule, so a corrupted rare's extra socket is a finding). The Exceptional +1 is never counted: a designed rare is written
+ * without it on the standard rungs (the user's default). More sockets than that, a `Rune:` line beyond the sockets, or a rune on an
  * item with no `Sockets:` line (which the compile drops, `Classes/Item.lua`:1642) is a finding naming the item, the count
  * and the limit. An item the table doesn't count (a jewel, flask or charm) is skipped. `data.path` is the item's text.
  */
@@ -1518,7 +1538,7 @@ export function checkSockets(stage: Pick<Stage, 'items'>, checks: Pick<StageChec
     if (fromTable !== null) facts.rely('sockets', fromTable.fact);
     const count = own ?? fromTable?.value;
     if (count !== undefined) {
-      const extra = item.corrupted === true ? facts.number(SOCKET_TABLE, 'sockets.corruption-extra') : null;
+      const extra = item.corrupted === true && item.rarity === 'UNIQUE' ? facts.number(SOCKET_TABLE, 'sockets.corruption-extra') : null;
       if (extra !== null) facts.rely('sockets', extra.fact);
       const allowed = count + (extra?.value ?? 0);
       if (sockets > allowed) {

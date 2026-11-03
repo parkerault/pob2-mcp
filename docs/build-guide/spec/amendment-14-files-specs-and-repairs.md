@@ -758,8 +758,10 @@ Amends D-407 (the no-area label), C-33, C-52, C-53, `record.ts`'s `clearSpeedOf`
 The user's note 11.
 - **Schema 10**: `stages[].items.treeJewels` may name a node in `tree.ascendancyNodes` whose node has
   `containJewelSocket` (`schema.ts`:575–578 is the only refusal today); any other ascendancy node errs at its path.
-- **V1 `ascendancy-jewel`**: a unique, or a base other than a basic jewel (Ruby, Emerald, Sapphire), in a socket
-  whose node allows only a "non-Unique Basic Jewel" (PoB parses that line to nothing [RP §2]).
+- **V1 `ascendancy-jewel`**: a base other than a basic jewel (Ruby, Emerald, Sapphire) in a socket whose node allows
+  only a "non-Unique Basic Jewel" (PoB parses that line to nothing [RP §2]). A unique, or a jewel with a subtype, never
+  reaches V1: PoB refuses it in that socket (`Classes/ItemsTab.lua`:2289–2294), so the compile's check reports it as a
+  defect naming D-492 and nothing compiles (folded at WU-137's merge).
 - **The bridge corrects PoB's reading of the current wording** (the user's default): PoB's tree at the pin says "100%
   increased Effect of bonuses gained from Socketed Jewel" (`TreeData/0_5/tree.lua`:52976), which PoB parses only partly
   (`Data/ModCache.lua`:1356; `Modules/ModParser.lua`:895–897 maps the older "Effect of the Socketed Jewel"), so the
@@ -944,7 +946,9 @@ user; the units that wait on it wait.
   findings; a rare body with two isn't; Morior Invictus with four isn't, with five and `Corrupted` isn't, with five and
   no `Corrupted` is; a unique with no `Sockets:` line in PoB's data (Alpha's Howl) with one socket isn't, with two is,
   with two and `Corrupted` isn't; a `Rune:` line on an item with no `Sockets:` line, and three rune lines on two
-  sockets, are findings. V1 `ascendancy-jewel`: a unique jewel in 17788 is a finding, a Ruby isn't.
+  sockets, are findings. V1 `ascendancy-jewel`: a rare Diamond in 17788 is a finding, a Ruby isn't; a unique jewel in
+  17788 is the compile check's defect naming D-492 and nothing compiles, since PoB refuses it there
+  (`Classes/ItemsTab.lua`:2289–2294; folded at WU-137's merge).
 - **AC-P94 (WU-137).** A fixture whose clear skill has no radius and chains (Arc) records `clearSpeed` with `noArea`,
   `chains` and `projectiles` equal to PoB's `ChainMax` and `ProjectileCount`; a skill with a radius has neither.
 - **AC-K83 (WU-138).** In-process MCP with a temp builds folder and a hand-written record and XML, the same server (and

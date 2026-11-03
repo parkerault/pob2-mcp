@@ -6265,3 +6265,36 @@ the `m17` engine at `b76967b`.
   - **Left:** AC-K81's "reply names the repair's steps" is shown on the core-needs rebuild, not D1-tree's call; the
     cut-node test exercised only the "or none" branch; the Titan Rake tests assert `ehp >= target` with no 0.5 slack;
     `compile_plan` leaves its build loaded, so a later node power call measures that tree (the tests compile again).
+- **WU-137 (plan schema 10, the compiler and V1) merged** at `a4b7b53` (fast-forward; rebased onto `386a3a5`). Plan
+  schema 10 (a price's `listing` and `spec`, outside `buildSha1`; `tree.exclude` with reasons; `tree.search.targets` and
+  `userMoves`; `rebuild: "none: <why>"`; `tree.end.endAfter: "swap"`; `itemSwaps`; an ascendancy socket in
+  `items.treeJewels`), `groupCount` on every counted group, V1's `affix-cap`, `sockets` and `ascendancy-jewel` with
+  `data/items/sockets.json` (a C-35 `judgment` fact file; the loader reads `data/items/`, optional), and the record's
+  `clearSpeed.chains` and `projectiles`. AC-P90 to AC-P94 in new `planSchema10.test.ts`, `v1Schema10.test.ts`,
+  `compileSchema10Jewel.test.ts`, `compileSchema10Checks.test.ts` and `socketTable.test.ts`, and in `compileCount.test.ts`
+  and the `pool_groups` block. Its verifier (fresh context) failed it twice and passed it the third time, re-running the
+  gate each time (last: 226 suites, 3,947 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0):
+  - **First fail:** AC-P92's body row didn't hold for the spec's item (Spirit and "+100 to maximum Energy Shield"
+    capped at 126: the flat tier's 96 plus the hybrid LocalIncreasedEnergyShieldAndBase's 30, `ModItem.lua`:407, which
+    always writes a % Energy Shield line too); the engine test had reached 96 only by adding a Life prefix the AC doesn't
+    name. Fixed: a mod counts toward a line's cap only when every line it writes is on the item; a line only a hybrid
+    writes, its other line missing, is a finding. The coordinator added §11's rule that corruption's +1 socket counts on
+    a `Corrupted` unique only (a rare is never corrupted).
+  - **Second fail:** the fix read a group's lines across its tiers, so a group that words one line two ways (crossbows'
+    "Loads an additional bolt" and "Loads 2 additional bolts", `ModItem.lua`:1242–1243; 9 such groups) read as a hybrid
+    missing its partner. Fixed per tier; rows for the bolt line and two grenade lines (the other six groups roll on no
+    base at the pin).
+  - **The spike (AC-P90):** a Lich plan (path 58751 → 17788, a rare Ruby in 17788) compiles; the saved file's
+    `<Socket nodeId="17788">` holds the jewel, whose stats reach the record at face value (`MissingFireResist` 125 →
+    126); the node's mods hold only "ManaCost MORE 50" until WU-139's parse fix.
+  - **AC-P91:** node power's pool move reads +13.040% (67,883.1) against the record's +13.040% (520,566 → 588,449), at
+    the plan's count (+13.57% at PoB's count of 1 before, R-64); Skeletal Brute ×2 reserves twice the Spirit.
+  - **AC-P92:** PoB's data reproduces the live test's caps at item level 82: body flat Energy Shield 96, helmet 73,
+    gloves 60, belt Mana 124; body 80 on `m`. Run A's stage 2 (`treeShape.test.ts`, area level 15) now has three real
+    `affix-cap` findings (its bow's lightning, its helmet's +30 and body's +34 Life over 29), as §25 expects for old
+    plans.
+  - **AC-P94:** Arc records chains 9, projectiles 1; Earthquake neither.
+  - **The coordinator folded:** AC-P93's unique row and §18's V1 rule (a unique jewel in 17788 is the compile check's
+    defect, since PoB refuses it there, `Classes/ItemsTab.lua`:2289–2294); V1's three rows in `02-plan-compiler.md`.
+  - **For WU-140:** the schema doesn't limit a price's `spec` to `b` and `n` rares, and the weights' `why` and
+    `leftOut` are the checker's (§9).

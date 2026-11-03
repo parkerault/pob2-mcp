@@ -6416,3 +6416,10 @@ the `m17` engine at `b76967b`.
     report}` and a user request `{code, id: "u<k>", words, restatement}`; AC-W5's ban on "fallback" in the agent
     definitions narrowed to admit D-489's "the fallback and its cost" and the verifier's "fallback check".
   - **Left:** the AC-W5 boundary test checks its own copy of the ban's regex.
+- **WU-140b (the scripts' follow-up) merged** (cherry-picked from `2dfee39`): the four defects WU-142's and WU-143's
+  verifiers found in WU-140's merged scripts. The guide's word cap skips W1's trade-link blocks (§14); a revision-14
+  design display ends with its own invitation, "accept it (I'll ask: its endgame guide or its PoB file only, and late
+  endgame scaling)", revision 13's kept (D-480); a piece left out unmeasured reads "- Left out unmeasured: <piece>
+  (estimate: …): <reason>." (§15); a dealt card's brainstorm header names its class, ascendancy and skill from the
+  card (§4; `parseCard` gains an additive `identity`). Tests in `buildGuideAmendment14.test.ts` ("WU-140b …");
+  `tests/static` 1,052 and `tests/unit/buildGuide*` 672 pass; no pin changed. The milestone gate verifies it.

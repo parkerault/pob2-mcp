@@ -9,10 +9,10 @@
  * `Data/ModJewel.lua`) in 17788, and Arc as its one clear group.
  *
  * - AC-P90 (the spike, §23): `items.treeJewels` naming 17788 compiles with the jewel in `Jewel 17788`: the saved file's
- *   socket holds the jewel, and its stat reaches the record: max fire resistance one point higher than the same plan's
+ *   socket holds the jewel, and its stat reaches the record: max fire resistance two points higher than the same plan's
  *   with the socket empty (PoB's `MissingFireResist`, the max less the resistance). PoB's own parse of the node's "100%
- *   increased Effect of bonuses gained from Socketed Jewel" leaves no SocketedJewelEffect (WU-139's fix), so the point is
- *   the jewel's own, at face value.
+ *   increased Effect of bonuses gained from Socketed Jewel" leaves no SocketedJewelEffect; WU-139's parse fix
+ *   (`pob-api/API/ParseFixes.lua`, D-492, PG-103) reads it as 100% more effect, so the jewel's +1% counts twice.
  * - AC-P93 (V1 `ascendancy-jewel`, D-492): the rare Ruby is no finding; a rare Diamond (a base other than a basic jewel,
  *   which PoB takes there) is one. A unique jewel (Grand Spectrum, an Emerald, `Data/Uniques/jewel.lua`) PoB refuses in
  *   the socket outright (`Classes/ItemsTab.lua`:2289-2294, "Lich socket can only accept basic non-unique jewels"), so the
@@ -100,13 +100,13 @@ engineDescribe('WU-137: a jewel in Crystalline Phylactery and a no-area clear sk
       expect(withJewel.record.stages.b.v1!.findings.filter((x) => x.code === 'ascendancy-jewel')).toEqual([]);
     });
 
-    it("AC-P90 (spike): the jewel's stat reaches the record: max fire resistance one point over the empty socket's, at the jewel's face value", () => {
+    it("AC-P90 (spike): the jewel's stat reaches the record: max fire resistance two points over the empty socket's, the jewel's +1% doubled by the node (WU-139's parse fix)", () => {
       const o = withJewel.record.stages.b.outputs;
       const e = empty.stages.b.outputs;
       expect(o.FireResist).toBe(e.FireResist);
-      // MissingFireResist is the max less the resistance: the jewel's +1% raises the max by 1 (not 2: PoB parses no
-      // SocketedJewelEffect from the node's line, WU-139's fix).
-      expect(o.MissingFireResist - e.MissingFireResist).toBe(1);
+      // MissingFireResist is the max less the resistance: the jewel's +1% raises the max by 2, the node's 100% increased
+      // effect of its jewel (PoB parses the line partly; WU-139's parse fix, D-492, reads it).
+      expect(o.MissingFireResist - e.MissingFireResist).toBe(2);
       console.error(`[WU-137 spike] Jewel 17788: MissingFireResist ${e.MissingFireResist} → ${o.MissingFireResist} (the Ruby's +1% to Maximum Fire Resistance)`);
     });
 

@@ -155,7 +155,8 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      limit: 10}` by the depth rule, its `listing` matching the compiled copy; a random-roll unique (Morior Invictus)
      adds `mods`, each line the figures rely on at its range's midpoint. **Boots** (D-440): `m`'s boots search carries
      its tier's movement speed among `mods` (30%), and `b`'s and `n`'s rare boots name theirs in `required` (35%,
-     D1-build wrote it).
+     D1-build wrote it) in a build before revision 14. In a revision-14 run it is a must-have of the boots' spec (35%,
+     D1-build's), held at the tier and never lowered or dropped (D-483), so your depth check carries it among `mods`.
    - **A corrupted unique is priced uncorrupted** (D-471): by name, without the corrupted line as a required
      affix, its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`. Under
      `references/corruption.json`'s line (1 divine, at the run's rates) it keeps the line; at or over it, it can't

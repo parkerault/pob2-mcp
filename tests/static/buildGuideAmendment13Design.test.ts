@@ -901,6 +901,10 @@ describe('AC-W110 (WU-142): D1-finish', () => {
     expect(finish).toMatch(new RegExp(`\\*\\*a boss fall after gear moved\\*\\* \\(D-490\\): when gear changed after D1-tree .* more than ${BOSS_FALL_PERCENT}% under \`tree\\.end\`'s, the same claim \`boss-fall-<rung>\` .* names the item that moved it`));
   });
 
+  it("prices b's and n's rare boots with their movement speed as a must-have of the spec, required only before revision 14", () => {
+    expect(finish).toContain("and `b`'s and `n`'s rare boots name theirs in `required` (35%, D1-build wrote it) in a build before revision 14. In a revision-14 run it is a must-have of the boots' spec (35%, D1-build's), held at the tier and never lowered or dropped (D-483), so your depth check carries it among `mods`.");
+  });
+
   it("writes the trades' price, from and to, its example the checker's 14 fields at revision 14", () => {
     expect(finish).toMatch(/- \*\*Revision 14's fields\*\* \(D-486\): every entry also carries `price \{amount, currency, count, date\} \| null`, `from` and `to`/);
     const dir = copyFixture(RUN14);
@@ -922,8 +926,14 @@ describe('AC-W110 (WU-142): D1-gate', () => {
   const gate = stage('D1-gate');
 
   it(`writes summary (gear per rung of b and n) within ${CAP_HOW}, ${CAP_GEAR} and ${CAP_CATCH} characters, and the checker and the display take its example`, () => {
-    expect(gate).toMatch(new RegExp(`\\*\\*\`summary\`\\*\\* \\(D-478\\), once for the build, after the rungs: \`summary \\{how, gear: \\[\\{stage, slot, text\\}\\], catch\\}\`.* - \`how\`, at most ${CAP_HOW} characters: .* - \`gear\`, one entry per gear slot of \`b\` and \`n\` .* each \`text\` at most ${CAP_GEAR} characters: .* - \`catch\`, at most ${CAP_CATCH} characters`));
+    expect(gate).toMatch(new RegExp(`\\*\\*\`summary\`\\*\\* \\(D-478\\), once for the build, after the rungs: \`summary \\{how, gear: \\[\\{stage, slot, text\\}\\], catch\\}\`.* - \`how\`, at most ${CAP_HOW} characters: .* - \`gear\`, one entry per filled gear slot of \`b\` and \`n\`, the flasks aside .* each \`text\` at most ${CAP_GEAR} characters: .* - \`catch\`, at most ${CAP_CATCH} characters`));
     const sm = GATE_EXAMPLE.design.summary as Json;
+    // One entry per filled gear slot of b and n, the flasks aside: the example's gear names each slot once a rung.
+    expect(gate).toContain('- `gear`, one entry per filled gear slot of `b` and `n`, the flasks aside');
+    for (const st of ['b', 'n']) {
+      const slots = (sm.gear as Json[]).filter((x) => x.stage === st).map((x) => x.slot);
+      expect({ st, once: new Set(slots).size === slots.length, flasks: slots.filter((x: string) => /^Flask/.test(x)), enough: slots.length >= 8 }).toEqual({ st, once: true, flasks: [], enough: true });
+    }
     const dir = copyFixture(RUN14);
     editJson(dir, GATE, (g) => {
       g.design.summary = sm;
@@ -1030,12 +1040,14 @@ describe('AC-W111 (WU-142): pricing.md', () => {
     }).toEqual({ cheap: true, socket: true, implicits: true });
   });
 
-  it('says what the loop does offline, during a pricing stop and without a session cookie', () => {
+  // The --no-ninja rule outlives D-372 (AC-W63 pinned its older form): no rate, no budget search, depth checks alone.
+  it('says what the loop does offline, during a pricing stop, without a session cookie and with --no-ninja', () => {
     expect({
+      noNinja: loop.includes("**`--no-ninja`**: no rate turns a target into a `max_price`, so no budget search: one depth check a spec, at its floor tiers on `b` and its best tiers allowed on `n`, recorded as seen, and the totals are `unverified` (D-333)."),
       offline: /\*\*offline\*\*, or without the trade tools: no ranking \(`ranking: null`, `searches: 0`\); .* the rares compile at their floor tiers' lowest rolls/.test(loop),
       stop: /\*\*a pricing stop open\*\* .* `link_only` sends no request, so the ranking stays allowed; no search runs; the rares compile at the tiers the loop reached, else their floors/.test(loop),
       session: /\*\*no session cookie\*\* .* the loop runs as depth checks alone, which search anonymously, from the best tier allowed down one step at a time, within the cap/.test(loop),
-    }).toEqual({ offline: true, stop: true, session: true });
+    }).toEqual({ noNinja: true, offline: true, stop: true, session: true });
   });
 
   it("reads the fallback's three causes, each the server's own prefix", () => {

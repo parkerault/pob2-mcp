@@ -283,8 +283,8 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
    the plan, the card and the record. A design field written under 14's rules without it, or over a cap, fails the
    run checker's `design-field`:
    - `how`, at most 400 characters: up to three sentences on how the build plays and why it works;
-   - `gear`, one entry per gear slot of `b` and `n` (`m` shows two lines and no gear), each `text` at most 120
-     characters: a unique by name, with its corruption, sockets or price where it matters ("Blistering Bond, under 1
+   - `gear`, one entry per filled gear slot of `b` and `n`, the flasks aside (`m` shows two lines and no gear), in
+     the rung's slot order, each `text` at most 120 characters: a unique by name, with its corruption, sockets or price where it matters ("Blistering Bond, under 1
      div: corrupt copies until one rolls 25% increased damage"); a rare by its base and key affixes ("rare Iron
      Greaves, movement speed, life, fire resistance", D-489), never a generated name, with `another source of …`
      when the spec loop dropped an affix for its price; a boots exception with its movement figure (D-491: the
@@ -431,10 +431,24 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
     ],
     "estimates": [ "b: clear speed is a rough estimate from the skill's area" ],
     "summary": { "how": "Twister throws spinning blades that shred packs from across the screen while Rupture bursts the bleeding ones. Herald of Blood's explosions chain the clear, and Hammer of the Gods is the boss button.",
-                 "gear": [ { "stage": "b", "slot": "Body Armour", "text": "Sekhema's Resolve" },
+                 "gear": [ { "stage": "b", "slot": "Weapon 1", "text": "rare War Spear, physical damage, attack speed" },
+                           { "stage": "b", "slot": "Body Armour", "text": "Sekhema's Resolve" },
+                           { "stage": "b", "slot": "Helmet", "text": "rare Soldier Greathelm, life, cold resistance, stun threshold" },
+                           { "stage": "b", "slot": "Gloves", "text": "rare Riveted Mitts, life, attack speed, lightning resistance" },
                            { "stage": "b", "slot": "Boots", "text": "rare Iron Greaves, movement speed, life, fire resistance" },
-                           { "stage": "n", "slot": "Weapon 1", "text": "rare War Spear, physical damage, attack speed" },
-                           { "stage": "n", "slot": "Boots", "text": "rare Iron Greaves, movement speed, life, fire resistance" } ],
+                           { "stage": "b", "slot": "Amulet", "text": "rare Solar Amulet, +2 projectile skill levels, life, chaos resistance" },
+                           { "stage": "b", "slot": "Ring 1", "text": "rare Emerald Ring, life, fire resistance, accuracy" },
+                           { "stage": "b", "slot": "Ring 2", "text": "rare Emerald Ring, life, cold resistance, accuracy" },
+                           { "stage": "b", "slot": "Belt", "text": "rare Heavy Belt, life, chaos resistance, strength" },
+                           { "stage": "n", "slot": "Weapon 1", "text": "rare War Spear, physical damage, attack speed, critical damage" },
+                           { "stage": "n", "slot": "Body Armour", "text": "rare Vaal Cuirass, armour, fire resistance, cold resistance" },
+                           { "stage": "n", "slot": "Helmet", "text": "rare Soldier Greathelm, life, cold resistance, stun threshold" },
+                           { "stage": "n", "slot": "Gloves", "text": "rare Riveted Mitts, life, attack speed, lightning resistance" },
+                           { "stage": "n", "slot": "Boots", "text": "rare Iron Greaves, movement speed, life, fire resistance" },
+                           { "stage": "n", "slot": "Amulet", "text": "rare Solar Amulet, +3 projectile skill levels, life, chaos resistance" },
+                           { "stage": "n", "slot": "Ring 1", "text": "rare Emerald Ring, life, fire resistance, critical hit chance" },
+                           { "stage": "n", "slot": "Ring 2", "text": "rare Emerald Ring, life, cold resistance, critical hit chance" },
+                           { "stage": "n", "slot": "Belt", "text": "rare Heavy Belt, life, chaos resistance, strength" } ],
                  "catch": "The Arbiter's physical slam one-shoots n unless a deflection holds it; unconfirmed (the deflected share on that slam; if it fails: a rare body with +90 life, about 3 divines)." }
   },
   "planSha1": "4f0c3b9e1d2a7c6b5e8f9a0b1c2d3e4f5a6b7c8d",

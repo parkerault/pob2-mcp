@@ -11,7 +11,8 @@
 #    POE_NINJA_DISABLED=true;
 # 4. through scripts/fresh-clone-check.mjs (an MCP SDK client): 85 tools are listed (D-91, C-37, C-42, C-38, C-40, C-39, C-41, C-50, C-55),
 #    lua_load_build grenadator.xml reports Life 2,977, and find_upgrades {slot:"Ring 1"} starts with
-#    "Trade search not run:" (D-49: no request is made, so the tripwire is never hit).
+#    "[trade:no_session] Trade search not run:" (D-49: no request is made, so the tripwire is never hit;
+#    D-494: the fallback names its cause first).
 #
 # Exits non-zero on any failed step. Removes the temp dir on exit. Contains no pipes.
 set -euo pipefail

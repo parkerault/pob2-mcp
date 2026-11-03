@@ -100,7 +100,8 @@ POESESSID=<the POESESSID cookie value from your browser on pathofexile.com>
 - The cookie is sent only on trade search and fetch requests. It is never logged or echoed.
 - 1Password `op://` references are not resolved: the value must be the cookie itself.
 - **Without a usable session** (no cookie, a malformed one, or one the trade site rejects),
-  `find_upgrades` doesn't search. It returns `Trade search not run: <reason>` with a trade-site link
+  `find_upgrades` doesn't search. It returns `[trade:no_session]` (`[trade:session_rejected]` for a rejected
+  cookie), then `Trade search not run: <reason>` with a trade-site link
   that opens the same weighted search in your browser, where you are logged in. When the league is
   known, no request is made before that decision.
 

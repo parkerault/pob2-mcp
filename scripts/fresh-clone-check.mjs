@@ -9,8 +9,8 @@
  * cookie), from its own cwd (the caller's temp dir), and checks:
  *  1. `tools/list` returns the full tool set (85 tools, D-91, C-37, C-42, C-38, C-40, C-39, C-41, C-50, C-55) when every group is enabled;
  *  2. with the check env below, `lua_load_build {build_name: "grenadator.xml"}` reports Life 2,977;
- *  3. `find_upgrades {slot: "Ring 1"}` returns a result that starts with `Trade search not run:`
- *     (no session: D-49 decides that before any network request).
+ *  3. `find_upgrades {slot: "Ring 1"}` returns a result that starts with `[trade:no_session] Trade search not run:`
+ *     (no session: D-49 decides that before any network request; D-494 names the fallback's cause first).
  *
  * The check env: POB_DIRECTORY=<clone>/tests/fixtures/builds, XDG_STATE_HOME=<state dir>,
  * POE_LEAGUE="Forbidden Rites", POE_TRADE_BASE=http://127.0.0.1:9/api/trade2 (a tripwire: any trade
@@ -132,7 +132,7 @@ async function checkEngineAndFallback() {
       { timeout: CALL_TIMEOUT_MS },
     );
     const upgradesText = textOf(upgrades);
-    if (!upgrades.isError && upgradesText.startsWith('Trade search not run:')) {
+    if (!upgrades.isError && /^\[trade:no_session\] Trade search not run:/.test(upgradesText)) {
       pass(`find_upgrades {slot:"Ring 1"} -> ${upgradesText.split('\n')[0]}`);
     } else {
       fail(`find_upgrades {slot:"Ring 1"} did not fall back (isError=${upgrades.isError === true}):\n${upgradesText}`);

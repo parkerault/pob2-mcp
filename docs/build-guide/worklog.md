@@ -6394,3 +6394,25 @@ the `m17` engine at `b76967b`.
     `unverified` (folded into §9).
   - **For the scripts' follow-up:** `run-log.mjs`:2469 shows a piece left out unmeasured as "Kept for <reason>, which
     PoB can't measure" with only its damage change, not its estimate (§15).
+- **WU-143 (the gate, route and guide docs) merged** at `6a9bffc` (fast-forward; three commits). `SKILL.md` routes the
+  one-item swap with its cost line, the answer change and `cancelled`, the skeleton and its removal, a read-back and an
+  adoption at each gate, the notes write, the scaling question and pass, and one more round behind its `ask`;
+  `checkpoints.md` holds each gate's revision-14 form, the guide-or-file question, the user's words verbatim with
+  request lines (kept in the gate's answer, since a later read-back overwrites `readback.json`), `ask` checkpoints
+  (`visit` counted over the run) and "unconfirmed"; `task-header.md`, `fix-round.md`, `offline-and-test.md`, F1, W1 (the
+  `notes` scope, the scaling H2, the link block, values not tier labels), V4, the templates and the three agent
+  definitions follow. AC-W112 in `buildGuidePipeline.test.ts` (44 tests), the docs' examples run through the scripts. Its
+  verifier (fresh context) failed it once (`checkpoints.md` counted an ask's `visit` per build; `run-log.mjs` counts it
+  over the run), then passed it (gate 234 suites, 4,095 tests, rc 0; the timing step 2 suites, 4 tests; build rc 0;
+  after the fix `tests/static` and `tests/unit/buildGuide*` 55 suites, 1,720 tests), walking a file-only build after an
+  answer change, the scaling pass, the swap at both gates and the extra round through the checker with no violation.
+  - **`SKILL.md` is 349 lines,** 18 over the 331 M-26 left (AC-W112's bound is 331 plus the lines named here): the tool
+    list (1), reading `readback.json` (1), the Bash list's `--withdraw` and `render-notes.mjs` (2), the user's words (3),
+    the user's edits (2), removing a skeleton (2), the design gate's two questions, the scaling pass and the swap (5),
+    the answer change (3), the file-only notes (1), one more round (1 net), the notes write (2), the final-gate swap (1),
+    less 5 trimmed and 2 duplicates cut. The user set 325 at amendment 11; told to the user.
+  - **Choices the spec left open, accepted:** Switching over reads "switch at m's level, gear from level
+    <requirements.level>" (§20's form; the checker's levels rule fails the older line); a fix-round brief `{id,
+    report}` and a user request `{code, id: "u<k>", words, restatement}`; AC-W5's ban on "fallback" in the agent
+    definitions narrowed to admit D-489's "the fallback and its cost" and the verifier's "fallback check".
+  - **Left:** the AC-W5 boundary test checks its own copy of the ban's regex.

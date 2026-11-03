@@ -8,7 +8,9 @@
  *   `Corrupted` mods are its `enchant.` trade ids, `Data/QueryMods.lua`), the `corrupted: false` filter, at most 3
  *   required filters, the stage's level as the maximum, the socket table's count as the rune-socket minimum when the table
  *   is loaded, and a complexity within the prefit's budget with the corrupted filter counted.
- * - The spec rows (no engine) check which weights and must-haves a link takes from a rare's price entry.
+ * - The spec rows check which weights and must-haves a link takes from a rare's price entry: with no engine, and on the
+ *   fixture moved to schema 10 with a spec on `b`'s Body Armour price (validated against `validatePlan`), whose link
+ *   requires the spec's 3 most important must-haves, and a spec PoB refuses, which names its stage and slot.
  */
 import fs from 'fs';
 import path from 'path';
@@ -19,7 +21,7 @@ import { fixtureFetch, type RecordedCall } from '../helpers/fixtureFetch';
 import { DATA_ROUTES, fixtureStatIds } from '../helpers/tradeFixtures';
 import { linkSpecOf, type TradeLinkEntry } from '../../src/plan/compiler';
 import { loadReferenceData } from '../../src/plan/referenceData';
-import { OFFLINE_PRICE_NOTE } from '../../src/plan/schema';
+import { OFFLINE_PRICE_NOTE, validatePlan } from '../../src/plan/schema';
 import { COMPLEXITY_BUDGET, COMPLEXITY_HEADROOM, estimateComplexity, type TradeQueryBody } from '../../src/trade/prefit';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -54,13 +56,48 @@ const UNIQUE_SLOTS = PLAN.stages
     ...s.items.treeJewels.filter((j) => /^Rarity: unique$/i.test(j.text.split('\n')[0].trim())).map((j) => `${s.id}/Jewel ${j.node}`),
   ]);
 
-/** The rune-socket minimum the socket table gives a slot, or null when the table isn't loaded (before WU-137's data). */
+const REF = loadReferenceData();
+
+/**
+ * The rune-socket minimum the socket table (`data/items/sockets.json`, C-35) gives a slot of the fixture: its body armour
+ * (Conqueror Plate), boots, spear (one-handed) and the jewellery (0: no filter); jewels have none.
+ */
 function tableSockets(slot: string): number | null {
-  const ref = loadReferenceData();
-  const key = { 'Body Armour': 'body-armour', Boots: 'boots', 'Weapon 1': 'one-hand-weapon' }[slot];
+  const key = { 'Body Armour': 'body-armour', Boots: 'boots', 'Weapon 1': 'one-hand-weapon', Belt: 'belt', 'Ring 1': 'ring', 'Ring 2': 'ring' }[slot];
   if (key === undefined) return null;
-  const found = ref.resolveFact('items/sockets.json', `sockets.${key}`);
-  return found.ok && typeof found.fact.value === 'number' ? found.fact.value : null;
+  const found = REF.resolveFact('items/sockets.json', `sockets.${key}`);
+  if (!found.ok || typeof found.fact.value !== 'number') throw new Error(`the socket table has no sockets.${key}`);
+  return found.fact.value;
+}
+
+/** Trade stat ids (`/data/stats` fixture) of the spec rows. */
+const LIFE = 'explicit.stat_3299347043';
+const FIRE = 'explicit.stat_3372524247';
+const COLD = 'explicit.stat_4220027924';
+const SPIRIT = 'explicit.stat_3981240776';
+
+/** The fixture at schema 10, its `b` Body Armour price carrying a spec (D-483), validated against the plan schema. */
+function specPlan(weights: Array<{ stat: string; weight: number; why?: string }>, stage = 'b'): Record<string, any> {
+  const plan = JSON.parse(fs.readFileSync(TITAN, 'utf8'));
+  plan.schemaVersion = 10;
+  const entry = plan.prices.find((p: { id: string }) => p.id === `${stage}-bodyarmour`);
+  if (entry === undefined || entry.query?.slot !== 'Body Armour') throw new Error('the fixture has no Body Armour price to give a spec');
+  entry.spec = {
+    base: 'Conqueror Plate',
+    weights,
+    ranking: null,
+    mustHaves: [
+      { affix: '+# to maximum Life', tradeId: LIFE, tier: 2, min: 150 },
+      { affix: '+#% to Fire Resistance', tradeId: FIRE, tier: 3, min: 35 },
+      { affix: '+# to Spirit', tradeId: SPIRIT, tier: 1, min: 40, zeroScored: true, why: 'PoB values no Spirit' },
+      { affix: '+#% to Cold Resistance', tradeId: COLD, tier: 3, min: 35 },
+    ],
+    leftOut: [],
+    searches: 3,
+  };
+  const checked = validatePlan(JSON.stringify(plan), REF);
+  if (!checked.ok) throw new Error(`the spec plan is invalid: ${JSON.stringify(checked.errors.slice(0, 5))}`);
+  return plan;
 }
 
 const decode = (url: string): TradeQueryBody => JSON.parse(decodeURIComponent(url.slice(LINK_PREFIX.length))) as TradeQueryBody;
@@ -152,6 +189,7 @@ engineDescribe('AC-K85: compile_plan trade_links on a final compile with rares o
       expect(required.length).toBeLessThanOrEqual(3);
       const lvl = (q.query.filters as Record<string, { filters?: Record<string, { max?: number }> }>).req_filters?.filters?.lvl?.max;
       expect({ tag, lvl }).toEqual({ tag, lvl: stage.level });
+      // The base's rune sockets from the socket table as the minimum (none for 0 or a jewel).
       const sockets = (q.query.filters as Record<string, { filters?: Record<string, { min?: number }> }>).equipment_filters?.filters?.rune_sockets?.min;
       const want = tableSockets(link.slot);
       expect({ tag, sockets: sockets ?? null }).toEqual({ tag, sockets: want !== null && want > 0 ? want : null });
@@ -176,6 +214,45 @@ engineDescribe('AC-K85: compile_plan trade_links on a final compile with rares o
       const ids = q.query.stats!.flatMap((g) => (g.type === 'weight' || g.type === 'and' ? g.filters.map((x) => x.id) : []));
       expect(ids.filter((id) => !known.has(id))).toEqual([]);
     }
+  }, ENGINE_TIMEOUT);
+
+  it('the socket table sets the minimum: 2 on the body armour, 1 on the boots and the one-handed spear, none on the jewellery', async () => {
+    expect(['Body Armour', 'Boots', 'Weapon 1', 'Belt', 'Ring 1'].map(tableSockets)).toEqual([2, 1, 1, 0, 0]);
+    const min = (l: TradeLinkEntry) =>
+      (decode(l.url).query.filters as Record<string, { filters?: Record<string, { min?: number }> }>).equipment_filters?.filters?.rune_sockets?.min ?? null;
+    const bySlot = Object.fromEntries(linksFile().filter((l) => l.stage === 'b').map((l) => [l.slot, min(l)]));
+    expect(bySlot).toMatchObject({ 'Body Armour': 2, Boots: 1, 'Weapon 1': 1, Belt: null, 'Ring 1': null, 'Jewel 60735': null });
+  });
+
+  it("a schema-10 spec's weights and its 3 most important must-haves, one PoB scores at zero first, are the link's; a spec PoB refuses names its stage and slot, writing nothing", async () => {
+    const specDir = path.join(path.dirname(dir), 'r2-s-2-spec');
+    const specRel = `${path.posix.dirname(path.posix.dirname(plan))}/r2-s-2-spec/plan.json`;
+    fs.mkdirSync(specDir, { recursive: true });
+    const good = specPlan([{ stat: 'FullDPS', weight: 1 }, { stat: 'TotalEHP', weight: 0.5 }, { stat: 'Life', weight: 0.3, why: 'the life must-have' }]);
+    fs.writeFileSync(path.join(specDir, 'plan.json'), JSON.stringify(good, null, 2));
+    const compiled = await f.call('compile_plan', { plan_path: specRel, build_name: 'Trade Links Spec', first_free: true });
+    expect(compiled.isError).toBe(false);
+    const out = await f.call('compile_plan', { plan_path: specRel, trade_links: true });
+    expect(out.isError).toBe(false);
+    const links = JSON.parse(fs.readFileSync(path.join(specDir, 'trade-links.json'), 'utf8')) as TradeLinkEntry[];
+    const required = (l: TradeLinkEntry) => decode(l.url).query.stats!.filter((g) => g.type === 'and').flatMap((g) => g.filters);
+    const body = links.find((l) => l.stage === 'b' && l.slot === 'Body Armour')!;
+    expect(required(body)).toEqual([
+      { id: SPIRIT, value: { min: 40 } },
+      { id: LIFE, value: { min: 150 } },
+      { id: FIRE, value: { min: 35 } },
+    ]);
+    // n's Body Armour has no spec: PoB's defaults, nothing required.
+    expect(required(links.find((l) => l.stage === 'n' && l.slot === 'Body Armour')!)).toEqual([]);
+
+    // A spec with a stat PoB can't weigh by: refused, naming the stage and slot; the links file is left as it was.
+    const before = fs.readFileSync(path.join(specDir, 'trade-links.json'));
+    fs.writeFileSync(path.join(specDir, 'plan.json'), JSON.stringify(specPlan([{ stat: 'NotAStat', weight: 1, why: 'a typo' }]), null, 2));
+    const refused = await f.call('compile_plan', { plan_path: specRel, trade_links: true });
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain(`no trade links were written for ${specRel}: stage b's Body Armour: unknown stat NotAStat`);
+    expect(refused.text).toContain('Nothing was written.');
+    expect(fs.readFileSync(path.join(specDir, 'trade-links.json')).equals(before)).toBe(true);
   }, ENGINE_TIMEOUT);
 
   it('a plan with no league (an offline run) writes none', async () => {

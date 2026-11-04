@@ -6439,3 +6439,41 @@ the `m17` engine at `b76967b`.
     keeps its own copy of the socket table; `D1-tree.md`:122 writes "Excluded: <n> nodes" where the server prints "1
     node" for one; the r1-s-2 fixture keeps one of the user's design-gate revise lines as a ledger source (copied
     unchanged under HG-33).
+
+## 2026-11-04: M-27 signed and pushed; the project spine; the user's rulings
+
+- **M-27 signed and pushed.** `main` at `6bb1a2a`, every commit signed, the unsigned originals at
+  `refs/archive/pre-sign-m27-2026-11-02`; pushed 2026-11-03 at 00:03 (the local `origin/main` reflog). This entry is the
+  work-log's first record of both.
+- **The two spines merged into one.** The user: "Both documents call themselves the single source of truth … It's
+  upsetting that the most important document we use to track the state of the project is split into two out of date
+  documents." The coordinator's plan (one project spine, folded through amendment 14, reviewed, a test that fails when
+  it falls behind, then the skill split) was approved: "Go ahead". `docs/spec/README.md` merges the server spine (v2)
+  and the build-guide spine (v1.6, folded through amendment 7), folds amendments 8–14 (D-400…D-495, M-20…M-27), and
+  opens with the project's state (its §1). Both old spines carry a SUPERSEDED banner and stay as history. `CLAUDE.md`
+  points to the new spine and states the fold rule (an approved amendment's rows enter the spine; the last unit of its
+  build marks them as built), and gains amendment 8's pin-upgrade step, never written until now (step 7);
+  `build-handoff-amendments.md` makes the fold every amendment build's last unit; `tests/static/specSpine.test.ts`
+  fails when the spine falls behind.
+  - **How:** an agent per amendment extracted its rows; the spine was assembled by copying, never retyping; a script
+    found every row of both old spines and of amendments 8–14 present. Five independent review lenses raised 63
+    findings; the 29 material ones fell into 24 clusters, each checked by a skeptic against the amendments, this
+    work-log and git (21 confirmed, 3 partly, none refuted), and all were fixed; 24 of the 34 low ones were applied.
+    The worst were three decision rows that lost a condition when condensed (D-449's hits survived, D-456's Wither
+    exception, D-483's campaign-gear ruling); the spine now says amendments 8–14's decision rows are summaries and
+    their sections hold the full text.
+  - **Gate** (under the lock): `mise run test` rc 0 (235 suites, 4,167 tests), `pnpm build` rc 0.
+  - **Cost:** about 5.4M subagent tokens (extraction 1.46M, assembly 1.46M, review 1.49M, verification 0.72M, fixes
+    0.30M), about twice the coordinator's estimate of 2.9M.
+  - **Not done:** the slices stay folded through amendment 7; the spine's §4 says where each one's current text is.
+- **The user's rulings on the fold's questions** (2026-11-04), recorded in the spine as D-496…D-498:
+  - "Commit and push."
+  - "If newer approvals contradict older ones, the older ones should probably be marked as overridden unless you think
+    the newer approvals are problematic." The coordinator judged none of the three problematic: D-302 is marked amended
+    by D-436 and D-492, D-393 by D-445 (D-496).
+  - "I don't know that poe2db requests necessarily need to be pre-approved, as long as we aren't mistaken for a DDOS
+    attack." (D-497: no approval, at the league digest's pace.)
+  - "There are two Titan Rake builds in my PoB folder, so I assume that's what Titan Blood Hunt is referring to."
+    (D-498: M-13 retired; the Titan Rake run, WU-126, stands for its Titan / Blood Hunt run, which never ran.)
+  - "I don't have a preference for skill split order; I won't be doing another run until it's all finished." So the
+    whole skill split comes before the next live run, M-27's WU-144 included, in the coordinator's order.

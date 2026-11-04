@@ -1,5 +1,9 @@
 # pob2-mcp stabilization: spec spine
 
+> **SUPERSEDED on 2026-11-04 by the project spine, `docs/spec/README.md`** ([open it](../../spec/README.md)).
+> This file is kept as the rationale record, as it stood at its last fold; its claim below to be the single source of
+> truth no longer holds. Every row in it lives on in the project spine, whose front matter maps this file's sections.
+
 **Status:** v2, revised after the adversarial spec review on 2026-10-03. That review had 8 lenses,
 which raised 107 raw findings; these were merged into 52 clusters, and every cluster was
 skeptic-verified. See [`../review-spec.md`](../review-spec.md). This version is pending the user's

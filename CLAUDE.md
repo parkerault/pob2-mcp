@@ -2,9 +2,9 @@
 
 An MCP server (TypeScript, SDK 1.20.2, stdio) over a headless Path of Building 2 engine: `luajit` runs
 the pinned PathOfBuilding-PoE2 checkout in `vendor/` through our Lua bridge in `pob-api/`. The README
-covers setup, registration and configuration. The binding design is the spec spine,
-`docs/stabilization/spec/README.md` (contracts, decisions, test strategy), with its slice specs beside
-it.
+covers setup, registration and configuration. The binding design is the project spine, `docs/spec/README.md`:
+contracts, decisions, test strategy and the state of the project, with an index of the slice specs in
+`docs/stabilization/spec/` and `docs/build-guide/spec/`.
 
 ## Setting up a checkout or worktree
 
@@ -39,7 +39,8 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
   with the user's IP and account. In development, agents may query poe.ninja's documented economy endpoints
   politely: serial requests, a back-off on HTTP 429, and nothing fetched twice that a cache could hold. Its
   builds, profiles and character API is closed to third parties by poe.ninja's terms, so no agent or tool
-  uses it (build-guide D-297, D-335).
+  uses it (build-guide D-297, D-335). Requests to poe2db.tw need no approval either, at the league digest's pace:
+  serial, at least 3 s apart, no cookie, one retry after 60 s on a 429 or 5xx, nothing fetched twice (D-400, D-497).
 - **Trade searches go one client at a time, slowly.** With the user's approval, only one agent at a time
   sends trade requests, through the session's pob2 server. An agent that starts its own server keeps trade
   off, as `spawnServer` does. Tell the user before a pricing run starts, because their browser shares the
@@ -67,6 +68,10 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
   checks the loaded file for changes on disk.
 - **Every write into the builds folder goes through `buildFileWriter`** (`src/services/buildFileWriter.ts`):
   backup first, canonical on-disk name, refused over a file that changed on disk.
+- **The spine never falls behind an approved amendment.** When the user approves an amendment, its rows (decisions,
+  contracts, gates, milestone, work units, risks) go into `docs/spec/README.md` with status approved; the last unit of
+  its build updates them as built and moves the status line's "Folded through amendment <n>".
+  `tests/static/specSpine.test.ts` fails when the spine falls behind.
 
 ## Code conventions
 
@@ -107,10 +112,16 @@ a user decision, because the golden values move. The procedure (spike S-2,
 6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492): each entry corrects PoB's reading of a
    line PoB parses only partly (PG-103: Crystalline Phylactery). `tests/integration/parseFixes.test.ts` fails once
    the new release parses a listed line itself, or no longer carries it; remove that entry then.
+7. Rebuild the rule-changer index, `data/rules/` (D-401), and re-check the league digests (D-400). List the new pin's
+   candidates with `mise exec -- node .claude/skills/build-guide/scripts/rules-index.mjs candidates --json`, have
+   agents rewrite the entries that changed (amendment 8 §3), then run `rules-index.mjs check` and `join --write`.
+   Run `league-digest.mjs --reflag <slug>` on each digest in `data/league/`.
 
 ## Where things are
 
-- `docs/stabilization/spec/README.md`: the spec spine, the source of truth for contracts and decisions.
+- `docs/spec/README.md`: the project spine, the single source of truth for what crosses slices and for the
+  project's state. The two spines it replaced, `docs/stabilization/spec/README.md` and
+  `docs/build-guide/spec/README.md`, are kept as history.
 - `docs/stabilization/grounding/`: fact sheets on the code, PoB2's Lua internals, MCP and the tooling.
 - `scripts/fresh-clone-check.sh`: clones HEAD into a temp dir, runs `mise run setup`, and checks the
   result as a server, with no trade or poe.ninja requests.

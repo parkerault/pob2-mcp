@@ -1,5 +1,9 @@
 # Build-guide workflow: spec spine
 
+> **SUPERSEDED on 2026-11-04 by the project spine, `docs/spec/README.md`** ([open it](../../spec/README.md)).
+> This file is kept as the rationale record, as it stood at its last fold; its claim below to be the single source of
+> truth no longer holds. Every row in it lives on in the project spine, whose front matter maps this file's sections.
+
 **Status:** v1.6, 2026-10-18, folded through D-397. v1.2 (2026-10-08) folded the adversarial spec review's fixes and the
 coordinator's resolutions (D-210…D-238, A-31, A-32). v1.3 (2026-10-10) folded:
 - the decisions made during the build, D-239…D-266 (C-33 gains `buildSha1`), and the work-log's unnumbered

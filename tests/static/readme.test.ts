@@ -168,8 +168,9 @@ describe('WU-19: stale docs removed, README and CLAUDE.md clean (AC-G2)', () => 
       'docs/TRADE_API_QUICKSTART.md',
     ];
     expect(stale.filter((f) => fs.existsSync(path.join(REPO, f)))).toEqual([]);
-    // Each epic keeps its docs in its own folder (build-guide worklog, 2026-10-08); no loose files.
-    expect(fs.readdirSync(path.join(REPO, 'docs')).sort()).toEqual(['build-guide', 'design', 'stabilization']);
+    // Each epic keeps its docs in its own folder (build-guide worklog, 2026-10-08), and the project spine has its own,
+    // `docs/spec/` (2026-11-04); no loose files.
+    expect(fs.readdirSync(path.join(REPO, 'docs')).sort()).toEqual(['build-guide', 'design', 'spec', 'stabilization']);
   });
 
   it('AC-G2: outside the migration block, the AC-F20 scanner finds no banned phrase in README.md or CLAUDE.md', () => {
@@ -299,7 +300,7 @@ describe('WU-19: CLAUDE.md (AC-G5)', () => {
       'upgrading the pob2 pin',
       'spike s-2',
       'run `mise run pob:fetch`',
-      'docs/stabilization/spec/readme.md',
+      'docs/spec/readme.md',
     ];
     expect(required.filter((s) => !text.includes(s))).toEqual([]);
   });

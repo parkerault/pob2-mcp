@@ -4,6 +4,15 @@ Written 2026-10-10 by the coordinator session for the build fleet. Every build a
 first. If anything here conflicts with the spec, the spec wins, and you report the conflict. It replaces
 `build-handoff.md` (the M-10…M-12 build) for this run; that file's history stays as written.
 
+## Every amendment build: the spine fold (from 2026-11-04)
+
+The project spine is `docs/spec/README.md`. It replaced the server spine and the build-guide spine, which stay as
+history; where a section below says "the spine" or "spine §n", read `docs/spec/README.md` (its front matter maps the
+old sections). Every amendment build ends with the fold: the amendment's formalization puts its rows into the spine
+with status approved, and the build's last unit updates them as built (the work-log's record wins, the difference
+stated beside the row) and moves the status line's "Folded through amendment <n>". `tests/static/specSpine.test.ts`
+fails when the spine falls behind.
+
 ## M-27: amendment 14, a PoB file at every gate, items as specs, and the tree tools' repairs (read this first)
 
 Added 2026-11-02. For this build, this section overrides the M-26 and older sections and "What to build" below;

@@ -6538,3 +6538,19 @@ the `m17` engine at `b76967b`.
     edge. PG-113: a first import picks the main group by gem count. PG-114: a granted skill gets quality 0. PG-65
     corrected: PoB computes Herald of Blood's explosion, but area and attack modifiers miss it. `pob-upstream.md`
     marks each line checked.
+
+## 2026-11-06: M-28 (amendment 15) build started
+
+- **Approved:** amendment 15 revision 1 by the user ("1. yes; 2. yes"), with §19's three recommended choices; its rows
+  entered the spine as approved at `b0505af`, with the M-28 handoff section. The user started the build the same day
+  ("WU-145 first; then WU-146 with WU-148 beside it; then WU-147; WU-148 merges last of the build units; then WU-149;
+  stop before WU-150").
+- **Integration worktree** `pob2-mcp-wt/m28`, branch `build-guide/m28`, off `main` at `b4b580d`, not at the approval
+  commit: `main` gained two docs-only commits after it (`d74bfc2` `pob-upstream.md`, `b4b580d` PG-109 to PG-114), and
+  branching off the head keeps the merge back a fast-forward.
+- **De-risk** (the assumption the amendment rides on: Claude Code loads the repository root as a plugin): probed at spec
+  time by the review's experiment (§20, a `claude plugin validate` of Appendix A's files and a copied install under a
+  throwaway config folder). WU-145's agent runs the load check on its lane before deleting the old skill and agent
+  folders, so a failure stops the build (choice 2) with the old layout intact. The coordinator runs no `claude` command.
+- **Recon:** none dispatched. The handoff's "Who owns what" is the contention map, and the units are serial except
+  WU-148, which owns only its own new files (its script, baseline and test).

@@ -6515,3 +6515,26 @@ the `m17` engine at `b76967b`.
   - The import turns every skill on, so six buffs reserve 254 Spirit against 215; each figure equals the gem's own
     cost, and no line on the character names Spirit or reservation beyond the sceptre.
   - The import holds each granted skill twice: from the game's skill list and as PoB's granted group.
+- **PoB2's tracker and a fix policy.** The user had another agent review PoB2's open issues: `pob-upstream.md`
+  (`d74bfc2`). The coordinator's advice, accepted ("Yes to both"):
+  - `pob-gaps.md` stays the list of what our pin gets wrong. An upstream issue enters it once confirmed in the pin's
+    code or hit by a build, not wholesale. Six that sit on paths every run uses were checked against the pin the same
+    day (#2275 rolls reset on reopen, #2582 items on unknown bases dropped on import, PR #2559 node power near radius
+    jewels, #2573 against PG-65, #2536 the import's main-skill guess, #2575 item quality and granted skills).
+  - **Fix policy, for amendment 16 to record as a decision:** PoB bugs that change our numbers or break the pipeline are
+    fixed, not only worked around. First as a bridge patch in `pob-api/`, as `ParseFixes.lua` does (D-492), each with
+    a test that fails once the pin fixes it; `vendor/` stays unmodified. Then, only where PoB's `dev` lacks a fix, an
+    upstream PR, each approved by the user first. Why: the pin, v0.23.1, is still the latest release and about 98 merged
+    PRs on `dev` are unreleased, so an upstream fix reaches us only with a release and a pin upgrade (the user's call);
+    `dev` itself has a regression that stops 100 of 1,438 public builds calculating (#2529). The gem-group miscount
+    (PG-106) is already fixed on `dev` (#2411), which confirms that finding.
+  - **The six checks** (one agent, about 324K tokens; read-only `gh`, probes on committed fixtures in a temp folder):
+    all six hold in the pin. PG-109: a build saved and reopened moves ranged rolls onto the wrong lines on any item
+    with a socketed rune (save numbers rune lines, load skips them, `Classes/ItemsTab.lua:1221-1245` against
+    `:1118`); a compile record is right, the written file isn't once anything reloads it; still on `dev`. PG-110: an
+    item on a base the pin lacks is dropped silently on import and load. PG-111 (found in #2582's thread): 19 base
+    names defined more than once keep only the last definition, so a plan's bare Shrine Sceptre gets Purity of
+    Lightning. PG-112 (ours): node power gives nodes with the same lines one score, even across a radius jewel's
+    edge. PG-113: a first import picks the main group by gem count. PG-114: a granted skill gets quality 0. PG-65
+    corrected: PoB computes Herald of Blood's explosion, but area and attack modifiers miss it. `pob-upstream.md`
+    marks each line checked.

@@ -10,7 +10,8 @@ candidates), and whoever weighs a pin upgrade (§5). The build-guide pipeline do
 
 **Numbers.** Every `#n` is PathOfBuilding-PoE2's (`https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2/issues/<n>`;
 GitHub redirects a pull request's number). "Issue" and "PR" say which. Unless a line says "checked on dev" (the file read
-on the `dev` branch at the snapshot), it reports what the issue or PR says, not what we verified in code.
+on the `dev` branch at the snapshot) or "checked on our pin" (the pin's code, 2026-11-06), it reports what the issue or
+PR says, not what we verified in code.
 
 **How it was made.** Read-only `gh` queries: every issue (1,033) and PR (1,538), titles and bodies; the open issues
 again with their comment threads. Each `pob-gaps.md` entry was searched by its distinctive terms, and the hits were read.
@@ -44,7 +45,7 @@ Every `pob-gaps.md` entry not listed here (about 75 of them) has no issue or PR 
 | Granted skills' supports: dropped on load (PG-54); an item's granted skill takes every support in its slot (PG-74) | PR #2498 makes item and tree granted skills supportable groups, with a weapon set each | Merged 2026-09-10, on dev. Checked on dev for PG-74: a granted group takes its own supports. PG-54's load path not traced. Regression issue #2529 open (§5). |
 | "Runic Ward:" isn't read; every save adds a socket and a rune (PG-55) | PR #2146 | Merged 2026-08-31; checked on dev (`Classes/Item.lua` reads the line). PR #2367 (open) fixes a duplicated `Sockets:` line on rebuild. |
 | A companion's rare monster modifiers (PG-56; PG-73's tablet modifier rests on it) | PR #2147 imports them from the character API's `tamedBeastProperties`; PR #2165 builds on it | Open |
-| Herald of Blood's explosion (PG-65) | Issue #2573: the explosion ignores attack area modifiers | Open. It implies PoB computes the explosion, so PG-65's "possibly unmodelled" needs a re-check. |
+| Herald of Blood's explosion (PG-65) | Issue #2573: the explosion ignores attack area modifiers | Open. Checked on our pin, 2026-11-06: PoB computes the explosion as the gem's second stat set, without the attack and area flags, and without the Blood Loss share; PG-65 corrected. Unchanged on dev. |
 | Supports counted across both weapon sets (PG-71) | Not filed. Checked on dev: the same "doesn't associate weapon skill supports" comment and loop. | Issues #2167, #510, #1079 ask for weapon-set handling generally. |
 | Tempest Bell (part of PG-76) | Issue #2123 | Open |
 | Copies and hits counted once (PG-77) | Issues #1850 (Ember Fusillade counts one projectile; PRs #1876, #2534 closed), #1035 (Rapid Assault's spears explode as one) | Open |
@@ -57,18 +58,26 @@ Every `pob-gaps.md` entry not listed here (about 75 of them) has no issue or PR 
 | Prism of Belief's generated list (PG-105) | Issue #2549: Living Bomb missing from the list (the other direction) | Open, related |
 | A support in a granted skill counts its group against the skill slots (PG-106) | PR #2411 | Merged 2026-08-26; checked on dev (`Classes/SkillsTab.lua` skips supports). Issues #2400, #2412 still open. |
 | An imported character has every skill turned on (PG-107) | Issue #2401, an exact match | Open. Checked on dev: a re-import keeps your on/off choices; a first import still turns all on. |
+| A saved item's rolls move to other lines when it holds a rune (PG-109) | Issue #2275: a reopened build resets rolls with a decimal step to the middle of their range | Open; no PR. Checked on dev: the load still skips the rune lines. |
+| An item on a base the pin lacks is dropped without a word (PG-110) | Issue #2582; PR #2583 adds the missing quarterstaff bases | Open |
+| A base name defined more than once keeps its last definition (PG-111) | Noted in issue #2582 | Open; PR #2583 doesn't change it |
+| Node power gives a node the score of another with the same lines (PG-112, ours) | PR #2559 fixes the same cache in PoB | Open |
+| An imported character's main skill is the group with the most gems (PG-113) | Issue #2536; PR #1401 guesses by DPS | Open |
+| An item's quality doesn't reach the skill it grants (PG-114) | Issue #2575; PR #2577 | Open |
 
 ## 2. Open issues that touch our numbers, not in `pob-gaps.md`
 
-Candidates for `pob-gaps.md`, none checked against our pin's code. The first two matter most, because we load and import
-builds all the time.
+Candidates for `pob-gaps.md`. A line that says "checked on our pin" was checked against the pin's code on 2026-11-06;
+the rest weren't. The first two matter most, because we load and import builds all the time.
 
 **Items and import**
 
 - #2275: a build saved and reopened resets item mod rolls that have a decimal step to the middle of their range
-  (+28 mana reads +30 after reopening); a character import gets the right values.
+  (+28 mana reads +30 after reopening); a character import gets the right values. Checked on our pin, 2026-11-06:
+  PG-109 (the cause is the rune lines a load skips).
 - #2582: an item on a base missing from `Data/Bases` (a Runemastered Long Quarterstaff) is dropped on import without a
-  word; the main skill reads 0 DPS. PR #2583 open.
+  word; the main skill reads 0 DPS. PR #2583 open. Checked on our pin, 2026-11-06: PG-110, and PG-111 for its note on
+  base names defined more than once.
 - #2156: adding a unique from PoB's list drops its first line when that line is unsupported and the item has no implicit
   (Opportunity, Lavianga's Spirits).
 - #2344: Sylvan's Effigy loses "You can have any number of Companions of different types" on paste.
@@ -78,7 +87,8 @@ builds all the time.
 - #493: Queen of the Forest's movement speed penalty ignores other sources (PR #1921 closed).
 - #2131: desecrated, mutated and fractured tags drop when a roll slider moves.
 - #2568: an error choosing a 4th suffix on a Trarthan Cannon with Serle's Triumph's "+1 Suffix allowed".
-- #2536: the import's main-skill guess picks the biggest group, a PoE1 rule; PR #1401 open.
+- #2536: the import's main-skill guess picks the biggest group, a PoE1 rule; PR #1401 open. Checked on our pin,
+  2026-11-06: PG-113.
 
 **Offence**
 
@@ -94,7 +104,8 @@ builds all the time.
 - #2229: herald quality applies to both the buff and the explosion sub-skill; the buff sub-skill does nothing in PoE2.
 - #2451: Predator's Mark doesn't count persistent minions, and stays on beside Mark for Death.
 - #2273: The Taming's ailment bonus and Twister's ground buffs don't stack.
-- #2575: an item's quality doesn't reach the skill it grants (a Shrine Sceptre's Purity). PR #2577 open.
+- #2575: an item's quality doesn't reach the skill it grants (a Shrine Sceptre's Purity). PR #2577 open. Checked on our
+  pin, 2026-11-06: PG-114.
 - Unsupported skills and lines: #783 (Lightning Rod, extra arrows), #576 (Elemental Expression), #1542 (Tawhoa's
   Tending), #1049 (Beira's Anguish), #1848 (Unearth snapshotted on weapon set 2), #1183 (Rolling Slam's rotation), #820
   (Stampede's attack time), #413 (a secondary effect in Full DPS), #1417 (grenade cooldown in Mortar Cannon).
@@ -128,7 +139,7 @@ builds all the time.
 - PR #2559 (no issue): PoB's power pass caches each result by `modKey`, so nodes sharing one get the same score though
   a radius jewel, small-or-notable scaling or a weapon-set tag makes them differ. Our `pob-api/API/NodePower.lua`
   reproduces that cache on purpose (its comment names only the weapon-set twins), so `get_node_power` inherits it near a
-  Time-Lost jewel.
+  Time-Lost jewel. Checked on our pin, 2026-11-06: PG-112.
 - #2178: Cremating Cries counts as outside the nearby socket's small radius; the game counts it inside.
 - #2380: Baryanic Leylines (Disciple of Varashta) unsupported; PR #1804 open, #2381 closed.
 - #2056: the hidden notables (The Hollowkeeper, Path of the Renegade) don't show.

@@ -391,9 +391,23 @@ the line unmapped or "possibly unmodelled" and no one has read the code; three e
 - **PG-64, Toxic Growth's stored poison and Gas Arrow's cloud.** gap, reported (coverage).
   - **Effect:** the poison the pustules store, and the cloud's limit and radius growth, are possibly unmodelled.
   - **Seen in:** the Poison Pathfinder.
-- **PG-65, Herald of Plague's spread and Herald of Blood's explosions.** gap, reported (coverage). Herald of Blood's
-  share of Blood Loss is possibly unmodelled too (PG-50).
-  - **Seen in:** the Poison Pathfinder.
+- **PG-65, Herald of Plague's spread and Herald of Blood's explosion.** gap and bug, confirmed in code (2026-11-06,
+  corrected: it said "possibly unmodelled").
+  - **Where:** Herald of Plague's spread becomes `PoisonProlifRange` (`Data/Skills/act_dex.lua:3448`), which no file
+    under `Modules/` or `Classes/` reads; its Hinder chance has no map. Herald of Blood's explosion is computed: it is
+    the gem's second stat set, "Explosion", with its own base physical damage and a 1.5 m radius
+    (`Data/Skills/act_str.lua:7593-7664`). Its `baseFlags` are empty (`:7597`), where Herald of Ice's explosion has
+    `attack` and `area` (`Data/Skills/act_int.lua:11863-11868`), so PoB gives it neither the Attack nor the Area mod
+    flag (`Modules/CalcActiveSkill.lua:167`, `:568-585`). Its share of the enemy's Blood Loss
+    (`skill_herald_bleeding_enemies_explode_for_%_blood_loss_as_unscalable_physical_damage`, `:7606`) has no map.
+  - **Effect:** the explosion reads its base hit only. Attack-only and area-damage modifiers miss it: "increased Area
+    of Effect for Attacks", "increased Attack Area Damage", "increased Attack Damage" and "increased Area Damage". Plain
+    area modifiers and supports such as Magnified Area reach it. The Blood Loss share, which grows with the bleeding
+    the build stacks, is missing (PG-50). Herald of Plague's spread adds nothing.
+  - **Seen in:** the Poison Pathfinder; issue #2573 for the explosion's area and damage.
+  - **Workaround:** hand calc.
+  - **Upstream:** issue #2573 (open), the attack and area modifiers only; no pull request. The explosion's flags are
+    unchanged on `dev` (checked 2026-11-06).
 - **PG-66, Storm Lance's detonation.** gap, reported (coverage).
   - **Effect:** the 16-bolt detonation and both spear skills' limit of 3 are "possibly unmodelled; check config".
   - **Seen in:** the Lightning Spear Amazon.
@@ -698,6 +712,104 @@ Legionnaire), read in the session; nothing copied. The user sees the first two o
     nothing when turned off, while the plain level 20 copy carried the defence.
   - **Workaround:** delete the plain copies without supports; move the supports of the others onto PoB's granted
     group.
+
+## Checked from PoB2's tracker (2026-11-06)
+
+Reports from `pob-upstream.md` §2, checked against the pin's code and, where a probe could show it, on the engine.
+
+- **PG-109, a saved item's rolls move to other lines when it holds a rune.** bug, confirmed by probe.
+  - **Where:** a save writes each line's roll as a `<ModRange>`, numbered across the enchant, rune, implicit and
+    explicit lines (`Classes/ItemsTab.lua:1221-1245`). A load walks the lines without the rune lines (`:1118`), so
+    each roll lands as many lines further down as the item has rune lines, and the last ones are dropped. The load
+    sets the roll after it reads the item's text, so it overrides the text's `{range:}`, and the next save writes the
+    moved roll into the text (`Classes/Item.lua:1463`). A rune line PoB rebuilds from its `Rune:` line has no roll
+    (`:1663`): it writes no `<ModRange>` but still takes a number.
+  - **Effect:** only a line written as a range moves. An imported character is safe, since its lines carry the game's
+    numbers. Our compiled builds aren't: plans write uniques with `{range:}` lines and a rune. The compile measures
+    before it saves, so its record is right, but the file it writes reads differently once loaded: by the user in
+    PoB, by `lua_load_build`, or, after the user saves it in PoB, by the read-back, which compares item lines and would
+    report the moved rolls as the user's change. In the probe, the open-spell plan's corrupted Liminal Coil (two rune
+    lines) read 9% Cast Speed and 29% per-curse gains; after one save and load, 13% (the Coiling Bolts level's 0.95
+    roll) and 27%.
+  - **Seen in:** issue #2275 (a pasted helmet's +28 mana read +30 after reopening); the probe on the open-spell plan's
+    items.
+  - **Workaround:** on an item that holds a rune or soul core, write a rolled line as its number, not as a range.
+  - **Upstream:** issue #2275 (open), no pull request. Its thread blames hybrid mods and doesn't name this cause.
+    Unchanged on `dev` (checked 2026-11-06).
+- **PG-110, an item on a base the pin lacks is dropped without a word.** data, confirmed by probe.
+  - **Where:** the pin has no Runeforged quarterstaff and one Runemastered one, the Warding Quarterstaff
+    (`Data/Bases/staff.lua:452-487`). A character import skips an item whose base isn't in the data, with only a
+    console line (`Classes/ImportTab.lua:1183-1187`, `:1428`). A load keeps an item only when it has a base
+    (`Classes/ItemsTab.lua:1133-1140`), and the item set still points at the missing id.
+  - **Effect:** the slot reads empty. In the probe, Pillar of the Caged God saved on a Long Quarterstaff and renamed
+    to a Runemastered Long Quarterstaff in the file loaded without an error, with Weapon 1 empty and one item fewer.
+    `get_build_issues` then states "Weapon 1: empty." as a fact (`src/advice/judge.ts:176-177`), and a skill that
+    needs the weapon reads 0 DPS (the issue). An imported character is exposed. A compile isn't: PoB parses such a
+    text with no base, and `compile_check` refuses it.
+  - **Seen in:** issue #2582 (a Runemastered Long Quarterstaff; poe.ninja's PoB code for the character already lacks
+    it).
+  - **Workaround:** ask the player what the empty slot holds. Type the item on its plain base, which loses what the
+    Runeforged or Runemastered base adds.
+  - **Upstream:** issue #2582 (open); PR #2583 (open) adds the Runeforged Wrapped, Long, Gothic, Crescent and
+    Steelpoint and the Runemastered Long and Gothic Quarterstaff. Neither warns about an unknown base.
+- **PG-111, a base name the data defines more than once keeps only its last definition.** data, confirmed by probe.
+  - **Where:** `Data/Bases/*.lua` define 19 base names more than once with different implicits, one per variant, and
+    each definition replaces the one before. Two-Stone Ring keeps Cold and Lightning (`Data/Bases/ring.lua:110`),
+    Shrine Sceptre Purity of Lightning (`Data/Bases/sceptre.lua:178`), Tournament Mail and Shrouded Mail Lightning
+    Resistance (`Data/Bases/body.lua:1937`, `:2051`); the rest are Runeforged or Runemastered bases.
+  - **Effect:** a text that carries its implicit line reads right, so an imported character is safe. A plan's bare
+    base isn't: the compile fills a text with no `Implicits:` line from the base's data (D-435) and checks only PoB's
+    `variantList`, which these bases lack. A bare "Two-Stone Ring" compiles with cold and lightning resistance and a
+    bare "Shrine Sceptre" with Purity of Lightning, whatever the designer meant, and V1's `implicit-variant` stays
+    quiet.
+  - **Seen in:** issue #2582's note (Runemastered Runic Fork); the probe read the four bases above from the pin.
+  - **Workaround:** on these bases, write the `Implicits:` line and the implicit.
+  - **Upstream:** noted in issue #2582 (open); PR #2583 doesn't change it.
+- **PG-112, node power gives a node the score of another with the same lines.** ours, confirmed by probe.
+  - **Where:** `pob-api/API/NodePower.lua` caches each node's measure by its `modKey`, the text of its lines
+    (`:603-614`, `:651`, `:662`, `:669`), on purpose, to match PoB's own power pass (`Classes/CalcsTab.lua:594-597`,
+    `:622-625`); its comment names only weapon-set twins (`:627-631`). A radius jewel's lines reach only the nodes in
+    its radius (`Modules/CalcSetup.lua:200-201`, `:234-235`), and PoB scales small and notable passives apart, so
+    nodes with the same `modKey` can measure differently. The first one measured sets the score for all.
+  - **Effect:** the probe used the golden build, with lightning resistance put under its cap, whose Time-Lost Diamond
+    gives small passives in its radius +3% Lightning Resistance. Two small passives outside the radius (14572, 35284)
+    scored like their twins inside (+16.5 on the lightning max-hit stat, +140 EHP), though each alone adds nothing.
+    `get_node_power`'s rows, the swap and rebuild searches' estimates (`:1677-1692`, `:1706-1717`, the pools'
+    `:2392-2398`) and `get_passive_upgrades` at one point away read the cached figure. A path of two or more points
+    and a swap are measured whole, so they're right. The other order is as likely: a node inside the radius reads
+    nothing.
+  - **Seen in:** PR #2559 (no issue); the probe above.
+  - **Workaround:** near a radius jewel, trust a node's figure only with its path of two or more points, or a swap's
+    own measure.
+  - **Fix (not built):** key the cache, as PR #2559 keys PoB's, on the `modKey` plus the node's type, its attribute
+    flag, its weapon set (`allocMode`) and the radius jewels (`build.calcsTab.mainEnv.radiusJewelList`) whose `nodes`
+    hold it, at the call sites above. Nodes that measure alike still share. The figures then differ from PoB's tree
+    tab for such twins, so the header's "equal PowerBuilder's" changes.
+  - **Upstream:** PR #2559 (open), the same fix in PoB's `Classes/CalcsTab.lua`.
+- **PG-113, an imported character's main skill is the group with the most gems.** bug, confirmed in code.
+  - **Where:** a first import, into a build with no skill groups (`Classes/ImportTab.lua:928`), picks the main group
+    with `GuessMainSocketGroup`: the most gems, the first on a tie (`:1136-1137`, `:1473-1484`), a PoE1 rule. A
+    re-import keeps the player's choice (`:1127-1134`). The file saves the main group (`Modules/Build.lua:1160`) and a
+    load reads it back (`:1118`), so a guess and a choice look the same.
+  - **Effect:** in PoE2 every group can be fully linked, so the biggest is often a buff, a curse or a movement skill.
+    On an imported character's file where the player never set it, every figure our tools read from PoB's main skill
+    is that group's: `lua_load_build`'s summary DPS, `get_passive_upgrades`' DPS ranking, `get_node_power`'s DPS
+    stats and `MainDamage`. Compiled builds aren't exposed: the compile sets the main group
+    (`pob-api/API/Compile.lua:1843`).
+  - **Seen in:** issue #2536.
+  - **Workaround:** ask the player which skill does the damage, or compare the groups' DPS, and set it with
+    `set_main_skill` before reading figures.
+  - **Upstream:** issue #2536 (open, a feature request); PR #1401 (open) guesses by DPS across the groups.
+- **PG-114, an item's quality doesn't reach the skill it grants.** bug, confirmed in code.
+  - **Where:** an item's granted skills carry no quality (`Classes/Item.lua:2211-2222`), and PoB creates the skill's
+    group with quality 0 (`Modules/CalcSetup.lua:1525-1529`). The game applies a Shrine Sceptre's quality to its
+    Purity (the issue).
+  - **Effect:** each Purity gives +0.4% to its resistance per 1% quality (`Data/Skills/act_int.lua:16123`, `:16246`,
+    `:16369`), so a 20% Shrine Sceptre's aura reads 8 points of resistance low. Imported characters and compiled
+    builds are both exposed.
+  - **Seen in:** issue #2575.
+  - **Workaround:** a custom mod for the missing resistance, with its reason.
+  - **Upstream:** issue #2575 (open); PR #2577 (open) gives every item-granted skill its item's quality.
 
 ## Data: missing, out of range, or stale
 

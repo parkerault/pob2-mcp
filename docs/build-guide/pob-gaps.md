@@ -5,7 +5,7 @@ PathOfBuilding-PoE2 v0.23.1, for game 0.5.4, under `vendor/PathOfBuilding-PoE2/s
 
 **Who reads it.** The verification phase uses it when it labels how far PoB follows each link of a candidate
 build. The coverage checker could also flag entries from it (idea I14). It is also a starting point for
-upstream bug reports.
+upstream bug reports: `pob-upstream.md` says which entries upstream already has as an issue, a PR or a fix on `dev`.
 
 **How to add an entry.** Add one entry per gap as it's found, cite `file:line`, and say which build showed it.
 Started 2026-10-10 from the reference-build studies (`reference-builds.md`, `worklog.md`).
@@ -678,6 +678,7 @@ Legionnaire), read in the session; nothing copied. The user sees the first two o
     the warning; a Spear Throw group with no support doesn't count. V1's `skill-slots` (D-428) repeats PoB's count.
   - **Workaround:** none yet; amendment 16 recounts in the bridge by the rule the character shows (a group counts
     when its first enabled active skill isn't granted).
+  - **Upstream:** fixed on PoB's `dev` after our pin (PR #2411, 2026-08-26), in no release yet (`pob-upstream.md`).
 - **PG-107, an imported character has every skill turned on.** gap, confirmed in code.
   - **Where:** the importer makes each skill of the game's character data an enabled group of enabled gems
     (`Classes/ImportTab.lua:990`, `:1062-1078`) and reads no on or off state.

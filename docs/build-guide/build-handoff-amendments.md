@@ -8,12 +8,94 @@ first. If anything here conflicts with the spec, the spec wins, and you report t
 
 The project spine is `docs/spec/README.md`. It replaced the server spine and the build-guide spine, which stay as
 history; where a section below says "the spine" or "spine §n", read `docs/spec/README.md` (its front matter maps the
-old sections). Every amendment build ends with the fold: the amendment's formalization puts its rows into the spine
-with status approved, and the build's last unit updates them as built (the work-log's record wins, the difference
-stated beside the row) and moves the status line's "Folded through amendment <n>". `tests/static/specSpine.test.ts`
-fails when the spine falls behind.
+old sections). Every amendment build ends with the fold. The approval commit, before the first unit, puts the
+amendment's rows into the spine with status approved and sets the status line to "Folded through amendment <n>
+(approved; as built through <n−1>)"; the build's last unit updates the rows as built (the work-log's record wins, the
+difference stated beside the row) and drops the parenthesis (amendment 15 §13). `tests/static/specSpine.test.ts` fails
+when the spine falls behind.
 
-## M-27: amendment 14, a PoB file at every gate, items as specs, and the tree tools' repairs (read this first)
+## M-28: amendment 15, the plugin layout, the shared rules and game knowledge (read this first)
+
+Added 2026-11-06. For this build, this section overrides the M-27 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-27's formats stay in force where M-28
+doesn't change them.
+
+- **Spec.** `docs/build-guide/spec/amendment-15-plugin-and-knowledge.md`, approved revision 1, 2026-11-06
+  (D-499…D-506, §13's units, order and merge rule, §14's criteria AC-W114…AC-W129, Appendix A's formats) is binding.
+  The spine, `docs/spec/README.md`, is folded through amendment 14 as built and holds amendment 15's rows as approved
+  (the approval commit). Read the amendment's status and Names, §2 (the skill today, and what the tests pin), §3 (what
+  Claude Code allows), §4 to §10, §13, §15 (migration), §17 (guardrails), your unit's decisions and criteria, and
+  Appendix A. The amendment's paths name the new places (§4), except where it says "today".
+- **Approved** by the user on 2026-11-06 ("1. yes; 2. yes"), with §19's three recommended choices: game knowledge's
+  web is poe2db.tw only, at D-497's pace (choice 1); if the load check fails, the build stops and asks the user, with no
+  fallback layout (choice 2); the gate's verifier runs the load check's two `claude` commands (choice 3). §18 lists
+  where the spec departs from the user's answers; a doer who finds another departure stops and reports it.
+- **HG-12: no grant.** No server tool, tool contract, plan schema or record changes in this amendment (§17). Any
+  tool-contract change is HG-12: stop and report.
+- **Integration worktree:** `pob2-mcp-wt/m28` beside the main checkout (the folder the earlier milestones' worktrees
+  use), branch `build-guide/m28`, off `main` at the approval commit. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the
+  integration head when the unit starts. The main checkout is never touched; its `vendor/` is the source for a lane's
+  copy, read only.
+- **Units and order** (§13). WU-145 is one unit: its gate passes only when the files and every path to them move
+  together. Then WU-146, rebased on WU-145; then WU-147, rebased on WU-146. WU-148 starts once WU-145 merges and runs
+  beside WU-146 and WU-147; it owns only its script, its test and its baseline, and merges last of the build units,
+  rebased on WU-147, before WU-149. WU-149 (docs) follows WU-147 and WU-148: slice 04, 03's notes at §7.3 and §7.6,
+  and the spine as built, the status line's parenthesis dropped. **Stop before WU-150:** it is the user's install and
+  read check (HG-37), after M-28 merges to `main`, from the main checkout, not a doer's unit. A breach of the
+  words-loaded bound (D-505) at a later gate is fixed by the unit whose text caused it.
+- **Who owns what.** WU-145: §13's row (the manifests; `skills/`, `agents/`, `bin/`, `hooks/hooks.json`; the
+  reminder's numbered lines; §5's path and command rewrites; the task header's `root` and `reference`; the verifier's
+  prompt; the `pob2:` prefix and `scripts/run-usage.mjs`; the scripts' root; the data headers and `pairs.md`;
+  `src/plan/monsterMods.ts`:5; `CLAUDE.md`'s pointers and step 7; the README; the run settings example; the tests'
+  paths, pins and temporary layouts; the old-path guard). WU-146: `runner-rules.md`, `SKILL.md`'s hard rules, the
+  stray-file check, the reminder's printing and text, the agent definitions' last sentence. WU-147:
+  `skills/game-knowledge/SKILL.md` and the legacy rule's move. WU-148: `scripts/words-loaded.mjs`,
+  `scripts/words-loaded.baseline.json` and its test. Shared static test files are edited by `describe` block.
+- **The coordinator** merges each unit after its verifier passes, and owns the work-log (the load check's output,
+  AC-W116's diff classes, AC-W125's questions, answers and tool calls, AC-W126's output on the merged tree) and the
+  spec. Amendment 15's rows are in the spine as approved already (the approval commit); WU-149 marks them built.
+- **The load check** (§4): `claude plugin validate <tree>`, which must exit 0 with no error and only the expected
+  warnings (no `version`; the root `CLAUDE.md`; at WU-145's and WU-146's gates, `skills/game-knowledge/` without its
+  `SKILL.md`), and `claude --plugin-dir <tree> plugin details pob2`, which must list `build-guide`, the four agent
+  types and the `SessionStart` hook (and `game-knowledge` at the milestone gate). WU-145's agent runs it on its lane
+  before deleting `.claude/skills/build-guide/` and `.claude/agents/build-guide/`; the gate's verifier runs it at
+  WU-145's gate and at the milestone gate, on the merged tree, and records the output in the work-log. Neither command
+  is `claude -p` or changes the user's settings; no other use of the `claude` binary is allowed. **If either fails, the
+  build stops and asks the user** (choice 2).
+- **Game knowledge's real cases** (§8, AC-W125). The coordinator asks each of §8's three questions of a fresh
+  general-purpose agent, giving it `skills/game-knowledge/SKILL.md`'s text with `${CLAUDE_PLUGIN_ROOT}` replaced by
+  the tree's absolute path, and telling it to use only Read, Grep, Glob and the five lookup tools (`lookup_game_data`,
+  `check_model_coverage`, `search_tree_nodes`, `list_gems`, `get_classes`), with no web. The gate's verifier checks
+  the recorded tool calls. A wrong answer is asked once more of another fresh agent; a second miss is fixed in the
+  piece's files and the case asked again. M-28 needs all three passed.
+- **The tests' paths** (R-113, R-116). The milestone's diff under `tests/` changes no assertion outside AC-W116's
+  classes. Twelve static test files read a missing file as empty text (§2), so a stale path passes a negative
+  assertion silently: AC-W115's old-path guard over `tests/` catches it.
+- **History keeps its paths** (§15): the amendments, the work-log, the studies, the old spines and this handoff's
+  earlier sections. Don't rewrite them; the spine's §4.3 maps the old paths to the new.
+- **Trade and poe2db.** No unit sends a trade request; test servers keep trade off (`spawnServer`), and HTTP in tests
+  goes through `fixtureFetch`. No unit fetches poe2db: `pairs.md` is regenerated offline
+  (`rules-index.mjs join --write`), and the digest's and the monster table's header lines are edited by hand (§5).
+- **Room left, measured at `a8d735c`:** `SKILL.md` is 349 lines, and AC-W127's bound is 349 at every gate; game
+  knowledge's `SKILL.md` has fewer than 150 (D-505); each stage's words loaded may grow at most 5% over its baseline.
+- **Stops for the user:** the load check failing (choice 2); HG-12 for any tool change; any other human gate; the same
+  gate failure three times in a row (`blocked:loop`).
+- **Running the gate:** the M-20 bullet's command, unchanged (one full gate at a time, `nice -n 19`, under the lock);
+  no `rm -rf` inside its `sh -c` script. The milestone gate adds `scripts/fresh-clone-check.sh` and the load check on
+  the merged tree. **M-28's gate** passes when AC-W114 to AC-W128 hold, `mise run test` and `pnpm build` exit 0,
+  `scripts/fresh-clone-check.sh` passes, and the load check passes on the merged tree; the gate's verifier records
+  each (§13). AC-W129 is recorded later, at HG-37.
+- **Lane bootstrap:** from the integration worktree, `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m28`;
+  in the lane, `git config --worktree commit.gpgsign false`, `mise trust`, `cp -a <main checkout>/vendor ./vendor`,
+  `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **No network** beyond GitHub and npm for a worktree's bootstrap. No unit has a network allowance; game knowledge's
+  poe2db scope is the piece's own at run time, and its real cases run with no web.
+- **Commits, signing and pushing:** as "Commits" below: unsigned in the worktrees, `<type>(WU-nnn): <what>` with the
+  co-author line, never pushed by a unit. The coordinator signs the merged milestone onto `main` with the user (HG-8).
+- **Notification path:** as below. A stop goes to the user in chat, with a push notification.
+
+## M-27: amendment 14, a PoB file at every gate, items as specs, and the tree tools' repairs (built)
 
 Added 2026-11-02. For this build, this section overrides the M-26 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

@@ -663,6 +663,41 @@ generated list (§20). Every `file:line` below was checked against the pin on 20
   - **Workaround:** the lookup drops the skills `data/items/item-only-skills.json` lists from a generated unique's
     variants (D-494); the user adds names as they're found (R-84).
 
+## Found in amendment 15 (2026-11-06)
+
+From a character imported through poe.ninja and left unmodified (the user's "ResurrectForbidden", a level 100 Gemling
+Legionnaire), read in the session; nothing copied. The user sees the first two on nearly every imported character.
+
+- **PG-106, a support in a granted skill makes its group count against the skill slots.** bug, confirmed in code.
+  - **Where:** the skills tab counts a group once any enabled gem in it is neither an item's nor the tree's
+    (`Classes/SkillsTab.lua:1577-1581`, the total at `:1607`), so a support gem placed in a granted skill counts the
+    group. The warning compares that total with the slots (`Modules/CalcPerform.lua:3605`; 9 base,
+    `Modules/CalcSetup.lua:728`, plus one per "Grants 1 additional Skill Slot").
+  - **Effect:** the character runs 10 gem groups on its 10 slots and also its spear's Spear Throw (with Frost Nexus)
+    and its sceptre's Purity of Ice (with four supports); PoB reads 12 and warns. Turning those two groups off clears
+    the warning; a Spear Throw group with no support doesn't count. V1's `skill-slots` (D-428) repeats PoB's count.
+  - **Workaround:** none yet; amendment 16 recounts in the bridge by the rule the character shows (a group counts
+    when its first enabled active skill isn't granted).
+- **PG-107, an imported character has every skill turned on.** gap, confirmed in code.
+  - **Where:** the importer makes each skill of the game's character data an enabled group of enabled gems
+    (`Classes/ImportTab.lua:990`, `:1062-1078`) and reads no on or off state.
+  - **Effect:** Spirit is reserved for every buff the character has socketed, though the game runs only what its
+    Spirit covers, and players toggle buffs by weapon set or as needed. The character's six buffs reserve 254
+    (Trinity 100, Charge Regulation 40 with Clarity I's 10, Herald of Ice 30, Wind Dancer 30, Combat Frenzy 30, Ghost
+    Dance 24) against 215 Spirit, and PoB warns that unreserved Spirit is negative. Each figure equals the gem's own
+    cost, and no passive, jewel or item line on the character names Spirit or reservation beyond its sceptre.
+  - **Workaround:** turn the buffs that are off in the game off in PoB.
+- **PG-108, an imported character holds each granted skill twice.** bug, confirmed in code.
+  - **Where:** the game's skill list carries skills its items and passives grant, with any supports in them, and the
+    importer adds each as a plain group (`Classes/ImportTab.lua:1062-1078`); PoB then adds its own group for each
+    granted skill from the item or node.
+  - **Effect:** the character holds Spear Throw three times plainly and twice from its spears, and Virtuous Barrier,
+    Righteous Descent and Purity of Ice once each way. A plain copy with a support counts against the skill slots
+    (PG-106). Whether a buff applies twice wasn't measured, except that the tree's level 1 Virtuous Barrier changed
+    nothing when turned off, while the plain level 20 copy carried the defence.
+  - **Workaround:** delete the plain copies without supports; move the supports of the others onto PoB's granted
+    group.
+
 ## Data: missing, out of range, or stale
 
 - **PG-41, rolls above PoB's data range.** data, reported. Each has to be typed in:

@@ -6477,3 +6477,41 @@ the `m17` engine at `b76967b`.
     (D-498: M-13 retired; the Titan Rake run, WU-126, stands for its Titan / Blood Hunt run, which never ran.)
   - "I don't have a preference for skill split order; I won't be doing another run until it's all finished." So the
     whole skill split comes before the next live run, M-27's WU-144 included, in the coordinator's order.
+
+## 2026-11-06: amendment 15 approved; PoB's reading of an imported character
+
+- **Amendment 15 approved** (`docs/build-guide/spec/amendment-15-plugin-and-knowledge.md`, revision 1): the plugin
+  layout, the shared rules and the game-knowledge piece, M-28 (WU-145…WU-150). The user: "1. yes; 2. yes", with the
+  three recommended choices: game knowledge's web is poe2db.tw only; a failed load check stops the build and asks; the
+  gate's verifier runs `claude plugin validate` and `claude --plugin-dir <tree> plugin details pob2`.
+  - **How it was drafted:** spec-formalizer (brownfield) from the accepted design and the user's answers to the gap
+    list (2026-11-04); a read-only survey of the skill; checks of Claude Code's plugin documentation and an offline
+    experiment (a validate of Appendix A's files and a copied install under a throwaway config folder). Four review
+    lenses raised 66 findings; the material ones formed 15 clusters, each checked by a skeptic (13 confirmed, 2 partly,
+    none refuted), then a consistency pass fixed 14 inconsistencies the fold introduced.
+  - **Cost:** about 2.5M subagent tokens (survey and docs checks 0.74M, review 1.73M).
+  - **Departures the user accepted:** review moves to amendment 17, because its targets exist only in a compile; the
+    load check replaces the plugin spike, and a failed check stops the build instead of falling back to flat project
+    skills; the spine's status line moves at approval ("approved; as built through 14"), so its test holds at every
+    gate.
+- **Before approval, the user's notes** (recorded in the amendment's §1, §8 and §11):
+  - Game knowledge no longer sends a PoB-file check to `/pob2:build-guide`; review (amendment 17) claims "how can I
+    make this build better" and names each finding's next step.
+  - "the most common use case will be users importing their game character to PoB, then pointing the skill at that
+    file": amendments 16 and 17 design for imported characters.
+  - Uncapped campaign resistances are normal, and the Spirit and gem-group warnings show on nearly every imported
+    character, so Navira's three "flaws" are withdrawn as review's test cases. "I want to make sure our skill's tests
+    won't reject a build that works in-game."
+  - Spirit buffs that can't all be on at once are common, toggled by weapon set or as needed; the designers must
+    support it (amendment 16).
+  - "I want to start tracking PoB bugs we encounter in a document somewhere": `docs/build-guide/pob-gaps.md` ("PoB
+    gaps and bugs") is that document.
+- **ResurrectForbidden** (the user's character, imported through poe.ninja, unmodified; read in the session through
+  the server, never saved): PG-106 to PG-108.
+  - PoB counts a group against the skill slots once any gem in it isn't granted, so a support in a granted skill
+    counts it. The character's 10 gem groups on 10 slots, plus its spear's Spear Throw and its sceptre's Purity of Ice
+    with supports, read as 12. V1's `skill-slots` repeats the count; the user agreed to a recount in the bridge in
+    amendment 16.
+  - The import turns every skill on, so six buffs reserve 254 Spirit against 215; each figure equals the gem's own
+    cost, and no line on the character names Spirit or reservation beyond the sceptre.
+  - The import holds each granted skill twice: from the game's skill list and as PoB's granted group.

@@ -19,6 +19,7 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { newestDigest } from '../helpers/newestDigest';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -186,7 +187,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     // amendment 13 (§22): 13.
     expect(log).toEqual({
       schemaVersion: 4, skillRevision: 14, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
-      noNinja: true, pinCommit: pin, digest: 'runes-of-aldur.md', dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
+      noNinja: true, pinCommit: pin, digest: newestDigest(REPO), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
     // noNinja is the runner's to state: init refuses a first write without it (D-412, D-420).
@@ -244,7 +245,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 14 from stages[25] (the rules of amendments 11, 12, 13 and 14)\n', stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
-    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: 'runes-of-aldur.md', noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
+    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: newestDigest(REPO), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
     expect(write(dir, 'resume', {}).stderr).toMatch(/noNinja is true or false: whether this session prices without poe\.ninja/);
     const old = copy('run-ok');
     expect(write(old, 'resume', { noNinja: false }).stderr).toBe('run-log: resume entry refused: run-log.json is a schema-3 log; resume is schema 4\'s (amendment 9): run pob2-run-log <runFolder> migrate first\n');

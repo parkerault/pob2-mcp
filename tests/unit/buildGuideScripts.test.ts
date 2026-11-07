@@ -27,6 +27,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { headlineDps } from '../../src/plan/record';
+import { newestDigest } from '../helpers/newestDigest';
 import { CARD, GATE_FILE, MINION, editJson, readJson, writeGuideRun, writeMinionGuideRun, type Json } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -335,7 +336,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       testConfig: 'accepted',
       noNinja: false,
       pinCommit: readJson(REPO, 'pob-pin.json').commit,
-      digest: 'runes-of-aldur.md',
+      digest: newestDigest(REPO),
       dossier: null,
       builds: [],
       stages: [],

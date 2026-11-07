@@ -6870,3 +6870,30 @@ the `m17` engine at `b76967b`.
   - **No `claude -p`** anywhere in the skill, the plugin, the tests or a build: it bills at API rates past a small
     allowance (adds a reason to D-263).
 - **M-28 closed:** the spine marks M-28 built and HG-37 passed, WU-150 recorded, R-114 open.
+
+## 2026-11-07: the Forbidden Rites digest; PoB's lag after a league launch
+
+- **`data/league/forbidden-rites.md`** (the user: "Run the Forbidden Rites digest", then "Commit"):
+  `league-digest.mjs Forbidden_Rites`, two poe2db requests at D-497's pace (the homepage, then the one list page
+  its block links, `Forbidden_Rites_items`). Forbidden Rites is 0.5.5, a league inside patch 0.5 ("Return of the
+  Ancients", whose content is `runes-of-aldur.md`): 19 entries, 17 soul cores (13 Jiquani's, 4 Atziri's) and two
+  map items (Sacred Bloom, Expedition Tablet), none of them in the pin v0.23.1. No rule-changer file yet: the
+  Jiquani's cores add gem levels and the Atziri's add a number per corrupted item (not rule changers by the
+  criterion); "Corrupting will always result in change" is for judging when a pin knows them.
+- **The homepage's league cards carry start and end times** (`data-displaytime`): 0.5 from 2026-05-29 20:00 UTC and
+  0.5.5 Forbidden Rites from 2026-09-04 20:00 UTC, both running until 2026-12-11 20:00 UTC; 1.0 "Conquerors of
+  Wraeclast" starts 2026-12-11 20:00 UTC, its section already listed with partial data from the announcement. The
+  user's rule (amendment 16): read every digest whose league is running today, newest first; never one not yet
+  started; an ended one only when asked.
+- **The gate** (main checkout, `mise run test`, `pnpm build`): build rc 0; test rc 1, 241 of 243 suites, 3 tests
+  failing, each expecting `runes-of-aldur.md` as the newest digest of the real `data/league/`
+  (`buildGuideSchema4.test.ts` ×2, `buildGuideScripts.test.ts` ×1). They now read D-412's newest digest through
+  `tests/helpers/newestDigest.ts`, which applies the rule on its own; the two suites re-run: 74 tests pass.
+- **PoB already parses every stat line of the 17 soul cores** (`check_model_coverage` on one probe item: 17 of 18
+  lines fully parsed; "Corrupting will always result in change" unparsed). The pin lacks only their entries.
+- **PoB2's first release with a patch's data** (its GitHub releases; launches at about 20:00 UTC): 0.2 v0.6.0
+  about +47 h (the new uniques' mods "not supported yet"); 0.3 v0.10.0 about +5 h; 0.4 v0.13.0 about +3 days; 0.5
+  v0.16.0 4.5 h before launch, then v0.17 to v0.21 within two weeks. Mean about +30 h; 0.1 and 0.5.5 (no release
+  in 64 days) left out. The user wants the gap handled for a new league's first days, folded into amendment 16.
+- `data/economy/prices.json` labels every past league "patch 0.5.x"; Dawn of the Hunt was 0.2, Rise of the Abyssal
+  0.3, Fate of the Vaal 0.4 (to correct with amendment 16's pricing work).

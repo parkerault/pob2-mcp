@@ -23,10 +23,14 @@ const EXAMPLE = path.join(REPO, 'docs', 'build-guide', 'run-settings.example.jso
 const COORDINATOR = path.join(REPO, 'agents', 'build-guide-coordinator.md');
 const PLUGIN_HOOKS = path.join(REPO, 'hooks', 'hooks.json');
 
-/** The rule's key sentences (WU-95 copies the rule into SKILL.md's first 40 lines). */
-const RULE_SENTENCES = [
-  'If a /build-guide run is in progress, this session was just compacted',
-  'Re-read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` whole',
+/**
+ * The rule's key sentences (WU-95 copies the rule into SKILL.md's first 40 lines), as the script prints them for the
+ * plugin root `root`: amendment 15 (WU-146, D-501) has it print the root itself, name `/pob2:build-guide` and re-read
+ * the shared rules.
+ */
+const ruleSentences = (root: string) => [
+  'If a /pob2:build-guide run is in progress, this session was just compacted',
+  `Re-read \`${root}/skills/build-guide/SKILL.md\` and \`${root}/skills/build-guide/references/runner-rules.md\` whole`,
   "the run's `run-log.json`",
   "the current step's reference",
   "the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`)",
@@ -35,7 +39,7 @@ const RULE_SENTENCES = [
   'which records no second visit',
   "Act on no yes the notes don't hold",
   'restate the pending decision and wait for it',
-  'If no /build-guide run is in progress, ignore this.',
+  'If no /pob2:build-guide run is in progress, ignore this.',
 ];
 
 interface HookCommand {
@@ -90,7 +94,8 @@ describe('WU-98 (D-420): scripts/compact-reminder.sh', () => {
         input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'compact' }),
         encoding: 'utf8',
       });
-      for (const sentence of RULE_SENTENCES) expect(out).toContain(sentence);
+      // No CLAUDE_PLUGIN_ROOT: the script names the folder above its own, symbolic links resolved.
+      for (const sentence of ruleSentences(fs.realpathSync(REPO))) expect(out).toContain(sentence);
       // Short: the rule fits in a handful of lines.
       expect(out.trim().split('\n').length).toBeLessThanOrEqual(8);
     } finally {
@@ -185,7 +190,7 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
         env: { PATH: process.env.PATH ?? '/usr/bin:/bin', CLAUDE_PLUGIN_ROOT: REPO },
         encoding: 'utf8',
       });
-      for (const sentence of RULE_SENTENCES) expect(out).toContain(sentence);
+      for (const sentence of ruleSentences(REPO)) expect(out).toContain(sentence);
     } finally {
       fs.rmSync(cwd, { recursive: true, force: true });
     }

@@ -578,8 +578,10 @@ describe('AC-W104 (WU-133): SKILL.md', () => {
     expect(SKILL).toMatch(/a change to the tree alone .* runs D1-tree, then D1-finish \(on a plan at schema 8 or earlier, D1-build first, to move it to 9, amendment 13 §22\)/);
   });
 
+  // Amendment 15 (WU-146, D-501): the check moved with the shared rules to runner-rules.md, and runs in the session's
+  // working directory when that is a git work tree, else is skipped, said once.
   it("lists the untracked files after each step against the run's first listing", () => {
-    expect(SKILL).toMatch(/- `git status --porcelain` from the repository root, \*\*the stray-file check\*\* \(D-474\): keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing/);
+    expect(ref('runner-rules.md')).toMatch(/- `git status --porcelain` in the session's working directory, \*\*the stray-file check\*\* \(D-474, D-501\): when that folder, the one the session started in, is a git work tree, keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing/);
   });
 
   it('cites references/corruption.json', () => {

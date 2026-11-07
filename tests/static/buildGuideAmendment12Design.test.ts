@@ -522,8 +522,9 @@ describe('AC-W98 (WU-125): V4, pricing.md and SKILL.md', () => {
     expect(ref('pricing.md')).toMatch(/\*\*The pricing notice\*\* \(D-461\)\. Before a step that prices on the trade site starts .*, the runner tells the user that pricing starts, about how many searches it makes .*, that they go at least 45 s apart .*, and that the user's browser shares the trade site's limit/);
   });
 
-  it('SKILL.md tells the user before pricing starts', () => {
-    expect(SKILL).toMatch(/\*\*Tell the user before pricing starts\*\* \(D-461\): that it starts, about how many searches, at least 45 s apart, and that their browser shares the limit; one trade call at a time/);
+  // Amendment 15 (WU-146, D-501): the rule moved with the shared rules to runner-rules.md, which SKILL.md has read first.
+  it('the runner tells the user before pricing starts (runner-rules.md)', () => {
+    expect(ref('runner-rules.md')).toMatch(/\*\*Tell the user before pricing starts\*\* \(D-461\): that it starts, about how many searches, at least 45 s apart, and that their browser shares the limit; one trade call at a time/);
   });
 
   it('SKILL.md has no respec: route for new runs', () => {

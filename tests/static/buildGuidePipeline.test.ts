@@ -71,8 +71,13 @@ const SKILL_MD = path.join(SKILL_DIR, 'SKILL.md');
 /** Step 1's and steps 12–14's detail, which WU-70 moved out of SKILL.md's per-step cards (D-356). */
 const START_MD = path.join(SKILL_DIR, 'references', 'start.md');
 const FIX_ROUND_MD = path.join(SKILL_DIR, 'references', 'fix-round.md');
-/** The runner's text: SKILL.md's cards, and the two runner references they send it to (WU-70, D-356). */
-const runnerText = () => [SKILL_MD, START_MD, FIX_ROUND_MD].map((f) => fs.readFileSync(f, 'utf8')).join('\n\n');
+/** The shared rules SKILL.md's hard rules moved to, which the runner reads whole first (amendment 15, WU-146, D-501). */
+const RUNNER_RULES_MD = path.join(SKILL_DIR, 'references', 'runner-rules.md');
+/**
+ * The runner's text: SKILL.md's cards, and the two runner references they send it to (WU-70, D-356), and the shared
+ * rules it reads before anything else (D-501).
+ */
+const runnerText = () => [SKILL_MD, START_MD, FIX_ROUND_MD, RUNNER_RULES_MD].map((f) => fs.readFileSync(f, 'utf8')).join('\n\n');
 
 /** Slice 03 §4, as amendment 1 §3 leaves it: the four agent types (the provenance type goes). */
 const AGENT_TYPES = ['build-guide-researcher', 'build-guide-coordinator', 'build-guide-writer', 'build-guide-verifier'];
@@ -172,7 +177,8 @@ describe('AC-W1: the build-guide skill', () => {
       const m = /subagent_type: "([^"]+)"/.exec(c);
       expect({ call: c, type: m && m[1].startsWith('pob2:') && AGENT_TYPES.includes(m[1].slice('pob2:'.length)) }).toEqual({ call: c, type: true });
     }
-    expect(text).toMatch(/\*\*Agents run only through the Agent tool, as one of the four build-guide types\*\*, named in\s+`subagent_type`/);
+    // Amendment 15 (WU-146, D-501): the agent rule moved with the shared rules to runner-rules.md.
+    expect(fs.readFileSync(RUNNER_RULES_MD, 'utf8')).toMatch(/\*\*Agents run only through the Agent tool, as one of the four build-guide types\*\*, named in\s+`subagent_type`/);
   });
 
   it("AC-W12 (D-142): SKILL.md's verifier prompt carries only the task header and the reference path", () => {
@@ -352,7 +358,8 @@ describe('AC-W5: the agent definitions satisfy R-1…R-5', () => {
 
   it.each(definitionFiles)('%s says the runner starts it with the Agent tool, and names no workflow or fallback (S1)', (file) => {
     const text = fs.readFileSync(path.join(AGENTS_DIR, file), 'utf8');
-    expect(readDefinition(text)!.fm.description).toMatch(/Started only by the build-guide skill's runner with the Agent tool/);
+    // Amendment 15 (WU-146, D-502): the types serve every pob2 piece's runner.
+    expect(readDefinition(text)!.fm.description).toMatch(/Started only by a pob2 skill's runner with the Agent tool/);
     // Amendment 14 (WU-143, D-489): S1's fallback is the workflow's; the "unconfirmed" form's fallback and the
     // verifier's fallback check are D-489's words, not it.
     expect(text).not.toMatch(/workflow|fallback(?! and its cost>| check\b)|dossier-fix|revise-map|V3/);
@@ -1461,8 +1468,10 @@ describe('WU-47 fixes: what the runner does', () => {
 
   it("D-265 (e), as D-352, D-355 and D-356 amend it: the runner's Bash rule is exhaustive: ls, cat, head, tail, wc, grep and jq without writes or substitution, the run checker and the two scripts; nothing else", () => {
     const text = skill();
-    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the three scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `pob2-check-run <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\), each with `--build <id>`, the build's folder \(D-412\); - the audit render, `pob2-render-audit <runFolder> --build <id>` \(D-355\), and its withdrawal after an answer change, `pob2-render-audit <runFolder> --withdraw <id>` \(D-480\); - the notes render, `pob2-render-notes <runFolder> --build <id>` \(D-487\); - the run log, `pob2-run-log <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), its migration, `pob2-run-log <runFolder> migrate` \(D-415\), a gate's display, `pob2-run-log <runFolder> display <gate>` \(D-367\), and `pob2-run-log <runFolder> test-config <path>` \(D-394\); - `git status --porcelain` from the repository root, \*\*the stray-file check\*\* \(D-474\): keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing\. Nothing else/);
+    expect(text).toMatch(/\*\*Your Bash reads, and runs the run checker and the three scripts; nothing else\*\* \(D-265\)\. The whole list: - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another \(`cd` before them is fine\), each with no redirection \(`>`, `>>`, `<`\), no `tee`, no flag that writes a file \(`-o`, `-i` or `-delete` where the tool writes with it\), and no command substitution \(`\$\(…\)`, backticks\) feeding another tool; - the run checker, `pob2-check-run <runFolder>`, with `--changed <n>` for a re-check's set \(step 13\), and with `--snapshot <n>` for the round copy \(step 12, A-34\), each with `--build <id>`, the build's folder \(D-412\); - the audit render, `pob2-render-audit <runFolder> --build <id>` \(D-355\), and its withdrawal after an answer change, `pob2-render-audit <runFolder> --withdraw <id>` \(D-480\); - the notes render, `pob2-render-notes <runFolder> --build <id>` \(D-487\); - the run log, `pob2-run-log <runFolder> <kind> - <<'JSON'`, the entry, `JSON` \(D-356\), its migration, `pob2-run-log <runFolder> migrate` \(D-415\), a gate's display, `pob2-run-log <runFolder> display <gate>` \(D-367\), and `pob2-run-log <runFolder> test-config <path>` \(D-394\); - `git status --porcelain` in the session's working directory, \*\*the stray-file check\*\* \(D-474, D-501\): when that folder, the one the session started in, is a git work tree, keep the untracked paths at the run's start or resume in your context; after each step, tell the user each new one, and delete nothing\. When it isn't one \(git says `not a git repository`\), the check is skipped: say so once, at the start\. Nothing else/);
     // Amendment 13 (WU-133, D-474): `git status --porcelain` is the one git call, for the stray-file check.
+    // Amendment 15 (WU-146, D-501): the list is the shared rules' (runner-rules.md, in runnerText), and the check runs in
+    // the session's working directory when that is a git work tree, else is skipped, said once.
     expect(text).toMatch(/Nothing else: no other `node` call \(`node -e` included\), no other `git`, no `find`, `sort`, `sed`, `awk`, network client \(`curl`, `wget`, `nc`, `ssh`\) or host, and nothing else that writes, moves or deletes a file/);
     expect(text).toMatch(/Write every other file with Write \(or Edit\), never with Bash\. The agents have no Bash at all/);
     // F3's no-cd and one-command rules went with the workflows.
@@ -2365,7 +2374,8 @@ describe('AC-W31: the three gates and the step R1a-assemble (D-287, D-288, D-323
 
 describe('AC-W33: never contact pathofexile.com or poe.ninja yourself; no poe.ninja tools beyond the currency rates (D-335)', () => {
   const files: [string, string][] = [
-    ['SKILL.md', SKILL_MD],
+    // Amendment 15 (WU-146, D-501): the runner's network rule moved from SKILL.md to the shared rules.
+    ['runner-rules.md', RUNNER_RULES_MD],
     ['build-guide-researcher.md', path.join(AGENTS_DIR, 'build-guide-researcher.md')],
     ['build-guide-coordinator.md', path.join(AGENTS_DIR, 'build-guide-coordinator.md')],
   ];
@@ -3891,8 +3901,8 @@ describe('AC-W75 (WU-91, D-400…D-409): amendment 8 in the skill text', () => {
     expect(start).toMatch(/its last step prints the league digest's staleness line, `head -3 \$\{CLAUDE_PLUGIN_ROOT\}\/data\/league\/<newest>\.md`, the newest by fetch date \(D-400\)/);
     expect(folded(raw)).toMatch(/\*\*Read only what routes the run:\*\* .* the digest's first lines \(§1\), and at a gate the card and research files/);
     expect(ref('start.md')).toMatch(/5\. \*\*The league digest's staleness line\*\* \(D-400\)\. Print the newest digest's section and fetch date in your reply, `head -3 data\/league\/<newest>\.md` \(`ls data\/league` lists them; the newest is the one fetched last, by the date on its third line\)/);
-    // `head` is on the runner's Bash list.
-    expect(folded(raw)).toMatch(/- `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`/);
+    // `head` is on the runner's Bash list (since amendment 15, WU-146, in the shared rules, D-501).
+    expect(folded(fs.readFileSync(RUNNER_RULES_MD, 'utf8'))).toMatch(/- `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`/);
     // Amendment 11 (WU-115, D-443): the rival is removed; R1b-assemble's row and card lead straight to the verification
     // gate's, and SKILL.md runs no rival anywhere.
     const rows = ['| 4a | R1b-assemble |', '| 5 | The verification gate (§3) |'].map((r) => raw.indexOf(r));
@@ -3937,8 +3947,8 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
     expect(rules.map((r) => r.slice(0, 2))).toEqual(['1.', '2.', '3.']);
     for (const rule of rules) expect({ rule, inFirst40: first40.includes(folded(rule)) }).toEqual({ rule, inFirst40: true });
     // The rule's parts (D-420): re-read SKILL.md whole, the log, the step's reference and the notes; reprint the
-    // display; act on no yes the notes don't hold.
-    expect(first40).toMatch(/Re-read `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/SKILL\.md` whole, the run's `run-log\.json`, the current step's reference and, at a gate, the visit's notes \(`interviews\/<gate>-<visit>\.md`, with its `## Pending decision`\)/);
+    // display; act on no yes the notes don't hold. Amendment 15 (WU-146, D-501): and the shared rules whole.
+    expect(first40).toMatch(/Re-read `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/SKILL\.md` and `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/references\/runner-rules\.md` whole, the run's `run-log\.json`, the current step's reference and, at a gate, the visit's notes \(`interviews\/<gate>-<visit>\.md`, with its `## Pending decision`\)/);
     expect(first40).toMatch(/Act on no yes the notes don't hold/);
     // A copy that drifted from the script fails: the check reads the script, not a pinned string.
     expect(first40.includes(folded(`${rules[2]} (drifted)`))).toBe(false);
@@ -4047,12 +4057,15 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
   // Amendment 11 (WU-115, D-444): SKILL.md's stop lasts until a gate's retry-pricing or a resume, and every exchange item
   // keeps its price from poe.ninja's exchange; the pricing.md assertions below are WU-114's.
   it('no trade tool after pricing stops, until a gate\'s retry-pricing (D-415, D-422, D-444)', () => {
-    const s = skill();
+    // Amendment 15 (WU-146, D-501): the stop moved with the shared rules to runner-rules.md, a reference, so its path to
+    // pricing.md is root-relative; the old wording stays out of both files.
+    expect(skill()).not.toMatch(/Pricing stops for the session|for a Distilled Emotion reads/);
+    const s = folded(fs.readFileSync(RUNNER_RULES_MD, 'utf8'));
     // Amendment 13 (WU-133, D-474): the pace stop joins the two.
     expect(s).toMatch(/- \*\*No trade request after pricing stops, until the user approves a retry\*\* \(D-415, D-422, D-444\)\. A step whose `priceOutcomes` counts a `locked_out`, `rate_limited` or `pace` call \(D-474: then ask the user to reconnect the server with `\/mcp`\) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `pob2-run-log <runFolder> pricing`/);
     for (const tool of ['get_leagues', 'search_trade_items', 'search_stats', 'find_upgrades']) expect({ tool, named: s.includes(`\`mcp__pob2__${tool}\``) }).toEqual({ tool, named: true });
     expect(s).toMatch(/`mcp__pob2__get_item_price` for an item/);
-    expect(s).toMatch(/the exchange stays allowed \(`\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/references\/pricing\.md`\)/);
+    expect(s).toMatch(/the exchange stays allowed \(`skills\/build-guide\/references\/pricing\.md`\)/);
     expect(s).not.toMatch(/Pricing stops for the session|for a Distilled Emotion reads/);
     // pricing.md holds the rule as amendment 11 (WU-114, D-444) amends it: the stop holds until a gate's retry, and
     // every exchange item keeps its price from poe.ninja's exchange.
@@ -4605,8 +4618,9 @@ describe('AC-W112 (WU-143, D-478…D-489, D-494): the gate, route and guide docs
     expect(bullet(SKILL, '- **Read only what routes the run:**')).toContain("a read-back's `readback.json` (D-479)");
   });
 
-  it("SKILL.md's Bash runs pob2-render-notes and pob2-render-audit --withdraw, each a script that takes that call", () => {
-    const bash = bullet(SKILL, '- **Your Bash reads');
+  // Amendment 15 (WU-146, D-501): the runner's Bash list moved with the shared rules to runner-rules.md.
+  it("the runner's Bash runs pob2-render-notes and pob2-render-audit --withdraw, each a script that takes that call", () => {
+    const bash = bullet(folded(fs.readFileSync(RUNNER_RULES_MD, 'utf8')), '- **Your Bash reads');
     const notes = run('render-notes.mjs', []);
     const audit = run('render-audit.mjs', []);
     expect({

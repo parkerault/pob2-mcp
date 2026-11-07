@@ -105,8 +105,9 @@ describe('AC-W119 (WU-145, D-499): the pob2: prefix wherever the runner reads an
     expect(new Set(named)).toEqual(new Set(['pob2:build-guide-researcher', 'pob2:build-guide-coordinator', 'pob2:build-guide-writer', 'pob2:build-guide-verifier']));
   });
 
-  it("SKILL.md's agent-type rule and its Agent example name the prefixed types", () => {
-    expect(folded(skill)).toContain(
+  // WU-146 (D-501): the agent-type rule moved with the shared rules to runner-rules.md; the example stays in SKILL.md.
+  it("the agent-type rule (runner-rules.md) and SKILL.md's Agent example name the prefixed types", () => {
+    expect(folded(read('skills', 'build-guide', 'references', 'runner-rules.md'))).toContain(
       "**Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type` with the plugin's prefix: `pob2:build-guide-coordinator`, `pob2:build-guide-researcher`, `pob2:build-guide-verifier` or `pob2:build-guide-writer`.",
     );
     const calls = [...skill.matchAll(/Agent\(\{subagent_type: "([^"]+)"/g)].map((m) => m[1]);

@@ -114,8 +114,9 @@ describe('AC-W115 (WU-145, D-500): every path in the skill and agent text is roo
       const found = [...text.matchAll(/\bnode\s+(?:\S*\/)?scripts\/[\w-]+\.mjs|(?<![\w/.-])[\w-]+\.mjs\s+<runFolder>/g)].map((m) => m[0]);
       expect({ file: rel(file), found }).toEqual({ file: rel(file), found: [] });
     }
-    // The runner's Bash list names the four commands, each one in bin/.
-    const skill = folded(fs.readFileSync(path.join(REPO, 'skills', 'build-guide', 'SKILL.md'), 'utf8'));
+    // The runner's Bash list names the four commands, each one in bin/ (WU-146, D-501: the list moved with the shared
+    // rules to runner-rules.md).
+    const skill = folded(fs.readFileSync(path.join(REPO, 'skills', 'build-guide', 'references', 'runner-rules.md'), 'utf8'));
     for (const command of ['pob2-check-run <runFolder>', 'pob2-render-audit <runFolder> --build <id>', 'pob2-render-notes <runFolder> --build <id>', 'pob2-run-log <runFolder> <kind> - <<\'JSON\'']) {
       expect({ command, named: skill.includes(`\`${command}`) }).toEqual({ command, named: true });
       expect(fs.existsSync(path.join(REPO, 'bin', command.split(' ')[0]))).toBe(true);

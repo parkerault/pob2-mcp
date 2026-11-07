@@ -467,7 +467,7 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
   }
   if (kind === 'withdrawn') {
     if (!CARD.test(String(e.build))) bad.push(`build ${show(e.build)} isn't a card id`);
-    if (!Array.isArray(e.files) || !e.files.every(text)) bad.push('files lists the paths render-audit.mjs --withdraw removed, relative to the run folder');
+    if (!Array.isArray(e.files) || !e.files.every(text)) bad.push('files lists the paths pob2-render-audit <runFolder> --withdraw <card id> removed, relative to the run folder');
     return bad;
   }
   if (kind === 'stage') {
@@ -635,7 +635,7 @@ export function writeLog(runFolder, kind, entry) {
   const file = path.join(runFolder, 'run-log.json');
   const existing = kind === 'init' ? null : readLog(file);
   const schema = existing?.schemaVersion ?? 4;
-  if (schema !== 4 && ['build', 'resume', 'pricing'].includes(kind)) throw new Error(`${kind} entry refused: run-log.json is a schema-3 log; ${kind} is schema 4's (amendment 9): run run-log.mjs <runFolder> migrate first`);
+  if (schema !== 4 && ['build', 'resume', 'pricing'].includes(kind)) throw new Error(`${kind} entry refused: run-log.json is a schema-3 log; ${kind} is schema 4's (amendment 9): run pob2-run-log <runFolder> migrate first`);
   const problems = entryProblems(kind, entry, schema, existing === null ? SKILL_REVISION : revisionOf(existing));
   if (problems.length > 0) throw new Error(`${kind} entry refused: ${problems.join('; ')}`);
   let log;
@@ -655,7 +655,7 @@ export function writeLog(runFolder, kind, entry) {
       throw new Error(`checkpoint entry refused: ${gateName(entry.checkpoint)}'s next visit is ${expected}, not ${entry.visit}`);
     }
     if (kind === 'checkpoint' && DISPLAYED.includes(entry.checkpoint) && !(Array.isArray(log.displays) && log.displays.some((d) => isObj(d) && d.checkpoint === entry.checkpoint && d.visit === entry.visit))) {
-      throw new Error(`checkpoint entry refused: ${gateName(entry.checkpoint)}'s visit ${entry.visit} printed no display; run run-log.mjs <runFolder> display ${entry.checkpoint} first and print its output (D-367)`);
+      throw new Error(`checkpoint entry refused: ${gateName(entry.checkpoint)}'s visit ${entry.visit} printed no display; run pob2-run-log <runFolder> display ${entry.checkpoint}${schema === 4 && ['design', 'final'].includes(entry.checkpoint) && typeof entry.concept === 'string' ? ` --build ${entry.concept}` : ''} first and print its output (D-367)`);
     }
     if (kind === 'checkpoint') {
       const against = [...newCardsAgainstRun(runFolder, log, entry), ...(schema === 4 ? buildsAgainstRun(log, entry) : [])];
@@ -790,7 +790,7 @@ function amendment14AgainstRun(log, kind, entry) {
     const next = objects(log.checkpoints).filter((c) => c.checkpoint === 'ask').length + 1;
     if (entry.visit !== next) bad.push(`the next ask is visit ${next}, not ${entry.visit}`);
   } else if (kind === 'withdrawn') {
-    if (!changes.some((x) => x.concept === entry.build)) bad.push(`${entry.build} has no answer change; render-audit.mjs --withdraw removes the guide route's files of a build whose answer changed to the PoB file only (D-480)`);
+    if (!changes.some((x) => x.concept === entry.build)) bad.push(`${entry.build} has no answer change; pob2-render-audit <runFolder> --withdraw <card id> removes the guide route's files of a build whose answer changed to the PoB file only (D-480)`);
   }
   return bad;
 }

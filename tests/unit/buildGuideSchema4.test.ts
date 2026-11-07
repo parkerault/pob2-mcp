@@ -247,7 +247,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: 'runes-of-aldur.md', noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
     expect(write(dir, 'resume', {}).stderr).toMatch(/noNinja is true or false: whether this session prices without poe\.ninja/);
     const old = copy('run-ok');
-    expect(write(old, 'resume', { noNinja: false }).stderr).toBe('run-log: resume entry refused: run-log.json is a schema-3 log; resume is schema 4\'s (amendment 9): run run-log.mjs <runFolder> migrate first\n');
+    expect(write(old, 'resume', { noNinja: false }).stderr).toBe('run-log: resume entry refused: run-log.json is a schema-3 log; resume is schema 4\'s (amendment 9): run pob2-run-log <runFolder> migrate first\n');
   });
 
   it("takes schema 4's answer forms: 1–3 cards finalized, accept:file, the final gate's campaign, accept:verification and decline:<note>, a resume's guide:, campaign: and design:, F1's escalation", () => {
@@ -744,7 +744,7 @@ describe('AC-W76: display design --build, display final --build and render-audit
       expect(after.split('## Known issues')[0]).toBe(before.split('## Known issues')[0]);
     }
     expect(fs.readFileSync(path.join(dir, 'builds/r1-a-2/audit.md'), 'utf8')).toMatch(/^# Audit: Titan \/ Blood Hunt, Blood Hunt with Rolling Slam clear\n/);
-    expect(node(RENDER, [dir])).toEqual({ code: 1, stdout: '', stderr: 'render-audit: a schema-4 run holds one folder per build: render-audit.mjs <runFolder> --build <card id> (D-412)\n' });
+    expect(node(RENDER, [dir])).toEqual({ code: 1, stdout: '', stderr: 'render-audit: a schema-4 run holds one folder per build: pob2-render-audit <runFolder> --build <card id> (D-412)\n' });
     expect(node(RENDER, [dir, '--build', 'r1-a-9']).stderr).toBe('render-audit: run-log.json has no build r1-a-9; builds[] holds r1-a-1, r1-a-2\n');
     expect(node(RENDER, [copy('run-ok'), '--build', 'r1-a-1']).stderr).toBe("render-audit: --build is schema 4's (amendment 9); this run log is schema 3\n");
   });

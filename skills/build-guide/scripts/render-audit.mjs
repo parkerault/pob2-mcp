@@ -331,7 +331,7 @@ export async function loadAuditInputs(runFolder, build) {
   // D-412: a schema-4 run holds one folder per build, `builds/<id>/` ("." for a migrated run's build); the render reads
   // that build's plan, record and audit.md, and its card's last D1 gate verdict file.
   if (build !== undefined && log.schemaVersion !== 4) throw new Error('--build is schema 4\'s (amendment 9); this run log is schema 3');
-  if (build === undefined && log.schemaVersion === 4) throw new Error('a schema-4 run holds one folder per build: render-audit.mjs <runFolder> --build <card id> (D-412)');
+  if (build === undefined && log.schemaVersion === 4) throw new Error('a schema-4 run holds one folder per build: pob2-render-audit <runFolder> --build <card id> (D-412)');
   const entryOf = build === undefined ? null : list(log.builds).find((b) => b.id === build);
   if (build !== undefined && !entryOf) throw new Error(`run-log.json has no build ${build}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const folder = entryOf && entryOf.folder !== '.' ? `${entryOf.folder}/` : '';

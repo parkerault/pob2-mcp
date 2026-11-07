@@ -810,7 +810,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     expect(run(RUN_LOG, dir, 'build', JSON.stringify({ id: CARD, roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' })).code).toBe(0);
     const answer = (visit: number) => run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'design', concept: CARD, visit, answer: 'accept', answeredBy: 'user' }));
     const before = fs.readFileSync(path.join(dir, 'run-log.json'));
-    expect(answer(1)).toEqual({ code: 1, stdout: '', stderr: "run-log: checkpoint entry refused: the design gate's visit 1 printed no display; run run-log.mjs <runFolder> display design first and print its output (D-367)\n" });
+    expect(answer(1)).toEqual({ code: 1, stdout: '', stderr: "run-log: checkpoint entry refused: the design gate's visit 1 printed no display; run pob2-run-log <runFolder> display design --build r1-a-1 first and print its output (D-367)\n" });
     expect(fs.readFileSync(path.join(dir, 'run-log.json'))).toEqual(before);
     const designShown = () => {
       const r = run(RUN_LOG, dir, 'display', 'design', '--build', CARD);
@@ -822,7 +822,7 @@ describe('run-log.mjs display (D-367, D-369, D-392): each gate visit prints its 
     expect(readJson(dir, 'run-log.json').displays).toEqual([{ checkpoint: 'design', visit: 1 }]);
     expect(answer(1)).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
     // The next visit needs its own display.
-    expect(answer(2).stderr).toBe("run-log: checkpoint entry refused: the design gate's visit 2 printed no display; run run-log.mjs <runFolder> display design first and print its output (D-367)\n");
+    expect(answer(2).stderr).toBe("run-log: checkpoint entry refused: the design gate's visit 2 printed no display; run pob2-run-log <runFolder> display design --build r1-a-1 first and print its output (D-367)\n");
     expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'escalation', visit: 1, answer: 'stop', answeredBy: 'user' })).stderr).toMatch(/^run-log: checkpoint entry refused: the escalation question's visit 1 printed no display/);
     expect(run(RUN_LOG, dir, 'checkpoint', JSON.stringify({ checkpoint: 'unsaved-build', visit: 1, answer: 'proceed', answeredBy: 'user' })).code).toBe(0);
     expect(run(RUN_LOG, dir, 'display', 'unsaved-build')).toEqual({ code: 1, stdout: '', stderr: 'run-log: display: "unsaved-build" isn\'t one of brainstorm, verification, design, final, escalation\n' });

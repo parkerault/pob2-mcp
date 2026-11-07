@@ -6564,3 +6564,12 @@ the `m17` engine at `b76967b`.
   `ICON_MISSING` (no `icon` in `plugin.json`), which the tool says doesn't change the result. It is advisory, not a
   validation warning, so it doesn't fail the load check (choice 2 is about Claude Code refusing the layout), and
   Appendix A's `plugin.json` stays as approved. Flagged to the user at the build's end.
+- **WU-145's gate verifier** (fresh context) passed `5085b99`: gate from clean rc 0 (238 suites, 4,206 tests; the
+  timing step 2 suites, 4 tests), build rc 0; the load check as the doer saw it (validate rc 0, warnings: no `version`
+  twice, the root `CLAUDE.md`, the `ICON_MISSING` advisory; `plugin details` rc 0: Skills 1 `build-guide`, Agents 4,
+  Hooks 1 `SessionStart`, about 1,122 always-on tokens); the five unit-gate checks hold; no history file touched; the
+  old-path guard fails on old paths planted in a temp copy (eight forms). **AC-W116:** every test change is in the
+  allowed classes except the two D-356 checks in `buildGuidePipeline.test.ts` (now a `wholeReads` helper). The
+  coordinator accepts the change as forced: §5 gives a pointer and a citation one root-relative form, so the old
+  path-form test fails on D1-gate's citation of `gates.md`. Condition: the helper must also catch the three forms the
+  verifier's mutation found it misses (lowercase `read`, "the whole of", a `${CLAUDE_PLUGIN_ROOT}/` prefix).

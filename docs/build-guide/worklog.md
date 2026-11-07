@@ -6823,3 +6823,50 @@ the `m17` engine at `b76967b`.
   - zsh doesn't word-split a command held in a variable; use a shell function.
   - A coordinator tally of a subagent's tool calls should come from the transcript (jq), not its list: four of
     AC-W125's per-tool counts were first miscounted.
+
+## 2026-11-07: M-28 signed and pushed; HG-37, the user's install check (WU-150)
+
+- **Signed onto `main` and pushed (HG-8).** `git fetch` raised no 1Password prompt, so the 26 commits were
+  sign-rebased onto `b4b580d` and `main` fast-forwarded to `7d44232` (the trees equal; the unsigned originals at
+  `refs/archive/pre-sign-m28-2026-11-07`). The work-log's citations moved to the signed commits (`c9909be`), pushed
+  `b4b580d..c9909be`. `pnpm build` in the main checkout rc 0; the user reconnected the server (`/mcp`). The integration
+  worktree and `build-guide/m28` were removed, and M-27's leftover branches (`bg/wu-136`…`bg/wu-143`, `bg/wu-140b`,
+  `build-guide/m27`) deleted with the user's approval: each patch-equivalent to `main`, none on the remote. The spine
+  and slice 04 now cite the signed commits too.
+- **HG-37 (AC-W129) passed.** The user added the marketplace from the main checkout and installed `pob2` for one
+  project (scope local) in `~/projects/pob2-mcp-plugin-test`, a folder holding only its `.claude/` settings.
+  - **Permission mode:** auto, the user's default. No rule allowed reads outside the working directories: no
+    `additionalDirectories`, no Read allow rule.
+  - **Listed** (the user): `/pob2:build-guide`, `/pob2:game-knowledge` and the four agent types.
+  - **§8's case 3:** "Can a new build use the gem Commandment?" was answered "No. Commandment is no longer in the
+    game": PoB marks it legacy (the gem lookup, and `Data/Skills/sup_int.lua`'s `legacy = true`), with Bidding I–III
+    and the command-cooldown passives as what to use instead. 14 tool calls: Read 2, Grep 2 (both failed), Bash 5,
+    ToolSearch 1, `lookup_game_data` 2, `list_gems` 1, `check_model_coverage` 1. Tokens: 18.6k output, 1.95M cache
+    read, 204k cache write. Transcript:
+    `~/.claude/projects/-home-parker-projects-pob2-mcp-plugin-test/8680b422-f5ef-4af0-b2fa-0e243bb73b11.jsonl`.
+  - **No approval was asked** for a plugin file (the user). R-114 stays open: `${CLAUDE_PLUGIN_ROOT}` was the repo
+    itself, not a copy under `~/.claude/`, so the reads were outside the working directory, allowed by auto mode,
+    and the documented `~/.claude/` exemption wasn't what the check exercised.
+- **Findings, for later amendments:**
+  - **No Grep or Glob tool** in this Claude Code build: "No such tool available: Grep. Grep is not available in this
+    session — search file contents with `grep` via the Bash tool instead." The runner fell back to `grep` through
+    Bash, which the runner rules allow, and once to `sed -n`, which they don't (it said so itself). Game knowledge's
+    "You need no Bash" line is wrong now, and the pipeline's agents, which have no Bash, can't search at all
+    (amendment 16; the coordinator suggests a read-only search tool on the server, over the plugin's own files).
+  - **The wrong league:** the answer called `data/league/runes-of-aldur.md` "the current league digest". The current
+    league is Forbidden Rites (day 0 2026-09-04); it had no digest, and the skill's rule takes the newest digest by
+    fetch date. The user's rule: default to the most recent league, the one whose start is the latest before today
+    (poe2db already lists the next league, 1.0, from its announcement), and an older league only when the user asks
+    about it.
+  - **The install copied the whole working folder** into `~/.claude/plugins/cache/pob2-mcp/pob2/c9909be556dd/`
+    (180 MB), gitignored files included, `.env` among them. The copy's `.env` was deleted with the user's approval;
+    a reinstall or update copies it again (amendment 18, packaging).
+- **The user's rulings (2026-11-07):**
+  - **The trade cookie in the plugin** (amendment 18): the coordinator's recommendation, with no secrets manager
+    presumed: Claude Code's own plugin settings first, then the host's native credential store, a file as the
+    fallback. No 1Password for it on this machine, so that it is an end user's environment.
+  - **Amendment 16's words-loaded count:** no preference, the coordinator's call: each stage counts its own stage
+    reference and what it reads, not the other stage references its agent definition names.
+  - **No `claude -p`** anywhere in the skill, the plugin, the tests or a build: it bills at API rates past a small
+    allowance (adds a reason to D-263).
+- **M-28 closed:** the spine marks M-28 built and HG-37 passed, WU-150 recorded, R-114 open.

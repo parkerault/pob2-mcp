@@ -3,7 +3,7 @@
 **Status: written current 2026-11-06 (WU-149, D-504), as built at M-28.** Part of the project spine,
 [`docs/spec/README.md`](../../spec/README.md) ("spine"), which wins any disagreement; fold fixes back into it. It
 covers the game-knowledge piece (D-503, contract C-58): its files, the plugin layout it lives in (C-57) as far as the
-piece uses it, its work units WU-145 (the file moves), WU-147 and WU-149, all built, and WU-150 (human, HG-37 open),
+piece uses it, its work units WU-145 (the file moves), WU-147 and WU-149, all built, and WU-150 (human, recorded: HG-37 passed),
 and its acceptance criteria AC-W120, AC-W124, AC-W125, AC-W128 and AC-W129. Its source is amendment 15
 (`amendment-15-plugin-and-knowledge.md`, approved 2026-11-06, cited "a15 §n"), §4, §8, §9 and §13 to §17, with the
 work-log's record of M-28 (`../worklog.md`, "WL:n"), which wins where the build differs from the amendment's text.
@@ -132,12 +132,12 @@ no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
   path. Static and unit tests: `tests/static/amendment15Layout.test.ts` ("AC-W120 (WU-145, D-503): game knowledge's
   six files") and `tests/unit/amendment15Commands.test.ts` (its data builders' block), with the builders' own
   `tests/unit/rulesIndex.test.ts`, `leagueDigest.test.ts` and `monsterMods.test.ts`. **Holds** (WU-145, merged at
-  `20d4f41`).
+  `1fee40a`).
 - **AC-W124 (its `SKILL.md`; WU-147).** `skills/game-knowledge/SKILL.md` exists with fewer than 150 lines; its
   description names `/pob2:build-guide` for designing a build from a brief and says no pob2 skill yet checks or
   improves a player's PoB file; it tells its runner to read `runner-rules.md` first; it carries the legacy rule; it says
   root-relative paths are under `${CLAUDE_PLUGIN_ROOT}`; its web scope is the one the user picked (choice 1). Static
-  test: `tests/static/amendment15GameKnowledge.test.ts`. **Holds** (WU-147, merged at `7382b1c`; 121 lines).
+  test: `tests/static/amendment15GameKnowledge.test.ts`. **Holds** (WU-147, merged at `176366f`; 121 lines).
 - **AC-W125 (its real cases; WU-147).** Each of §6's three cases, asked as §6 says, gets the expected answer with a
   source tag, and the agent's recorded tool calls are only Read, Grep, Glob and the five lookup tools; the questions,
   answers and tool calls are recorded in the work-log, where the gate's verifier checks them. A wrong answer is asked
@@ -153,7 +153,7 @@ no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
   reads outside the working directories were already allowed; the plugin installed from the main checkout lists
   `/pob2:build-guide`, `/pob2:game-knowledge` and the four agent types; and, in a session started from an empty
   folder, `/pob2:game-knowledge` answers §6's case 3, and whether an approval was asked for a plugin file. A prompt
-  goes to amendment 18 (R-114) and doesn't fail HG-37. Human. **Open** (HG-37 not run).
+  goes to amendment 18 (R-114) and doesn't fail HG-37. Human. **Holds** (HG-37 passed 2026-11-07; WL:6827–6872).
 
 AC-W115 (every root-folder path in `skills/` and `agents/` resolves, the old forms banned) and AC-W116 (the pipeline
 unchanged) cover this piece's files with the rest of the plugin; they are slice 03's and C-57's.
@@ -165,7 +165,7 @@ The units' order is the spine's M-28 line (§9.3).
 
 ### WU-145: the plugin layout and every path (game knowledge's part)
 - kind: build
-- status: built (six commits on `fe4258c`, merged at `20d4f41`)
+- status: built (six commits on `39229fc`, merged at `1fee40a`)
 - depends-on: []
 - touches (this piece's part): [`skills/game-knowledge/references/` (`patterns.md`, `lookups.md`,
   `source-markers.md`, moved), `skills/game-knowledge/scripts/` (the three data builders, moved), the data headers
@@ -180,7 +180,7 @@ The units' order is the spine's M-28 line (§9.3).
 
 ### WU-147: game knowledge's `SKILL.md`, the legacy rule's move, its real cases
 - kind: build
-- status: built (three commits on `14947bd`, merged at `7382b1c`)
+- status: built (three commits on `b0c395c`, merged at `176366f`)
 - depends-on: [WU-146]
 - touches: [`skills/game-knowledge/SKILL.md` (new), `skills/build-guide/SKILL.md` (the legacy bullet dropped from
   its hard rules), `tests/static/amendment15GameKnowledge.test.ts` (new), `buildGuidePipeline.test.ts` (the legacy
@@ -208,7 +208,7 @@ The units' order is the spine's M-28 line (§9.3).
 
 ### WU-150: the user's install and read check
 - kind: human
-- status: not run (HG-37 open)
+- status: recorded (2026-11-07; HG-37 passed; WL:6827–6872)
 - depends-on: [M-28's merge to `main`]
 - touches: [the work-log]
 - acceptance: [AC-W129]
@@ -241,7 +241,7 @@ is fixed in the piece's files and the case asked again (R-117).
    (WL:6673–6679): no, tagged `[pob-data | lookup_game_data gem "Commandment"]` and `[data | lookups.md]`. HG-37
    asks it again of the installed plugin (AC-W129).
 
-As run (`606f24a`, WL:6667–6672, :6711–6718): each agent's tool calls were Read, ToolSearch (only to load the five
+As run (`8ff65ff`, WL:6667–6672, :6711–6718): each agent's tool calls were Read, ToolSearch (only to load the five
 lookups' schemas) and the lookups; case 1 made 59, case 2 35, case 3 7. The harness gave those agents no Grep or Glob,
 so they read with Read alone, and case 1 didn't read the league digest (it couldn't list the folder to find its file
 name).

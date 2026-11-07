@@ -182,11 +182,12 @@ describe('AC-W128 (WU-149, D-504): the spine holds amendment 15 as built', () =>
     }
   });
 
-  it('marks M-28 "built, HG-37 open" in §9.3', () => {
+  it('marks M-28 built in §9.3, HG-37 passed', () => {
     const s93 = folded(sectionOf(spine, '### 9.3 '));
     const line = s93.slice(s93.indexOf('- **M-28, '));
     expect(s93).toContain('- **M-28, ');
-    expect(line).toContain('**Status: built, HG-37 open**');
+    expect(line).toContain('**Status: built** (2026-11-06; WL:6542–6762); HG-37 passed 2026-11-07');
+    expect(line).not.toContain('**Status: built, HG-37 open**');
     expect(line).not.toMatch(/not built/);
   });
 

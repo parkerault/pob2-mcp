@@ -6554,7 +6554,7 @@ the `m17` engine at `b76967b`.
   folders, so a failure stops the build (choice 2) with the old layout intact. The coordinator runs no `claude` command.
 - **Recon:** none dispatched. The handoff's "Who owns what" is the contention map, and the units are serial except
   WU-148, which owns only its own new files (its script, baseline and test).
-- **Baseline gate** on `f510a5a` (fresh verifier, clean rebuild, under the lock): `mise run test` rc 0 (235 suites,
+- **Baseline gate** on `e3a3ba4` (fresh verifier, clean rebuild, under the lock): `mise run test` rc 0 (235 suites,
   4,167 tests; the timing step 2 suites, 4 tests, 173 s), `pnpm build` rc 0; both waiver files `[]`.
 - **WU-145's doer** finished at `5085b99` on `bg/wu-145` (three commits: the move, the paths, the tests); its own gate
   rc 0 (238 suites, 4,206 tests). Its load check, before it deleted the old folders: `claude plugin validate` rc 0
@@ -6580,20 +6580,20 @@ the `m17` engine at `b76967b`.
   `scripts/render-audit.mjs` and `run-log.mjs` instead of the `bin/` commands. **Fix round** sent to the doer: those two,
   a check that every plugin path in `SKILL.md` and the agent bodies carries the prefix, the D-356 helper's three missed
   forms, the old-path guard's no-space join, and the coordinator heading's prefix.
-- **WU-145's fix rounds** (the doer, rebased onto `fe4258c`): `27e2e0a` (the five fixes; the prefix check caught the
+- **WU-145's fix rounds** (the doer, rebased onto `39229fc`): `0f56204` (the five fixes; the prefix check caught the
   coordinator's heading on its first run; the checker names `pob2-check-run`, `pob2-render-audit` and `pob2-run-log`
-  with their arguments in 11 messages, 7 unit pins changed, no fixture), then `746f87f` (the same for `run-log.mjs`,
+  with their arguments in 11 messages, 7 unit pins changed, no fixture), then `3f54d76` (the same for `run-log.mjs`,
   4 messages, and `render-audit.mjs`, 1; 4 unit pins; the game-knowledge builders' messages are for maintainers and
   stay). Doer's gate rc 0 (238 suites, 4,209 tests). Re-verification dispatched to a fresh verifier.
-- **WU-145's re-verification** (fresh verifier) on `746f87f`: gate from clean rc 0 (238 suites, 4,209 tests; the timing
+- **WU-145's re-verification** (fresh verifier) on `3f54d76`: gate from clean rc 0 (238 suites, 4,209 tests; the timing
   step 2 suites, 4 tests), build rc 0; the load check unchanged (the same three warnings and the icon advisory; the
   same components); fixes 1, 3, 4 and 5 confirmed by mutation; the five unit-gate checks hold; the fix rounds' test
   changes are in AC-W116's classes. **FAIL on one leftover:** `render-audit.mjs`:814's `--withdraw` refusal still
   names `run-log.mjs answer-change`. Sent back to the doer with a pin and a sweep for any other leftover.
-- **WU-145 (the plugin layout and every path) merged** at `20d4f41` (fast-forward, six commits on `fe4258c`). Its
-  last fix (`20d4f41`) names `pob2-run-log <runFolder> answer-change '<json>'` in `render-audit.mjs`'s `--withdraw`
+- **WU-145 (the plugin layout and every path) merged** at `1fee40a` (fast-forward, six commits on `39229fc`). Its
+  last fix (`1fee40a`) names `pob2-run-log <runFolder> answer-change '<json>'` in `render-audit.mjs`'s `--withdraw`
   refusal, pinned in `amendment15Commands.test.ts`; the verifier's targeted re-check passed it (diff, its own grep, the
-  four suites, build rc 0, the pin failing on the old text in a mutated copy); its full gate at `746f87f` stands for the
+  four suites, build rc 0, the pin failing on the old text in a mutated copy); its full gate at `3f54d76` stands for the
   rest. AC-W114…AC-W120 and AC-W127: `tests/static/amendment15Layout.test.ts`, `tests/static/amendment15Paths.test.ts`,
   `tests/unit/amendment15Commands.test.ts`; `SKILL.md` 349 lines.
   - **AC-W116's diff classes** (the gate verifier's read of `tests/`): new files (`tests/helpers/skillPaths.ts` and the
@@ -6610,7 +6610,7 @@ the `m17` engine at `b76967b`.
   - **Friction:** a symlink to one `bin/` command fails, since Appendix A's `cd -P` resolves the folder; link the
     folder. For WU-146: the reminder still prints a literal `${CLAUDE_PLUGIN_ROOT}`, and `runSettingsExample`'s
     `RULE_SENTENCES` pin that form.
-- **WU-146's doer** finished at `3d5c5ad` on `bg/wu-146` (two commits on `a229b51`): `runner-rules.md` (68 lines,
+- **WU-146's doer** finished at `aed1a63` on `bg/wu-146` (two commits on `e685252`): `runner-rules.md` (68 lines,
   Appendix A's six headings), `SKILL.md` 319 lines (5,293 → 4,849 words), the stray-file check, the reminder printing
   the root (awk, `cd -P`, empty as unset), §7's sentence in the four agent definitions. AC-W121…AC-W123 in
   `tests/static/amendment15Rules.test.ts` and `tests/unit/amendment15Reminder.test.ts`. Doer's gate rc 0 (240 suites,
@@ -6623,10 +6623,10 @@ the `m17` engine at `b76967b`.
   gate cards' pointers; the reminder probed under dash with spaces, `&`, backslashes, the placeholder itself and a
   symlinked root. §10 counts only the files a definition and stage reference name, and agents don't read
   `runner-rules.md` (D-501), so the move can only lower counts.
-- **WU-148's doer** finished at `362bbcc` on `bg/wu-148` (one commit on `a229b51`: `scripts/words-loaded.mjs`, its
+- **WU-148's doer** finished at `362bbcc` on `bg/wu-148` (one commit on `e685252`: `scripts/words-loaded.mjs`, its
   baseline, `tests/unit/wordsLoaded.test.ts`). Doer's gate rc 0 (239 suites, 4,222 tests). The baseline is the count at
   `a8d735c` (`--at a8d735c` reads that tree through git and maps the old paths as the spine's §4.3 does); on
-  `a229b51` every stage is within +0.4% (V4), no file-list difference. Six planted script breaks each caught.
+  `e685252` every stage is within +0.4% (V4), no file-list difference. Six planted script breaks each caught.
   **Its finding, kept as built:** the coordinator's definition names all 11 coordinator stage references in its step
   table, so §10 read as written counts all of them in every coordinator stage (77k–111k words; Q:coordinator's list
   equals D2-gate's), and the 5% bound measures the coordinator's whole text rather than one stage's (D2-gate's own
@@ -6640,8 +6640,8 @@ the `m17` engine at `b76967b`.
   the doer's deviations (agent type from the stage title; command lines name no file; the indented `files:` line; one
   level of names; a stage missing from the baseline exits 1), and confirmed the literal reading: the coordinator's
   step table names 12 stage references (11 plus Q). Fix round sent to the doer.
-- **WU-146 (the shared rules, the stray-file check, the reminder, the agent types' wording) merged** at `3d5c5ad`
-  (fast-forward, two commits on `a229b51`). Its gate verifier (fresh context) passed it: gate from clean rc 0 (240
+- **WU-146 (the shared rules, the stray-file check, the reminder, the agent types' wording) merged** at `aed1a63`
+  (fast-forward, two commits on `e685252`). Its gate verifier (fresh context) passed it: gate from clean rc 0 (240
   suites, 4,235 tests; the timing step 2 suites, 4 tests), build rc 0; the load check as expected (no `version` twice,
   the root `CLAUDE.md`, `ICON_MISSING`; `build-guide`, four agents, `SessionStart`); the five unit-gate checks hold;
   three planted defects caught (a rule sentence deleted, the reminder printing the literal placeholder, a reverted
@@ -6656,7 +6656,7 @@ the `m17` engine at `b76967b`.
   unchanged. **Friction (not WU-148's files):** `scripts/run-usage.mjs` and `check-run.mjs` keep the
   `path.resolve(argv[1])` start check, so started through a symlinked path they print nothing and exit 0; the `bin/`
   commands resolve the root with `cd -P`, so the pipeline's own calls are unaffected. Waits for WU-147's merge.
-- **WU-147's doer** finished at `606f24a` on `bg/wu-147` (two commits on `14947bd`): `skills/game-knowledge/SKILL.md`
+- **WU-147's doer** finished at `8ff65ff` on `bg/wu-147` (two commits on `b0c395c`): `skills/game-knowledge/SKILL.md`
   121 lines, 1,524 words, frontmatter `name` and `description` only (654 characters); the legacy rule under "## Legacy
   means not in the game" there and in `lookups.md`, the bullet dropped from build-guide's hard rules (`SKILL.md` 317
   lines, 4,849 → 4,818 words); one pin moved (`buildGuidePipeline.test.ts`'s legacy regex now reads game knowledge's
@@ -6664,7 +6664,7 @@ the `m17` engine at `b76967b`.
   0 (241 suites, 4,249 tests); the load check: `plugin details` lists Skills (2) `build-guide`, `game-knowledge`, the
   four agents and `SessionStart`, always-on cost about 1,122 → 1,362 tokens. Added one line §8 doesn't state: with the
   lookups missing, say so once and answer from the committed data. Review dispatched.
-- **AC-W125's real cases**, asked by the coordinator on `bg-147` at `606f24a` (`SKILL.md` sha1 `d833f6e…`): each a fresh
+- **AC-W125's real cases**, asked by the coordinator on `bg-147` at `8ff65ff` (`SKILL.md` sha1 `d833f6e…`): each a fresh
   general-purpose agent given the skill's text as a file, `${CLAUDE_PLUGIN_ROOT}` replaced by the lane's absolute path,
   told to use only Read, Grep, Glob and the five lookup tools (ToolSearch only to load those schemas), no web, no Bash,
   no writes, no subagents, and to list its tool calls. Transcripts: `/tmp/claude-1000/-home-parker-projects-pob2-mcp/
@@ -6704,7 +6704,7 @@ the `m17` engine at `b76967b`.
   check). **One low finding:** `amendment15GameKnowledge.test.ts` would pass a body that adds "use WebSearch" without
   a host, or names a pob2 tool without its `mcp__pob2__` prefix; and a nit, "from the committed data alone" reads as
   `data/` only. Fix held until the gate verifier, running in the same lane, finishes.
-- **WU-147's gate verifier** (fresh context) passed `606f24a`: gate from clean rc 0 (241 suites, 4,249 tests; the
+- **WU-147's gate verifier** (fresh context) passed `8ff65ff`: gate from clean rc 0 (241 suites, 4,249 tests; the
   timing step 2 suites, 4 tests), build rc 0; the load check as expected, `plugin details` listing Skills (2)
   `build-guide`, `game-knowledge`, the four agents, `SessionStart`, about 1,362 always-on tokens; the five unit-gate
   checks hold; planted defects caught (a second web host, the legacy bullet back in build-guide's hard rules, the
@@ -6716,18 +6716,18 @@ the `m17` engine at `b76967b`.
   ToolSearch 1, `lookup_game_data` 1, `list_gems` 1. The coordinator's first tally had four per-tool counts wrong
   (totals right); corrected above. All three answers pass against §8. Case 1 didn't read the league digest (no Glob or
   Grep to find its file name).
-- **WU-147 (game knowledge's `SKILL.md`, the legacy rule's move, its real cases) merged** at `7382b1c`
-  (fast-forward, three commits on `14947bd`). The fix round (`7382b1c`): the web test allows one mention of a web
+- **WU-147 (game knowledge's `SKILL.md`, the legacy rule's move, its real cases) merged** at `176366f`
+  (fast-forward, three commits on `b0c395c`). The fix round (`176366f`): the web test allows one mention of a web
   search, the "No WebSearch …" sentence; the tool test checks every `TOOL_META` name, bare or prefixed, but the five
   lookups and `compile_plan`; "committed files alone (the game data, these references and PoB's gaps)" in the
   lookups-missing line; line 67 rewrapped. The verifier's targeted re-check passed it (the diff touches only the test
   and those two `SKILL.md` lines, nothing the real cases used; the planted WebSearch and bare tool names each fail; 3
   suites, 453 tests; build rc 0; 121 lines). AC-W124 in `tests/static/amendment15GameKnowledge.test.ts` (16 tests);
   AC-W125 recorded above.
-- **WU-148 rebased** onto `87ee7fe` as `9fcef5b` (no conflict); the doer's gate rc 0 (242 suites, 4,268 tests). On the
+- **WU-148 rebased** onto `68d6ef8` as `d0f972d` (no conflict); the doer's gate rc 0 (242 suites, 4,268 tests). On the
   merged tree the script exits 0, every stage within its bound, no file-list difference; the stages naming
   build-guide's `SKILL.md` shrink with WU-146's move. Gate verifier dispatched (it records the script's output).
-- **WU-148's gate verifier** (fresh context) passed `9fcef5b`: gate from clean rc 0 (242 suites, 4,268 tests; the
+- **WU-148's gate verifier** (fresh context) passed `d0f972d`: gate from clean rc 0 (242 suites, 4,268 tests; the
   timing step 2 suites, 4 tests), build rc 0. **AC-W126's output on the merged tree** (`node scripts/words-loaded.mjs`,
   rc 0, stderr empty, no file-list difference line):
   ```
@@ -6754,13 +6754,13 @@ the `m17` engine at `b76967b`.
   four fixes confirmed; mutations: just over 5% fails with the counts named, at 5% passes, an unresolvable path fails,
   possessives resolve, a symlinked run equals a direct one. **One low gap:** a skill-relative `scripts/<x>.mjs` name
   pointing at no file passed (rc 0); sent back so it fails, since AC-W126 requires failing on any name it can't resolve.
-- **WU-148 (the words-loaded script, its baseline and test) merged** at `7549756` (fast-forward, rebased on WU-147,
-  last of the build units). Its last fix (`7549756`): a `scripts/…` name fails unless it resolves against the naming
+- **WU-148 (the words-loaded script, its baseline and test) merged** at `fd36a5f` (fast-forward, rebased on WU-147,
+  last of the build units). Its last fix (`fd36a5f`): a `scripts/…` name fails unless it resolves against the naming
   skill's folder or the root's `scripts/`; command lines still name no file. The verifier's targeted re-check passed
   it (the planted missing name exits 1; the root's and the skill's real scripts resolve; the same 16 lines, `max
-  +0.2%`, rc 0; the baseline still byte-identical; 18 tests; build rc 0); its full gate at `9fcef5b` stands for the
+  +0.2%`, rc 0; the baseline still byte-identical; 18 tests; build rc 0); its full gate at `d0f972d` stands for the
   rest. AC-W126 in `tests/unit/wordsLoaded.test.ts`; its output on the merged tree recorded above.
-- **WU-149's doer** finished at `8d89384` on `bg/wu-149` (one commit on `378572a`): `04-game-knowledge.md` (§9's
+- **WU-149's doer** finished at `759f38c` on `bg/wu-149` (one commit on `6c2d7b9`): `04-game-knowledge.md` (§9's
   headings; its real cases cited to this work-log), notes under 03's §7.3 and §7.6, the spine as built (status line
   "Folded through amendment 15, 2026-11-06."; each difference beside its row; M-28 "built, HG-37 open"; WU-150 and
   AC-W129 open; D-506 kept approved as a roadmap), and `tests/static/amendment15Docs.test.ts` for AC-W128 (16 tests,
@@ -6771,15 +6771,15 @@ the `m17` engine at `b76967b`.
   status line, the cited hashes and counts all match the record. Eight low findings: the docs test's decision check
   takes "not built" as built and M-28's check doesn't require "HG-37 open"; the spine's summary lines call
   D-499…D-506 built while D-506's row keeps it approved as a roadmap; D-500's note says `render-audit.mjs` 1 message
-  (the record has 2: `746f87f` and `20d4f41`); the guardrails note says every gate's verifier ran the load check (the
+  (the record has 2: `3f54d76` and `1fee40a`); the guardrails note says every gate's verifier ran the load check (the
   record has WU-145's, WU-146's and WU-147's); slice 04 omits `compile_plan`'s exemption in the tool test; WU-147's
   touches omit build-guide's `SKILL.md` and `buildGuidePipeline.test.ts`; §1.5's `SKILL.md` leftover is resolved at
   317 lines; slice 04's reader lists omit `stages/README.md`. Deviations accepted. Fix held until the milestone
   verifier, running in the same lane, finishes.
-- **M-28's milestone gate** (fresh verifier) **passed on `8d89384`** (the lane `bg-149`, whose tree a fast-forward makes
+- **M-28's milestone gate** (fresh verifier) **passed on `759f38c`** (the lane `bg-149`, whose tree a fast-forward makes
   the merged tree): `mise run test` rc 0 (243 suites, 4,285 tests; the timing step 2 suites, 4 tests), `pnpm build` rc
   0; `scripts/fresh-clone-check.sh` rc 0 ("tools/list returns 85 tools", 84 with poe.ninja off, `lua_load_build`
-  grenadator.xml Life 2,977, `find_upgrades` "[trade:no_session]", "fresh-clone check passed (8d89384…)"). **The load
+  grenadator.xml Life 2,977, `find_upgrades` "[trade:no_session]", "fresh-clone check passed (759f38c…)"). **The load
   check on the merged tree:** `claude plugin validate` rc 0, "Validation passed with warnings": `plugins[0] plugin.json
   → version: No version specified…`, `version: No version specified…`, `root: CLAUDE.md at the plugin root is not
   loaded as project context…`, and the directory-checks advisory `.claude-plugin/plugin.json icon: No icon
@@ -6793,17 +6793,20 @@ the `m17` engine at `b76967b`.
   output byte-identical to the record above. Waivers `[]`, dependencies unchanged, `src/` and `pob-api/` only the
   comment at `monsterMods.ts`:5 (HG-12 holds), history unchanged (the work-log only gains lines). WU-149's docs fix
   round follows, re-checked by targeted static tests.
-- **WU-149's fix round** at `7570803` (the doer; only the spine, slice 04 and the docs test): the eight findings fixed
+- **WU-149's fix round** at `593a565` (the doer; only the spine, slice 04 and the docs test): the eight findings fixed
   as the review recommended. The reviewer's re-check passed it (the diff's three files; each fix against this
   work-log; planted "approved; not built", a bare "**Status: built**" and D-506 marked built each fail the docs test;
   `tests/static` 47 suites, 1,140 tests, rc 0).
-- **WU-149 (the documents) merged** at `7570803` (fast-forward, two commits on `378572a`). AC-W128 in
+- **WU-149 (the documents) merged** at `593a565` (fast-forward, two commits on `6c2d7b9`). AC-W128 in
   `tests/static/amendment15Docs.test.ts` and `specSpine.test.ts`.
-- **M-28 built; HG-37 open.** The milestone gate passed on `8d89384`; the one later commit, `7570803`, changes only
+- **M-28 built; HG-37 open.** The milestone gate passed on `759f38c`; the one later commit, `593a565`, changes only
   the spine, slice 04 and the docs test, and was re-checked by `tests/static` (not a second full gate). Stopped before
   WU-150, as the user asked. Next, with the user: HG-8 (sign `build-guide/m28` onto `main` and push), then `pnpm build`
   in the main checkout and `/mcp` to restart the pob2 server, then WU-150 (the user's install and read check, HG-37,
   AC-W129).
+- **Signed onto `main` (HG-8, 2026-11-07).** All 26 commits sign-rebased onto `b4b580d` and fast-forwarded into
+  `main` at `7d44232`; the trees are equal, and the unsigned originals are kept at `refs/archive/pre-sign-m28-2026-11-07`.
+  This section cites the signed commits.
 - **Friction for the next run:**
   - `claude plugin validate` prints a "Plugin directory checks" `ICON_MISSING` advisory that doesn't change its result;
     the spec's expected warnings didn't name it. The expected `skills/game-knowledge/` warning never appeared.

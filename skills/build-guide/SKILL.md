@@ -55,8 +55,6 @@ where its card names one.
   a read-back's `readback.json` (D-479), the digest's first lines (§1), and at a gate the card and research files
   (D-390). Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read or with Bash; step 14 reads
   only the `Known issues` lines it edits.
-- **Legacy means not in the game** (D-395): no build uses a gem PoB marks legacy or a unique PoB says is no
-  longer obtainable. `Tier = 0` alone isn't legacy.
 
 ## Calling an agent
 

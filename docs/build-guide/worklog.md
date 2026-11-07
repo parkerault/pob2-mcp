@@ -6554,3 +6554,5 @@ the `m17` engine at `b76967b`.
   folders, so a failure stops the build (choice 2) with the old layout intact. The coordinator runs no `claude` command.
 - **Recon:** none dispatched. The handoff's "Who owns what" is the contention map, and the units are serial except
   WU-148, which owns only its own new files (its script, baseline and test).
+- **Baseline gate** on `f510a5a` (fresh verifier, clean rebuild, under the lock): `mise run test` rc 0 (235 suites,
+  4,167 tests; the timing step 2 suites, 4 tests, 173 s), `pnpm build` rc 0; both waiver files `[]`.

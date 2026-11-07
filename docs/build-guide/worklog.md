@@ -6724,3 +6724,39 @@ the `m17` engine at `b76967b`.
   and those two `SKILL.md` lines, nothing the real cases used; the planted WebSearch and bare tool names each fail; 3
   suites, 453 tests; build rc 0; 121 lines). AC-W124 in `tests/static/amendment15GameKnowledge.test.ts` (16 tests);
   AC-W125 recorded above.
+- **WU-148 rebased** onto `87ee7fe` as `9fcef5b` (no conflict); the doer's gate rc 0 (242 suites, 4,268 tests). On the
+  merged tree the script exits 0, every stage within its bound, no file-list difference; the stages naming
+  build-guide's `SKILL.md` shrink with WU-146's move. Gate verifier dispatched (it records the script's output).
+- **WU-148's gate verifier** (fresh context) passed `9fcef5b`: gate from clean rc 0 (242 suites, 4,268 tests; the
+  timing step 2 suites, 4 tests), build rc 0. **AC-W126's output on the merged tree** (`node scripts/words-loaded.mjs`,
+  rc 0, stderr empty, no file-list difference line):
+  ```
+  D1-build 101980 102373 -0.4%
+  D1-finish 87722 88119 -0.5%
+  D1-gate 92093 92486 -0.4%
+  D1-tree 76784 77157 -0.5%
+  D2 85125 85518 -0.5%
+  D2-gate 76778 77151 -0.5%
+  F1 83717 84090 -0.4%
+  Q:coordinator 76778 77151 -0.5%
+  Q:researcher 33118 33041 +0.2%
+  R1a 49622 49995 -0.7%
+  R1a-assemble 95441 95814 -0.4%
+  R1a-synthesize 99898 100271 -0.4%
+  R1b 110216 110596 -0.3%
+  R1b-assemble 77326 77699 -0.5%
+  V4 23676 24049 -1.6%
+  W1 33309 33684 -1.1%
+  max +0.2%
+  ```
+  Hand recounts equal the script's (W1 33,309 over 11 files; D2-gate 76,778 over 19); `--at a8d735c --json`
+  reproduces the baseline byte for byte, and the five pinned counts match `git show a8d735c:… | wc -w`; the review's
+  four fixes confirmed; mutations: just over 5% fails with the counts named, at 5% passes, an unresolvable path fails,
+  possessives resolve, a symlinked run equals a direct one. **One low gap:** a skill-relative `scripts/<x>.mjs` name
+  pointing at no file passed (rc 0); sent back so it fails, since AC-W126 requires failing on any name it can't resolve.
+- **WU-148 (the words-loaded script, its baseline and test) merged** at `7549756` (fast-forward, rebased on WU-147,
+  last of the build units). Its last fix (`7549756`): a `scripts/…` name fails unless it resolves against the naming
+  skill's folder or the root's `scripts/`; command lines still name no file. The verifier's targeted re-check passed
+  it (the planted missing name exits 1; the root's and the skill's real scripts resolve; the same 16 lines, `max
+  +0.2%`, rc 0; the baseline still byte-identical; 18 tests; build rc 0); its full gate at `9fcef5b` stands for the
+  rest. AC-W126 in `tests/unit/wordsLoaded.test.ts`; its output on the merged tree recorded above.

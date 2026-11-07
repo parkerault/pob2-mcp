@@ -811,7 +811,7 @@ export async function withdraw(runFolder, id) {
   }
   const entry = list(log.builds).find((b) => b.id === id);
   if (!entry) throw new Error(`run-log.json has no build ${id}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
-  if (!list(log.answerChanges).some((x) => x.concept === id)) throw new Error(`${id} has no answer change; --withdraw removes the guide route's files of a build whose design gate's accept changed to the PoB file only after F1 (run-log.mjs answer-change, D-480)`);
+  if (!list(log.answerChanges).some((x) => x.concept === id)) throw new Error(`${id} has no answer change; --withdraw removes the guide route's files of a build whose design gate's accept changed to the PoB file only after F1 (pob2-run-log <runFolder> answer-change '<json>', D-480)`);
   const folder = entry.folder === '.' ? '' : `${entry.folder}/`;
   const files = ['audit.md', 'guide.md'].map((f) => `${folder}${f}`).filter((rel) => fs.existsSync(path.join(runFolder, ...rel.split('/'))));
   const { writeLog } = await import('./run-log.mjs');

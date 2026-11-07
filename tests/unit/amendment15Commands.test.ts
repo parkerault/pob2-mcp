@@ -146,6 +146,16 @@ describe("AC-W117 (WU-145, D-500): the checker's messages name the bin/ commands
   });
 });
 
+describe("AC-W117 (WU-145, D-500): the render's withdrawal refusal names the bin/ command", () => {
+  it("pob2-render-audit <copy> --withdraw <id> on a build with no answer change names pob2-run-log <runFolder> answer-change '<json>', and node on the script says the same", () => {
+    const [a, b] = [copyOf(RUN_A14), copyOf(RUN_A14)];
+    expect(readLog(a).answerChanges ?? []).toEqual([]);
+    const refusal = `render-audit: withdraw refused: ${BUILD} has no answer change; --withdraw removes the guide route's files of a build whose design gate's accept changed to the PoB file only after F1 (pob2-run-log <runFolder> answer-change '<json>', D-480)\n`;
+    expect(viaBin('pob2-render-audit', [a, '--withdraw', BUILD])).toEqual({ code: 1, stdout: '', stderr: refusal });
+    expect(viaNode(path.join(SCRIPTS, 'render-audit.mjs'), [b, '--withdraw', BUILD])).toEqual({ code: 1, stdout: '', stderr: refusal });
+  });
+});
+
 describe('AC-W118 (WU-145, D-500): an old run resumes unchanged', () => {
   it("a copy of the revision-14 fixture resumes with pob2-run-log, then passes the checker; its skillRevision stays 14", () => {
     const dir = copyOf(RUN_A14);

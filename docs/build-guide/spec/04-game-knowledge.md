@@ -65,8 +65,9 @@ C-58 in the spine is the binding summary; this section gives its detail as built
 
 The other pieces read the same files by path. Today that is `/pob2:build-guide`: `patterns.md` from `SKILL.md`,
 R1a, R1a-synthesize, R1a-assemble, R1b, D1-build, `start.md`, the card template and the researcher's definition;
-`lookups.md` from `SKILL.md`, Q, `runner-rules.md` and the researcher's and coordinator's definitions;
-`source-markers.md` from `SKILL.md`, R1a, V4, `run-folder.md`, the checker and three agent definitions.
+`lookups.md` from `SKILL.md`, Q, `runner-rules.md`, `skills/build-guide/references/stages/README.md` and the
+researcher's and coordinator's definitions; `source-markers.md` from `SKILL.md`, R1a, V4, `run-folder.md`,
+`skills/build-guide/references/stages/README.md`, the checker and three agent definitions.
 
 ### 2.2 What it writes
 
@@ -188,10 +189,11 @@ The units' order is the spine's M-28 line (§9.3).
 - acceptance: [AC-W124, AC-W125]
 - milestone: M-28
 - summary: Write the skill to §2 and §3 (121 lines, 1,524 words at the doer's commit). As built (WL:6659–6666,
-  :6719–6725): the legacy rule under "Legacy means not in the game"; the line for a session without the lookups
-  (§2.3); the test checks the web scope's one host, allowing one mention of a web search (the "No WebSearch …"
-  sentence), and refuses every other server tool by its bare or prefixed name; the load check's `plugin details`
-  lists both skills, the four agents and `SessionStart`, the always-on cost about 1,122 → 1,362 tokens.
+  :6719–6725): the legacy rule under "Legacy means not in the game"; the line for a session without the lookups (§2.3);
+  the test checks the web scope's one host, allowing one mention of a web search (the "No WebSearch …" sentence), and
+  refuses every other server tool by its bare or prefixed name but `compile_plan`, named as what refuses legacy content;
+  the load check's `plugin details` lists both skills, the four agents and `SessionStart`, the always-on cost about
+  1,122 → 1,362 tokens.
 
 ### WU-149: the documents
 - kind: docs

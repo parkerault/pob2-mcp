@@ -129,7 +129,10 @@ describe('AC-W128 (WU-149, D-504): the spine holds amendment 15 as built', () =>
   const spine = read(SPINE_PATH);
   const flat = folded(spine);
   /** The decisions the amendment's headings name (as `specSpine.test.ts` reads them). */
-  const decisions = [...new Set((AMENDMENT_RAW.match(/^#{2,3} .*$/gm) ?? []).flatMap((h) => h.match(/D-\d+/g) ?? []))];
+  const decisionHeadings = AMENDMENT_RAW.match(/^#{2,3} .*$/gm) ?? [];
+  const decisions = [...new Set(decisionHeadings.flatMap((h) => h.match(/D-\d+/g) ?? []))];
+  /** The roadmap's decision (§11's heading): approved, built by later amendments, so never marked built here. */
+  const roadmap = decisionHeadings.filter((h) => /roadmap/i.test(h)).flatMap((h) => h.match(/D-\d+/g) ?? []);
   /** §13's units with their kind, and §16's risks. */
   const units = [...AMENDMENT_RAW.matchAll(/^\| (WU-\d+) \| (build|docs|human) \|/gm)].map((m) => ({
     id: m[1],
@@ -152,12 +155,14 @@ describe('AC-W128 (WU-149, D-504): the spine holds amendment 15 as built', () =>
     if (Number(m![1]) === 15) expect(status).not.toContain('(approved;');
   });
 
-  it('marks each decision built, none a target', () => {
-    const notBuilt = decisions.filter((d) => {
+  it('marks each decision built and the roadmap approved, none a target or "not built"', () => {
+    expect(roadmap).toEqual(['D-506']);
+    const wrong = decisions.filter((d) => {
       const status = last(row(spine, d));
-      return /\*\*target\*\*/.test(status) || !/\bbuilt\b/.test(status);
+      if (/\*\*target\*\*/.test(status) || /not built/.test(status)) return true;
+      return roadmap.includes(d) ? !/^approved\b/.test(status) || !/roadmap/.test(status) : !/\bbuilt\b/.test(status);
     });
-    expect(notBuilt).toEqual([]);
+    expect(wrong).toEqual([]);
   });
 
   it('names C-57 and C-58, each built', () => {
@@ -177,11 +182,11 @@ describe('AC-W128 (WU-149, D-504): the spine holds amendment 15 as built', () =>
     }
   });
 
-  it('marks M-28 built in §9.3', () => {
+  it('marks M-28 "built, HG-37 open" in §9.3', () => {
     const s93 = folded(sectionOf(spine, '### 9.3 '));
     const line = s93.slice(s93.indexOf('- **M-28, '));
     expect(s93).toContain('- **M-28, ');
-    expect(line).toContain('**Status: built');
+    expect(line).toContain('**Status: built, HG-37 open**');
     expect(line).not.toMatch(/not built/);
   });
 

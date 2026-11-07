@@ -1150,6 +1150,14 @@ record of M-12 and M-14's runs.
 
 ### 7.3 Source markers in markdown (C-30 in `dossier.md` and the research files; none in `guide.md` since WU-62)
 
+> **Note (amendment 15, D-503, D-504; M-28).** The source markers' reference is game knowledge's since M-28:
+> `skills/game-knowledge/references/source-markers.md`, moved whole from the skill's `references/`, its text unchanged
+> but for paths (AC-W120). Its home, and the piece that answers with its source tags, are in slice 04,
+> [`04-game-knowledge.md`](04-game-knowledge.md). This section keeps the pipeline's use of the markers (the dossier's,
+> the research files' and the plan's, and the claim rules V4 checks); the checks on them stay in build-guide's checker
+> until amendment 16, and the V4 report form moves with review (amendment 17). This slice shrinks to
+> `/pob2:build-guide`'s order of calls as the pieces leave (a15 §9).
+
 A claim carries one or more footnote markers `[^<id>]`. Each id has exactly one definition line:
 `[^<id>]: <kind> | <ref> [| accessed: YYYY-MM-DD] [| patch: <p>] [| confidence: H|M|L]`, where `kind` is
 one of C-30's five kinds (`pob-computed`, `pob-data`, `external`, `judgment`, `external-unavailable`) with
@@ -1334,6 +1342,14 @@ fills the brainstorm half (about 250–400 words); R1b fills the verification ha
   confirmed by the lookups like any card's.
 
 ### 7.6 The pattern library `references/patterns.md` (C-53)
+
+> **Note (amendment 15, D-503, D-504; M-28).** The pattern library is game knowledge's since M-28:
+> `skills/game-knowledge/references/patterns.md`, moved from the skill's `references/`, its text unchanged but for
+> paths (AC-W120); the heading above keeps its old place, as the history does (a15 §15). Its home and its readers
+> beyond the pipeline (`/pob2:game-knowledge`'s own runner, by "Supply by family" and "A rule changer") are in
+> slice 04, [`04-game-knowledge.md`](04-game-knowledge.md). This section keeps the pipeline's use of it (R1a's
+> researchers and D1-build read it at its new path) and its history. This slice shrinks to `/pob2:build-guide`'s
+> order of calls as the pieces leave (a15 §9).
 
 Built (WU-56, merge `2aca7b4`; D-290) from the ten pattern families of the work-log's "Off-meta builds
 7–30", the earlier studies, and the brainstorm questions from its "Process heuristics, by phase", which open

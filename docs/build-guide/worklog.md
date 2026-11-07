@@ -6760,3 +6760,63 @@ the `m17` engine at `b76967b`.
   it (the planted missing name exits 1; the root's and the skill's real scripts resolve; the same 16 lines, `max
   +0.2%`, rc 0; the baseline still byte-identical; 18 tests; build rc 0); its full gate at `9fcef5b` stands for the
   rest. AC-W126 in `tests/unit/wordsLoaded.test.ts`; its output on the merged tree recorded above.
+- **WU-149's doer** finished at `8d89384` on `bg/wu-149` (one commit on `378572a`): `04-game-knowledge.md` (§9's
+  headings; its real cases cited to this work-log), notes under 03's §7.3 and §7.6, the spine as built (status line
+  "Folded through amendment 15, 2026-11-06."; each difference beside its row; M-28 "built, HG-37 open"; WU-150 and
+  AC-W129 open; D-506 kept approved as a roadmap), and `tests/static/amendment15Docs.test.ts` for AC-W128 (16 tests,
+  12 failing on the text before WU-149). The coordinator accepts the new test file (AC-W128 asks for a check, and the
+  file pins only WU-149's text). Milestone gate verifier and a docs review dispatched on the lane, whose tree a
+  fast-forward makes the merged tree.
+- **WU-149's review** (fresh, read-only): no blocking defect; slice 04's headings, 03's two notes, the statuses, the
+  status line, the cited hashes and counts all match the record. Eight low findings: the docs test's decision check
+  takes "not built" as built and M-28's check doesn't require "HG-37 open"; the spine's summary lines call
+  D-499…D-506 built while D-506's row keeps it approved as a roadmap; D-500's note says `render-audit.mjs` 1 message
+  (the record has 2: `746f87f` and `20d4f41`); the guardrails note says every gate's verifier ran the load check (the
+  record has WU-145's, WU-146's and WU-147's); slice 04 omits `compile_plan`'s exemption in the tool test; WU-147's
+  touches omit build-guide's `SKILL.md` and `buildGuidePipeline.test.ts`; §1.5's `SKILL.md` leftover is resolved at
+  317 lines; slice 04's reader lists omit `stages/README.md`. Deviations accepted. Fix held until the milestone
+  verifier, running in the same lane, finishes.
+- **M-28's milestone gate** (fresh verifier) **passed on `8d89384`** (the lane `bg-149`, whose tree a fast-forward makes
+  the merged tree): `mise run test` rc 0 (243 suites, 4,285 tests; the timing step 2 suites, 4 tests), `pnpm build` rc
+  0; `scripts/fresh-clone-check.sh` rc 0 ("tools/list returns 85 tools", 84 with poe.ninja off, `lua_load_build`
+  grenadator.xml Life 2,977, `find_upgrades` "[trade:no_session]", "fresh-clone check passed (8d89384…)"). **The load
+  check on the merged tree:** `claude plugin validate` rc 0, "Validation passed with warnings": `plugins[0] plugin.json
+  → version: No version specified…`, `version: No version specified…`, `root: CLAUDE.md at the plugin root is not
+  loaded as project context…`, and the directory-checks advisory `.claude-plugin/plugin.json icon: No icon
+  (ICON_MISSING)` ("These plugin directory checks do not change the result below."); `claude --plugin-dir … plugin
+  details pob2` rc 0: Skills (2) `build-guide, game-knowledge`; Agents (4) `build-guide-coordinator,
+  build-guide-researcher, build-guide-writer, build-guide-verifier`; Hooks (1) `SessionStart`; MCP servers (0); about
+  1,362 always-on tokens. AC-W114 to AC-W128 each hold (their tests named per unit above; AC-W125 the recorded cases).
+  AC-W116 over the milestone (41 modified and 9 new test files; no `it` or `expect` removed): every change in the
+  classes, apart from the accepted `wholeReads` helper, three pins the units' criteria required (AC-W121's stray-file
+  text, AC-W123's sentence in AC-W5's pin, the legacy pin moved) and one added negative check. `words-loaded.mjs`
+  output byte-identical to the record above. Waivers `[]`, dependencies unchanged, `src/` and `pob-api/` only the
+  comment at `monsterMods.ts`:5 (HG-12 holds), history unchanged (the work-log only gains lines). WU-149's docs fix
+  round follows, re-checked by targeted static tests.
+- **WU-149's fix round** at `7570803` (the doer; only the spine, slice 04 and the docs test): the eight findings fixed
+  as the review recommended. The reviewer's re-check passed it (the diff's three files; each fix against this
+  work-log; planted "approved; not built", a bare "**Status: built**" and D-506 marked built each fail the docs test;
+  `tests/static` 47 suites, 1,140 tests, rc 0).
+- **WU-149 (the documents) merged** at `7570803` (fast-forward, two commits on `378572a`). AC-W128 in
+  `tests/static/amendment15Docs.test.ts` and `specSpine.test.ts`.
+- **M-28 built; HG-37 open.** The milestone gate passed on `8d89384`; the one later commit, `7570803`, changes only
+  the spine, slice 04 and the docs test, and was re-checked by `tests/static` (not a second full gate). Stopped before
+  WU-150, as the user asked. Next, with the user: HG-8 (sign `build-guide/m28` onto `main` and push), then `pnpm build`
+  in the main checkout and `/mcp` to restart the pob2 server, then WU-150 (the user's install and read check, HG-37,
+  AC-W129).
+- **Friction for the next run:**
+  - `claude plugin validate` prints a "Plugin directory checks" `ICON_MISSING` advisory that doesn't change its result;
+    the spec's expected warnings didn't name it. The expected `skills/game-knowledge/` warning never appeared.
+  - §10's words loaded, read as written, puts all 12 coordinator stage references in every coordinator stage, so the
+    5% bound barely bites on one stage's own text (amendment-16 candidate).
+  - `scripts/run-usage.mjs` and `check-run.mjs` keep a `path.resolve(argv[1])` start check: started through a
+    symlinked path they print nothing and exit 0. The `bin/` commands resolve the root with `cd -P`, so the pipeline's
+    calls are safe.
+  - Agents in this harness have Read but no Grep or Glob tool, so game knowledge's real cases read whole files in
+    chunks (case 1 couldn't find the league digest's file name).
+  - A symlink to one `bin/` command fails; link the `bin/` folder.
+  - The old-path guard scans all of `tests/`: a test that names an old folder builds it with a join.
+  - A fresh lane has no `build/`: the README table test and three static suites fail until `pnpm build`.
+  - zsh doesn't word-split a command held in a variable; use a shell function.
+  - A coordinator tally of a subagent's tool calls should come from the transcript (jq), not its list: four of
+    AC-W125's per-tool counts were first miscounted.

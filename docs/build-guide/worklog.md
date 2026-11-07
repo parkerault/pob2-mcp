@@ -6649,3 +6649,78 @@ the `m17` engine at `b76967b`.
   loaded: `SKILL.md` 5,293 → 4,849 words, the agent definitions unchanged in length, `runner-rules.md` (671 words)
   counted in no stage, as §10's lines 383–385 define it. AC-W121…AC-W123 in `tests/static/amendment15Rules.test.ts`
   and `tests/unit/amendment15Reminder.test.ts`.
+- **WU-148's fix round** at `93f9b3e` (the doer): possessives read as the name; a failure names the counts
+  (`10504 words, more than the 10500 the 5% bound allows … (+5.04%)`); the baseline pinned to five counts taken by
+  hand at `a8d735c` and W1's 11 files written out; a test that the stage texts hold no name form the test's own scan
+  would miss; real paths in the start check, tested through a symlink. 17 tests, build rc 0, `max +0.4%`; baseline
+  unchanged. **Friction (not WU-148's files):** `scripts/run-usage.mjs` and `check-run.mjs` keep the
+  `path.resolve(argv[1])` start check, so started through a symlinked path they print nothing and exit 0; the `bin/`
+  commands resolve the root with `cd -P`, so the pipeline's own calls are unaffected. Waits for WU-147's merge.
+- **WU-147's doer** finished at `606f24a` on `bg/wu-147` (two commits on `14947bd`): `skills/game-knowledge/SKILL.md`
+  121 lines, 1,524 words, frontmatter `name` and `description` only (654 characters); the legacy rule under "## Legacy
+  means not in the game" there and in `lookups.md`, the bullet dropped from build-guide's hard rules (`SKILL.md` 317
+  lines, 4,849 → 4,818 words); one pin moved (`buildGuidePipeline.test.ts`'s legacy regex now reads game knowledge's
+  `SKILL.md`). AC-W124 in `tests/static/amendment15GameKnowledge.test.ts` (ten planted defects caught). Doer's gate rc
+  0 (241 suites, 4,249 tests); the load check: `plugin details` lists Skills (2) `build-guide`, `game-knowledge`, the
+  four agents and `SessionStart`, always-on cost about 1,122 → 1,362 tokens. Added one line §8 doesn't state: with the
+  lookups missing, say so once and answer from the committed data. Review dispatched.
+- **AC-W125's real cases**, asked by the coordinator on `bg-147` at `606f24a` (`SKILL.md` sha1 `d833f6e…`): each a fresh
+  general-purpose agent given the skill's text as a file, `${CLAUDE_PLUGIN_ROOT}` replaced by the lane's absolute path,
+  told to use only Read, Grep, Glob and the five lookup tools (ToolSearch only to load those schemas), no web, no Bash,
+  no writes, no subagents, and to list its tool calls. Transcripts: `/tmp/claude-1000/-home-parker-projects-pob2-mcp/
+  38f97f36-6d7f-4fbd-8265-efa8497af248/tasks/<id>.output`, case 1 `a860fcd88b76f2d04`, case 2 `aa5af86d832014271`,
+  case 3 `a12e43f3a3877053a`.
+  - **Case 3** ("Can a build use the gem Commandment?"): **passed.** Answer: no; PoB marks it legacy and the gem lookup
+    says "Left out: Commandment, which PoB marks legacy: it is no longer in the game" [pob-data | lookup_game_data gem
+    "Commandment"]; legacy means not in the game (D-395) [data | `lookups.md`]; `list_gems` still lists the entry,
+    which says only what PoB's data holds. Tool calls (its list): Read ×4 (the skill, `runner-rules.md`, `lookups.md`,
+    `source-markers.md`), ToolSearch (`select:` the five lookups), `lookup_game_data` (gem "Commandment"), `list_gems`
+    (search "Commandment"). It noted the agents here have no Grep or Glob tool (this environment's harness), so only
+    Read is available of the three.
+  - **Case 2** ("Which Martial Artist ascendancy nodes change a standard rule a build could be built around, and does
+    PoB model them?"): **passed.** Answer: three of the eight notables, none modelled: Martial Master (61586, Combo from
+    all attack hits, in either weapon set) [pob-data | check_model_coverage node 61586] [data | rules/nodes.md#61586];
+    Runic Meridians (39552, five rune-only tattoo sockets) [data | rules/nodes.md#39552]; Way of the Stonefist (39595,
+    gloves become Fists of Stone) [data | rules/nodes.md#39595], cited to PG-36. It added Martial Adept and Way of the
+    Mountain as unmodelled but unmarked, and showed the index's three socket pairs for Runic Meridians don't hold
+    (each unique boosts its own sockets). Tool calls (its list, 35): Read ×19 (the skill, `runner-rules.md`,
+    `patterns.md`, `nodes.md`, `lookups.md`, `source-markers.md`, `pob-gaps.md`, `pairs.md`, `vocabulary.md`,
+    `sockets.json`), ToolSearch ×1 (the schemas), `search_tree_nodes` ×1, `check_model_coverage` ×3,
+    `lookup_game_data` ×11. No Grep or Glob available, as in case 3.
+  - **Case 1** ("A cold spell build wants Infusions. What can supply them?"): **passed.** The search covered the whole
+    family (gems by `mechanic "Infusion"` and by type `GeneratesInfusion`, uniques, passives, mods, constants, Verisium
+    Infusions, Remnant buffs, the monster table), and the answer names Powered by Verisium ("4 Verisium Infusions per
+    cast, which can be used in place of any Elemental Infusions") [pob-data | lookup_game_data gem "Powered by
+    Verisium"; data | rules/gems.md#powered-by-verisium], citing `patterns.md`'s "Supply by family", beside Frost Bomb,
+    Snap, Siphon Elements, Runic Extraction, Elemental Equilibrium and Refracted Infusion; supply not modelled, payoff
+    modelled. Tool calls (its list, 59): Read ×19, ToolSearch ×1 (the schemas), `lookup_game_data` ×33, `list_gems` ×2,
+    `search_tree_nodes` ×2, `check_model_coverage` ×2. No Grep or Glob available.
+  - **All three passed at the first ask**; no retry and no fix to the piece's files.
+- **WU-147's review** (fresh, read-only): no blocking defect; every §8 element present (the four uses, the three
+  "not for" cases, the five lookups only, the never-do list, the shared rules first and after a compaction); the web
+  scope word for word as `runner-rules.md` and `CLAUDE.md`; the 15 prefixed paths and every named heading resolve; the
+  "Left out" lines equal the server's `leftOutLines`; the frontmatter parses to `name` and `description` (662
+  characters). Deviations accepted (the "lookups missing" line, the legacy pin moved, the stricter copied prefix
+  check). **One low finding:** `amendment15GameKnowledge.test.ts` would pass a body that adds "use WebSearch" without
+  a host, or names a pob2 tool without its `mcp__pob2__` prefix; and a nit, "from the committed data alone" reads as
+  `data/` only. Fix held until the gate verifier, running in the same lane, finishes.
+- **WU-147's gate verifier** (fresh context) passed `606f24a`: gate from clean rc 0 (241 suites, 4,249 tests; the
+  timing step 2 suites, 4 tests), build rc 0; the load check as expected, `plugin details` listing Skills (2)
+  `build-guide`, `game-knowledge`, the four agents, `SessionStart`, about 1,362 always-on tokens; the five unit-gate
+  checks hold; planted defects caught (a second web host, the legacy bullet back in build-guide's hard rules, the
+  legacy section removed). **AC-W125's tool calls, from the transcripts** (jq over unique tool_use ids): only Read,
+  ToolSearch (`select:` of the five lookups only) and the lookups, plus each agent's harness hand-back; every Read in
+  the lane or the scratchpad copy of the skill, which equals the lane's `SKILL.md` with the root replaced. Case 1:
+  Read 19, ToolSearch 1, `lookup_game_data` 33, `list_gems` 2, `search_tree_nodes` 2, `check_model_coverage` 2; case
+  2: Read 19, ToolSearch 1, `search_tree_nodes` 1, `check_model_coverage` 3, `lookup_game_data` 11; case 3: Read 4,
+  ToolSearch 1, `lookup_game_data` 1, `list_gems` 1. The coordinator's first tally had four per-tool counts wrong
+  (totals right); corrected above. All three answers pass against §8. Case 1 didn't read the league digest (no Glob or
+  Grep to find its file name).
+- **WU-147 (game knowledge's `SKILL.md`, the legacy rule's move, its real cases) merged** at `7382b1c`
+  (fast-forward, three commits on `14947bd`). The fix round (`7382b1c`): the web test allows one mention of a web
+  search, the "No WebSearch …" sentence; the tool test checks every `TOOL_META` name, bare or prefixed, but the five
+  lookups and `compile_plan`; "committed files alone (the game data, these references and PoB's gaps)" in the
+  lookups-missing line; line 67 rewrapped. The verifier's targeted re-check passed it (the diff touches only the test
+  and those two `SKILL.md` lines, nothing the real cases used; the planted WebSearch and bare tool names each fail; 3
+  suites, 453 tests; build rc 0; 121 lines). AC-W124 in `tests/static/amendment15GameKnowledge.test.ts` (16 tests);
+  AC-W125 recorded above.

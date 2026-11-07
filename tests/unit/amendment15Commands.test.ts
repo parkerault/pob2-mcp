@@ -126,6 +126,26 @@ describe('AC-W117 (WU-145, D-499): each bin/ command gives what node on its scri
   });
 });
 
+describe("AC-W117 (WU-145, D-500): the checker's messages name the bin/ commands, with the arguments they take", () => {
+  it('a schema-4 run missing a display and its audit.md is told the pob2-run-log and pob2-render-audit command lines, and the render named fixes its part', () => {
+    const dir = copyOf(RUN_A14);
+    const log = readLog(dir);
+    log.displays = (log.displays as Json[]).filter((d) => d.checkpoint !== 'design');
+    fs.writeFileSync(path.join(dir, 'run-log.json'), `${JSON.stringify(log, null, 2)}\n`);
+    fs.rmSync(path.join(dir, 'builds', BUILD, 'audit.md'));
+    const r = viaBin('pob2-check-run', [dir]);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain(`every gate visit prints its display first, pob2-run-log <runFolder> display design --build ${BUILD}, and only then logs its answer (D-367)`);
+    const audit = /the runner renders it with (pob2-render-audit <runFolder> --build \S+) before W1/.exec(r.stderr);
+    expect(audit?.[1]).toBe(`pob2-render-audit <runFolder> --build ${BUILD}`);
+    expect(r.stderr).not.toMatch(/(?:check-run|run-log|render-audit|render-notes)\.mjs/);
+    // The command line, as named, run with the run folder for <runFolder>, renders the file the checker missed.
+    const [command, ...args] = audit![1].split(' ').map((a) => (a === '<runFolder>' ? dir : a));
+    expect(viaBin(command, args).code).toBe(0);
+    expect(viaBin('pob2-check-run', [dir]).stderr).not.toContain('[audit-sections]');
+  });
+});
+
 describe('AC-W118 (WU-145, D-500): an old run resumes unchanged', () => {
   it("a copy of the revision-14 fixture resumes with pob2-run-log, then passes the checker; its skillRevision stays 14", () => {
     const dir = copyOf(RUN_A14);

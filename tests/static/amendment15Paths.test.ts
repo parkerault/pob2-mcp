@@ -162,27 +162,88 @@ describe('AC-W115 (WU-145, D-500): the task header, the reference line, the veri
   });
 });
 
+/**
+ * §5: a skill's and an agent's body name plugin files as `${CLAUDE_PLUGIN_ROOT}/<root-relative path>`, which Claude
+ * Code replaces with the plugin root. Every root-relative plugin path in the body's code spans (a span's own path or
+ * one after a space, `head -3 …/data/…`) needs the prefix; `<root>/` stands only in the task header's reference line
+ * (the verifier's fixed prompt, a fenced block, is checked as a whole above). A plugin file named in prose, outside any
+ * span, is a miss too.
+ */
+function unprefixed(body: string): string[] {
+  const text = withoutFences(body);
+  const roots = ROOT_FOLDERS.join('|');
+  const out: string[] = [];
+  for (const m of text.matchAll(/`([^`]+)`/g)) {
+    const span = folded(m[1]).trim();
+    for (const t of span.matchAll(new RegExp(`(?:^|(?<=[\\s(]))(\\$\\{CLAUDE_PLUGIN_ROOT\\}\\/|<root>\\/)?(?:${roots})\\/(?!>)`, 'g'))) {
+      if (t[1] === '${CLAUDE_PLUGIN_ROOT}/') continue;
+      if (t[1] === '<root>/' && span === 'Read <root>/skills/build-guide/references/stages/<stage>.md and do that step.') continue;
+      out.push(span);
+    }
+  }
+  const prose = text.replace(/`[^`]+`/g, (span) => span.replace(/[^\n]/g, ' '));
+  for (const m of prose.matchAll(new RegExp(`(?<![\\w/.$}>-])(?:${roots})\\/[\\w./-]*\\.(?:md|json|mjs|sh|ts|lua)\\b`, 'g'))) out.push(m[0]);
+  return out;
+}
+/** A Markdown file's body, its frontmatter left out. */
+const bodyOf = (text: string) => text.replace(/^---\n[\s\S]*?\n---\n/, '');
+
+describe('AC-W115 (WU-145, D-500): SKILL.md and the agent bodies name plugin files under ${CLAUDE_PLUGIN_ROOT}', () => {
+  it('every root-relative plugin path in skills/build-guide/SKILL.md and agents/*.md carries ${CLAUDE_PLUGIN_ROOT}/, <root>/ only in the reference line', () => {
+    const files = [path.join(REPO, 'skills', 'build-guide', 'SKILL.md'), ...fs.readdirSync(path.join(REPO, 'agents')).map((f) => path.join(REPO, 'agents', f))];
+    let prefixed = 0;
+    for (const file of files) {
+      const body = bodyOf(fs.readFileSync(file, 'utf8'));
+      prefixed += (body.match(/\$\{CLAUDE_PLUGIN_ROOT\}\//g) ?? []).length;
+      expect({ file: rel(file), unprefixed: unprefixed(body) }).toEqual({ file: rel(file), unprefixed: [] });
+    }
+    expect(prefixed).toBeGreaterThan(80);
+  });
+
+  it('the check fails on an unprefixed path, a misplaced <root>/ and a plugin file in prose, and passes the prefixed forms', () => {
+    expect(unprefixed('as in `x` (`skills/build-guide/references/checkpoints.md`).')).toEqual(['skills/build-guide/references/checkpoints.md']);
+    expect(unprefixed('a span that wraps, `Test config:\n  first-n:2` (`skills/build-guide/references/checkpoints.md`)')).toEqual(['skills/build-guide/references/checkpoints.md']);
+    expect(unprefixed('staleness line, `head -3 data/league/<newest>.md`, the newest')).toEqual(['head -3 data/league/<newest>.md']);
+    expect(unprefixed('read `<root>/skills/build-guide/references/pricing.md` first')).toEqual(['<root>/skills/build-guide/references/pricing.md']);
+    expect(unprefixed('## The fix round (skills/build-guide/SKILL.md steps 12 and 16)')).toEqual(['skills/build-guide/SKILL.md']);
+    expect(unprefixed('then `Read\n  <root>/skills/build-guide/references/stages/<stage>.md and do that step.` Add')).toEqual([]);
+    expect(unprefixed('(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`), `head -3 ${CLAUDE_PLUGIN_ROOT}/data/league/<newest>.md`')).toEqual([]);
+    expect(unprefixed('`data | <path under data/>#<id>`, `builds/<id>/`, `<buildFolder>/reports/V4-<n>.md`, such as skills/ or data/')).toEqual([]);
+  });
+});
+
 describe('AC-W115 (WU-145, R-113, R-116): the old-path guard', () => {
   /** The old skill and agent folders' names, joined here so this file doesn't name them itself. */
   const dot = ['', 'claude'].join('.');
-  const OLD = [`${dot}/skills`, `${dot}/agents/build-guide`, `'${dot}', 'skills'`, `'${dot}', 'agents'`, `"${dot}", "skills"`, `"${dot}", "agents"`];
+  const esc = (text: string) => text.replace(/[.]/g, '\\.');
+  /** The old folders by path, and by a segmented join in either quote style with any whitespace around the comma. */
+  const OLD = [
+    new RegExp(`${esc(dot)}/skills`),
+    new RegExp(`${esc(dot)}/agents/build-guide`),
+    new RegExp(`(['"])${esc(dot)}\\1\\s*,\\s*(['"])(?:skills|agents)\\2`),
+  ];
+  /** The forms a text names, its backslashes dropped first, so a regex's escaped slashes and dots count too. */
+  const named = (text: string) => OLD.filter((old) => old.test(text.replace(/\\/g, ''))).map(String);
   const EXEMPT = ['tests/static/amendment15Layout.test.ts'];
 
   it('no file under skills/, agents/, data/, src/ or tests/ names the old folders, but AC-W114\'s own test', () => {
     const files = ['skills', 'agents', 'data', 'src', 'tests'].flatMap((d) => walk(path.join(REPO, d))).filter((f) => !EXEMPT.includes(rel(f)));
     expect(files.length).toBeGreaterThan(500);
-    for (const file of files) {
-      // Escaped forms count too (a regex's escaped slashes and dots): the backslashes are dropped before the search.
-      const text = fs.readFileSync(file, 'utf8').replace(/\\/g, '');
-      const named = OLD.filter((old) => text.includes(old));
-      expect({ file: rel(file), named }).toEqual({ file: rel(file), named: [] });
-    }
+    for (const file of files) expect({ file: rel(file), named: named(fs.readFileSync(file, 'utf8')) }).toEqual({ file: rel(file), named: [] });
   });
 
-  it('the guard sees each old form, escaped or segmented, and the exempt file names the removed folders', () => {
-    const sample = [`path.join(REPO, '${dot}', 'skills', 'x')`, `/\\${dot}\\/skills\\/x/`, `${dot}/agents/build-guide/a.md`];
-    for (const s of sample) expect({ s, seen: OLD.some((old) => s.replace(/\\/g, '').includes(old)) }).toEqual({ s, seen: true });
-    const exempt = fs.readFileSync(path.join(REPO, EXEMPT[0]), 'utf8');
-    expect(OLD.filter((old) => exempt.includes(old)).length).toBeGreaterThan(0);
+  it('the guard sees each old form, escaped or segmented in either quote style with or without spaces, and the exempt file names the removed folders', () => {
+    const sample = [
+      `path.join(REPO, '${dot}', 'skills', 'x')`,
+      `path.join(REPO, '${dot}','skills')`,
+      `path.join(REPO, "${dot}" ,  "agents", "build-guide")`,
+      `path.join(REPO, '${dot}',\n  'agents')`,
+      `/\\${dot}\\/skills\\/x/`,
+      `${dot}/agents/build-guide/a.md`,
+    ];
+    for (const s of sample) expect({ s, seen: named(s).length > 0 }).toEqual({ s, seen: true });
+    // A mixed pair of quotes isn't one join, and other folders under it aren't the old ones.
+    for (const s of [`'${dot}", 'skills'`, `${dot}/workflows/x.js`, `path.join(REPO, '${dot}', 'commands')`]) expect({ s, seen: named(s).length > 0 }).toEqual({ s, seen: false });
+    expect(named(fs.readFileSync(path.join(REPO, EXEMPT[0]), 'utf8')).length).toBeGreaterThan(0);
   });
 });

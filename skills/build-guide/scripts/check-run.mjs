@@ -1739,7 +1739,7 @@ async function checkBuild(c) {
     const want = changedBetween(ledgerModule, abs(`rounds/${r.n - 1}`), now, { knownIssues: false }).filter((line) => check === 'recheck' || line.startsWith('section '));
     const checked = new Set(r.parsed.checked);
     for (const line of want) {
-      if (!checked.has(line)) fail('recheck', `${r.file}'s "## Checked" misses "${line}", which check-run.mjs --changed ${r.n - 1} lists (it changed since rounds/${r.n - 1}/); a ${check === 'campaign' ? 'campaign pass covers every guide H2' : 're-check covers every item'} --changed lists (D-352${check === 'campaign' ? ', D-415' : ''})`);
+      if (!checked.has(line)) fail('recheck', `${r.file}'s "## Checked" misses "${line}", which pob2-check-run <runFolder> --changed ${r.n - 1}${v4 ? ` --build ${build.id}` : ''} lists (it changed since rounds/${r.n - 1}/); a ${check === 'campaign' ? 'campaign pass covers every guide H2' : 're-check covers every item'} --changed lists (D-352${check === 'campaign' ? ', D-415' : ''})`);
     }
   }
 
@@ -1843,7 +1843,7 @@ async function checkBuild(c) {
   const auditText = readText('audit.md');
   let auditInputs = null;
   if (guideText !== null) {
-    if (auditText === null) fail('audit-sections', `guide.md exists, but audit.md doesn't; the runner renders it with scripts/render-audit.mjs${v4 ? ` --build ${build.id}` : ''} before W1 (§7.8, D-355)`);
+    if (auditText === null) fail('audit-sections', `guide.md exists, but audit.md doesn't; the runner renders it with pob2-render-audit <runFolder>${v4 ? ` --build ${build.id}` : ''} before W1 (§7.8, D-355)`);
     else {
       audit = parseMarkdown(auditText);
       const titles = audit.h2.map((h) => h.title);
@@ -1860,7 +1860,7 @@ async function checkBuild(c) {
       }
       const diff = auditInputs !== null ? firstDifference(auditText.split(/\r?\n/), renderAudit(auditInputs).split('\n')) : null;
       if (diff !== null) {
-        fail('audit-render', `audit.md:${diff.n} is ${show(diff.got)}, but render-audit.mjs renders ${show(diff.want)} from the current plan.json, compile-record.json and D1 gate verdict file: audit.md is the render, Known issues aside; the runner re-renders it before W1 (D-355)`);
+        fail('audit-render', `audit.md:${diff.n} is ${show(diff.got)}, but pob2-render-audit renders ${show(diff.want)} from the current plan.json, compile-record.json and D1 gate verdict file: audit.md is the render, Known issues aside; the runner re-renders it before W1 (D-355)`);
       }
     }
   }
@@ -1872,7 +1872,7 @@ async function checkBuild(c) {
       if (text === null) continue;
       const diff = firstDifference(text.split('\n').filter((l) => l.trim() !== ''), b.lines.filter((l) => l.trim() !== ''), (l) => l.trim());
       if (diff !== null) {
-        fail('checks-block', `guide.md's "${VARIANT_H2[b.variant]}" Checks, line ${diff.n} of the block, is ${show(diff.got)}, but its block in render-audit.mjs's render (audit.md's "### ${b.loadoutName}") has ${show(diff.want)}; W1 copies the block verbatim (D-355)`);
+        fail('checks-block', `guide.md's "${VARIANT_H2[b.variant]}" Checks, line ${diff.n} of the block, is ${show(diff.got)}, but its block in pob2-render-audit's render (audit.md's "### ${b.loadoutName}") has ${show(diff.want)}; W1 copies the block verbatim (D-355)`);
       }
     }
     // (x) One fixed-form verdict line per endgame rung, each part compared with the record (D-283).
@@ -1990,7 +1990,7 @@ async function checkBuild(c) {
     checkItemSwaps(plan, stages, fail);
     if (guide !== null) checkLevelLabels(guide, endgame, record, fail);
     checkRequestWords({ log, stages, build, runFolder, readText, fail });
-    if (build.status === 'file-only') for (const rel of ['guide.md', 'audit.md']) if (exists(rel)) fail('layout', `${rel} is in a file-only build's folder; a build that ends with its PoB file only holds no guide and no audit, and render-audit.mjs --withdraw ${build.id} removes what the guide route left after an answer change (D-480)`);
+    if (build.status === 'file-only') for (const rel of ['guide.md', 'audit.md']) if (exists(rel)) fail('layout', `${rel} is in a file-only build's folder; a build that ends with its PoB file only holds no guide and no audit, and pob2-render-audit <runFolder> --withdraw ${build.id} removes what the guide route left after an answer change (D-480)`);
   }
 
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
@@ -2792,7 +2792,7 @@ function checkSchema4Fields(log, bad) {
   if ('withdrawals' in log) {
     if (!Array.isArray(log.withdrawals)) bad('withdrawals', 'is a list, one entry per withdrawal (D-480)');
     list(log.withdrawals).forEach((x, k) => {
-      if (show(Object.keys(x)) !== show(['build', 'files', 'at']) || !new RegExp(`^${CARD_ID}$`).test(String(x.build)) || !Array.isArray(x.files) || !x.files.every(isText) || !isInt(x.at)) bad(`withdrawals[${k}]`, `is ${show(x)}; a withdrawal is {build, files, at}, the files render-audit.mjs --withdraw removed (D-480, Appendix A)`);
+      if (show(Object.keys(x)) !== show(['build', 'files', 'at']) || !new RegExp(`^${CARD_ID}$`).test(String(x.build)) || !Array.isArray(x.files) || !x.files.every(isText) || !isInt(x.at)) bad(`withdrawals[${k}]`, `is ${show(x)}; a withdrawal is {build, files, at}, the files pob2-render-audit <runFolder> --withdraw <id> removed (D-480, Appendix A)`);
       else if (!list(log.answerChanges).some((y) => y.concept === x.build && isInt(y.at) && y.at <= x.at)) bad(`withdrawals[${k}]`, `withdraws ${x.build}'s files, but no answer change for ${x.build} comes before it; the withdrawal removes the guide route's files after the answer changed to the PoB file only (D-480)`);
     });
   }
@@ -2829,7 +2829,7 @@ function checkAsk(c, at, bad, a14) {
   for (const k of Object.keys(c)) if (!allowed.includes(k)) bad(at, `has "${k}", which isn't a field of an ask checkpoint (${allowed.join(', ')})`);
   if (!ASK_KINDS.includes(c.kind)) bad(at, `kind is ${show(c.kind)}; one of ${ASK_KINDS.join(', ')} (D-482)`);
   if (!new RegExp(`^${CARD_ID}$`).test(String(c.build))) bad(at, `build is ${show(c.build)}; the card id of the build asked about (D-482)`);
-  if (!isInt(c.at)) bad(at, `at is ${show(c.at)}; the stages[] length when the question was asked, which run-log.mjs records (D-482)`);
+  if (!isInt(c.at)) bad(at, `at is ${show(c.at)}; the stages[] length when the question was asked, which pob2-run-log records (D-482)`);
   if (c.kind === 'open-finding' ? !OPEN_FINDING_ANSWERS.includes(c.answer) : typeof c.answer !== 'string' || c.answer.trim() === '') bad(at, c.kind === 'open-finding' ? `answers ${show(c.answer)}; an open finding's answer is round (one more fix round and re-check) or ship (D-482)` : "a departure's answer is the user's words (D-482)");
 }
 
@@ -3002,7 +3002,7 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
     else if (v3) checkGateAnswer(c, at, bad, schema, v4 && i >= heldFrom(log, 'checkpoints', A14));
     // D-367: run-log.mjs records a gate visit's display in displays[] before it logs that visit's answer.
     if (v3 && DISPLAYED.includes(c.checkpoint) && !displays.some((d) => d.checkpoint === c.checkpoint && d.visit === c.visit)) {
-      fail('display', `run-log.json ${at}: ${c.checkpoint} visit ${c.visit} has no display in displays[]; every gate visit prints its display first, run-log.mjs display ${c.checkpoint}, and only then logs its answer (D-367)`);
+      fail('display', `run-log.json ${at}: ${c.checkpoint} visit ${c.visit} has no display in displays[]; every gate visit prints its display first, pob2-run-log <runFolder> display ${c.checkpoint}${v4 && ['design', 'final'].includes(c.checkpoint) ? ` --build ${typeof c.concept === 'string' ? c.concept : '<id>'}` : ''}, and only then logs its answer (D-367)`);
     }
     if (typeof c.answer !== 'string' || c.answer.trim() === '') bad(at, 'has its answer');
     if (!['user', 'pre-supplied', 'default'].includes(c.answeredBy)) bad(at, 'answeredBy is "user", "pre-supplied" or "default"');
@@ -3068,7 +3068,7 @@ function checkPricing(log, fail) {
   stages.forEach((s, i) => {
     if (i < from || !isObj(s)) return;
     const hit = stopOutcome(s.priceOutcomes);
-    if (hit !== null && !stops.some((x) => x.at === i)) fail('pricing', `${at(i)} counts a ${hit} call, but pricing.stops records no stop at stages[${i}]; run-log.mjs records one with the step's entry, and pricing stops until a gate's retry-pricing (D-444)`);
+    if (hit !== null && !stops.some((x) => x.at === i)) fail('pricing', `${at(i)} counts a ${hit} call, but pricing.stops records no stop at stages[${i}]; pob2-run-log records one with the step's entry, and pricing stops until a gate's retry-pricing (D-444)`);
   });
   retries.forEach((r, k) => {
     if (!isInt(r.at)) return;
@@ -3591,7 +3591,7 @@ function checkFlow(log, fail, ctx) {
     // re-check; a revision checks with a re-check, never a full pass, and its re-check may have its own fix round.
     if (f === 'V4') {
       if (cycle === null) illegal('runs a V4 pass with no guide written for this design');
-      else if (cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what check-run.mjs --changed lists (D-352)`);
+      else if (cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what pob2-check-run <runFolder> --changed <n> lists (D-352)`);
       else if (cycle.first === 'done') fail('verification', `${at(i)}: starts a second full V4 pass for one guide; after the fix round a re-check (V4-recheck) covers what changed, and a revision ${G.final} asked for checks with a re-check too (D-352)`);
       else {
         cycle.first = 'done';
@@ -4513,7 +4513,7 @@ function checkFlow4(log, fail, ctx) {
     // The V4 checks (D-352, D-415), per build.
     if (b && f === 'V4') {
       if (b.cycle === null) illegal(i, 'runs a V4 pass with no guide written for this build');
-      else if (b.cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what check-run.mjs --changed lists (D-352)`);
+      else if (b.cycle.start === 'revision') fail('verification', `${at(i)}: runs a full V4 pass after a revision; a revision runs no full pass, its owners' changes get a re-check (V4-recheck) of what pob2-check-run <runFolder> --changed <n> lists (D-352)`);
       else if (b.cycle.start === 'campaign') fail('verification', `${at(i)}: runs a full V4 pass after a completed build's campaign; the campaign gets V4's campaign pass, V4-campaign (D-415)`);
       else if (b.cycle.first === 'done') fail('verification', `${at(i)}: starts a second full V4 pass for one guide; after the fix round a re-check (V4-recheck) covers what changed, and a revision the final gate asked for checks with a re-check too (D-352)`);
       else {

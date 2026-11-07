@@ -2300,7 +2300,7 @@ describe('flow invariant 3 (D-352): one full V4 pass per guide; a fix round or a
     passes(dir);
     // The revision's re-check missed the H2 the revision changed.
     editText(dir, 'reports/V4-3.md', replace('- section How to play it\n', 'None.\n'));
-    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-3\.md's "## Checked" misses "section How to play it", which check-run\.mjs --changed 2 lists/));
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-3\.md's "## Checked" misses "section How to play it", which pob2-check-run <runFolder> --changed 2 lists/));
   });
 
   it("fails a completed run that never re-checked what its full pass found", () => {
@@ -2556,7 +2556,7 @@ describe('review 6, as D-352 amends it: a fix round whose owner recompiled re-ch
     const dir = designFix();
     editJson(dir, 'compile-record.json', (r) => (r.stages.b.outputs.Life = 4300));
     rerender(dir);
-    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which check-run\.mjs --changed 1 lists \(it changed since rounds\/1\/\)/));
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which pob2-check-run <runFolder> --changed 1 lists \(it changed since rounds\/1\/\)/));
     editText(dir, 'reports/V4-2.md', replace('- section How to play it\n', '- claim stages[3].claims[0] (b-life)\n- section How to play it\n'));
     passes(dir);
   });
@@ -2663,7 +2663,7 @@ describe('D-264, D-352: a claims-only fix round edits claims in place, runs no g
 
   it("fails a claims-only round's re-check that misses an edited claim --changed lists (AC-W54)", () => {
     const dir = claimsOnly(undefined, []);
-    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which check-run\.mjs --changed 1 lists/));
+    expect(lines(failing(dir), 'recheck')).toContainEqual(expect.stringMatching(/reports\/V4-2\.md's "## Checked" misses "claim stages\[3\]\.claims\[0\] \(b-life\)", which pob2-check-run <runFolder> --changed 1 lists/));
   });
 
   it("item 1 (D-266): fails a claims-only round that swapped gear, added a gem, dropped a tree node or changed the config (the review's run-gearswap)", () => {
@@ -3009,7 +3009,7 @@ describe('AC-W55 (D-351, D-353, D-355): claim kinds, the rendered audit and Chec
   it("fails an audit.md that differs from the render, and passes one that differs only in its Known issues (D-355)", () => {
     const dir = copyOf('run-ok');
     editText(dir, 'audit.md', replace('| Endgame budget (L90) {b} | 90 | 4200 |', '| Endgame budget (L90) {b} | 90 | 4250 |'));
-    expect(lines(failing(dir), 'audit-render')).toEqual([expect.stringMatching(/^check-run: \[audit-render\] audit\.md:\d+ is "\| Endgame budget \(L90\) \{b\} \| 90 \| 4250 \|.*", but render-audit\.mjs renders "\| Endgame budget \(L90\) \{b\} \| 90 \| 4200 \|.*" from the current plan\.json, compile-record\.json and D1 gate verdict file/)]);
+    expect(lines(failing(dir), 'audit-render')).toEqual([expect.stringMatching(/^check-run: \[audit-render\] audit\.md:\d+ is "\| Endgame budget \(L90\) \{b\} \| 90 \| 4250 \|.*", but pob2-render-audit renders "\| Endgame budget \(L90\) \{b\} \| 90 \| 4200 \|.*" from the current plan\.json, compile-record\.json and D1 gate verdict file/)]);
     // The render keeps the rows under Known issues, so a known-issues edit is the known-issues check's alone.
     const ki = copyOf('run-ok');
     editText(ki, 'audit.md', replace(`| v4-1-1 | V4 | — | ${PROSE_READER} |`, `| v4-1-1 | V4 | — | ${PROSE_READER} |\n| level-points | D1-gate | b | An extra row. |`));
@@ -3021,7 +3021,7 @@ describe('AC-W55 (D-351, D-353, D-355): claim kinds, the rendered audit and Chec
   it("fails a guide Checks block that isn't its block in the render, copied verbatim (D-355)", () => {
     const dir = copyOf('run-ok');
     editGuide(dir, replace("- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit.", "- The Arbiter of Divinity: survives easily."));
-    expect(lines(failing(dir), 'checks-block')).toEqual([`check-run: [checks-block] guide.md's "Endgame: non-budget" Checks, line 3 of the block, is "- The Arbiter of Divinity: survives easily.", but its block in render-audit.mjs's render (audit.md's "### Endgame non-budget (L95) {n}") has "- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit."; W1 copies the block verbatim (D-355)`]);
+    expect(lines(failing(dir), 'checks-block')).toEqual([`check-run: [checks-block] guide.md's "Endgame: non-budget" Checks, line 3 of the block, is "- The Arbiter of Divinity: survives easily.", but its block in pob2-render-audit's render (audit.md's "### Endgame non-budget (L95) {n}") has "- The Arbiter of Divinity: survives its hits; its worst, physical hit, is 0.47 of your max hit."; W1 copies the block verbatim (D-355)`]);
   });
 
   it("fails a budget or non-budget label that disagrees with measures.arbiter, and an Arbiter label on m (D-353)", () => {
@@ -3356,7 +3356,7 @@ describe("D-367: each gate visit's display is recorded before its answer", () =>
     // editJson, not editLog: editLog keeps displays[] in step with checkpoints[], as run-log.mjs writes them.
     editJson(dropped, 'run-log.json', (l) => (l.displays = (l.displays as Json[]).filter((d) => d.checkpoint !== 'design')));
     expect(lines(failing(dropped), 'display')).toEqual([
-      'check-run: [display] run-log.json checkpoints[2]: design visit 1 has no display in displays[]; every gate visit prints its display first, run-log.mjs display design, and only then logs its answer (D-367)',
+      'check-run: [display] run-log.json checkpoints[2]: design visit 1 has no display in displays[]; every gate visit prints its display first, pob2-run-log <runFolder> display design, and only then logs its answer (D-367)',
     ]);
     const none = copyOf('run-escalated');
     editJson(none, 'run-log.json', (l) => delete l.displays);

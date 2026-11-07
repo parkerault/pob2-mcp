@@ -465,7 +465,7 @@ describe('AC-W84: build accepts name, and the re-rendered audit\'s title matches
     expect(r.code).toBe(0);
     expect(Object.keys(readJson(dir, 'run-log.json').builds[1])).toEqual(['id', 'roll', 'name', 'status', 'folder', 'guide', 'pobFile']);
     // The audit rendered before the name no longer equals the checker's re-render, which titles it by the name.
-    expect(lines(failing(dir), 'audit-render')).toEqual([expect.stringMatching(/builds\/r1-a-2: audit\.md:1 is "# Audit: Titan \/ Blood Hunt, Blood Hunt with Rolling Slam clear", but render-audit\.mjs renders "# Audit: Titan \/ Blood Hunt, Slam-Cleared Blood Hunt"/)]);
+    expect(lines(failing(dir), 'audit-render')).toEqual([expect.stringMatching(/builds\/r1-a-2: audit\.md:1 is "# Audit: Titan \/ Blood Hunt, Blood Hunt with Rolling Slam clear", but pob2-render-audit renders "# Audit: Titan \/ Blood Hunt, Slam-Cleared Blood Hunt"/)]);
     expect(node(RENDER, [dir, '--build', 'r1-a-2']).code).toBe(0);
     expect(read(dir, 'builds/r1-a-2/audit.md')).toMatch(/^# Audit: Titan \/ Blood Hunt, Slam-Cleared Blood Hunt\n/);
     passes(dir);

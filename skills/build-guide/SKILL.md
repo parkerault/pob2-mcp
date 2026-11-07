@@ -53,7 +53,7 @@ where its card names one.
   `pob2-run-log <runFolder> display <gate>` prints it (with `--build <id>` at a build's design and final gates);
   then resolve and log the answer (`checkpoint` refuses a visit with no display). A pre-supplied or default answer
   replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 →
-  verify r1-a-1, r1-b-1` (`skills/build-guide/references/checkpoints.md`).
+  verify r1-a-1, r1-b-1` (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`).
 - **Every gate visit and escalation is an interview** (D-389, D-390), never an AskUserQuestion: answer every
   question before any decision, from the card and research files, your lookups, or a gate question step (stage
   `Q`) after one line saying what you start and why, without asking first. Then restate the decision by the

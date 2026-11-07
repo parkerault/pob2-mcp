@@ -177,7 +177,7 @@ The rules every design step keeps:
   older build keeps `<slug>-<YYYY-MM-DD>-<n>-<id>` (D-412), `-campaign` on the D2 gate's. A final compile the write
   ledger refuses is reported, never worked around.
 
-## The fix round and revisions (skills/build-guide/SKILL.md steps 12 and 16)
+## The fix round and revisions (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` steps 12 and 16)
 
 - **The owners.** `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing one and an
   endgame price are D1's (D1-finish first; D1-build, then D1-tree, only for a build change it hands on); a campaign stage and a ledger entry citing only campaign stages are D2's. The

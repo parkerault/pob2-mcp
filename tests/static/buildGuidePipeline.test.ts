@@ -2736,7 +2736,7 @@ describe('D-265 (b) at the point of use: every gate visit prints its display, wh
   it('Hard rules: the display comes first, in the reply, whoever answers; a pre-supplied or default answer replaces only the question, and the reply states what it resolved to', () => {
     const text = raw();
     const hard = folded(text.slice(text.indexOf('## Hard rules'), text.indexOf('## Calling an agent')));
-    expect(hard).toMatch(/- \*\*Every gate visit prints its display first, in your reply, whoever answers it\*\* \(D-265, D-367\): the user, a pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation\. `pob2-run-log <runFolder> display <gate>` prints it \(with `--build <id>` at a build's design and final gates\); then resolve and log the answer \(`checkpoint` refuses a visit with no display\)\. A pre-supplied or default answer replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` \(`skills\/build-guide\/references\/checkpoints\.md`\)\./);
+    expect(hard).toMatch(/- \*\*Every gate visit prints its display first, in your reply, whoever answers it\*\* \(D-265, D-367\): the user, a pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation\. `pob2-run-log <runFolder> display <gate>` prints it \(with `--build <id>` at a build's design and final gates\); then resolve and log the answer \(`checkpoint` refuses a visit with no display\)\. A pre-supplied or default answer replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 → verify r1-a-1, r1-b-1` \(`\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/references\/checkpoints\.md`\)\./);
   });
 
   it('each gate paragraph names its display command (D-367) and points to the rule before its question: the brainstorm, verification, design and final gates and the escalation', () => {
@@ -2875,12 +2875,13 @@ describe('WU-70 (AC-W53, D-356): the agent definitions batch independent calls',
 });
 
 /**
- * A pointer that sends an agent to read one of the four shared references whole (D-356): `Read <path>`, or the path
- * followed by "whole". Before amendment 15 a pointer was the file's full repository path and a citation its bare name;
+ * A pointer that sends an agent to read one of the four shared references whole (D-356): `Read <path>` (in any case, or
+ * `Read the whole of <path>`), or the path followed by "whole"; the path root-relative, or under `${CLAUDE_PLUGIN_ROOT}/` or
+ * `<root>/`. Before amendment 15 a pointer was the file's full repository path and a citation its bare name;
  * D-500 writes both root-relative, so the words around the path tell a pointer from a citation of an excerpt's source.
  */
-const SHARED_REF = '`(?:<root>\\/)?skills\\/(?:build-guide|game-knowledge)\\/references\\/(?:gates|pricing|source-markers|lookups)\\.md`';
-const wholeReads = (text: string): string[] => text.match(new RegExp(`\\bRead ${SHARED_REF}|${SHARED_REF}(?:,| [a-z]+){0,3} whole\\b`, 'g')) ?? [];
+const SHARED_REF = '`(?:\\$\\{CLAUDE_PLUGIN_ROOT\\}\\/|<root>\\/)?skills\\/(?:build-guide|game-knowledge)\\/references\\/(?:gates|pricing|source-markers|lookups)\\.md`';
+const wholeReads = (text: string): string[] => text.match(new RegExp(`\\bread (?:the whole of )?${SHARED_REF}|${SHARED_REF}(?:,| [a-z]+){0,3} whole\\b`, 'gi')) ?? [];
 
 /** The stage references part B of WU-70 restates (D-356): each states its rules as excerpts. */
 const PART_B_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D2', 'D2-gate', 'W1'];
@@ -2889,7 +2890,11 @@ describe('WU-70 (AC-W53, D-356): the stage references state their rules as excer
   it('the pointer check finds a read of a whole shared reference and passes a citation of its source', () => {
     expect(wholeReads('Read `skills/build-guide/references/pricing.md` before you price.')).toHaveLength(1);
     expect(wholeReads('read `<root>/skills/game-knowledge/references/lookups.md` whole first')).toHaveLength(1);
+    expect(wholeReads('first read `skills/build-guide/references/gates.md`, then')).toHaveLength(1);
+    expect(wholeReads('Read the whole of `skills/game-knowledge/references/source-markers.md` before the report.')).toHaveLength(1);
+    expect(wholeReads('Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md` first.')).toHaveLength(1);
     expect(wholeReads('fill each part (`skills/build-guide/references/gates.md`). Then')).toEqual([]);
+    expect(wholeReads('weights read the main skill (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`")')).toEqual([]);
   });
 
   it.each(['D1-build', 'D1-finish', 'D1-gate', ...PART_B_STAGES, 'V4'])('%s sends no agent to read a shared reference or plan-reference.md whole', (stage) => {

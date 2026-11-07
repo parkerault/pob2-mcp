@@ -6573,3 +6573,10 @@ the `m17` engine at `b76967b`.
   coordinator accepts the change as forced: §5 gives a pointer and a citation one root-relative form, so the old
   path-form test fails on D1-gate's citation of `gates.md`. Condition: the helper must also catch the three forms the
   verifier's mutation found it misses (lowercase `read`, "the whole of", a `${CLAUDE_PLUGIN_ROOT}/` prefix).
+- **WU-145's review** (fresh, read-only) found two low-severity defects and accepted the doer's deviations (D-356's
+  re-expression, `SKILL.md`'s long lines, with no line-length rule anywhere, the prefix on every plugin path, the
+  Markdown-only scope of AC-W115, root-relative "SKILL.md step N"): `SKILL.md`:56 cites `checkpoints.md` without
+  `${CLAUDE_PLUGIN_ROOT}/` (a run from another project would miss it), and `check-run.mjs`'s violation messages name
+  `scripts/render-audit.mjs` and `run-log.mjs` instead of the `bin/` commands. **Fix round** sent to the doer: those two,
+  a check that every plugin path in `SKILL.md` and the agent bodies carries the prefix, the D-356 helper's three missed
+  forms, the old-path guard's no-space join, and the coordinator heading's prefix.

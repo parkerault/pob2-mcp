@@ -162,12 +162,19 @@ function segmentsOf(text) {
   return segments;
 }
 
-/** A token with its wrapping punctuation, a link's text and a `${CLAUDE_PLUGIN_ROOT}/` or `<root>/` prefix removed. */
+/** The punctuation around a token in prose: brackets, quotes, emphasis and a sentence's marks. */
+const LEADING = /^[(\["'‘“*]+/;
+const TRAILING = /[)\]"'’”*,.;:!?]+$/;
+
+/**
+ * A token with its wrapping punctuation, a possessive `'s` (`SKILL.md's step 3`), a link's text and a
+ * `${CLAUDE_PLUGIN_ROOT}/` or `<root>/` prefix removed.
+ */
 function cleanToken(raw) {
   let t = raw;
   const link = t.indexOf('](');
   if (link >= 0) t = t.slice(link + 2);
-  t = t.replace(/^[(\["'*]+/, '').replace(/[)\]"'*,.;:!?]+$/, '');
+  t = t.replace(LEADING, '').replace(TRAILING, '').replace(/['’]s$/, '').replace(TRAILING, '');
   return t.replace(/^(?:\$\{CLAUDE_PLUGIN_ROOT\}|<root>)\//, '');
 }
 
@@ -316,8 +323,12 @@ export function compare(current, baseline) {
     const added = cur.files.filter((f) => !base.files.includes(f)).map((f) => `+${f}`);
     const removed = base.files.filter((f) => !cur.files.includes(f)).map((f) => `-${f}`);
     if (added.length || removed.length) lines.push(`  files: ${[...added, ...removed].join(' ')}`);
-    if (cur.words * 100 > base.words * (100 + BOUND_PERCENT)) {
-      failures.push(`${key}: ${percent(cur.words, base.words)} over its baseline (${cur.words} words, ${base.words} at the baseline), above the ${BOUND_PERCENT}% bound`);
+    // The bound is exact; the line's one decimal can read +5.0% for a count just over it, so the failure names the
+    // largest count the bound allows.
+    const allowed = Math.floor((base.words * (100 + BOUND_PERCENT)) / 100);
+    if (cur.words > allowed) {
+      const exact = `+${((100 * (cur.words - base.words)) / base.words).toFixed(2)}%`;
+      failures.push(`${key}: ${cur.words} words, more than the ${allowed} the ${BOUND_PERCENT}% bound allows over its baseline's ${base.words} (${exact})`);
     }
   }
   if (max !== null) lines.push(`max ${signed(max)}`);
@@ -390,6 +401,16 @@ function main(argv) {
   return result.errors.length || failures.length ? 1 : 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+/** Whether Node started this file, by its real path: through a symbolic link `argv[1]` is the link's path. */
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) {
   process.exitCode = main(process.argv.slice(2));
 }

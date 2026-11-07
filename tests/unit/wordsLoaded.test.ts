@@ -17,7 +17,7 @@
  * tree written there; no tracked file is changed.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
-import { spawnSync } from 'child_process';
+import { execFileSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -42,8 +42,9 @@ interface Result {
   stderr: string;
 }
 /** The script under the Node running the test, from a temp folder, with an explicit env (git for `--at`). */
-function run(args: string[]): Result {
-  const r = spawnSync(process.execPath, [SCRIPT, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', HOME: TMP, LANG: 'C' }, encoding: 'utf8', timeout: 60000 });
+const ENV = { PATH: '/usr/bin:/bin', HOME: TMP, LANG: 'C' };
+function run(args: string[], script = SCRIPT): Result {
+  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 60000 });
   if (r.error) throw r.error;
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
 }
@@ -159,6 +160,27 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
     expect(measure['Q:researcher'].files).not.toContain('agents/build-guide-coordinator.md');
   });
 
+  it("the stage references and agent definitions name plugin files only in the root-relative form the scan above reads: no bare or skill-relative names", () => {
+    const pluginNames = new Set(['skills', 'agents'].flatMap((d) => fs.readdirSync(path.join(REPO, d), { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name)));
+    /** The names §5 resolves that the scan doesn't: a bare plugin file name, or a skill-relative or `../` or `./` path. */
+    const missed = (text: string) =>
+      text
+        .split(/[\s`]+/)
+        .map((t) => t.replace(/^[(\["'‘“*]+/, '').replace(/[)\]"'’”*,.;:!?]+$/, '').replace(/['’]s$/, '').replace(/[)\]"'’”*,.;:!?]+$/, ''))
+        .filter((t) => pluginNames.has(t) || /^(?:references|templates|stages)\/|^\.\.?\//.test(t) || (/^scripts\/[\w.-]+$/.test(t) && !fs.existsSync(path.join(REPO, t))));
+    expect(missed('As `SKILL.md`, references/a.md, (../gates.md), stages/Q.md and scripts/render-notes.mjs; patterns.md’s, not scripts/run-usage.mjs or skills/build-guide/SKILL.md.')).toEqual([
+      'SKILL.md',
+      'references/a.md',
+      '../gates.md',
+      'stages/Q.md',
+      'scripts/render-notes.mjs',
+      'patterns.md',
+    ]);
+    for (const file of [...new Set(EXPECTED_STAGES.flatMap((s) => [agentOf(s), referenceOf(s)]))]) {
+      expect({ file, missed: missed(fs.readFileSync(path.join(REPO, file), 'utf8')) }).toEqual({ file, missed: [] });
+    }
+  });
+
   it('the committed baseline is the same count at a8d735c, one entry per stage, its file lists in the new root-relative paths', () => {
     const r = run(['--at', 'a8d735c', '--json']);
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
@@ -170,6 +192,41 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
     }
     // Game knowledge's moved files appear at their new paths (the spine's old-to-new path line).
     expect(BASELINE.R1a.files).toEqual(expect.arrayContaining(['skills/game-knowledge/references/patterns.md', 'skills/game-knowledge/references/lookups.md', 'skills/game-knowledge/references/source-markers.md']));
+  });
+
+  it("the baseline's counts match ones taken by hand at a8d735c, and W1's file list matches its names read by hand", () => {
+    // Summed `git show a8d735c:<old path> | wc -w` over each stage's files (the review of WU-148).
+    const pinned = { V4: 24049, W1: 33684, R1b: 110596, 'Q:researcher': 33041, 'D1-build': 102373 };
+    expect(Object.fromEntries(Object.keys(pinned).map((k) => [k, BASELINE[k].words]))).toEqual(pinned);
+    // W1 at a8d735c: the writer's definition names the task header, offline-and-test.md and source-markers.md; W1.md
+    // names SKILL.md, toughness-targets.json, both guide templates and the two render scripts by path; both scripts
+    // also run as commands elsewhere, which name no file.
+    const W1_FILES = [
+      'agents/build-guide-writer.md',
+      'skills/build-guide/SKILL.md',
+      'skills/build-guide/references/offline-and-test.md',
+      'skills/build-guide/references/stages/W1.md',
+      'skills/build-guide/references/task-header.md',
+      'skills/build-guide/references/toughness-targets.json',
+      'skills/build-guide/scripts/render-audit.mjs',
+      'skills/build-guide/scripts/render-notes.mjs',
+      'skills/build-guide/templates/guide-endgame-template.md',
+      'skills/build-guide/templates/guide-template.md',
+      'skills/game-knowledge/references/source-markers.md',
+    ];
+    expect(BASELINE.W1.files).toEqual(W1_FILES);
+    // The old folders' names, joined here so the file doesn't name them itself (AC-W115's old-path guard).
+    const dot = ['', 'claude'].join('.');
+    const oldPath = (f: string) => (f.startsWith('agents/') ? `${dot}/agents/build-guide/${f.slice('agents/'.length)}` : `${dot}/skills/build-guide/${f.replace(/^skills\/[\w-]+\//, '')}`);
+    const git = (blob: string) => execFileSync('git', ['-C', REPO, 'cat-file', 'blob', blob], { encoding: 'utf8', env: ENV });
+    expect(W1_FILES.reduce((n, f) => n + wordsOf(git(`a8d735c:${oldPath(f)}`)), 0)).toBe(pinned.W1);
+  });
+
+  it('runs the same through a symbolic link to the script', () => {
+    const link = path.join(TMP, 'linked', 'words-loaded.mjs');
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.symlinkSync(SCRIPT, link);
+    expect(run([], link)).toEqual(REPO_RUN);
   });
 });
 
@@ -204,7 +261,7 @@ describe('AC-W126 (WU-148, D-505): the bound and the names, on temp copies of th
     const overReport = parse(over.stdout);
     expect(overReport.stages.find((s) => s.stage === 'W1')!.words).toBe(atBound + 1);
     expect(others(overReport)).toEqual(others(parse(REPO_RUN.stdout)));
-    expect(over.stderr).toMatch(/^\[words-loaded\] W1: \+\d+\.\d% over its baseline .*above the 5% bound$/m);
+    expect(over.stderr).toMatch(new RegExp(`^\\[words-loaded\\] W1: ${atBound + 1} words, more than the ${atBound} the 5% bound allows over its baseline's ${base} \\(\\+\\d+\\.\\d\\d%\\)$`, 'm'));
   });
 
   it('a stage reference far over its baseline fails, and so does every stage that names it', () => {
@@ -212,7 +269,7 @@ describe('AC-W126 (WU-148, D-505): the bound and the names, on temp copies of th
     edit(root, 'skills/build-guide/references/stages/D2-gate.md', (text) => `${text}\n${'inflated '.repeat(Math.ceil(BASELINE['D2-gate'].words * 0.06))}\n`);
     const r = run(['--root', root]);
     expect(r.code).toBe(1);
-    const failed = [...r.stderr.matchAll(/^\[words-loaded\] (\S+): \+\S+ over its baseline/gm)].map((m) => m[1]);
+    const failed = [...r.stderr.matchAll(/^\[words-loaded\] (\S+): \d+ words, more than the \d+ the 5% bound allows/gm)].map((m) => m[1]);
     // The coordinator's definition names every coordinator stage's reference, so each of those stages loads it.
     const naming = EXPECTED_STAGES.filter((s) => (JSON.parse(REPO_MEASURE.stdout) as Measure)[s].files.includes('skills/build-guide/references/stages/D2-gate.md'));
     expect(failed).toEqual(expect.arrayContaining(['D2-gate']));
@@ -298,7 +355,35 @@ describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges a
     expect({ code: below.code, stdout: below.stdout, stderr: below.stderr }).toEqual({ code: 0, stdout: 'S1 42 56 -25.0%\nmax -25.0%\n', stderr: '' });
     const over = withBaseline('over', { S1: { words: 39, files } });
     expect({ code: over.code, stdout: over.stdout }).toEqual({ code: 1, stdout: 'S1 42 39 +7.7%\nmax +7.7%\n' });
-    expect(over.stderr).toBe('[words-loaded] S1: +7.7% over its baseline (42 words, 39 at the baseline), above the 5% bound\n');
+    expect(over.stderr).toBe("[words-loaded] S1: 42 words, more than the 40 the 5% bound allows over its baseline's 39 (+7.69%)\n");
+  });
+
+  it('a count just over the bound fails, though its line rounds to +5.0%, and the failure names the count the bound allows', () => {
+    // 2 words of definition and 5 of title, then the padding: 10504 words in all, 10500 the second time.
+    const EDGE = path.join(TMP, 'edge');
+    write(EDGE, DEF, '# writer\n');
+    write(EDGE, S1, `# S1: a step (\`build-guide-writer\`)\n${'w '.repeat(10497)}\n`);
+    const base = path.join(TMP, 'edge.json');
+    fs.writeFileSync(base, JSON.stringify({ S1: { words: 10000, files: [DEF, S1] } }));
+    const over = run(['--root', EDGE, '--baseline', base]);
+    expect(over).toEqual({ code: 1, stdout: 'S1 10504 10000 +5.0%\nmax +5.0%\n', stderr: "[words-loaded] S1: 10504 words, more than the 10500 the 5% bound allows over its baseline's 10000 (+5.04%)\n" });
+    write(EDGE, S1, `# S1: a step (\`build-guide-writer\`)\n${'w '.repeat(10493)}\n`);
+    expect(run(['--root', EDGE, '--baseline', base])).toEqual({ code: 0, stdout: 'S1 10500 10000 +5.0%\nmax +5.0%\n', stderr: '' });
+  });
+
+  it("reads a name with a possessive 's or ’s as the name: a path's resolves, a bare name's counts", () => {
+    const POSS = path.join(TMP, 'possessive');
+    write(POSS, DEF, '# writer\n');
+    write(POSS, S1, "# S1: a step (`build-guide-writer`)\n\nAs skills/build-guide/references/a.md's step 3 says, and b.md’s last line.\n");
+    write(POSS, 'skills/build-guide/references/a.md', 'a\n');
+    write(POSS, 'skills/build-guide/references/b.md', 'b\n');
+    const r = run(['--root', POSS, '--json']);
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    expect((JSON.parse(r.stdout) as Measure).S1.files).toEqual([DEF, 'skills/build-guide/references/a.md', 'skills/build-guide/references/b.md', S1]);
+    // A missing file named with a possessive is still an unresolvable name.
+    write(POSS, S1, "# S1: a step (`build-guide-writer`)\n\nAs skills/build-guide/references/gone.md's step says.\n");
+    const gone = run(['--root', POSS, '--json']);
+    expect({ code: gone.code, stderr: gone.stderr }).toEqual({ code: 1, stderr: '[words-loaded] skills/build-guide/references/stages/S1.md: cannot resolve `skills/build-guide/references/gone.md`\n' });
   });
 
   it('fails a stage with no baseline entry and a baseline stage the tree no longer has', () => {

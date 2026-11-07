@@ -1,0 +1,6 @@
+{
+  "name": "pob2-mcp",
+  "owner": { "name": "Parker" },
+  "description": "The pob2 plugin: Path of Exile 2 build tools over a headless Path of Building 2",
+  "plugins": [{ "name": "pob2", "source": "./" }]
+}

@@ -6556,3 +6556,11 @@ the `m17` engine at `b76967b`.
   WU-148, which owns only its own new files (its script, baseline and test).
 - **Baseline gate** on `f510a5a` (fresh verifier, clean rebuild, under the lock): `mise run test` rc 0 (235 suites,
   4,167 tests; the timing step 2 suites, 4 tests, 173 s), `pnpm build` rc 0; both waiver files `[]`.
+- **WU-145's doer** finished at `5085b99` on `bg/wu-145` (three commits: the move, the paths, the tests); its own gate
+  rc 0 (238 suites, 4,206 tests). Its load check, before it deleted the old folders: `claude plugin validate` rc 0
+  ("Validation passed with warnings": no `version` twice, the root `CLAUDE.md`); `plugin details pob2` rc 0, listing
+  `build-guide`, the four agents and the `SessionStart` hook. The expected `skills/game-knowledge/` warning did not
+  appear. **The coordinator's call:** validate also prints a "Plugin directory checks" section with
+  `ICON_MISSING` (no `icon` in `plugin.json`), which the tool says doesn't change the result. It is advisory, not a
+  validation warning, so it doesn't fail the load check (choice 2 is about Claude Code refusing the layout), and
+  Appendix A's `plugin.json` stays as approved. Flagged to the user at the build's end.

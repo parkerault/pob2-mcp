@@ -6610,3 +6610,42 @@ the `m17` engine at `b76967b`.
   - **Friction:** a symlink to one `bin/` command fails, since Appendix A's `cd -P` resolves the folder; link the
     folder. For WU-146: the reminder still prints a literal `${CLAUDE_PLUGIN_ROOT}`, and `runSettingsExample`'s
     `RULE_SENTENCES` pin that form.
+- **WU-146's doer** finished at `3d5c5ad` on `bg/wu-146` (two commits on `a229b51`): `runner-rules.md` (68 lines,
+  Appendix A's six headings), `SKILL.md` 319 lines (5,293 → 4,849 words), the stray-file check, the reminder printing
+  the root (awk, `cd -P`, empty as unset), §7's sentence in the four agent definitions. AC-W121…AC-W123 in
+  `tests/static/amendment15Rules.test.ts` and `tests/unit/amendment15Reminder.test.ts`. Doer's gate rc 0 (240 suites,
+  4,235 tests); load check as expected. The legacy bullet stays in `SKILL.md` for WU-147 to drop when it moves the
+  rule. Gate verifier and review dispatched.
+- **WU-146's review** (fresh, read-only): no defects. It accepted the doer's deviations: the legacy bullet overlaps
+  `runner-rules.md`'s pointer to `lookups.md` until WU-147; the moved bullets equal the old `SKILL.md` lines word for
+  word apart from the stray-file check and root-relative paths (§5); the stray-file check reads a failing `git status
+  --porcelain` (exit 128 outside a repository, probed) as "outside a work tree"; the `## Hard rules` anchor keeps the
+  gate cards' pointers; the reminder probed under dash with spaces, `&`, backslashes, the placeholder itself and a
+  symlinked root. §10 counts only the files a definition and stage reference name, and agents don't read
+  `runner-rules.md` (D-501), so the move can only lower counts.
+- **WU-148's doer** finished at `362bbcc` on `bg/wu-148` (one commit on `a229b51`: `scripts/words-loaded.mjs`, its
+  baseline, `tests/unit/wordsLoaded.test.ts`). Doer's gate rc 0 (239 suites, 4,222 tests). The baseline is the count at
+  `a8d735c` (`--at a8d735c` reads that tree through git and maps the old paths as the spine's §4.3 does); on
+  `a229b51` every stage is within +0.4% (V4), no file-list difference. Six planted script breaks each caught.
+  **Its finding, kept as built:** the coordinator's definition names all 11 coordinator stage references in its step
+  table, so §10 read as written counts all of them in every coordinator stage (77k–111k words; Q:coordinator's list
+  equals D2-gate's), and the 5% bound measures the coordinator's whole text rather than one stage's (D2-gate's own
+  945 words could grow about fourfold without failing). The script follows §10's text, which is binding; narrowing
+  the definition is a spec decision, recorded as a candidate for amendment 16 and raised with the user. Review
+  dispatched now; the gate waits for the rebase onto WU-147 (§13's merge rule).
+- **WU-148's review** (fresh, read-only): four low-severity defects, each probed: a possessive `'s` after a name
+  breaks resolution; a failure printing `+5.0%` "above the 5% bound"; the test's baseline check compares the script
+  with itself and its scan misses bare names; a run through a symlinked path exits 0 silently (`run-usage.mjs` and
+  `check-run.mjs` share the main-module check). It recomputed five baseline counts from `a8d735c` by `wc -w`, accepted
+  the doer's deviations (agent type from the stage title; command lines name no file; the indented `files:` line; one
+  level of names; a stage missing from the baseline exits 1), and confirmed the literal reading: the coordinator's
+  step table names 12 stage references (11 plus Q). Fix round sent to the doer.
+- **WU-146 (the shared rules, the stray-file check, the reminder, the agent types' wording) merged** at `3d5c5ad`
+  (fast-forward, two commits on `a229b51`). Its gate verifier (fresh context) passed it: gate from clean rc 0 (240
+  suites, 4,235 tests; the timing step 2 suites, 4 tests), build rc 0; the load check as expected (no `version` twice,
+  the root `CLAUDE.md`, `ICON_MISSING`; `build-guide`, four agents, `SessionStart`); the five unit-gate checks hold;
+  three planted defects caught (a rule sentence deleted, the reminder printing the literal placeholder, a reverted
+  description); moved pins neither weakened nor dropped, the trade stop gaining a negative check on `SKILL.md`; words
+  loaded: `SKILL.md` 5,293 → 4,849 words, the agent definitions unchanged in length, `runner-rules.md` (671 words)
+  counted in no stage, as §10's lines 383–385 define it. AC-W121…AC-W123 in `tests/static/amendment15Rules.test.ts`
+  and `tests/unit/amendment15Reminder.test.ts`.

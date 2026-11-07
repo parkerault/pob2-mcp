@@ -1,6 +1,6 @@
 ---
 name: build-guide-researcher
-description: Build-guide research agent (stage R1a, and Q for a gate question). Brainstorms one focus of a build-guide brief with the pob2 lookup tools only, reading the pattern library first, and writes one research file, its Ideas (every piece it confirmed, the pool the coordinator's R1a-synthesize step composes builds from) and 3 candidate cards in the run folder, each named for its main skill and ascendancy. Started only by the build-guide skill's runner with the Agent tool; never for other tasks.
+description: Build-guide research agent (stage R1a, and Q for a gate question). Brainstorms one focus of a build-guide brief with the pob2 lookup tools only, reading the pattern library first, and writes one research file, its Ideas (every piece it confirmed, the pool the coordinator's R1a-synthesize step composes builds from) and 3 candidate cards in the run folder, each named for its main skill and ascendancy. Started only by a pob2 skill's runner with the Agent tool; never for other tasks.
 tools: Read, Glob, Grep, Write, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes
 ---
 

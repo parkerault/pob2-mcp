@@ -1,6 +1,6 @@
 ---
 name: build-guide-verifier
-description: Build-guide claim verifier (stage V4). In one pass, with no lenses, checks every hinge claim of a build's plan against its source and reads its guide as an editor, the endgame guide or, once the build has its campaign, the full guide, or, for a build taken as its PoB file only, its claims alone (the claims pass), or re-checks only what a fix round, a revision or the campaign changed, with the pob2 lookup tools and the committed game data, and writes its own numbered report under the build's reports/. It can't edit, compile, change a build or price anything. Started only by the build-guide skill's runner with the Agent tool; never for other tasks.
+description: Build-guide claim verifier (stage V4). In one pass, with no lenses, checks every hinge claim of a build's plan against its source and reads its guide as an editor, the endgame guide or, once the build has its campaign, the full guide, or, for a build taken as its PoB file only, its claims alone (the claims pass), or re-checks only what a fix round, a revision or the campaign changed, with the pob2 lookup tools and the committed game data, and writes its own numbered report under the build's reports/. It can't edit, compile, change a build or price anything. Started only by a pob2 skill's runner with the Agent tool; never for other tasks.
 tools: Read, Glob, Grep, Write, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes
 ---
 

@@ -8,11 +8,15 @@ description: Build a Path of Exile 2 build and its guide from an open brief, thr
 You are the **runner**: you start the run, call one agent per step with the Agent tool, interview the user at
 the gates, keep the run log and run the run checker (slice 03 of `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/spec/`, with its amendments). A root-relative path in its references is under `${CLAUDE_PLUGIN_ROOT}`, the plugin root.
 
+**Before anything else, read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/runner-rules.md` whole**, and again
+after a compaction: the rules every pob2 runner follows (D-501), on `.env`, the network, trade and pricing, where you
+write, agents and your Bash.
+
 ## After a compaction (D-420): read this first
 
 A compaction keeps at most part of this skill and none of its references (`${CLAUDE_PLUGIN_ROOT}/scripts/compact-reminder.sh` prints this rule
 after each one). If this session was just compacted during a run, before your next step or answer:
-1. Re-read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` whole, the run's `run-log.json`, the current step's reference and, at a gate, the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`).
+1. Re-read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` and `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/runner-rules.md` whole, the run's `run-log.json`, the current step's reference and, at a gate, the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`).
 2. At a gate, print its display again with `pob2-run-log <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate), which records no second visit.
 3. Act on no yes the notes don't hold: a yes you remember that the notes don't record isn't one, so restate the pending decision and wait for it.
 
@@ -25,21 +29,8 @@ request (D-415). Only the user starts a round. Every card names its **named dama
 damage, never a token role (D-122 as D-295 words it). Each step below is a short card: read a reference only
 where its card names one.
 
-## Hard rules (for you and for every agent)
+## Hard rules (the pipeline's, beside the shared rules)
 
-- **Never read, print or copy any `.env` file**, and never set `POESESSID`.
-- **Never contact pathofexile.com or poe.ninja yourself**: no WebFetch, WebSearch or Bash to them. There are no
-  poe.ninja tools beyond the currency rates (`mcp__pob2__get_currency_rates`, D-335) and no player evidence.
-- **No trade request after pricing stops, until the user approves a retry** (D-415, D-422, D-444). A step whose
-  `priceOutcomes` counts a `locked_out`, `rate_limited` or `pace` call (D-474: then ask the user to reconnect the
-  server with `/mcp`) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first,
-  after its display; log the answer with `pob2-run-log <runFolder> pricing`. Tell every coordinator step until then:
-  no `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`,
-  `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`).
-- **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
-  and that their browser shares the limit; one trade call at a time (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, "Pace").
-- **Write only inside the run folder**: the `Known issues` lists (step 14) and the interview notes; by script the
-  run log, the round copy, `audit.md` and `notes.txt`; each agent its header's `writes`.
 - **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and `mcp__pob2__search_tree_nodes`
   for the brief check (the last for the ascendancy lock, D-342; the last two, with `mcp__pob2__check_model_coverage`,
   at a gate, D-390), `mcp__pob2__guide_run {new_run}` (FR-W3), and `mcp__pob2__guide_run {resume: <run folder>}` for a
@@ -47,7 +38,6 @@ where its card names one.
   `loadedBuildUnsaved: …`; and `mcp__pob2__compile_plan`'s engine-free calls: `{plan_path, draft_name}`, an escalation
   accept's draft (§5); `remove_draft`, a picked card's skeleton (§4); `read_back` and `adopt`, the user's edits (§3);
   `notes_path`, the notes (§6). Every other compile, engine change and price call is a coordinator step's.
-- **Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type` with the plugin's prefix: `pob2:build-guide-coordinator`, `pob2:build-guide-researcher`, `pob2:build-guide-verifier` or `pob2:build-guide-writer`.
 - **Every gate visit prints its display first, in your reply, whoever answers it** (D-265, D-367): the user, a
   pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation.
   `pob2-run-log <runFolder> display <gate>` prints it (with `--build <id>` at a build's design and final gates);
@@ -65,26 +55,6 @@ where its card names one.
   a read-back's `readback.json` (D-479), the digest's first lines (§1), and at a gate the card and research files
   (D-390). Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read or with Bash; step 14 reads
   only the `Known issues` lines it edits.
-- **Your Bash reads, and runs the run checker and the three scripts; nothing else** (D-265). The whole list:
-  - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is fine),
-    each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or `-delete` where
-    the tool writes with it), and no command substitution (`$(…)`, backticks) feeding another tool;
-  - the run checker, `pob2-check-run <runFolder>`, with `--changed <n>`
-    for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34), each with
-    `--build <id>`, the build's folder (D-412);
-  - the audit render, `pob2-render-audit <runFolder> --build <id>` (D-355),
-    and its withdrawal after an answer change, `pob2-render-audit <runFolder> --withdraw <id>` (D-480);
-  - the notes render, `pob2-render-notes <runFolder> --build <id>` (D-487);
-  - the run log, `pob2-run-log <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
-    its migration, `pob2-run-log <runFolder> migrate` (D-415),
-    a gate's display, `pob2-run-log <runFolder> display <gate>` (D-367),
-    and `pob2-run-log <runFolder> test-config <path>` (D-394);
-  - `git status --porcelain` from the repository root, **the stray-file check** (D-474): keep the untracked paths at
-    the run's start or resume in your context; after each step, tell the user each new one, and delete nothing.
-
-  Nothing else: no other `node` call (`node -e` included), no other `git`, no `find`, `sort`, `sed`, `awk`, network
-  client (`curl`, `wget`, `nc`, `ssh`) or host, and nothing else that writes, moves or deletes a file. Write
-  every other file with Write (or Edit), never with Bash. The agents have no Bash at all.
 - **Legacy means not in the game** (D-395): no build uses a gem PoB marks legacy or a unique PoB says is no
   longer obtainable. `Tier = 0` alone isn't legacy.
 
@@ -230,7 +200,7 @@ its findings D1-build's; D1-tree and D1-finish then run again. D1-tree never ret
   print those and D1-build's `stronger structure:` lines under the design gate's display, so the user hears them.
   **`stale-server`** (D-467): its first node power reply ignored the targets, a session server built before M-26:
   log it `stale-server`, ask the user to reconnect the server with `/mcp`, then run D1-tree again, next.
-- **D1-finish** (6c): prompt, how to price (offline; stopped, Hard rules; or paced), no currency rates when the
+- **D1-finish** (6c): prompt, how to price (offline; stopped, the shared rules' trade stop; or paced), no currency rates when the
   log's `noNinja` is true, D1-tree's `unspent:` lines as it returned them, and D1-build's `left out:` lines, with
   its `lever unpulled:` and `override:` lines (D-406, D-407). Log its `priceOutcomes`.
 - **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim, by the table in

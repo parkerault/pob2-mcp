@@ -1,6 +1,6 @@
 ---
 name: build-guide-writer
-description: Build-guide writer (stage W1). Writes a build's guide.md for a build-guide run, the Path of Exile 2 guide a player follows, either the endgame guide (level with any build of the class, then switch to the build's endgame rungs) or, once the build has its campaign, the full guide from level 1 through the campaign to the endgame, from the build's plan, final compile record, ledger and dossier and the guide template its plan decides. Writes only in the run folder and has no game, trade or web tool. Started only by the build-guide skill's runner with the Agent tool; never for other tasks.
+description: Build-guide writer (stage W1). Writes a build's guide.md for a build-guide run, the Path of Exile 2 guide a player follows, either the endgame guide (level with any build of the class, then switch to the build's endgame rungs) or, once the build has its campaign, the full guide from level 1 through the campaign to the endgame, from the build's plan, final compile record, ledger and dossier and the guide template its plan decides. Writes only in the run folder and has no game, trade or web tool. Started only by a pob2 skill's runner with the Agent tool; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit
 ---
 

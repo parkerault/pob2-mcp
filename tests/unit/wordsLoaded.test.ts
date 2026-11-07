@@ -311,6 +311,21 @@ describe('AC-W126 (WU-148, D-505): the bound and the names, on temp copies of th
       expect({ file, code: r.code, said: r.stderr.includes(`[words-loaded] ${message}\n`) }).toEqual({ file, code: 1, said: true });
     });
   });
+  it("resolves a scripts/ name against the naming skill's folder or the root's scripts/, and fails one that points at no file", () => {
+    const root = copyTree('scripts-names');
+    fs.cpSync(path.join(REPO, 'scripts'), path.join(root, 'scripts'), { recursive: true });
+    const W1 = 'skills/build-guide/references/stages/W1.md';
+    const w1Files = (r: Result) => (JSON.parse(r.stdout) as Measure).W1.files;
+    // A real root script and a real build-guide script by their skill-relative name, and a command line, which names no file.
+    edit(root, W1, (t) => `${t}\nSee \`scripts/fresh-clone-check.sh\`, \`scripts/render-notes.mjs\` and \`scripts/nope-command.mjs <runFolder>\`.\n`);
+    const real = run(['--root', root, '--json']);
+    expect({ code: real.code, stderr: real.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(w1Files(real)).toEqual((JSON.parse(REPO_MEASURE.stdout) as Measure).W1.files);
+    expect(w1Files(real)).toContain('skills/build-guide/scripts/render-notes.mjs');
+    edit(root, W1, (t) => `${t}\nAnd \`scripts/nope-render.mjs\`.\n`);
+    const missing = run(['--root', root]);
+    expect({ code: missing.code, said: missing.stderr.includes('[words-loaded] skills/build-guide/references/stages/W1.md: cannot resolve `scripts/nope-render.mjs`\n') }).toEqual({ code: 1, said: true });
+  });
 });
 
 describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges and §5's old forms, on small temp trees", () => {

@@ -15,8 +15,9 @@
 // an anchor or a line number (`#…`, `:178`); a pattern (`…/stages/<stage>.md`) names its folder, which holds no words.
 // A command line (a span or a fenced line that starts with `node`, or with a script followed by arguments) names a
 // command, which §5 makes a `bin/` command, not a file. A word is a run of non-whitespace characters, as `wc -w` counts.
-// A name that points into skills/ or agents/ (or at the skill-relative or `../`/`./` forms) and resolves to nothing
-// fails the run.
+// A name that points into skills/ or agents/, or in a skill-relative form (`references/…`, `templates/…`, `stages/…`,
+// `scripts/…`) or a `../`/`./` one, and resolves to nothing fails the run: a `scripts/…` name resolves against the
+// naming skill's folder or the plugin root's own `scripts/`.
 //
 // The tree is --root's working files (default: this repository), or, with --at, that commit's tree in --root's git
 // repository. A tree in the layout before amendment 15 (the skill in .claude/skills/build-guide/, the agents in
@@ -205,7 +206,7 @@ function pathOf(token) {
 }
 
 /** The forms that point into the plugin's skills or agents: a name in one of them must resolve. */
-const CLAIMS = /^(?:skills\/|agents\/|references\/|templates\/|stages\/|\.\.\/|\.\/|\.claude\/(?:skills|agents)\/)/;
+const CLAIMS = /^(?:skills\/|agents\/|references\/|templates\/|stages\/|scripts\/|\.\.\/|\.\/|\.claude\/(?:skills|agents)\/)/;
 
 function resolver(tree, layout) {
   const pluginFiles = [...layout.skillRoots.flatMap((r) => tree.list(r)), ...tree.list(layout.agents)];

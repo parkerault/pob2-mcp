@@ -6580,3 +6580,33 @@ the `m17` engine at `b76967b`.
   `scripts/render-audit.mjs` and `run-log.mjs` instead of the `bin/` commands. **Fix round** sent to the doer: those two,
   a check that every plugin path in `SKILL.md` and the agent bodies carries the prefix, the D-356 helper's three missed
   forms, the old-path guard's no-space join, and the coordinator heading's prefix.
+- **WU-145's fix rounds** (the doer, rebased onto `fe4258c`): `27e2e0a` (the five fixes; the prefix check caught the
+  coordinator's heading on its first run; the checker names `pob2-check-run`, `pob2-render-audit` and `pob2-run-log`
+  with their arguments in 11 messages, 7 unit pins changed, no fixture), then `746f87f` (the same for `run-log.mjs`,
+  4 messages, and `render-audit.mjs`, 1; 4 unit pins; the game-knowledge builders' messages are for maintainers and
+  stay). Doer's gate rc 0 (238 suites, 4,209 tests). Re-verification dispatched to a fresh verifier.
+- **WU-145's re-verification** (fresh verifier) on `746f87f`: gate from clean rc 0 (238 suites, 4,209 tests; the timing
+  step 2 suites, 4 tests), build rc 0; the load check unchanged (the same three warnings and the icon advisory; the
+  same components); fixes 1, 3, 4 and 5 confirmed by mutation; the five unit-gate checks hold; the fix rounds' test
+  changes are in AC-W116's classes. **FAIL on one leftover:** `render-audit.mjs`:814's `--withdraw` refusal still
+  names `run-log.mjs answer-change`. Sent back to the doer with a pin and a sweep for any other leftover.
+- **WU-145 (the plugin layout and every path) merged** at `20d4f41` (fast-forward, six commits on `fe4258c`). Its
+  last fix (`20d4f41`) names `pob2-run-log <runFolder> answer-change '<json>'` in `render-audit.mjs`'s `--withdraw`
+  refusal, pinned in `amendment15Commands.test.ts`; the verifier's targeted re-check passed it (diff, its own grep, the
+  four suites, build rc 0, the pin failing on the old text in a mutated copy); its full gate at `746f87f` stands for the
+  rest. AC-W114…AC-W120 and AC-W127: `tests/static/amendment15Layout.test.ts`, `tests/static/amendment15Paths.test.ts`,
+  `tests/unit/amendment15Commands.test.ts`; `SKILL.md` 349 lines.
+  - **AC-W116's diff classes** (the gate verifier's read of `tests/`): new files (`tests/helpers/skillPaths.ts` and the
+    three amendment-15 test files); path constants and path strings (4 integration files, 17 unit files, 15 static
+    files); temporary layouts at the new depth (4 unit files); link-resolution bases (4); `pob2:` agent types (3);
+    `/pob2:build-guide` (1); `bin/` command strings (5); AC-W1's three location pins; the run settings rules; message
+    pins for the `bin/` commands (11 in the fix rounds); comments and titles. Outside the classes, accepted by the
+    coordinator as forced: the D-356 `wholeReads` helper, strengthened in the fix round.
+  - **Doer's deviations, accepted by the review:** every plugin path in skill and agent bodies carries
+    `${CLAUDE_PLUGIN_ROOT}/` (data and docs too), `<root>/` only in the task header's reference line and the
+    verifier's prompt, now enforced by a check; `SKILL.md` keeps its 349 line breaks, about 23 lines now over 160
+    characters (no line-length rule exists); AC-W115 scans Markdown under `skills/` and `agents/`, scripts' `usage:`
+    lines unchanged (pinned); "SKILL.md step N" became `skills/build-guide/SKILL.md step N`.
+  - **Friction:** a symlink to one `bin/` command fails, since Appendix A's `cd -P` resolves the folder; link the
+    folder. For WU-146: the reminder still prints a literal `${CLAUDE_PLUGIN_ROOT}`, and `runSettingsExample`'s
+    `RULE_SENTENCES` pin that form.

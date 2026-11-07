@@ -63,7 +63,7 @@ import os from 'os';
 import path from 'path';
 import { TOOL_META } from '../../src/server/toolMeta';
 import { parseDataFile, type DataFile } from '../../src/plan/referenceData';
-import { referencePath } from '../helpers/skillPaths';
+import { GAME_KNOWLEDGE_DIR, referencePath } from '../helpers/skillPaths';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
@@ -3686,8 +3686,9 @@ describe('AC-W69 (WU-82, D-389…D-396): gates as interviews, in the skill text'
     expect(w1).toMatch(/\*\*FAQ\*\*: 3–5 questions a player asks\. The user's gate questions that a reader of the guide would ask too are among them \(D-389\), answered from the plan and the record as every fact is \(rule 5\)/);
   });
 
-  it('lookups.md and SKILL.md: legacy means not in the game, and Tier 0 isn\'t legacy (D-395)', () => {
-    expect(skillMd()).toMatch(/\*\*Legacy means not in the game\*\* \(D-395\): no build uses a gem PoB marks legacy or a unique PoB says is no longer obtainable\. `Tier = 0` alone isn't legacy/);
+  // Amendment 15 (WU-147, D-503): the legacy rule moved from build-guide's hard rules to game knowledge's SKILL.md.
+  it('lookups.md and game knowledge\'s SKILL.md: legacy means not in the game, and Tier 0 isn\'t legacy (D-395)', () => {
+    expect(folded(fs.readFileSync(path.join(GAME_KNOWLEDGE_DIR, 'SKILL.md'), 'utf8'))).toMatch(/\*\*Legacy means not in the game\*\* \(D-395\): no build uses a gem PoB marks legacy or a unique PoB says is no longer obtainable\. `Tier = 0` alone isn't legacy/);
     const lookups = ref('lookups.md');
     expect(lookups).toMatch(/\*\*Legacy means not in the game\*\* \(D-395\)\. A gem PoB marks legacy, or a unique PoB says is no longer obtainable, is in no build/);
     expect(lookups).toMatch(/one you find some other way is dropped, never kept as a risk\. `Tier = 0` isn't legacy: granted skills have it too \(Powered by Verisium\)/);

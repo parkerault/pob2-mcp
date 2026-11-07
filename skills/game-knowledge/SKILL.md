@@ -28,7 +28,7 @@ you never do (below). You need no Bash: Read, Grep and Glob do every read this s
   a 429 or 5xx, and nothing fetched twice. No WebSearch and no other host; never pathofexile.com or poe.ninja.
 
 If the five lookups aren't in the session (the pob2 server isn't connected), say so once, answer from the committed
-data alone, and name the lookups that would confirm the rest.
+files alone (the game data, these references and PoB's gaps), and name the lookups that would confirm the rest.
 
 ## Legacy means not in the game
 
@@ -64,8 +64,8 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   `${CLAUDE_PLUGIN_ROOT}/data/rules/gems.md` by mechanic or family, and `${CLAUDE_PLUGIN_ROOT}/data/rules/pairs.md`
   for what one entry creates against what another pays off on. Confirm each entry's lines with a lookup.
 - **What is new in the league:** the newest league digest, `${CLAUDE_PLUGIN_ROOT}/data/league/<slug>.md` by its fetch
-  date: its head whole, its body by Grep. `[not in pin]` marks an entry the PoB pin doesn't know: PoB can't measure it and no plan can compile it.
-  Past the digest's fetch date, poe2db.tw (above); say how old the digest is.
+  date: its head whole, its body by Grep. `[not in pin]` marks an entry the PoB pin doesn't know: PoB can't measure it
+  and no plan can compile it. Past the digest's fetch date, poe2db.tw (above); say how old the digest is.
 - **A rare monster's or a tamed beast's modifier:** `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by Grep,
   as its head says.
 - **Whether PoB models something:** Does PoB model it, below.

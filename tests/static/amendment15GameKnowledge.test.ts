@@ -44,6 +44,17 @@ function specBetween(start: string, end: string): string {
   if (at < 0 || to < 0) throw new Error(`amendment 15 has no "${start}" … "${end}"`);
   return SPEC.slice(at + start.length, to);
 }
+/** Every mention of a web search in a text, the tool's name or the plain words. */
+const webSearches = (text: string) => [...text.matchAll(/web\s?search/gi)].map((m) => m[0]);
+/**
+ * The server tools a text names, bare or with the `mcp__pob2__` prefix, other than `allowed` and `compile_plan` (the
+ * legacy rule's): a name counts when no letter or digit stands on either side of it.
+ */
+function otherTools(text: string, allowed: string[]): string[] {
+  return Object.keys(TOOL_META)
+    .filter((t) => !allowed.includes(t) && t !== 'compile_plan')
+    .filter((t) => new RegExp(`(?<![A-Za-z0-9])${t}(?![A-Za-z0-9])`).test(text));
+}
 /** The body's H2 section under `heading`, folded. */
 function section(heading: string): string {
   const parts = BODY_RAW.split(/^(## .+)$/m);
@@ -127,12 +138,20 @@ describe("AC-W124 (WU-147, D-503): game knowledge's SKILL.md", () => {
     expect(pace).toBe('one at a time, at least 3 s apart, no cookie, one retry after 60 s on a 429 or 5xx, and nothing fetched twice');
     expect(never).toContain(`at the league digest's pace (D-497): ${pace}.`);
     expect(never).toContain('No WebSearch and no other host; never pathofexile.com or poe.ninja.');
+    // A web search is named only to rule it out: no sentence that allows one, even with no host named.
+    expect(webSearches(RAW)).toEqual(['WebSearch']);
     // No other host anywhere in the file, D-171's among them.
     const hosts = new Set([...RAW.matchAll(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|tw|gg|net|org|io|ninja|wiki|co)\b/gi)].map((m) => m[0].toLowerCase()));
     expect([...hosts].sort()).toEqual(['pathofexile.com', 'poe.ninja', 'poe2db.tw']);
     const d171 = specBetween('The run settings deny every other host D-171 names (', ')').split(', ');
     expect(d171).toEqual(['maxroll.gg', 'game8', 'poe-vault']);
     for (const host of d171) expect({ host, named: RAW.toLowerCase().includes(host) }).toEqual({ host, named: false });
+  });
+
+  it('the web-search check fails on a body that allows a web search, with no host named', () => {
+    expect(webSearches('No WebSearch and no other host.')).toEqual(['WebSearch']);
+    expect(webSearches('No WebSearch and no other host. Use WebSearch when poe2db lacks it.')).toEqual(['WebSearch', 'WebSearch']);
+    expect(webSearches('No WebSearch and no other host. Run a web search when poe2db lacks it.')).toEqual(['WebSearch', 'web search']);
   });
 });
 
@@ -146,6 +165,18 @@ describe("D-503 (WU-147): what game knowledge's SKILL.md answers with, and never
     const named = new Set([...BODY.matchAll(/mcp__pob2__([a-z_]+)/g)].map((m) => m[1]));
     expect([...named].filter((t) => t !== 'compile_plan').sort()).toEqual([...tools].sort());
     expect(never).not.toContain('compile_plan');
+    // And no other server tool by its bare name, but compile_plan, which the legacy rule names as what refuses it.
+    expect(Object.keys(TOOL_META).length).toBeGreaterThan(80);
+    expect(otherTools(RAW, tools)).toEqual([]);
+    expect(section('## Legacy means not in the game')).toContain('`mcp__pob2__compile_plan`');
+  });
+
+  it('the bare-name check fails on another server tool named bare or prefixed, and passes the lookups and compile_plan', () => {
+    const tools = ['lookup_game_data', 'check_model_coverage', 'search_tree_nodes', 'list_gems', 'get_classes'];
+    expect(otherTools('then run lua_get_stats on the build', tools)).toEqual(['lua_get_stats']);
+    expect(otherTools('read get_build_stats.', tools)).toEqual(['get_build_stats']);
+    expect(otherTools('`mcp__pob2__get_item_price` for a price', tools)).toEqual(['get_item_price']);
+    expect(otherTools('`mcp__pob2__lookup_game_data`, get_classes, and `mcp__pob2__compile_plan` refuses them', tools)).toEqual([]);
   });
 
   it('never writes a file, starts an agent, changes the engine\'s build or prices; it needs no Bash', () => {

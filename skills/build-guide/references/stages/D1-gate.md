@@ -27,16 +27,16 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
   claims), and Grep `plan.json` for its
   `prices` entries and its `boss_<stage>` ledger entries; `run-log.json` (is pricing stopped, D-444? a
   `pricing.stops[]` entry with no `retry-pricing` answer in `pricing.retries[]` and no resume,
-  `resumes[].lengths.stages`, after it: `references/run-log.md`, "Pricing stops"); `data/economy/prices.json`,
+  `resumes[].lengths.stages`, after it: `skills/build-guide/references/run-log.md`, "Pricing stops"); `data/economy/prices.json`,
   the league table and the conversion table; and `<buildFolder>/pieces.md`'s table (D-434), when the build has
   one, for step 6 (its `## Skill levels` too, D-473), with `<buildFolder>/trades.json` (D-439), when it exists,
   and the reference files
-  `.claude/skills/build-guide/references/toughness-targets.json` (D-441; its `arbiter.hitsSurvivedFloor`, 0.8,
+  `skills/build-guide/references/toughness-targets.json` (D-441; its `arbiter.hitsSurvivedFloor`, 0.8,
   D-449) and
-  `.claude/skills/build-guide/references/boss-floor.json` (D-448). After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, its ledger values, and
+  `skills/build-guide/references/boss-floor.json` (D-448). After the compile, `mcp__pob2__compile_plan`'s text: each stage's key-figure line, its ledger values, and
   every V1 and V2 finding up to 200; when a line says how many more, Grep `compile-record.json`'s
   `stages.<id>.v1.findings` and `stages.<id>.v2.findings` for them. Grep the record for the fields the text
-  lacks; never Read it whole. This page states the parts and codes (`gates.md` holds the same table).
+  lacks; never Read it whole. This page states the parts and codes (`skills/build-guide/references/gates.md` holds the same table).
 
 ## Work
 
@@ -67,7 +67,7 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
    `compiled` is `unverified` with code `tool-refused`, every other part `unverified` as above; write the verdict
    file and return `refused: mcp__pob2__compile_plan`. Grep the new `compile-record.json` for `"planSha1"`: the
    verdict file carries it (F1 checks the plan the user accepts against it, D-413).
-4. **Read the record** (`compile-record.json`, C-33) and fill each part (`gates.md`). "Endgame stages" are
+4. **Read the record** (`compile-record.json`, C-33) and fill each part (`skills/build-guide/references/gates.md`). "Endgame stages" are
    the plan's stages with a `variant`: the rungs `m`, `b` and `n`, each gated the same way (D-281). Once the compile ran, every part but the budget is `pass` or `fail`:
    only the budget may stay `unverified` (D-164), and the tree when `mcp__pob2__get_node_power` fails
    (`tool-error`) or is refused (`tool-refused`, D-421).
@@ -103,7 +103,7 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      so leave them out of `basis.budget.slots`), and **a pinned weapon's Swap slot** (`sameAs`, D-464) maps to its
      set-1 slot's entry, or is left out, and that entry counts once in the rung's total. Online, get the rates with `mcp__pob2__get_currency_rates` (a divine counts 1;
      with `--no-ninja`, the prompt says there are no rates, so you don't call it and the budget is `unverified`,
-     D-333). Then, with `data/economy/prices.json` (`gates.md`'s "Price days, targets and ranges" holds the same
+     D-333). Then, with `data/economy/prices.json` (`skills/build-guide/references/gates.md`'s "Price days, targets and ranges" holds the same
      steps):
      1. **The market** `{league, day, late}`: the plan's league; `day`, the whole days from the league's `start`
         (its `league.*` fact) to the latest `date` of the `ok` prices your `basis.budget.slots` entries name
@@ -141,7 +141,7 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      another breakdown field fails with `rolled-stat-set`.
    - **tree** (D-419, D-467), PoB's node power on each rung, after the compile loaded them: the same judge as
      D1-tree's, at reach 12. On `m`, `b` and `n`, in that order, call `mcp__pob2__get_node_power` twice, compact
-     (`limit: 0`), with D1-tree's arguments (`D1-tree.md`, "The arguments"): `loadout` the rung's loadout name,
+     (`limit: 0`), with D1-tree's arguments (`skills/build-guide/references/stages/D1-tree.md`, "The arguments"): `loadout` the rung's loadout name,
      exactly as the record has it (`stages.<id>.loadoutName`); `keep` the nodes of its `tree.needs`, nothing else,
      and no `protect_for` (D-452: each loadout's tree is its own, so a swap may touch any node of the rung but its
      needs); `clear_group`, always, the record's group number of the rung's first enabled `role: "clear"` group
@@ -224,12 +224,12 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      display prints under Over budget, at most 3 a rung. A gate that re-runs alone reads the
      same file;
    - on the non-budget rung only: `toughness {engagement, reason, target, band}` (D-441), `engagement` and `reason`
-     the plan's `n.skills.engagement`, `target` `toughness-targets.json`'s for that kind, and `band` the record's
+     the plan's `n.skills.engagement`, `target` `skills/build-guide/references/toughness-targets.json`'s for that kind, and `band` the record's
      `TotalEHP` against it: `under` below `under` × the target, `over` above `over` × the target, else `within`;
-     and in `boss`, `floor`, `boss-floor.json`'s `floor`, and `under`, `true` when the boss figure is below it
+     and in `boss`, `floor`, `skills/build-guide/references/boss-floor.json`'s `floor`, and `under`, `true` when the boss figure is below it
      (D-448);
    - **amendment 12's toughness reading and resisting figure** (D-449, D-454), from the record's
-     `stages.<id>.measures` and `references/toughness-targets.json`:
+     `stages.<id>.measures` and `skills/build-guide/references/toughness-targets.json`:
      - per variant rung, `damage.resisting`: `damage {map, resisting, boss}`, `resisting` the record's
        `measures.damage.resisting`, the named source's figure against the map enemy with 40% fire, cold and
        lightning resistance (`null` where the record's is);
@@ -324,7 +324,7 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
 ## Writes
 
 The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` only where the
-header's `writes` names it (FI-2 and the re-price pass). The field names are a contract (`gates.md`):
+header's `writes` names it (FI-2 and the re-price pass). The field names are a contract (`skills/build-guide/references/gates.md`):
 
 ```json
 {
@@ -462,7 +462,7 @@ header's `writes` names it (FI-2 and the re-price pass). The field names are a c
 - `findings`: `{part, code, stage, message, accepted?}`, the message citing record fields and C1/E1 keys
   (`b.MissingColdResist 12`, `enemies/map-monsters.json#damage.by-level[79]`). A check that rests on an M
   or L fact says so (A-29).
-- `basis`: only what the plan and the record don't say (`gates.md`): the rates; the market `{league, day,
+- `basis`: only what the plan and the record don't say (`skills/build-guide/references/gates.md`): the rates; the market `{league, day,
   late}`; every slot and tree jewel of the three rungs with its `priceId`, the anoint of `b` and `n` as a slot
   (`{"stage": "b", "slot": "Anoint", "priceId": "b-anoint"}`); each rung's total `{stage, low, high, day}`
   (`low` and `high` `null` when unverified); per endgame stage, the figure of every group of the named source's

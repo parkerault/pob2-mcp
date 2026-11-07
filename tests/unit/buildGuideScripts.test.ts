@@ -2,12 +2,12 @@
  * WU-71: the build-guide runner's two scripts, each spawned as a real `node` process on a temp run folder
  * (tests/helpers/guideRunFolder.ts):
  *
- * - `scripts/render-audit.mjs <runFolder>` (D-355) renders `audit.md` in the form of `templates/audit-template.md`
+ * - `pob2-render-audit <runFolder>` (D-355) renders `audit.md` in the form of `skills/build-guide/templates/audit-template.md`
  *   from the plan, the final compile record and the D1 gate's last verdict file, and a re-render keeps the rows W1
  *   added under `Known issues`; a campaign stage's DPS is the record's headline rule, a minion's figure for a group
  *   that names a minion skill (AC-W66, D-378);
- * - `scripts/run-log.mjs <runFolder> <kind> '<json>'` (D-356), or `-` for the JSON on stdin, writes the run log in
- *   `references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form;
+ * - `pob2-run-log <runFolder> <kind> '<json>'` (D-356), or `-` for the JSON on stdin, writes the run log in
+ *   `skills/build-guide/references/run-log.md`'s entry form, appending one entry per call, and refuses an entry outside that form;
  *   `run-log.mjs <runFolder> display <gate>` (D-367) prints a gate visit's display from the run folder's files and
  *   records it, the final gate's with each endgame rung's final figures (D-369), and a gate's answer is refused
  *   until its visit's display is recorded.
@@ -18,7 +18,7 @@
  * `run-log.mjs <runFolder> test-config <path>` checks a test config whose answers may script an interview (AC-W68,
  * D-389, D-391, D-394); a plain summon's skeleton figure and the render's headline read its minion (D-397).
  *
- * `--snapshot` and `--changed` (A-34, D-352) are `check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
+ * `--snapshot` and `--changed` (A-34, D-352) are `skills/build-guide/scripts/check-run.mjs`'s, tested in buildGuideCheckRun.test.ts.
  * The render loads the server's compiled `build/plan/ledger.js`: `mise run test` builds before Jest runs.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
@@ -30,7 +30,7 @@ import { headlineDps } from '../../src/plan/record';
 import { CARD, GATE_FILE, MINION, editJson, readJson, writeGuideRun, writeMinionGuideRun, type Json } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const RENDER = path.join(SKILL_DIR, 'scripts', 'render-audit.mjs');
 const RUN_LOG = path.join(SKILL_DIR, 'scripts', 'run-log.mjs');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guide-scripts-'));
@@ -415,7 +415,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
 
   it("accepts run-log.md's example calls, schema 4's (D-412, D-415), and init writes its first-write example", () => {
     const md = fs.readFileSync(path.join(SKILL_DIR, 'references', 'run-log.md'), 'utf8');
-    const calls = [...md.matchAll(/^node \.claude\/skills\/build-guide\/scripts\/run-log\.mjs <runFolder> (?:(\w+) - <<'JSON'\n(.*)\nJSON|display (\w+(?: --build \S+)?)|(migrate))$/gm)].map((m) =>
+    const calls = [...md.matchAll(/^pob2-run-log <runFolder> (?:(\w+) - <<'JSON'\n(.*)\nJSON|display (\w+(?: --build \S+)?)|(migrate))$/gm)].map((m) =>
       m[3] ? ['display', m[3]] : m[4] ? ['migrate', ''] : [m[1], `${m[2]}\n`],
     );
     expect(calls.map(([kind]) => kind)).toEqual(['init', 'build', 'stage', 'display', 'checkpoint', 'escalation', 'build', 'set', 'resume', 'migrate']);

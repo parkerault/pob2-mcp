@@ -2,16 +2,16 @@
  * Amendment 11 (M-24), WU-115: the design side of D-437…D-448 in the skill text, AC-W91 one assertion each, and the
  * rest of the unit's sections (§5 to §9b, §10's pieces line, §11's and §12's SKILL.md rows, §14, §19, Appendix A).
  *
- * - `references/stages/D1-build.md`: schema 7's five fields (`tree.scales` and the respec rungs, `skills.cull`,
+ * - `skills/build-guide/references/stages/D1-build.md`: schema 7's five fields (`tree.scales` and the respec rungs, `skills.cull`,
  *   `skills.engagement` with its default rule, `skills.boss` with `turns`, `items.bootsException`), the boots tier per
  *   rung, the damage figure in place of the headline DPS, its gear searches' price outcomes.
- * - `references/stages/D1-tree.md`: respec rungs keep only serving prior nodes, grow links only, the rebuild pass, the
+ * - `skills/build-guide/references/stages/D1-tree.md`: respec rungs keep only serving prior nodes, grow links only, the rebuild pass, the
  *   unmodelled needs' `free` measure and trades, `trades.json`, the `respec:` return, node power on `MainDamage`.
- * - `references/stages/D1-finish.md`: the two reference files, the boss estimate (`boss_<stage>`, its nine corrections,
+ * - `skills/build-guide/references/stages/D1-finish.md`: the two reference files, the boss estimate (`boss_<stage>`, its nine corrections,
  *   sustained, when required), the trades (boots, defence, damage, the three EHP allowances, `bossAfter`).
- * - `references/stages/D1-gate.md`, `references/gates.md`, `references/checkpoints.md`: the design field's additions
- *   and the design gate's lines, put through `run-log.mjs display design`; the codes; the routes.
- * - `references/stages/D2.md`, `references/stages/W1.md`, the guide and audit templates, `SKILL.md`, `patterns.md`.
+ * - `skills/build-guide/references/stages/D1-gate.md`, `skills/build-guide/references/gates.md`, `skills/build-guide/references/checkpoints.md`: the design field's additions
+ *   and the design gate's lines, put through `pob2-run-log display design`; the codes; the routes.
+ * - `skills/build-guide/references/stages/D2.md`, `skills/build-guide/references/stages/W1.md`, the guide and audit templates, `skills/build-guide/SKILL.md`, `skills/game-knowledge/references/patterns.md`.
  *
  * Amendment 12 (WU-125) supersedes D-438's respec rungs (D-452), the trades' `bossAfter` rule (D-456), the verdict
  * line's figures and label (D-454, D-459) and the design field's shape (D-449): the assertions on those read the
@@ -27,11 +27,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import * as toolSchemas from '../../src/server/toolSchemas';
+import { referencePath } from '../helpers/skillPaths';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SCRIPTS = path.join(SKILL_DIR, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
@@ -46,7 +47,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const rawStage = (name: string) => read(path.join(STAGES_DIR, `${name}.md`));
 const stage = (name: string) => folded(rawStage(name));
-const rawRef = (name: string) => read(path.join(SKILL_DIR, 'references', name));
+const rawRef = (name: string) => read(referencePath(name));
 const ref = (name: string) => folded(rawRef(name));
 const template = (name: string) => read(path.join(SKILL_DIR, 'templates', name));
 const SKILL_RAW = read(path.join(SKILL_DIR, 'SKILL.md'));
@@ -104,7 +105,7 @@ function copyFixture(name: string): string {
 const A11_BUILD = 'r1-a-2';
 const A11_GATE = `reports/gates/D1-gate-${A11_BUILD}-a1.json`;
 
-/** Appendix A's design gate lines (the display's forms, `run-log.mjs`), each a pattern a printed line must match. */
+/** Appendix A's design gate lines (the display's forms, `pob2-run-log`), each a pattern a printed line must match. */
 const DESIGN_LINES: Record<string, RegExp> = {
   damage: /^- Damage: [\d,]+ per second against map monsters\.$/,
   boss: /^- Boss damage: (about [\d,]+ per second against a Pinnacle boss \(PoB alone: [\d,]+( at .+'s hand-cast [\d.]+ a second)?; estimated: .+\)|[\d,]+ per second against a Pinnacle boss( \(PoB alone at .+\))?)\.$/,
@@ -113,7 +114,7 @@ const DESIGN_LINES: Record<string, RegExp> = {
   trigger: /^- .+ is triggered by .+: PoB rates it at its hand-cast speed \([\d.]+ a second\) and doesn't model Energy\.$/,
   toughness: /^- Toughness: [\d,]+ against the [\d,]+ target for a (close|distance) build( \(.+\))?, (under its band \([\d,]+\)|over its band \([\d,]+\)|within its band \([\d,]+–[\d,]+\))\.$/,
   unmodelled: /^- Kept for .+, which PoB can't measure: .+ would (add|cost) [\d.]+% damage\.$/,
-  // Amendment 12 (D-450, run-log.mjs's tradeLines): a defence trade on a one-shot rung reads `Defence (one-shot)`, with
+  // Amendment 12 (D-450, pob2-run-log's tradeLines): a defence trade on a one-shot rung reads `Defence (one-shot)`, with
   // the deciding row's max hit and hits survived before its EHP, and a boss cut over 2% last.
   defence: /^- Defence( \(one-shot\))?: .+: (.+; )?[+−][\d.]+% EHP(, [+−][\d.]+% damage)?(; cuts .+ against a boss by [\d.]+%)?\.$/,
   damageTrade: /^- Damage: .+: [+−][\d.]+% damage( \(boss about [\d,]+\))?(, [+−][\d.]+% EHP)?(; .+)?\.$/,
@@ -159,8 +160,8 @@ describe('AC-W91 (WU-115): the design docs carry amendment 11', () => {
   });
 
   it('D1-finish reads references/toughness-targets.json and references/boss-floor.json, and states their values', () => {
-    expect(finish).toContain('`.claude/skills/build-guide/references/toughness-targets.json`');
-    expect(finish).toContain('`.claude/skills/build-guide/references/boss-floor.json`');
+    expect(finish).toContain('`skills/build-guide/references/toughness-targets.json`');
+    expect(finish).toContain('`skills/build-guide/references/boss-floor.json`');
     expect(finish).toContain(`${whole(TARGETS.targets.close)} close and ${whole(TARGETS.targets.distance)} distance, \`under\` ${TARGETS.under} and \`over\` ${TARGETS.over} of the target`);
     expect(finish).toContain(`(${whole(TARGETS.under * TARGETS.targets.close)} close, ${whole(TARGETS.under * TARGETS.targets.distance)} distance)`);
     expect(finish).toContain(`(${whole(TARGETS.over * TARGETS.targets.close)} close, ${whole(TARGETS.over * TARGETS.targets.distance)} distance)`);
@@ -271,7 +272,7 @@ describe('D-437 (§5): one damage figure, against map monsters and a boss, ranke
     // Amendment 13 (WU-133, D-467): the loop's floor is 1%; the gate's line stays 5%, on the swap or the rebuild left.
     expect(stage('D1-tree')).toContain('gains at least **1%** Main damage, make it a change');
     expect(stage('D1-gate')).toContain('A rung whose swap left or rebuild left gains **5%** damage (`Main damage`) or more fails the part');
-    // The display's swap label (run-log.mjs) is "damage" under amendment 11, as checkpoints.md's example prints it.
+    // The display's swap label (pob2-run-log) is "damage" under amendment 11, as checkpoints.md's example prints it.
     expect(RUN_LOG_TEXT).toContain("if (ws !== 1 && ws !== 2) return 'damage';");
   });
 
@@ -284,7 +285,7 @@ describe('D-437 (§5): one damage figure, against map monsters and a boss, ranke
 
   it('the guide, W1 and the audit template show the map figure and the boss figure, the estimate when the plan has one', () => {
     expect(stage('W1')).toMatch(/the rung's boss figure, the `boss_<stage>` ledger value when the plan has that entry \(audit\.md's Estimates row\), else `measures\.damage\.boss`/);
-    // The audit's head is the render's (render-audit.mjs).
+    // The audit's head is the render's (pob2-render-audit).
     expect(read(RENDER)).toContain("twoFigures ? 'Damage, map / boss' : 'Named source DPS'");
     expect(template('audit-template.md')).toContain('| Loadout | Level | Life | Damage, map / boss |');
     for (const name of ['guide-template.md', 'guide-endgame-template.md']) {
@@ -395,12 +396,12 @@ describe('D-447, D-448 (§9b): the boss estimate and the boss floor', () => {
   it("the floor is the floor file's, the damage trade under it carries bossAfter, and gates.md states the checker's rules", () => {
     // Amendment 12 (D-456): D1-finish measures bossAfter on the trade's temporary stage, no longer boss × (1 + change).
     expect(stage('D1-finish')).toMatch(/`bossAfter` comes from that measure: the temporary stage's boss figure .*, never the boss figure × \(1 \+ `damageChange` \/ 100\)/);
-    expect(ref('gates.md')).toMatch(/\*\*The boss floor\*\* from `references\/boss-floor\.json` \(`floor` 250,000\)/);
+    expect(ref('gates.md')).toMatch(/\*\*The boss floor\*\* from `skills\/build-guide\/references\/boss-floor\.json` \(`floor` 250,000\)/);
     expect(ref('gates.md')).toMatch(/a `boss_<stage>` formula with no `<stage>\.boss\.g<group>s<skill>p<statSet>` reference, or one outside the stage's rotation \(`skills\.boss`\), fails/);
     expect(whole(FLOOR)).toBe('250,000');
   });
 
-  it("the D1 gate example's design field prints, through run-log.mjs, the design gate's lines in Appendix A's forms", () => {
+  it("the D1 gate example's design field prints, through pob2-run-log, the design gate's lines in Appendix A's forms", () => {
     const example = JSON.parse(blockAfter(rawStage('D1-gate'), '## Writes')) as Json;
     // Amendment 12 (WU-125): the example is a revision-12 design field, displayed against the revision-12 fixture.
     const dir = copyFixture('run-a12');
@@ -439,11 +440,11 @@ describe("D-443 (§11) and D-444 (§12): SKILL.md's rows and its pricing stop", 
 
   it("SKILL.md's stop lasts until a gate's retry-pricing, the gate asks first, and every exchange item keeps its price", () => {
     // Amendment 13 (WU-133, D-474): the pace stop joins, and the bullet points to pricing.md for the allowed calls.
-    expect(SKILL).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `run-log\.mjs <runFolder> pricing`/);
-    expect(SKILL).toMatch(/the exchange stays allowed \(`references\/pricing\.md`\)/);
+    expect(SKILL).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `pob2-run-log <runFolder> pricing`/);
+    expect(SKILL).toMatch(/the exchange stays allowed \(`\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/references\/pricing\.md`\)/);
     expect(ref('pricing.md')).toMatch(/\*\*poe\.ninja's exchange stays allowed\*\* \(D-422 allows it\), so every item the currency exchange sells keeps its price/);
     // run-log.md gives the command SKILL.md names.
-    expect(read(path.join(SKILL_DIR, 'references', 'run-log.md'))).toContain('node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing - <<\'JSON\'');
+    expect(read(path.join(SKILL_DIR, 'references', 'run-log.md'))).toContain('pob2-run-log <runFolder> pricing - <<\'JSON\'');
   });
 
   it("after retry-pricing at the design gate, the D1 gate's re-price pass runs before F1, re-pricing the stopped entries", () => {
@@ -505,6 +506,6 @@ describe('Appendix A: the formats in the design docs', () => {
     expect(ref('gates.md')).toMatch(/Inside an attempt, D1-finish's `build: <ids>` \(logged `build`\) sends D1 back to D1-build in the same attempt \(D-446\)/);
     expect(ref('gates.md')).toMatch(/An older run's log keeps its routes: there D1-tree's `respec: <stage> needs one: <why>` \(logged `respec`\) sent D1 back to D1-build too \(D-438\)/);
     // Amendment 13 (WU-133, D-467): D1-tree writes the search's start, end and record, and may return stale-server.
-    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs, tree jewels and their prices, `tree.start`, `tree.end`, `tree.search`), `trades.json`, `pieces.md`\'s jewel lines | `done` or `stale-server`, each rung\'s travel; `unspent:` and `jewel:` lines |');
+    expect(SKILL_RAW).toContain('| 6b | D1-tree, the travel | `pob2:build-guide-coordinator`, fresh | `plan.json` (the rungs\' trees, needs, tree jewels and their prices, `tree.start`, `tree.end`, `tree.search`), `trades.json`, `pieces.md`\'s jewel lines | `done` or `stale-server`, each rung\'s travel; `unspent:` and `jewel:` lines |');
   });
 });

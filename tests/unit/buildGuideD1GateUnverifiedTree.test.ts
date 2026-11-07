@@ -1,7 +1,7 @@
 /**
  * The WU-96 fix round (amendment 9, D-419, D-421): a D1 gate whose compile failed, or was refused, never reached node
  * power, so its `tree` part is `unverified` as every part after the compile is, with no finding of its own
- * (`gates.md`, "Every verdict file"; `stages/D1-gate.md` step 3). The run checker (`check-run.mjs`, `checkTreePart`)
+ * (`skills/build-guide/references/gates.md`, "Every verdict file"; `skills/build-guide/references/stages/D1-gate.md` step 3). The run checker (`skills/build-guide/scripts/check-run.mjs`, `checkTreePart`)
  * accepts that, and still fails a `tree: "unverified"` beside a passing compile with no `tool-error` or
  * `tool-refused` finding.
  *
@@ -19,7 +19,7 @@ import path from 'path';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const CHECKER = path.join(REPO, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-builds');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'd1-tree-unverified-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));

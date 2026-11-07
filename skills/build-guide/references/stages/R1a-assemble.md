@@ -1,7 +1,7 @@
 # R1a-assemble: deal the deck (`build-guide-coordinator`)
 
 One step per brainstorm round (D-287), after the round's R1a researchers return, in a run whose first brainstorm
-round used it; new runs compose with `R1a-synthesize.md` (D-429). It turns their cards into the
+round used it; new runs compose with `skills/build-guide/references/stages/R1a-synthesize.md` (D-429). It turns their cards into the
 deck the user picks from at the brainstorm gate: it merges duplicates, checks each card's identity, deals a card
 only when game text confirms its load-bearing links, at most half a round on one engine, and writes `cards.md`.
 It compiles nothing, prices nothing, and edits a card only to rename it (step 7) or drop its under-played label
@@ -16,9 +16,9 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
   and `researchers`, each `{letter, focus, researchFile, cards, returned}`; `returned: false` means that
   researcher returned without its files, so its cards may be missing or partial.
 - **Read**, the independent reads in one response: each card the prompt lists (`cards/r<k>-<letter>-<m>.md`,
-  its brainstorm half); the card template `.claude/skills/build-guide/templates/card-template.md`; `cards.md`
+  its brainstorm half); the card template `skills/build-guide/templates/card-template.md`; `cards.md`
   when an earlier round wrote it; for step 4, the pattern library's entry for each shape a card's
-  under-played label names: Grep `^#` in `.claude/skills/build-guide/references/patterns.md` and Read those
+  under-played label names: Grep `^#` in `skills/game-knowledge/references/patterns.md` and Read those
   entries only; each research file's `## Supply search` sections (Grep `^## Supply search` with the lines under
   it); and `data/rules/vocabulary.md`, the engine words (step 5). The lookups each step needs are named in it, by
   their full names.

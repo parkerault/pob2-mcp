@@ -29,7 +29,7 @@ import { cleanBuildName } from '../../src/plan/compiler';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL = path.join(REPO, 'skills', 'build-guide');
 const SCRIPTS = path.join(SKILL, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');

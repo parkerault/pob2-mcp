@@ -1,12 +1,12 @@
 # D1-finish: the anoint, prices, ledger and claims (`build-guide-coordinator`)
 
-The last of D1's three steps (D-356, D-418), a fresh coordinator step after D1-build (`D1-build.md`) and D1-tree
-(`D1-tree.md`). D1-build left the three endgame rungs of `plan.json` (`m`, `b`, `n`) built and measured, with
+The last of D1's three steps (D-356, D-418), a fresh coordinator step after D1-build (`skills/build-guide/references/stages/D1-build.md`) and D1-tree
+(`skills/build-guide/references/stages/D1-tree.md`). D1-build left the three endgame rungs of `plan.json` (`m`, `b`, `n`) built and measured, with
 their needs, and D1-tree spent their spare points and shortened their travel; you add the anoint on `b` and `n`,
 price every slot, re-check D1-build's boss estimate and write the rest of the ledger and the claims, the needs',
 the ascendancy order's and the boss fall's among them, measure the trades the design gate shows, and read the plan
 and the record through
-`mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`D1-gate.md`) then checks the plan. In a revision-14
+`mcp__pob2__guide_run`'s views, never whole. A fresh D1 gate step (`skills/build-guide/references/stages/D1-gate.md`) then checks the plan. In a revision-14
 run two narrower jobs come to you by the header's `scope` (D-481, D-486): a one-item swap (`swap`) and the late endgame
 scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope").
 
@@ -52,13 +52,13 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
     pieces' claims;
   - the card `cards/<id>.md` (its chain, enabler, links and estimates: the hinge facts), and `run-log.json`
     (is pricing stopped, D-444? a `pricing.stops[]` entry with no `retry-pricing` answer in `pricing.retries[]`
-    and no resume, `resumes[].lengths.stages`, after it: `references/run-log.md`, "Pricing stops");
-  - the reference files `.claude/skills/build-guide/references/toughness-targets.json` (D-441: the non-budget
+    and no resume, `resumes[].lengths.stages`, after it: `skills/build-guide/references/run-log.md`, "Pricing stops");
+  - the reference files `skills/build-guide/references/toughness-targets.json` (D-441: the non-budget
     rung's `TotalEHP` targets by engagement, 20,000 close and 15,000 distance, `under` 0.9 and `over` 1.5 of
     the target; D-449: `arbiter.hitsSurvivedFloor`, 0.8, the share of the Arbiter's hits a rung survives,
     evading or deflecting them, below which its one-shot row makes it a one-shot rung) and
-    `.claude/skills/build-guide/references/boss-floor.json` (D-448: the non-budget rung's boss figure floor,
-    250,000), for step 5, `.claude/skills/build-guide/references/corruption.json` (D-471: the cheap line, an
+    `skills/build-guide/references/boss-floor.json` (D-448: the non-budget rung's boss figure floor,
+    250,000), for step 5, `skills/build-guide/references/corruption.json` (D-471: the cheap line, an
     uncorrupted price under 1 divine), and `<buildFolder>/trades.json` when it exists (D1-tree's `unmodelled` and
     `boss` entries, and in a revision-14 build D1-build's `scaling` finds);
   - `n`'s defence plan, `stages[].defence` (D-451; in its view): an evasion `base`, pure or hybrid, makes the
@@ -95,7 +95,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    plan of this run first.
    - **No entry for a Flask slot** (D-472): a plain flask costs nothing worth counting. **No entry for a pinned
      weapon's Swap slot** (`sameAs`, D-464): it is its set-1 slot's item, priced once by that slot's entry.
-   - **The pace line first** (D-474; `references/pricing.md`, "Pace"): read your first trade call's reply for
+   - **The pace line first** (D-474; `skills/build-guide/references/pricing.md`, "Pace"): read your first trade call's reply for
      `Pace: 45 s between searches, at most 7 in 5 minutes.`; with no such line, or `Pace: off (test setting).`,
      make no more trade calls and return the stop `pace: missing` or `pace: off`, the call counted `pace`.
    - **`n`'s shares, re-split** (D-453), before you price: D1-tree adds a price entry for each tree jewel its
@@ -104,7 +104,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      over-target jewel keeps its lines, like any over-target rare (a minion build's `b` jewel among them).
    - **One trade call at a time** (D-461): the server waits at least 45 s between one search and the next, inside
      the call, and refuses a wait over 60 s (`would_wait`); calls in parallel queue past it, so never batch them.
-   - **The rares of `b` and `n`: specs** (D-483; `references/pricing.md`, "A rare of `b` or `n`: the spec loop"). In a
+   - **The rares of `b` and `n`: specs** (D-483; `skills/build-guide/references/pricing.md`, "A rare of `b` or `n`: the spec loop"). In a
      revision-14 run D1-build priced each rare gear slot of `b` and `n` by the spec loop as it designed it; you
      **re-price each spec as compiled**, by one depth check at its must-haves' tiers (the `mcp__pob2__search_trade_items`
      call its `query` records: the base, the must-haves as `mods` at their tiers' lowest rolls, `corrupted: false`, the
@@ -147,7 +147,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    - **Everything else:** a unique, and every item the currency exchange sells (a rune, soul core or idol in a
      socket, an anoint's Distilled Emotions, a lineage support gem), by `mcp__pob2__get_item_price`, by name:
      exchange items from poe.ninja's exchange by their category, with no trade request, the trade site for the
-     rest (D-444, `references/pricing.md`); a magic or normal item, and every slot of `m` by
+     rest (D-444, `skills/build-guide/references/pricing.md`); a magic or normal item, and every slot of `m` by
      `mcp__pob2__search_trade_items` with `mods`. One item per call. **A unique whose corruption or sockets matter**
      (D-484): `mcp__pob2__get_item_price` can't filter or show either, so a unique whose plan copy is corrupted (but
      for the cheap rule below, priced uncorrupted by name) or holds more sockets than its own is priced by `mcp__pob2__search_trade_items
@@ -159,7 +159,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      D1-build's), held at the tier and never lowered or dropped (D-483), so your depth check carries it among `mods`.
    - **A corrupted unique is priced uncorrupted** (D-471): by name, without the corrupted line as a required
      affix, its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`. Under
-     `references/corruption.json`'s line (1 divine, at the run's rates) it keeps the line; at or over it, it can't
+     `skills/build-guide/references/corruption.json`'s line (1 divine, at the run's rates) it keeps the line; at or over it, it can't
      carry one: return `build: corruption <stage> <slot>` (`build: corruption n Ring 1`), and the runner sends the
      attempt back to D1-build to drop the line (D-446's route). With no price to judge by (offline, an
      `unavailable` price, pricing stopped, `--no-ninja` with no rates) the line stays and the `note` adds
@@ -175,7 +175,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      note is expected.
    - **A slot that serves a set-2 skill** (D-473; `pieces.md`'s `## Skill levels`): pass `mcp__pob2__find_upgrades`
      `sort_stats` weighting that skill (from the stats `mcp__pob2__trade_query_options` lists), since the default
-     weights read the main skill (`references/pricing.md`, "A rare of `b` or `n`").
+     weights read the main skill (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`").
    - **No fallback entry** in a revision-14 build (D-483): the dearer spec is a find over the budget (`trades.json`,
      kind `scaling`, step 5), never a `<id>-fallback` entry (the run checker's `budget` fails one). A build whose last
      D1 gate ran before revision 14 keeps its older rule: an over-target rare kept its item (D-371), and you may add
@@ -185,7 +185,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    - An entry: `{id, item, query, amount, currency, date, league, status, note?, listing?, spec?}`, `league` the
      plan's, `date` the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`;
      `listing` on a price read from a search's listings (D-484), `spec` on a `b` or `n` rare (D-483), both outside
-     `buildSha1` (`references/pricing.md`, "Recording a price"). **The priced copy matches the compiled copy**: a
+     `buildSha1` (`skills/build-guide/references/pricing.md`, "Recording a price"). **The priced copy matches the compiled copy**: a
      listing's corruption is the item's `Corrupted` line and its rune sockets at least the item's, but for a cheap
      unique priced uncorrupted, whose `note` says so.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again
@@ -360,7 +360,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      formula read over the temporary stage's entries), never the boss figure × (1 + `damageChange` / 100). The
      boss is judged on the rotation (D-468): a trade's `bossAfter` shows it, and no per-entry cut is named or
      undone. Trades stay the user's choice: nothing is undone.
-   - Node power's calls in a trade keep the rung's needs only (`D1-tree.md`, "The arguments"; D-450), so a trade on
+   - Node power's calls in a trade keep the rung's needs only (`skills/build-guide/references/stages/D1-tree.md`, "The arguments"; D-450), so a trade on
      `n` may free nodes the budget rung holds, and (D-467) pass D1-tree's other arguments **without `targets`**, so
      their `max_loss` allowances judge EHP as before (D-448's three, below). The damage trade passes
      `pace_exchange: 3` in place of `clearUses: 2` (the user's one rule); the defence trade, which buys toughness,
@@ -369,11 +369,11 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      its EHP (`TotalEHP`), its lowest max hit and its Arbiter verdict, the reply each ledger value (`boss_n = …`).
      A rung's **deciding row** is its one-shot row with the lowest hits survived, else its row with the largest
      ratio; the rung is a **one-shot rung** (D-449) when that row is `one-shot` and its `hitsSurvived` / 100 is
-     below `toughness-targets.json`'s `arbiter.hitsSurvivedFloor`, 0.8, read unrounded (79.6% is under it). On
-     `n`, the target is `toughness-targets.json`'s for the plan's `n.skills.engagement.kind`; the rung is
+     below `skills/build-guide/references/toughness-targets.json`'s `arbiter.hitsSurvivedFloor`, 0.8, read unrounded (79.6% is under it). On
+     `n`, the target is `skills/build-guide/references/toughness-targets.json`'s for the plan's `n.skills.engagement.kind`; the rung is
      **under** its band below `under` × the target (18,000 close, 13,500 distance), **over** it above `over` × the
      target (30,000 close, 22,500 distance), else **within**. Its boss figure is the `boss_n` value when the plan
-     has it, else `measures.damage.boss`; it is **under the floor** below `boss-floor.json`'s `floor`.
+     has it, else `measures.damage.boss`; it is **under the floor** below `skills/build-guide/references/boss-floor.json`'s `floor`.
    - **The defence trade on a one-shot rung** (D-450), `b` or `n`, whatever its band: within the defence trade's
      allowance (damage may fall at most 15%), measure, each on its temporary stage:
      1. **pool lines**: the build's pool line (life, energy shield, or mana under damage taken from mana first) on
@@ -458,7 +458,7 @@ at schema 9 gets D1-build first, to move it to 10 (§25). Do only this:
 
 1. **Write the item as the user gave it**: a read-back's item exactly as edited; a unique as named (its text from
    `mcp__pob2__lookup_game_data {mode: "unique"}`); a rare whose affixes the user named, those affixes as its
-   must-haves, the spec loop (`references/pricing.md`) only setting the tiers the user didn't state and pricing it.
+   must-haves, the spec loop (`skills/build-guide/references/pricing.md`) only setting the tiers the user didn't state and pricing it.
    Nothing the user didn't ask for is added (D-482): no extra affix, no "better roll" on `n`. A departure (the market
    holds no such item, a must-have the base can't roll) is returned as `request: <id> departs: <how>`, and the runner
    asks the user before the gate.
@@ -483,13 +483,13 @@ at schema 9 gets D1-build first, to move it to 10 (§25). Do only this:
                "reason": "the user's 5-divine staff: one lightning spell level less, about 4% under the old staff's boss figure"}]
 ```
 
-At the final gate (a guide build's), the swap then runs the D1 gate, F1, W1's patch and the re-check (`fix-round.md`).
+At the final gate (a guide build's), the swap then runs the D1 gate, F1, W1's patch and the re-check (`skills/build-guide/references/fix-round.md`).
 
 ## The `scaling` scope (D-486)
 
 Your header's `scope: "scaling"` (revision 14): the user answered yes to "late endgame scaling, yes or no?" at the
 design gate's accept, and you run before F1. Re-price the finds over the budget in `trades.json` (kind `scaling`) by
-the depth rule (`references/pricing.md`), one depth check each, announced by the runner and paced like any pricing
+the depth rule (`skills/build-guide/references/pricing.md`), one depth check each, announced by the runner and paced like any pricing
 step, **at most 15 trade searches a build**, and measure any of the top 5 (by gain) not yet measured, each on a
 temporary stage as step 5 does. **Write only `trades.json`**: each find's `price` and `repriced: true`, and for a find
 you measure, its `damage`, `ehp` and `measured: true`. **Restore the plan byte for byte**: Read its text before your
@@ -603,4 +603,4 @@ request: u1 made
 
 ## Fault directives
 
-None. FI-2 and FI-3 are the D1 gate's (`D1-gate.md`).
+None. FI-2 and FI-3 are the D1 gate's (`skills/build-guide/references/stages/D1-gate.md`).

@@ -97,7 +97,7 @@ Before any search, reuse an entry with the same item, query and league from any 
   its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`; the budget doesn't count the
   corruption. This is the cheap unique's rule: one under 1 divine uncorrupted may carry a corruption outcome, an
   implicit or an extra socket, and the guide tells the player to corrupt copies. A unique priced at or over
-  `references/corruption.json`'s line (1 divine, at the run's rates) can't carry a corrupted line (D1-finish returns it
+  `skills/build-guide/references/corruption.json`'s line (1 divine, at the run's rates) can't carry a corrupted line (D1-finish returns it
   to D1-build), but for the extra socket below. With no price to judge by (offline, an `unavailable`
   price, a pricing stop, `--no-ninja` with no rates) the line stays, and the `note` adds `cheapness unchecked:
   <why>` (offline, `offline run` says it). A gem corrupted to +1 level is priced as the gem.
@@ -401,10 +401,10 @@ searches; when the gap cuts its weight-adjust loop short, it still returns the b
 
 **The stop holds until the user approves a retry at a gate.** A step whose `priceOutcomes` counts a `locked_out` or
 `rate_limited` call, or a `pace` call (D-474: the server's pace line missing or off; the user reconnects the server
-with `/mcp` before the retry), stops trade-site pricing: `run-log.mjs` records the stop in the run log's `pricing.stops[]
+with `/mcp` before the retry), stops trade-site pricing: `pob2-run-log` records the stop in the run log's `pricing.stops[]
 {at, step, outcome}` with that step's `stage` entry. The next gate asks first, "Pricing stopped at <step> after
-<outcome>: retry?", and the runner logs the user's answer with `run-log.mjs pricing` as `pricing.retries[]
-{checkpoint, answer, at}`, `retry-pricing` or `no-retry` (`checkpoints.md`, "The pricing question"). **A stop is
+<outcome>: retry?", and the runner logs the user's answer with `pob2-run-log pricing` as `pricing.retries[]
+{checkpoint, answer, at}`, `retry-pricing` or `no-retry` (`skills/build-guide/references/checkpoints.md`, "The pricing question"). **A stop is
 open** for a step when `run-log.json`'s last `pricing.stops[]` entry has no `retry-pricing` answer after it
 (`retries[].at` past the stop's `at`) and no resume after it (`resumes[].lengths.stages` past its `at`): a resume
 still clears a stop, so the new session prices afresh. Every pricing step reads both lists (and the runner's prompt
@@ -427,7 +427,7 @@ own data) stays allowed too. With a stop open:
 - the plan's league is the one recorded before the stop: a plan, skeleton or price entry of this run that
   carries it (D-233); never a `get_leagues` call to check it;
 - the D1 gate's final re-price pass is skipped, and its market day keeps its computation from
-  `data/economy/prices.json` and the prices' dates (`gates.md`).
+  `data/economy/prices.json` and the prices' dates (`skills/build-guide/references/gates.md`).
 
 ## The final re-price pass
 
@@ -443,7 +443,7 @@ design gate's `retry-pricing`, it runs before F1 and prices every `unavailable` 
 
 Prices stay in `plan.json` as seen: the conversion is reporting only, so a re-price on another day needs no
 migration. Totals convert to divines with `mcp__pob2__get_currency_rates`, and the D1 gate records the rates it
-used (`gates.md`). If the rates are unavailable, totals are `unverified`; so with `--no-ninja`, which calls no
+used (`skills/build-guide/references/gates.md`). If the rates are unavailable, totals are `unverified`; so with `--no-ninja`, which calls no
 tool in group `ninja` (D-333), every total is `unverified`.
 
 **The market's league day** is the date the prices were seen less the league's start date, from the league
@@ -471,9 +471,9 @@ study, `docs/build-guide/studies/2026-10-16-pricing.md`), by the item's price in
 audit) names a currency as players do: "exalt" and "exalts", never the trade id `exalted`; "divine" and "divines";
 "chaos". Plans, records and price entries keep the trade ids (`"currency": "exalted"`). **A price whose range rounds
 to 0.0 divines** is shown as seen, with no conversion: `1 exalt (seen 2026-10-24)`, never "0.0–0.0 divines (seen 1
-exalted)". The same holds for a rung's total (the audit's ranges, `render-audit.mjs`) and a "no rate for" line.
+exalted)". The same holds for a rung's total (the audit's ranges, `pob2-render-audit`) and a "no rate for" line.
 
-`gates.md` ("Price days, targets and ranges") defines the D1 gate's record of this exactly; the run checker
+`skills/build-guide/references/gates.md` ("Price days, targets and ranges") defines the D1 gate's record of this exactly; the run checker
 recomputes it from the plan's prices and `data/economy/prices.json`.
 
 ## Reporting the calls
@@ -481,7 +481,7 @@ recomputes it from the plan's prices and `data/economy/prices.json`.
 A coordinator step counts its price-tool calls by outcome and returns the counts in one line,
 `prices: ok 12, exchange 3, would_wait 1` (or `prices: none`), and the stop `pace: missing` or `pace: off` when the
 pace line stopped it. The runner records them as that step's
-`priceOutcomes` in the run log's `stages[]` (`run-log.md`): each key `ok`, `error`, `pace` or a `[trade:<kind>]` kind, and
+`priceOutcomes` in the run log's `stages[]` (`skills/build-guide/references/run-log.md`): each key `ok`, `error`, `pace` or a `[trade:<kind>]` kind, and
 **`exchange`** for a call `mcp__pob2__get_item_price` answered from poe.ninja's currency exchange: its result says
 the item is "a currency-exchange item … priced from poe.ninja's currency exchange" and has an `Exchange value:`
 line, or an `Unavailable (<category>): …` line saying the trade site isn't tried. Such a call sends no trade

@@ -1,6 +1,6 @@
 /**
  * AC-W82 (WU-103, amendment 9 §17 D-426…D-428, §24.1; static): the pattern library's M-22 additions and the PoB gaps.
- * `.claude/skills/build-guide/references/patterns.md` and `docs/build-guide/pob-gaps.md`.
+ * `skills/game-knowledge/references/patterns.md` and `docs/build-guide/pob-gaps.md`.
  * - The user's three weapon-set shapes (two trees for two skills; two weapons sharing an off-hand; both items in both
  *   sets, so the swap changes only the tree), an entry cited to the user and the wiki (D-426).
  * - "Travel by action" gains the user's mechanism, cited to the user, and the search through `list_gems`' `skill_type`
@@ -20,7 +20,7 @@ import fs from 'fs';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const LIBRARY = path.join(REPO, '.claude', 'skills', 'build-guide', 'references', 'patterns.md');
+const LIBRARY = path.join(REPO, 'skills', 'game-knowledge', 'references', 'patterns.md');
 const GAPS = path.join(REPO, 'docs', 'build-guide', 'pob-gaps.md');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-9-endgame-first.md');
 const PIN_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
@@ -150,8 +150,8 @@ describe('AC-W82 (WU-103): the pattern library\'s M-22 additions (D-426, D-427, 
   });
 
   it('defines `[spud]` as the 2026-10-23 comparison study, beside the other source keys', () => {
-    expect(sources.get('spud')).toBe('../../../../docs/build-guide/studies/2026-10-23-spud-warcryer-comparison.md');
-    expect(fs.existsSync(path.resolve(path.dirname(LIBRARY), sources.get('spud')!))).toBe(true);
+    expect(sources.get('spud')).toBe('docs/build-guide/studies/2026-10-23-spud-warcryer-comparison.md');
+    expect(fs.existsSync(path.resolve(REPO, sources.get('spud')!))).toBe(true);
     const keys = [...sources.keys()];
     expect(keys.indexOf('spud')).toBe(keys.indexOf('amendment-9') + 1);
   });

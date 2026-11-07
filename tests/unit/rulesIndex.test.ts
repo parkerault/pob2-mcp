@@ -1,5 +1,5 @@
 /**
- * WU-85 (amendment 8, D-401, AC-W71's script part): `.claude/skills/build-guide/scripts/rules-index.mjs`, spawned as
+ * WU-85 (amendment 8, D-401, AC-W71's script part): `skills/game-knowledge/scripts/rules-index.mjs`, spawned as
  * a real `node` process on small fixture indexes in a temp dir, each beside a copy of the shared
  * `data/rules/vocabulary.md`:
  *
@@ -24,7 +24,7 @@ import os from 'os';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'rules-index.mjs');
+const SCRIPT = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'rules-index.mjs');
 const VOCABULARY = path.join(REPO, 'data', 'rules', 'vocabulary.md');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'rules-index-'));
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // The build-guide audit render (slice 03 §7.8, as D-355 amends it).
 //
-//   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> [--build <card id>]
-//   node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> --withdraw <card id>
+//   pob2-render-audit <runFolder> [--build <card id>]
+//   pob2-render-audit <runFolder> --withdraw <card id>
 //
 // A schema-4 run (amendment 9, D-412) renders one build's audit.md, `--build <card id>`: from its folder's plan.json,
 // compile-record.json and audit.md (`builds/<id>/`, or "." for a migrated run's build), and its card's last D1 gate
 // verdict file; a schema-3 run renders the root's, with no --build. Its H1 names the build by its `builds[].name`, the
 // name its finalize revision gave it, else by its card's H1 (amendment 10, D-435).
 //
-// It writes audit.md in the form of ../templates/audit-template.md from plan.json, the final compile-record.json
+// It writes audit.md in the form of skills/build-guide/templates/audit-template.md from plan.json, the final compile-record.json
 // and the D1 gate's last verdict file (the run log's last D1-gate entry), and keeps the lines under an existing
 // audit.md's `## Known issues` (W1's rows for the accepted gate findings, and step 14's). The runner runs it after
 // the D2 gate's final compile and before W1, and again before the W1 of a fix round or a revision. The run
@@ -78,7 +78,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
+const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 /** The server's compiled ledger evaluator: in the repository's `build/`, or for tests `BUILD_GUIDE_SERVER_BUILD` when set (D-435). */
 const ledgerModulePath = () => path.join(process.env.BUILD_GUIDE_SERVER_BUILD ? path.resolve(process.env.BUILD_GUIDE_SERVER_BUILD) : path.join(REPO, 'build'), 'plan', 'ledger.js');
 const PRICES_FILE = path.join(REPO, 'data', 'economy', 'prices.json');

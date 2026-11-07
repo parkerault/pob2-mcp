@@ -19,7 +19,7 @@ import path from 'path';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const CHECKER = path.join(REPO, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-builds');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'campaign-pob-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));

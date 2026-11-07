@@ -1,29 +1,29 @@
 #!/usr/bin/env node
 // The build-guide run log's writer (D-356): the runner writes run-log.json only through it, never with Write.
 //
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> init '{"slug", "brief", "mode", "testConfig", "noNinja"[, "status"]}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage '{"stage", "concept"?, "attempt", "outcome", …}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint '{"checkpoint", "concept"?, "visit", "answer", "answeredBy", "rule"?, "questions"?, "changes"?, "newCards"?, "note"?}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> escalation '{"stage", "concept", "verdict", "choice", "guidance"?}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> build '{"id", "roll"?, "name"?, "status"?, "guide"?, "pobFile"?}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> set '{"status"?, "dossier"?, "faults"?}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> resume '{"noNinja"}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing '{"checkpoint", "answer"}'
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <brainstorm|verification|design|final|escalation> [--build <card id>]
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>
+//   pob2-run-log <runFolder> init '{"slug", "brief", "mode", "testConfig", "noNinja"[, "status"]}'
+//   pob2-run-log <runFolder> stage '{"stage", "concept"?, "attempt", "outcome", …}'
+//   pob2-run-log <runFolder> checkpoint '{"checkpoint", "concept"?, "visit", "answer", "answeredBy", "rule"?, "questions"?, "changes"?, "newCards"?, "note"?}'
+//   pob2-run-log <runFolder> escalation '{"stage", "concept", "verdict", "choice", "guidance"?}'
+//   pob2-run-log <runFolder> build '{"id", "roll"?, "name"?, "status"?, "guide"?, "pobFile"?}'
+//   pob2-run-log <runFolder> set '{"status"?, "dossier"?, "faults"?}'
+//   pob2-run-log <runFolder> resume '{"noNinja"}'
+//   pob2-run-log <runFolder> pricing '{"checkpoint", "answer"}'
+//   pob2-run-log <runFolder> migrate
+//   pob2-run-log <runFolder> display <brainstorm|verification|design|final|escalation> [--build <card id>]
+//   pob2-run-log <runFolder> test-config <path>
 //
 // `-` in place of the JSON reads the entry from stdin, as a quoted heredoc gives it, so a text with an apostrophe
 // (a brief's notes, a `revise:` text, a retry's guidance, a final-gate note, a gate change's words) needs no shell
 // quoting:
 //
-//   node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
+//   pob2-run-log <runFolder> stage - <<'JSON'
 //   {"stage", …}
 //   JSON
 //
 // `init` writes the first log (schema 4, `runFolder` the folder given, empty lists) and never overwrites one; `stage`,
 // `checkpoint` and `escalation` append one entry to `stages[]`, `checkpoints[]` or `escalations[]`; `set` replaces
-// those top-level fields. Each entry has exactly the fields of ../references/run-log.md's entry form, and a wrong one is
+// those top-level fields. Each entry has exactly the fields of skills/build-guide/references/run-log.md's entry form, and a wrong one is
 // refused with nothing written. A schema-3 log takes schema 3's entries until `migrate` rewrites it. The run checker
 // checks the whole log and its flow.
 //
@@ -362,8 +362,8 @@ const KINDS14 = ['skeleton', 'answer-change', 'withdrawn'];
 /** A build entry's fields in builds[], in order (D-412); `name` after `roll` once a build entry gave one (D-435). */
 const BUILD_FIELDS = ['id', 'roll', 'status', 'folder', 'guide', 'pobFile'];
 const BUILD_FIELDS_NAMED = ['id', 'roll', 'name', 'status', 'folder', 'guide', 'pobFile'];
-/** The repository root (scripts → build-guide → skills → .claude → root): `pob-pin.json` and `data/league/`. */
-const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
+/** The plugin root, the repository root here (scripts → build-guide → skills → root): `pob-pin.json` and `data/league/`. */
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const NEW_CARD_FIELDS = ['id', 'name', 'from', 'words'];
 const OUTPUTS = ['plan', 'record', 'dossier', 'guide', 'pobFile'];
 /** The gates and the question whose visits print a display first (D-265, D-367); the unsaved-build question has none. */
@@ -1091,7 +1091,7 @@ function saveLog(file, log) {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// The test config (D-394; ../references/offline-and-test.md)
+// The test config (D-394; skills/build-guide/references/offline-and-test.md)
 // ---------------------------------------------------------------------------------------------------
 
 const CONFIG_GATES = ['brainstorm', 'verification', 'design', 'final', 'escalation'];
@@ -1476,7 +1476,7 @@ function pieceKeysOf(dir) {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// The gate displays (D-367, D-369, D-392; ../references/checkpoints.md)
+// The gate displays (D-367, D-369, D-392; skills/build-guide/references/checkpoints.md)
 // ---------------------------------------------------------------------------------------------------
 
 const gateName = (gate) => (gate === 'escalation' ? 'the escalation question' : `the ${gate} gate`);

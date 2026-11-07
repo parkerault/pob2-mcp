@@ -2,7 +2,7 @@
  * WU-88 (amendment 8 §9, D-407): clear speed and movement speed on a card skeleton's compile record, through
  * `compile_plan`, in process and engine-required.
  *
- * A card skeleton is R1b's measure-only plan for one card (`references/stages/R1b.md`, step 4): one stage, its id the
+ * A card skeleton is R1b's measure-only plan for one card (`skills/build-guide/references/stages/R1b.md`, step 4): one stage, its id the
  * card id without hyphens then `e`, `progress` `endgame` and no `variant`. Until D-407 only the endgame variant stages
  * had `measures`. Now a skeleton's record holds the rough `clearSpeed` (D-353: a band from the clear skill's area) and
  * the player's movement speed beside it, PoB's `EffectiveMovementSpeedMod` (movement speed × action speed, the

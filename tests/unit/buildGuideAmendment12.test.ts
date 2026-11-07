@@ -26,7 +26,7 @@ import { decidingRow, type ArbiterMeasure } from '../../src/plan/record';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL = path.join(REPO, 'skills', 'build-guide');
 const SCRIPTS = path.join(SKILL, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
@@ -718,14 +718,14 @@ describe('AC-W93 (Appendix A): references/toughness-targets.json holds the Arbit
   it('with the floor at 0.75 in the file, a row that survives 79.6% of its hits is no one-shot rung', () => {
     // The repository's layout in a temp dir, its targets file's floor changed: the scripts read the file beside them.
     const root = path.join(TMP, `repo-${++copies}`);
-    const scripts = path.join(root, '.claude', 'skills', 'build-guide', 'scripts');
+    const scripts = path.join(root, 'skills', 'build-guide', 'scripts');
     fs.mkdirSync(scripts, { recursive: true });
     for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(scripts, f));
-    fs.cpSync(path.join(SKILL, 'references'), path.join(root, '.claude', 'skills', 'build-guide', 'references'), { recursive: true });
+    fs.cpSync(path.join(SKILL, 'references'), path.join(root, 'skills', 'build-guide', 'references'), { recursive: true });
     fs.symlinkSync(path.join(REPO, 'build'), path.join(root, 'build'));
     fs.symlinkSync(path.join(REPO, 'data'), path.join(root, 'data'));
     fs.copyFileSync(path.join(REPO, 'pob-pin.json'), path.join(root, 'pob-pin.json'));
-    editJson(root, '.claude/skills/build-guide/references/toughness-targets.json', (t) => {
+    editJson(root, 'skills/build-guide/references/toughness-targets.json', (t) => {
       t.arbiter.hitsSurvivedFloor = 0.75;
     });
     const dir = copy('run-a12');

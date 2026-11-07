@@ -1,5 +1,5 @@
 /**
- * WU-84 (amendment 8, D-400): the league digest, `.claude/skills/build-guide/scripts/league-digest.mjs`, spawned as a
+ * WU-84 (amendment 8, D-400): the league digest, `skills/game-knowledge/scripts/league-digest.mjs`, spawned as a
  * real `node` process on handwritten pages in poe2db's structure (`tests/fixtures/poe2db/league/`), with the in-pin
  * flags checked against a fixture name list (`pin-names.json`), never `vendor/`, and no request (AC-W70, D-34): the
  * `--from` runs load a module that makes `fetch` throw, and the fetch path's own test serves the fixture pages from a
@@ -19,7 +19,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'league-digest.mjs');
+const SCRIPT = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'league-digest.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'poe2db', 'league');
 const PIN_NAMES = path.join(FIXTURES, 'pin-names.json');
 const RULE_CHANGERS = path.join(FIXTURES, 'embers-of-tarn.rule-changers.json');

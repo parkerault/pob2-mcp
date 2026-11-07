@@ -18,12 +18,12 @@ compiled. **You edit no plan (`plan.json` or a concept plan) and no card.**
 
 ## Work
 
-1. **Look it up**, as `.claude/skills/build-guide/references/lookups.md` says.
+1. **Look it up**, as `skills/game-knowledge/references/lookups.md` says.
 2. **A coordinator measures** when the answer is a number, from the card's skeleton plan,
    `concepts/<id>/plan.json`, at the verification gate, else from the finalized build's plan,
    `<buildFolder>/plan.json` (its `plan_path` `<runFolderRel>/<buildFolder>/plan.json`, or
    `<runFolderRel>/plan.json` for `.`). Write a variant of only the stage the question needs, with the one change it
-   asks about, to `probes/q-<gate>-<visit>-<n>/plan.json`, as R1b writes its probes (`R1b.md`, "From compile
+   asks about, to `probes/q-<gate>-<visit>-<n>/plan.json`, as R1b writes its probes (`skills/build-guide/references/stages/R1b.md`, "From compile
    variants"): the stage through `mcp__pob2__guide_run {view: {plan, stage}}`, the other fields by Grep, never
    the plan whole. Compile it measure-only with `mcp__pob2__compile_plan` and compare the records. One variant; no price call.
 3. **Say how you know**, in the cards' status words: confirmed in game text, modelled in PoB, estimate (with

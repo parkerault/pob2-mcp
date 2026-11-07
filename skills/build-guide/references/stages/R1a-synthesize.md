@@ -1,7 +1,7 @@
 # R1a-synthesize: compose the builds (`build-guide-coordinator`)
 
 One step per brainstorm round (D-429), after the round's R1a researchers return; in a new run it takes the place of
-`R1a-assemble.md`. A designer brainstorms widely, then builds one build from everything found rather than keeping one
+`skills/build-guide/references/stages/R1a-assemble.md`. A designer brainstorms widely, then builds one build from everything found rather than keeping one
 idea and dropping the rest, and so does this step: it groups the run's cards by structure and composes one candidate
 build per structure, a **composite**, from every compatible piece the brainstorm found, on any card or in any research
 file's `## Ideas`. It writes the deck `cards.md` the user picks from at the brainstorm gate and each composite's card.
@@ -37,13 +37,13 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
   - each research file's `## Ideas` and `## Supply search` sections: Grep `^- i[0-9]` across `research/` for the
     Ideas lines, and `^## Supply search` with the lines under it;
   - `cards.md`, when an earlier round wrote it;
-  - the card template `.claude/skills/build-guide/templates/card-template.md`;
+  - the card template `skills/build-guide/templates/card-template.md`;
   - `data/rules/vocabulary.md`, the engine words (step 1);
   - the pattern library's entry for each shape an under-played label names (step 6): Grep `^### ` in
-    `.claude/skills/build-guide/references/patterns.md` and Read those entries only.
+    `skills/game-knowledge/references/patterns.md` and Read those entries only.
 
   The identity check with its ascendancy lock, the sniff test and unique names are
-  `.claude/skills/build-guide/references/stages/R1a-assemble.md`'s steps 2, 3 and 7: Read those three steps there,
+  `skills/build-guide/references/stages/R1a-assemble.md`'s steps 2, 3 and 7: Read those three steps there,
   as this step cites them. The lookups each step needs are named in it, by their full names.
 
 ## Work
@@ -64,7 +64,7 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    Ideas line, or a piece on this round's card or a gate-made card made since the last synthesis) whose `needs:` the structure meets and that serves its
    damage, its limit or its bosses; a structure or piece the user's note names counts as gained. Any other structure
    keeps its composite as it stands.
-3. **Check the cards** of each structure you compose, by `R1a-assemble.md`'s step 2: the identity check, the brief's
+3. **Check the cards** of each structure you compose, by `skills/build-guide/references/stages/R1a-assemble.md`'s step 2: the identity check, the brief's
    fixed pieces and the ascendancy lock (D-342), each lookup once per class, skill or identity in the round
    (`mcp__pob2__get_classes`; `mcp__pob2__lookup_game_data {mode: "gem", query: <skill>}`; for the lock,
    `mcp__pob2__search_tree_nodes {query: "Grants Skill: <skill>"}` and `mcp__pob2__lookup_game_data {mode:
@@ -122,7 +122,7 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
    that is one is `out`, its why `over-budget rune: the brief doesn't ask for it`: the run checker fails a Pieces row
    `in` or `scheduled` that holds one without the say, and allows an `out` row.
 
-   **The sniff test**, `R1a-assemble.md`'s step 3, as D-430 bounds it: every load-bearing link of the composite (one
+   **The sniff test**, `skills/build-guide/references/stages/R1a-assemble.md`'s step 3, as D-430 bounds it: every load-bearing link of the composite (one
    without which its payoff stops working) is confirmed in game text. **An Ideas line's lookup counts as its piece's
    confirmation**, and so does a card's links-table row marked `confirmed in game text` with its lookup: don't repeat
    them. Run the sniff test's lookup **only for a load-bearing link that has none**: a link the composite makes
@@ -138,7 +138,7 @@ brainstorm round ran `R1a-assemble` keeps that step for every later round, so th
 7. **The obvious card** (D-403), `r1-a-1` when it passes step 3, stays as the baseline: one line under `## The
    obvious build`, never a composite and never edited. It is **judged as written**, before any borrowing: its pieces
    join the pool, and the composite of its own structure says how it beats the card it grew from.
-8. **Names** (D-392, D-442), by `R1a-assemble.md`'s step 7: no two cards of the run share a name, composites
+8. **Names** (D-392, D-442), by `skills/build-guide/references/stages/R1a-assemble.md`'s step 7: no two cards of the run share a name, composites
    included. **A name carries the main skill and the ascendancy**: a few words of the build's own, then the main
    skill, then the ascendancy, like "Reaping Bonfire Detonate Dead Blood Mage". The main skill is the composite's
    named damage source, not a skill that feeds it. Give each composite such a name that no card and no line of
@@ -170,7 +170,7 @@ H3s, `### Pieces measured` among them, each with the one line `Not checked yet.`
 - **Pitch:** in player terms, as the template asks. Its How it clears says how it clears faster than the obvious
   card, or why it's worth picking anyway; the composite of the obvious card's own structure says instead how it beats
   the card it grew from. Its `Under-played (judgment)` line when it takes a kept label (step 6); no `Obvious build:`
-  line. Its `Defence:` line as `R1a.md` writes it, from the class's attributes, names only (D-451); its Needs names no
+  line. Its `Defence:` line as `skills/build-guide/references/stages/R1a.md` writes it, from the class's attributes, names only (D-451); its Needs names no
   respec (D-452).
 - **Chain, Enabler, Links:** the composite's own, every load-bearing link with its confirming text and the lookup
   that returned it, from its sources or from the sniff test; its `Means:` lines, each payoff apart from its means,

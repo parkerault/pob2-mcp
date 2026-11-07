@@ -2,11 +2,11 @@
  * AC-W76 (WU-94, amendment 9: D-411…D-424): the run scripts on schema 4, each spawned as a real `node` process with an
  * explicit env.
  *
- * - `run-log.mjs`: `init` writes schema 4 with `noNinja`, the pin's commit from `pob-pin.json` and the newest league
+ * - `skills/build-guide/scripts/run-log.mjs`: `init` writes schema 4 with `noNinja`, the pin's commit from `pob-pin.json` and the newest league
  *   digest; `migrate` rewrites a schema-3 log (the build as `builds[0]` in "." with `concept` on its design and final
  *   checkpoints, a decline prefixed `decline:`); `build`, `resume`, the answer forms and F1's escalation; the displays
  *   `design --build` and `final --build`, the verification display's builds.
- * - `check-run.mjs` on `tests/fixtures/pipeline/run-builds`, a schema-4 run with two builds in `builds/<id>/`: r1-a-1 the
+ * - `skills/build-guide/scripts/check-run.mjs` on `tests/fixtures/pipeline/run-builds`, a schema-4 run with two builds in `builds/<id>/`: r1-a-1 the
  *   full build (finalized `accept:file`, its campaign added after a resume, `campaign:r1-a-1`) and r1-a-2 an endgame-only
  *   build (F1, the endgame guide). Its order rules on copies whose log is rewritten from a compact script (`logFrom`);
  *   those copies are held to the flow's rules only (`flow`), their artifacts being run-builds'.
@@ -23,7 +23,7 @@ import path from 'path';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPTS = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts');
+const SCRIPTS = path.join(REPO, 'skills', 'build-guide', 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
 const RENDER = path.join(SCRIPTS, 'render-audit.mjs');
@@ -198,7 +198,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
   it('init reads the pin and the digest beside its own scripts: the newest digest by the fetch date on its third line, not by name', () => {
     // The repository's layout in a temp dir: the scripts, a pob-pin.json and two digests.
     const root = path.join(TMP, `repo-${++copies}`);
-    const scripts = path.join(root, '.claude', 'skills', 'build-guide', 'scripts');
+    const scripts = path.join(root, 'skills', 'build-guide', 'scripts');
     fs.mkdirSync(scripts, { recursive: true });
     for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(scripts, f));
     writeJson(root, 'pob-pin.json', { repo: 'x', tag: 'v0.0.1', commit: '0123456789abcdef0123456789abcdef01234567', version: '0.0.1', headlessWrapperSha1: 'x' });

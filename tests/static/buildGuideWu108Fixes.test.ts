@@ -2,7 +2,7 @@
  * WU-108 (amendment 10 §10, D-435): the text half of the live test's fixes. AC-W87, every bullet, and the description
  * half of AC-P77.
  *
- * - `references/stages/V4.md` has the verifier check its report's list syntax (no empty `- ` item) before its one
+ * - `skills/build-guide/references/stages/V4.md` has the verifier check its report's list syntax (no empty `- ` item) before its one
  *   Write, since it keeps no Edit (R-5); the checker's side (an empty item ignored) is WU-105's;
  * - `docs/build-guide/plan-reference.md` states the base-implicit rule: a text with no `Implicits:` line gets its
  *   base's implicits, at PoB's default roll; `Implicits: 0` and a unique are kept as written; a variant base isn't
@@ -23,7 +23,7 @@ const read = (...p: string[]) => fs.readFileSync(path.join(REPO, ...p), 'utf8');
 const folded = (s: string) => s.replace(/\s+/g, ' ');
 
 describe("AC-W87: V4 checks its report's list syntax before its one Write (D-435, R-5)", () => {
-  const v4 = read('.claude', 'skills', 'build-guide', 'references', 'stages', 'V4.md');
+  const v4 = read('skills', 'build-guide', 'references', 'stages', 'V4.md');
   const writes = folded(v4.slice(v4.indexOf('## Writes'), v4.indexOf('## Returns'))).trim();
 
   it('the Writes section has the check, and it comes before the Write it guards', () => {

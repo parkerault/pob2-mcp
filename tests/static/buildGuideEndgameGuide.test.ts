@@ -2,15 +2,15 @@
  * Amendment 9 (M-21), WU-97's bullets of AC-W77: the endgame guide and the two stage references that write and
  * verify it.
  *
- * - `templates/guide-endgame-template.md` (D-414): its twelve H2s, in amendment 9 §8's order, with the H3 Checks
+ * - `skills/build-guide/templates/guide-endgame-template.md` (D-414): its twelve H2s, in amendment 9 §8's order, with the H3 Checks
  *   under each Endgame H2 and Known issues ending What PoB can't show; Switching over (about 250 words: the level
  *   the build works from and what sets it, the ascendancy order from its claim, the reward picks by their first
  *   line, the respec with no gold cost); the 2,300-word cap with budgets of about 2,100; the rungs' sections the
  *   same as the full template's, so the run checker's verdict-line and Checks rules hold for both.
- * - `references/stages/W1.md`: the template from the plan (no campaign stage, the endgame guide), the guide in the
+ * - `skills/build-guide/references/stages/W1.md`: the template from the plan (no campaign stage, the endgame guide), the guide in the
  *   build's folder (`buildFolder`, D-412), Switching over's sources, and the campaign mode (D-415), the one case
  *   where W1 writes the guide anew outside a first pass.
- * - `references/stages/V4.md`: the build's folder, the guide held to the template its plan decides, the ascendancy
+ * - `skills/build-guide/references/stages/V4.md`: the build's folder, the guide held to the template its plan decides, the ascendancy
  *   order's claim checked against `ascendancyNodes` (D-413), and the campaign pass (D-415): stage `V4-campaign`,
  *   `check: "campaign"`, its H1, numbering and `## Checked`.
  *
@@ -22,7 +22,7 @@ import fs from 'fs';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const ENDGAME_TEMPLATE = path.join(SKILL_DIR, 'templates', 'guide-endgame-template.md');
 const FULL_TEMPLATE = path.join(SKILL_DIR, 'templates', 'guide-template.md');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
@@ -72,7 +72,7 @@ const commentOf = (text: string) => folded(/<!--([\s\S]*?)-->/.exec(text)?.[1] ?
 /** Every repository path a stage reference mentions in backticks, as the pipeline test reads them. */
 function repoPaths(text: string): string[] {
   const found = new Set<string>();
-  for (const m of text.matchAll(/`((?:\.claude|docs|data)\/[^`\s]*|pob-pin\.json)`/g)) found.add(m[1]);
+  for (const m of text.matchAll(/`(?:\$\{CLAUDE_PLUGIN_ROOT\}\/|<root>\/)?((?:skills|agents|docs|data)\/[^`\s]*|pob-pin\.json)`/g)) found.add(m[1]);
   return [...found];
 }
 
@@ -214,7 +214,7 @@ describe('AC-W77 (WU-97, D-414): the endgame guide template', () => {
 
   it('states the rules every section keeps: a game guide that renders the plan, first-person advice, each caveat once, not a tutorial, no campaign and no crafting', () => {
     expect(comment).toContain('It is a game guide, not a design document');
-    expect(comment).toMatch(/The plan decides the template: no campaign stage \(every stage has a variant\), this one; else templates\/guide-template\.md, the full guide/);
+    expect(comment).toMatch(/The plan decides the template: no campaign stage \(every stage has a variant\), this one; else skills\/build-guide\/templates\/guide-template\.md, the full guide/);
     expect(comment).toMatch(/The guide renders the plan and the record: every fact and number is one they hold, rounded as a guide rounds it/);
     expect(comment).toMatch(/Advice is in the first person \("I", "my"\)/);
     expect(comment).toMatch(/Each caveat appears once, where the reader acts on it/);
@@ -236,7 +236,7 @@ describe('AC-W77 (WU-97): W1 picks the template by the plan and has its campaign
   const w1 = folded(raw);
 
   it('picks the template from the plan, as the run checker does: no campaign stage, the endgame guide; else the full guide', () => {
-    expect(w1).toMatch(/\*\*The template, from the plan\*\* \(D-414\), as the run checker decides it: a plan with no campaign stage \(every stage has a `variant`\) gets the endgame guide, `\.claude\/skills\/build-guide\/templates\/guide-endgame-template\.md`; any other plan the full guide, `\.claude\/skills\/build-guide\/templates\/guide-template\.md`/);
+    expect(w1).toMatch(/\*\*The template, from the plan\*\* \(D-414\), as the run checker decides it: a plan with no campaign stage \(every stage has a `variant`\) gets the endgame guide, `skills\/build-guide\/templates\/guide-endgame-template\.md`; any other plan the full guide, `skills\/build-guide\/templates\/guide-template\.md`/);
     expect(w1).toMatch(/Grep `plan\.json` for `"loadoutName"` \(one hit per stage\) and for `"variant":` \(one per endgame stage\); equal counts mean no campaign stage/);
     expect(w1).toMatch(/The run log's `builds\[\]` entry records the choice in its `guide` field \(`endgame` or `full`\)/);
     expect(w1).toMatch(/exactly the template's H2s, the full guide's fourteen or the endgame guide's twelve, in its order, and no other H2/);
@@ -267,7 +267,7 @@ describe('AC-W77 (WU-97): W1 picks the template by the plan and has its campaign
     expect(mode).toMatch(/The user asked for the campaign of a `completed` build, which has the endgame guide/);
     expect(mode).toMatch(/You are in this mode when the plan has a campaign stage and the build's `guide\.md` is still the endgame guide \(it has the H2 `Switching over`\)/);
     expect(mode).toMatch(/\*\*This is the one case where you write the guide anew outside a first pass:\*\* it amends "You never write the guide anew" above for this mode only/);
-    expect(mode).toMatch(/\*\*Write `guide\.md` whole, with Write,\*\* from the full template, `\.claude\/skills\/build-guide\/templates\/guide-template\.md`/);
+    expect(mode).toMatch(/\*\*Write `guide\.md` whole, with Write,\*\* from the full template, `skills\/build-guide\/templates\/guide-template\.md`/);
     expect(mode).toMatch(/\*\*Keep the endgame sections' text where the plan didn't change them\.\*\*/);
     expect(mode).toMatch(/\*\*Write the campaign's sections\*\* as a first pass does/);
     expect(mode).toMatch(/A `file-only` build's campaign isn't this mode: it has no guide yet, so you write the full guide in a first pass/);
@@ -318,13 +318,13 @@ describe('AC-W77 (WU-97): V4 reads the build\'s folder, holds the guide to its t
     const titles = headings(raw).filter((h) => h.level === 2).map((h) => h.title);
     expect(titles).toContain('The campaign pass (D-415)');
     const pass = folded(sectionOf(raw, 'The campaign pass (D-415)').join('\n'));
-    expect(pass).toMatch(/`changed` the lines `check-run\.mjs --changed <n-1>` printed/);
+    expect(pass).toMatch(/`changed` the lines `pob2-check-run --changed <n-1>` printed/);
     expect(pass).toMatch(/\*\*`check: "campaign"`\*\*: one pass, which checks only 1\. each finding in the header's `findings`, as a re-check does/);
     expect(pass).toMatch(/2\. every hinge claim of the campaign stages \(the stages without a `variant`\), as the full pass checks a claim of its kind, whether or not `changed` lists it/);
     expect(pass).toMatch(/3\. each item of `changed`: a claim as the full pass checks a claim of its kind .* an H2 as the editor read checks it/);
     expect(pass).toMatch(/`## Checked` lists every item of `changed`, as the header gives it, every `section` line among them \(the run checker fails a campaign pass that misses one\), then each campaign hinge claim `changed` doesn't list/);
     expect(pass).toMatch(/The fix round and its re-check follow, as after the full pass; then the build's final gate/);
-    expect(v4).toMatch(/`changed`: a re-check or the campaign pass: the lines `check-run\.mjs --changed <n-1>` printed/);
+    expect(v4).toMatch(/`changed`: a re-check or the campaign pass: the lines `pob2-check-run --changed <n-1>` printed/);
     expect(v4).not.toMatch(/`changed: "all"`/);
   });
 
@@ -336,8 +336,8 @@ describe('AC-W77 (WU-97): V4 reads the build\'s folder, holds the guide to its t
 
   it('holds the guide to the template its plan decides, and checks the ascendancy order\'s claim against ascendancyNodes (D-413, D-414)', () => {
     expect(v4).toMatch(/\*\*The guide's H2s are its template's\*\* \(D-414\), the template the plan decides, as the run checker does: the endgame guide's twelve for a plan with no campaign stage, the full guide's fourteen for any other, exactly and in its order/);
-    expect(v4).toContain('`.claude/skills/build-guide/templates/guide-endgame-template.md`');
-    expect(v4).toContain('`.claude/skills/build-guide/templates/guide-template.md`');
+    expect(v4).toContain('`skills/build-guide/templates/guide-endgame-template.md`');
+    expect(v4).toContain('`skills/build-guide/templates/guide-template.md`');
     expect(v4).toMatch(/\*\*the ascendancy order's\*\* \(D-413\), D1-finish's claim on `m` that names the ascendancy's nodes in the order to take them\. It names every node of `m`'s `ascendancyNodes`, in that array's order, and no other/);
     expect(v4).toMatch(/`mcp__pob2__search_tree_nodes` `\{ascendancy: "<the roll's ascendancy>"\}`/);
     expect(v4).toMatch(/\*\*Switching over\*\* \(the endgame guide, D-413, D-414\): .* `m`'s `requirements\.level` in the record/);

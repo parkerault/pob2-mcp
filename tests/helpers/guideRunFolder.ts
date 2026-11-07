@@ -1,6 +1,6 @@
 /**
  * A small synthetic build-guide run folder for the runner's scripts (WU-71): `check-run.mjs --snapshot` and
- * `--changed` (A-34, D-352), `render-audit.mjs` (D-355) and `run-log.mjs` (D-356). It holds a schema-3 plan with
+ * `--changed` (A-34, D-352), `skills/build-guide/scripts/render-audit.mjs` (D-355) and `skills/build-guide/scripts/run-log.mjs` (D-356). It holds a schema-3 plan with
  * a campaign stage and the three endgame rungs, a final record with each rung's `measures`, the D1 gate's last
  * verdict file, the card, the run log and a guide. Only the fields the scripts read are realistic; the run checker
  * itself is tested on the fixtures in `tests/fixtures/pipeline/`. `writeMinionGuideRun` writes its variant whose

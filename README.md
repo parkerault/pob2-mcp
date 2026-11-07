@@ -53,6 +53,25 @@ PoB2 installed on Windows, the builds folder is `/mnt/c/Users/<you>/Documents/Pa
 `mise exec -C` runs the server with the repository's pinned Node and LuaJIT, whatever directory Claude
 Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected, with 85 tools.
 
+## The Claude Code plugin
+
+This repository is also a Claude Code plugin, `pob2`, and its own marketplace, `pob2-mcp`. The plugin carries
+the build-guide skill (`/pob2:build-guide`), its four agent types, the run scripts' commands (`pob2-check-run`,
+`pob2-run-log`, `pob2-render-audit`, `pob2-render-notes`) and the compaction reminder's hook. Install it from
+your checkout, in a Claude Code session:
+
+```
+/plugin marketplace add <path to this repo>
+/plugin install pob2@pob2-mcp
+```
+
+- The plugin runs from a set-up checkout: run `mise run setup` first (see [Setup](#setup)), and register the
+  server as above. The run scripts need `node` on your `PATH`.
+- Installed for your account, the plugin's skill, agents and hook are in every project. To turn it off in one
+  project, add `"enabledPlugins": {"pob2@pob2-mcp": false}` to that project's `.claude/settings.json`.
+- The plugin carries the compaction hook, so drop the `SessionStart` hook from any copy of
+  `docs/build-guide/run-settings.example.json` you made for an earlier run: both copies would run.
+
 ## Configuration
 
 Settings are environment variables. Pass the non-secret ones with `-e NAME=value` on `claude mcp add`.

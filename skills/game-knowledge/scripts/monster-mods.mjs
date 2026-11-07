@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The rare monster modifier table's writer (amendment 8, D-402).
 //
-//   node .claude/skills/build-guide/scripts/monster-mods.mjs --from <folder> [--out <file>] [--date <YYYY-MM-DD>]
+//   node skills/game-knowledge/scripts/monster-mods.mjs --from <folder> [--out <file>] [--date <YYYY-MM-DD>]
 //
 // Reads poe2db's two pages saved in <folder>, `Monster_Modifiers.html` (https://poe2db.tw/us/Monster_Modifiers) and
 // `Tame_Beast.html` (https://poe2db.tw/us/Tame_Beast), and writes data/monsters/monster-mods.md, or <file>. Offline
@@ -33,7 +33,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
+const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 const DEFAULT_OUT = path.join(REPO, 'data', 'monsters', 'monster-mods.md');
 const VOCABULARY = path.join(REPO, 'data', 'rules', 'vocabulary.md');
 const BASE_URL = 'https://poe2db.tw/us/';
@@ -511,7 +511,7 @@ export function counts(modifiers, judgments = JUDGMENTS) {
 export function render({ modifiers, unnamed, modRows, tameRows, date }, judgments = JUDGMENTS) {
   const c = counts(modifiers, judgments);
   const prose = [
-    `Written by \`.claude/skills/build-guide/scripts/monster-mods.mjs\` from poe2db's pages saved ${date} ` +
+    `Written by \`skills/game-knowledge/scripts/monster-mods.mjs\` from poe2db's pages saved ${date} ` +
       '(amendment 8, D-402). Re-run the script to change it; its judgments are in the script.',
     '',
     `- **Source.** ${BASE_URL}${PAGES.mods}, its "Archnemesis Mods" list (${modRows} rows), and ${BASE_URL}${PAGES.tame}, ` +

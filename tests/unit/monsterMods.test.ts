@@ -16,7 +16,7 @@ import path from 'path';
 import { blockProblems, creates, NO_LINES, parseMonsterTable, readVocabulary, type MonsterBlock } from '../helpers/monsterTable';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'monster-mods.mjs');
+const SCRIPT = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'monster-mods.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'poe2db', 'monsters');
 const VOCABULARY = readVocabulary(path.join(REPO, 'data', 'rules', 'vocabulary.md'));
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'monster-mods-'));

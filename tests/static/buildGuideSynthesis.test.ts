@@ -2,14 +2,14 @@
  * Amendment 10 (M-23), WU-104: AC-W83, one build from the whole brainstorm in the skill text (D-429, D-430, D-432,
  * and D-433's two tables).
  *
- * - `references/stages/R1a.md`: the research file's `## Ideas` in Appendix A's line form, at most 25 lines, the cards'
+ * - `skills/build-guide/references/stages/R1a.md`: the research file's `## Ideas` in Appendix A's line form, at most 25 lines, the cards'
  *   lines first, a later round's only new, the supply search's suppliers among them (D-430).
- * - `references/stages/R1a-synthesize.md` (new): structures keyed by identity, or by engine when every card shares
+ * - `skills/build-guide/references/stages/R1a-synthesize.md` (new): structures keyed by identity, or by engine when every card shares
  *   one; 1 to 4 composites from every card and the Ideas; the tie-break; a split; the obvious card as a baseline
  *   judged as written; `## Cards`; a later round recomposing only gained structures under new ids and names, never a
  *   verified or built composite; R1a-assemble's identity, lock, sniff and name steps cited; Appendix A's deck, the
  *   composite's `### Pieces`, its interface and its return.
- * - `templates/card-template.md`: `### Pieces` and `### Pieces measured`, and the id letter `s`.
+ * - `skills/build-guide/templates/card-template.md`: `### Pieces` and `### Pieces measured`, and the id letter `s`.
  * - The task header, the stages README, the run-folder layout and the researcher's and coordinator's definitions
  *   name `R1a-synthesize`.
  *
@@ -20,11 +20,12 @@
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
+import { referencePath } from '../helpers/skillPaths';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
-const AGENTS_DIR = path.join(REPO, '.claude', 'agents', 'build-guide');
+const AGENTS_DIR = path.join(REPO, 'agents');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-10-synthesis.md');
 
 const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
@@ -32,7 +33,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const rawStage = (name: string) => read(path.join(STAGES_DIR, `${name}.md`));
 const stage = (name: string) => folded(rawStage(name));
-const ref = (name: string) => folded(read(path.join(SKILL_DIR, 'references', name)));
+const ref = (name: string) => folded(read(referencePath(name)));
 const TEMPLATE = read(path.join(SKILL_DIR, 'templates', 'card-template.md'));
 const spec = read(SPEC);
 const appendix = spec.slice(spec.indexOf('## Appendix A. Formats'));
@@ -130,7 +131,7 @@ describe('AC-W83: R1a.md asks for `## Ideas` (D-430)', () => {
 
   it("keeps a researcher's cards plain, with no Pieces tables, and names the synthesis as the next step", () => {
     expect(text).toMatch(/Your cards are plain cards: leave out the template's `### Pieces` and `### Pieces measured`/);
-    expect(text).toMatch(/A coordinator step then composes the round's builds from every card and the research files' Ideas \(`R1a-synthesize\.md`, D-429/);
+    expect(text).toMatch(/A coordinator step then composes the round's builds from every card and the research files' Ideas \(`skills\/build-guide\/references\/stages\/R1a-synthesize\.md`, D-429/);
   });
 });
 
@@ -158,19 +159,19 @@ describe('AC-W83: R1a-synthesize.md (D-429, D-432, Appendix A\'s interface)', ()
   it("reads only what the interface names: brainstorm halves, the Ideas and Supply search, cards.md, the template, the vocabulary, the library's entries by Grep", () => {
     const inputs = between(raw, '## Inputs', '## Work');
     const readList = folded(between(inputs, '- **Read**', '\n\n'));
-    for (const item of ["every card's brainstorm half", '`## Ideas`', '`## Supply search`', '`cards.md`', '`.claude/skills/build-guide/templates/card-template.md`', '`data/rules/vocabulary.md`', '`.claude/skills/build-guide/references/patterns.md` and Read those entries only']) {
+    for (const item of ["every card's brainstorm half", '`## Ideas`', '`## Supply search`', '`cards.md`', '`skills/build-guide/templates/card-template.md`', '`data/rules/vocabulary.md`', '`skills/game-knowledge/references/patterns.md` and Read those entries only']) {
       expect({ item, read: readList.includes(item) }).toEqual({ item, read: true });
     }
     // The gate-made cards and the earlier rounds' are among the cards read; amendment 11 (WU-114, D-443) removes the
     // rival, whose card an older run's resume may still hold.
     expect(readList).toMatch(/this round's .*, the earlier rounds', the gate-made ones \(`r<j>-g-<n>`\) and the earlier composites \(`r<j>-s-<n>`\)/);
     // Nothing beyond the interface: no dossier, run log, interview notes or plan.
-    const allowed = new Set(['cards/', 'research/', 'cards.md', '.claude/skills/build-guide/templates/card-template.md', 'data/rules/vocabulary.md', '.claude/skills/build-guide/references/patterns.md']);
+    const allowed = new Set(['cards/', 'research/', 'cards.md', 'skills/build-guide/templates/card-template.md', 'data/rules/vocabulary.md', 'skills/game-knowledge/references/patterns.md']);
     const paths = [...readList.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((p) => /\/|\.md$|\.json$/.test(p) && !/^r<j>/.test(p));
     expect(paths.filter((p) => !allowed.has(p))).toEqual([]);
     expect(folded(inputs)).not.toMatch(/dossier\.md|run-log\.json|interviews\//);
     // Every repository path the step names exists.
-    for (const m of raw.matchAll(/`((?:\.claude|docs|data)\/[^`\s]*)`/g)) {
+    for (const m of raw.matchAll(/`((?:skills|agents|docs|data)\/[^`\s]*)`/g)) {
       expect({ path: m[1], exists: fs.existsSync(path.join(REPO, m[1])) }).toEqual({ path: m[1], exists: true });
     }
   });
@@ -235,10 +236,10 @@ describe('AC-W83: R1a-synthesize.md (D-429, D-432, Appendix A\'s interface)', ()
     expect(assemble).toMatch(/^3\. \*\*The sniff test\*\* \(D-287\)/m);
     // Amendment 11 (WU-114, D-442): the name rule joins step 7.
     expect(assemble).toMatch(/^7\. \*\*Unique names\*\* \(D-392, D-442\)/m);
-    expect(text).toMatch(/The identity check with its ascendancy lock, the sniff test and unique names are `\.claude\/skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s steps 2, 3 and 7/);
-    expect(work).toMatch(/\*\*Check the cards\*\* of each structure you compose, by `R1a-assemble\.md`'s step 2: the identity check, the brief's fixed pieces and the ascendancy lock \(D-342\)/);
-    expect(work).toMatch(/\*\*The sniff test\*\*, `R1a-assemble\.md`'s step 3/);
-    expect(work).toMatch(/\*\*Names\*\* \(D-392, D-442\), by `R1a-assemble\.md`'s step 7/);
+    expect(text).toMatch(/The identity check with its ascendancy lock, the sniff test and unique names are `skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s steps 2, 3 and 7/);
+    expect(work).toMatch(/\*\*Check the cards\*\* of each structure you compose, by `skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s step 2: the identity check, the brief's fixed pieces and the ascendancy lock \(D-342\)/);
+    expect(work).toMatch(/\*\*The sniff test\*\*, `skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s step 3/);
+    expect(work).toMatch(/\*\*Names\*\* \(D-392, D-442\), by `skills\/build-guide\/references\/stages\/R1a-assemble\.md`'s step 7/);
   });
 
   it("writes Appendix A's deck: its H2s in order, the round, card and obvious-build lines, the capped sections", () => {
@@ -343,7 +344,7 @@ describe('AC-W83: the task header, the stages README, the run folder and the def
   });
 
   it('stages/README.md lists R1a-synthesize.md beside R1a-assemble.md', () => {
-    expect(ref('stages/README.md')).toMatch(/`R1a\.md`, `R1a-synthesize\.md` \(the round's composites, D-429\), `R1a-assemble\.md` \(the deck, in a run whose first brainstorm round used it\)/);
+    expect(ref('stages/README.md')).toMatch(/`skills\/build-guide\/references\/stages\/R1a\.md`, `skills\/build-guide\/references\/stages\/R1a-synthesize\.md` \(the round's composites, D-429\), `skills\/build-guide\/references\/stages\/R1a-assemble\.md` \(the deck, in a run whose first brainstorm round used it\)/);
   });
 
   it("run-folder.md: the composites' cards, cards.md's new writer, probes to 8 on a composite, and pieces.md in a build's folder", () => {
@@ -360,8 +361,8 @@ describe('AC-W83: the task header, the stages README, the run folder and the def
   it("the coordinator's description and research steps name R1a-synthesize, its stage reference, beside R1a-assemble's", () => {
     const coordinator = definition('build-guide-coordinator');
     expect(coordinator.description).toMatch(/the round's composites and the deck \(R1a-synthesize, or R1a-assemble in an older run\)/);
-    expect(coordinator.text).toContain('| `R1a-synthesize` | `.claude/skills/build-guide/references/stages/R1a-synthesize.md` | the round\'s composites (D-429)');
-    expect(coordinator.text).toContain('| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | in a run whose first brainstorm round used it (D-429)');
+    expect(coordinator.text).toContain('| `R1a-synthesize` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1a-synthesize.md` | the round\'s composites (D-429)');
+    expect(coordinator.text).toContain('| `R1a-assemble` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1a-assemble.md` | in a run whose first brainstorm round used it (D-429)');
     expect(fs.existsSync(path.join(STAGES_DIR, 'R1a-synthesize.md'))).toBe(true);
   });
 

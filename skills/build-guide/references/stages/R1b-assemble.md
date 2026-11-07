@@ -20,7 +20,7 @@ damage kinds and pieces. The research files and the cards keep the rest: the dos
   source isn't a skill, D-303, D-334; or `not-in-pin`: it rests on an entry the PoB pin doesn't know, D-400),
   with the R1b attempts it made and its last verdict file.
 - **Read**, the independent reads in one response:
-  - the template `.claude/skills/build-guide/templates/dossier-template.md`, and `dossier.md` when an earlier
+  - the template `skills/build-guide/templates/dossier-template.md`, and `dossier.md` when an earlier
     round wrote it;
   - each card of the round, `cards/<id>.md`: its Why pick it (the synergy), its risks and its checklist's
     risks, its `### Verified` damage line (the kinds PoB shows for the named source), its key item prices, and on

@@ -4,10 +4,10 @@ The first of D1's three steps (D-356, D-418). You design the three endgame stage
 the endgame ladder: entering maps (`m`), budget (`b`) and non-budget (`n`), each with its own tree and the needs it
 keeps (one tree per loadout, D-452), pick the build's defence before you tune it (D-451), and take the rungs to a
 passing survival floor with measure-only compiles. The endgame is designed first, and a campaign,
-when the user asks for one, is planned backward from it (D-104). D1-tree (`D1-tree.md`), a fresh step, then
-spends the trees' spare points and shortens their travel by PoB's node power; D1-finish (`D1-finish.md`), a fresh
-step, then adds the anoint, the prices, the ledger and the claims; a fresh D1 gate step (`D1-gate.md`) checks
-them all; after the user's design gate, F1 (`F1.md`) runs the final compile, and D2 adds the campaign only on
+when the user asks for one, is planned backward from it (D-104). D1-tree (`skills/build-guide/references/stages/D1-tree.md`), a fresh step, then
+spends the trees' spare points and shortens their travel by PoB's node power; D1-finish (`skills/build-guide/references/stages/D1-finish.md`), a fresh
+step, then adds the anoint, the prices, the ledger and the claims; a fresh D1 gate step (`skills/build-guide/references/stages/D1-gate.md`) checks
+them all; after the user's design gate, F1 (`skills/build-guide/references/stages/F1.md`) runs the final compile, and D2 adds the campaign only on
 request (D-411, D-413).
 
 ## Inputs
@@ -64,13 +64,13 @@ request (D-411, D-413).
     no campaign stage, `data/campaign/progress.json`'s reward choices (step 7);
   - `run-log.json`, at the run folder's root: is pricing stopped (D-444)? A `pricing.stops[]` entry with no
     `retry-pricing` answer in `pricing.retries[]` and no resume (`resumes[].lengths.stages`) after it
-    (`references/run-log.md`, "Pricing stops"): then no trade-site request until a gate's `retry-pricing`. And its
+    (`skills/build-guide/references/run-log.md`, "Pricing stops"): then no trade-site request until a gate's `retry-pricing`. And its
     `skillRevision`: at 14 (amendment 14, §25) the plan goes to schema 10 (step 1) and the spec loop prices the rares
     (step 6);
-  - `.claude/skills/build-guide/references/toughness-targets.json` (D-441), the non-budget rung's toughness targets,
+  - `skills/build-guide/references/toughness-targets.json` (D-441), the non-budget rung's toughness targets,
     and its `arbiter.hitsSurvivedFloor` (0.8, D-449): a rung isn't one-shot by an Arbiter hit when it survives the
     full hit or at least 80% of those hits, evading or deflecting them;
-  - `.claude/skills/build-guide/references/patterns.md`, the pattern library, **whole**, before you design `b`
+  - `skills/game-knowledge/references/patterns.md`, the pattern library, **whole**, before you design `b`
     and `n` (D-375, step 3), and the rule-changer index (D-401): `data/rules/nodes.md`'s section for the card's
     ascendancy and its `## Keystones`, and Grep `uniques.md`, `gems.md` and `pairs.md` there for the build's
     families. An index line is a lead: confirm it with a lookup.
@@ -122,7 +122,7 @@ request (D-411, D-413).
    campaign's last stage. Within `m`'s 5-divine target the key item may fit `m` (a unique, or a rare with a stat
    floor, such as a weapon's elemental DPS or an energy shield total); when it doesn't, it is the trigger into `b`.
    - **The pattern library first** (D-375). Before you design `b` and `n`, read
-     `.claude/skills/build-guide/references/patterns.md` whole, as the R1a researchers do. Ask its brainstorm
+     `skills/game-knowledge/references/patterns.md` whole, as the R1a researchers do. Ask its brainstorm
      questions of this build, not of a new concept: what feeds the payoff, which routine action already makes the
      resource it needs, which +level sources and supports reach the skill, and how its required state fails. A
      shape is a starting point, never a fact: check every use with a lookup and measure it with a measure-only
@@ -265,7 +265,7 @@ request (D-411, D-413).
      (`measures.bossGroups`, `triggered` by PoB's own trigger test) and sums the untriggered ones into
      `damage.boss`, each ailment that doesn't stack once, ignoring `turns`. **The boss figure** (D-468) is the
      rotation's: when an entry is `triggered` or has `turns`, write the ledger entry `boss_<stage>` with
-     `skills.boss`, by `D1-finish.md`'s "The boss estimate" (step 3: its formula from the record's boss references,
+     `skills.boss`, by `skills/build-guide/references/stages/D1-finish.md`'s "The boss estimate" (step 3: its formula from the record's boss references,
      its corrections by name, its `claim`), so D1-tree judges the tree on it; otherwise `measures.damage.boss` is
      right and no entry is needed. D1-finish re-checks the entry after the anoint and the gear.
    - **Skill levels** (D-473), on `b` and `n`: more levels "will almost always outperform any other single affix"
@@ -281,7 +281,7 @@ request (D-411, D-413).
      default rule**, from the named source's PoB skill types in the record (`measures.sourceTypes`): a minion,
      totem, trap or mine type, or a projectile skill that travels, is `distance`; a strike, slam or area around
      the character is `close`; write the other kind only when the build plays otherwise, and say why. It picks
-     the rung's toughness target in `references/toughness-targets.json` (20,000 close, 15,000 distance), which
+     the rung's toughness target in `skills/build-guide/references/toughness-targets.json` (20,000 close, 15,000 distance), which
      the design gate shows beside the reason, so the user can correct it; the run checker fails a non-budget
      rung without it.
    - One loadout has a one-click clear and a single-target setup (D-120). Every group has a `role`; every
@@ -347,7 +347,7 @@ request (D-411, D-413).
    skeleton's tree, a sketch of the card's targets (D-418). Keep the card's targets with their paths, and path to
    what the needs below require; never path to a further target for damage or clear. That
    tuning is D1-tree's: it spends the points you leave unspent on each rung's best nodes per point, their paths
-   counted, and swaps weak branches by PoB's node power, minimizing travel (the user's rule, `patterns.md`).
+   counted, and swaps weak branches by PoB's node power, minimizing travel (the user's rule, `skills/game-knowledge/references/patterns.md`).
    - **The needs** (D-418, plan schema 6): what each rung's tree must keep whatever node power says, as
      `tree.needs[] {nodes, stat?}`, written **without `claim`** (D1-finish writes the `reason` claim and sets
      it). `nodes` are nodes of that stage's `tree.nodes` (a schema error otherwise); `stat` is the power stat
@@ -447,7 +447,7 @@ request (D-411, D-413).
      say. No second anoint: the shard is its only way.
    - **Corruption** (D-471), on `b` and `n` only, the user's rule (corruption is random, so the player buys copies
      of something cheap and corrupts until one hits): a corrupted line only on a **cheap unique**, one under
-     `references/corruption.json`'s line uncorrupted (1 divine), written as the outcome's `{enchant}` line with a
+     `skills/build-guide/references/corruption.json`'s line uncorrupted (1 divine), written as the outcome's `{enchant}` line with a
      `Corrupted` line; and a skill gem corrupted to +1 level, written at its level with `"corrupt":
      "plus_one_level"` (a level-20 gem calculates at 21; V1's `corruption` refuses it on `m`, a campaign stage or a
      support gem). **Never on a rare** (a corrupted rare cuts the trade supply by an order of magnitude or more),
@@ -465,7 +465,7 @@ request (D-411, D-413).
      its seed, PG-102). Write them in `pieces.md`'s `## Unique jewels` (Writes).
    - **Required affixes and targets** (D-370, D-372). For each rare gear slot and rare tree jewel of `b` and
      `n`, write its `prices[]` entry: in a revision-14 run priced by you, by the spec loop below, with its `listing`
-     and `spec` (`references/pricing.md`, "Recording a price"); in an older run, for D1-finish to price with PoB2's
+     and `spec` (`skills/build-guide/references/pricing.md`, "Recording a price"); in an older run, for D1-finish to price with PoB2's
      weighted trade search:
      `{"id": "b-helmet", "item": "<a short description>", "query": {"slot": …, "required": […], "target": {…}},
      "amount": null, "currency": null, "date": "<the run folder's date>", "league": <the plan's league>,
@@ -487,7 +487,7 @@ request (D-411, D-413).
      A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371). A
      rare's affixes aren't pieces: the spec loop sets their tiers, and drops the least important, for the rare's
      price (D-483, which supersedes D-371's "an over-target slot keeps its designed item" for rares).
-   - **Rares as specs: the spec loop** (D-483, revision 14; `references/pricing.md`, "A rare of `b` or `n`", has
+   - **Rares as specs: the spec loop** (D-483, revision 14; `skills/build-guide/references/pricing.md`, "A rare of `b` or `n`", has
      each call whole). For each rare gear slot of `b` and `n`, as you design it, so D1-tree measures items the
      budget buys. The rung's item level is 69 on `m` and 82 on `b` and `n`; an affix's best tier allowed is the best
      its base rolls at that level, its floor two tiers under it (T3 when T1 is allowed).
@@ -528,7 +528,7 @@ request (D-411, D-413).
      7. **The compiled rare** holds each must-have at its tier's lowest roll, the tier the loop ended at, so every
         listing found meets the PoB file's figures, with its base's implicit lines and its runes in its sockets, and
         nothing else, titled by its key affixes.
-     When the loop can't run (offline, a pricing stop, no session cookie, `--no-ninja`), `references/pricing.md`
+     When the loop can't run (offline, a pricing stop, no session cookie, `--no-ninja`), `skills/build-guide/references/pricing.md`
      says what it does instead: offline the spec's `ranking` is `null`, the must-haves are yours with their reasons,
      and the rares compile at their floor tiers' lowest rolls. `m`'s rares are specs too, their must-haves at their
      floor tiers' lowest rolls, priced by D1-finish's depth check, with no `spec` field. Never write a listing's lines
@@ -566,7 +566,7 @@ request (D-411, D-413).
      stat, so whatever the build gets in exchange must be of equal or greater value"). A valid exception is V1's
      note `boots-exception`, which fails nothing; the design gate shows it as a trade (D1-finish).
    - **Gear searches** (D-444). You may price a gear choice with `mcp__pob2__find_upgrades` (a loaded rung, its
-     loadout selected) while pricing isn't stopped, one call at a time (`references/pricing.md`, "Pace"): count
+     loadout selected) while pricing isn't stopped, one call at a time (`skills/build-guide/references/pricing.md`, "Pace"): count
      its calls by outcome for your return, which the runner logs as your `priceOutcomes`. Never while pricing is
      stopped (Read, above); offline, never. Never judge a weapon by a listing's DPS (D-456): D1-finish re-checks
      weapons on the build's own figure. In a revision-14 run the spec loop's calls are your gear searches, its depth
@@ -812,4 +812,4 @@ request: u2 departs: under 10 staffs with +3 spell levels list within 5 divines,
 
 ## Fault directives
 
-None. FI-2 and FI-3 are the D1 gate's (`D1-gate.md`).
+None. FI-2 and FI-3 are the D1 gate's (`skills/build-guide/references/stages/D1-gate.md`).

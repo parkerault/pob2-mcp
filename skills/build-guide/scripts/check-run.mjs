@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // The build-guide run checker (slice 03 FR-W7, as amendments 1 to 3 change it).
 //
-//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
-//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --snapshot <n> [--build <card id>]
-//   node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --changed <n> [--build <card id>]
+//   pob2-check-run <runFolder>
+//   pob2-check-run <runFolder> --snapshot <n> [--build <card id>]
+//   pob2-check-run <runFolder> --changed <n> [--build <card id>]
 //
 // A schema-4 run (amendment 9) keeps each build in its folder, `builds/<id>/` ("." for a migrated run's build): its
 // round copy and its comparison take `--build <card id>`, and are that folder's `rounds/<n>/`.
@@ -152,8 +152,9 @@
 // `check-run: [<rule>] <message>`. Exit 2: usage error. Either way, each warning (D-435) goes to stderr first, as
 // `check-run: warning: <message>`.
 //
-// The shapes it reads are documented in ../references/ (run-folder.md, run-log.md, gates.md,
-// source-markers.md, pricing.md, stages/V4.md) and ../templates/; keep them in step with this file.
+// The shapes it reads are documented in skills/build-guide/references/ (run-folder.md, run-log.md, gates.md,
+// pricing.md, stages/V4.md), skills/game-knowledge/references/source-markers.md and skills/build-guide/templates/;
+// keep them in step with this file.
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -174,8 +175,8 @@ import {
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-/** The repository root: .claude/skills/build-guide/scripts -> the root. */
-const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
+/** The plugin root, the repository root here: skills/build-guide/scripts -> the root. */
+const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 /** The repo's C1/E1 data (C-35). */
 const DATA_DIR = path.join(REPO, 'data');
 /**
@@ -487,7 +488,7 @@ const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
  * hit is its formula's value rounded to 2 decimals (which absorbs float32 noise in the inputs), then rounded up.
  */
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
-/** Findings that report on a passing part (../references/gates.md): never failures. D-440: a boots exception, V1's. */
+/** Findings that report on a passing part (skills/build-guide/references/gates.md): never failures. D-440: a boots exception, V1's. */
 const INFO_CODES = ['chaos-exception', 'over-target', 'boots-exception'];
 
 /**
@@ -4679,7 +4680,7 @@ function firstDifference(got, want, key = (l) => l.replace(/\s+$/, '')) {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Reports (gates.md verdict files, source-markers.md V4 reports)
+// Reports (gates.md verdict files, skills/game-knowledge/references/source-markers.md V4 reports)
 // ---------------------------------------------------------------------------------------------------
 
 function checkGateReport(rep, g, fail, opts = { v4: false, legacy: true, held: false, plan: null }) {
@@ -6785,7 +6786,7 @@ function checksText(guide, variant) {
   return h3 ? sectionText(guide, h3) : null;
 }
 
-/** A failure of a D1 gate part, with its plan stage and its canonical code (../references/gates.md). */
+/** A failure of a D1 gate part, with its plan stage and its canonical code (skills/build-guide/references/gates.md). */
 const failure = (part, stage, code, why) => ({ part, stage, code, why });
 
 /** Whether a line states `value` as a number followed by `%` (rounded, truncated, to one decimal, or exact). */

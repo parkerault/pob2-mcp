@@ -1,7 +1,7 @@
 # The fix round, the re-check, the known issues, the notes and a build's campaign (steps 12 to 14, 9a and 9b)
 
 The runner's steps 12 to 14 in full, the chain a revision at the final gate runs (slice 03 §5.2, as D-264
-and D-352 amend it; `SKILL.md` §6), and a build's campaign (D-415, `SKILL.md` §7). Read this when the full pass's
+and D-352 amend it; `skills/build-guide/SKILL.md` §6), and a build's campaign (D-415, `skills/build-guide/SKILL.md` §7). Read this when the full pass's
 report has an `unresolved` finding, at a revision, or at a campaign.
 
 Each is one build's (D-411, D-412): its files are in its folder, `<buildFolder>/` (`builds/<id>`, or `.` for a
@@ -10,7 +10,7 @@ with `--build <id>`.
 
 ## The round copy (A-34)
 
-Before a fix round or a revision, run `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
+Before a fix round or a revision, run `pob2-check-run <runFolder>
 --snapshot <n> --build <id>`, `<n>` the number of the report the round answers (for a revision, the last report's). It
 copies the build's `plan.json`, `compile-record.json` and `guide.md` into its `rounds/<n>/` without you reading
 them, and you never read them, there or in the build's folder; for a build with no guide (a file-only build's claims
@@ -21,7 +21,7 @@ build's folder with that copy, and lists claims only when there is no guide.
 
 Once, only when the report has an `unresolved` finding (D-264, D-352), after the round copy. Send each `unresolved`
 finding to its `owner`: D1, D2 or W1. **The brief** (D-482), in a build held to amendment 14: the finding ids and
-their report's path only (`findings: [{id, report}]`, `task-header.md`), with no scope and no facts of yours; the
+their report's path only (`findings: [{id, report}]`, `skills/build-guide/references/task-header.md`), with no scope and no facts of yours; the
 owner reads each finding in the report and decides what to recompile. A finding marked `hinge: no` is fixed by
 removing or narrowing the statement, never by new research or a recompile. Each owner fixes, in place with Edit, every
 claim the issue touches, not only the flagged location: the claim's wording, citation, caveat or source. It recompiles
@@ -45,14 +45,14 @@ fixed, the locations it changed and whether it recompiled.
   D2 gate → W1. A step that is itself an owner gets its findings in `findings` (D2 after D1: D1 → D1 gate → D2 →
   D2 gate → W1; that D2 runs its gate even for claim edits, since the D1 gate's compile replaced the final
   record). Log
-  each owner as `run-log.md` says: `done` when it recompiled, or when its gate follows a recompile before it
+  each owner as `skills/build-guide/references/run-log.md` says: `done` when it recompiled, or when its gate follows a recompile before it
   (the D1-finish after D1-build, the D2 after a recompiled D1); `claims-edited` when it edited claims only (a
   claims-only D1 before a D2 that recompiled).
   W1 still patches the guide in place, its header's `changed` `"all"`: the import code and every record number
   the guide quotes may have moved.
 - **No design gate** runs in the round: the user judged the build at the design gate, and the final gate
   shows the result.
-- **The audit render** (D-355). Before the round's W1, run `node .claude/skills/build-guide/scripts/render-audit.mjs
+- **The audit render** (D-355). Before the round's W1, run `pob2-render-audit
   <runFolder> --build <id>`, whether or not an owner recompiled: it renders `audit.md` again from the current plan, final
   record and last D1 gate verdict file, and keeps the rows under its `Known issues`. W1 copies each rung's Checks
   block from that render.
@@ -62,7 +62,7 @@ escalation.
 
 ## Step 13, the re-check
 
-Run `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder> --changed <n> --build <id>`, `<n>` the round
+Run `pob2-check-run <runFolder> --changed <n> --build <id>`, `<n>` the round
 copy's number: it prints the claims whose text, source or cited record values changed since `rounds/<n>/`, and the
 guide's changed H2s, one per line (`claim stages[<i>].claims[<k>] (<id>)`, `section <H2 title>`). Then start one
 verifier, `check: "recheck"`, `writes: ["<buildFolder>/reports/V4-<n+1>.md"]`, `findings` the ids of report `<n>`'s
@@ -77,7 +77,7 @@ In a build held to amendment 14, after the one re-check (step 13's, or a claims 
 it leaves `unresolved` that needs a gear change is asked **at once**, before the next step: one more round, with its
 token cost (about what the build's last fix round and re-check took), or ship with the issue as it stands. Log the
 answer as an `ask` checkpoint, `{"checkpoint": "ask", "kind": "open-finding", "build", "visit", "answer",
-"answeredBy"}` (`checkpoints.md`):
+"answeredBy"}` (`skills/build-guide/references/checkpoints.md`):
 - **`round`**: one more fix round (its round copy, its owners, step 12) and one more `V4-recheck` (step 13), **at
   most once a build**: an exception to "no further round", allowed only behind that checkpoint;
 - **`ship`**: the finding stays open, its `reader` sentence in the Known issues (step 14) and the PoB notes.
@@ -106,13 +106,13 @@ Drop every other line and row: one from an earlier cycle is stale.
 
 A build's PoB file carries its notes, which PoB shows in its Notes tab. In a build held to amendment 14:
 - **A guide build**, after step 14, on every cycle (a revision's and the campaign's included): render them with
-  `node .claude/skills/build-guide/scripts/render-notes.mjs <runFolder> --build <id>` (it writes
+  `pob2-render-notes <runFolder> --build <id>` (it writes
   `<buildFolder>/notes.txt` from `guide.md` and `trade-links.json`), then write them into the build's final file,
   `mcp__pob2__compile_plan {plan_path, notes_path: "<runFolderRel>/<buildFolder>/notes.txt"}` (no engine), whose
   reply is `Notes written: <file> (<n> characters)`. After a campaign the notes go into the campaign file, from the
   full guide; the endgame file keeps its own.
 - **A file-only build**, after its claims pass, or its re-check when one ran, whichever is last: W1 with `scope:
-  "notes"` and `writes: ["<buildFolder>/notes.txt"]` (`stages/W1.md`, "The notes"), then the same `notes_path` call;
+  "notes"` and `writes: ["<buildFolder>/notes.txt"]` (`skills/build-guide/references/stages/W1.md`, "The notes"), then the same `notes_path` call;
   the build then ends `file-only`.
 - **A refusal** (the final file changed on disk since the server wrote it: the user saved it in PoB, R-81) writes
   nothing: tell the user, and leave it. The import code stays the record's, with no notes.
@@ -120,7 +120,7 @@ A build's PoB file carries its notes, which PoB shows in its Notes tab. In a bui
 ## A revision (the final gate's changes)
 
 **A one-item revision** (D-481), in a build held to amendment 14: one slot's item, on one or more rungs, and nothing
-else (as the design gate's one-item swap, `checkpoints.md`) runs D1-finish with `scope: "swap"`, the D1 gate, F1,
+else (as the design gate's one-item swap, `skills/build-guide/references/checkpoints.md`) runs D1-finish with `scope: "swap"`, the D1 gate, F1,
 then W1's patch (`changed: "all"`) and step 13's re-check, in place of the owners' full chain; the round copy comes
 first, as for any revision, and the restatement names that route and its cost. Anything more is a revision as below.
 
@@ -136,11 +136,11 @@ runs no full pass** (D-352). Steps 12 to 16 then follow as after a full pass. A 
 
 The user asks for a build's campaign at its final gate (`campaign`), or after a resume (`campaign:<id>`, which
 `--campaign <run folder> <id>` answers): the build gets the campaign's stages and the full guide, from level 1.
-Log the build `writing` (`run-log.mjs build`); its `guide` is `full` once W1 has written the full guide, and its
+Log the build `writing` (`pob2-run-log build`); its `guide` is `full` once W1 has written the full guide, and its
 final gate comes back at the end.
 
 **A `completed` build** has the endgame guide, its full pass and re-check behind it:
-1. **The round copy**: `check-run.mjs <runFolder> --snapshot <n> --build <id>`, `<n>` the number of the build's
+1. **The round copy**: `pob2-check-run <runFolder> --snapshot <n> --build <id>`, `<n>` the number of the build's
    last V4 report, as for a revision.
 2. **D2** (9a): it adds the campaign stages to the build's plan, keeping D1's reward picks (D-413); tell it how to
    price. **The D2 gate** (9b) checks every stage and runs the final compile with the campaign's `buildName`: in a
@@ -150,31 +150,31 @@ final gate comes back at the end.
    (D-466); an older build's PoB name and `-campaign` (`<slug>-<YYYY-MM-DD>-<n>-<id>-campaign`;
    `<slug>-<YYYY-MM-DD>-<n>-campaign` for a build in `.`). Either way a **new** PoB file, so the endgame file F1
    wrote, which the user has likely saved in PoB since, stays as it was and the write ledger has nothing to refuse
-   (D-211, D-415). A failure re-runs D2 with the findings, up to 2 counted retries; the third escalates (`SKILL.md`
+   (D-211, D-415). A failure re-runs D2 with the findings, up to 2 counted retries; the third escalates (`skills/build-guide/SKILL.md`
    §5). A later fix round or revision of the full build rewrites the campaign file, passing its recorded name
    (`builds[].pobFile`) with `firstFree: false`, under the ledger as any re-compile.
 3. **On a pass**: log the build's `pobFile` (the D2 gate verdict's `finalCompile.pobFile`), render `audit.md`
-   (`render-audit.mjs <runFolder> --build <id>`), then **W1 in its campaign mode** (`stages/W1.md`): it rewrites the
+   (`pob2-render-audit <runFolder> --build <id>`), then **W1 in its campaign mode** (`skills/build-guide/references/stages/W1.md`): it rewrites the
    guide with the full template, keeping the endgame sections' text where the plan didn't change them.
-4. **V4's campaign pass**: `check-run.mjs <runFolder> --changed <n> --build <id>`, then one verifier: stage
+4. **V4's campaign pass**: `pob2-check-run <runFolder> --changed <n> --build <id>`, then one verifier: stage
    `V4-campaign`, `check: "campaign"`, `writes: ["<buildFolder>/reports/V4-<n+1>.md"]`, `findings` the ids of report
    `<n>`'s `unresolved` findings (so the endgame guide's open known issues are checked again), and `changed` the
-   lines the checker printed, verbatim (`stages/V4.md`, "The campaign pass"). Its report's H1 is `# V4-<n+1>:
+   lines the checker printed, verbatim (`skills/build-guide/references/stages/V4.md`, "The campaign pass"). Its report's H1 is `# V4-<n+1>:
    campaign pass of rounds/<n>`.
 5. **Then steps 12 to 16** as after a full pass: the fix round on its open findings with its round copy, the
    re-check, the known issues, and the build's final gate, whose answers are the same.
 
 **A `file-only` build** has no guide and no full pass (held to amendment 13, its claims pass ran, below): D2, the
-D2 gate, `render-audit.mjs <runFolder> --build <id>`, W1 writing the full guide in a first pass, V4's full pass
+D2 gate, `pob2-render-audit <runFolder> --build <id>`, W1 writing the full guide in a first pass, V4's full pass
 (step 11, its report numbered after the claims pass's), then steps 12 to 16 as for any build.
 
 ## A file-only build's claims pass (D-477)
 
 A build the user took as its PoB file only (`accept:file`) and held to amendment 13 by its last D1 gate doesn't
 end at F1's pass: it stays `designing`, and its claims are checked, since no guide or editor read will catch an
-error later (`SKILL.md` §6):
+error later (`skills/build-guide/SKILL.md` §6):
 1. **The claims pass**: one verifier, stage `V4-claims`, `check: "claims"`, `findings: []`, `writes:
-   ["<buildFolder>/reports/V4-<n>.md"]`, `<n>` as for a full pass (`stages/V4.md`, "The claims pass"). It checks
+   ["<buildFolder>/reports/V4-<n>.md"]`, `<n>` as for a full pass (`skills/build-guide/references/stages/V4.md`, "The claims pass"). It checks
    every hinge claim of `plan.json` against its source and reads no guide; its H1 is `# V4-<n>: claims pass`. On a
    pass the build ends `file-only`.
 2. **Its fix round**, once, only with an `unresolved` finding: the round copy (`--snapshot <n>`, the plan and the
@@ -182,11 +182,11 @@ error later (`SKILL.md` §6):
    <ids>`): no D2, no W1 and no audit render, since a file-only endgame build has no campaign stage and no guide.
    A claims-only edit runs no gate (logged `claims-edited`); a recompile runs the D1 gate, then F1, passing the
    recorded name with `firstFree: false` and no draft to remove; **no design gate**.
-3. **Its re-check**: `check-run.mjs <runFolder> --changed <n> --build <id>` (claims only), then one `V4-recheck`
+3. **Its re-check**: `pob2-check-run <runFolder> --changed <n> --build <id>` (claims only), then one `V4-recheck`
    verifier, as step 13. No further round, but for one more behind its `ask` (above), in a build held to amendment
    14. The build ends `file-only`.
 4. **Its open findings** (the last report's `unresolved` findings) have no `Known issues` list to go in: at the
-   run's end (`SKILL.md` §8) tell the user each one's `reader` sentence, beside the build's PoB file. In a build held
+   run's end (`skills/build-guide/SKILL.md` §8) tell the user each one's `reader` sentence, beside the build's PoB file. In a build held
    to amendment 14 they are told at once, after the last re-check (above), and go into its notes.
 5. **Its notes**, in a build held to amendment 14 (D-487): W1 with `scope: "notes"`, then the notes write ("The
    notes", above); the build ends `file-only` after them.

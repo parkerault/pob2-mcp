@@ -2,9 +2,9 @@
 // The rule-changer index's script (amendment 8, D-401): the candidates from the pinned data, the format and
 // vocabulary check of data/rules/, and the join of what entries create against what others pay off on.
 //
-//   mise exec -- node .claude/skills/build-guide/scripts/rules-index.mjs candidates [--kind <k>] [--type <t>] [--json]
-//   node .claude/skills/build-guide/scripts/rules-index.mjs check [<dir>] [--text <candidates.json>]
-//   node .claude/skills/build-guide/scripts/rules-index.mjs join [<dir>] [--write]
+//   mise exec -- node skills/game-knowledge/scripts/rules-index.mjs candidates [--kind <k>] [--type <t>] [--json]
+//   node skills/game-knowledge/scripts/rules-index.mjs check [<dir>] [--text <candidates.json>]
+//   node skills/game-knowledge/scripts/rules-index.mjs join [<dir>] [--write]
 //
 // `candidates` boots the pinned PathOfBuilding-PoE2 checkout headless (`luajit`, from mise, with the server's
 // pob-api modules on the path) and lists what an agent reads to write the index: every ascendancy notable and
@@ -50,7 +50,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
+const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 const POB_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
 const POB_API = path.join(REPO, 'pob-api');
 const DEFAULT_DIR = path.join(REPO, 'data', 'rules');
@@ -361,7 +361,7 @@ export function checkIndex(dir) {
 const PAIRS_HEAD = [
   '# Pairs: what one entry creates against what another pays off on',
   '',
-  'Written by `.claude/skills/build-guide/scripts/rules-index.mjs join --write` from `nodes.md` (its `[rule]` lines),',
+  'Written by `skills/game-knowledge/scripts/rules-index.mjs join --write` from `nodes.md` (its `[rule]` lines),',
   '`uniques.md` and `gems.md`; never edit it by hand. One block per family of `vocabulary.md` that some entry creates',
   'and another pays off on. Each line names the family, an entry that creates it, and the entries that pay off on it;',
   'Grep for the family. A pair is a lead, not a proof: confirm the link with a lookup before a card relies on it.',

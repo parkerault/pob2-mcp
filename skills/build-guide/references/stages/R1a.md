@@ -3,8 +3,8 @@
 Three researchers run in parallel in each brainstorm round, each on its own focus (D-287). Each writes one
 research file (the mechanics, synergy search and config gaps that R1b reads) and 3 **cards**, each the brainstorm
 half of a candidate build, at least one of them built on a pattern-library shape you judge under-played. A coordinator step then composes the round's builds from every card and
-the research files' Ideas (`R1a-synthesize.md`, D-429; in a run whose first round dealt a deck, `R1a-assemble.md`), the
-user picks what to verify at the brainstorm gate, and R1b compiles it (`R1b.md`).
+the research files' Ideas (`skills/build-guide/references/stages/R1a-synthesize.md`, D-429; in a run whose first round dealt a deck, `skills/build-guide/references/stages/R1a-assemble.md`), the
+user picks what to verify at the brainstorm gate, and R1b compiles it (`skills/build-guide/references/stages/R1b.md`).
 
 ## Researchers and their focus
 
@@ -56,8 +56,8 @@ grants it: only those ascendancies can use it. A card that uses a locked skill t
 "<node name>" (<node id>), a <name> ascendancy node`). A skill a non-ascendancy node or a unique grants isn't
 locked: the card names the source it uses, the node it allocates or the unique it equips. With no node and no
 unique, the skill comes from its gem (a minion skill, from its summon's). A card that uses a locked skill on
-another ascendancy isn't dealt or composed (`R1a-assemble.md`, `R1a-synthesize.md`), and R1b fails it before any compile (`wrong-ascendancy`). A
-brief whose ascendancy can't use its skill never reaches you: the runner's brief check stops it (SKILL.md step 1).
+another ascendancy isn't dealt or composed (`skills/build-guide/references/stages/R1a-assemble.md`, `skills/build-guide/references/stages/R1a-synthesize.md`), and R1b fails it before any compile (`wrong-ascendancy`). A
+brief whose ascendancy can't use its skill never reaches you: the runner's brief check stops it (skills/build-guide/SKILL.md step 1).
 
 **An under-played card** (D-298, D-339). Whatever the brief names, at least one of your 3 cards is built on a
 pattern-library shape that you judge under-played: one few builds use with this skill, ascendancy or
@@ -94,7 +94,7 @@ compare with the kit, not with the obvious card.
 
 ## Work, by focus
 
-**The pattern library first** (C-53, D-290). Read `.claude/skills/build-guide/references/patterns.md` whole
+**The pattern library first** (C-53, D-290). Read `skills/game-knowledge/references/patterns.md` whole
 before anything else: its brainstorm questions open it, then the shapes, each with its search step, how PoB
 follows it and its cautions. A shape is a starting point, never a fact: re-check every use against current
 game data with a lookup, and cite the lookup, not the library.
@@ -267,7 +267,7 @@ from, with your Supply search (D-429), so a piece no card uses can still reach a
   confirmed gets no line. A line cites its lookup in its own field and carries no marker.
 
 **The cards** (C-52): 3, each `cards/r<k>-<letter>-<m>.md`, from the template
-`.claude/skills/build-guide/templates/card-template.md`. Write its H1 and its whole brainstorm half, about
+`skills/build-guide/templates/card-template.md`. Write its H1 and its whole brainstorm half, about
 250–400 words; under `## Verification half` keep the template's H3s, each with the one line `Not checked
 yet.`, for R1b to fill. Your cards are plain cards: leave out the template's `### Pieces` and `### Pieces measured`,
 which only a composite has (D-429, D-433).
@@ -307,7 +307,7 @@ which only a composite has (D-429, D-433).
   quoted and the lookup that returned it; how PoB follows it, by the library's six labels with PG ids; hidden
   clauses stated as theory ("from a Hit", "you use yourself"). A link no lookup confirmed is `not checked yet`:
   the coordinator deals a card, or composes with it, only when every load-bearing link is confirmed
-  (`R1a-assemble.md`, `R1a-synthesize.md`).
+  (`skills/build-guide/references/stages/R1a-assemble.md`, `skills/build-guide/references/stages/R1a-synthesize.md`).
 - **Means** (D-457, question 2): the Chain's `Means:` lines, one per load-bearing payoff,
   `<payoff>: <means>; second means <means | none found>`, each payoff named apart from the means that supply it. A
   second means is another supply of the same payoff that you found; the design searches it first when the means
@@ -318,7 +318,7 @@ which only a composite has (D-429, D-433).
 - **Published guides are allowed, and cited** (D-445). Online, you may read published build guides on the hosts
   your agent definition allows, for facts and ideas. A card that draws on one names it in its Evidence, `Reference
   build: <the guide's title>, external | <url> | accessed: YYYY-MM-DD | confidence: <H|M|L>`, the `external`
-  marker (`source-markers.md`), and the brainstorm gate shows "drawn from <host>" under the card, so the user can
+  marker (`skills/game-knowledge/references/source-markers.md`), and the brainstorm gate shows "drawn from <host>" under the card, so the user can
   tell a known build from the pipeline's own. A guide's numbers and claims are leads, like the pattern library's:
   confirm each link with a lookup. Offline, no guide is read.
 - **A seed card** (D-393), when your prompt gives a reference build the user named (a guide page, a video or a

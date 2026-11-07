@@ -1,15 +1,15 @@
 /**
  * Amendment 9 (M-22), WU-101: AC-W80, the skill text for weapon sets (D-426) and PG-71.
  *
- * - `templates/card-template.md`: the identity's `Weapon sets:` line, with the four uses D-426 names (none, a second
+ * - `skills/build-guide/templates/card-template.md`: the identity's `Weapon sets:` line, with the four uses D-426 names (none, a second
  *   tree, a second weapon, a set-2 buff).
- * - `references/stages/R1a.md`: checks each card for its weapon-set use (`RV.md` did too, until amendment 11
+ * - `skills/build-guide/references/stages/R1a.md`: checks each card for its weapon-set use (`RV.md` did too, until amendment 11
  *   removed the rival, D-443).
- * - `references/stages/D1-build.md`: every set a card's skills use measured (the record's `outputsSet2`), Spirit
+ * - `skills/build-guide/references/stages/D1-build.md`: every set a card's skills use measured (the record's `outputsSet2`), Spirit
  *   on each set, and a set-2 buff measured on set 2 and carried to set 1 as a custom modifier with its reason.
- * - `references/stages/D1-tree.md` and `D1-gate.md`: the pool moves, by the line the tool gives them
+ * - `skills/build-guide/references/stages/D1-tree.md` and `skills/build-guide/references/stages/D1-gate.md`: the pool moves, by the line the tool gives them
  *   (`Best swap (weapon set <n>): …`, C-55a), applied like a main swap within the pool's points.
- * - `references/stages/W1.md` and both guide templates: what a swap costs in Life when set 2's tree holds less.
+ * - `skills/build-guide/references/stages/W1.md` and both guide templates: what a swap costs in Life when set 2's tree holds less.
  * - `docs/build-guide/pob-gaps.md`: PG-71, PoB's support count across both sets (`Modules/CalcSetup.lua:2101`).
  *
  * The four uses are read from the amendment and the pool line's form from the M-22 handoff's fixed formats, so the
@@ -21,7 +21,7 @@ import fs from 'fs';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-9-endgame-first.md');
 /** The M-22 build handoff, whose "Formats fixed before the build" give the pool move's line (§24.2's C-55a). */

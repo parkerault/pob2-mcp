@@ -2,37 +2,38 @@
  * Amendment 9 (M-21), WU-96's bullets of AC-W77: the design steps' skill text for endgame builds first and trees
  * that minimize travel.
  *
- * - `references/stages/D1-build.md`: plan schema 6; `tree.needs` written without `claim`, every producer of the
+ * - `skills/build-guide/references/stages/D1-build.md`: plan schema 6; `tree.needs` written without `claim`, every producer of the
  *   stage's earned config state and a node the user asked for among them (D-418); the campaign reward picks on all
  *   three rungs when there is no campaign stage (D-413); `m`'s `ascendancyNodes` in the order to take them; no
  *   pathing to targets beyond the skeleton's (D1-tree's job); its return's line for D1-tree; no trade call once
  *   pricing has stopped (D-422).
- * - `references/stages/D1-tree.md` (new): the ladder order; every call with the rung's loadout, `keep`,
+ * - `skills/build-guide/references/stages/D1-tree.md` (new): the ladder order; every call with the rung's loadout, `keep`,
  *   `clear_group`, `protect_for` and `max_loss`; every rung a swap touches compiled together; a swap applied up
  *   the ladder; undone when a floor fails or V1 gains a finding; the undone swap written as a floor need; spare
  *   points; the 3% stop and 8 swaps per rung; the floor first; counts only in its return; no respec. Amendment 12
  *   (WU-125, D-452) makes each loadout's tree its own: `keep` is the rung's needs, no `protect_for`, a change stays on
  *   its rung, and the assertions below read that.
- * - `references/stages/F1.md` (new): the sha1 check against the passing D1 gate, `accepted`, `buildName`, its
+ * - `skills/build-guide/references/stages/F1.md` (new): the sha1 check against the passing D1 gate, `accepted`, `buildName`, its
  *   verdict file in the D2 gate's shape, its routes and its four escalation options (D-413).
- * - `references/stages/D1-finish.md`: the needs' `reason` claims, and the ascendancy order's claim (D-413).
- * - `references/stages/D1-gate.md` and `references/gates.md`: the `tree` part with `tree-swap` and `tool-error`,
+ * - `skills/build-guide/references/stages/D1-finish.md`: the needs' `reason` claims, and the ascendancy order's claim (D-413).
+ * - `skills/build-guide/references/stages/D1-gate.md` and `skills/build-guide/references/gates.md`: the `tree` part with `tree-swap` and `tool-error`,
  *   their routes; the design field's per-rung `tree` and the hit its Effective HP was measured against (D-419,
  *   D-423); D1 as three steps; F1's routes; the refused route (`tool-refused`, D-421); no trade call after a stop.
- * - `references/stages/R1b.md`'s league rule (D-422); `R1b-assemble.md` and `templates/dossier-template.md`, the
+ * - `skills/build-guide/references/stages/R1b.md`'s league rule (D-422); `skills/build-guide/references/stages/R1b-assemble.md` and `skills/build-guide/templates/dossier-template.md`, the
  *   dossier's EHP naming its hit (D-423).
- * - `references/patterns.md`: "minimize travel distance", cited to the user (2026-10-19).
+ * - `skills/game-knowledge/references/patterns.md`: "minimize travel distance", cited to the user (2026-10-19).
  *
  * The thresholds and counts are read from the amendment where it states them, and the codes and the tree's shape
- * from the run checker (`check-run.mjs`, WU-94) and its schema-4 fixture, so the text is held to the spec and to the
+ * from the run checker (`pob2-check-run`, WU-94) and its schema-4 fixture, so the text is held to the spec and to the
  * contract the checker enforces, not to itself.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
+import { referencePath } from '../helpers/skillPaths';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-9-endgame-first.md');
 const CHECKER = path.join(SKILL_DIR, 'scripts', 'check-run.mjs');
@@ -42,7 +43,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 /** One paragraph or list item per entry, with its line breaks folded, so a rule split over lines reads whole. */
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const readStage = (stage: string) => read(path.join(STAGES_DIR, `${stage}.md`));
-const ref = (name: string) => read(path.join(SKILL_DIR, 'references', name));
+const ref = (name: string) => read(referencePath(name));
 const spec = folded(read(SPEC));
 const checker = read(CHECKER);
 
@@ -61,7 +62,7 @@ function specNumber(re: RegExp): number {
 /** A constant of the run checker: `const NAME = <value>;`, its source text. */
 function checkerConst(name: string): string {
   const m = new RegExp(`^const ${name} = (.+);$`, 'm').exec(checker);
-  if (!m) throw new Error(`check-run.mjs has no const ${name}`);
+  if (!m) throw new Error(`pob2-check-run has no const ${name}`);
   return m[1];
 }
 
@@ -140,7 +141,7 @@ describe('D1-build (AC-W77): the needs, the reward picks without D2, the ascenda
     // Amendment 12 (WU-125, D-452): each rung's tree is seeded from the stage before it; m, with no campaign stage,
     // from the skeleton's sketch of the card's targets.
     expect(build).toMatch(/Seed each rung's tree from the stage before it \(step 3\); `m`, with no campaign stage, starts from the skeleton's tree, a sketch of the card's targets \(D-418\)\. Keep the card's targets with their paths, and path to what the needs below require; never path to a further target for damage or clear\. That tuning is D1-tree's/);
-    expect(build).toMatch(/D1-tree \(`D1-tree\.md`\), a fresh step, then spends the trees' spare points and shortens their travel/);
+    expect(build).toMatch(/D1-tree \(`skills\/build-guide\/references\/stages\/D1-tree\.md`\), a fresh step, then spends the trees' spare points and shortens their travel/);
   });
 
   it('returns what D1-tree needs: each rung\'s floor and its needs', () => {
@@ -172,7 +173,7 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     // Amendment 11 (WU-115, D-439): D1-tree writes the unmodelled needs' trades too; amendment 12 (WU-125, D-453):
     // and pieces.md's jewel lines.
     expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json", "<buildFolder>\/trades\.json", "<buildFolder>\/pieces\.md"\]` \(`pieces\.md` for its `## Jewel lines` only, D-453\)/);
-    expect(tree).toMatch(/a fresh coordinator step between D1-build \(`D1-build\.md`\) and D1-finish \(`D1-finish\.md`\)/);
+    expect(tree).toMatch(/a fresh coordinator step between D1-build \(`skills\/build-guide\/references\/stages\/D1-build\.md`\) and D1-finish \(`skills\/build-guide\/references\/stages\/D1-finish\.md`\)/);
     const returns = raw.slice(raw.indexOf('## Returns'), raw.indexOf('## Fault directives'));
     expect(returns).toMatch(/At most 8 lines, counts only/);
   });
@@ -311,7 +312,7 @@ describe('D1-finish (AC-W77): the needs\' claims and the ascendancy order\'s cla
   const finish = folded(readStage('D1-finish'));
 
   it('is the last of D1\'s three steps, after D1-build and D1-tree', () => {
-    expect(finish).toMatch(/The last of D1's three steps \(D-356, D-418\), a fresh coordinator step after D1-build \(`D1-build\.md`\) and D1-tree \(`D1-tree\.md`\)/);
+    expect(finish).toMatch(/The last of D1's three steps \(D-356, D-418\), a fresh coordinator step after D1-build \(`skills\/build-guide\/references\/stages\/D1-build\.md`\) and D1-tree \(`skills\/build-guide\/references\/stages\/D1-tree\.md`\)/);
   });
 
   it('writes each need\'s reason claim on its stage and sets the need\'s claim (D-418)', () => {
@@ -435,6 +436,6 @@ describe('the rest of WU-96: R1b\'s league rule, the dossier\'s EHP, the library
     const treeFamily = lib.slice(lib.indexOf('## 10. Tree'), lib.indexOf('## Sources'));
     expect(treeFamily).toContain('### Minimize travel distance');
     expect(folded(treeFamily)).toMatch(/judge a cluster by its gain per point with its path, never by its gain alone: .* \(the user, 2026-10-19: "minimize travel distance"\)/);
-    expect(lib).toMatch(/^\[amendment-9\]: \.\.\/\.\.\/\.\.\/\.\.\/docs\/build-guide\/spec\/amendment-9-endgame-first\.md /m);
+    expect(lib).toMatch(/^\[amendment-9\]: docs\/build-guide\/spec\/amendment-9-endgame-first\.md /m);
   });
 });

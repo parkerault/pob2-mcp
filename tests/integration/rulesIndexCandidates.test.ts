@@ -17,7 +17,7 @@ import path from 'path';
 import { engineDescribe } from '../helpers/engine';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'rules-index.mjs');
+const SCRIPT = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'rules-index.mjs');
 const RULES = path.join(REPO, 'data', 'rules');
 
 interface Line { line: string; variants?: string[]; source?: string }

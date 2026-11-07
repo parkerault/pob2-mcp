@@ -1,7 +1,7 @@
 # Gates and their verdict files
 
 A gate is the check a step must pass before the run moves on. A gate step (R1b, the D1 gate, the D2 gate, F1)
-writes its verdict itself, to `reports/gates/<stage>-<concept>-a<attempt>.json` (`run-folder.md`), and
+writes its verdict itself, to `reports/gates/<stage>-<concept>-a<attempt>.json` (`skills/build-guide/references/run-folder.md`), and
 returns one verdict line; the runner reads the file to route. The run checker re-reads the last D1 gate's
 file and recomputes it from the plan and the record, so the shapes below are a contract: keep the field
 names exactly.
@@ -49,7 +49,7 @@ names exactly.
 | `R1b` | `compiled`, and `damage` when its verdict has it (D-436) | the skeleton compiled with no compile error (C-36), and no `damage-missing` finding: each kind of damage the card names shows a figure on the named source |
 | `D1-gate` | `compiled`, `v1`, `v2`, `floor`, `budget`, `rolledSkill`, `tree` | see below |
 | `D2-gate` | `compiled`, `v1`, `v2` | the whole plan compiled and V1 and V2 pass for every stage (V1 includes tree continuity, D-192: the campaign track, then the endgame ladder `m` → `b` → `n`, each respec, a stage whose scaling changes from the one before it, D-438, checked with its gold cost, D-282, on a plan at schema 7 or earlier; a schema-8 plan has no respec and no continuity check, each loadout's tree its own, D-452); the final compile then succeeded |
-| `F1` | `compiled`, `v1`, `v2` | the endgame-only build's final compile (D-413, `stages/F1.md`): the plan is the one the passing D1 gate compiled (its `planSha1`), it compiled measure-only with V1 and V2 passing for every stage, and the final compile then succeeded; its verdict file is `reports/gates/F1-<id>-a<n>.json`, in the D2 gate's shape with `stage: "F1"` |
+| `F1` | `compiled`, `v1`, `v2` | the endgame-only build's final compile (D-413, `skills/build-guide/references/stages/F1.md`): the plan is the one the passing D1 gate compiled (its `planSha1`), it compiled measure-only with V1 and V2 passing for every stage, and the final compile then succeeded; its verdict file is `reports/gates/F1-<id>-a<n>.json`, in the D2 gate's shape with `stage: "F1"` |
 
 ## The D1 gate's parts (slice 03 §5.3)
 
@@ -101,7 +101,7 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   - `over-target`, information on a passing or unverified part: a rare of `b` or `n` whose range's midpoint is
     above its target, and `m`'s total when its midpoint is above 5 divines.
   - **In a build held to amendment 14** (D-483, D-484): a rare's price is its spec's **depth price**, the 5th-cheapest
-    of at least 10 listings of a search for its must-haves (`pricing.md`, "A rare of `b` or `n`: the spec loop"),
+    of at least 10 listings of a search for its must-haves (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`: the spec loop"),
     never one listing's; its entry carries `listing {corrupted, sockets, count, position}` and, on a `b` or `n` rare,
     `spec`. **No `<id>-fallback` entry**: the dearer spec is a find over the budget (`trades.json`, kind `scaling`,
     D-486), counted in no total. A slot the loop left thin with no other source of its stat is `unavailable`, `note`
@@ -139,7 +139,7 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   toughness it started with, and a move may trade it inside itself); `pace_exchange: 3` (each pace figure may fall
   L% for 3 × L% more damage); `pool_groups`, so a weapon set's pool without the clear group ranks by its own group
   against a Pinnacle boss; `max_distance: 12`; and `stats: ["MainDamage", "TotalEHP"]`, `cull: true` on a rung
-  with `skills.cull` (D-437; `stages/D1-tree.md`). Two calls a rung: the swap search, which frees its weakest
+  with `skills.cull` (D-437; `skills/build-guide/references/stages/D1-tree.md`). Two calls a rung: the swap search, which frees its weakest
   branches alone and in pairs and triples (D-439), and the rebuild with repair (`rebuild: true`); on a rung whose
   `tree.search.rebuild` is `undone: <why>`, the swap search alone. A rung **fails** when its best swap left, or its
   rebuild, gains at least **5%** damage (`Main damage`) and is legal on the targets, with the move as its finding
@@ -161,7 +161,7 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
 
 ### The design field's figures, toughness, boss floor and trades (amendment 11)
 
-The D1 gate's `design` field (`stages/D1-gate.md` step 6) carries, per rung, the named source's `damage {map,
+The D1 gate's `design` field (`skills/build-guide/references/stages/D1-gate.md` step 6) carries, per rung, the named source's `damage {map,
 boss}` (D-437), its `cull` and `trigger` or `null`, `boss {measured, estimate, corrections}` (D-447: the estimate
 is the ledger's `boss_<stage>` value, which is the rung's boss figure when it exists), and `trades[]` from
 `<buildFolder>/trades.json` (D-439); on the non-budget rung also `toughness {engagement, reason, target, band}`
@@ -169,10 +169,10 @@ is the ledger's `boss_<stage>` value, which is the rung's boss figure when it ex
 shows each trade and the user decides. The run checker holds them to their sources, in a run held to amendment
 11's rules:
 - **The toughness band** from the record's `TotalEHP`, the plan's `skills.engagement` and
-  `references/toughness-targets.json` (`targets` 20,000 close and 15,000 distance; `under` 0.9, `over` 1.5): a
+  `skills/build-guide/references/toughness-targets.json` (`targets` 20,000 close and 15,000 distance; `under` 0.9, `over` 1.5): a
   design field whose band or engagement disagrees fails, and so does a non-budget rung with no
   `skills.engagement`. A rung under its band has a `defence` trade, one over it a `damage` trade.
-- **The boss floor** from `references/boss-floor.json` (`floor` 250,000) and the boss figure: a `boss.floor`
+- **The boss floor** from `skills/build-guide/references/boss-floor.json` (`floor` 250,000) and the boss figure: a `boss.floor`
   other than the file's, or a `boss.under` that disagrees, fails; a rung under the floor has a `damage` trade,
   whose `bossAfter` is the boss figure × (1 + `damageChange` / 100) in a build held to amendment 11 (amendment 12
   measures it, below).
@@ -186,11 +186,11 @@ shows each trade and the user decides. The run checker holds them to their sourc
 ### The toughness reading, the resisting figure and the trades (amendment 12)
 
 In a build whose last D1 gate is held to amendment 12's rules (`skillRevision` 12 from its boundary, §22), the
-design field (`stages/D1-gate.md` step 6) also carries, per variant rung, `damage.resisting` (D-454: the named
+design field (`skills/build-guide/references/stages/D1-gate.md` step 6) also carries, per variant rung, `damage.resisting` (D-454: the named
 source's figure against the map enemy with 40% fire, cold and lightning resistance); per `b` and `n` rung, `maxHit
 {lowest, immune, arbiter, oneShot}` (D-449); and on `n`, `toughness`'s `chanceShare`, `conditioned {ehp, band}`,
 `ailmentCut` and `warning {kind, type, fix} | null`. None is a gate part, and none fails the gate. The run checker
-recomputes them from the record and `references/toughness-targets.json`:
+recomputes them from the record and `skills/build-guide/references/toughness-targets.json`:
 - **The deciding row** is a rung's one-shot Arbiter row with the lowest hits survived, else its row with the largest
   ratio; **a one-shot rung** is one whose deciding row is `one-shot` with `hitsSurvived` / 100 below the targets
   file's `arbiter.hitsSurvivedFloor`, 0.8, unrounded (79.6% is one-shot, 80% isn't), evasion and deflection counting
@@ -220,7 +220,7 @@ recomputes them from the record and `references/toughness-targets.json`:
 ### The tree search, the boss target and the trades (amendment 13)
 
 In a build whose last D1 gate is held to amendment 13's rules (§22), the design field also carries, per rung (D-467,
-D-468, D-473; `stages/D1-gate.md` step 6): in `boss`, `start`, `end`, `entries [{label, start, end, final,
+D-468, D-473; `skills/build-guide/references/stages/D1-gate.md` step 6): in `boss`, `start`, `end`, `entries [{label, start, end, final,
 valuedBy}]` and `bossFall {claim, reason} | null`; and `life {start, end}`, `swapCap`, `rebuild`,
 `removedForOthers` and `levels`. None is a gate part, and none fails the gate. The run checker holds them:
 - **To their sources**, while the gate is fresh: the plan's `tree.start`, `tree.end` and `tree.search` (D1-tree's),
@@ -237,7 +237,7 @@ valuedBy}]` and `bossFall {claim, reason} | null`; and `life {start, end}`, `swa
 ### The summary, the draft, the specs and the one-item swap (amendment 14)
 
 In a build whose last D1 gate is held to amendment 14's rules (§25), the D1 gate's file also carries (D-478, D-479;
-`stages/D1-gate.md` step 6) the design field's **`summary {how, gear: [{stage, slot, text}], catch}`**, the design
+`skills/build-guide/references/stages/D1-gate.md` step 6) the design field's **`summary {how, gear: [{stage, slot, text}], catch}`**, the design
 display's prose: `how` at most 400 characters, each `gear` text at most 120 (a rare by its base and key affixes, D-489),
 `catch` at most 300 (an unconfirmed point with its fallback, D-489); and, at its top level, **`draft`**, the draft PoB
 file the gate wrote (`null` when refused), beside the run log's `builds[].draftFile`. F1's verdict gains `draftRemoved`,
@@ -412,7 +412,7 @@ and `rolledSkill`, and both before the tree. "D1 re-runs" is its three steps, D1
 | any failure, after a guided retry or an accepted re-run | any | `escalated` again (D-236) |
 
 **The draft** (D-466): a pass that leads to the design gate writes the design's draft PoB file into the builds
-folder (`stages/D1-gate.md` step 6), and the runner records its path in `builds[].draftFile` (from amendment 14 the
+folder (`skills/build-guide/references/stages/D1-gate.md` step 6), and the runner records its path in `builds[].draftFile` (from amendment 14 the
 verdict keeps it too, as `draft`, D-479); an escalation's
 `accept`, which goes on as if the gate passed, has the runner write it. A route to D1-tree alone on a plan at schema
 8 or earlier (a build designed before amendment 13) runs D1-build first, to move the plan to 9 (§22). An escalation's option 2 (guidance) after
@@ -425,14 +425,14 @@ too (D-438).
 ## The D2 gate's outcome
 
 The D2 gate compiles measure-only and, when the compile, V1 and V2 pass for every stage, runs the final
-compile in the same step (`stages/D2-gate.md`). It runs only after D2, which adds a build's campaign on request
+compile in the same step (`skills/build-guide/references/stages/D2-gate.md`). It runs only after D2, which adds a build's campaign on request
 (D-413, D-415); an endgame-only build's final compile is F1's. A pass goes to W1. A failure, a failed or refused
 final compile included (part `compiled`, code `final-compile`), re-runs D2 with the findings; after 2 counted
 retries, `escalated`. After a guided retry or an accepted re-run, any failure escalates again.
 
 ## F1's outcome (D-413)
 
-F1 (`stages/F1.md`), a fresh coordinator step after the design gate's `accept` or `accept:file`, is the final
+F1 (`skills/build-guide/references/stages/F1.md`), a fresh coordinator step after the design gate's `accept` or `accept:file`, is the final
 compile of an endgame-only build. It checks that the plan is the one the passing D1 gate compiled (the gate's
 `planSha1`, the plan the user accepted), compiles it measure-only, and when the compile, V1 and V2 pass for every
 stage runs the final compile with `buildName`. Its header carries `accepted`, as the D2 gate's does: the findings
@@ -441,13 +441,13 @@ V2 hold the final record to the rules the checker reads.
 
 | F1's verdict | Outcome |
 |---|---|
-| compiled, V1 and V2 pass; the final compile written | `render-audit.mjs <runFolder> --build <id>`, then W1; after `accept:file`, a build held to amendment 13 by its last D1 gate goes to its claims pass (`V4-claims`, D-477: `SKILL.md` §6, `fix-round.md`), its fix round with D1 alone and its re-check, then ends `file-only` (a build held to amendment 14 first gets its PoB notes, W1 with `scope: "notes"`, D-487); an older build ends `file-only` |
+| compiled, V1 and V2 pass; the final compile written | `pob2-render-audit <runFolder> --build <id>`, then W1; after `accept:file`, a build held to amendment 13 by its last D1 gate goes to its claims pass (`V4-claims`, D-477: `skills/build-guide/SKILL.md` §6, `skills/build-guide/references/fix-round.md`), its fix round with D1 alone and its re-check, then ends `file-only` (a build held to amendment 14 first gets its PoB notes, W1 with `scope: "notes"`, D-487); an older build ends `file-only` |
 | a fault, not a design finding: the plan changed since the gate (`plan-changed`), a V1 or V2 failure not in `accepted`, or a compile error on the plan the gate passed (`compile-error`, `final-compile`) | F1 re-runs once, uncounted; a second failure escalates |
 | `ledger-refused` (part `compiled`): the write ledger refused the final compile (D-211: the PoB file already exists, or changed on disk) | escalates at once, since no retry changes it |
 | any failure, after a guided retry or an accepted re-run | escalates again |
 
 **F1's escalation** (stage `F1`, the verdict file `reports/gates/F1-<id>-a<n>.json`), in the escalation forms of
-`run-log.mjs` and the checker:
+`pob2-run-log` and the checker:
 1. **accept**, not after a compile failure or a ledger refusal: the failing findings join `accepted`, and F1
    runs once more, uncounted;
 2. **guidance and one more retry**: D1 (D1-build, D1-tree and D1-finish as the guidance needs), the D1 gate,
@@ -476,7 +476,7 @@ fault on attempt 1 runs free only when the verdict's `faultsApplied` names the f
 is on the stage the fault breaks (S6). A D1 gate whose only issue is the tree's `tool-error` is logged `fail`.
 
 A finding the user accepted at an escalation (same plan stage, part and `code`) fails neither that gate
-nor a later one (`checkpoints.md`). A current guide passed every gate: the run checker fails a run whose
+nor a later one (`skills/build-guide/references/checkpoints.md`). A current guide passed every gate: the run checker fails a run whose
 guide is current (no design step ran after its W1) and whose recomputed floor or named damage
 source fails, or whose D1 or D2 gate or F1 before that W1 has a failing part, unless accepted findings cover
 every failure. Only a pass, or an `unverified` budget,

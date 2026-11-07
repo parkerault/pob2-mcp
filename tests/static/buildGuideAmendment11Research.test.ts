@@ -2,17 +2,17 @@
  * Amendment 11 (M-24), WU-114: AC-W90, the research and verification docs, one assertion each, and the rules of the
  * sections behind it (D-436, D-442 to D-445, §19, Appendix A) in the skill text.
  *
- * - `references/stages/R1b.md`: verification's three checks (it compiles, the named source deals the card's damage,
+ * - `skills/build-guide/references/stages/R1b.md`: verification's three checks (it compiles, the named source deals the card's damage,
  *   each piece in does something), `damage-missing` failing the attempt and retried, the four answers of Pieces
  *   measured, and the verdict file's `pieces[]` (D-436).
- * - `templates/dossier-template.md`: Appendix A's nine columns, and the Status values `viable` and `viable, except`.
- * - `references/checkpoints.md`: the verification gate with no figure and Appendix A's line under the cards; the
+ * - `skills/build-guide/templates/dossier-template.md`: Appendix A's nine columns, and the Status values `viable` and `viable, except`.
+ * - `skills/build-guide/references/checkpoints.md`: the verification gate with no figure and Appendix A's line under the cards; the
  *   pricing retry question (D-444); the interview's name rule (D-442).
- * - the card template, `R1a-synthesize.md`, `R1a.md`, `R1a-assemble.md`: the name rule, main skill then ascendancy.
- * - `stages/RV.md` deleted, and no reference or agent definition runs a rival; describing an older run's rival is
+ * - the card template, `skills/build-guide/references/stages/R1a-synthesize.md`, `skills/build-guide/references/stages/R1a.md`, `skills/build-guide/references/stages/R1a-assemble.md`: the name rule, main skill then ascendancy.
+ * - `skills/build-guide/references/stages/RV.md` deleted, and no reference or agent definition runs a rival; describing an older run's rival is
  *   allowed (D-443, §19).
- * - `R1a.md`: published guides allowed and cited with the `external` marker (D-445).
- * - `references/pricing.md`: the stop until a gate's retry, its trade-site scope, and players' currency words (D-442,
+ * - `skills/build-guide/references/stages/R1a.md`: published guides allowed and cited with the `external` marker (D-445).
+ * - `skills/build-guide/references/pricing.md`: the stop until a gate's retry, its trade-site scope, and players' currency words (D-442,
  *   D-444).
  *
  * The values are read from the amendment itself (its sections and Appendix A) and from the run scripts' own
@@ -21,19 +21,20 @@
 import { describe, expect, it } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
+import { referencePath } from '../helpers/skillPaths';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const REFS = path.join(SKILL_DIR, 'references');
 const STAGES = path.join(REFS, 'stages');
-const AGENTS = path.join(REPO, '.claude', 'agents');
+const AGENTS = path.join(REPO, 'agents');
 
 const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
 /** Line breaks and their indentation folded to one space, so a rule wrapped over lines reads whole. */
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const stage = (name: string) => folded(read(path.join(STAGES, `${name}.md`)));
-const ref = (name: string) => folded(read(path.join(REFS, name)));
-const rawRef = (name: string) => read(path.join(REFS, name));
+const ref = (name: string) => folded(read(referencePath(name)));
+const rawRef = (name: string) => read(referencePath(name));
 
 /** The text from `start` to the next `end` after it ('' when `start` is missing). */
 function between(text: string, start: string, end: string): string {
@@ -120,7 +121,7 @@ const RIVAL = /\brival\b|\bRV\b|r<[jk]>-x-<n>/;
 /** A unit that describes an older run's rival, or its removal, runs none (§19, D-443). */
 const OLD_RUNS = /before amendment 11|older run|older log|D-443|removed/i;
 /**
- * WU-115's `patterns.md` line 34 (§16, AC-W91: "patterns.md, its line 34 included"), not this unit's file: exempt by
+ * WU-115's `skills/game-knowledge/references/patterns.md` line 34 (§16, AC-W91: "patterns.md, its line 34 included"), not this unit's file: exempt by
  * its words only, so the exemption ends when WU-115 rewrites the line.
  */
 const WU115_PATTERNS_LINE = 'D1-build again after a conversion, a keystone or a limit named as a con, and the rival';
@@ -166,7 +167,7 @@ describe('AC-W90 (WU-114): the research and verification docs, one assertion eac
     expect(Object.entries(texts).filter(([, t]) => !rule(t)).map(([f]) => f)).toEqual([]);
   });
 
-  it('RV.md is gone; no doc under .claude/skills/build-guide/references/ or .claude/agents/ runs a rival', () => {
+  it('RV.md is gone; no doc under skills/build-guide/references/ or agents/ runs a rival', () => {
     const running = [...markdownUnder(REFS), ...markdownUnder(AGENTS)].flatMap((file) =>
       units(read(file))
         .filter((u) => RIVAL.test(u) && !OLD_RUNS.test(u) && !(path.basename(file) === 'patterns.md' && u.includes(WU115_PATTERNS_LINE)))
@@ -196,7 +197,7 @@ describe('AC-W90 (WU-114): the research and verification docs, one assertion eac
 describe("amendment 11's research and verification rules in the docs (WU-114)", () => {
   it("D-436: R1b's verdict carries its damage part, and the dossier's Damage and Pieces cells follow Appendix A's examples", () => {
     const r1b = stage('R1b');
-    // The verdict part the run checker reads (check-run.mjs: `verdict.damage`, the code `damage-missing`).
+    // The verdict part the run checker reads (pob2-check-run: `verdict.damage`, the code `damage-missing`).
     expect(CHECK_RUN).toContain("const DAMAGE_MISSING = 'damage-missing';");
     expect(r1b).toMatch(/`verdict\.damage` \(D-436\), once the last compile succeeded: `pass` when the named source shows every kind of damage the card names, `fail` when one shows nothing, with one finding per such kind, `\{part: "damage", code: "damage-missing"/);
     // Appendix A's Damage cell and Pieces cell, in R1b-assemble's words.
@@ -234,7 +235,7 @@ describe("amendment 11's research and verification rules in the docs (WU-114)", 
     const steps = scriptList(RUN_LOG, 'PRICING');
     expect(steps).toEqual(['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2']);
     expect(reporting).toContain('The pricing steps are R1b, D1-build (its `find_upgrades` calls), D1-finish, the D1 gate and D2.');
-    // The stop's records, as run-log.mjs writes them (Appendix A's run log).
+    // The stop's records, as pob2-run-log writes them (Appendix A's run log).
     expect(pricing).toMatch(/`pricing\.stops\[\] \{at, step, outcome\}`/);
     expect(pricing).toMatch(/`pricing\.retries\[\] \{checkpoint, answer, at\}`, `retry-pricing` or `no-retry`/);
     // The emotion-only exchange read is gone from the stop section.

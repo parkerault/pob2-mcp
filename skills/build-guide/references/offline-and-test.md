@@ -15,7 +15,7 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
   `data:<file>#<key>` in the plan, or `data | <file>#<key>` in markdown (D-232).
 - **Every price is `unavailable`** with `note: "offline run"`, `league: null`, `amount` and `currency`
   null, dated the run folder's date (D-164); the plan's `league` is null, which the plan schema allows
-  only when every price is like that (D-233). See `pricing.md`.
+  only when every price is like that (D-233). See `skills/build-guide/references/pricing.md`.
 - **A claim that would need an external source** is tagged `external-unavailable`, with ref exactly
   `external source unavailable (offline run)` and a confidence (C-30). V4 accepts that tag (status
   `accepted-offline`) only when the run log's mode is `offline`; in any other run it is an `unresolved`
@@ -29,7 +29,7 @@ Started only explicitly, with `--offline`; the run log records `mode: "offline"`
 
 `--no-ninja` turns off group `ninja`, whose one tool is `mcp__pob2__get_currency_rates`: no step calls it. The
 runner tells every pricing step, the D1 gate included, that there are no currency rates. Prices are still
-checked online, but totals in divines are `unverified`, pricing's path when rates are missing (`pricing.md`),
+checked online, but totals in divines are `unverified`, pricing's path when rates are missing (`skills/build-guide/references/pricing.md`),
 so the guide can't state a rung's total. Offline mode turns the rates off anyway.
 
 There are no poe.ninja tools beyond the currency rates (D-335): poe.ninja's terms close its builds API, so no
@@ -62,7 +62,7 @@ brief's `popularity` notes speak to it, cited as the user's notes.
 ```
 
 The answers are `brainstorm`, `verification`, `design` and `final`, one per gate visit (D-323, D-362;
-`checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. The answer forms
+`skills/build-guide/references/checkpoints.md` has their values), with `escalation` and `unsavedBuild` for the questions. The answer forms
 (D-411):
 - `answers.brainstorm[]`: `pick:<id>[,<id>…]` (1–3 cards), `first-n:<n>`, `more` or `stop`. `first-n:<n>` (`n` 1–3)
   picks the first `n` cards of `cards.md` not verified yet: in a run whose brainstorm rounds compose (`R1a-synthesize`,
@@ -88,7 +88,7 @@ card ids (D-319), or `"all"`.
 
 **An answer entry scripts an interview** (D-394): a string, or an object `{ask?, answer, changes?, newCards?,
 note?}`, `answer` one of the gate's strings. `changes`, `newCards` (each `{name, from, words}`; you assign the
-id) and `note` go only on brainstorm and verification entries, with the answers `checkpoints.md` gives them; the
+id) and `note` go only on brainstorm and verification entries, with the answers `skills/build-guide/references/checkpoints.md` gives them; the
 config says which kind each change is. In a run that composes, a new card's `from` may also name pieces by key
 (D-432): a `### Pieces` row's key on a card of the run, or an Ideas line's id in its research files. First check
 each new card against `cards.md`: its `from` names cards the deck lists, and its name, ignoring case, is none the
@@ -97,13 +97,13 @@ as you would the user's, gate question steps included, write the interview notes
 confirmation: the checkpoint's `rule` is `answer` as written, its `questions` the `ask` count.
 
 - **Accepted only with `--offline`.** Then `testConfig: "accepted"`: its answers replace the user's at
-  gates and questions (`checkpoints.md` lists what each answer means and the defaults when they run
+  gates and questions (`skills/build-guide/references/checkpoints.md` lists what each answer means and the defaults when they run
   out), and its faults are applied.
 - **Without `--offline`** the runner records `testConfig: "refused"`, ignores the file (no answer, no
   fault) and asks the user at every gate (D-157). Say so in the reply.
 - A file that can't be read or isn't this shape, given with `--offline`, is refused too
   (`testConfig: "refused"`), and the run stops before research: status `stopped`, and the reason in the
-  reply (`stopped: malformed test config <path>: <what is wrong>`), as `test-config` prints it (`start.md`).
+  reply (`stopped: malformed test config <path>: <what is wrong>`), as `test-config` prints it (`skills/build-guide/references/start.md`).
 - **An entry the deck refuses** (that first check): answer no `ask` and write no notes; the run ends `stopped`,
   logged answer `stop`, `answeredBy: "default"`, `questions: 0`, rule `refused answers.<gate>[<i>]: <why>`.
 - Without `--test`, `testConfig: "none"`.
@@ -112,7 +112,7 @@ confirmation: the checkpoint's `rule` is `answer` as written, its `questions` th
 
 Each directive names its target cards (a list of card ids, or `"all"`) and whether it is `persistent`
 (every attempt) or applies to attempt 1 only (`persistent` missing or `false`). The runner puts a
-directive only into the task headers of the steps it targets, in the header's `faults` (`task-header.md`).
+directive only into the task headers of the steps it targets, in the header's `faults` (`skills/build-guide/references/task-header.md`).
 The step that applies one reports it, and the runner logs each directive in `faults[]` as
 `{id, target, applied, observed}` (`target` as the test config wrote it; `applied` counts the headers that
 carried it; `observed` says what failed as a result).
@@ -124,7 +124,7 @@ persistent FI-2 escalates the D1 gate on its third failure (run B's `c2`). The r
 
 | Id | Applied by, when | Edit | Must then fail |
 |---|---|---|---|
-| FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there. Unless the card already failed the ascendancy lock (`wrong-ascendancy`, D-342) or is `not-a-skill` (D-334) or `not-in-pin` (D-400): it then compiles nothing, so FI-1 applies to nothing. FI-1's compile failure comes before the damage check, so a faulted attempt has no `damage-missing` finding (D-436) |
+| FI-1 | the R1b step, before the attempt's first compile: the bootstrap, which then always runs (`skills/build-guide/references/stages/R1b.md` step 2), so a faulted attempt compiles nothing clean and a concept it fails leaves no clean record (D-265) | add a support gem named `FI-1 Unknown Gem` to the skeleton's main socket group | that first compile, with a per-stage error naming the gem (D-162); the attempt stops there. Unless the card already failed the ascendancy lock (`wrong-ascendancy`, D-342) or is `not-a-skill` (D-334) or `not-in-pin` (D-400): it then compiles nothing, so FI-1 applies to nothing. FI-1's compile failure comes before the damage check, so a faulted attempt has no `damage-missing` finding (D-436) |
 | FI-2 | the D1 gate step, before its compile | set the first endgame stage's `level` to 1 in `plan.json`, and its `loadoutName`'s `(L<n>)` to `(L1)` so the plan stays valid (C-31 ties the two) | V1, for that stage: its points and requirements exceed level 1 |
 | FI-3 | the D1 gate step | none: the gate's outcome is forced to `infeasible`, with evidence `FI-3 (injected)` | control flow only: the route back to the verification gate (D-287) |
 

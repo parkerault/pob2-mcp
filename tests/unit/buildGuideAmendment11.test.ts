@@ -28,7 +28,7 @@ import { loadReferenceData } from '../../src/plan/referenceData';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL = path.join(REPO, 'skills', 'build-guide');
 const SCRIPTS = path.join(SKILL, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
@@ -43,11 +43,11 @@ afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
  * and data/'s JSON folders linked, the vocabulary copied, the fixture's Markdown data under its data/.
  */
 const ROOT = path.join(TMP, 'repo');
-const ROOT_CHECKER = path.join(ROOT, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const ROOT_CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
 (() => {
   fs.mkdirSync(path.dirname(ROOT_CHECKER), { recursive: true });
   for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(path.dirname(ROOT_CHECKER), f));
-  fs.cpSync(path.join(SKILL, 'references'), path.join(ROOT, '.claude', 'skills', 'build-guide', 'references'), { recursive: true });
+  fs.cpSync(path.join(SKILL, 'references'), path.join(ROOT, 'skills', 'build-guide', 'references'), { recursive: true });
   fs.symlinkSync(path.join(REPO, 'build'), path.join(ROOT, 'build'));
   fs.mkdirSync(path.join(ROOT, 'data', 'rules'), { recursive: true });
   for (const d of ['campaign', 'economy', 'enemies']) fs.symlinkSync(path.join(REPO, 'data', d), path.join(ROOT, 'data', d));

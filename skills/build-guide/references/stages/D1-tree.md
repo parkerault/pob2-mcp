@@ -1,7 +1,7 @@
 # D1-tree: trees that minimize travel (`build-guide-coordinator`)
 
-The second of D1's three steps (D-418), a fresh coordinator step between D1-build (`D1-build.md`) and D1-finish
-(`D1-finish.md`), so node power's output stays out of D1-build's context. D1-build left the three endgame rungs
+The second of D1's three steps (D-418), a fresh coordinator step between D1-build (`skills/build-guide/references/stages/D1-build.md`) and D1-finish
+(`skills/build-guide/references/stages/D1-finish.md`), so node power's output stays out of D1-build's context. D1-build left the three endgame rungs
 (`m`, `b`, `n`) built, measured and with their needs, each rung's scaling named and its tree seeded from the stage
 before it; you rebuild each rung's tree, spend its spare points, test its jewel sockets and swap its weak branches
 for better nodes by PoB's node power, rung by rung, keeping every need and the survival floor, and judge the
@@ -43,7 +43,7 @@ path.
   `weaponSetNodes`, `attributeChoices`, `needs`, `scales`, `start`; its `level`, `loadoutName`, `skills.groups`,
   `skills.cull`, `skills.boss`, `items.anoint` and `items.treeJewels`; in a schema-10 plan its `tree.exclude` and
   `tree.search`), `data/campaign/limits.json`
-  (`passive-points.max` and `passive-points.from-levels`), `.claude/skills/build-guide/references/boss-floor.json`
+  (`passive-points.max` and `passive-points.from-levels`), `skills/build-guide/references/boss-floor.json`
   (D-448: `n`'s boss floor, 250,000), `<buildFolder>/trades.json` when it exists, and `<buildFolder>/pieces.md`'s
   `## Unique jewels` and `## Jewel lines` when it has them, and its `out` rows whose Why starts `unmeasured` (Grep;
   step 3.8's `unmodelled` lines). Grep or Read `plan.json` at a place to anchor an
@@ -163,7 +163,7 @@ a user's request. Each one runs the same way:
   before is a new finding. A need's `missing-reason` (`tree.needs[<m>].claim`) doesn't count: D1-finish writes
   the claims. **The boss target on `n`** (D-468), for your own moves only (the rebuild, the loop's swaps, spare
   points and sockets), never a user's request or a trade the user takes: `n`'s boss figure stays at or above
-  `boss-floor.json`'s floor, an agreed target for the finished tree, so a move that takes it from at or above the
+  `skills/build-guide/references/boss-floor.json`'s floor, an agreed target for the finished tree, so a move that takes it from at or above the
   floor to under it fails the check. An `n` whose start is already under the floor has no target here, and `m` and
   `b` have none: a boss figure or entry that falls is a reason you give (step 3), never an undo. No per-move boss
   guard and no per-move toughness cap: the targets judge the toughness.
@@ -432,4 +432,4 @@ the first rebuild line named no targets: the session's pob2 server was built bef
 
 ## Fault directives
 
-None. FI-2 and FI-3 are the D1 gate's (`D1-gate.md`).
+None. FI-2 and FI-3 are the D1 gate's (`skills/build-guide/references/stages/D1-gate.md`).

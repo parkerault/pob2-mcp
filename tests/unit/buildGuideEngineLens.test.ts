@@ -27,7 +27,7 @@ import { writeGuideRun, editJson as editRunJson } from '../helpers/guideRunFolde
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPTS = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts');
+const SCRIPTS = path.join(REPO, 'skills', 'build-guide', 'scripts');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
 const RENDER = path.join(SCRIPTS, 'render-audit.mjs');
@@ -36,7 +36,7 @@ afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
 /** The repository's layout in a temp dir, with the fixture's Markdown data files under its data/. */
 const ROOT = path.join(TMP, 'repo');
-const CHECKER = path.join(ROOT, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
 (() => {
   const scripts = path.dirname(CHECKER);
   fs.mkdirSync(scripts, { recursive: true });

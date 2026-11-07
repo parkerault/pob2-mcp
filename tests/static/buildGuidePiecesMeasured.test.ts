@@ -2,7 +2,7 @@
  * Amendment 10 (M-23), WU-106: AC-W85, R1b measuring each piece inside its composite, the dossier's key pieces, the
  * brainstorm gate's composites and the runner's step 2b, in the skill text (D-429, D-432, D-433).
  *
- * - `references/stages/R1b.md`: a composite (any card with `### Pieces`) and its skeleton, every piece in, a scheduled
+ * - `skills/build-guide/references/stages/R1b.md`: a composite (any card with `### Pieces`) and its skeleton, every piece in, a scheduled
  *   piece in its own group (a boss button `single_target`, a skill on one weapon set with `weaponSet`), a second clear
  *   group kept `clear`; the three kinds of figure (per second for clear, per corpse, for bosses), never summed across
  *   groups; which pieces (up to 4 in, never the named source or its enabler, least certain first); leaving a piece out
@@ -10,13 +10,13 @@
  *   probe `not measured (<why>)`; a larger clear group as `A stronger structure?` in `### Structure check`; an
  *   unmodelled piece's `estimate (<reason>)`; `### Pieces measured` in Appendix A's form, even when R1b failed after
  *   its structure check; a plain card's 4 probes and no tables.
- * - `references/stages/R1b-assemble.md` and `templates/dossier-template.md`: the twelfth column `key pieces`, only on
+ * - `skills/build-guide/references/stages/R1b-assemble.md` and `skills/build-guide/templates/dossier-template.md`: the twelfth column `key pieces`, only on
  *   a composite run.
- * - `references/checkpoints.md`: the brainstorm gate shows the composites, the obvious build's line and every plain
+ * - `skills/build-guide/references/checkpoints.md`: the brainstorm gate shows the composites, the obvious build's line and every plain
  *   card; `verify` takes composites or cards by number or name; `changes` add or drop pieces; a gate-made card's
  *   `from` names cards, composites and piece keys; `first-n` picks composites; R1a-synthesize, R1a-assemble kept for
  *   older runs.
- * - `SKILL.md`: step 2b and §2 name `R1a-synthesize`, with its return and the run log's `shortReason`.
+ * - `skills/build-guide/SKILL.md`: step 2b and §2 name `R1a-synthesize`, with its return and the run log's `shortReason`.
  *
  * The formats are read from the amendment's Appendix A and the run scripts' own constants, so the skill text is held
  * to the spec and to what the checker accepts; one script check runs the checker on R1b's own example table.
@@ -31,9 +31,10 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { referencePath } from '../helpers/skillPaths';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SCRIPTS = path.join(SKILL_DIR, 'scripts');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-10-synthesis.md');
@@ -43,7 +44,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const rawStage = (name: string) => read(path.join(STAGES_DIR, `${name}.md`));
 const stage = (name: string) => folded(rawStage(name));
-const rawRef = (name: string) => read(path.join(SKILL_DIR, 'references', name));
+const rawRef = (name: string) => read(referencePath(name));
 const ref = (name: string) => folded(rawRef(name));
 const SKILL_RAW = read(path.join(SKILL_DIR, 'SKILL.md'));
 const SKILL = folded(SKILL_RAW);
@@ -278,7 +279,7 @@ describe('AC-W85 (WU-106, D-432): the brainstorm gate shows composites, takes pi
     ].map((p) => gate.indexOf(p));
     expect(order.every((i) => i > 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    // The display's own piece lines (run-log.mjs, Appendix A).
+    // The display's own piece lines (pob2-run-log, Appendix A).
     for (const line of ['`  in: ${', '`  scheduled: ${']) expect({ line, printed: RUN_LOG.includes(line) }).toEqual({ line, printed: true });
   });
 
@@ -299,7 +300,7 @@ describe('AC-W85 (WU-106, D-432): the brainstorm gate shows composites, takes pi
 
 describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and the short round', () => {
   it('step 2b is R1a-synthesize; R1a-assemble only for runs whose first round used it', () => {
-    expect(SKILL_RAW).toContain('| 2b | R1a-synthesize | `build-guide-coordinator` |');
+    expect(SKILL_RAW).toContain('| 2b | R1a-synthesize | `pob2:build-guide-coordinator` |');
     expect(SKILL).toMatch(/- \*\*R1a-synthesize\*\* \(2b, D-429\), after the round's researchers, composes the round's builds, the composites; a run whose first brainstorm round ran \*\*R1a-assemble\*\* \(it deals cards\) keeps that step for every later round/);
     expect(SKILL).not.toMatch(/- \*\*R1a-assemble\*\* \(2b\)/);
   });
@@ -313,12 +314,12 @@ describe('AC-W85 (WU-106, D-429): SKILL.md names R1a-synthesize, its return and 
 
   it("D1-build writes pieces.md and returns its pieces: line within its 8 (D-434), and the design gate shows the pieces line before the rungs", () => {
     // Amendment 12 (WU-125, D-457): its `stronger structure:` lines too.
-    expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |');
+    expect(SKILL_RAW).toContain('| 6a | D1-build, the endgame rungs | `pob2:build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |');
     expect(SKILL).toMatch(/Returns `done` or `infeasible`, with a reason, its `for D1-tree:` line, its `pieces:` line, `pieces\.md`'s rows by status \(D-434\), and any `stronger structure:` line \(D-457\), within its 8 lines/);
     const design = folded(between(rawRef('checkpoints.md'), '## The design gate: judge the endgame build', '## The final gate'));
     // Amendment 11 (WU-115, D-442): the design gate counts the out pieces without naming them.
     expect(design).toContain("First, once per build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n> scheduled (<names>), <n> out`, the out pieces counted without their names (D-442)");
-    // The display's own line (run-log.mjs, Appendix A), the one a design field held to amendment 11 prints.
+    // The display's own line (pob2-run-log, Appendix A), the one a design field held to amendment 11 prints.
     expect(RUN_LOG).toContain('`- Pieces: ${count(p.in)} in, ${count(p.scheduled)} scheduled (${named(p.scheduledNames)}), ${count(p.out)} out`');
   });
 

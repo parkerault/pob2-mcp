@@ -1,7 +1,7 @@
 /**
  * WU-102 (amendment 9 §24.2; D-426, D-427, C-56): the text half of AC-W81 and the contracts' documentation.
  *
- * - `references/stages/R1a.md` searches travel skills by type through `list_gems`' `skill_type`, in a paragraph of its
+ * - `skills/build-guide/references/stages/R1a.md` searches travel skills by type through `list_gems`' `skill_type`, in a paragraph of its
  *   own, beside WU-100's and WU-101's paragraphs, which stay;
  * - `list_gems`' schema has `skill_type`, and its description says so; `compile_plan`'s description names a group's
  *   weapon set;
@@ -22,7 +22,7 @@ const read = (...p: string[]) => fs.readFileSync(path.join(REPO, ...p), 'utf8');
 const folded = (s: string) => s.replace(/\s+/g, ' ');
 
 describe('AC-W81: R1a searches travel skills by type (D-427)', () => {
-  const r1a = folded(read('.claude', 'skills', 'build-guide', 'references', 'stages', 'R1a.md'));
+  const r1a = folded(read('skills', 'build-guide', 'references', 'stages', 'R1a.md'));
 
   it('names the list_gems call with skill_type "Travel", and says a gem tag is not a skill type', () => {
     expect(r1a).toContain('**Travel skills, by skill type** (D-427).');

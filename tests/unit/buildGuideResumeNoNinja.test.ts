@@ -15,7 +15,7 @@ import path from 'path';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SCRIPTS = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts');
+const SCRIPTS = path.join(REPO, 'skills', 'build-guide', 'scripts');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');

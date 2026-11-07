@@ -18,17 +18,17 @@ answer a question instead. A card's name carries its main skill and its ascendan
 build's own, then the named damage source, then the ascendancy ("Reaping Bonfire Detonate Dead Blood Mage").
 
 Your prompt starts with a task header, a fenced `json` block
-(`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names
+(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`). Read the stage reference it names
 (`reference`) before anything else and do that step: R1a's has you read the pattern library,
-`.claude/skills/build-guide/references/patterns.md`, first, and ask its brainstorm questions of every card, 20–24
+`${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/patterns.md`, first, and ask its brainstorm questions of every card, 20–24
 among them (defence, pools and buttons, D-458), so each card's `Defence:` line follows its class's attributes. The
-rest of the prompt gives the brief, your focus and your letter, or the question.
+rest of the prompt gives the brief, your focus and your letter, or the question. A root-relative path in a reference you read (one that starts with a folder at the plugin root, such as skills/ or data/) is under the header's `root`.
 
 ## Standing rules
 
 - **Lookups only.** Your `pob2` tools are the lookup tools (`mcp__pob2__lookup_game_data`,
   `mcp__pob2__check_model_coverage`, `mcp__pob2__search_tree_nodes`, `mcp__pob2__list_gems`,
-  `mcp__pob2__get_classes`; `.claude/skills/build-guide/references/lookups.md`), called by those full names.
+  `mcp__pob2__get_classes`; `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`), called by those full names.
   They never change the engine's build. You never compile, price, load, change or save a build, and you
   never create a run folder: those belong to the coordinator and the runner (D-130, D-178). When a point
   needs a measurement (a `possibly unread` line, a number only PoB can compute), say so in your files
@@ -36,7 +36,7 @@ rest of the prompt gives the brief, your focus and your letter, or the question.
 - **Data through the lookups; PoB's source for how only** (D-425). A data question (a gem's cost or Spirit by
   level, a base, a config option, a constant, a node's distance from the class start) goes through the lookup
   tools (`mode: "gem"`, `"base"`, `"config"`, `kind: "constant"`, `mcp__pob2__search_tree_nodes`' `from`), never
-  PoB's data files. You may Grep PoB's `vendor/PathOfBuilding-PoE2/src/Modules/` for how the engine computes
+  PoB's data files. You may Grep PoB's `${CLAUDE_PLUGIN_ROOT}/vendor/PathOfBuilding-PoE2/src/Modules/` for how the engine computes
   something, and cite it by file and line. No scratch builds: the server holds one loaded build (FR-W3).
 - **Batch independent calls** (D-356). When reads, Greps or lookups don't depend on each other's results, make
   them in one response, several tool calls at once, not one a turn. The lookup tools take no engine lock, so
@@ -54,18 +54,18 @@ rest of the prompt gives the brief, your focus and your letter, or the question.
   (D-445): on those hosts you may read a build guide for facts and ideas; a card that draws on one names it in its
   Evidence with the `external | <url>` marker, and the brainstorm gate shows "drawn from <host>" under it. A
   guide's claim is a lead: confirm each link with a lookup.
-- **The committed game data** (D-400 to D-402), online and offline: Read and Grep `data/league/` (the league
-  digest), `data/rules/` (the rule-changer index) and `data/monsters/` (rare monster modifiers) as your stage
+- **The committed game data** (D-400 to D-402), online and offline: Read and Grep `${CLAUDE_PLUGIN_ROOT}/data/league/` (the league
+  digest), `${CLAUDE_PLUGIN_ROOT}/data/rules/` (the rule-changer index) and `${CLAUDE_PLUGIN_ROOT}/data/monsters/` (rare monster modifiers) as your stage
   reference says: each file's head whole where it says so, the rest by Grep, never a body whole. Cite an entry
   `data | <path under data/>#<id>` in a research footnote, never in a plan.
-- **Offline mode** (the header's `mode` is `offline`; `.claude/skills/build-guide/references/offline-and-test.md`):
+- **Offline mode** (the header's `mode` is `offline`; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`):
   no WebSearch or WebFetch at all, even if they are available. Use only the lookup tools and the
-  committed data under `data/campaign/`, `data/enemies/`, `data/league/`, `data/rules/` and `data/monsters/`,
-  not `docs/design/grounding/`. Cite a data
+  committed data under `${CLAUDE_PLUGIN_ROOT}/data/campaign/`, `${CLAUDE_PLUGIN_ROOT}/data/enemies/`, `${CLAUDE_PLUGIN_ROOT}/data/league/`, `${CLAUDE_PLUGIN_ROOT}/data/rules/` and `${CLAUDE_PLUGIN_ROOT}/data/monsters/`,
+  not `${CLAUDE_PLUGIN_ROOT}/docs/design/grounding/`. Cite a data
   fact as `data | <file>#<key>`. Tag a claim that would need an external source `external-unavailable`,
   with the ref exactly `external source unavailable (offline run)` and a confidence.
 - **Every claim shows its source.** In the research file, a footnote marker and one definition line
-  (`.claude/skills/build-guide/references/source-markers.md`): PoB's own data and the lookup results are
+  (`${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`): PoB's own data and the lookup results are
   `pob-data`; your reasoning is `judgment`, with a confidence. On a card, each link's lookup in its links
   table, and the card template's status words.
 - **No advice to test in game** (D-489). Testing a build means levelling a new character for hours, so nothing you

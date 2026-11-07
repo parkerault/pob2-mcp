@@ -4,9 +4,10 @@
  * - `scripts/compact-reminder.sh` is an executable POSIX shell script that prints the compaction rule (worded for a
  *   run in progress) and exits 0, as a `SessionStart` hook with the `compact` matcher runs it.
  * - `docs/build-guide/run-settings.example.json` is valid JSON with no machine path; it allows exactly poe2db, the
- *   three run scripts and the pob2 engine and file tools the coordinator uses (none in group `trade` or `ninja`),
- *   denies WebSearch, the guide, video and build-share hosts, any `.env` and edits under `/mnt`, and holds the
- *   `compact` hook that runs the script by `$CLAUDE_PROJECT_DIR`.
+ *   four run commands in the plugin's `bin/` and the pob2 engine and file tools the coordinator uses (none in group
+ *   `trade` or `ninja`), denies WebSearch, the guide, video and build-share hosts, any `.env` and edits under `/mnt`,
+ *   and holds no hook: amendment 15 (D-499) moves the `compact` hook into the plugin's `hooks/hooks.json`, which runs
+ *   the script by `${CLAUDE_PLUGIN_ROOT}`.
  */
 import { describe, it, expect } from '@jest/globals';
 import { execFileSync } from 'child_process';
@@ -19,17 +20,18 @@ import { TOOL_META } from '../../src/server/toolMeta';
 const REPO = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(REPO, 'scripts', 'compact-reminder.sh');
 const EXAMPLE = path.join(REPO, 'docs', 'build-guide', 'run-settings.example.json');
-const COORDINATOR = path.join(REPO, '.claude', 'agents', 'build-guide', 'build-guide-coordinator.md');
+const COORDINATOR = path.join(REPO, 'agents', 'build-guide-coordinator.md');
+const PLUGIN_HOOKS = path.join(REPO, 'hooks', 'hooks.json');
 
 /** The rule's key sentences (WU-95 copies the rule into SKILL.md's first 40 lines). */
 const RULE_SENTENCES = [
   'If a /build-guide run is in progress, this session was just compacted',
-  'Re-read `.claude/skills/build-guide/SKILL.md` whole',
+  'Re-read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` whole',
   "the run's `run-log.json`",
   "the current step's reference",
   "the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`)",
   // WU-95's fix round: the design and final gates' displays take the build (D-411).
-  'print its display again with `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate)',
+  'print its display again with `pob2-run-log <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate)',
   'which records no second visit',
   "Act on no yes the notes don't hold",
   'restate the pending decision and wait for it',
@@ -40,9 +42,12 @@ interface HookCommand {
   type: string;
   command: string;
 }
+interface Hooks {
+  SessionStart: Array<{ matcher: string; hooks: HookCommand[] }>;
+}
 interface Settings {
   permissions: { allow: string[]; deny: string[] };
-  hooks: { SessionStart: Array<{ matcher: string; hooks: HookCommand[] }> };
+  hooks?: Hooks;
 }
 
 const settingsText = (): string => fs.readFileSync(EXAMPLE, 'utf8');
@@ -104,7 +109,7 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
     expect(text).not.toContain(os.homedir());
   });
 
-  it("allows exactly poe2db, the three run scripts, and the coordinator's pob2 tools outside the trade and ninja groups", () => {
+  it("allows exactly poe2db, the four run commands, and the coordinator's pob2 tools outside the trade and ninja groups", () => {
     const allow = settings().permissions.allow;
     const pob2 = new Set([
       `${POB2}compile_plan`,
@@ -116,9 +121,10 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
     const expected = new Set([
       'WebFetch(domain:poe2db.tw)',
       'WebFetch(domain:www.poe2db.tw)',
-      'Bash(node .claude/skills/build-guide/scripts/check-run.mjs:*)',
-      'Bash(node .claude/skills/build-guide/scripts/run-log.mjs:*)',
-      'Bash(node .claude/skills/build-guide/scripts/render-audit.mjs:*)',
+      'Bash(pob2-check-run:*)',
+      'Bash(pob2-run-log:*)',
+      'Bash(pob2-render-audit:*)',
+      'Bash(pob2-render-notes:*)',
       ...pob2,
     ]);
     expect(new Set(allow)).toEqual(expected);
@@ -160,21 +166,23 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
     for (const rule of deny) expect(allow.has(rule)).toBe(false);
   });
 
-  it('holds one SessionStart hook, matcher compact, that runs the script by $CLAUDE_PROJECT_DIR and prints the rule', () => {
-    const entries = settings().hooks.SessionStart;
+  it("holds no hook; the plugin's one SessionStart hook, matcher compact, runs the script by ${CLAUDE_PLUGIN_ROOT} and prints the rule", () => {
+    // Amendment 15 (D-499): the plugin carries the hook, so a settings copy that kept it would run the reminder twice.
+    expect(settings().hooks).toBeUndefined();
+    const entries = (JSON.parse(fs.readFileSync(PLUGIN_HOOKS, 'utf8')) as { hooks: Hooks }).hooks.SessionStart;
     expect(entries).toHaveLength(1);
     expect(entries[0].matcher).toBe('compact');
     expect(entries[0].hooks).toHaveLength(1);
     const hook = entries[0].hooks[0];
     expect(hook.type).toBe('command');
-    expect(hook.command).toBe('"$CLAUDE_PROJECT_DIR"/scripts/compact-reminder.sh');
+    expect(hook.command).toBe('"${CLAUDE_PLUGIN_ROOT}/scripts/compact-reminder.sh"');
 
-    // Run the command as the hook would, with CLAUDE_PROJECT_DIR set to this checkout, from another directory.
+    // Run the command as the hook would, with CLAUDE_PLUGIN_ROOT set to this checkout, from another directory.
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'compact-hook-'));
     try {
       const out = execFileSync('/bin/sh', ['-c', hook.command], {
         cwd,
-        env: { PATH: process.env.PATH ?? '/usr/bin:/bin', CLAUDE_PROJECT_DIR: REPO },
+        env: { PATH: process.env.PATH ?? '/usr/bin:/bin', CLAUDE_PLUGIN_ROOT: REPO },
         encoding: 'utf8',
       });
       for (const sentence of RULE_SENTENCES) expect(out).toContain(sentence);

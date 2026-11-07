@@ -1,6 +1,6 @@
 /**
  * AC-W74 (WU-90, amendment 8: D-403, D-409, static): the pattern library's new entries,
- * `.claude/skills/build-guide/references/patterns.md`.
+ * `skills/game-knowledge/references/patterns.md`.
  * - Brainstorm questions 11–14 as D-409 words them, after the first ten (which AC-W28 still counts), and question 9
  *   points to Standard kits. Question 15 and its entry, Scale the scaler (in Stat bridges), are the user's lens,
  *   approved 2026-10-23.
@@ -33,7 +33,7 @@ import fs from 'fs';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const FILE = path.join(REPO, '.claude', 'skills', 'build-guide', 'references', 'patterns.md');
+const FILE = path.join(REPO, 'skills', 'game-knowledge', 'references', 'patterns.md');
 const PIN_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
 const text = fs.readFileSync(FILE, 'utf8');
 const lines = text.split(/\r?\n/);
@@ -398,7 +398,7 @@ describe('AC-W95 (WU-123, D-458): the library carries amendment 12', () => {
   });
 
   it('keeps, after the trim, every entry heading another skill file named before it, and the defence names §3 cites', () => {
-    // Found by searching `.claude/skills/build-guide/` and `.claude/agents/` for the library's headings at e6dad76,
+    // Found by searching `skills/build-guide/` and `agents/` for the library's headings at e6dad76,
     // before the trim; §3 adds the Defence entries and the kit line the stages apply.
     const named = [
       'Brainstorm questions', 'Standard kits', 'Minions', 'Companions (tamed beasts)', 'Damage over time', 'Totems', 'Warcries',
@@ -557,7 +557,7 @@ describe('AC-W101 (WU-131, D-470): the library carries amendment 13', () => {
     for (const clause of clauses) expect({ clause, held: plain(cautions).includes(clause.replace(/\.$/, '')) }).toEqual({ clause, held: true });
     const cut = spec(S2, /Poison III and Supercritical in r2-s-2's Shield Wall cut it (\d+)% \(no poison chance beyond the gem/, "§2's figure")[1];
     expect(cautions).toMatch(new RegExp(`Lexd's Poison III and Supercritical, moved alone into the Titan Rake run's Shield Wall, with no poison chance beyond the gem, cut it ${cut}% \\[amendment-13\\] §2\\.$`));
-    expect(sources.get('amendment-13')).toBe('../../../../docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md');
+    expect(sources.get('amendment-13')).toBe('docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md');
   });
 
   it('points to it from "Convert into the ailment\'s type"', () => {

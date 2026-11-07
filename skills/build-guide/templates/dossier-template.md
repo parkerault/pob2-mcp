@@ -2,7 +2,7 @@
 
 <!--
 Template for dossier.md, the verification gate's comparison table (slice 03 section 7.2, as D-355 reduces it and
-D-436 amends it), written by the R1b-assemble step (.claude/skills/build-guide/references/stages/R1b-assemble.md),
+D-436 amends it), written by the R1b-assemble step (skills/build-guide/references/stages/R1b-assemble.md),
 its only writer, once per verification round. One line for the brief and the rounds, then one table with one row
 per verified card, in id order; a later round adds its rows below the earlier ones. No H2, no H3 and no markers.
 Verification checks that the build works (it compiles and the skills work as expected), so the table carries no

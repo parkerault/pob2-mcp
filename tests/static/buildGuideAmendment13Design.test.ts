@@ -2,25 +2,25 @@
  * Amendment 13 (M-26), WU-133: AC-W103 and AC-W104, the design, gate and guide side of D-463…D-477 in the skill text,
  * one assertion each.
  *
- * - AC-W103, the D1 stages: `D1-build.md` (the complete needs and no attribute need, `boss_<stage>` with the rotation,
+ * - AC-W103, the D1 stages: `skills/build-guide/references/stages/D1-build.md` (the complete needs and no attribute need, `boss_<stage>` with the rotation,
  *   the skill-level audit, unique jewels, corruption, flasks and charms, the rotation's conditions, the comment reason,
- *   whole numbers, no "Legacy of" example, the over-budget gear rule), `D1-tree.md` (`tree.start`, `tree.end`,
+ *   whole numbers, no "Legacy of" example, the over-budget gear rule), `skills/build-guide/references/stages/D1-tree.md` (`tree.start`, `tree.end`,
  *   `tree.search`, rebuild first at reach 12 with targets, the pace exchange, pool groups, the 1% loop to 30 swaps, the
  *   removed passives, the boss target, the fall's reason and the boss trade, the stale-server check, unique jewels in
- *   the socket test, and none of the superseded guards), `D1-finish.md` and `D1-gate.md`.
- * - AC-W104, the gates, pricing, the guide and the runner: `checkpoints.md`, `F1.md`, `D2-gate.md`, `gates.md`,
- *   `pricing.md`, W1 and the templates, `V4.md`, the coordinator's standing rules, `task-header.md`, `fix-round.md`,
- *   the verifier's definition and `SKILL.md`, D-477's claims pass among them.
+ *   the socket test, and none of the superseded guards), `skills/build-guide/references/stages/D1-finish.md` and `skills/build-guide/references/stages/D1-gate.md`.
+ * - AC-W104, the gates, pricing, the guide and the runner: `skills/build-guide/references/checkpoints.md`, `skills/build-guide/references/stages/F1.md`, `skills/build-guide/references/stages/D2-gate.md`, `skills/build-guide/references/gates.md`,
+ *   `skills/build-guide/references/pricing.md`, W1 and the templates, `skills/build-guide/references/stages/V4.md`, the coordinator's standing rules, `skills/build-guide/references/task-header.md`, `skills/build-guide/references/fix-round.md`,
+ *   the verifier's definition and `skills/build-guide/SKILL.md`, D-477's claims pass among them.
  *
  * The numbers are read from the amendment (`docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md`) and the
  * skill's reference files, and the display lines from its Appendix A, so the text is held to the spec. The D1 gate's
- * design-field example goes through the real display (`run-log.mjs`) and checker (`check-run.mjs`) on the revision-13
+ * design-field example goes through the real display (`pob2-run-log`) and checker (`pob2-check-run`) on the revision-13
  * fixture, and the design gate's example lines are the display's forms. SKILL.md's line cap is pinned where the earlier
  * amendments pinned it (`buildGuideAmendment12Design.test.ts`, `buildGuideAmendment11Design.test.ts`,
  * `buildGuidePipeline.test.ts`).
  *
  * Amendment 14 (M-27), WU-142: AC-W110 and AC-W111, the design and pricing docs (D1-build, D1-tree, D1-finish, D1-gate,
- * D2, `pricing.md`, `gates.md`, `lookups.md`), in their own blocks at the end, read against amendment 14
+ * D2, `skills/build-guide/references/pricing.md`, `skills/build-guide/references/gates.md`, `skills/game-knowledge/references/lookups.md`), in their own blocks at the end, read against amendment 14
  * (`amendment-14-files-specs-and-repairs.md`) and the revision-14 fixture `run-a14`.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
@@ -33,13 +33,14 @@ import { validatePlan } from '../../src/plan/schema';
 import { renderTiers, socketLine } from '../../src/handlers/lookupHandlers';
 import { renderFallback } from '../../src/trade/renderUpgrades';
 import { getTradeToolSchemas } from '../../src/server/toolSchemas';
+import { referencePath } from '../helpers/skillPaths';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
-const AGENTS_DIR = path.join(REPO, '.claude', 'agents', 'build-guide');
+const AGENTS_DIR = path.join(REPO, 'agents');
 const SCRIPTS = path.join(SKILL_DIR, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
 const RUN_LOG = path.join(SCRIPTS, 'run-log.mjs');
@@ -52,7 +53,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const rawStage = (name: string) => read(path.join(STAGES_DIR, `${name}.md`));
 const stage = (name: string) => folded(rawStage(name));
-const rawRef = (name: string) => read(path.join(SKILL_DIR, 'references', name));
+const rawRef = (name: string) => read(referencePath(name));
 const ref = (name: string) => folded(rawRef(name));
 const template = (name: string) => read(path.join(SKILL_DIR, 'templates', name));
 const agent = (name: string) => folded(read(path.join(AGENTS_DIR, `${name}.md`)));
@@ -164,7 +165,7 @@ describe('AC-W103 (WU-133): D1-build', () => {
   });
 
   it(`allows corruption only on a cheap unique (under ${CORRUPTION.cheapUnique.under} divine) and a gem corrupted +1 level, on b and n, never on a rare`, () => {
-    expect(items).toMatch(/\*\*Corruption\*\* \(D-471\), on `b` and `n` only, .* a corrupted line only on a \*\*cheap unique\*\*, one under `references\/corruption\.json`'s line uncorrupted \(1 divine\), written as the outcome's `\{enchant\}` line with a `Corrupted` line; and a skill gem corrupted to \+1 level, written at its level with `"corrupt": "plus_one_level"` .* \*\*Never on a rare\*\* .* nor on a magic or normal item, jewels among them; a cheap unique jewel follows the unique rule/);
+    expect(items).toMatch(/\*\*Corruption\*\* \(D-471\), on `b` and `n` only, .* a corrupted line only on a \*\*cheap unique\*\*, one under `skills\/build-guide\/references\/corruption\.json`'s line uncorrupted \(1 divine\), written as the outcome's `\{enchant\}` line with a `Corrupted` line; and a skill gem corrupted to \+1 level, written at its level with `"corrupt": "plus_one_level"` .* \*\*Never on a rare\*\* .* nor on a magic or normal item, jewels among them; a cheap unique jewel follows the unique rule/);
   });
 
   it('writes a life flask and a mana flask on every endgame rung, toggles off but for a flask effect, unpriced, and leaves the charm slots empty', () => {
@@ -233,7 +234,7 @@ describe('AC-W103 (WU-133): D1-tree', () => {
   });
 
   it(`holds n's boss figure at the ${thousands(BOSS_FLOOR)} floor as a target, undoing only its own move that takes it under`, () => {
-    expect(tree).toMatch(/\*\*The boss target on `n`\*\* \(D-468\), for your own moves only .*: `n`'s boss figure stays at or above `boss-floor\.json`'s floor, an agreed target for the finished tree, so a move that takes it from at or above the floor to under it fails the check\. An `n` whose start is already under the floor has no target here, and `m` and `b` have none/);
+    expect(tree).toMatch(/\*\*The boss target on `n`\*\* \(D-468\), for your own moves only .*: `n`'s boss figure stays at or above `skills\/build-guide\/references\/boss-floor\.json`'s floor, an agreed target for the finished tree, so a move that takes it from at or above the floor to under it fails the check\. An `n` whose start is already under the floor has no target here, and `m` and `b` have none/);
   });
 
   it("writes the designer's reason for a fall, and a boss trade when the boss figure fell", () => {
@@ -424,7 +425,7 @@ describe('AC-W104 (WU-133): pricing.md', () => {
 
   it('checks the pace line on its first trade call and returns the pace stop', () => {
     expect(pricing).toMatch(/- \*\*The pace line first\*\* \(D-474\)\. .* `Pace: 45 s between searches, at most 7 in 5 minutes\.`\. A pricing step's \*\*first trade call reads it\*\*: with no pace line .* or `Pace: off \(test setting\)\.`, the step makes no more trade calls, .* counts that call as `pace`, and returns the stop `pace: missing` or `pace: off`/);
-    // The line is the server's, and the run log's stop list takes `pace` (run-log.mjs's STOP_OUTCOMES).
+    // The line is the server's, and the run log's stop list takes `pace` (pob2-run-log's STOP_OUTCOMES).
     expect(read(path.join(REPO, 'src', 'server', 'toolSchemas.ts'))).toContain("'Pace: 45 s between searches, at most 7 in 5 minutes.', or 'Pace: off (test setting).'");
     expect(read(RUN_LOG)).toMatch(/export const PACE = 'pace';[\s\S]*STOP_OUTCOMES = \['rate_limited', 'locked_out', PACE\]/);
   });
@@ -438,7 +439,7 @@ describe('AC-W104 (WU-133): pricing.md', () => {
   });
 
   it('prices a corrupted unique uncorrupted, under the cheap line, with cheapness unchecked where no price judges it', () => {
-    expect(pricing).toMatch(/- \*\*A corrupted unique is priced uncorrupted\*\* \(D-471\): by name, without the corrupted line as a required affix, its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`.* A unique priced at or over `references\/corruption\.json`'s line \(1 divine, at the run's rates\) can't carry a corrupted line .* the `note` adds `cheapness unchecked: <why>`/);
+    expect(pricing).toMatch(/- \*\*A corrupted unique is priced uncorrupted\*\* \(D-471\): by name, without the corrupted line as a required affix, its `note` `priced uncorrupted: buy copies and corrupt until one rolls <line>`.* A unique priced at or over `skills\/build-guide\/references\/corruption\.json`'s line \(1 divine, at the run's rates\) can't carry a corrupted line .* the `note` adds `cheapness unchecked: <why>`/);
     expect(CHECKER_TEXT).toContain('cheapness unchecked: ');
   });
 
@@ -514,7 +515,7 @@ describe("AC-W104 (WU-133): the coordinator's standing rules, the task header an
 
 describe('AC-W104 (WU-133): D-477, a file-only build\'s claims pass', () => {
   it('SKILL.md runs the claims pass after F1, only for a build held to amendment 13 by its last D1 gate', () => {
-    expect(SKILL).toMatch(/- \*\*The claims pass\*\* \(D-477; `references\/fix-round\.md`\), only for a build taken `accept:file` and held to amendment 13 by its last D1 gate \(none for one designed before the boundary\): it stays `designing` after F1's pass for one verifier, stage `V4-claims`, `check: "claims"`, `findings: \[\]`/);
+    expect(SKILL).toMatch(/- \*\*The claims pass\*\* \(D-477; `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/build-guide\/references\/fix-round\.md`\), only for a build taken `accept:file` and held to amendment 13 by its last D1 gate \(none for one designed before the boundary\): it stays `designing` after F1's pass for one verifier, stage `V4-claims`, `check: "claims"`, `findings: \[\]`/);
   });
 
   it('SKILL.md gives the claims pass a fix round with D1 alone and one re-check', () => {
@@ -536,7 +537,7 @@ describe('AC-W104 (WU-133): D-477, a file-only build\'s claims pass', () => {
   });
 
   it('fix-round.md gives the claims pass its round: the round copy with no guide, D1 alone, no design gate, one re-check', () => {
-    expect(ref('fix-round.md')).toMatch(/## A file-only build's claims pass \(D-477\) .* 2\. \*\*Its fix round\*\*, once, only with an `unresolved` finding: the round copy \(`--snapshot <n>`, the plan and the record only\), then \*\*D1 alone\*\* .* a recompile runs the D1 gate, then F1, passing the recorded name with `firstFree: false` and no draft to remove; \*\*no design gate\*\*\. 3\. \*\*Its re-check\*\*: `check-run\.mjs <runFolder> --changed <n> --build <id>` \(claims only\), then one `V4-recheck` verifier/);
+    expect(ref('fix-round.md')).toMatch(/## A file-only build's claims pass \(D-477\) .* 2\. \*\*Its fix round\*\*, once, only with an `unresolved` finding: the round copy \(`--snapshot <n>`, the plan and the record only\), then \*\*D1 alone\*\* .* a recompile runs the D1 gate, then F1, passing the recorded name with `firstFree: false` and no draft to remove; \*\*no design gate\*\*\. 3\. \*\*Its re-check\*\*: `pob2-check-run <runFolder> --changed <n> --build <id>` \(claims only\), then one `V4-recheck` verifier/);
   });
 
   it("task-header.md names the claims pass's stage and check", () => {
@@ -582,14 +583,14 @@ describe('AC-W104 (WU-133): SKILL.md', () => {
   });
 
   it('cites references/corruption.json', () => {
-    expect(SKILL).toContain("corruption's cheap line `references/corruption.json` (D-471)");
+    expect(SKILL).toContain("corruption's cheap line `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/corruption.json` (D-471)");
   });
 });
 
 // ---------------------------------------------------------------------------------------------------
 // Amendment 14 (M-27), WU-142: AC-W110 and AC-W111, the design and pricing docs, one assertion each. The forms are read
 // from amendment 14 (`docs/build-guide/spec/amendment-14-files-specs-and-repairs.md`); the docs' examples go through the
-// real scripts (`run-log.mjs`, `check-run.mjs`) on the revision-14 fixture `run-a14`, the plan schema's own validation
+// real scripts (`pob2-run-log`, `pob2-check-run`) on the revision-14 fixture `run-a14`, the plan schema's own validation
 // (`validatePlan`) and the server's own renderers, so the text is held to the spec and its examples to the code.
 // ---------------------------------------------------------------------------------------------------
 
@@ -673,7 +674,7 @@ describe('AC-W110 (WU-142): D1-build', () => {
       const [, id, rest] = /^request: (\S+) (.*)$/.exec(l)!;
       return { id, words: EXAMPLE_WORDS[id], result: rest };
     });
-    // run-log.mjs takes the entry; the checker finds the words in the design checkpoint's note, and not without it.
+    // pob2-run-log takes the entry; the checker finds the words in the design checkpoint's note, and not without it.
     const dir = copyFixture(RUN14);
     const r = node(RUN_LOG, [dir, 'stage', '-'], JSON.stringify({ stage: 'D1-build', concept: BUILD, attempt: 2, outcome: 'done', requests }));
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });

@@ -1,19 +1,19 @@
 ---
 name: build-guide
-description: Build a Path of Exile 2 build and its guide from an open brief, through the pob2 MCP server. Brainstorm a deck of candidate builds, verify the ones the user picks, let the user finalize 1 to 3 of them, then for each design and compile its endgame (entering maps, budget and non-budget), write its endgame guide (level with any build of the class, then switch) and verify its claims; on request, add a build's campaign for the full guide (level 1 through the campaign to the endgame). Use when the user runs /build-guide <free text> [--offline [--test <path>]] [--no-ninja], the fixed roll /build-guide <ascendancy> <skill> included, resumes a run with /build-guide --resume <run folder> or --campaign <run folder> <card id>, or asks for a build guide.
+description: Build a Path of Exile 2 build and its guide from an open brief, through the pob2 MCP server. Brainstorm a deck of candidate builds, verify the ones the user picks, let the user finalize 1 to 3 of them, then for each design and compile its endgame (entering maps, budget and non-budget), write its endgame guide (level with any build of the class, then switch) and verify its claims; on request, add a build's campaign for the full guide (level 1 through the campaign to the endgame). Use when the user runs /pob2:build-guide <free text> [--offline [--test <path>]] [--no-ninja], the fixed roll /pob2:build-guide <ascendancy> <skill> included, resumes a run with /pob2:build-guide --resume <run folder> or --campaign <run folder> <card id>, or asks for a build guide.
 ---
 
 # build-guide
 
 You are the **runner**: you start the run, call one agent per step with the Agent tool, interview the user at
-the gates, keep the run log and run the run checker (slice 03 of `docs/build-guide/spec/`, with its amendments).
+the gates, keep the run log and run the run checker (slice 03 of `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/spec/`, with its amendments). A root-relative path in its references is under `${CLAUDE_PLUGIN_ROOT}`, the plugin root.
 
 ## After a compaction (D-420): read this first
 
-A compaction keeps at most part of this skill and none of its references (`compact-reminder.sh` prints this rule
+A compaction keeps at most part of this skill and none of its references (`${CLAUDE_PLUGIN_ROOT}/scripts/compact-reminder.sh` prints this rule
 after each one). If this session was just compacted during a run, before your next step or answer:
-1. Re-read `.claude/skills/build-guide/SKILL.md` whole, the run's `run-log.json`, the current step's reference and, at a gate, the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`).
-2. At a gate, print its display again with `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate), which records no second visit.
+1. Re-read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` whole, the run's `run-log.json`, the current step's reference and, at a gate, the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`).
+2. At a gate, print its display again with `pob2-run-log <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate), which records no second visit.
 3. Act on no yes the notes don't hold: a yes you remember that the notes don't record isn't one, so restate the pending decision and wait for it.
 
 The run has **three phases, each ending at a gate the user answers** (D-287): the brainstorm (gate `brainstorm`),
@@ -33,11 +33,11 @@ where its card names one.
 - **No trade request after pricing stops, until the user approves a retry** (D-415, D-422, D-444). A step whose
   `priceOutcomes` counts a `locked_out`, `rate_limited` or `pace` call (D-474: then ask the user to reconnect the
   server with `/mcp`) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first,
-  after its display; log the answer with `run-log.mjs <runFolder> pricing`. Tell every coordinator step until then:
+  after its display; log the answer with `pob2-run-log <runFolder> pricing`. Tell every coordinator step until then:
   no `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`,
-  `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed (`references/pricing.md`).
+  `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`).
 - **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
-  and that their browser shares the limit; one trade call at a time (`references/pricing.md`, "Pace").
+  and that their browser shares the limit; one trade call at a time (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, "Pace").
 - **Write only inside the run folder**: the `Known issues` lists (step 14) and the interview notes; by script the
   run log, the round copy, `audit.md` and `notes.txt`; each agent its header's `writes`.
 - **Your pob2 tools** are `mcp__pob2__get_classes`, `mcp__pob2__lookup_game_data` and `mcp__pob2__search_tree_nodes`
@@ -47,19 +47,19 @@ where its card names one.
   `loadedBuildUnsaved: …`; and `mcp__pob2__compile_plan`'s engine-free calls: `{plan_path, draft_name}`, an escalation
   accept's draft (§5); `remove_draft`, a picked card's skeleton (§4); `read_back` and `adopt`, the user's edits (§3);
   `notes_path`, the notes (§6). Every other compile, engine change and price call is a coordinator step's.
-- **Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type`.
+- **Agents run only through the Agent tool, as one of the four build-guide types**, named in `subagent_type` with the plugin's prefix: `pob2:build-guide-coordinator`, `pob2:build-guide-researcher`, `pob2:build-guide-verifier` or `pob2:build-guide-writer`.
 - **Every gate visit prints its display first, in your reply, whoever answers it** (D-265, D-367): the user, a
   pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation.
-  `run-log.mjs <runFolder> display <gate>` prints it (with `--build <id>` at a build's design and final gates);
+  `pob2-run-log <runFolder> display <gate>` prints it (with `--build <id>` at a build's design and final gates);
   then resolve and log the answer (`checkpoint` refuses a visit with no display). A pre-supplied or default answer
   replaces only the question: after the display, state the answer it resolved to, as in `Test config: first-n:2 →
-  verify r1-a-1, r1-b-1` (`references/checkpoints.md`).
+  verify r1-a-1, r1-b-1` (`skills/build-guide/references/checkpoints.md`).
 - **Every gate visit and escalation is an interview** (D-389, D-390), never an AskUserQuestion: answer every
   question before any decision, from the card and research files, your lookups, or a gate question step (stage
   `Q`) after one line saying what you start and why, without asking first. Then restate the decision by the
   cards' names and wait for a yes. A question is never a decision. Write the visit's notes after each answer, and
   the restated decision, the user's words verbatim, under `## Pending decision` before you ask for the yes; log
-  the checkpoint from the notes (D-420, `references/checkpoints.md`).
+  the checkpoint from the notes (D-420, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`).
 - **Read only what routes the run:** the gate verdict files under `reports/gates/` (the D1 gate's holds the design
   gate's display), the deck `cards.md`, `run-log.json`, the test config, the agents' returns, the verifiers' reports,
   a read-back's `readback.json` (D-479), the digest's first lines (§1), and at a gate the card and research files
@@ -69,16 +69,16 @@ where its card names one.
   - `ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another (`cd` before them is fine),
     each with no redirection (`>`, `>>`, `<`), no `tee`, no flag that writes a file (`-o`, `-i` or `-delete` where
     the tool writes with it), and no command substitution (`$(…)`, backticks) feeding another tool;
-  - the run checker, `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>`, with `--changed <n>`
+  - the run checker, `pob2-check-run <runFolder>`, with `--changed <n>`
     for a re-check's set (step 13), and with `--snapshot <n>` for the round copy (step 12, A-34), each with
     `--build <id>`, the build's folder (D-412);
-  - the audit render, `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> --build <id>` (D-355),
-    and its withdrawal after an answer change, `render-audit.mjs <runFolder> --withdraw <id>` (D-480);
-  - the notes render, `node .claude/skills/build-guide/scripts/render-notes.mjs <runFolder> --build <id>` (D-487);
-  - the run log, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
-    its migration, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> migrate` (D-415),
-    a gate's display, `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> display <gate>` (D-367),
-    and `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> test-config <path>` (D-394);
+  - the audit render, `pob2-render-audit <runFolder> --build <id>` (D-355),
+    and its withdrawal after an answer change, `pob2-render-audit <runFolder> --withdraw <id>` (D-480);
+  - the notes render, `pob2-render-notes <runFolder> --build <id>` (D-487);
+  - the run log, `pob2-run-log <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
+    its migration, `pob2-run-log <runFolder> migrate` (D-415),
+    a gate's display, `pob2-run-log <runFolder> display <gate>` (D-367),
+    and `pob2-run-log <runFolder> test-config <path>` (D-394);
   - `git status --porcelain` from the repository root, **the stray-file check** (D-474): keep the untracked paths at
     the run's start or resume in your context; after each step, tell the user each new one, and delete nothing.
 
@@ -91,13 +91,13 @@ where its card names one.
 ## Calling an agent
 
 ```
-Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 attempt 1", prompt: "<header, then the reference line>"})
+Agent({subagent_type: "pob2:build-guide-coordinator", description: "D1-build r1-a-2 attempt 1", prompt: "<header, then the reference line>"})
 ```
 
-- **The prompt** is the task header (`references/task-header.md`), a fenced `json` block, then `Read
-  .claude/skills/build-guide/references/stages/<stage>.md and do that step.` Add only what the card lists. A
-  build's steps carry its folder, `buildFolder` (`builds/<id>`, or `.`), and their `writes` under it.
-- **The user's words** (D-482; `references/checkpoints.md`): a request goes verbatim, nothing of yours added. Log a
+- **The prompt** is the task header (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`), a fenced `json` block, then `Read
+  <root>/skills/build-guide/references/stages/<stage>.md and do that step.` Add only what the card lists. A
+  build's steps carry its folder, `buildFolder` (`builds/<id>`, or `.`), and their `writes` under it. The header's `root` is `${CLAUDE_PLUGIN_ROOT}`, which `<root>` stands for.
+- **The user's words** (D-482; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`): a request goes verbatim, nothing of yours added. Log a
   step's `request: <id> made|departs: <how>` lines (outside its 8) as `requests`; stop at a departure to ask (`ask`).
 - **In flight:** at most 3 agents at once; a coordinator step never overlaps another agent (FR-W3). R1a's
   researchers and a gate's research questions run in parallel, `run_in_background: true`; any other step alone.
@@ -105,21 +105,21 @@ Agent({subagent_type: "build-guide-coordinator", description: "D1-build r1-a-2 a
   its own report, `<buildFolder>/reports/V4-<n>.md`, and never overwrites one (R-5 as D-352 amends it): route on
   that file. An agent returning without its file is re-run once, uncounted, logged `missing`; a second miss ends
   the run `stopped`. A verifier's `exists: reports/V4-<n>.md` is a missing return: re-run at the next free `<n>`.
-- **A refused call** (D-421; `references/gates.md`, "The refused route"). Claude Code's permission system can
+- **A refused call** (D-421; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/gates.md`, "The refused route"). Claude Code's permission system can
   refuse a tool call inside a step. The step stops and returns `refused: <tool>`; a gate step's verdict file has
   the part the call served `unverified` with code `tool-refused`. On that line or that code, log the step with
   outcome `refused`, ask the user to allow the tool, then re-run the step alone, next, uncounted: it routes to no
   producer and spends no retry.
-- **The run log.** Add each step's, gate's and question's entry with `run-log.mjs` (`references/run-log.md`), and
-  each build's status as it changes (`build`; `references/run-log.md`, "Builds").
+- **The run log.** Add each step's, gate's and question's entry with `pob2-run-log` (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/run-log.md`), and
+  each build's status as it changes (`build`; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/run-log.md`, "Builds").
 
-The verifier's prompt is always exactly this, so it carries nothing a producing step wrote (R-5, D-142):
+The verifier's prompt is always exactly this, `<root>` the header's `root`, so it carries nothing a producing step wrote (R-5, D-142):
 
 ````
 ```json
 <the task header: stage V4, its check and writes>
 ```
-Read .claude/skills/build-guide/references/stages/V4.md and do that step.
+Read <root>/skills/build-guide/references/stages/V4.md and do that step.
 ````
 
 ## The steps
@@ -127,24 +127,24 @@ Read .claude/skills/build-guide/references/stages/V4.md and do that step.
 | # | Step | Agent type | Writes | Returns, user, retries |
 |---|---|---|---|---|
 | 1 | Start (§1) | you | `run-log.json` | parses and checks the brief, or resumes a run (§7); asks the user when `loadedBuildUnsaved` (D-210) |
-| 2a | R1a, brainstorm round *k* | `build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' names |
-| 2b | R1a-synthesize | `build-guide-coordinator` | `cards.md`, the composites' cards `cards/r<k>-s-<n>.md` | `composites: <n>`, a line per composite, the counts of cards listed, not composed and superseded; `short: <why>` for a short round |
+| 2a | R1a, brainstorm round *k* | `pob2:build-guide-researcher`, ≤ 3 in parallel, lettered `a`, `b`, `c` | `research/p<k>-r1a-<n>.md`; 3 cards `cards/r<k>-<letter>-<m>.md`, their brainstorm halves | its files and its cards' names |
+| 2b | R1a-synthesize | `pob2:build-guide-coordinator` | `cards.md`, the composites' cards `cards/r<k>-s-<n>.md` | `composites: <n>`, a line per composite, the counts of cards listed, not composed and superseded; `short: <why>` for a short round |
 | 2c | The brainstorm gate (§2) | you | log | asks the user: verify 1–3 composites or cards (step 3), brainstorm more (step 2a, round *k*+1) or stop |
-| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not, and on a damage pass `skeleton: <relpath>`, its skeleton file in the builds folder, logged `skeletonFile` (D-479); a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
-| 4a | R1b-assemble | `build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
+| 3 | R1b, one picked card at a time, ≤ 3 per verification round | `pob2:build-guide-coordinator` | `concepts/<id>/plan.json`, `reports/gates/R1b-<id>-a<n>.json`, `cards/<id>.md` (a gate's edit to its brainstorm half, or a gate-made card whole, then its verification half), `probes/<id>/<p>/` | compiled or not, and on a damage pass `skeleton: <relpath>`, its skeleton file in the builds folder, logged `skeletonFile` (D-479); a compile failure re-runs, ≤ 2 counted retries, then the card is `failed` |
+| 4a | R1b-assemble | `pob2:build-guide-coordinator` | `dossier.md`; a gate-made card's line in `cards.md` | the verification gate's comparison, one line per card |
 | 5 | The verification gate (§3) | you | log | asks the user: finalize 1–3 cards, in their order (step 6a for the first), verify other cards (step 3), brainstorm more (step 2a) or stop; after a resume, a build's guide, campaign or design gate (§7) |
-| 6a | D1-build, the endgame rungs | `build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |
-| 6b | D1-tree, the travel | `build-guide-coordinator`, fresh | `plan.json` (the rungs' trees, needs, tree jewels and their prices, `tree.start`, `tree.end`, `tree.search`), `trades.json`, `pieces.md`'s jewel lines | `done` or `stale-server`, each rung's travel; `unspent:` and `jewel:` lines |
-| 6c | D1-finish | `build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims), `trades.json` | `done` or `build:`; its price calls by outcome; with `scope: "swap"` or `"scaling"` (§4; D-481, D-486) |
-| 7a | D1-gate | `build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`, with the design display; `plan.json` (FI-2 and the final re-price pass); on a pass, the draft PoB file through the server | one verdict line, and `draft: <relpath>`; route by §4 |
+| 6a | D1-build, the endgame rungs | `pob2:build-guide-coordinator` | `plan.json` (its endgame stages, `skills.main.statSet` set), `pieces.md` (D-434) | `done` or `infeasible`; its `pieces:` and `stronger structure:` lines |
+| 6b | D1-tree, the travel | `pob2:build-guide-coordinator`, fresh | `plan.json` (the rungs' trees, needs, tree jewels and their prices, `tree.start`, `tree.end`, `tree.search`), `trades.json`, `pieces.md`'s jewel lines | `done` or `stale-server`, each rung's travel; `unspent:` and `jewel:` lines |
+| 6c | D1-finish | `pob2:build-guide-coordinator`, fresh | `plan.json` (the anoint, prices, ledger and claims), `trades.json` | `done` or `build:`; its price calls by outcome; with `scope: "swap"` or `"scaling"` (§4; D-481, D-486) |
+| 7a | D1-gate | `pob2:build-guide-coordinator`, fresh | `reports/gates/D1-gate-<c>-a<n>.json`, with the design display; `plan.json` (FI-2 and the final re-price pass); on a pass, the draft PoB file through the server | one verdict line, and `draft: <relpath>`; route by §4 |
 | 7b | The design gate (§4) | you | log | asks the user: accept (step 8, then the guide), the PoB file only (step 8), revise (D1 again), verification (step 5) or stop |
-| 8 | F1, the final compile | `build-guide-coordinator`, fresh | `reports/gates/F1-<c>-a<n>.json`; the PoB file through the server, the draft removed, then `trade-links.json` (D-488) | one verdict line; a fault re-runs once, uncounted, then escalates |
-| 9a | D2, the campaign, on request (§7) | `build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
-| 9b | D2-gate and the campaign's final compile | `build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the `-campaign` PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
-| 10 | W1, the guide and the audit layer | `build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
-| 11 | V4, one full pass | `build-guide-verifier`, one, no lenses | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict |
+| 8 | F1, the final compile | `pob2:build-guide-coordinator`, fresh | `reports/gates/F1-<c>-a<n>.json`; the PoB file through the server, the draft removed, then `trade-links.json` (D-488) | one verdict line; a fault re-runs once, uncounted, then escalates |
+| 9a | D2, the campaign, on request (§7) | `pob2:build-guide-coordinator` | `plan.json` (its campaign stages) | `done` |
+| 9b | D2-gate and the campaign's final compile | `pob2:build-guide-coordinator`, fresh | `reports/gates/D2-gate-<c>-a<n>.json`; the `-campaign` PoB file through the server | one verdict line; a failure re-runs D2, ≤ 2 counted retries, then escalates |
+| 10 | W1, the guide and the audit layer | `pob2:build-guide-writer` | `guide.md`, `audit.md` | at most 8 lines, with its `known-issues-line` and `audit-known-issues-line` |
+| 11 | V4, one full pass | `pob2:build-guide-verifier`, one, no lenses | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict |
 | 12 | Fix round, once, only with open findings, uncounted | the owners: D1, D2, W1 | their own files: claims edited in place, a `hinge: no` statement removed or narrowed; a compile only for a build change | the ids fixed, the locations changed, and whether it recompiled |
-| 13 | V4 re-check | `build-guide-verifier`, one: only what `check-run.mjs --changed <n>` lists | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict; no further round |
+| 13 | V4 re-check | `pob2:build-guide-verifier`, one: only what `pob2-check-run --changed <n>` lists | its own report, `reports/V4-<n>.md` | at most 8 lines: the report and its verdict; no further round |
 | 14 | Known issues | you | each open finding's `reader` sentence, into `guide.md`'s `Known issues`, and its row into `audit.md`'s | — |
 | 15 | Run checker | you: `display final` runs it | — | its result, in the final gate's display (step 16) |
 | 16 | The final gate (§6) | you | log | asks the user: accept, accept and finalize more cards, add the campaign (step 9a), ask for changes (a revision), or decline |
@@ -158,12 +158,12 @@ round or a revision, but for one more round behind its `ask` (D-482, §6).
 
 ## 1. Start (step 1)
 
-Read `references/start.md` and do it, in its order, before any agent runs; its last step prints the league digest's
-staleness line, `head -3 data/league/<newest>.md`, the newest by fetch date (D-400). `init` records `--no-ninja` as
+Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md` and do it, in its order, before any agent runs; its last step prints the league digest's
+staleness line, `head -3 ${CLAUDE_PLUGIN_ROOT}/data/league/<newest>.md`, the newest by fetch date (D-400). `init` records `--no-ninja` as
 `noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every pricing
 step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
 
-**A resume** (D-415; `references/start.md`, "Resuming a run", has its order): `/build-guide --resume <run folder>`
+**A resume** (D-415; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md`, "Resuming a run", has its order): `/pob2:build-guide --resume <run folder>`
 goes on with an earlier run in its own folder, and `--campaign <run folder> <id>` resumes it and answers
 `campaign:<id>`: `mcp__pob2__guide_run {resume}`, `migrate` for a schema-3 log, `resume` with this session's
 `noNinja`, the unsaved-build question once per resume, then the verification gate (§3, §7), with no brief check.
@@ -179,7 +179,7 @@ goes on with an earlier run in its own folder, and `--campaign <run folder> <id>
   It returns `composites: <n>`, a line `r<k>-s-<n>: <name>` per composite, then `cards: <n> listed | not composed:
   <n> | superseded: <n>`. **A short round**: it returns `short: <why>`; record the reason in the run log, as
   `shortReason` on its `stages[]` entry, whole for one engine (D-405).
-- **The brainstorm gate** (2c; `references/checkpoints.md`). Print its display, `display brainstorm` (the brief,
+- **The brainstorm gate** (2c; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`). Print its display, `display brainstorm` (the brief,
   then the deck), whoever answers (Hard rules). Answers: **verify** 1–3 composites or cards, picked (a composite's
   changes may add or drop pieces) or made at the gate (its `from` cards, composites or piece keys, D-432; step 3);
   **brainstorm more** with the user's note (2a, round `k + 1`; only this answer starts one); **stop**.
@@ -196,22 +196,22 @@ goes on with an earlier run in its own folder, and `--campaign <run folder> <id>
   `failed`. A `damage-missing` finding (a damage kind the card names shows nothing, D-436) re-runs as a failure.
 - **R1b-assemble** (4a). Prompt: the verification round, the research files (and whether each researcher returned),
   and each card `{id, name, status, attempts, verdict}`. Once it wrote `dossier.md`, log the run's `dossier` (`set`).
-- **The verification gate** (5; `references/checkpoints.md`). Print its display, `display verification`, whoever
+- **The verification gate** (5; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`). Print its display, `display verification`, whoever
   answers (Hard rules). Answers: **finalize** 1–3 cards (`pick:<id>[,<id>…]`, D-411), in the user's order, each with
   its revision in `changes`: not a card that can't be finalized yet, nor a `wrong-ascendancy` card, failed or not,
   since the build it describes can't exist, D-342; nor a card that already has a build in the run (a second design
   of it is a `revise:` at its design gate, or a new card made from it); **verify other cards**; **brainstorm more**;
   or **stop**. After a resume, also `guide:<id>`, `campaign:<id>` and `design:<id>` (§7). Every route back from a
   design comes here: an `infeasible` design, an escalation's option 3, the design gate's `verification`, and FI-3.
-- **The queue** (D-411). Log each finalized card's build with `run-log.mjs <runFolder> build`, `{"id", "roll":
+- **The queue** (D-411). Log each finalized card's build with `pob2-run-log <runFolder> build`, `{"id", "roll":
   {className, ascendancy, skill}, "status": "queued"}`, the card's identity (D-286); new builds go ahead of the
   cards still queued. The builds run in turn, one loaded build (FR-W3): a card's design (§4), F1, its guide,
   checks and final gate (§6), then the next. A visit here from a build's route keeps the cards still queued: they
   resume after the visit, behind any card it finalizes, and the visit's `stop` ends them `stopped`.
 - **The user's edits** (D-479), here and at the design and final gates: the user changed the gate's PoB file? Read it
-  back, show the changes, and on a yes adopt it and take them as a revision (`references/checkpoints.md`).
+  back, show the changes, and on a yes adopt it and take them as a revision (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`).
 
-## 4. Design (steps 6a to 8; `references/gates.md`)
+## 4. Design (steps 6a to 8; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/gates.md`)
 
 One build at a time, the first queued card's, in its folder. D1 is **three agent steps** (D-356, D-418): D1-build,
 D1-tree, then D1-finish, each a fresh coordinator step. Every design attempt (fresh, or a gate retry) runs all three,
@@ -234,18 +234,18 @@ its findings D1-build's; D1-tree and D1-finish then run again. D1-tree never ret
   log's `noNinja` is true, D1-tree's `unspent:` lines as it returned them, and D1-build's `left out:` lines, with
   its `lever unpulled:` and `override:` lines (D-406, D-407). Log its `priceOutcomes`.
 - **The D1 gate** (7a), fresh after every D1. Route by its verdict file and D1-build's claim, by the table in
-  `references/gates.md`, "The D1 gate's outcome": compiled, V1, V2, floor, `rolledSkill` and tree pass, budget pass
+  `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/gates.md`, "The D1 gate's outcome": compiled, V1, V2, floor, `rolledSkill` and tree pass, budget pass
   or unverified: the design gate (7b); a failure re-runs the D1 steps the table names, up to 2 counted retries, then
   escalates (§5); `infeasible`, back to the verification gate with the verdict as evidence. Log each gate attempt
   with the outcome its verdict file routes to; the run checker holds the log to the files. Its `draft: <relpath>`
   line, the draft mode's reply on a pass, is the build's `draftFile`: log it with `build` (D-466). At the build's first
   draft, remove its card's skeleton (D-479), `remove_draft: <its skeletonFile>` on the plan `concepts/<id>/plan.json`
   (under `runFolderRel`), and log `skeleton {"concept"}`; one the user changed stays, as does an unpicked card's.
-- **The design gate** (7b; D-362; `references/checkpoints.md`). Print its display, `display design --build <id>`
+- **The design gate** (7b; D-362; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`). Print its display, `display design --build <id>`
   (the D1 gate verdict file's `design` field, A-35), whoever answers (Hard rules). Answers (checkpoint `design`,
   `concept` the card id): **accept**, F1 (step 8), then the endgame guide; **file only** (`accept:file`), F1, then
   the claims pass (§6, D-477): the build ends `file-only`; **revise** (`revise:<text>`), D1 again from the step the
-  change needs (a respec is a tree request, `references/checkpoints.md`), with the text as `findings` (`code:
+  change needs (a respec is a tree request, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`), with the text as `findings` (`code:
   "user-request"`), then the D1 gate and this gate again; **verification**: the build ends `dropped`, step 5;
   **stop**: the build ends `stopped`, the next queued card's design next. A default `stop` (`answers.design[]` used
   up) ends the run, the queued cards `stopped`. After `retry-pricing` here, an accept runs the D1 gate's re-price
@@ -255,20 +255,20 @@ its findings D1-build's; D1-tree and D1-finish then run again. D1-tree never ret
   (logged `scaling`); a yes runs D1-finish's scaling pass (`scope: "scaling"`) before F1. A revise of one slot's item
   and nothing else is a one-item swap, D1-finish (`scope: "swap"`) then the D1 gate and this gate, its restatement
   naming the route and its cost: "a one-item swap: the finishing step and the design check, about 0.5M tokens".
-- **F1** (8; D-413; `stages/F1.md`), fresh, after the design gate's `accept` or `accept:file`: header `compile:
+- **F1** (8; D-413; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/F1.md`), fresh, after the design gate's `accept` or `accept:file`: header `compile:
   "final"`, `buildName`, `firstFree`, `draftFile` (the build's) and `accepted` (this build's accepted findings); its
   prompt names the passing D1 gate's verdict file. `buildName` is the build's session name (D-466: `builds[].name`,
   else its card's), `firstFree: true` on its first final write, the recorded `pobFile` on a re-compile; a build
   designed before amendment 13 keeps `<slug>-<YYYY-MM-DD>-<n>-<id>` (D-412; `<slug>-<YYYY-MM-DD>-<n>` in `.`). Route
-  by its verdict file (`references/gates.md`, "F1's outcome"): a pass logs the build's `pobFile` (the verdict's
+  by its verdict file (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/gates.md`, "F1's outcome"): a pass logs the build's `pobFile` (the verdict's
   `finalCompile.pobFile`) and, on `draft removed`, `draftFile` null; then after `accept` renders `audit.md`
-  (`render-audit.mjs <runFolder> --build <id>`, D-355) and runs W1, after `accept:file` the claims pass (§6); a
+  (`pob2-render-audit <runFolder> --build <id>`, D-355) and runs W1, after `accept:file` the claims pass (§6); a
   fault re-runs F1 once, uncounted, then escalates (§5); `ledger-refused` escalates at once.
 - **An answer change** (D-480): after F1's pass on `accept` and before W1's entry, the user may take the file only:
-  log `answer-change`, a W1 still running `cancelled`, run `render-audit.mjs <runFolder> --withdraw <id>`, then the
-  claims pass (`references/checkpoints.md`).
+  log `answer-change`, a W1 still running `cancelled`, run `pob2-render-audit <runFolder> --withdraw <id>`, then the
+  claims pass (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`).
 
-## 5. Gate escalations (`references/checkpoints.md`; D-236)
+## 5. Gate escalations (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`; D-236)
 
 The D1 gate, F1 and the D2 gate escalate, each for its build (D-411). Record `{stage, concept, verdict, choice,
 guidance?}` and checkpoint `escalation`. Print its display, `display escalation`, whoever answers (Hard rules);
@@ -291,31 +291,31 @@ changed PoB file and answer accept: F1 runs again and accepts no finding.
   folder holds (`ls <runFolder>/<buildFolder>/reports`), 1 for the build's first. One pass with no lenses: it
   checks every hinge claim of `plan.json` against its source and reads every H2 of `guide.md` as an editor, with
   no sampling; the ledger's arithmetic is the run checker's.
-- **The claims pass** (D-477; `references/fix-round.md`), only for a build taken `accept:file` and held to amendment
+- **The claims pass** (D-477; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`), only for a build taken `accept:file` and held to amendment
   13 by its last D1 gate (none for one designed before the boundary): it stays `designing` after F1's pass for one
   verifier, stage `V4-claims`, `check: "claims"`, `findings: []`, `<n>` as above, every hinge claim and no guide;
   an `unresolved` finding gets a fix round with D1 alone (no design gate) and one re-check; then it ends `file-only`.
   Held to amendment 14, it ends after its notes (D-487): W1 with `scope: "notes"`, then the `notes_path` write.
-- **Step 12, the fix round** (`references/fix-round.md`), once, only when the report has an `unresolved`
-  finding. First the round copy (A-34): `node .claude/skills/build-guide/scripts/check-run.mjs <runFolder>
+- **Step 12, the fix round** (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`), once, only when the report has an `unresolved`
+  finding. First the round copy (A-34): `pob2-check-run <runFolder>
   --snapshot <n> --build <id>`, `<n>` that report's number. Then each finding goes to its `owner`: D1 (D1-finish,
   and D1-build, D1-tree and D1-finish when D1-finish returns `build: <ids>`), D2, and W1 last. Owners fix claims in
   place, and recompile, and so re-run the gates, only for gear, tree, gems or config; no design gate. Re-render
   `audit.md` before W1.
-- **Step 13, the re-check** (`references/fix-round.md`): `check-run.mjs <runFolder> --changed <n> --build <id>`,
+- **Step 13, the re-check** (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`): `pob2-check-run <runFolder> --changed <n> --build <id>`,
   then one verifier, `check: "recheck"`, `changed` the lines it printed, verbatim. It re-checks only those, whether
   or not an owner recompiled: no re-check covers every claim (D-352). **One more round** (D-482), behind an `ask`
   (`open-finding`) on a finding left open that needs gear: `round`, one fix round and `V4-recheck` once a build.
-- **Step 14, known issues** (`references/fix-round.md`): replace both `Known issues` lists whole with the last
+- **Step 14, known issues** (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`): replace both `Known issues` lists whole with the last
   report's open findings and W1's accepted-finding lines, reading only the lines you edit. Then **the notes**
-  (D-487), every cycle: `render-notes.mjs <runFolder> --build <id>`, then `mcp__pob2__compile_plan {plan_path,
+  (D-487), every cycle: `pob2-render-notes <runFolder> --build <id>`, then `mcp__pob2__compile_plan {plan_path,
   notes_path: "<runFolderRel>/<buildFolder>/notes.txt"}`; a refusal (the file changed on disk) is told and left.
-- **Step 16, the final gate** (`references/checkpoints.md`). Print its display, `display final --build <id>` (each
+- **Step 16, the final gate** (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`). Print its display, `display final --build <id>` (each
   rung's final figures, D-369, and the checker's result among them), whoever answers (Hard rules); answers (checkpoint
   `final`, its `concept` the card id): **accept** (`completed`); **accept, then verification** (`accept:verification`:
   `completed`, and once the queue is empty the verification gate again, for more cards); **campaign** (`campaign`:
   `completed` with its endgame guide, then its campaign, §7, and back here); **ask for changes**; or **decline**
-  (`decline:<note>`, the build ends `not-accepted`). Asking for changes is a revision (`references/fix-round.md`): the
+  (`decline:<note>`, the build ends `not-accepted`). Asking for changes is a revision (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`): the
   round copy, the owners' chain, then step 13's re-check: **a revision runs no full pass** (D-352); a one-item swap
   runs D1-finish (`swap`), the D1 gate, F1, W1's patch and the re-check (D-481). Steps 12 to 16
   then follow as after a full pass. Once the build ends: the next queued card's design, else the verification gate
@@ -324,26 +324,26 @@ changed PoB file and answer accept: F1 runs again and accepts no finding.
 ## 7. The campaign, and a resume's answers (steps 9a and 9b; D-415)
 
 - **A build's campaign**, from its final gate's `campaign` or a resume's `campaign:<id>`, runs the chain in
-  `references/fix-round.md`, "A build's campaign": D2 (9a) and the D2 gate (9b), whose `buildName` is the session
+  `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/fix-round.md`, "A build's campaign": D2 (9a) and the D2 gate (9b), whose `buildName` is the session
   name and ` (campaign)`, with `firstFree` on its first write (D-466; an older build's adds `-campaign`).
-- **A resume's answers** at the verification gate, each naming one build (`references/checkpoints.md`):
+- **A resume's answers** at the verification gate, each naming one build (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`):
   `guide:<id>`, a `file-only` build (log it `writing`, the render, W1, V4's full pass, steps 12 to 16);
   `campaign:<id>`, a `completed` or `file-only` build's campaign; `design:<id>`, a `stopped` or `dropped` build whose
   last D1 gate passed (log it `designing`; its design gate again from that verdict; F1 checks the plan is unchanged).
 
 ## 8. Finish
 
-1. Set the run's `status` with `run-log.mjs <runFolder> set`, the run log's last write: `completed` when any build
+1. Set the run's `status` with `pob2-run-log <runFolder> set`, the run log's last write: `completed` when any build
    ended `completed` or `file-only`, else the last build's end, or `stopped` when no card was finalized. Each
    build's status, guide and PoB file are in `builds[]` already; no import code, whose one home is the record (D-260).
-2. Run the run checker at step 15 and once more after the run log's last write (`references/run-folder.md`).
+2. Run the run checker at step 15 and once more after the run log's last write (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/run-folder.md`).
 3. Tell the user: the run folder; per build, its guide, its PoB file and where its import code is (the guide's
    `Your PoB file`, and `compile-record.json`), its status and its known issues (a file-only build's: its claims
    pass's open findings, each one's `reader` sentence, D-477); and each violation the checker printed.
 
 ## Other references
 
-`references/pricing.md`, `references/offline-and-test.md`, `references/source-markers.md`, `references/lookups.md`,
-`references/patterns.md` (C-53), the design's targets `references/toughness-targets.json` (D-441) and
-`references/boss-floor.json` (D-448), corruption's cheap line `references/corruption.json` (D-471),
-`references/stages/`, `templates/card-template.md` (C-52) and `scripts/`.
+`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/patterns.md` (C-53), the design's targets `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/toughness-targets.json` (D-441) and
+`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/boss-floor.json` (D-448), corruption's cheap line `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/corruption.json` (D-471),
+`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/`, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/templates/card-template.md` (C-52) and `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/scripts/`.

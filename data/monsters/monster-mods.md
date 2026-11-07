@@ -1,7 +1,7 @@
 # Rare monster modifiers
 
-Written by `.claude/skills/build-guide/scripts/monster-mods.mjs` from poe2db's pages saved 2026-10-18 (amendment 8,
-D-402). Re-run the script to change it; its judgments are in the script.
+Written by `skills/game-knowledge/scripts/monster-mods.mjs` from poe2db's pages saved 2026-10-18 (amendment 8, D-402).
+Re-run the script to change it; its judgments are in the script.
 
 - **Source.** https://poe2db.tw/us/Monster_Modifiers, its "Archnemesis Mods" list (268 rows), and
   https://poe2db.tw/us/Tame_Beast, its own "Archnemesis Mods" list (178 rows). One block per name: 97 modifiers, 97 on

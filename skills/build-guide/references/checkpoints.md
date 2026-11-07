@@ -6,14 +6,14 @@ fourth inside the finalization, the design gate (`design`, D-362), and at two ki
 verification gate finalizes 1 to 3 cards, and each becomes a **build** (D-411, D-412): the design and final gates
 are a build's, visited once per build in turn, and their checkpoints name it (`concept`, the card id). Every gate
 visit and every escalation is an interview (below); the unsaved-build question stays a fixed question. In offline
-test mode the test config answers instead (`offline-and-test.md`), and only there (A-28). Every answer is recorded in
+test mode the test config answers instead (`skills/build-guide/references/offline-and-test.md`), and only there (A-28). Every answer is recorded in
 the run log's `checkpoints[]` under the gate's or question's name (`answer`, `answeredBy`, and `rule` for a
-pre-supplied or default answer; `run-log.md`). The run also stops at an `ask` (D-482), which has no display: a step's
+pre-supplied or default answer; `skills/build-guide/references/run-log.md`). The run also stops at an `ask` (D-482), which has no display: a step's
 return that departs from the user's words, or a finding the one re-check leaves open that needs a gear change
 ("The user's words, the request lines and the `ask` checkpoints", below).
 
 **Every gate visit starts with its display** (D-265, D-367), at the brainstorm, verification, design and final
-gates and at an escalation, whoever answers: run `node .claude/skills/build-guide/scripts/run-log.mjs <runFolder>
+gates and at an escalation, whoever answers: run `pob2-run-log <runFolder>
 display <gate>` (`brainstorm`, `verification`, `design`, `final` or `escalation`; the design and final gates
 `display design --build <id>` and `display final --build <id>`, the build at the gate). Its output is the display:
 print it in your reply as it is, then resolve the answer (the interview, or the test config's) and log it with
@@ -31,9 +31,9 @@ No gate uses AskUserQuestion: the user answers in free text.
      `guide.md`;
    - your lookups: `mcp__pob2__lookup_game_data`, `mcp__pob2__search_tree_nodes`, and
      `mcp__pob2__check_model_coverage` for whether PoB models a line;
-   - a **gate question step**, stage `Q` (`stages/Q.md`), one per question or batch of related ones: a research
-     question goes to a `build-guide-researcher`; one about a compiled build, or that needs a measurement, to a
-     `build-guide-coordinator`. At the brainstorm gate nothing is compiled: a researcher gives a labelled
+   - a **gate question step**, stage `Q` (`skills/build-guide/references/stages/Q.md`), one per question or batch of related ones: a research
+     question goes to a `pob2:build-guide-researcher`; one about a compiled build, or that needs a measurement, to a
+     `pob2:build-guide-coordinator`. At the brainstorm gate nothing is compiled: a researcher gives a labelled
      estimate, or you offer to verify the card. Before starting one, say in one line what you start and why; don't ask first,
      but the user can say not to. Its report is `interviews/<gate>-<visit>-q<n>.md`, `n` from 1 per visit. Up to
      3 research steps run in parallel; a coordinator step runs alone. Log each as `{"stage": "Q", "attempt": 1,
@@ -54,7 +54,7 @@ No gate uses AskUserQuestion: the user answers in free text.
    earns" that a step could widen. A condition the user adds in the same message as a yes is restated and confirmed
    again before the brief.
 3. **The record, as you go** (D-389, D-420). A compaction can come while the run waits at a gate, and it keeps
-   no reference and only part of `SKILL.md`, so the visit's notes are written during the interview, never only at
+   no reference and only part of `skills/build-guide/SKILL.md`, so the visit's notes are written during the interview, never only at
    the decision: `interviews/<gate>-<visit>.md` (the checkpoint's gate name; the display's visit), with Write the
    first time and Edit after.
    - **Interview notes after each answer:** write each question's section as soon as you have answered it, before
@@ -144,7 +144,7 @@ needs the user's yes before anything is taken (R-83):
    answers); **a tree change only**, D1-tree; **anything else**, the full chain
    from D1-build. At the verification gate they join the picked card's `changes`, its build's first design brief; at
    the design gate they are a `revise:`; at the final gate a `revise:` there. An edited item is taken literally: the
-   plan takes its lines as the user wrote them, priced at the depth price of a search for its lines (`pricing.md`).
+   plan takes its lines as the user wrote them, priced at the depth price of a search for its lines (`skills/build-guide/references/pricing.md`).
 
 ## The user's words, the request lines and the `ask` checkpoints (D-482)
 
@@ -153,11 +153,11 @@ departs from it.
 
 - **The words travel verbatim**, kept literal as the interview's step 2 says. Each request is a `findings` entry
   `{"code": "user-request", "id": "u<k>", "words": "<the user's text, verbatim>", "restatement": "<yours>"}`
-  (`task-header.md`; `id` from `u1` in the build). For a read-back, `words` are `readback.json`'s change texts as it
+  (`skills/build-guide/references/task-header.md`; `id` from `u1` in the build). For a read-back, `words` are `readback.json`'s change texts as it
   gives them, several joined by "; " or a newline.
 - **Each step that takes requests returns one line per request**, outside its 8-line return: `request: <id> made` or
   `request: <id> departs: <how>`. Log them on its stage entry, `"requests": [{"id", "words", "result"}]`, `result`
-  `made` or the `departs: <how>` text (`run-log.md`); the run checker fails words that aren't in a checkpoint of the
+  `made` or the `departs: <how>` text (`skills/build-guide/references/run-log.md`); the run checker fails words that aren't in a checkpoint of the
   build (an answer, its changes or note, a new card's words), an answer change's note or `readback.json`.
 - **Stop at the first departure**: a `departs` line, or an item, a price or a latitude the request didn't name, stops
   the run before the next step starts. Ask the user, and log the question's answer as an `ask` checkpoint (no display
@@ -165,14 +165,14 @@ departs from it.
   carries:
 
   ```
-  node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
+  pob2-run-log <runFolder> checkpoint - <<'JSON'
   {"checkpoint": "ask", "kind": "departs", "build": "r1-a-2", "visit": 1, "answer": "keep the crit suffix after all", "answeredBy": "user"}
   JSON
   ```
 - **An open finding after the one re-check** (a guide build's fix round, or a file-only build's claims pass) that needs
   a gear change: ask the user at once, before the next step, `kind: "open-finding"`: **`round`**, one more fix round and
   one more `V4-recheck`, at most once a build, with its token cost (about what the build's last fix round and re-check
-  took), or **`ship`**, the issue going into the PoB notes and the Known issues as it stands (`fix-round.md`).
+  took), or **`ship`**, the issue going into the PoB notes and the Known issues as it stands (`skills/build-guide/references/fix-round.md`).
 - **Open findings are told at once** (amending D-477's "at the run's end"): after a build's last re-check, before the
   next build starts, tell the user each open finding's `reader` sentence; they go into the build's PoB notes and
   `audit.md`'s known issues (the render reads the last report).
@@ -180,14 +180,14 @@ departs from it.
 ## The pricing question (D-444)
 
 After a pricing step hit a rate limit or a lockout (`rate_limited` or `locked_out` in its `priceOutcomes`), trade-site
-pricing stops until the user approves a retry: `run-log.mjs` records the stop in `pricing.stops[]` with that step's
-`stage` entry (`run-log.md`). poe.ninja's exchange stays allowed, so every item the currency exchange sells keeps
+pricing stops until the user approves a retry: `pob2-run-log` records the stop in `pricing.stops[]` with that step's
+`stage` entry (`skills/build-guide/references/run-log.md`). poe.ninja's exchange stays allowed, so every item the currency exchange sells keeps
 its price. **The next gate asks first**, whichever gate it is: after its display and before its other questions,
 ask `Pricing stopped at <step> after <outcome>: retry?` (`<outcome>` in words: "a rate limit", "a lockout"), and
-log the answer with `run-log.mjs pricing` before anything else of the visit:
+log the answer with `pob2-run-log pricing` before anything else of the visit:
 
 ```
-node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> pricing - <<'JSON'
+pob2-run-log <runFolder> pricing - <<'JSON'
 {"checkpoint": "verification", "answer": "retry-pricing"}
 JSON
 ```
@@ -199,7 +199,7 @@ JSON
   `unavailable`, and the next gate asks again.
 
 Asked only while a stop is open (the script refuses it otherwise), once per gate visit. A resume clears a stop too,
-as before (`pricing.md`).
+as before (`skills/build-guide/references/pricing.md`).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 
@@ -274,7 +274,7 @@ checkpoint `brainstorm`.
   - **verify** 1–3 composites or cards (D-432), picked and made at the gate together, each named by its number or
     its name as the display shows it (a superseded composite, a plain card or a not-dealt one included), any with
     a revision: `pick:<id>[,<id>…]`, with its `changes` and `newCards`. They go to R1b as a new verification round
-    (SKILL.md step 3).
+    (skills/build-guide/SKILL.md step 3).
     - **`changes` on a picked composite** may add or drop pieces, by name or key ("add Blood Magic", "drop
       i1b-4"): a revision, recorded under the composite's id with the user's words, which R1b applies to its
       `### Pieces` table. A piece that would change the composite's named damage source, ascendancy or engine
@@ -344,9 +344,9 @@ queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
     finalized anyway: its design measures the full build. **A card that already has a build in the run isn't
     finalized again**: a second design of it is a `revise:` at its design gate, or a new card made from it here
     (D-391). Each card's identity `{className,
-    ascendancy, skill}` becomes its build's `roll` (D-286), logged with `run-log.mjs build` as `queued`, in
+    ascendancy, skill}` becomes its build's `roll` (D-286), logged with `pob2-run-log build` as `queued`, in
     `builds/<id>/` (D-412), and the builds are designed in turn (below). A read-back of a picked card's skeleton
-    joins its `changes`; its skeleton file is removed when its build gets its first design draft (`SKILL.md` §4), and
+    joins its `changes`; its skeleton file is removed when its build gets its first design draft (`skills/build-guide/SKILL.md` §4), and
     an unpicked card's stays, for the user to come back to.
   - **verify other cards** (`verify:<id>[,<id>…]`, 1–3 composites or cards from the deck not verified yet, with
     `changes` and `newCards` as at the brainstorm gate, pieces among them, D-432): a new verification round (step
@@ -356,7 +356,7 @@ queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
     `completed` or `file-only` before.
   - **after a resume** (D-415), each naming one build of the run: `guide:<id>` for a `file-only` build (W1 with
     the endgame template, V4's full pass, the fix round and the re-check, its final gate); `campaign:<id>` for a
-    `completed` or `file-only` build (its campaign, `fix-round.md`); `design:<id>` for a `stopped` or `dropped`
+    `completed` or `file-only` build (its campaign, `skills/build-guide/references/fix-round.md`); `design:<id>` for a `stopped` or `dropped`
     build whose last D1 gate passed: its design gate again, from that gate's verdict file, at no cost (F1 then
     checks the plan is the one that gate passed, by its `planSha1`).
 
@@ -373,7 +373,7 @@ didn't ask for this gate (a final gate's `accept:verification` asks for it once 
 A fourth user gate (D-362), once per build, after its passing D1 gate (or one whose escalation was accepted) and
 before its final compile, F1 (D-413), and its guide: the user judges the endgame build before anything else is
 written. Recorded as checkpoint `design`, with `concept` the build's card id. It runs between the D1 gate and F1
-(SKILL.md step 7b), never in the fix round or a revision. Numbers come first here, measured on the full build
+(skills/build-guide/SKILL.md step 7b), never in the fix round or a revision. Numbers come first here, measured on the full build
 (D-436): verification showed none.
 
 - **Show, for a build held to amendment 14** (its last D1 gate at or after 14's boundary; D-478, Appendix A's
@@ -394,7 +394,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   leave it: `display design --build <id> --detail` prints that form, the one below, when the user asks for a figure; a
   build designed before amendment 14 keeps it. **Movement is PoB's regular figure** (D-491): your answers state it as
   the record has it and never fold a skill's use penalty in.
-- **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `stages/D1-gate.md` step 6):
+- **Show**, from the passing D1 gate's verdict file, its `design` field (A-35; `skills/build-guide/references/stages/D1-gate.md` step 6):
   you read no plan or record and call no tool for it; `display design --build <id>` prints it. First, once per
   build, before the rungs, the build's pieces from the design field's `pieces` (D-434), `- Pieces: <n> in, <n>
   scheduled (<names>), <n> out`, the out pieces counted without their names (D-442); a build with no `pieces.md`
@@ -453,7 +453,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   monsters, never PoB's Full DPS, with its cull only when the rung's rotation culls (`skills.cull`); then the boss
   line, `about <estimate>` with PoB's own figure and what the estimate corrects when D1-finish estimated it by
   hand (`boss_<stage>`), else the measured figure alone; on the non-budget rung the boss floor line, the boss
-  figure against the 250,000 floor (`references/boss-floor.json`), `under the 250,000 floor` with a damage trade
+  figure against the 250,000 floor (`skills/build-guide/references/boss-floor.json`), `under the 250,000 floor` with a damage trade
   below it; **the resisting figure**, the same damage against the map enemy with 40% fire, cold and lightning
   resistance, where penetration and resistance reduction show (no threshold); the cull line; and the trigger line
   when a meta gem triggers the named source. **The boss rotation line** (D-468), on a rung designed under amendment
@@ -463,7 +463,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
   designer's reason for a fall (`(the designer)`): the boss is judged on the rotation, a target on the finished
   tree, never a per-move veto. The Effective HP line names the hit it was measured against (the
   rung's `ehpHit`, D-423), and on the non-budget rung the share of it chance layers make. **On the non-budget rung,
-  the toughness line** (D-441): its EHP against its target in `references/toughness-targets.json`, 20,000 for a close
+  the toughness line** (D-441): its EHP against its target in `skills/build-guide/references/toughness-targets.json`, 20,000 for a close
   build and 15,000 at a distance, with the engagement and its reason, so the user can correct it, and its band: under
   it (below 90%), within it, or over it (above 150%). Then (D-449) the conditioned read, the EHP with every
   condition against the build, and its band; on a build that deflects, deflection's average cut to ailment damage,
@@ -519,7 +519,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     unpriced.
 
     ```
-    node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> checkpoint - <<'JSON'
+    pob2-run-log <runFolder> checkpoint - <<'JSON'
     {"checkpoint": "design", "concept": "r1-a-2", "visit": 1, "answer": "accept", "answeredBy": "user", "questions": 0, "scaling": true}
     JSON
     ```
@@ -531,19 +531,19 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     pass. A guide can follow in a later session (`guide:<id>` after `--resume`, D-415). In a build held to amendment
     14 (D-482, D-487) the open findings are told at once, after the last re-check, and the build ends after its
     notes: W1 with `scope: "notes"` writes `notes.txt`, which `compile_plan {plan_path, notes_path}` writes into the
-    PoB file (`fix-round.md`).
+    PoB file (`skills/build-guide/references/fix-round.md`).
   - **An answer change** (D-480): after F1's pass on `accept`, and before W1's entry is logged, the user may take the
     PoB file only after all ("Wait, I didn't say I wanted a guide"). Log it with the user's words as its `note`; log a
     W1 already running, stopped, with the outcome `cancelled` (W1's only, and only after an answer change); then run
-    `node .claude/skills/build-guide/scripts/render-audit.mjs <runFolder> --withdraw <id>`, which removes the
+    `pob2-render-audit <runFolder> --withdraw <id>`, which removes the
     `audit.md` F1's route rendered and a partial `guide.md` and logs `withdrawn`; then the file-only route: the claims
     pass, its round and re-check, and the notes. The reverse, the file to a guide, stays `guide:<id>` after a resume.
 
     ```
-    node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> answer-change - <<'JSON'
+    pob2-run-log <runFolder> answer-change - <<'JSON'
     {"checkpoint": "design", "visit": 1, "from": "accept", "to": "accept:file", "note": "Wait, I didn't say I wanted a guide"}
     JSON
-    node .claude/skills/build-guide/scripts/run-log.mjs <runFolder> stage - <<'JSON'
+    pob2-run-log <runFolder> stage - <<'JSON'
     {"stage": "W1", "concept": "r1-a-2", "attempt": 1, "outcome": "cancelled"}
     JSON
     ```
@@ -562,7 +562,7 @@ written. Recorded as checkpoint `design`, with `concept` the build's card id. It
     D1-build runs first, to move the plan to schema 9 (amendment 13 §22). A change to the anoint, the prices, the ledger, the boss
     estimate, the claims or a trade's measure runs D1-finish alone with it, and when it returns `build: <ids>`,
     D1-build with those, D1-tree, then D1-finish with its `changed`. Within the attempt, D1-finish's `build:`
-    return sends it back to D1-build (`gates.md`, "The D1 gate's outcome"); D1-tree has no `respec:` return in a
+    return sends it back to D1-build (`skills/build-guide/references/gates.md`, "The D1 gate's outcome"); D1-tree has no `respec:` return in a
     run held to amendment 12. Taking a `stronger structure:` line that keeps the roll is a revise like any other,
     D1-build first. Then the D1 gate, then this gate again. The revision counts against no retry cap; the D1 gate in it
     keeps its 2 counted retries. A change that isn't a revision of the finalized build (a new card, by the rule
@@ -604,19 +604,19 @@ Checkpoint 2, once per build. Shown after the run checker (step 15). Recorded as
   - **accept, then verification** (`accept:verification`, D-411): the build ends `completed`, and once the queue
     is empty the verification gate is shown again, for more cards.
   - **campaign** (`campaign`, D-415): the build ends `completed` with its endgame guide, then reopens for its
-    campaign (`fix-round.md`, "A build's campaign") and comes back to this gate with the full guide.
+    campaign (`skills/build-guide/references/fix-round.md`, "A build's campaign") and comes back to this gate with the full guide.
   - **changes** (D-236): a revision. The runner maps each request to the step that owns it, by the fix
     round's owners: the guide's text is W1's; an endgame stage of `plan.json`, its ledger entries and
-    prices D1's; a campaign stage D2's. It runs that owner as the fix round does (SKILL.md step 12, D-264:
+    prices D1's; a campaign stage D2's. It runs that owner as the fix round does (skills/build-guide/SKILL.md step 12, D-264:
     claims in place, then W1; the owner's gates only after it recompiled: D1 → D1 gate → F1, or the D2 gate for
     a build with its campaign, → W1, D2 → D2 gate → W1) with the requests as `findings` (`code:
-    "user-request"`), after the round copy to `rounds/<n>/`. Then the V4 re-check over what `check-run.mjs
+    "user-request"`), after the round copy to `rounds/<n>/`. Then the V4 re-check over what `pob2-check-run
     --changed <n> --build <id>` lists and the known issues again, and it comes back here: **a revision runs no
     full pass** (D-352). A revision counts against no retry cap. The answer is recorded as `revise:<text>`. The
     final gate's `revise:` is for guide-level changes; a build change belongs at the design gate (D-362), though
     one asked here still runs through its owner. **A one-item revision** (D-481; one slot's item and nothing else, as
     the design gate's one-item swap) runs D1-finish with `scope: "swap"`, the D1 gate, F1, then W1's patch and the
-    re-check, in place of the owners' chain (`fix-round.md`); your restatement names that route and its cost.
+    re-check, in place of the owners' chain (`skills/build-guide/references/fix-round.md`); your restatement names that route and its cost.
   - **decline** (`decline:<note>`): the user declines the guide, and the build ends `not-accepted`, with the
     user's note after the prefix, which tells a decline from the other answers.
 
@@ -673,7 +673,7 @@ With a test config, `answers.escalation[]` answers each escalation in turn; with
 
 `answers.checkpoint1` and `answers.checkpoint2` are retired with the run log's schema 3 (D-323): a test config that
 holds them, or the escalation answer `checkpoint-1`, is malformed. An entry may be an object scripting an interview
-(D-394, `offline-and-test.md`). In a test config a design `accept` means the guide (the guide-or-file question is
+(D-394, `skills/build-guide/references/offline-and-test.md`). In a test config a design `accept` means the guide (the guide-or-file question is
 never asked), and a design entry's object may carry `scaling`, `{"answer": "accept", "scaling": true}`, `false` when
 it doesn't (D-480, D-486).
 
@@ -698,4 +698,4 @@ user's `stop` at the design gate ends that build only. Record a used answer with
 resolved to (`first-viable` → `pick:r1-a-2`, `first-n:2` → `pick:r1-a-1,r1-a-2`). Either way the entry's
 `rule` keeps how the answer was reached: the test config's answer exactly as written
 (`"rule": "first-viable"`), or the default that applied (`"rule": "no verification answer left: stop"`). The
-guide's `audit.md` quotes the rule that finalized its card (`run-log.md`).
+guide's `audit.md` quotes the rule that finalized its card (`skills/build-guide/references/run-log.md`).

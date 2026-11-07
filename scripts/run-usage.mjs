@@ -65,12 +65,12 @@ function promptText(entry) {
   return '';
 }
 
-/** The step kind: the brief's `"stage"` marker in the first prompt, else the agent type. */
+/** The step kind: the brief's `"stage"` marker in the first prompt, else the agent type, its plugin prefix `pob2:` dropped (D-499). */
 function stepKind(firstPrompt, meta, isMain) {
   if (isMain) return 'runner';
   const m = /"stage"\s*:\s*"([^"]+)"/.exec(firstPrompt.slice(0, 4000));
   if (m) return m[1];
-  return (meta.agentType || 'agent').replace(/^build-guide-/, '');
+  return (meta.agentType || 'agent').replace(/^pob2:/, '').replace(/^build-guide-/, '');
 }
 
 /** D-416: the build a step works for, its task header's `"concept"` (the card id, a composite's letter s among them, D-429), or null. */

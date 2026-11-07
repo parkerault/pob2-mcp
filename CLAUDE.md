@@ -112,10 +112,12 @@ a user decision, because the golden values move. The procedure (spike S-2,
 6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492): each entry corrects PoB's reading of a
    line PoB parses only partly (PG-103: Crystalline Phylactery). `tests/integration/parseFixes.test.ts` fails once
    the new release parses a listed line itself, or no longer carries it; remove that entry then.
-7. Rebuild the rule-changer index, `data/rules/` (D-401), and re-check the league digests (D-400). List the new pin's
-   candidates with `mise exec -- node .claude/skills/build-guide/scripts/rules-index.mjs candidates --json`, have
-   agents rewrite the entries that changed (amendment 8 §3), then run `rules-index.mjs check` and `join --write`.
-   Run `league-digest.mjs --reflag <slug>` on each digest in `data/league/`.
+7. Rebuild the rule-changer index, `data/rules/` (D-401), and re-check the league digests (D-400). The data builders
+   are game knowledge's, in `skills/game-knowledge/scripts/`. List the new pin's candidates with
+   `mise exec -- node skills/game-knowledge/scripts/rules-index.mjs candidates --json`, have agents rewrite the
+   entries that changed (amendment 8 §3), then run `node skills/game-knowledge/scripts/rules-index.mjs check` and
+   `join --write`. Run `node skills/game-knowledge/scripts/league-digest.mjs --reflag <slug>` on each digest in
+   `data/league/`.
 
 ## Where things are
 
@@ -123,5 +125,11 @@ a user decision, because the golden values move. The procedure (spike S-2,
   project's state. The two spines it replaced, `docs/stabilization/spec/README.md` and
   `docs/build-guide/spec/README.md`, are kept as history.
 - `docs/stabilization/grounding/`: fact sheets on the code, PoB2's Lua internals, MCP and the tooling.
+- The repository is also the Claude Code plugin `pob2` (amendment 15, D-499): its manifests in `.claude-plugin/`,
+  the build-guide skill in `skills/build-guide/` (run as `/pob2:build-guide`), game knowledge's references and data
+  builders in `skills/game-knowledge/`, the four agent types in `agents/` (`pob2:build-guide-coordinator` and the
+  rest), the run scripts' commands in `bin/` (`pob2-check-run`, `pob2-run-log`, `pob2-render-audit`,
+  `pob2-render-notes`) and the compaction reminder's hook in `hooks/hooks.json`. Skill and agent text names plugin
+  files from the plugin root (D-500).
 - `scripts/fresh-clone-check.sh`: clones HEAD into a temp dir, runs `mise run setup`, and checks the
   result as a server, with no trade or poe.ninja requests.

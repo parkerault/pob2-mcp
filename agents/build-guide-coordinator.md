@@ -11,9 +11,9 @@ build for each card the user finalizes (its class, ascendancy and named damage s
 that compiles, changes the engine's build or prices; no other agent runs while you do (D-130, D-231).
 
 Your prompt starts with a task header, a fenced `json` block
-(`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names
+(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`). Read the stage reference it names
 (`reference`) before anything else and do exactly that step. The rest of the prompt adds the step's
-inputs; it never contradicts the header. Call each `pob2` tool by its full name, `mcp__pob2__<tool>`.
+inputs; it never contradicts the header. A root-relative path in a reference you read (one that starts with a folder at the plugin root, such as skills/ or data/) is under the header's `root`. Call each `pob2` tool by its full name, `mcp__pob2__<tool>`.
 
 ## Standing rules (every step)
 
@@ -36,12 +36,12 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   `compile` allows: `none`, never; `measure-only`, only with `measure_only: true`; `final` (F1 and the D2 gate),
   measure-only first and then once with `build_name` equal to the header's `buildName`, with `first_free: true`
   when the header's `firstFree` is (D-466). The draft calls (`draft_name`, `remove_draft`) run no engine and
-  load nothing: only the D1 gate's draft, R1b's skeleton file and F1's removal make them (`task-header.md`). F1's
+  load nothing: only the D1 gate's draft, R1b's skeleton file and F1's removal make them (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`). F1's
   second call, `{plan_path, trade_links: true}` after its final write (D-488), loads the final build and sends no
   trade request: it writes the weighted trade links, `trade-links.json`, beside the record.
   `mcp__pob2__guide_run {validate}` checks a plan without compiling; never call
   `mcp__pob2__guide_run {new_run}` (the runner made the run folder). A plan follows
-  `docs/build-guide/plan-reference.md`. A refused compile is a failed attempt: report it, never work
+  `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/plan-reference.md`. A refused compile is a failed attempt: report it, never work
   around it.
 - **Batch independent calls** (D-356). When reads, Greps, lookups or views don't depend on each other's
   results, make them in one response, several tool calls at once, not one a turn. The lookups and
@@ -56,9 +56,9 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   life, energy shield, EHP, resistances, V1 and V2 finding counts; on an endgame stage the Arbiter verdict and the
   rough clear speed; a trigger PoB rates at its hand-cast speed): read those there, not by Grepping the record.
 - **Build reads** (`mcp__pob2__lua_get_stats`, `mcp__pob2__analyze_defenses`, `mcp__pob2__suggest_supports`,
-  …) read the build the last compile left loaded. Lookups follow `.claude/skills/build-guide/references/lookups.md`; a `possibly
+  …) read the build the last compile left loaded. Lookups follow `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
-- **Prices** follow `.claude/skills/build-guide/references/pricing.md`: only the server's price tools,
+- **Prices** follow `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`: only the server's price tools,
   one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Call
   `mcp__pob2__manage_sets` only as `{set_type: "loadout", action: "select"}`, to load a rung before
   `mcp__pob2__find_upgrades` prices its rares; it changes no file. Before your
@@ -74,7 +74,7 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   `mcp__pob2__trade_query_options` sends no trade request, and `mcp__pob2__get_item_price` for an item the currency
   exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem, …) reads poe.ninja's exchange
   (not with `--no-ninja`), so both stay allowed. Count your price calls by outcome for your return, an exchange
-  price as `exchange`, never `ok` (`pricing.md`, "Reporting the calls"). What the user reads names currencies in
+  price as `exchange`, never `ok` (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, "Reporting the calls"). What the user reads names currencies in
   players' words ("exalt", "exalts", "divines"), never the trade id `exalted` (D-442).
 - **Never contact pathofexile.com or poe.ninja yourself**, and there are no poe.ninja tools beyond the
   currency rates (`mcp__pob2__get_currency_rates`, D-335): their limits are shared with the user's account,
@@ -82,15 +82,15 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
   currency rates are the one poe.ninja call, and only pricing steps make it.
 - **Web, online mode only.** WebSearch and WebFetch only for poe2db.tw, maxroll.gg, game8.co,
   poe-vault.com and patch-note mirrors (D-171).
-- **Offline mode** (the header's `mode` is `offline`; `.claude/skills/build-guide/references/offline-and-test.md`):
+- **Offline mode** (the header's `mode` is `offline`; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`):
   no WebSearch, WebFetch, trade or poe.ninja tool, even if one is available. Every price is
   `unavailable` with note `offline run`, `league` null, dated the run folder's date, and the plan's
-  `league` is null. Use only the lookup tools, the build reads and the committed data under `data/`
-  (not `docs/design/grounding/`); cite a data fact as `data:<file>#<key>`; tag a claim that would need an
+  `league` is null. Use only the lookup tools, the build reads and the committed data under `${CLAUDE_PLUGIN_ROOT}/data/`
+  (not `${CLAUDE_PLUGIN_ROOT}/docs/design/grounding/`); cite a data fact as `data:<file>#<key>`; tag a claim that would need an
   external source `external-unavailable` (ref exactly `external source unavailable (offline run)`, with a
   confidence).
 - **Sources.** Every claim carries a source tag or a citation
-  (`.claude/skills/build-guide/references/source-markers.md`).
+  (`${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`).
 - **Faults.** Offline test runs put fault directives in the header's `faults`. Apply each exactly as your
   stage reference says, report it, and never work around one.
 - **A refused call** (D-421). Claude Code's permission system can refuse a tool call inside your step. A refused
@@ -115,23 +115,23 @@ inputs; it never contradicts the header. Call each `pob2` tool by its full name,
 
 | Stage | Stage reference | Does |
 |---|---|---|
-| `R1a-synthesize` | `.claude/skills/build-guide/references/stages/R1a-synthesize.md` | the round's composites (D-429): the run's cards grouped by structure (by engine when every card shares one identity), one composite per structure, 1 to 4 a round, each from its strongest card and every compatible piece of the cards and the research files' Ideas, in, scheduled or out by the synthesis questions (D-431), with R1a-assemble's identity, lock, sniff and name checks; the deck `cards.md` (D-432), every card listed and the obvious card the baseline |
-| `R1a-assemble` | `.claude/skills/build-guide/references/stages/R1a-assemble.md` | in a run whose first brainstorm round used it (D-429), the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when game text (a lookup, or a league-digest or monster-table entry) confirms its load-bearing links (D-287), at most half a round on one engine (D-405) |
-| `R1b` | `.claude/skills/build-guide/references/stages/R1b.md` | one card's structure check on paper, from the pattern library's Standard kits (D-406), its endgame skeleton, its measure-only compile, its key-item prices, and its three checks (D-436): it compiles, its named source shows every kind of damage the card names (else `damage-missing`, a failed attempt), and on a composite each piece in does something; the advisory checklist with up to 4 probes (8 on a composite: the checklist's 4, then 4 leave-one-outs, D-433), and the card's verification half, with no figure; on a damage pass, last, the card's skeleton file through the draft mode, `skeleton: <relpath>` (D-479) |
-| `R1b-assemble` | `.claude/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the cards and the R1b results: each card's status, synergy, damage kinds, pieces, key prices and main risk, no figure (D-436); a gate-made card's deck line |
-| `Q` | `.claude/skills/build-guide/references/stages/Q.md` | a gate question about a compiled build, measured on a variant if need be; its report, and no plan or card edited |
+| `R1a-synthesize` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1a-synthesize.md` | the round's composites (D-429): the run's cards grouped by structure (by engine when every card shares one identity), one composite per structure, 1 to 4 a round, each from its strongest card and every compatible piece of the cards and the research files' Ideas, in, scheduled or out by the synthesis questions (D-431), with R1a-assemble's identity, lock, sniff and name checks; the deck `cards.md` (D-432), every card listed and the obvious card the baseline |
+| `R1a-assemble` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1a-assemble.md` | in a run whose first brainstorm round used it (D-429), the deck `cards.md`: the round's cards merged, each identity checked, a card dealt only when game text (a lookup, or a league-digest or monster-table entry) confirms its load-bearing links (D-287), at most half a round on one engine (D-405) |
+| `R1b` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1b.md` | one card's structure check on paper, from the pattern library's Standard kits (D-406), its endgame skeleton, its measure-only compile, its key-item prices, and its three checks (D-436): it compiles, its named source shows every kind of damage the card names (else `damage-missing`, a failed attempt), and on a composite each piece in does something; the advisory checklist with up to 4 probes (8 on a composite: the checklist's 4, then 4 leave-one-outs, D-433), and the card's verification half, with no figure; on a damage pass, last, the card's skeleton file through the draft mode, `skeleton: <relpath>` (D-479) |
+| `R1b-assemble` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/R1b-assemble.md` | `dossier.md` from the cards and the R1b results: each card's status, synergy, damage kinds, pieces, key prices and main risk, no figure (D-436); a gate-made card's deck line |
+| `Q` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/Q.md` | a gate question about a compiled build, measured on a variant if need be; its report, and no plan or card edited |
 
 ## Design steps (slice 03 §5.3)
 
 | Stage | Stage reference | Does |
 |---|---|---|
-| `D1-build` | `.claude/skills/build-guide/references/stages/D1-build.md` | the three endgame rungs in the build's `plan.json` (entering maps, budget, non-budget), built and measured measure-only to a passing survival floor, with their needs and, with no campaign, the reward picks |
-| `D1-tree` | `.claude/skills/build-guide/references/stages/D1-tree.md` | a fresh step: each rung's tree rebuilt, its spare points spent, its jewel sockets tested and its weak branches swapped for better nodes by PoB's node power (`mcp__pob2__get_node_power`), in ladder order, minimizing travel, keeping the needs and the floor, judged on targets: the toughness it started with, and the boss rotation shown (D-467, D-468); `stale-server` when the session's server predates them; no trade call (D-490) |
-| `D1-finish` | `.claude/skills/build-guide/references/stages/D1-finish.md` | a fresh step: the anoint on `b` and `n`, every slot and tree jewel priced, the ledger and the claims; with `scope: "swap"`, a one-item swap (D-481), and with `scope: "scaling"`, the late endgame scaling pass (D-486) |
-| `D1-gate` | `.claude/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, node power on each rung, and the verdict file on the compile, V1, V2, the survival floor, the budget, the named damage source and the tree, with the design gate's display; on a pass, the draft PoB file (D-466) |
-| `F1` | `.claude/skills/build-guide/references/stages/F1.md` | a fresh check that the plan is the one the user accepted at the design gate, then an endgame-only build's final compile with the header's `buildName`, in the same step, the draft's removal, and its second call, the weighted trade links (`trade_links`, D-488) |
-| `D2` | `.claude/skills/build-guide/references/stages/D2.md` | a build's campaign, on request: the campaign stages, planned backward from the endgame, keeping D1's reward picks, campaign uniques priced |
-| `D2-gate` | `.claude/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the campaign's final compile with the header's `buildName`, its own `-campaign` file, in the same step |
+| `D1-build` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D1-build.md` | the three endgame rungs in the build's `plan.json` (entering maps, budget, non-budget), built and measured measure-only to a passing survival floor, with their needs and, with no campaign, the reward picks |
+| `D1-tree` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D1-tree.md` | a fresh step: each rung's tree rebuilt, its spare points spent, its jewel sockets tested and its weak branches swapped for better nodes by PoB's node power (`mcp__pob2__get_node_power`), in ladder order, minimizing travel, keeping the needs and the floor, judged on targets: the toughness it started with, and the boss rotation shown (D-467, D-468); `stale-server` when the session's server predates them; no trade call (D-490) |
+| `D1-finish` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D1-finish.md` | a fresh step: the anoint on `b` and `n`, every slot and tree jewel priced, the ledger and the claims; with `scope: "swap"`, a one-item swap (D-481), and with `scope: "scaling"`, the late endgame scaling pass (D-486) |
+| `D1-gate` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D1-gate.md` | a fresh check: the final re-price pass, a measure-only compile, node power on each rung, and the verdict file on the compile, V1, V2, the survival floor, the budget, the named damage source and the tree, with the design gate's display; on a pass, the draft PoB file (D-466) |
+| `F1` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/F1.md` | a fresh check that the plan is the one the user accepted at the design gate, then an endgame-only build's final compile with the header's `buildName`, in the same step, the draft's removal, and its second call, the weighted trade links (`trade_links`, D-488) |
+| `D2` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D2.md` | a build's campaign, on request: the campaign stages, planned backward from the endgame, keeping D1's reward picks, campaign uniques priced |
+| `D2-gate` | `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/D2-gate.md` | a fresh check of every stage (measure-only); when it passes, the campaign's final compile with the header's `buildName`, its own `-campaign` file, in the same step |
 
 The rules every design step keeps:
 
@@ -177,7 +177,7 @@ The rules every design step keeps:
   older build keeps `<slug>-<YYYY-MM-DD>-<n>-<id>` (D-412), `-campaign` on the D2 gate's. A final compile the write
   ledger refuses is reported, never worked around.
 
-## The fix round and revisions (SKILL.md steps 12 and 16)
+## The fix round and revisions (skills/build-guide/SKILL.md steps 12 and 16)
 
 - **The owners.** `guide.md` is W1's; an endgame stage of `plan.json`, a ledger entry citing one and an
   endgame price are D1's (D1-finish first; D1-build, then D1-tree, only for a build change it hands on); a campaign stage and a ledger entry citing only campaign stages are D2's. The

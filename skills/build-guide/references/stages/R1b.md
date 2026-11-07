@@ -21,7 +21,7 @@ build, so the card, the dossier and the display carry no damage, life or EHP fig
 names. You write the gate's verdict file yourself. A failed attempt (a failed compile, or a `damage-missing`
 finding) re-runs with your verdict as findings, at most 2 counted retries; then the card is `failed`, its last
 verdict the evidence (D-141). A card that failed `damage-missing` can still be finalized anyway at the
-verification gate (`checkpoints.md`).
+verification gate (`skills/build-guide/references/checkpoints.md`).
 
 ## Inputs
 
@@ -43,7 +43,7 @@ verification gate (`checkpoints.md`).
   mechanics; `docs/build-guide/plan-reference.md` by section, never whole (Grep
   `^#` for its headings and Read the worked example, and "A minion's skill" for a minion skill; when `validate`
   names a field, Grep that field's row); the pattern library's "Standard kits" entry for the card's archetype,
-  for the structure check (Grep `^#` in `.claude/skills/build-guide/references/patterns.md`, Read that entry);
+  for the structure check (Grep `^#` in `skills/game-knowledge/references/patterns.md`, Read that entry);
   `pob-pin.json` (the pin's tag and commit); the data under `data/` for scenario inputs and the entries the card
   cites; `run-log.json` (is a pricing stop open? step 6); the other plans of this run (`concepts/*/plan.json`), for
   prices to reuse. On attempt 2 or 3, your earlier skeleton at `concepts/<id>/plan.json` is there to fix.
@@ -67,7 +67,7 @@ verification gate (`checkpoints.md`).
   (visit <visit>): <the user's words>`. Re-check every link it touches, as for any revision.
 - **A card made at the gate from pieces** (D-432): when `from` names a piece key (a Pieces row's or an Ideas
   line's) or a composite, the new card is a composite. Its brainstorm half also has `### Pieces`, in
-  `R1a-synthesize.md`'s form (its "Writes"; Read that section): the named damage source and its enabler first, then
+  `skills/build-guide/references/stages/R1a-synthesize.md`'s form (its "Writes"; Read that section): the named damage source and its enabler first, then
   every piece `from` names by key and every piece of a composite it names, each with its key and sources kept, in,
   scheduled or out by the user's words, with its why. It is measured as a composite (below). The Made line names
   each piece by its name.
@@ -117,7 +117,7 @@ of rough arithmetic and no compile, from the card and its archetype's Standard k
 - **The levers:** for the archetype's big levers, what the card pulls and what it leaves ("100 Spirit on a
   minion build" is one line).
 - **Flip the assumptions:** the card's two or three load-bearing assumptions, each reversed in a paragraph.
-  "The ground needs a freeze" leads to a supply search by family (`R1a.md`, D-404); "the weapon is a wand", to a
+  "The ground needs a freeze" leads to a supply search by family (`skills/build-guide/references/stages/R1a.md`, D-404); "the weapon is a wand", to a
   sceptre and the army; "one djinn", to a second.
 - **Counts:** what grows with a count (Muster with minion types) and what pays for a bigger count (a sceptre's
   Spirit), rough on purpose: Muster at eight types is about 7% × 8. A tamed beast reserves a percentage of
@@ -237,20 +237,20 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      no `pricing.retries[]` entry answered `retry-pricing` after it and no resume after it, `resumes[].lengths.stages`
      past its `at`): the stop holds until the user approves a retry at a gate. Make no trade-site call. An item the
      currency exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem and the rest,
-     `pricing.md`) is still priced from poe.ninja's exchange with `mcp__pob2__get_item_price` (not with
+     `skills/build-guide/references/pricing.md`) is still priced from poe.ninja's exchange with `mcp__pob2__get_item_price` (not with
      `--no-ninja`), which sends no trade request; every other entry (a unique, a base) is `unavailable`, note
      `pricing stopped`.
    - **online:** reuse an entry with the same item, query and league from any plan of this run first;
      otherwise one call per item, paced by order: `mcp__pob2__get_item_price` for a unique and for an item the
      currency exchange sells, which it prices from poe.ninja's exchange by its category with no trade request
-     (`query` `{"exchange": "<category>", "name": "<item>"}`, `pricing.md`). An entry is
+     (`query` `{"exchange": "<category>", "name": "<item>"}`, `skills/build-guide/references/pricing.md`). An entry is
      `{id, item, query, amount, currency, date, league, status}`: each result's league and its `Checked:` date;
      `unavailable` has `amount` and `currency` null and a `note`. Classify a failed call by its
      `[trade:<kind>]` prefix only: `would_wait` (price others, call it again later; its third refusal makes it
      `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (pricing stops: no more trade-site calls
      until the user approves a retry at the next gate, so every remaining item is `unavailable` but the exchange's);
      any other kind, `unavailable`. Count every call by its outcome for your return, an exchange price as
-     `exchange` (`pricing.md`, "Reporting the calls").
+     `exchange` (`skills/build-guide/references/pricing.md`, "Reporting the calls").
    - **converted for the card** (D-373, D-374): a key price reaches the user as a range at a league day, never
      as a raw number from another market. Get the rates with `mcp__pob2__get_currency_rates` once (not with
      `--no-ninja`), and convert each `ok` price to day 7, when the reader buys the early endgame gear a key item
@@ -351,7 +351,7 @@ skeleton's record, by Grep, never the record whole: the key `g<group>s<skill>p<s
 
 Slice 03 §7.7. Run these eight checks on the card's skeleton after the last compile (step 8) and before
 the verdict file (step 9). Write each result into the card's `Checklist results` table
-(`.claude/skills/build-guide/templates/card-template.md`): one of the four words **verified, estimate,
+(`skills/build-guide/templates/card-template.md`): one of the four words **verified, estimate,
 risk, not checked**, and one line of detail. None is a gate: a result never changes the verdict, and none
 starts a fix round or a retry. If the last compile failed, or the damage check did, every check is `not checked`.
 
@@ -502,7 +502,7 @@ verdict file's. Pieces not probed are left out of the table, so it holds at most
 ## The card's verification half (C-52)
 
 Write it into `cards/<id>.md`, under `## Verification half`, replacing the `Not checked yet.` lines R1a left
-(`.claude/skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
+(`skills/build-guide/templates/card-template.md`). Edit only that half: the brainstorm half is R1a's, but
 for a gate's change (a composite's is R1a-synthesize's, its `### Pieces` included).
 
 - **Verified** (D-436): the three checks' answers, **no figure** (no damage, life, EHP or clear-speed number:
@@ -543,7 +543,7 @@ draft call, the step's one write there (D-479).
 At most 8 lines: the outcome (`compiled`, with the damage kinds PoB shows; `compiled, damage missing: <the
 finding's message>`, a failed attempt; or `failed: <why>`), the verdict file, the card with its checklist and probe
 counts (`probes <n>`: every probe run, a probe whose compile failed included; on a composite, then its pieces
-measured, `pieces <n> measured (<n> not measured)`), your price calls counted by outcome (`pricing.md`), and on a
+measured, `pieces <n> measured (<n> not measured)`), your price calls counted by outcome (`skills/build-guide/references/pricing.md`), and on a
 damage pass `skeleton: <relpath>` (or `skeleton: none: <why>`) after step 10's draft call:
 
 ```
@@ -571,7 +571,7 @@ prices: ok 1, exchange 1
 
 ## Fault directives
 
-**FI-1** (`.claude/skills/build-guide/references/offline-and-test.md`): step 2, in the attempt's first
+**FI-1** (`skills/build-guide/references/offline-and-test.md`): step 2, in the attempt's first
 compile, the bootstrap, which always runs then (D-265). It must make that compile fail with a per-stage
 error naming the gem (D-162), and the attempt stops there: no clean compile, so no clean record. Report the
 error in the verdict's `errors` and `faultsApplied`.

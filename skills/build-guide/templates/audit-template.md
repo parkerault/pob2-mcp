@@ -2,13 +2,13 @@
 
 <!--
 The form of audit.md, the audit layer (slice 03 section 7.8, as D-355 amends it). No agent fills this template:
-the runner renders audit.md with scripts/render-audit.mjs after the final compile, from plan.json,
+the runner renders audit.md with skills/build-guide/scripts/render-audit.mjs after the final compile, from plan.json,
 compile-record.json and the D1 gate's last verdict file, and the run checker fails an audit.md, or a guide
 Checks block, that differs from the render, Known issues aside. No player is expected to read it: it keeps what
 the guide leaves out. Every number is the plan's or the record's as they hold it, not rounded as the guide
 rounds it. No Run notes, no hand-calculation prose, no kill time and no hits to kill (D-353). The Arbiter line
 reads the rung's deciding row of measures.arbiter.rows (D-449, D-459): its one-shot row with the lowest hits
-survived, else its row with the largest ratio, against the floor of references/toughness-targets.json
+survived, else its row with the largest ratio, against the floor of skills/build-guide/references/toughness-targets.json
 (arbiter.hitsSurvivedFloor, 0.8). <type> is that row's type, a mixed hit's types joined by " and " ("physical and
 lightning"), the words the guide's survival label uses; <ratio> is its ratio to 2 decimals ("over a max hit of 0"
 in its place when the max hit of the type is 0); <x> its hits survived rounded down to a whole percent, the clause
@@ -94,7 +94,7 @@ gate findings' rows under Known issues; the runner fills that table at step 14.
 
 ## Known issues
 
-[The render writes the one line "None.". W1 replaces it with the table head and one row per gate finding the user accepted at an escalation, when there is one; at step 14 the runner replaces it with those rows and one row per V4 finding open after the re-check, or "None." (SKILL.md step 14). The sentence cell is the line the guide's Known issues prints. In a build held to amendment 14 the render also writes one row per finding the last V4 report leaves unresolved, so the open findings are listed at once (D-482).]
+[The render writes the one line "None.". W1 replaces it with the table head and one row per gate finding the user accepted at an escalation, when there is one; at step 14 the runner replaces it with those rows and one row per V4 finding open after the re-check, or "None." (skills/build-guide/SKILL.md step 14). The sentence cell is the line the guide's Known issues prints. In a build held to amendment 14 the render also writes one row per finding the last V4 report leaves unresolved, so the open findings are listed at once (D-482).]
 
 | Id | Lens or gate | Stage | Sentence in the guide |
 |---|---|---|---|

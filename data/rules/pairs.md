@@ -1,6 +1,6 @@
 # Pairs: what one entry creates against what another pays off on
 
-Written by `.claude/skills/build-guide/scripts/rules-index.mjs join --write` from `nodes.md` (its `[rule]` lines),
+Written by `skills/game-knowledge/scripts/rules-index.mjs join --write` from `nodes.md` (its `[rule]` lines),
 `uniques.md` and `gems.md`; never edit it by hand. One block per family of `vocabulary.md` that some entry creates
 and another pays off on. Each line names the family, an entry that creates it, and the entries that pay off on it;
 Grep for the family. A pair is a lead, not a proof: confirm the link with a lookup before a card relies on it.

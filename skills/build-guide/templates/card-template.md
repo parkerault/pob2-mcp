@@ -5,9 +5,9 @@ Template for cards/<id>.md (slice 03 section 7.5, spine C-52), one candidate bui
 r<round>-<researcher letter>-<n> (r1-a-2), r<round>-g-<n> for a card made at a gate (D-391), or r<round>-s-<n>
 for a composite, one build composed from the whole brainstorm (D-429).
 R1a writes the brainstorm half, about 250–400 words, from the pattern library
-(references/patterns.md); R1a-synthesize writes a composite's whole brainstorm half, its Pieces table included
-(stages/R1a-synthesize.md); R1b writes the verification half under it (and first, a gate's change to the
-brainstorm half, stages/R1b.md), a composite's Pieces measured table included. Keep the two H2s and their H3s
+(skills/game-knowledge/references/patterns.md); R1a-synthesize writes a composite's whole brainstorm half, its Pieces table included
+(skills/build-guide/references/stages/R1a-synthesize.md); R1b writes the verification half under it (and first, a gate's change to the
+brainstorm half, skills/build-guide/references/stages/R1b.md), a composite's Pieces measured table included. Keep the two H2s and their H3s
 below exactly, in this order, and add no other heading. The H3s "Pieces" and "Pieces measured" are a composite's
 only (D-429, D-433): a card with "### Pieces" is a composite, whatever its id letter, and a plain card (a
 researcher's, or a gate-made card drawn from cards only) has neither. The verification half carries no damage,

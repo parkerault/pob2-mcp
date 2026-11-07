@@ -75,7 +75,7 @@ Blood Hunt consumes Blood Loss for a burst.[^d2] The skeleton keeps chaos resist
 
 Every marker needs a definition; every `ledger`, `price` and `data` definition must name an existing
 entry or fact, in any plan of the run (concept skeletons included). A research file's `data` definition may
-also name an entry of a Markdown data file by its id, `data | league/<slug>.md#<id>` (`lookups.md`, D-400); a
+also name an entry of a Markdown data file by its id, `data | league/<slug>.md#<id>` (`skills/game-knowledge/references/lookups.md`, D-400); a
 plan never cites one.
 
 ## The claim rules
@@ -101,8 +101,8 @@ holds is a V4 finding of its editor read.
 One verifier, one pass, no lenses (D-352). Each pass writes its own report, `reports/V4-<n>.md`, with its
 one Write, and never overwrites one: `<n>` is one more than the last report's, 1 for the run's first. The
 full pass checks every hinge claim and every H2 of `guide.md`; a re-check, after the fix round or a
-revision, checks only what `check-run.mjs --changed <n-1>` printed, against the round copy `rounds/<n-1>/`.
-The report is markdown, read by line; `stages/V4.md` (Writes) gives it with an example:
+revision, checks only what `pob2-check-run --changed <n-1>` printed, against the round copy `rounds/<n-1>/`.
+The report is markdown, read by line; `skills/build-guide/references/stages/V4.md` (Writes) gives it with an example:
 
 ```markdown
 # V4-<n>: <full pass, or re-check of rounds/<n-1>>
@@ -137,7 +137,7 @@ The report is markdown, read by line; `stages/V4.md` (Writes) gives it with an e
 - `## Checked` lists what the pass checked: in the full pass, every hinge claim and every H2 of `guide.md`;
   in a re-check, every line `--changed` printed, as printed. The run checker fails a re-check that misses one,
   and an overwritten report.
-- `hinge` is the triage (`stages/V4.md`): a `hinge: no` finding is fixed by removing or narrowing the
+- `hinge` is the triage (`skills/build-guide/references/stages/V4.md`): a `hinge: no` finding is fixed by removing or narrowing the
   statement, never by new research or a recompile, and a difference under 5% in an estimate is no finding.
 - `owner` is the step that wrote it: `W1` for `guide.md`; for a plan claim, `D1` on an endgame stage and `D2`
   on a campaign stage. The dossier isn't verified: it serves the verification gate's pick, and the guide
@@ -156,7 +156,7 @@ The report is markdown, read by line; `stages/V4.md` (Writes) gives it with an e
   `unresolved`. The run checker resolves the location and fails any other `accepted-offline`.
 - **Open findings.** The findings open after the checks are the `unresolved` findings of the last report,
   the `reports/V4-<n>.md` with the highest `<n>`. The runner replaces both Known issues lists every cycle
-  (SKILL.md step 14, D-265, D-276): in the guide, W1's accepted-gate-finding sentences, then every open
+  (skills/build-guide/SKILL.md step 14, D-265, D-276): in the guide, W1's accepted-gate-finding sentences, then every open
   finding as `- <reader>`, its `reader` sentence as the report gives it, with no id; in `audit.md`'s table,
   W1's accepted rows, then every open finding's row `| <id> | V4 | — | <reader> |`. The run checker finds
   each open finding's sentence in the guide, by sentence, and its id in `audit.md`, and fails any other line

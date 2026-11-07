@@ -20,7 +20,7 @@ import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const RULES = path.join(REPO, 'data', 'rules');
-const SCRIPT = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'rules-index.mjs');
+const SCRIPT = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'rules-index.mjs');
 const POB_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
 
 const read = (file: string) => fs.readFileSync(path.join(RULES, file), 'utf8');

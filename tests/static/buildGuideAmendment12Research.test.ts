@@ -2,13 +2,13 @@
  * Amendment 12 (M-25), WU-124: AC-W96, the research docs, one assertion each, and the rules of the sections behind it
  * (D-451, D-452, D-456, D-457, D-458; §19's row) in the skill text.
  *
- * - `templates/card-template.md`: the Pitch's `Defence:` line (the base family, the layers by role, what holds the
+ * - `skills/build-guide/templates/card-template.md`: the Pitch's `Defence:` line (the base family, the layers by role, what holds the
  *   Arbiter's physical hit, names only), the Chain's `Means:` line, and a Needs line with no respec clause.
- * - `references/stages/R1a.md`: questions 20–24, and the `Defence:` line written from the class's attributes.
- * - `references/stages/R1a-synthesize.md`: question 22 for a brief that leaves the ascendancy open, with the split or
+ * - `skills/build-guide/references/stages/R1a.md`: questions 20–24, and the `Defence:` line written from the class's attributes.
+ * - `skills/build-guide/references/stages/R1a-synthesize.md`: question 22 for a brief that leaves the ascendancy open, with the split or
  *   successor rule (step 5); question 19's gloss as §13 rewrites it.
- * - `references/stages/R1b.md`: checklist item 2 cites PoB's per-hit chance or buildup, and the 5-hit rule.
- * - `references/stages/R1a-assemble.md`, the researcher's definition: the card fields the deal checks, the questions.
+ * - `skills/build-guide/references/stages/R1b.md`: checklist item 2 cites PoB's per-hit chance or buildup, and the 5-hit rule.
+ * - `skills/build-guide/references/stages/R1a-assemble.md`, the researcher's definition: the card fields the deal checks, the questions.
  *
  * The values are read from the amendment itself (§6, §7, §11, §12, §13), so the docs are held to the spec, not to their
  * own wording.
@@ -18,7 +18,7 @@ import fs from 'fs';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES = path.join(SKILL_DIR, 'references', 'stages');
 
 const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
@@ -200,7 +200,7 @@ describe("amendment 12's research rules in the docs (WU-124)", () => {
   });
 
   it('§13: the library holds the section R1a cites, with questions 20–24 by those names (needs WU-123)', () => {
-    const library = read(path.join(SKILL_DIR, 'references', 'patterns.md'));
+    const library = read(path.join(REPO, 'skills', 'game-knowledge', 'references', 'patterns.md'));
     const body = between(library, `\n## ${SECTION_TITLE}\n`, '\n## ');
     expect({
       section: body.length > 0,
@@ -211,7 +211,7 @@ describe("amendment 12's research rules in the docs (WU-124)", () => {
   it('§12 (D-457): R1a writes the Means lines; a composite carries them and its Defence line', () => {
     expect(stage('R1a')).toContain(`**Means** (D-457, question 2): the Chain's \`Means:\` lines, one per load-bearing payoff, \`${MEANS_FORM}\`, each payoff named apart from the means that supply it`);
     const writes = folded(between(rawStage('R1a-synthesize'), '## Writes', '**`### Pieces`**'));
-    expect(writes).toMatch(/Its `Defence:` line as `R1a\.md` writes it, from the class's attributes, names only \(D-451\); its Needs names no respec \(D-452\)/);
+    expect(writes).toMatch(/Its `Defence:` line as `skills\/build-guide\/references\/stages\/R1a\.md` writes it, from the class's attributes, names only \(D-451\); its Needs names no respec \(D-452\)/);
     expect(writes).toMatch(/its `Means:` lines, each payoff apart from its means, with a second means from the pool or `none found` \(D-457\)/);
     // A split's or a successor's ascendancy passes the identity check a card's does.
     expect(writes).toMatch(/A split's or a successor's ascendancy is question 22's, checked as step 3 checks a card's/);
@@ -239,7 +239,7 @@ describe("amendment 12's research rules in the docs (WU-124)", () => {
   });
 
   it("§13: the researcher's definition asks the questions, 20–24 among them", () => {
-    const researcher = folded(read(path.join(REPO, '.claude', 'agents', 'build-guide', 'build-guide-researcher.md')));
+    const researcher = folded(read(path.join(REPO, 'agents', 'build-guide-researcher.md')));
     expect(researcher).toMatch(/ask its brainstorm questions of every card, 20–24 among them \(defence, pools and buttons, D-458\), so each card's `Defence:` line follows its class's attributes/);
     expect(SECTION_TITLE.endsWith(': defence, pools and buttons')).toBe(true);
   });

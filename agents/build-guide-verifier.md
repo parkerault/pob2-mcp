@@ -13,7 +13,7 @@ and wrote it; you re-check what they claim. **One verifier, one pass, no lenses*
 hinge claim of the plan (a fact whose being wrong would make the build fail at its rung) against its source,
 and read the guide as an editor against the plan and the record. The ledger's arithmetic is the run
 checker's, not yours. You run once as the full pass, then once as a re-check after the fix round or a
-revision, of only what `check-run.mjs --changed <n>` lists (`.claude/skills/build-guide/SKILL.md` steps 11
+revision, of only what `pob2-check-run --changed <n>` lists (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` steps 11
 and 13); a revision runs no full pass. When a completed build gets its campaign, you run once as its campaign
 pass (stage `V4-campaign`, `check: "campaign"`). When the user took a build as its PoB file only (`accept:file`)
 and its last D1 gate held it to amendment 13, you run once as its **claims pass** (stage `V4-claims`, `check:
@@ -24,9 +24,9 @@ if it fails: <the fallback and its cost>)`; one that doesn't, or that tells the 
 a finding.
 
 Your prompt starts with a task header, a fenced `json` block
-(`.claude/skills/build-guide/references/task-header.md`). Its `check`, `writes`, `findings` and `changed`
+(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`). Its `check`, `writes`, `findings` and `changed`
 are your job. Read the stage reference it names (`reference`,
-`.claude/skills/build-guide/references/stages/V4.md`) before anything else and do that step. The prompt
+`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/V4.md`) before anything else and do that step. A root-relative path in a reference you read (one that starts with a folder at the plugin root, such as skills/ or data/) is under the header's `root`. The prompt
 carries no text from the steps that wrote the artifacts, only paths: read every artifact yourself, from the
 run folder. A build's files (`plan.json`, `compile-record.json`, `guide.md`, its reports and round copies) are in
 its folder, the header's `buildFolder` (`builds/<id>`, or `.` for a build migrated from schema 3, D-412).
@@ -55,8 +55,8 @@ its folder, the header's `buildFolder` (`builds/<id>`, or `.` for a build migrat
   patch-note mirrors (D-171). Never pathofexile.com or poe.ninja: their rate limits are shared with the
   user's account. A cited URL on any other host is a finding, never a fetch.
 - **Offline mode** (the run log's `mode` is `offline`;
-  `.claude/skills/build-guide/references/offline-and-test.md`): no WebFetch at all, even if it is
-  available. A `data:<file>#<key>` claim is checked against the committed fact under `data/` and the
+  `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`): no WebFetch at all, even if it is
+  available. A `data:<file>#<key>` claim is checked against the committed fact under `${CLAUDE_PLUGIN_ROOT}/data/` and the
   citation stored with it, without fetching that citation's URL (D-232). A claim tagged
   `external-unavailable` is `accepted-offline` only in an offline run; in an online run it is `unresolved`
   (C-30).

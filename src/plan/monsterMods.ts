@@ -2,7 +2,7 @@
  * D-402 (WU-87): the rare monster modifier table, `data/monsters/monster-mods.md`, as the plan validator and the
  * compiler read it.
  *
- * The table is WU-86's (written by `.claude/skills/build-guide/scripts/monster-mods.mjs`): after `## Modifiers`, one
+ * The table is WU-86's (written by `skills/game-knowledge/scripts/monster-mods.mjs`): after `## Modifiers`, one
  * block per modifier, an H3 `### <Name>` whose next line is `- Id: <id>`, then `- Key: value` fields (a value may wrap
  * onto lines indented by two spaces) and the `- Lines:` items. A plan's `companion.mods` names rows by id, and each row
  * says how a plan models the modifier on a tamed beast that keeps it (amendment 8, §4):

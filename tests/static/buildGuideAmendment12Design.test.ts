@@ -1,29 +1,30 @@
 /**
  * Amendment 12 (M-25), WU-125: AC-W97 and AC-W98, the design side of D-449…D-462 in the skill text, one assertion each.
  *
- * - AC-W97, the D1 stages: `D1-build.md` (the defence step, schema 8, seeded trees, needs on every rung, no respec, `tmp`
- *   stages, the wall rule, questions 19 and 23, Wither, the levers, ailment uptime, the curse cap), `D1-tree.md` (keep =
- *   needs, no `protect_for`, no ladder, jewel sockets and their lines and prices, the boss guard), `D1-finish.md` (the
+ * - AC-W97, the D1 stages: `skills/build-guide/references/stages/D1-build.md` (the defence step, schema 8, seeded trees, needs on every rung, no respec, `tmp`
+ *   stages, the wall rule, questions 19 and 23, Wither, the levers, ailment uptime, the curse cap), `skills/build-guide/references/stages/D1-tree.md` (keep =
+ *   needs, no `protect_for`, no ladder, jewel sockets and their lines and prices, the boss guard), `skills/build-guide/references/stages/D1-finish.md` (the
  *   one-shot defence trade, the keep, the damage trade's max hit, the avoidance trade, the measured boss cut, the
- *   re-split shares, weapons by compile) and `D1-gate.md`'s design field.
- * - AC-W98, the gates, the guide and the skill: `checkpoints.md`, `gates.md`, `D2.md`, `W1.md`, both guide templates and
- *   the audit template, `V4.md`, `pricing.md` and `SKILL.md`.
+ *   re-split shares, weapons by compile) and `skills/build-guide/references/stages/D1-gate.md`'s design field.
+ * - AC-W98, the gates, the guide and the skill: `skills/build-guide/references/checkpoints.md`, `skills/build-guide/references/gates.md`, `skills/build-guide/references/stages/D2.md`, `skills/build-guide/references/stages/W1.md`, both guide templates and
+ *   the audit template, `skills/build-guide/references/stages/V4.md`, `skills/build-guide/references/pricing.md` and `skills/build-guide/SKILL.md`.
  *
  * Numbers and forms are read from the amendment (`docs/build-guide/spec/amendment-12-defence-and-design.md`), the
  * reference files and the run scripts, so the text is held to the spec and to the code that reads it; the D1 gate's
- * example and the design gate's example are put through the real display (`run-log.mjs`) and checker (`check-run.mjs`),
- * and the audit template's Arbiter line through the real render (`render-audit.mjs`).
+ * example and the design gate's example are put through the real display (`pob2-run-log`) and checker (`pob2-check-run`),
+ * and the audit template's Arbiter line through the real render (`pob2-render-audit`).
  */
 import { describe, it, expect, afterAll } from '@jest/globals';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { referencePath } from '../helpers/skillPaths';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SCRIPTS = path.join(SKILL_DIR, 'scripts');
 const CHECKER = path.join(SCRIPTS, 'check-run.mjs');
@@ -38,7 +39,7 @@ const read = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
 const rawStage = (name: string) => read(path.join(STAGES_DIR, `${name}.md`));
 const stage = (name: string) => folded(rawStage(name));
-const rawRef = (name: string) => read(path.join(SKILL_DIR, 'references', name));
+const rawRef = (name: string) => read(referencePath(name));
 const ref = (name: string) => folded(rawRef(name));
 const template = (name: string) => read(path.join(SKILL_DIR, 'templates', name));
 const SKILL_RAW = read(path.join(SKILL_DIR, 'SKILL.md'));
@@ -252,7 +253,7 @@ describe('AC-W97 (WU-125): D1-finish', () => {
   });
 
   it("keeps the rung's needs only in a trade's node power calls", () => {
-    expect(trades).toMatch(/Node power's calls in a trade keep the rung's needs only \(`D1-tree\.md`, "The arguments"; D-450\)/);
+    expect(trades).toMatch(/Node power's calls in a trade keep the rung's needs only \(`skills\/build-guide\/references\/stages\/D1-tree\.md`, "The arguments"; D-450\)/);
   });
 
   it("applies the damage trade's max-hit rule on the Pinnacle pass", () => {
@@ -267,7 +268,7 @@ describe('AC-W97 (WU-125): D1-finish', () => {
   it(`measures each trade's boss-rotation entries for its bossAfter, and names no cut over ${BOSS_CUT}% (amendment 13)`, () => {
     expect(trades).toMatch(/\*\*Each trade is measured on a temporary stage\*\* .* \*\*each boss-rotation entry\*\* of `measures\.bossGroups`, triggered entries included\. `bossAfter` comes from that measure: .* The boss is judged on the rotation \(D-468\): a trade's `bossAfter` shows it, and no per-entry cut is named or undone/);
     expect(trades).not.toMatch(new RegExp(`cuts any entry by more than ${BOSS_CUT}%`));
-    // The checker's defence reason still accepts the suffix, for a build held to revision 12 (check-run.mjs's DEFENCE_REASON).
+    // The checker's defence reason still accepts the suffix, for a build held to revision 12 (pob2-check-run's DEFENCE_REASON).
     expect(CHECKER_TEXT).toContain("(?:; cuts .+ against a boss by [\\d.]+%)?$/;");
   });
 
@@ -361,7 +362,7 @@ describe('AC-W98 (WU-125): checkpoints.md, gates.md and D2.md', () => {
   const design = folded(designRaw);
   const exampleLines = blockAfter(designRaw, '- **Show**').split('\n').map((l) => l.trim());
 
-  it("the design gate's example shows §4's lines, the resisting figure and the trades in the display's forms, as run-log.mjs prints them", () => {
+  it("the design gate's example shows §4's lines, the resisting figure and the trades in the display's forms, as pob2-run-log prints them", () => {
     // Appendix A's forms, in the doc's example.
     for (const [kind, re] of Object.entries(DISPLAY_FORMS).filter(([k]) => k !== 'survivesShare')) {
       expect({ kind, shown: exampleLines.some((l) => re.test(l)) }).toEqual({ kind, shown: true });

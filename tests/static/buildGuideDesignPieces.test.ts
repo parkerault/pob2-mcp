@@ -1,16 +1,16 @@
 /**
  * Amendment 10 (M-23), WU-107: AC-W86, the design keeps synthesizing (D-431, D-434), in the skill text.
  *
- * - `references/stages/D1-build.md`: questions 15–19 asked again after a conversion, a keystone or a limit named as a
+ * - `skills/build-guide/references/stages/D1-build.md`: questions 15–19 asked again after a conversion, a keystone or a limit named as a
  *   con; out pieces revisited; a set measured together on the total and each group, by D-433's three kinds of figure;
  *   scheduling before rejecting; question 19 answered; `pieces.md` written in Appendix A's form with `## Searched`;
  *   the return's `pieces:` line; a custom modifier's node a need (D-418).
- * - `references/stages/D1-finish.md`: a `reason` claim for each scheduled piece and each composite piece left out.
- * - `references/stages/D1-gate.md`: the design field's `pieces {in, scheduled, out, scheduledNames, outNames}`, read
- *   from `pieces.md`, which `run-log.mjs display design` prints: the field is put through the real display. Amendment
+ * - `skills/build-guide/references/stages/D1-finish.md`: a `reason` claim for each scheduled piece and each composite piece left out.
+ * - `skills/build-guide/references/stages/D1-gate.md`: the design field's `pieces {in, scheduled, out, scheduledNames, outNames}`, read
+ *   from `pieces.md`, which `pob2-run-log display design` prints: the field is put through the real display. Amendment
  *   11 (WU-115, D-442, Appendix A) drops `outNames`: the design gate counts the out pieces without naming them.
- * - `references/stages/RV.md` (removed by amendment 11, D-443): its block went with it.
- * - `references/patterns.md`: questions 16–19 and the two amended entries, read from the amendment's §6, under the
+ * - `skills/build-guide/references/stages/RV.md` (removed by amendment 11, D-443): its block went with it.
+ * - `skills/game-knowledge/references/patterns.md`: questions 16–19 and the two amended entries, read from the amendment's §6, under the
  *   library's cap; R1a-synthesize's one-line glosses agree with them. Amendment 12 §13 (WU-123, D-458) rewrote
  *   question 19 for every build: its text is read from that amendment.
  *
@@ -24,7 +24,7 @@ import os from 'os';
 import path from 'path';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL_DIR = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL_DIR = path.join(REPO, 'skills', 'build-guide');
 const STAGES_DIR = path.join(SKILL_DIR, 'references', 'stages');
 const SPEC = path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-10-synthesis.md');
 const RUN_LOG = path.join(SKILL_DIR, 'scripts', 'run-log.mjs');
@@ -125,7 +125,7 @@ const A11_SPEC = read(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-
 const A11_PIECES_FIELDS = SPEC_FIELDS.filter((f) => f !== 'outNames');
 const PIECES_MD_FORM = folded(between(appendix, '**`pieces.md`**', '\n\n'));
 
-const library = read(path.join(SKILL_DIR, 'references', 'patterns.md'));
+const library = read(path.join(REPO, 'skills', 'game-knowledge', 'references', 'patterns.md'));
 const libraryLines = library.split(/\r?\n/);
 const libraryHeadings = headings(library);
 /** The text under heading `h`, up to the next heading of its level or above. */
@@ -140,7 +140,7 @@ const field = (body: string, name: string) => {
   return m ? folded(m[1]).trim() : '';
 };
 
-/** run-log.mjs, spawned with an explicit env, on a copy of a fixture run. */
+/** pob2-run-log, spawned with an explicit env, on a copy of a fixture run. */
 function display(dir: string, ...args: string[]): string[] {
   const r = spawnSync(process.execPath, [RUN_LOG, dir, 'display', ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
   expect({ code: r.status, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
@@ -243,7 +243,7 @@ describe('AC-W86: D1-build keeps synthesizing (D-434)', () => {
     expect(writes).toMatch(/No round copy takes it, and the checker's `--changed` doesn't list it: only D1-build writes it/);
     expect(writes).toMatch(/\*\*Title:\*\* `# Pieces: <build name>`/);
     expect(writes).toMatch(/\*\*`## Searched`:\*\* one line per question asked again, `- Q<n> after <the change>: searched <what>; found <result>`/);
-    // The example: Appendix A's title, the card's Pieces columns (run-log.mjs's too), and `## Searched` lines.
+    // The example: Appendix A's title, the card's Pieces columns (pob2-run-log's too), and `## Searched` lines.
     const lines = PIECES_EXAMPLE.split('\n');
     expect(lines[0]).toMatch(/^# Pieces: \S/);
     expect(lines).toContain(PIECES_HEADER);
@@ -297,7 +297,7 @@ describe('AC-W86: D1-finish writes the pieces\' claims (D-434)', () => {
   });
 });
 
-describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shape run-log.mjs displays', () => {
+describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shape pob2-run-log displays', () => {
   const gateRaw = rawStage('D1-gate');
   const gate = folded(gateRaw);
   const example = JSON.parse(blockAfter(gateRaw, '## Writes'));
@@ -310,7 +310,7 @@ describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shap
     expect(gate).not.toContain('outNames');
     expect(gate).toMatch(/Leave `pieces` out when the build's folder has no `pieces\.md`/);
     expect(gate).toMatch(/and `<buildFolder>\/pieces\.md`'s table \(D-434\), when the build has one, for step 6/);
-    // run-log.mjs reads the same names.
+    // pob2-run-log reads the same names.
     expect(read(RUN_LOG)).toContain(`\`pieces {${SPEC_FIELDS.join(', ')}}\``);
   });
 
@@ -344,7 +344,7 @@ describe('AC-W86: D1-gate writes the design field\'s pieces (D-434), in the shap
   });
 });
 
-// Amendment 11 (WU-114, D-443) removes the rival and deletes `references/stages/RV.md`, so this file no longer holds
+// Amendment 11 (WU-114, D-443) removes the rival and deletes `skills/build-guide/references/stages/RV.md`, so this file no longer holds
 // its block ("the rival asks 11–19 and is placed under composites"); tests/static/buildGuideAmendment11Research.test.ts
 // checks that RV.md is gone and that no reference runs a rival.
 

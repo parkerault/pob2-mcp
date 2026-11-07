@@ -9,7 +9,7 @@ import { getTradeToolSchemas } from '../../src/server/toolSchemas';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const folded = (text: string) => text.replace(/\s*\n\s*/g, ' ');
-const pricing = () => folded(fs.readFileSync(path.join(REPO, '.claude', 'skills', 'build-guide', 'references', 'pricing.md'), 'utf8'));
+const pricing = () => folded(fs.readFileSync(path.join(REPO, 'skills', 'build-guide', 'references', 'pricing.md'), 'utf8'));
 
 describe('D-444: exchange items from poe.ninja; the trade site for the rest', () => {
   it("pricing.md's tool list names the rule: exchange items by category from poe.ninja, the rest from trade listings", () => {

@@ -20,7 +20,7 @@ import path from 'path';
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const REPO = path.resolve(__dirname, '..', '..');
-const RUN_LOG = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'run-log.mjs');
+const RUN_LOG = path.join(REPO, 'skills', 'build-guide', 'scripts', 'run-log.mjs');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-builds');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'travel-display-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));

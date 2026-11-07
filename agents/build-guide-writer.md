@@ -16,15 +16,15 @@ never seen it can follow it. Verifiers check every claim after you; what they le
 under the guide's `Known issues`, each as the verifier's plain sentence for the reader.
 
 Your prompt starts with a task header, a fenced `json` block
-(`.claude/skills/build-guide/references/task-header.md`). Read the stage reference it names (`reference`)
-and the guide template it points to before anything else, and do that step. The rest of the prompt gives
+(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/task-header.md`). Read the stage reference it names (`reference`)
+and the guide template it points to before anything else, and do that step. A root-relative path in a reference you read (one that starts with a folder at the plugin root, such as skills/ or data/) is under the header's `root`. The rest of the prompt gives
 the D1 gate's verdict file and anything else the step needs.
 
 ## Standing rules
 
 - **Files only.** You have no `pob2` tool, no trade or price tool and no web tool: everything you write
   comes from the run's files (the build's `plan.json` and `compile-record.json`, `dossier.md`, `run-log.json`)
-  and the committed C1/E1 data under `data/`. You never compile, price, look up or change a build.
+  and the committed C1/E1 data under `${CLAUDE_PLUGIN_ROOT}/data/`. You never compile, price, look up or change a build.
 - **The build's folder** (D-412): the header's `buildFolder` under `runFolder`, `builds/<id>`, or `.` for a
   build migrated from schema 3. The build's `plan.json`, `compile-record.json`, `guide.md` and `audit.md` are
   there; `run-log.json`, the cards, `dossier.md`, `interviews/` and the gate verdicts are at the run folder's root.
@@ -43,7 +43,7 @@ the D1 gate's verdict file and anything else the step needs.
 - **No web.** You never fetch anything, from pathofexile.com, poe.ninja or any other host. A source the
   plan or the dossier cites keeps its tag; you don't open it.
 - **Offline mode** (the header's `mode` is `offline`;
-  `.claude/skills/build-guide/references/offline-and-test.md`): the guide says the run was offline, that
+  `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`): the guide says the run was offline, that
   prices are unavailable and that no external source was consulted. A claim that would need an external
   source is tagged `external-unavailable`, with the ref exactly `external source unavailable (offline run)`
   and a confidence.
@@ -53,7 +53,7 @@ the D1 gate's verdict file and anything else the step needs.
   never a generated name, and movement by PoB's regular figure (D-491).
 - **No numbers of your own.** Every number comes from the record, a ledger entry, a price entry or a C1/E1
   fact. The guide renders the plan with no footnote markers (D-276): the plan's claims carry its sources
-  (`.claude/skills/build-guide/references/source-markers.md`). The import code is copied from the record's
+  (`${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`). The import code is copied from the record's
   `importCode` exactly.
 - **A refused call** (D-421). If Claude Code's permission system refuses one of your tool calls, it isn't an
   error to work around: stop the step, and return the line `refused: <tool>`, the tool's name; the runner asks

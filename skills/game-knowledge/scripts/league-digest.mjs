@@ -2,8 +2,8 @@
 // The league digest (amendment 8, D-400): what one poe2db league or patch section adds, as a committed Markdown file
 // that every R1a researcher reads: data/league/<file slug>.md.
 //
-//   node .claude/skills/build-guide/scripts/league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]
-//   node .claude/skills/build-guide/scripts/league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]
+//   node skills/game-knowledge/scripts/league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]
+//   node skills/game-knowledge/scripts/league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]
 //
 // <slug> is poe2db's name for the section, as its URLs spell it (`Runes_of_Aldur`). The digest's file is the slug in
 // lowercase with hyphens (`runes-of-aldur.md`); `--reflag` takes either spelling.
@@ -62,7 +62,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..', '..');
+const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 const POE2DB = 'https://poe2db.tw/us/';
 const LISTS = ['gems', 'uniques', 'items'];
 export const KINDS = ['gem', 'unique', 'item', 'ascendancy', 'passive'];
@@ -589,7 +589,7 @@ export function renderDigest({ slug, fileSlug, section, entries, currency, pin, 
       '`[not in pin]` marks an entry the PoB pin doesn\'t know: no plan can ' +
       "compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. " +
       `Cite an entry by its id: \`data | league/${fileSlug}.md#<id>\`. Written by ` +
-      `\`.claude/skills/build-guide/scripts/league-digest.mjs ${slug}\`; re-run it rather than editing by hand, and ` +
+      `\`skills/game-knowledge/scripts/league-digest.mjs ${slug}\`; re-run it rather than editing by hand, and ` +
       `\`--reflag ${slug}\` after a pin upgrade.`,
     '',
     countsLine(entries),

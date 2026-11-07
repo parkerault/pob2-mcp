@@ -1,6 +1,6 @@
 /**
  * AC-W2 (WU-43, as amendments 1 to 4 change it): the run checker
- * `.claude/skills/build-guide/scripts/check-run.mjs`, spawned as a real process with an explicit env. It passes
+ * `skills/build-guide/scripts/check-run.mjs`, spawned as a real process with an explicit env. It passes
  * the fixture runs in `tests/fixtures/pipeline/` (run-ok, run-ok-online and run-escalated, schema-3 runs of the
  * amended pipeline, and run-ok-v2, a schema-2 log kept so recorded runs still check, D-326, D-341), with no
  * `--partial`, and fails each broken copy, naming the broken rule on stderr.
@@ -27,7 +27,7 @@
  *   `verification`; (dd) the verdict line's Effective HP; (ee) the D1 gate's figure × Count; (ff) the cards, the
  *   deck and the probes in the layout, with each card's probe count in the log.
  * - Amendment 4's (WU-71, AC-W54, AC-W55, AC-W59, AC-W60): V4's numbered reports and the re-check of what
- *   `--changed` lists; claim kinds; audit.md and the Checks blocks as `render-audit.mjs` renders them; the survival
+ *   `--changed` lists; claim kinds; audit.md and the Checks blocks as `skills/build-guide/scripts/render-audit.mjs` renders them; the survival
  *   label from `measures.arbiter`; the reference hits the compiler wrote; a ledger-only edit after the final
  *   compile; the design gate; the dossier's table.
  * - Amendment 5's (WU-76, AC-W64, D-370…D-373): the D1 gate's budget is a range at each rung's price day against its
@@ -57,8 +57,8 @@ import { headlineDps } from '../../src/plan/record';
 import { writeGuideRun, writeMinionGuideRun, editJson as editRunJson } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const CHECKER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'check-run.mjs');
-const RENDER = path.join(REPO, '.claude', 'skills', 'build-guide', 'scripts', 'render-audit.mjs');
+const CHECKER = path.join(REPO, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
+const RENDER = path.join(REPO, 'skills', 'build-guide', 'scripts', 'render-audit.mjs');
 const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'check-run-'));
 /** The schema-3 runs of the amended pipeline. */

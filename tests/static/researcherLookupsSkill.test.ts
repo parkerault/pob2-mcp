@@ -1,12 +1,12 @@
 /**
  * AC-W79 (WU-100; amendment 9 §24.4, D-425): the skill text names the researchers' new lookups and the Grep rule.
  *
- * - `R1a.md`'s discovery calls name each new lookup (the tree distance with `search_tree_nodes`' `from`, a gem's cost
+ * - `skills/build-guide/references/stages/R1a.md`'s discovery calls name each new lookup (the tree distance with `search_tree_nodes`' `from`, a gem's cost
  *   and Spirit by level, `mode: "base"`, `mode: "config"`, `kind: "constant"`), and its Grep rule: PoB's
  *   `vendor/PathOfBuilding-PoE2/src/Modules/` only for how the engine computes something, cited by file and line;
  *   data questions through the tools; no scratch builds (FR-W3). (`RV.md` said the same in short, until amendment 11
  *   removed the rival and its file, D-443.)
- * - The researcher's agent definition and `references/lookups.md` agree: each names the same lookups and the same
+ * - The researcher's agent definition and `skills/game-knowledge/references/lookups.md` agree: each names the same lookups and the same
  *   rule, and the definition's tool list keeps the lookup set unchanged.
  * - The README tool table is regenerated: its rows for the two tools hold the first sentence of their current
  *   descriptions, which name `from` and the new data (the byte-for-byte check of the whole table is AC-G1's).
@@ -17,14 +17,14 @@ import { describe, expect, it } from '@jest/globals';
 import { getLuaToolSchemas } from '../../src/server/toolSchemas';
 
 const REPO = path.resolve(__dirname, '..', '..');
-const SKILL = path.join(REPO, '.claude', 'skills', 'build-guide');
+const SKILL = path.join(REPO, 'skills', 'build-guide');
 const read = (p: string) => fs.readFileSync(p, 'utf8');
 /** Whitespace runs folded to one space, so a phrase split by a hard wrap still matches. */
 const folded = (t: string) => t.replace(/\s+/g, ' ');
 
 const R1A = folded(read(path.join(SKILL, 'references', 'stages', 'R1a.md')));
-const LOOKUPS = folded(read(path.join(SKILL, 'references', 'lookups.md')));
-const RESEARCHER_RAW = read(path.join(REPO, '.claude', 'agents', 'build-guide', 'build-guide-researcher.md'));
+const LOOKUPS = folded(read(path.join(REPO, 'skills', 'game-knowledge', 'references', 'lookups.md')));
+const RESEARCHER_RAW = read(path.join(REPO, 'agents', 'build-guide-researcher.md'));
 const RESEARCHER = folded(RESEARCHER_RAW);
 const README = read(path.join(REPO, 'README.md'));
 
@@ -69,7 +69,8 @@ describe('AC-W79 (WU-100, D-425): the researchers\' lookups and the Grep rule in
 
     // The rule, in both: Modules/ for how only, cited by file and line; data through the tools; no scratch builds.
     for (const [file, text] of [['lookups.md', LOOKUPS], ['build-guide-researcher.md', RESEARCHER]] as const) {
-      expect({ file, modules: text.includes(`Grep PoB's ${MODULES}`) }).toEqual({ file, modules: true });
+      const modules = file === 'lookups.md' ? MODULES : MODULES.replace('`', '`${CLAUDE_PLUGIN_ROOT}/');
+      expect({ file, modules: text.includes(`Grep PoB's ${modules}`) }).toEqual({ file, modules: true });
       expect({ file, cite: /by file and line/.test(text) }).toEqual({ file, cite: true });
       expect({ file, data: /A data question \(a gem's (?:numbers|cost or Spirit by level), a base, a config option, a constant, a node's distance(?: from the class start)?\) goes through (?:the|these) lookup/.test(text) }).toEqual({ file, data: true });
       expect({ file, scratch: /No scratch builds: the server holds one loaded build \(FR-W3\)/.test(text) }).toEqual({ file, scratch: true });

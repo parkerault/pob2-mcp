@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The build-guide PoB notes render (amendment 14, D-487; Appendix A's `notes.txt`).
 //
-//   node .claude/skills/build-guide/scripts/render-notes.mjs <runFolder> --build <card id>
+//   pob2-render-notes <runFolder> --build <card id>
 //
 // It writes a guide build's `notes.txt` in its folder (`builds/<id>/`, or "." for a migrated run's build): the build's
 // `guide.md` as plain text for PoB's Notes tab, which shows the `<Notes>` element's text with PoB's colour codes

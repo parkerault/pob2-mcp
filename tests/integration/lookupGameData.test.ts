@@ -300,7 +300,7 @@ describe('AC-K6: lookup_game_data is a read tool with an ok sample per mode (sta
 
 describe('AC-K63: the build-guide skill lists the seven named phrase searches (static)', () => {
   it('AC-K63: lookups.md names each named search as a query, in backticks', () => {
-    const file = path.resolve(__dirname, '..', '..', '.claude', 'skills', 'build-guide', 'references', 'lookups.md');
+    const file = path.resolve(__dirname, '..', '..', 'skills', 'game-knowledge', 'references', 'lookups.md');
     const text = fs.readFileSync(file, 'utf8');
     for (const query of [
       'also apply to',

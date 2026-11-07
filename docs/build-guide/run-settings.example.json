@@ -4,9 +4,10 @@
     "allow": [
       "WebFetch(domain:poe2db.tw)",
       "WebFetch(domain:www.poe2db.tw)",
-      "Bash(node .claude/skills/build-guide/scripts/check-run.mjs:*)",
-      "Bash(node .claude/skills/build-guide/scripts/run-log.mjs:*)",
-      "Bash(node .claude/skills/build-guide/scripts/render-audit.mjs:*)",
+      "Bash(pob2-check-run:*)",
+      "Bash(pob2-run-log:*)",
+      "Bash(pob2-render-audit:*)",
+      "Bash(pob2-render-notes:*)",
       "mcp__pob2__compile_plan",
       "mcp__pob2__guide_run",
       "mcp__pob2__get_node_power",
@@ -59,19 +60,6 @@
       "WebFetch(domain:old.reddit.com)",
       "Read(//**/.env)",
       "Edit(//mnt/**)"
-    ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/compact-reminder.sh"
-          }
-        ]
-      }
     ]
   }
 }

@@ -6888,7 +6888,8 @@ the `m17` engine at `b76967b`.
 - **The gate** (main checkout, `mise run test`, `pnpm build`): build rc 0; test rc 1, 241 of 243 suites, 3 tests
   failing, each expecting `runes-of-aldur.md` as the newest digest of the real `data/league/`
   (`buildGuideSchema4.test.ts` ×2, `buildGuideScripts.test.ts` ×1). They now read D-412's newest digest through
-  `tests/helpers/newestDigest.ts`, which applies the rule on its own; the two suites re-run: 74 tests pass.
+  `tests/helpers/newestDigest.ts`, which applies the rule on its own; the two suites re-run: 74 tests pass. The full
+  gate re-run on `main` at `cf16e07` (2026-11-07): `mise run test` rc 0 (243 suites, 4,285 tests), `pnpm build` rc 0.
 - **PoB already parses every stat line of the 17 soul cores** (`check_model_coverage` on one probe item: 17 of 18
   lines fully parsed; "Corrupting will always result in change" unparsed). The pin lacks only their entries.
 - **PoB2's first release with a patch's data** (its GitHub releases; launches at about 20:00 UTC): 0.2 v0.6.0
@@ -6897,3 +6898,86 @@ the `m17` engine at `b76967b`.
   in 64 days) left out. The user wants the gap handled for a new league's first days, folded into amendment 16.
 - `data/economy/prices.json` labels every past league "patch 0.5.x"; Dawn of the Hunt was 0.2, Rise of the Abyssal
   0.3, Fate of the Vaal 0.4 (to correct with amendment 16's pricing work).
+
+## 2026-11-07: amendment 16's surveys; Grep and Glob, corrected
+
+- **Four read-only surveys** for amendment 16 (scratchpad `a16/`, not committed), about 1.23M subagent tokens: compile,
+  the writer and a PoB file read into a plan (0.35M); pricing, piece runs, the checker and words loaded (0.33M); league
+  choice, new items on the user's side and the pin upgrade (0.29M); bridge patches and search (0.26M).
+- **Correction: the pipeline's agents do have Grep and Glob.** HG-37's finding (above, "No Grep or Glob tool") came from
+  the session running `/pob2:game-knowledge`, and M-28's real cases were asked of general-purpose agents; both have
+  Bash. Claude Code's tools reference (code.claude.com/docs/en/tools-reference, read 2026-11-07): on macOS, Linux and
+  WSL, Glob and Grep are left out of the default tool set and search runs through Bash; a subagent gets them back when
+  its `tools` field lists Glob or Grep and leaves out Bash, which is how the four agent types are defined. Checked the
+  same day with a plugin agent of that shape (`feature-dev:code-explorer`, `tools` Glob, Grep, no Bash): Glob and Grep
+  both ran. So the agents' "by Grep" reads can run, and no search tool is needed; what HG-37 showed wrong is the
+  runner's side: game knowledge's "You need no Bash" line, and real cases asked of an agent type that has Bash. The
+  pob2 types themselves weren't probed (the plugin isn't installed in this project); amendment 16's build checks them.
+- **No plugin-side Bash allow list exists** (same reading): a plugin agent's `tools` takes tool names (only
+  `Agent(type)` is documented with a specifier); plugin agents ignore `permissionMode`, `hooks` and `mcpServers`; a
+  plugin's `settings.json` takes only `agent` and `subagentStatusLine`; a skill's `allowed-tools` pre-approves tools for
+  the turn and restricts nothing. A plugin's `PreToolUse` hooks do fire inside subagents, the one way a plugin could
+  carry a Bash policy of its own.
+
+## 2026-11-07: amendment 16's questions, answered
+
+- **The coordinator's nine questions** (from the four surveys) and its calls, answered by the user the same day:
+  "1. two milestones; 2. (a) first. For (b), we can't assume that the import will be the top budget rung. The pricing
+  stage should determine that, or the user can say the rung if trade is unavailable. If the user wants a better build
+  *and* a guide (a likely scenario in my estimation), run a design round on it first (I don't see anything in this list
+  covering the "make my character better" use case), then build the guide from that. 3. yes; 4. Keep as set, but call
+  out anything that seems wrong to the user; 5. take recommended; 6. both; 7. My PoB file; 8. I can confirm that
+  players can upgrade skill quality in granted skills. The method may vary between skills, but it's always allowed;
+  9. keep it. No objections to your calls."
+  1. **Two milestones:** first what 1.0 needs and the shared fixes (league choice, the scripted pin upgrade, the PoB
+     patches, the words-loaded rule, `prices.json`'s labels); then the pieces (the file reader, compile, the writer,
+     pricing, each run alone).
+  2. **The uses:** (a) the player's imported character, read into a plan as owned, measured and priced, first; (b) a
+     guide from a file, but the file isn't assumed to be the top rung: pricing places it on the ladder, or the user
+     names its rung when trade is unavailable. **New, from the user:** "make my character better", a design round on
+     the read plan before a guide is built from it; the questions had no such use.
+  3. **One new server tool granted** (HG-12): it reads a PoB file, named from the builds folder or given as an import
+     code, into a plan in the run's own folder, never writing the user's file.
+  4. **A file's configuration** is kept as the user set it, marked as from the file; anything that seems wrong is
+     called out to the user (not only states nothing in the build produces).
+  5. **Spirit buffs switched as needed:** in the plan and the guide, off in the measured numbers; the guide says when to
+     switch each on and what to switch off; the Spirit check counts only the buffs on together.
+  6. **Pricing on a character answers both:** what its gear costs to replace (the cheapest way to the same must-have
+     stats) and upgrades within a budget the user names.
+  7. **The real case is the user's own PoB file** (an imported character).
+  8. **A game fact:** players can raise the quality of a skill an item grants; the method varies by skill, but it is
+     always allowed. So PG-114's patch covers every granted skill, not only a sceptre's aura.
+  9. **The new items on the user's side** stay in amendment 16, last in the second milestone.
+  - **The coordinator's calls, accepted:** league choice by the start and end instants (UTC) recorded in each digest
+    from poe2db's home page, every running league's digest read newest first, trade's league unchanged; the upgrade
+    script does the mechanical steps and stops with a list of what needs judgment, tagged releases only, ours to run;
+    the gem-group recount by the game's rule; the rune-roll bug fixed on both sides (our files leave out PoB's second,
+    misnumbered copy of each roll; our engine ignores it on load); a fingerprint per patch; the reader handles PG-108,
+    PG-110, PG-111 and asks for the main skill (PG-113) and which buffs stay on; each stage's words loaded counts its
+    own instructions and what it reads, the baseline re-measured; a character's items kept as owned, a guide's rares
+    as must-have stats; piece runs in `Guides/<piece>/<date>-<n>/` with a `piece` field and the checker's rules tagged
+    by piece; a stopped pricing run resumed after the lockout as the retry; no search tool, game knowledge's "no Bash"
+    line fixed and each agent type probed; `prices.json`'s labels corrected, the end dates and 1.0's start added. Still
+    deferred: the trade pacing's tuning, charge generation, charms, timeless jewels.
+- **The real case's file** (answer 7): the user: "I will copy my PoB file to the agent folder, but I have many in my
+  windows PoB folder. Some from poe.ninja, some mine, some from our runs. You can pick one and tell me which one to
+  use." The coordinator picked ResurrectForbidden, the user's character imported through poe.ninja and unmodified, which
+  already shows the import quirks the reader must handle (PG-106 to PG-108, the Spirit of an all-on import, a save on
+  the second weapon set). It goes to `~/pob2-real-cases/`, outside every git repository (the guide library has a GitHub
+  remote) and off the Windows drive; copied as is, never re-saved in PoB first (a re-save can move rune rolls, PG-109);
+  read only, never committed.
+- **The file's provenance** (the user, 2026-11-07): "ResurrectForbidden was copied from poe.ninja, which itself copies
+  from GGG's character exports (I assume using PoB2's character importer), from a Forbidden Rites 0.5.5 character. It's
+  completely unmodified, so it reflects exactly how a poe.ninja character will export, and probably how a character
+  imported to PoB2 using its native oauth importer." So its quirks (its `<Build>` declares `targetVersion="0_1"`, the
+  second weapon set active, granted skills twice) are the normal shape of a poe.ninja import; that PoB2's native
+  importer writes the same is the user's assumption, unconfirmed.
+- **A second real case** (the user, 2026-11-07): `~/pob2-real-cases/CullTheConquerer-oauth-import.xml`, one of the
+  user's characters imported with PoB2's own OAuth importer, "I didn't change anything after the import" (read only,
+  never committed). Compared by structure with ResurrectForbidden (no contents copied): the same shape, so the user's
+  assumption holds: `targetVersion="0_1"` in both (PoB's importer writes it), `treeVersion="0_5"`, one spec, one item set,
+  one skill set, 22 slots, every group enabled (PG-107), and each granted skill held twice, a plain group plus a
+  `source="Item:…"` or `"Tree:…"` group (PG-108). Differences: the OAuth file's `<Import>` records `lastRealm`,
+  `lastLeague="Forbidden Rites"` and the character's hash, poe.ninja's only `exportParty`; it is a level 70 Lich, in the
+  early endgame (past the campaign's last area level, 64; corrected the same day, it was first called "short of the
+  endgame"); it uses the first weapon set.

@@ -6981,3 +6981,48 @@ the `m17` engine at `b76967b`.
   `lastLeague="Forbidden Rites"` and the character's hash, poe.ninja's only `exportParty`; it is a level 70 Lich, in the
   early endgame (past the campaign's last area level, 64; corrected the same day, it was first called "short of the
   endgame"); it uses the first weapon set.
+
+## 2026-11-08: amendment 16 approved, with the user's answers to its choices
+
+Revision 1 (`b5d3b64`) went to the user with seven choices (§30). The user's answers, verbatim:
+
+- "A. Use recommended. I don't have a PoB for a character still in the campaign. I would have to start one and level
+  it up to a point where it would be useful for a test case (I'm thinking around level 50 would be a realistic point a
+  player would be asking for advice, since that's where the campaign difficulty starts outscaling a bad build)."
+- "B. Use recommended. C. Use recommended. D. Use recommended, but I'm unclear on what you need."
+- "E. Granted skills can only gain base quality if they are found on wands, staves, or sceptres, using an Arcanist's
+  Etcher. Global and local skill level and skill quality effects apply to granted skills, however, though many
+  item-only skills will not have quality effects. Granted skills from passives cannot gain quality directly, and can
+  only be increased through sources of local and global gem quality such as Dialla's Desire and Loreweave. Granted
+  skills have a number of support gem slots defined by the item level for skills granted by items, or the character
+  level for skills granted by passives. Items that grant skills can have their support gem slots increased using a
+  Lesser, Greater, or Perfect Jeweller's Orb on the item."
+- "F. Use recommended. However, I believe most users will not invoke the skill manually, but use some variation of "I
+  want a build guide for my build 'MyCharacter123'", so the skill frontmatter should route the agent to the correct
+  skill. G. Use recommended."
+
+What the coordinator folded (revision 2, approved):
+- **A:** no campaign real case exists; the campaign path rests on fixtures (the importer fixture read at level 50). A
+  level 50 character, when the user has one, is the realistic case.
+- **E, corrected by the user's facts:** wands, staves (not quarterstaves) and sceptres pass their quality to the skills
+  they grant, raised with Arcanist's Etchers; no other granted skill has a quality of its own. So schema 11's
+  `skills.granted` is dropped (it set a quality the game can't give), the bridge patch gives such a skill exactly its
+  item's quality (revision 1's "larger of" rule falls with `skills.granted`), a plan's gem for a skill its stage
+  grants carries quality 0 (`compile_check` refuses more on schema 11), and the guide names the Etcher. The game applies
+  skill level and quality modifiers to granted skills; PoB applies them only to a skill that also exists as a gem
+  (`Modules/CalcSetup.lua`:1892–1895), so an item-only granted skill misses them: PG-115, from reading the code,
+  recorded once an engine test confirms it, not patched in this amendment. Support slots: an item's granted skill
+  follows its item's level, and Jeweller's Orbs on the item add more; a passive's follows character level, D-359's
+  estimate unchanged.
+- **F:** each pob2 command's description names the requests players make in their own words, so a request like "a
+  build guide for my build MyCharacter123" starts the right command without the slash command; a build named that way
+  is matched against the builds folder, and the runner asks when the name matches none or several. The pieces' real
+  cases at HG-39 start from such requests.
+- **D:** explained to the user (what a guide-library file adds: several loadouts in one file, which an import never
+  has); the file is needed only after M-30 merges, the user naming it or telling the coordinator to pick.
+- **The approval commit's spine fold** (an agent, 0.40M subagent tokens; the coordinator re-ran the static tests: 47
+  suites, 1,140 tests, rc 0): D-507…D-525, C-59…C-66 and 15 modified contracts' notes, M-29, M-30, WU-151…WU-168,
+  R-118…R-130, HG-38, HG-39, the HG-12 grant and AC-W130…AC-W162 entered as approved; every row an Amends line names
+  marked "amended by", and D-384 and D-465 too (the owned-content exemption, a16 §15, narrows both without naming
+  them; kept); the handoff's M-29 and M-30 sections; the fold rule's middle step for a two-milestone amendment in the
+  spine, `CLAUDE.md` and the handoff. Status line: "Folded through amendment 16 (approved; as built through 15)".

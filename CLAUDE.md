@@ -71,7 +71,9 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
 - **The spine never falls behind an approved amendment.** The approval commit puts an approved amendment's rows
   (decisions, contracts, gates, milestone, work units, risks) into `docs/spec/README.md` with status approved, and its
   status line reads "Folded through amendment <n> (approved; as built through <n−1>)"; the last unit of the build
-  marks the rows as built and drops the parenthesis. `tests/static/specSpine.test.ts` fails when the spine falls behind.
+  marks the rows as built and drops the parenthesis. An amendment built in two milestones adds a middle step: the first
+  milestone's docs unit marks that milestone's rows built, and the line reads "(approved; as built through <n−1> and
+  amendment <n>'s M-<m>)". `tests/static/specSpine.test.ts` fails when the spine falls behind.
 
 ## Code conventions
 

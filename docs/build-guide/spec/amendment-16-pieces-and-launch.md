@@ -1,8 +1,10 @@
 # Amendment 16: the pieces that start from a PoB file, and launch day
 
-**Status: DRAFT, revision 1, 2026-11-07.** Revision 1 folds the independent review of revision 0 (§31: five lenses,
-three skeptical verifiers; 115 raw findings, 58 material clusters, 4 of them refuted). Nothing here is approved until
-the user approves it.
+**Status: APPROVED, revision 2, 2026-11-08** (the user's answers to §30's seven choices, WL:6985–7004: A, B, C, D, F
+and G as recommended; E answered with the game's facts). Revision 2 folds those answers: E's facts in §8 (only wands,
+staves and sceptres give a granted skill quality; `skills.granted` dropped; PG-115 recorded), F's routing in §12 and
+§18, A's missing campaign case in §20. Revision 1 folded the independent review of revision 0 (§31: five lenses, three
+skeptical verifiers; 115 raw findings, 58 material clusters, 4 of them refuted).
 
 The second amendment of the skill split (D-506). It formalizes two milestones, as the user asked ("1. two milestones",
 §1): **M-29**, what the 1.0 launch on 2026-12-11 needs and the fixes every piece shares; **M-30**, the pieces that start
@@ -27,8 +29,8 @@ live test stay amendment 18's (D-506).
 
 It is written against the spine folded through amendment 15. Paths are root-relative (the repository root is the plugin
 root, C-57). Decisions continue from D-507, work units from WU-151, criteria from AC-W130, risks from R-118, gates from
-HG-38, contracts from C-59, PoB gaps from PG-115 (this amendment adds none); the milestones are M-29 and M-30. Every id
-was checked against the spine: none is taken.
+HG-38, contracts from C-59, PoB gaps from PG-115 (this amendment adds PG-115, recorded and not patched, §8); the
+milestones are M-29 and M-30. Every id was checked against the spine: none is taken.
 
 **Names.**
 - A **piece run** is a piece started by its own command on what the user brings, writing in its own folder,
@@ -83,6 +85,19 @@ was checked against the spine: none is taken.
   coordinator's pick at the user's "You can pick one"; and CullTheConquerer, one of the user's characters imported with
   PoB2's own OAuth importer: "I didn't change anything after the import". Both are in `~/pob2-real-cases/`, a folder
   outside every git repository and off the Windows drive, which agents may read.
+- 2026-11-08, the choices at approval (WL:6989–7004), verbatim: "A. Use recommended. I don't have a PoB for a character
+  still in the campaign. […] (I'm thinking around level 50 would be a realistic point a player would be asking for
+  advice, since that's where the campaign difficulty starts outscaling a bad build)." "B. Use recommended. C. Use
+  recommended. D. Use recommended, but I'm unclear on what you need." "E. Granted skills can only gain base quality if
+  they are found on wands, staves, or sceptres, using an Arcanist's Etcher. Global and local skill level and skill
+  quality effects apply to granted skills, however, though many item-only skills will not have quality effects.
+  Granted skills from passives cannot gain quality directly, and can only be increased through sources of local and
+  global gem quality such as Dialla's Desire and Loreweave. Granted skills have a number of support gem slots defined
+  by the item level for skills granted by items, or the character level for skills granted by passives. Items that
+  grant skills can have their support gem slots increased using a Lesser, Greater, or Perfect Jeweller's Orb on the
+  item." "F. Use recommended. However, I believe most users will not invoke the skill manually, but use some variation
+  of "I want a build guide for my build 'MyCharacter123'", so the skill frontmatter should route the agent to the
+  correct skill. G. Use recommended."
 
 The questions' numbers, for the sections that cite them: (1) the milestones; (2) the uses: (a) the imported character
 read into a plan as owned, measured and priced, first; (b) a guide from a file, placed on the ladder, never assumed the
@@ -132,7 +147,8 @@ From the surveys, at `cf16e07`:
   move when it holds a rune (save numbers rune lines, `Classes/ItemsTab.lua`:1228–1233; load skips them, :1118); PG-110,
   an item on a base the pin lacks is dropped silently; PG-111, 19 base names defined twice keep the last; PG-113, an
   import's main group is the one with most gems; PG-114, a granted skill gets quality 0
-  (`Modules/CalcSetup.lua`:1525–1530). PG-65 (Herald of Blood's explosion flags) and PG-112 (ours: node power's cache)
+  (`Modules/CalcSetup.lua`:1525–1530); PG-115 (new, §8), an item-only granted skill misses skill level and quality
+  modifiers. PG-65 (Herald of Blood's explosion flags) and PG-112 (ours: node power's cache)
   are not in this amendment (§5).
 - **No way in for a player's file.** `compile_plan`'s `read_back` and `adopt` take only a file the server wrote for that
   plan (a15 §2). Read-back's engine-free parser, `parsePobXml` (`src/services/readBack.ts`:110–188), reads specs, items,
@@ -426,42 +442,62 @@ omission. `pob-gaps.md`'s PG-109 workaround (write a rolled line as its number) 
 
 ## 8. D-512: PG-114, a granted skill's quality
 
-**The game fact** (the user, answer 8): "players can upgrade skill quality in granted skills. The method may vary
-between skills, but it's always allowed." So a granted skill can carry quality.
+**The game's facts** (the user: answer 8, "players can upgrade skill quality in granted skills. The method may vary
+between skills, but it's always allowed"; made exact by the answer to choice E, WL:6993–6999):
+- a granted skill gains base quality only on a wand, a staff or a sceptre, whose own quality, raised with Arcanist's
+  Etchers, is the skill's. Quarterstaves aren't staves: PoB's staff bases with `subType = "Warstaff"`
+  (`Data/Bases/staff.lua`:162–164) pass nothing;
+- a skill another item grants, or a passive grants, has no quality of its own. Skill level and quality modifiers, local
+  and global (Dialla's Desire and Loreweave give quality), apply to every granted skill, though many item-only skills
+  have no quality effect;
+- support slots: an item's granted skill has as many as its item's level gives, and Jeweller's Orbs on the item add
+  more; a passive's has as many as character level gives (D-359's estimated table, unchanged, as V1's
+  `support-sockets` reads it, `src/plan/checks/v1.ts`:762–772). Neither threshold for items is known, so nothing new
+  checks it; `plan-reference.md` and W1's support-sockets line say the item's rule.
 
-**The plan says it** (plan schema 11, Appendix A.5): a stage's `skills.granted`, a list of `{skill, quality}`, the
-quality of a skill an item or an allocated passive of that stage grants, 0 to 20. The compile sets it on PoB's own
-group for that skill (every such group when two items grant it) after the calculation that makes the group, then
-measures; `compile_check` refuses a name no item or allocated passive of the stage grants, naming the stage and the
-skill. From M-30 (WU-164, skill revision 16) the designers (D1-build, D1-finish) may set quality 20 on a granted skill,
-unpriced, and the guide says to raise the skill's quality to 20%, without naming a method, since the method varies
-(proceed-ons, §30).
+**The plan says it on the item** (no schema field): a wand's, staff's or sceptre's quality is its item text's
+`Quality:` line, as for any item. Revision 1's `skills.granted` is dropped: it set a quality the game can't give a
+granted skill. A plan's gem for a skill the stage's items or allocated passives grant (the copy that carries its
+supports, PG-108) has quality 0: from schema 11, `compile_check` refuses more, naming the stage, the group and the
+skill, and saying where its quality comes from (the item's quality for a wand, staff or sceptre; otherwise quality
+modifiers). From M-30 (WU-164, skill revision 16) the designers (D1-build, D1-finish) may raise a wand, staff or
+sceptre that grants a skill the build uses to quality 20, unpriced, and the guide says to raise it with Arcanist's
+Etchers. They never give a granted skill quality another way.
 
 **The bridge patch** (PoB's bug: a granted skill's group is made with quality 0 and never given one,
 `Modules/CalcSetup.lua`:1525–1530, `Classes/Item.lua`:2211–2222): a wrap on `SkillsTabClass:ProcessSocketGroup`
 (`Classes/SkillsTab.lua`:1235), which PoB's calculation setup calls on every granted group right after making or
-updating it (`CalcSetup.lua`:1542), so it reaches every calculation, the first included, by every path. For a group with
-a `sourceItem` whose item passes its quality to the skill (choice E, §30), it raises the gem's quality to the item's
-when that is higher. **A granted skill's quality is the larger of its group's and its item's** (the coordinator's
-resolution of the review): an import's 0 never hides the item's, and a quality the compile set or a file saved stands,
-since a load restores it (`SkillsTab.lua`:349), PoB keeps the group's gem between calculations, and its save writes it
-(:473, :484) [D §4]. Fingerprints: `ProcessSocketGroup`, and the granted-group block of `calcs.initEnv` as a line range
-(`CalcSetup.lua`:1501–1542; the function runs to the file's last line, :553–2165).
+updating it (`CalcSetup.lua`:1542), so it reaches every calculation, the first included, by every path. For a group
+with a `sourceItem` whose base type is `Wand`, `Staff` (not `Warstaff`) or `Sceptre`, it sets the gem's quality to the
+item's, the only base quality the game gives it: an import's 0 never hides the item's, and a value a file saved on the
+group doesn't stand. Every other granted group keeps PoB's value [D §4]. Fingerprints: `ProcessSocketGroup`, and the
+granted-group block of `calcs.initEnv` as a line range (`CalcSetup.lua`:1501–1542; the function runs to the file's
+last line, :553–2165).
 
-**An import's 0 is unknown.** PoB's importer starts every gem at quality 0 and sets it only from a `Quality` property
+**An import's 0.** PoB's importer starts every gem at quality 0 and sets it only from a `Quality` property
 (`Classes/ImportTab.lua`:990, :1053–1054). Every plain copy of a granted skill in both real cases reads 0
 (ResurrectForbidden's Purity of Ice beside its quality 10 Shrine Sceptre, CullTheConquerer's Sigil of Power beside its
-quality 18 staff), so the reader writes `skills.granted` only above 0 (§13), and `pob-gaps.md`'s PG-114 gains both.
+quality 18 staff), so the patch gives both their item's quality, and `pob-gaps.md`'s PG-114 gains both. The reader
+writes a kept copy's gem at quality 0 and names a file's other value in `read.json`; the measure calls it out (§13,
+§15).
+
+**PG-115, recorded, not patched** (found reading the code for the user's facts): PoB applies skill level and quality
+modifiers (`GemProperty`) to an active skill only when it has a gem (`applyGemMods`, `Modules/CalcSetup.lua`:1892–1895);
+a granted skill has one only when a gem exists for it (`CalcSetup.lua`:1532, `Classes/SkillsTab.lua`:1243–1247). So
+an item-only granted skill (a wand's, a staff's or a unique's skill with no gem) misses "+# to Level of all Spell
+Skills" and its kind, which the game applies. WU-154's engine test checks it on a fixture wand; `pob-gaps.md` records
+PG-115 only if it holds, with the workaround "count the level by hand", and the upgrade script's report names it. A
+patch, or an upstream issue, is a later amendment's (§29).
 
 **Its tests.** A fixture with a quality 20 Shrine Sceptre (its base and its Purity named, the resistance under its cap
 at quality 20): its Purity measures at quality 20 and its resistance 8 points higher than at 0
 (`Data/Skills/act_int.lua`:16246, +0.4% per 1% quality; PG-114), also with the granted group saved at quality 0, an
-import's shape; a plan's `skills.granted` quality of 20 on a tree-granted skill reaches its measure and still measures
-20 after a save and a reload; a name nothing grants is refused. The retirement test reverts the wrap and expects
-quality 0.
+import's shape, and at quality 5 (the item's 20 wins); a quality 20 wand's granted skill measures at quality 20; a
+quarterstaff's quality reaches no skill; a schema 11 plan giving quality 5 to a gem its stage's sceptre grants is
+refused, and one giving it to a tree-granted gem too. The retirement test reverts the wrap and expects quality 0.
 
-Amends C-31 (schema 11), C-41 (the compile and its check). `pob-gaps.md`'s PG-114 workaround becomes "corrected in the
-bridge".
+Amends C-41 (the compile's check), D-359 (an item's granted skill's support slots follow item level; the tree's
+estimate unchanged). `pob-gaps.md`'s PG-114 workaround becomes "corrected in the bridge".
 
 ## 9. D-513: the words each stage loads
 
@@ -579,7 +615,14 @@ use named by the piece, with a run log; never the user's file"; the coordinator'
 - **Each piece's `SKILL.md`** is fewer than 150 lines (D-505); its frontmatter holds `name` and `description` only, at
   most 1,536 characters, what Claude Code keeps (a15 §3); its runner reads `runner-rules.md` whole first and after a
   compaction (D-501); its description names when to use it and when another pob2 command is the one, and game
-  knowledge's gains the three new commands (a15 §8's rule). Every rule in `runner-rules.md` applies to a piece's runner,
+  knowledge's gains the three new commands (a15 §8's rule). **Each description routes a player's own words** (the
+  user at approval, F: "most users will not invoke the skill manually, but use some variation of "I want a build
+  guide for my build 'MyCharacter123'", so the skill frontmatter should route the agent to the correct skill"): it
+  quotes the requests players make for it ("a build guide for my build <name>", "make my character better", "what is
+  my gear worth"), so Claude Code starts the right command from them, and `/pob2:build-guide`'s says both a brief and a
+  player's own build or file. **A build the user names** ("my build MyCharacter123") is matched against `list_builds`:
+  a file name equal to it, case and `.xml` ignored, is the build; otherwise the runner lists the closest names and
+  asks, never guessing. Every rule in `runner-rules.md` applies to a piece's runner,
   "write only inside the run folder" meaning its own. M-30's load check records the always-on cost against R-115's.
 - **The compaction reminder** (`scripts/compact-reminder.sh`, D-420) ends "If no /pob2:build-guide run is in progress,
   ignore this", though `/pob2:compile` gains a design gate (§17). It is reworded for any pob2 run with a `run-log.json`
@@ -672,8 +715,9 @@ variant fields; a character below the endgame isn't placed (choice A).
   more. The kept copy takes its granting item's weapon set (2 for a Swap slot, both when both sets' items grant it),
   since an import's plain groups carry no `slot`. `read.json` lists the drops (the rules a proceed-on). PoB applies a
   buff of one name once, at the higher values (`mergeBuff`, `Modules/CalcPerform.lua`:41–62).
-- **PG-114, granted quality:** a plain copy's quality goes into `skills.granted` only when above 0: an import's 0 can't
-  be told from "the game sent no quality" (§8), so it counts as unknown and the bridge's rule applies.
+- **PG-114, granted quality:** a kept copy's gem is written at quality 0, the only value the game gives it (§8); a
+  file's other value is named in `read.json` and called out by the measure. The granting item's quality is in its text,
+  and the bridge's patch gives it to the skill.
 - **Groups:** `weaponSet` from the group's slot (`Weapon 1` and `Weapon 2` give 1, the Swap slots 2); `set1` and `set2`
   attributes, which the pin neither reads nor writes, ignored [A §4]; levels, quality and `enabled` as written; `role`,
   required (`src/plan/schema.ts`:432), `single_target` for the main group and `utility` for the rest until the measure
@@ -769,8 +813,9 @@ with pricing (§16). Contract C-63 (§22).
   a state nothing in the build produces (V2's check); (b) a custom modifier line and (c) an enemy setting other than
   PoB's default (boss tier, level, resistances, armour, evasion), each only when the coordinator judges it wrong, such
   as a custom line no item or node explains, the rest listed in `measure.md` and not in the display; (d) a filled party
-  tab; (e) a condition or charge count held up that the build's producers can't keep up, with its reason; (f) anything
-  else that seems wrong to the coordinator, with its reason. (a) and (d) are mechanical, the rest judgment (the
+  tab; (e) a condition or charge count held up that the build's producers can't keep up, with its reason; (f) a granted
+  skill's gem quality in the file that the game can't give, from `read.json` (§8, §13); (g) anything else that seems
+  wrong to the coordinator, with its reason. (a), (d) and (f) are mechanical, the rest judgment (the
   categories a proceed-on, §30).
 - **The summary against `n`'s targets,** the only rung that has them (`toughness-targets.json`, `boss-floor.json`):
   the toughness band with the lowest max hit and its type beside it (`toughness-reads-ehp-and-max-hit`), the boss floor,
@@ -796,7 +841,8 @@ with pricing (§16). Contract C-63 (§22).
   item drops the mark, and the replacement meets every rule (a test).
 - **In a guide** (a file run's placed rung, or the writer on a compile run's better round, §18), owned content meets
   D-395, D-465 and the corruption rules (D-471, D-484), and its rares become specs (§16).
-- A switched group is written off and marked, and each switch measured (§14); `skills.granted` sets quality (§8).
+- A switched group is written off and marked, and each switch measured (§14). A granted skill's quality comes from its
+  wand, staff or sceptre (§8).
 
 **Its `SKILL.md`** (fewer than 150 lines). When to use it: a player's PoB file or code, "what does my character do",
 "measure my build", "make my character better", until amendment 17 gives review "how can I make this build better",
@@ -929,8 +975,9 @@ Amends D1-build's, D1-tree's, D1-finish's and D1-gate's stage references (a sect
 
 ## 18. D-522: a guide from a file, and the writer
 
-**Where it starts** (the user's answer 2 (b); where it is invoked is choice F, §30): recommended, `/pob2:build-guide`
-from a file. The brief gains `from`, a builds-folder name or `"import code"` (the code itself goes only to the reader;
+**Where it starts** (the user's answer 2 (b); choice F, §30, as recommended): `/pob2:build-guide` from a file, which a
+player's request starts as often as the command does ("I want a build guide for my build 'MyCharacter123'", §12). The
+brief gains `from`, a builds-folder name or `"import code"` (the code itself goes only to the reader;
 C-51, Appendix A.6), and the run's slug is `file`. A guide from a file runs the pipeline's own steps from the design on
 (D1, the design gate, F1, D2, W1, V4, the fix round, the final gate), its gates and its run log, so it is
 `/pob2:build-guide`'s order of calls with the compile piece's steps in front, and the compile piece's `SKILL.md` stays
@@ -1066,7 +1113,10 @@ contract C-66 (§22).
 - **CullTheConquerer** (`CullTheConquerer-oauth-import.xml`): one of the user's characters imported with PoB2's own
   OAuth importer, unchanged, a level 70 Lich past the campaign's last area level (64, `data/campaign/progress.json`),
   so in the early endgame (WL:6981–6983). Its `<Import>` records `lastLeague`, which poe.ninja's export doesn't.
-  Neither character is below the endgame, so choice A has a real case only if the user names one at HG-39.
+  Neither character is below the endgame, and the user has none (WL:6989–6991): the campaign path (choice A) rests on
+  the fixtures, the importer fixture read again at level 50 (its `<Build level>` changed in memory), the point where,
+  in the user's words, "the campaign difficulty starts outscaling a bad build". A level 50 character, when the user has
+  one, is its real case.
 
 Both have the import's shape: `targetVersion="0_1"`, `treeVersion="0_5"`, one spec, item set and skill set, every group
 enabled, each granted skill held twice. With choice D, one multi-loadout file of the private guide library
@@ -1094,11 +1144,13 @@ only in its temporary run folder, reads each file (WU-160) and compiles it measu
 ResurrectForbidden (`pob-gaps.md`, PG-106 to PG-108; a15 §11): no skill-slot warning after the recount (10 ungranted
 groups on 10 slots); Spear Throw's copy with Frost Nexus kept, on both weapon sets; Virtuous Barrier's level 20 copy
 kept beside the tree's level 1 group; Righteous Descent's copy dropped (level 19, as PoB's); Purity of Ice's supported
-copy kept, on set 2, at its sceptre's quality 10 (choice E); the buffs question, 254 reserved against 215 (Trinity 100,
+copy kept, on set 2, the skill measured at its sceptre's quality 10 (§8); the buffs question, 254 reserved against 215
+(Trinity 100,
 Charge Regulation 40 with Clarity I's 10, Herald of Ice 30, Wind Dancer 30, Combat Frenzy 30, Ghost Dance 24);
 `useSecondWeaponSet` true; the main skill asked, the file's group 14 (Twister) as plan group 11; no `importLeague`. From
-CullTheConquerer: Mana Drain's copy dropped (level 18, as PoB's from the wand); Sigil of Power's supported copy kept on
-set 2 (its staff in `Weapon 1 Swap`), at quality 0 under choice E; `useSecondWeaponSet` false; the main skill asked, the
+CullTheConquerer: Mana Drain's copy dropped (level 18, as PoB's from the wand), the skill measured at its wand's
+quality; Sigil of Power's supported copy kept on set 2 (its staff in `Weapon 1 Swap`), the skill measured at its
+staff's quality 18 (§8); `useSecondWeaponSet` false; the main skill asked, the
 file's group 3 (Essence Drain) as plan group 2, marked as PoB's guess; the Blasphemy group's two skills; `importLeague`
 Forbidden Rites. Recorded in the work-log.
 
@@ -1108,7 +1160,9 @@ Forbidden Rites. Recorded in the work-log.
 character (the measure, then the better round offline);
 `/pob2:pricing` offline, the user naming the rung (a trade run only with the user's approval, announced);
 `/pob2:build-guide` from ResurrectForbidden (and the library file, choice D) to its design gate; `/pob2:writer` on an
-accepted better round. The runs read the characters from the builds folder by the names the user gives at HG-39, each
+accepted better round. Each run starts from a request in a player's words, not the command (choice F), and a request
+that starts another command, or none, is a description to fix before the run goes on. The runs read the characters from
+the builds folder by the names the user gives at HG-39, each
 checked unchanged against its copy in `~/pob2-real-cases/` by sha1.
 
 **Each piece's expected results** are in its slice (§21), written in M-30 before WU-168 runs. A wrong result is fixed
@@ -1162,7 +1216,7 @@ C-31 (schema 11, §8, §13, §14); C-33 (the record's `switches`, `owned`, `over
 plan, `measure_as`, granted quality, switched buffs, the exemptions, no `<ModRange>`, §7, §8, §14, §15); C-50
 (`guide_run`'s reply, §19); C-51 (the brief's `from` and `better`, §18); C-57 (a fifth `bin/` command); C-58 (game
 knowledge's league and Bash lines and description, §3, §11, §12). **Existing, relied on unchanged:** C-14
-(`find_upgrades`), C-17 (`buildFileWriter`), C-49 (the price tools).
+(`find_upgrades`; only its use is capped, §16), C-17 (`buildFileWriter`), C-49 (the price tools).
 
 ## 23. Costs
 
@@ -1199,11 +1253,11 @@ rules, as today (a proceed-on: one revision per milestone).
 | WU-151 | build | Running leagues: the digest script's cards and `League:` sentence, the other digests' rewrite, the two committed digests' line 3, the fixture homepage; `leagues.mjs` and its command; the run log's `digest` forms, D-415's line, the test clock, the checker; the staleness line, the task header's `digests`, R1a, the researcher's definition, `lookups.md`, `patterns.md`:592, `references/run-log.md`; game knowledge's league lines (`SKILL.md`:66–68); the tests' helper | — | D-507 | AC-W130…AC-W132 |
 | WU-152 | build | The patch frame: `Patches.lua` with PG-109's and PG-114's entries as stubs, bootstrap 5d, the three fingerprint forms on both modules (PG-103's too), each entry's `test`, the static fingerprint test; PG-106's recount (the switched mark's name fixed here for WU-161) and its tests; `pob-gaps.md`'s PG-106 | — | D-509, D-510 | AC-W133, AC-W134 |
 | WU-153 | build | PG-109: the `ItemsTab` wraps, `import_build {save_as}`'s drop, their tests; `pob-gaps.md`'s PG-109 | WU-152 | D-511 | AC-W135 |
-| WU-154 | build | PG-114: schema 11's `skills.granted`, the compile and its check, the `ProcessSocketGroup` wrap (choice E), `plan-reference.md`; its tests; `pob-gaps.md`'s PG-114 with both real cases | WU-152 | D-512 | AC-W137 |
+| WU-154 | build | PG-114: the `ProcessSocketGroup` wrap for wands, staves and sceptres, `compile_check`'s refusal of a quality on a granted skill's gem (schema 11), `plan-reference.md` (the quality rule, D-359's item support slots); its tests; `pob-gaps.md`'s PG-114 with both real cases, and PG-115 if its check holds | WU-152 | D-512 | AC-W137 |
 | WU-155 | build | The upgrade script and S-2's probe, committed, with §4's changes to `fetch-pob.sh` or Node, `pinCheck.ts`, `compilePlan.test.ts`, the skill-slot tests and `--reflag`; the report; `CLAUDE.md`'s procedure and launch note; the dry run and the rehearsal | WU-151, WU-153, WU-154 | D-508 | AC-W136, AC-W138 |
 | WU-156 | build | The small fixes: `words-loaded.mjs`:285, the baseline's two sections, its test; `prices.json` and its pins; game knowledge's Bash and Grep lines but :66–68 (WU-151's) | — | D-513, D-514, D-515 | AC-W139, AC-W141, AC-W142 |
 | WU-157 | human, then the coordinator | The user starts a `--plugin-dir` session (HG-38); the coordinator probes each `pob2:` type. Outside M-29's gate; recorded by WU-168 at the latest | the user | D-515 | AC-W140 |
-| WU-158 | docs | M-29's documents: slice 04's league rule and Bash line; notes in 01, 02 and 03 for the patches, schema 11's `skills.granted` and the league rule; the spine's M-29 rows as built | WU-151…WU-156 | D-525 | AC-W143 |
+| WU-158 | docs | M-29's documents: slice 04's league rule and Bash line; notes in 01, 02 and 03 for the patches, the granted-quality rule and the league rule; the spine's M-29 rows as built | WU-151…WU-156 | D-525 | AC-W143 |
 
 WU-151, WU-152 and WU-156 start together, each in its own worktree; WU-151 and WU-156 share game knowledge's
 `SKILL.md` and `buildGuidePipeline.test.ts` in separate hunks. WU-153 and WU-154 follow WU-152, in parallel,
@@ -1279,9 +1333,11 @@ then the spine marks M-30 "built, WU-168 open", as M-28 was before HG-37.
   Recorded by the unit and the gate's verifier.
 - **AC-W137 (PG-114; WU-154).** A fixture with a quality 20 Shrine Sceptre (its base and Purity named, the resistance
   under its cap) measures its Purity at quality 20, the resistance 8 points over quality 0, also with the granted group
-  saved at 0; a plan's `skills.granted` 20 on a tree-granted skill measures 20, and again after a save and reload;
-  `compile_check` refuses a name nothing on the stage grants; with the wrap reverted the Purity reads 0; every schema-10
-  plan fixture compiles to its old record. Engine and unit tests.
+  saved at 0 and at 5 (the item's 20 wins); a quality 20 wand's granted skill measures at 20 and a quarterstaff passes
+  none; on schema 11 `compile_check` refuses a gem quality above 0 for a skill the stage's sceptre grants, and for one
+  a passive grants, naming the stage, group and skill; with the wrap reverted the Purity reads 0; every schema-10 plan
+  fixture compiles to its old record. PG-115's check on a fixture wand runs, and `pob-gaps.md` records PG-115 only if it
+  holds. Engine and unit tests.
 - **AC-W138 (the upgrade script; WU-155).** On fixtures, with no network and no engine (a local `file://` remote, an
   injected gate result): it refuses a branch and a commit; it lists a changed fingerprint and retires nothing for it; it
   removes a patch's entry and test when the test fails on its "bug still present" case, and lists any other failure;
@@ -1329,7 +1385,8 @@ then the spine marks M-30 "built, WU-168 open", as M-28 was before HG-37.
   changes. MCP and unit tests.
 - **AC-W149 (the reader on the fixtures; WU-160).** By name and by code the importer fixture gives the same plan but
   `source`, with each rule of §13 met on its case: rolls, bases, `left` and `stand_in`, PG-111's line, the granted
-  copies by support, level and weapon set, no `skills.granted` for a 0, plan-numbered questions, `mainActiveSkill`,
+  copies by support, level and weapon set, each kept copy's gem at quality 0 (a planted 5 named), plan-numbered
+  questions, `mainActiveSkill`,
   `"nil"` as false, `role`, `config.file` and `enemyIsBoss`, `importLeague`, `buffs_on` and `buffs_swap`, `corrupt`,
   `treeJewels`, `attributeChoices`; the plan passes schema 11. The poe.ninja fixture: its main group as set, no
   `importLeague`, set 2, its untitled spec. Neither holds a character hash or account name. Unit test.
@@ -1346,32 +1403,39 @@ then the spine marks M-30 "built, WU-168 open", as M-28 was before HG-37.
   V1 reports `switched-spirit` for a switch that leaves Spirit below 0 and nothing for one that fits; a stage without
   `switch` compiles to its old record. Engine and unit tests.
 - **AC-W153 (`/pob2:compile`; WU-162).** `skills/compile/SKILL.md` exists with fewer than 150 lines, frontmatter `name`
-  and `description` only, at most 1,536 characters, naming when to use it and `/pob2:build-guide`, `/pob2:pricing`,
-  `/pob2:game-knowledge` for the rest; it reads `runner-rules.md` first; `measure.md` holds §15's parts; the
-  coordinator's step table names `measure`; game knowledge's description names the three new commands; every
+  and `description` only, at most 1,536 characters, naming when to use it, with at least two requests in a player's
+  words in quotes (§12), and `/pob2:build-guide`, `/pob2:pricing`, `/pob2:game-knowledge` for the rest; it reads
+  `runner-rules.md` first; `measure.md` holds §15's parts; the coordinator's step table names `measure`; game
+  knowledge's description names the three new commands; every
   root-folder path resolves (AC-W115's test). Static test.
 - **AC-W154 (the better round; WU-162).** D1-build, D1-tree, D1-finish and D1-gate each hold a `scope: "better"`
   section; a fixture compile run with a better round (offline) passes the checker, its D1 loop in order; the checker
   fails a planted round whose missed target isn't shown as a finding; its design display names the draft first; no file
-  name equals the source's. Static and unit tests.
+  name equals the source's; on the importer fixture at level 50 (choice A) the round's targets are `m`'s. Static and
+  unit tests.
 - **AC-W155 (`/pob2:pricing`; WU-163).** `skills/pricing/SKILL.md` (fewer than 150 lines, `name` and `description`
-  only, at most 1,536 characters) and `price.md` exist; `pricing.md` is at its new path, its text unchanged but for
-  paths, and no file under `skills/`, `agents/`, `src/`, `scripts/` (the baseline aside) or `tests/` names the old one;
-  `placement` gives `m`, `b` and `n` on three fixture price sets and `n` for a dear unique (choice B), and `owned-spec`
+  only, at most 1,536 characters, quoting at least two requests in a player's words, §12) and `price.md` exist;
+  `pricing.md` is at its new path, its text unchanged but for paths, and no file under `skills/`, `agents/`, `src/`,
+  `scripts/` (the baseline aside) or `tests/` names the old one;
+  `placement` gives `m`, `b` and `n` on three fixture price sets, `n` for a dear unique (choice B) and "in the campaign"
+  for the importer fixture at level 50 (choice A), and `owned-spec`
   passes §16's spec; each fails a planted fault; `price.md` asks for the rung without trade or under `--no-ninja`, and
   for an unlisted league (static); without a cookie the upgrades are links; `upgrades.json` has A.10's shape; online
   (through `fixtureFetch`) and offline fixture runs pass the checker; pipeline fixtures keep their results. Unit and
   static tests.
-- **AC-W156 (a guide from a file; WU-164).** The brief accepts `from` and `better` and gives the slug `file`; a fixture
+- **AC-W156 (a guide from a file; WU-164).** The brief accepts `from` and `better` and gives the slug `file`;
+  `/pob2:build-guide`'s description quotes a request for a guide to a player's own build (§12), and a build name that
+  matches no file, or several, is asked about with the closest names (a unit test of the runner's step); a fixture
   file run (offline) passes the checker in the file-run order (`read`, `measure`, `place`, then `D1-build`; no R1a, R1b
   or verification gate), its placed rung's items kept, its rares as specs, a planted owned legacy gem shown as a trade,
   the other rungs designed, the placed rung's floor and tree parts findings (a planted run that fails it for them
-  fails); with "better" the result is placed again; a declined campaign runs no D2; the file entry, the quality-20
-  lines and W1's quality line exist. Static and unit tests.
+  fails); with "better" the result is placed again; a declined campaign runs no D2; the file entry, the designers'
+  quality-20 line for a granting wand, staff or sceptre and W1's Arcanist's Etcher line exist. Static and unit tests.
 - **AC-W157 (switched buffs in the guide; WU-164).** On a fixture build with a switched buff, W1's guide has §14's line
   for it, and the checker's `switched-buffs` fails a guide without it. Unit test.
 - **AC-W158 (`/pob2:writer`; WU-165).** `skills/writer/SKILL.md` exists with fewer than 150 lines, frontmatter `name`
-  and `description` only, at most 1,536 characters; a fixture writer run on a fixture file run's folder passes the
+  and `description` only, at most 1,536 characters, quoting at least two requests in a player's words (§12); a fixture
+  writer run on a fixture file run's folder passes the
   checker, its guide and audit in its own folder and none in the source; `pob2-run-log init` refuses a measure-only
   compile run as the source, naming the better round; on a better round's source the owned rares are specs and a planted
   legacy gem is refused. Static and unit tests.
@@ -1385,8 +1449,9 @@ then the spine marks M-30 "built, WU-168 open", as M-28 was before HG-37.
   user-side digest reaches `init` and the header; `guide_run`'s reply names the folder; the marks' wording is in the
   guide, audit and gate displays; `bin/` holds five executable commands, and `runner-rules.md` names the new one. Unit,
   engine and static tests.
-- **AC-W160 (the pieces' real cases; WU-168, after M-30).** The work-log records, for each run of §20: the command, the
-  `pob2:` types started and their tool calls, the run folder, what it measured or priced against §20's expected
+- **AC-W160 (the pieces' real cases; WU-168, after M-30).** The work-log records, for each run of §20: the request in a
+  player's words and the command it started, the `pob2:` types started and their tool calls, the run folder, what it
+  measured or priced against §20's expected
   results, and the source's sha1 in `read.json` equal to its copy's. Recorded.
 - **AC-W161 (M-30's documents; WU-167).** Slices 05, 06 and 07 exist with 04's headings; slice 03 carries §21's notes;
   the spine names C-61 to C-66; `specSpine.test.ts` passes; the gate's verifier records the rows built and the status
@@ -1441,8 +1506,9 @@ then the spine marks M-30 "built, WU-168 open", as M-28 was before HG-37.
 
 - **HG-12, the grant for this amendment's build** (the user's answer 3 grants the tool; approval grants the rest):
   `plan_from_build`, its `source.xml` in the run folder; `compile_plan` on a read plan (`config.file`, `measure_as`, the
-  owned exemptions, granted quality, switched buffs, the record's `switches`, `owned` and `overlay`), `compile_check`'s
-  refusal of a `skills.granted` name nothing grants and its owned-legacy exemption; the skill-slot recount's effect on
+  owned exemptions, granted quality from a wand, staff or sceptre, switched buffs, the record's `switches`, `owned` and
+  `overlay`), `compile_check`'s refusal of a quality on a granted skill's gem (schema 11) and its owned-legacy
+  exemption; the skill-slot recount's effect on
   every reply that reads PoB's warnings (V1, `get_build_issues`, the advice report, the load replies); `<ModRange>` left
   out of every file the engine composes (`compile_plan`, `lua_save_build`, `export_build`, the snapshots) and of
   `import_build {save_as}`, and dropped by every load (`lua_load_build`, `lua_reload_build`, `analyze_build`,
@@ -1485,10 +1551,14 @@ From the handoff's scope and the user's answers:
   name: a `--plugin-dir` session, not an install, and outside M-29's gate.
 - **`/pob2:writer` alone is included,** with a source folder (§18): the roadmap's "compile and the writer" names it,
   though a guide from a file reaches W1 through `/pob2:build-guide`. It is the smallest of the pieces' units.
-- **The guide library's files** (the approved roadmap's real cases, a15 §11): one joins by choice D; under its
-  alternative, their drop is this departure.
-- **Not in this amendment:** PG-112 (ours, node power's cache across a radius jewel; the scope names it nowhere and the
-  fix policy is PoB's bugs); PG-65 stays a workaround (the scope); the pipeline's side of PG-111 keeps its workaround.
+- **The guide library's files** (the approved roadmap's real cases, a15 §11): one joins (choice D, approved); the
+  others don't.
+- **No campaign character among the real cases:** the user has none (choice A, WL:6989–6991); the fixtures cover the
+  campaign path (§20).
+- **Not in this amendment:** PG-115 (found at approval: an item-only granted skill misses skill level and quality
+  modifiers, §8), recorded once its check holds, its patch or upstream issue a later amendment's; PG-112 (ours, node
+  power's cache across a radius jewel; the scope names it nowhere and the fix policy is PoB's bugs); PG-65 stays a
+  workaround (the scope); the pipeline's side of PG-111 keeps its workaround.
 - **Size.** The scope fits two milestones, but M-30 is the largest milestone yet (R-126). The proposal, if its first
   units show it won't fit: the overlay (WU-166, last by the user's word) moves to a milestone of its own, M-31, with the
   user's yes; nothing else moves.
@@ -1496,34 +1566,36 @@ From the handoff's scope and the user's answers:
 ## 30. The user's answers, the choices at approval, and proceed-on assumptions
 
 **The user's answers** (§1): (1) §24; (2) (a) §15, §16; (b) §16, §18; the better round §17; (3) §13; (4) §13, §15;
-(5) §14; (6) §16; (7) two characters, §20; (8) §8; (9) §19. Each decision cites its source in its section: a user's
+(5) §14; (6) §16; (7) two characters, §20; (8) §8; (9) §19; at approval, E's facts §8, F's routing §12 and §18.
+Each decision cites its source in its section: a user's
 answer, the coordinator's call (accepted), or the drafter's call; the drafter's calls are the proceed-ons below, and
 the review's resolutions are §31's.
 
-**The choices at approval** (the recommendation first):
+**The choices at approval, answered** (the user, 2026-11-08, WL:6989–7004; each as its section now reads):
 - **A. A character below the endgame** (under level 65, the first waystone tier's area level, or its owner says it is
-  in the campaign; §15 to §18). Recommended: measure it as §15 does, report its place as "in the campaign" instead of
-  a rung, and aim the better round at `m`'s targets. The alternative: compile and pricing measure and price it, but the
-  better round and a guide from a file accept only an endgame character.
-- **B. The budget rung and dear uniques** (§16). Recommended: a character is on `b` only if every rare is within about
-  5 divines and no unique costs more than about 5 divines, so one dear unique places it on `n`. The alternative: the
-  per-rare reading of revision 0, uniques left out.
-- **C. An upstream fix for PG-109** (§5, §7). Recommended: after M-29, the coordinator drafts the PR for PoB's
-  repository for the user to approve and open (the fix policy). The alternative: none for now, recorded.
-- **D. A guide-library file as a real case** (§20; the approved roadmap had them, a15 §11). Recommended: one
-  multi-loadout library file joins the reader's and the file run's real cases, read in place, nothing copied, the user
-  naming it or telling the coordinator to pick. The alternative: the drop recorded as a departure (§29).
-- **E. Which items pass their quality to the skills they grant** (§8; a granted skill's quality is the larger of its
-  group's and its item's). Recommended: sceptres only, the case issue #2575 shows; every other granted skill keeps its
-  group's quality, the plan's or the file's. The alternative: every item, as PR #2577 does.
-- **F. Where a guide from a file starts** (§18). Recommended: `/pob2:build-guide` from a file, the pipeline's order of
-  calls with the compile piece's steps in front. The alternative: `/pob2:compile <file> guide`.
-- **G. Who runs the pieces' real cases after M-30 merges** (§20, HG-39). Recommended: the coordinator runs them in a
+  in the campaign; §15 to §18): as recommended. It is measured as §15 does, its place reported as "in the campaign"
+  instead of a rung, and the better round aims at `m`'s targets. The user has no campaign character; level 50 is the
+  realistic case (§20).
+- **B. The budget rung and dear uniques** (§16): as recommended. A character is on `b` only if every rare is within
+  about 5 divines and no unique costs more than about 5 divines, so one dear unique places it on `n`.
+- **C. An upstream fix for PG-109** (§5, §7): as recommended. After M-29, the coordinator drafts the PR for PoB's
+  repository for the user to approve and open (the fix policy).
+- **D. A guide-library file as a real case** (§20): as recommended. One multi-loadout library file joins the reader's
+  and the file run's real cases, read in place, nothing copied, the user naming it or telling the coordinator to pick
+  (HG-39).
+- **E. Which items pass their quality to the skills they grant** (§8): answered with the game's facts. Wands, staves
+  and sceptres pass theirs, raised with Arcanist's Etchers; no other granted skill has a quality of its own; skill
+  level and quality modifiers apply to every granted skill; support slots follow item level (Jeweller's Orbs on the item
+  add more) or character level. Revision 1's recommendation (sceptres only) and its "larger of" rule are replaced, and
+  `skills.granted` is dropped.
+- **F. Where a guide from a file starts** (§18): as recommended, `/pob2:build-guide` from a file; and, the user's
+  addition, every pob2 description routes the requests players make in their own words (§12).
+- **G. Who runs the pieces' real cases after M-30 merges** (§20, HG-39): as recommended. The coordinator runs them in a
   `--plugin-dir` session (the server rebuilt and reconnected), reading the characters from the builds folder by the
   names the user gives, each checked unchanged against its copy in `~/pob2-real-cases/` by sha1; they write their own
   folders in the user's guides folder and the better round's draft and final PoB files into the builds folder under
   their own names, never over an existing file, and price nothing on the trade site without the user's approval: an
-  HG-6 grant for these runs only. The alternative: the user runs them, as at HG-37, and records what they show.
+  HG-6 grant for these runs only.
 
 **The drafter's proceed-on assumptions** (each open to the user's change at approval; each section marks its own):
 - names and shapes: `leagues.mjs`, `pin-upgrade.mjs`, `Patches.lua`, `plan_from_build`, the pieces, their commands,
@@ -1534,7 +1606,8 @@ the review's resolutions are §31's.
   string-to-list comparison;
 - the upgrade script's tag pattern, report and rehearsal target; the fingerprint's three forms; PG-106's literal reading
   (no enabled active gem counts nothing, a switched group counts); PG-109 per item with a `{range:` tag;
-  `skills.granted`'s form, unpriced, its guide line naming no method;
+  the designers' quality 20 on a granting wand, staff or sceptre, unpriced; `compile_check`'s refusal of a granted
+  skill's gem quality from schema 11 on; matching a named build against `list_builds`;
 - the words-loaded baseline's second section; `prices.json`'s `0.5.x` conversion facts and 1.0's poe2db name;
 - the reader: engine-free parsing (D-517), its two calls, one loadout per read, the tree question, the read stage `f`,
   PG-108's rules, plan numbering, the groups' `role`, a null `league`, the scenario's source form;
@@ -1571,7 +1644,8 @@ user; the fold re-checked each fix's facts about the code. Folded:
   K48): choices A and B; placing again after a better round; `n`'s measures; the exemptions' scope; a guide's rules on
   owned content; the file's league and tree version; two calls with `source.xml`; the duplicates' rules; two fixtures.
 - **The patches** (K10, K17, K26, K27, K30, K58): wraps on PoB's classes; the switched slot counted; quality the larger
-  of group and item; `import_build {save_as}`; choice C; the line-range fingerprint.
+  of group and item (replaced at approval by the item's quality for a wand, staff or sceptre, choice E);
+  `import_build {save_as}`; choice C; the line-range fingerprint.
 - **The upgrade script** (K38 to K42): a rehearsal on a real difference; `--reflag` on change only; conditional
   judgment; the staging fetch; lines found by text; retirement on "bug still present" only; the probe's env.
 - **League launch and the overlay** (K6, K7, K11, K20, K21, K28, K29, K43, K49): `digest` forms by revision; the poe2db
@@ -1598,6 +1672,11 @@ contradicted another, 7 citations, the real case's plan group numbers and CullTh
 character, not a campaign case). Left to the coordinator, and settled: choice A's line stays level 65, the first
 waystone tier's area level (`m` is measured at 69, D-281, a rung's stage, not where the endgame starts); game
 knowledge reads only committed digests (§19).
+
+**At approval** (revision 2, the coordinator, no agent): the user's answers folded (§30); E's facts checked against the
+pin before they were written (the item-quality wrap's base types, `Data/Bases/staff.lua`; PG-115's two gem-data sites,
+`Modules/CalcSetup.lua`:1532, :1892–1895, `Classes/SkillsTab.lua`:1243–1247; D-359's check,
+`src/plan/checks/v1.ts`:762).
 
 # Appendix A. Formats
 
@@ -1675,7 +1754,6 @@ The values are illustrative.
 - `stages[].source`: `{kind: "builds-folder" | "import-code", name?, sha1, loadout}`, on a read stage only.
 - `stages[].items.slots[]` and `items.treeJewels[]`: `owned: true`, `standIn: true` (both optional, the reader's only).
 - `stages[].skills.groups[]`: `owned: true`; `switch: {when: string, off: number[]}` (with `enabled: false`).
-- `stages[].skills.granted[]`: `{skill: string, quality: 0..20}`.
 - `stages[].config.file`: `{<PoB input name>: string | number | boolean}`, written as set, its custom modifiers among
   them; on a read stage `config.earned` is empty and `config.scenario` holds only `enemyIsBoss`, from the file.
 - A read stage: id `f`, `progress: "endgame"`, no `variant` until placed; placing renames it to its rung's id and adds

@@ -11,10 +11,150 @@ history; where a section below says "the spine" or "spine §n", read `docs/spec/
 old sections). Every amendment build ends with the fold. The approval commit, before the first unit, puts the
 amendment's rows into the spine with status approved and sets the status line to "Folded through amendment <n>
 (approved; as built through <n−1>)"; the build's last unit updates the rows as built (the work-log's record wins, the
-difference stated beside the row) and drops the parenthesis (amendment 15 §13). `tests/static/specSpine.test.ts` fails
-when the spine falls behind.
+difference stated beside the row) and drops the parenthesis (amendment 15 §13). An amendment built in two milestones
+adds a middle step: the first milestone's docs unit marks that milestone's rows built, and the line reads "(approved;
+as built through <n−1> and amendment <n>'s M-<m>)" (amendment 16 §21). `tests/static/specSpine.test.ts` fails when
+the spine falls behind.
 
-## M-28: amendment 15, the plugin layout, the shared rules and game knowledge (read this first)
+## M-29: amendment 16 Part I, what 1.0 needs, and the shared fixes (read this first)
+
+Added 2026-11-08. For this build, this section overrides the M-28 and older sections and "What to build" below;
+"Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running
+tests, fixtures and "done" (its last bullets) apply unchanged. M-21's to M-28's formats stay in force where M-29
+doesn't change them. M-30's section, next, is the same amendment's second milestone, built after M-29 merges.
+
+- **Spec.** `docs/build-guide/spec/amendment-16-pieces-and-launch.md`, approved revision 2, 2026-11-08 (D-507…D-525,
+  §24's units, order and gates, §25's criteria, Appendix A's formats) is binding. The spine, `docs/spec/README.md`, is
+  folded through amendment 15 as built and holds amendment 16's rows as approved (the approval commit). Read the
+  amendment's status and Names, §1 and §2 (the user's direction, the system today), Part I (§3 to §11), §24, §25's
+  M-29 criteria, §26 (migration), §28 (guardrails), your unit's decisions and criteria, and Appendix A.1 to A.4.
+- **Approved** by the user on 2026-11-08, with §30's seven choices answered: A, B, C, D, F and G as recommended, E
+  with the game's facts (now §8) (WL:6985–7004). §29 lists where the spec departs from the user's answers; a doer who
+  finds another departure stops and reports it.
+- **The deadline.** 1.0 starts on 2026-12-11 at 20:00 UTC, the instant both running leagues end (§1, §3). M-29 merges
+  to `main`, signed with the user (HG-8), before M-30 starts (R-118).
+- **HG-12 is granted (§28) for M-29's part of the list only:** the gem-group recount's effect on every reply that
+  reads PoB's warnings (V1, `get_build_issues`, the advice report, the load replies); `<ModRange>` left out of every
+  file the engine composes (`compile_plan`, `lua_save_build`, `export_build`, the snapshots) and of `import_build
+  {save_as}`, and dropped by every load (`lua_load_build`, `lua_reload_build`, `analyze_build`, `compare_builds`);
+  granted quality from a wand, staff or sceptre, and `compile_check`'s refusal of a quality on a granted skill's gem
+  (plan schema 11). No tool is added in M-29. Any other tool-contract change is HG-12: stop and report.
+- **Integration worktree:** `pob2-mcp-wt/m29` beside the main checkout, branch `build-guide/m29`, off `main` at the
+  approval commit. Lanes `bg-<nnn>` on `bg/wu-<nnn>`, off the integration head when the unit starts. The main checkout
+  is never touched; its `vendor/` is the source for a lane's copy, read only.
+- **Units and order** (§24). WU-151 (running leagues, D-507), WU-152 (the patch frame and PG-106's recount, D-509 and
+  D-510) and WU-156 (words loaded, `prices.json`, game knowledge's Bash line; D-513…D-515) start together, each in its
+  own worktree. WU-151 and WU-156 share game knowledge's `SKILL.md` (WU-151 its league lines, :66–68; WU-156 the Bash
+  and Grep lines) and `buildGuidePipeline.test.ts`, in separate hunks. WU-153 (PG-109, D-511) and WU-154 (PG-114,
+  D-512) follow WU-152, in parallel, sharing `Patches.lua` (WU-152 lays out both entries as stubs) and `pob-gaps.md`
+  in separate hunks. WU-152 fixes the switched mark's name that WU-161 uses. WU-155 (the upgrade script, D-508) waits
+  for WU-151, WU-153 and WU-154 (the new line 3 and the fingerprints). WU-158 (docs) follows WU-151…WU-156: slice 04's
+  league rule and Bash line, the notes in slices 01, 02 and 03, the spine's M-29 rows as built and its status line
+  "Folded through amendment 16 (approved; as built through 15 and amendment 16's M-29)" (§21). **WU-157 isn't a
+  doer's unit:** once the user starts a `--plugin-dir` session (HG-38), the coordinator probes each `pob2:` type for
+  Grep and Glob (§11, AC-W140); it is outside M-29's gate, and WU-168 records it at the latest.
+- **The coordinator** merges each unit after its verifier passes, and owns the work-log (AC-W136's runs, AC-W140's
+  probe, AC-W162's list of changed assertions) and the spec. Amendment 16's rows are in the spine as approved already;
+  WU-158 marks M-29's built.
+- **The patches** (§5 to §8, Appendix A.3). Bridge patches only, in `pob-api/`; `vendor/` is never modified. Each
+  entry has its PG id, its fingerprints and its retirement test, whose "bug still present" case holds only that
+  assertion and whose title says to remove the patch when it fails. No unit opens an upstream PR: by choice C the
+  coordinator drafts PG-109's after M-29, for the user to approve and open. PG-115 (§8) is checked by WU-154's engine
+  test on a fixture wand and recorded in `pob-gaps.md` only if it holds; it isn't patched.
+- **The upgrade script** (§4). Tagged releases only. Its dry run on the pin itself and the rehearsal on a scratch
+  branch to the release before the pin (discarded after) run in the background under the gate lock, nice'd; the
+  work-log records each step's result, the judgment list and the elapsed time (AC-W136). The pin doesn't change: no
+  unit commits a change to `pob-pin.json` (HG-11).
+- **League dates without a fetch** (§3). The two committed digests get their `League:` sentence by hand, with §3's
+  instants; the script's tests use the fixture homepage with hand-written cards; no saved page is committed.
+- **The real cases** (§20) aren't read in M-29: PG-114's `pob-gaps.md` entry takes both characters' facts from §8.
+  Nothing records a personal detail.
+- **Room left:** `skills/build-guide/SKILL.md` is 317 lines, under 325 at both gates (AC-W144); game knowledge's
+  `SKILL.md` under 150 (AC-W142); each stage's words loaded within 5% of its baseline under D-513's rule (AC-W139).
+- **Every build unit holds AC-W162:** every pipeline fixture gives the checker's result it gave at `cf16e07`; each
+  test assertion a unit changes is listed with the decision that forces it, and the milestone's verifier checks each.
+- **Stops for the user:** HG-12 outside the grant; HG-11; any other human gate; the same gate failure three times in a
+  row (`blocked:loop`).
+- **Running the gate:** the M-20 bullet's command, unchanged (one full gate at a time, `nice -n 19`, under the lock).
+  **M-29's gate** passes when AC-W130 to AC-W139, AC-W141 to AC-W144 and AC-W162 hold, `mise run test` and `pnpm build`
+  exit 0, `scripts/fresh-clone-check.sh` passes, and the load check (a15 §4) passes on the merged tree; the gate's
+  verifier records each (§24).
+- **Lane bootstrap:** from the integration worktree, `git worktree add -b bg/wu-<nnn> ../bg-<nnn> build-guide/m29`;
+  in the lane, `git config --worktree commit.gpgsign false`, `mise trust`, `cp -a <main checkout>/vendor ./vendor`,
+  `pnpm install --frozen-lockfile`, `mise run pob:fetch`.
+- **No network** beyond GitHub and npm (a worktree's bootstrap; WU-155's dry run and rehearsal fetching PoB2's tagged
+  trees). No unit fetches poe2db or sends a trade request; HTTP in tests goes through `fixtureFetch`.
+- **Commits, signing and pushing:** as "Commits" below: unsigned in the worktrees, `<type>(WU-nnn): <what>` with the
+  co-author line, never pushed by a unit. The coordinator signs the merged milestone onto `main` with the user (HG-8).
+- **Notification path:** as below. A stop goes to the user in chat, with a push notification.
+
+## M-30: amendment 16 Part II, the pieces (after M-29 merges)
+
+Added 2026-11-08 with M-29's section, and placed after it because M-29 is built and merged first. When M-30 starts,
+this section overrides the M-29 and older sections and "What to build" below; "Worktrees and branches" onward still
+applies, with the integration worktree named here. M-20's rules on running tests, fixtures and "done" apply unchanged;
+M-21's to M-29's formats stay in force where M-30 doesn't change them.
+
+- **Spec.** The same amendment, approved revision 2, 2026-11-08. When M-30 starts, the spine is folded through
+  amendment 15 and amendment 16's M-29 as built (WU-158). Read the Names, §1 and §2, Part II (§12 to §21), §22 (the
+  contracts), §24, §25's M-30 criteria, §26, §28, §29, your unit's decisions and criteria, and Appendix A.5 to A.11.
+- **Starts after M-29 merges to `main`**, signed (HG-8). The integration branch is off `main` after that merge.
+- **HG-12 is granted (§28) for M-30's part of the list only:** `plan_from_build` and its `source.xml` in the run
+  folder (the 86th tool; 85 with poe.ninja off, 79 with trade and poe.ninja off); `compile_plan` on a read plan
+  (`config.file`, `measure_as`, the owned exemptions, switched buffs, the record's `switches`, `owned` and `overlay`)
+  and `compile_check`'s owned-legacy exemption; `guide_run {new_run}`'s league-folder line; the overlay's entries
+  wherever PoB's data shows them, the lookups marking them "not in PoB's release"; plan schema 11's read fields and
+  `switch`. Any other tool-contract change is HG-12: stop and report.
+- **Integration worktree:** `pob2-mcp-wt/m30`, branch `build-guide/m30`; lanes as M-29's.
+- **Units and order** (§24). WU-159 (piece runs, D-516) and WU-160 (`plan_from_build`, D-517) start together. WU-161
+  (the compile on a read plan, D-518, D-519's compile part) follows WU-160 and merges after WU-159. WU-162
+  (`/pob2:compile`, D-519, D-521) and WU-163 (`/pob2:pricing`, D-520) run in parallel after WU-159 and WU-161, each
+  owning its own skill folder; WU-163 adds the coordinator's `price` row and compile's placement line after WU-162
+  merges. WU-164 (a guide from a file, D-522, with D-512's and D-518's designer and W1 lines) follows WU-162 and WU-163,
+  and WU-165 (`/pob2:writer`) follows WU-164. WU-166 (the overlay, D-523) runs beside WU-161 to WU-165 and merges last
+  of the build units, after WU-165. WU-167 (docs) follows: slices 05, 06 and 07, slice 03's notes and shrink, slice
+  04's commands, notes in 01 and 02, the spine as built and the status line's parenthesis dropped (§21). **Stop before
+  WU-168:** it is the pieces' real cases with agents, after M-30 merges (HG-39), not a doer's unit. A breach of a
+  bound (a `SKILL.md`'s lines, a stage's words) is fixed by the unit whose text caused it.
+- **If M-30 won't fit** (R-126): the overlay, WU-166, moves to a milestone of its own, M-31, only with the user's yes
+  (§29). Nothing else moves.
+- **The pieces' rules** (§12). Each piece's `SKILL.md` has fewer than 150 lines and frontmatter `name` and
+  `description` only (at most 1,536 characters), quoting the requests players make in their own words (choice F); its
+  runner reads `runner-rules.md` first. The checker's rule names and messages don't change: they are the tests' pins.
+- **Owned content** (§15). Only the reader marks content owned. A design that replaces an item drops the mark, and the
+  replacement meets every rule (a test). In a guide, owned content meets every rule and its rares become specs (§16).
+- **The real cases** (§20, D-524). Two of the user's characters, in `~/pob2-real-cases/`, and by choice D one
+  multi-loadout file of the private guide library, read in place. Read only: never copied into the repository,
+  committed or written, and no personal detail (a character hash, an account name) recorded anywhere. The committed
+  fixtures (`tests/fixtures/builds/imported-character.xml`, `imported-ninja.xml`) are built by hand from the game data,
+  as `granted-supports.xml` was. The tools' real cases (WU-160, WU-161; AC-W150, AC-W151) run as a probe from a
+  temporary folder, its server started as `spawnServer` starts one (trade and poe.ninja off, temporary folders), each
+  file an import code encoded in memory; the work-log records the results against §20's expected ones and each file's
+  sha1, unchanged.
+- **Trade only with the user's approval.** No unit sends a trade request: test servers keep trade off, and the online
+  pricing fixture runs go through `fixtureFetch`. No unit fetches poe2db: the overlay's tests use fixture pages. At
+  WU-168, a trade run only with the user's approval, announced, one client, at the server's pace (`CLAUDE.md`).
+- **Writes.** A builds-folder write goes through `buildFileWriter` (C-17); the file reader writes only its run folder;
+  `pob2-league-digest` writes only its league folder; tests point `POB_DIRECTORY` and `XDG_STATE_HOME` at temporary
+  folders, and the overlay's server tests use a temporary `deps.stateDir` or `XDG_STATE_HOME`.
+- **Room left:** `/pob2:build-guide`'s `SKILL.md` under 325 at M-30's gate (AC-W144); each piece's under 150; each
+  stage's words loaded within 5% (D-513), WU-162 and WU-163 adding the new stages' baseline entries.
+- **AC-W162** is held by every build unit, as in M-29.
+- **Stops for the user:** HG-12 outside the grant; moving the overlay to M-31; any other human gate; `blocked:loop`.
+- **Running the gate:** as M-29's. **M-30's gate** passes when AC-W139, AC-W142, AC-W144 to AC-W159, AC-W161 and
+  AC-W162 hold, `mise run test` and `pnpm build` exit 0, `scripts/fresh-clone-check.sh` passes, and the load check
+  passes on the merged tree (the five skills, three of them new, and the four agent types listed; the always-on cost
+  recorded against R-115's). AC-W160 and AC-W140 are recorded at WU-168; until then the spine marks M-30 "built,
+  WU-168 open".
+- **WU-168, the human gates** (HG-38, HG-39). After M-30 merges, the user starts a `--plugin-dir` session on the main
+  checkout (new, or `/reload-plugins`), never an install, and the rebuilt server is reconnected (`/mcp`). The user
+  names the characters in the builds folder (and the library file, or lets the coordinator pick it); each run starts
+  from a request in a player's words, asks its steps of `pob2:` types only, and checks each file unchanged against its
+  copy by sha1. Choice G's grant, for these runs only (HG-6): their own folders in the guides folder, and the better
+  round's draft and final PoB files in the builds folder under their own names, never over an existing file.
+- **Lane bootstrap, network, commits, notification:** as M-29's, with `build-guide/m30`.
+
+## M-28: amendment 15, the plugin layout, the shared rules and game knowledge (built)
 
 Added 2026-11-06. For this build, this section overrides the M-27 and older sections and "What to build" below;
 "Worktrees and branches" onward still applies, with the integration worktree named here. M-20's rules on running

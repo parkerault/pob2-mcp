@@ -139,47 +139,69 @@ engineDescribe("AC-P95 (WU-139): the bridge's parse fix for Crystalline Phylacte
     ENGINE_TIMEOUT,
   );
 
-  it(
-    "with the fix list off, PoB's own parse of the line leaves a remainder and the Ruby counts once in 17788 (if this fails, PoB parses the line itself: remove PG-103's entry from pob-api/API/ParseFixes.lua)",
-    async () => {
-      // The tree's line is the one the fix lists.
-      const tree = fs.readFileSync(path.join(PIN_SRC, 'TreeData', '0_5', 'tree.lua'), 'utf8');
-      expect(tree).toContain(`[2]="${LINE}",`);
-      try {
-        const reverted = await evalLua<Array<{ pg: string }>>(`return require('API.ParseFixes').revert()`);
-        expect(reverted.map((r) => r.pg)).toEqual(['PG-103']);
+  // D-509: the retirement test's "bug still present" case holds only its assertion, so a setup error fails the case
+  // before it, never that one (amendment 16 §5); PG-103's entry names it as its `test`.
+  describe('with the fix list off', () => {
+    let off: { cached: Parse; parsed: Parse; rubies: Array<{ asc: string; armourInc: number; nodeJewelEffect: number }> } | undefined;
 
-        // PoB's own reading: its cache entry (Data/ModCache.lua) and its parser's, each with a remainder.
-        const cached = await evalLua<Parse>(`local list, extra = modLib.parseMod(${JSON.stringify(LINE)}) return { list = list, extra = extra }`);
-        const parsed = await evalLua<Parse>(
-          `local list, extra = require('API.ParseFixes').pob_parse(${JSON.stringify(LINE)}) return { list = list, extra = extra }`,
-        );
-        for (const [source, parse] of [['ModCache.lua', cached], ['ModParser', parsed]] as const) {
-          expect({ source, remainder: typeof parse.extra === 'string' && parse.extra.trim().length > 0 }).toEqual({ source, remainder: true });
-          expect({ source, jewelEffect: (parse.list ?? []).some((m) => m.name === 'SocketedJewelEffect') }).toEqual({ source, jewelEffect: false });
+    it(
+      "turns the fix list off, reads PoB's own parses of the line and the Ruby in 17788, and turns the list back on",
+      async () => {
+        // The tree's line is the one the fix lists.
+        const tree = fs.readFileSync(path.join(PIN_SRC, 'TreeData', '0_5', 'tree.lua'), 'utf8');
+        expect(tree).toContain(`[2]="${LINE}",`);
+        try {
+          const reverted = await evalLua<Array<{ pg: string }>>(`return require('API.ParseFixes').revert()`);
+          expect(reverted.map((r) => r.pg)).toEqual(['PG-103']);
+
+          // PoB's own reading: its cache entry (Data/ModCache.lua) and its parser's.
+          const cached = await evalLua<Parse>(`local list, extra = modLib.parseMod(${JSON.stringify(LINE)}) return { list = list, extra = extra }`);
+          const parsed = await evalLua<Parse>(
+            `local list, extra = require('API.ParseFixes').pob_parse(${JSON.stringify(LINE)}) return { list = list, extra = extra }`,
+          );
+          // And the Ruby in 17788, which the node's line scales.
+          const rubies = [];
+          for (const asc of ASCENDANCIES) {
+            const m = await measure(`${asc.file}-ruby-in-phylactery.xml`);
+            rubies.push({ asc: asc.name, armourInc: m.armourInc, nodeJewelEffect: m.nodeJewelEffect });
+          }
+          off = { cached, parsed, rubies };
+
+          // The fix's mod is what PoB's parser gives the older wording it does read (ModParser.lua:895-897).
+          const older = await evalLua<Parse>(
+            `local list, extra = require('API.ParseFixes').pob_parse('100% increased Effect of the Socketed Jewel') return { list = list, extra = extra }`,
+          );
+          expect(older.extra).toBeUndefined();
+          expect((older.list ?? []).map((m) => [m.name, m.type, m.value])).toEqual([['SocketedJewelEffect', 'INC', 100]]);
+        } finally {
+          await evalLua(`require('API.ParseFixes').apply() return true`);
         }
+        const back = await measure('lich-ruby-in-phylactery.xml');
+        expect(back.armourInc).toBe(2 * JEWEL_VALUE);
+      },
+      ENGINE_TIMEOUT,
+    );
 
-        // So the node adds nothing, and the Ruby in 17788 counts as in a main-tree socket.
-        for (const asc of ASCENDANCIES) {
-          const m = await measure(`${asc.file}-ruby-in-phylactery.xml`);
-          expect({ asc: asc.name, armourInc: m.armourInc, nodeJewelEffect: m.nodeJewelEffect })
-            .toEqual({ asc: asc.name, armourInc: JEWEL_VALUE, nodeJewelEffect: 0 });
-        }
-
-        // The fix's mod is what PoB's parser gives the older wording it does read (ModParser.lua:895-897).
-        const older = await evalLua<Parse>(
-          `local list, extra = require('API.ParseFixes').pob_parse('100% increased Effect of the Socketed Jewel') return { list = list, extra = extra }`,
-        );
-        expect(older.extra).toBeUndefined();
-        expect((older.list ?? []).map((m) => [m.name, m.type, m.value])).toEqual([['SocketedJewelEffect', 'INC', 100]]);
-      } finally {
-        await evalLua(`require('API.ParseFixes').apply() return true`);
-      }
-      const back = await measure('lich-ruby-in-phylactery.xml');
-      expect(back.armourInc).toBe(2 * JEWEL_VALUE);
-    },
-    ENGINE_TIMEOUT,
-  );
+    it(
+      "with the fix list off, PoB's own parse of the line leaves a remainder and the Ruby counts once in 17788 (if this fails, PoB parses the line itself: remove PG-103's entry from pob-api/API/ParseFixes.lua)",
+      () => {
+        // Each parse leaves a remainder and gives no SocketedJewelEffect, so the node adds nothing and the Ruby in 17788
+        // counts as in a main-tree socket.
+        const reading = (source: string, parse: Parse) => ({
+          source,
+          remainder: typeof parse.extra === 'string' && parse.extra.trim().length > 0,
+          jewelEffect: (parse.list ?? []).some((m) => m.name === 'SocketedJewelEffect'),
+        });
+        expect(off && { parses: [reading('ModCache.lua', off.cached), reading('ModParser', off.parsed)], rubies: off.rubies }).toEqual({
+          parses: [
+            { source: 'ModCache.lua', remainder: true, jewelEffect: false },
+            { source: 'ModParser', remainder: true, jewelEffect: false },
+          ],
+          rubies: ASCENDANCIES.map((asc) => ({ asc: asc.name, armourInc: JEWEL_VALUE, nodeJewelEffect: 0 })),
+        });
+      },
+    );
+  });
 });
 
 describe('ParseFixes.lua lists each fix with its PoB gap (D-492)', () => {

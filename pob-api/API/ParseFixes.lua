@@ -11,7 +11,13 @@
 -- parses itself goes. tests/integration/parseFixes.test.ts fails when PoB's own parse of a listed line no longer
 -- leaves a remainder.
 --
---   M.FIXES        the list: {pg, line, mods, nodes}
+-- As API/Patches.lua's entries do (C-60, D-509, Appendix A.3), each entry also lists `fingerprints`, the PoB code it
+-- relies on (here the line's own entry in Data/ModCache.lua, { file, line, sha1 }; scripts/patch-fingerprints.mjs
+-- says how it is cut and hashed, and tests/static/patchFingerprints.test.ts checks it on the pin), and `test`, its
+-- retirement test's { file, case }: the case that shows the pin's own parse still has the bug, holding only that
+-- assertion. A patch retires only when that case fails; a changed fingerprint alone means re-check the entry.
+--
+--   M.FIXES        the list: {pg, line, mods, nodes, fingerprints, test}
 --   M.apply()      sets each line's cache entry and re-processes its nodes; returns what it changed
 --   M.revert()     restores PoB's own cache entries and re-processes the nodes (the fix list off; for tests)
 --   M.pob_parse(l) PoB's own parse of a line, ignoring the cache and the fix list: its mod list and remainder
@@ -27,6 +33,13 @@ M.FIXES = {
     line = '100% increased Effect of bonuses gained from Socketed Jewel',
     mods = { { name = 'SocketedJewelEffect', type = 'INC', value = 100 } },
     nodes = { 17788 },
+    fingerprints = {
+      { file = 'Data/ModCache.lua',
+        line = 'c["100% increased Effect of bonuses gained from Socketed Jewel"]=',
+        sha1 = '21210f791280c38cd62ab030ae2583a46cdb9162' },
+    },
+    test = { file = 'tests/integration/parseFixes.test.ts',
+      case = "with the fix list off, PoB's own parse of the line leaves a remainder and the Ruby counts once in 17788 (if this fails, PoB parses the line itself: remove PG-103's entry from pob-api/API/ParseFixes.lua)" },
   },
 }
 

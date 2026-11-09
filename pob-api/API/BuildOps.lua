@@ -25,7 +25,8 @@ function M.get_main_output()
   -- groups (GlobalGemAssignments, Classes/SkillsTab.lua:1570-1608), which the tab refreshes only at load and as it draws
   -- or shows a group (:1562, :1331, :1167), so it goes stale once the bridge edits groups headless. Refresh it before
   -- each calculation, as the GUI keeps it current. It also feeds PoB's one-copy-per-lineage-support warning
-  -- (CalcPerform.lua:3610-3615); nothing else reads it.
+  -- (CalcPerform.lua:3610-3615); nothing else reads it. The method is the bridge's PG-106 wrap (API/Patches.lua, D-510),
+  -- which recounts the groups by the game's rule after PoB's own count.
   local skillsTab = build.skillsTab
   if skillsTab and skillsTab.socketGroupList and skillsTab.UpdateGlobalGemCountAssignments then
     skillsTab:UpdateGlobalGemCountAssignments()

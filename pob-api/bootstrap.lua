@@ -82,6 +82,15 @@ do
   if not ok then io.stderr:write('[ParseFixes] not applied: ' .. tostring(err) .. '\n') end
 end
 
+-- 5d. The bridge's function patches (C-60, D-509): API/Patches.lua wraps the PoB methods its entries name, on PoB's
+--     class tables, after the parse fixes and before any build loads. Each entry applies in its own pcall: one that
+--     fails is logged as `[Patches] <pg> not applied: <error>`, the engine starts without it, and its retirement
+--     test then fails.
+do
+  local ok, err = pcall(function() require('API.Patches').apply_all() end)
+  if not ok then io.stderr:write('[Patches] not applied: ' .. tostring(err) .. '\n') end
+end
+
 -- 6. Safety net: ensure the globals the API relies on exist even if a future
 --    wrapper stops setting them directly.
 if not _G.build and mainObject and mainObject.main and mainObject.main.modes then

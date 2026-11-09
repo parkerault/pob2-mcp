@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build level="90" targetVersion="0_1" className="Witch" ascendClassName="None" mainSocketGroup="1" viewMode="SKILLS" characterLevelAutoMode="false">
+	</Build>
+	<Tree activeSpec="1">
+		<Spec title="Default" treeVersion="0_5" classId="1" ascendClassId="0" secondaryAscendClassId="nil" nodes="" masteryEffects="">
+		</Spec>
+	</Tree>
+	<Skills activeSkillSet="1">
+		<SkillSet id="1" title="Default">
+			<Skill label="Spark" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="SparkPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="IceNova" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="IceNovaPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="FrostBomb" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="FrostBombPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Fireball" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="FireballPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="FlameWall" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="FlameWallPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Arc" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="ArcPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Earthquake" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="EarthquakePlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Boneshatter" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="BoneshatterPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="RollingSlam" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="RollingSlamPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Switched" enabled="false" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="ShieldChargePlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+			<Skill label="Purity of Ice copy" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="PurityOfIcePlayer" level="20" quality="0" enabled="true"/>
+				<Gem skillId="SupportClarityPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Items activeItemSet="1">
+		<Item id="1">
+Rarity: NORMAL
+Shrine Sceptre
+Item Level: 80
+Implicits: 1
+Grants Skill: Level 20 Purity of Ice
+		</Item>
+		<ItemSet id="1" title="Default">
+			<Slot itemId="1" name="Weapon 1"/>
+		</ItemSet>
+	</Items>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default"/>
+	</Config>
+	<Notes>
+	</Notes>
+</PathOfBuilding2>

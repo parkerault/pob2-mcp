@@ -689,10 +689,16 @@ Legionnaire), read in the session; nothing copied. The user sees the first two o
     `Modules/CalcSetup.lua:728`, plus one per "Grants 1 additional Skill Slot").
   - **Effect:** the character runs 10 gem groups on its 10 slots and also its spear's Spear Throw (with Frost Nexus)
     and its sceptre's Purity of Ice (with four supports); PoB reads 12 and warns. Turning those two groups off clears
-    the warning; a Spear Throw group with no support doesn't count. V1's `skill-slots` (D-428) repeats PoB's count.
-  - **Workaround:** none yet; amendment 16 recounts in the bridge by the rule the character shows (a group counts
-    when its first enabled active skill isn't granted).
+    the warning; a Spear Throw group with no support doesn't count. V1's `skill-slots` (D-428) repeated PoB's count
+    until the bridge's recount.
+  - **Workaround:** corrected in the bridge (D-509, D-510). `pob-api/API/Patches.lua`'s PG-106 entry wraps
+    `SkillsTabClass:UpdateGlobalGemCountAssignments`, keeps PoB's lineage bookkeeping, and recounts by the rule the
+    character shows: a group counts when its first enabled active gem (not a support) isn't granted, and a group the
+    compile marks switched (D-518) counts as if enabled. Its retirement test, `tests/integration/pg106.test.ts`, fails
+    once a release counts the group itself.
   - **Upstream:** fixed on PoB's `dev` after our pin (PR #2411, 2026-08-26), in no release yet (`pob-upstream.md`).
+    Its rule skips supports, which gives the same count on the character; the two differ for a group whose granted
+    active gem comes before an ungranted one, so re-check that case when a release carries it.
 - **PG-107, an imported character has every skill turned on.** gap, confirmed in code.
   - **Where:** the importer makes each skill of the game's character data an enabled group of enabled gems
     (`Classes/ImportTab.lua:990`, `:1062-1078`) and reads no on or off state.

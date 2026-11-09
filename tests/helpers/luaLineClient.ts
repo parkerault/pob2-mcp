@@ -6,7 +6,8 @@
  * and hands back every stdout line in order, so tests see what the Lua side really sends.
  *
  * The child's env is the (globalSetup-scrubbed) `process.env` minus the cookie variables, plus
- * LUA_PATH/LUA_CPATH, plus `POB_API_TEST_ACTIONS=1` unless `testActions: false`.
+ * LUA_PATH/LUA_CPATH, plus `POB_API_TEST_ACTIONS=1` unless `testActions: false`. `apiDir` runs a copy of
+ * `pob-api/` instead of the repository's (a test that alters a bridge module in a temp dir).
  */
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import os from 'os';
@@ -41,9 +42,8 @@ const COOKIES = ['POESESSID', 'POE_SESSION_ID'];
 const BANNER_TIMEOUT_MS = 60_000;
 
 /** The env the bridge gives the engine (LUA_PATH/LUA_CPATH as in `src/pobLuaBridge.ts`). */
-export function luaEnv(testActions: boolean): Record<string, string> {
+export function luaEnv(testActions: boolean, apiDir: string = resolvePobApiDir()): Record<string, string> {
   const pobSrc = resolvePobSrc(process.env);
-  const apiDir = resolvePobApiDir();
   const baseDir = pobSrc.endsWith(`${path.sep}src`) ? pobSrc.slice(0, -4) : pobSrc;
   const runtimeDir = path.join(baseDir, 'runtime');
   const runtimeLua = path.join(runtimeDir, 'lua');
@@ -61,12 +61,13 @@ export function luaEnv(testActions: boolean): Record<string, string> {
   return env;
 }
 
-export async function startLuaLineClient(opts: { testActions?: boolean } = {}): Promise<LuaLineClient> {
+export async function startLuaLineClient(opts: { testActions?: boolean; apiDir?: string } = {}): Promise<LuaLineClient> {
   const testActions = opts.testActions ?? true;
+  const apiDir = opts.apiDir ?? resolvePobApiDir();
   const child: ChildProcessWithoutNullStreams = spawn(
     process.env.POB_CMD || 'luajit',
-    [path.join(resolvePobApiDir(), 'bootstrap.lua')],
-    { cwd: resolvePobSrc(process.env), env: luaEnv(testActions), stdio: ['pipe', 'pipe', 'pipe'] },
+    [path.join(apiDir, 'bootstrap.lua')],
+    { cwd: resolvePobSrc(process.env), env: luaEnv(testActions, apiDir), stdio: ['pipe', 'pipe', 'pipe'] },
   );
   child.stdin.on('error', () => undefined);
 

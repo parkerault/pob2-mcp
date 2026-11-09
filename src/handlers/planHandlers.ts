@@ -1,12 +1,12 @@
 /**
  * The plan tools (slice 2): `compile_plan` (C-41) and `guide_run` (C-50).
  *
- * - `compile_plan {plan_path, build_name | measure_only, stages?}` compiles a plan.json in the guides root
+ * - `compile_plan {plan_path, build_name | measure_only, stages?, measure_as?}` compiles a plan.json in the guides root
  *   into one PoB2 build with a loadout per stage (`src/plan/compiler.ts`). Measure-only mode writes the
  *   compile record and the compiled XML beside the plan; final mode writes the builds-folder file through
  *   C-17, its write-ledger entry (D-211) and the record, under `first_free` (D-466) at the first free of the
  *   cleaned name, the name with the run date, and the dated name numbered. Kind `load`: the call replaces the
- *   engine's build (D-191, D-210).
+ *   engine's build (D-191, D-210). `measure_as: "non-budget"` (D-519, measure-only) measures a read stage as that rung.
  * - `compile_plan {plan_path, draft_name}` and `{plan_path, remove_draft}` (D-466) write the design gate's draft,
  *   a copy of the plan's last whole-plan measure-only XML, as `<name> (draft).xml` in the builds folder, or delete
  *   a draft this build wrote; the router runs both as kind `none`: no engine.
@@ -97,6 +97,7 @@ const COMPILE_ARGS = [
   'build_name',
   'measure_only',
   'stages',
+  'measure_as',
   'first_free',
   'draft_name',
   'remove_draft',
@@ -105,6 +106,9 @@ const COMPILE_ARGS = [
   'notes_path',
   'trade_links',
 ] as const;
+/** D-519 (WU-161): the rungs `measure_as` takes: the non-budget rung, the only one with targets (§15). */
+const MEASURE_AS = ['non-budget'] as const;
+
 /**
  * The modes that take plan_path only: the draft mode's two arguments (D-466), and amendment 14's read-back, adopt and
  * notes modes (D-479, D-487) and trade links (D-488).
@@ -193,6 +197,13 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
   if (a.first_free !== undefined && typeof a.first_free !== 'boolean') throw new Error('first_free must be true or false');
   const buildName = a.build_name === undefined ? undefined : nonEmptyString(a.build_name, 'build_name');
   const stages = a.stages === undefined ? undefined : stringList(a.stages, 'stages');
+  // D-519 (WU-161, amendment 16 §15): measure_as, a read stage measured as a rung; measure-only, the non-budget rung's.
+  if (a.measure_as !== undefined && !(MEASURE_AS as readonly unknown[]).includes(a.measure_as)) {
+    throw new Error(`measure_as must be ${MEASURE_AS.map((v) => `"${v}"`).join(' or ')}: a read stage is measured as the rung that has the targets (D-519). Nothing was done.`);
+  }
+  if (a.measure_as !== undefined && a.measure_only !== true) {
+    throw new Error('measure_as needs measure_only: true: it measures a read stage, writing only the record and the compiled XML beside the plan (D-519). Nothing was done.');
+  }
   if (a.measure_only === true) {
     if (buildName !== undefined) {
       throw new Error(
@@ -203,7 +214,12 @@ export function compileRequestOf(args: Record<string, unknown> | undefined): Com
     if (a.first_free === true) {
       throw new Error('first_free and measure_only: true conflict: first_free picks the final file\'s name (D-466). Nothing was done.');
     }
-    return { mode: 'measure-only', planPath, ...(stages !== undefined ? { stages } : {}) };
+    return {
+      mode: 'measure-only',
+      planPath,
+      ...(stages !== undefined ? { stages } : {}),
+      ...(a.measure_as !== undefined ? { measureAs: a.measure_as as (typeof MEASURE_AS)[number] } : {}),
+    };
   }
   if (buildName === undefined) {
     throw new Error('give build_name for a final compile, or measure_only: true for a measure-only one. Nothing was done.');
@@ -250,7 +266,8 @@ export function renderCompileText(result: CompileResult): string {
     lines.push(keyFigureLine(s, result.mains[id]));
     for (const f of [...(s.v1?.findings ?? []), ...(s.v2?.findings ?? [])]) {
       if (printed < MAX_FINDINGS_PRINTED) {
-        lines.push(`  - ${f.code}: ${f.message}`);
+        // D-519 (WU-161): a callout on a file's configuration says so; it never fails V2.
+        lines.push(`  - ${f.code}${f.kind === 'from-file' ? ' (from the file)' : ''}: ${f.message}`);
         printed += 1;
       } else unprinted += 1;
     }

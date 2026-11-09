@@ -80,11 +80,19 @@
  * hit of 0, each row's `deflectedRatio`, `deflectedVerdict` and `hitsSurvived` (the least over its type's hits, an
  * unevadable hit's evade chance 0), and `arbiter.avoid` when the build evades or deflects at the Arbiter. A rung's
  * deciding row (`decidingRow`) gives its single Arbiter figure.
+ *
+ * **A read plan** (WU-161; amendment 16 §13 to §15, Appendix A.8; D-518, D-519), additive. A stage holding owned content
+ * gains `owned`, its slots; a read stage gains `spirit`, the Spirit question's figures (each buff's reservation on its
+ * measured set); a read stage measured with `compile_plan`'s `measure_as` gains `measuredAs` and that rung's
+ * measures though it has no variant, its `ehp` and `toughness` read at the rung's reference hits (the stage's
+ * configuration is the file's, `config.file`, which the compile writes as set); a stage with a switched buff gains
+ * `switches`, each switched group measured once more with its `off` groups off. V2's findings on a file's configuration
+ * are callouts (`kind: 'from-file'`) and never fail its verdict. A stage without them keeps its old record.
  */
 import type { StageArbiterChances, StageChecks, StageSkillMeta } from '../engine/schemas.js';
 import { isMultiSegmentRef, parseFormula, stageValue, type StageOutputs } from './ledger.js';
 import type { Fact } from './referenceData.js';
-import type { Plan, Stage } from './schema.js';
+import type { Plan, PlanVariant, Stage } from './schema.js';
 import type { SourceTag } from './sourceTag.js';
 
 export const RECORD_VERSION = 2;
@@ -101,9 +109,17 @@ export interface Finding {
   code: string;
   message: string;
   data?: Record<string, unknown>;
+  /**
+   * D-519 (amendment 16 §15; WU-161): `from-file` on V2's findings on a stage whose configuration is the file's
+   * (`config.file`, a read plan's): callouts on what the player set, which never fail the verdict.
+   */
+  kind?: 'from-file';
 }
 
-/** A check's verdict: `pass` exactly when `findings` is empty; notes never fail it (A-29). */
+/**
+ * A check's verdict: `pass` exactly when `findings` is empty but for callouts (`kind: 'from-file'`, D-519); notes never
+ * fail it (A-29).
+ */
 export interface Verdict {
   pass: boolean;
   findings: Finding[];
@@ -1035,6 +1051,12 @@ export interface MeasureInputs {
   resisting?: ResistingMeasureReply;
   /** WU-120 (D-449): the conditioned read, on `n`. */
   conditioned?: ConditionedReply;
+  /**
+   * D-519 (WU-161): the toughness read at the rung's reference hits, on a stage whose configuration is the file's
+   * (`config.file`): its `TotalEHP`, max hits and chance fields, and its immune types, which `ehp` and `toughness` read
+   * in place of the stage's own outputs.
+   */
+  toughness?: { outputs: Readonly<Record<string, number>>; immune: readonly string[] };
 }
 
 /** The named source's selection, as a rotation entry (stat set 1 when `skills.main` names none). */
@@ -1295,18 +1317,23 @@ export function stageMeasures(
   // D-407: a card skeleton (no variant) has the pace measures only (the HG-12 grant covers these two fields).
   if (stage.variant === undefined) return { clearSpeed, movementSpeed, ...added };
   const boss = pob?.boss;
+  // D-519 (WU-161): a stage measured at its rung's reference hits without writing them (a read plan's) reads its EHP and
+  // toughness from that read; every other stage from its own outputs.
+  const hits = pob?.toughness;
+  const own = hits?.outputs ?? rec.outputs;
+  const ownEhp = hits !== undefined ? hits.outputs.TotalEHP : ehp;
   const arbiter = (): ArbiterMeasure =>
     boss?.maxHits !== undefined
       ? arbiterMeasure(boss.maxHits, arbiterHits, { immune: boss.immune ?? [], ...(boss.arbiter !== undefined ? { chances: boss.arbiter } : {}) })
       : arbiterMeasure(rec.outputs, arbiterHits, { immune: pob?.immune ?? [] });
   return {
     dps: headlineDps(stage, rec),
-    ehp: typeof ehp === 'number' && Number.isFinite(ehp) ? ehp : null,
+    ehp: typeof ownEhp === 'number' && Number.isFinite(ownEhp) ? ownEhp : null,
     ...(ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: arbiter() } : {}),
     clearSpeed,
     movementSpeed,
     ...added,
-    toughness: toughnessOf(rec.outputs, pob?.immune ?? [], pob?.conditioned),
+    toughness: toughnessOf(own, hits !== undefined ? hits.immune : (pob?.immune ?? []), pob?.conditioned),
   };
 }
 
@@ -1450,9 +1477,10 @@ export interface StageRecord {
    */
   computedWithCustomMods: boolean;
   /** D-212: every option that affects the calculation, filled by V2 from the stage's config set. */
+  /** D-519 (WU-161): an input the file set (`config.file`, a read plan's) is `explicit`, class `file`. */
   configEffective: Record<
     string,
-    { value: ConfigValue; origin: 'explicit' | 'default' | 'placeholder'; class: 'earned' | 'scenario' | 'baseline' | 'unlisted' }
+    { value: ConfigValue; origin: 'explicit' | 'default' | 'placeholder'; class: 'earned' | 'scenario' | 'file' | 'baseline' | 'unlisted' }
   >;
   /** PoB's warning lines, kept (each a V1 `pob-warning` finding, or `skill-slots` for PoB's skill-slot line, D-428) or filtered as informational. */
   pobWarnings: { kept: string[]; filtered: string[] };
@@ -1487,6 +1515,44 @@ export interface StageRecord {
    * gives the counts. Absent from a plan of version 7 or earlier, whose `respec` says it, and from records before M-25.
    */
   treeChange?: { from: string; refunded: number; added: number };
+  /**
+   * D-519 (amendment 16 §15, Appendix A.8; WU-161): the slots holding owned content (a read plan's, the character's own),
+   * item slots in the plan's order and then each owned tree jewel's `Jewel <node>`; absent from a stage with none.
+   */
+  owned?: string[];
+  /**
+   * D-519 (WU-161): the rung a read stage (one with `source` and no `variant`) was measured as (`compile_plan`'s
+   * `measure_as`): its measures are that rung's, though the stage has no variant. Absent otherwise.
+   */
+  measuredAs?: PlanVariant;
+  /**
+   * D-518 (amendment 16 §14, Appendix A.8; WU-161): each switched buff's measure, in group order: its group, the groups
+   * switched off for it, the weapon set measured, PoB's unreserved Spirit then (null when not finite) and the key figures
+   * (`SWITCH_FIGURES`). Absent from a stage with no switched group.
+   */
+  switches?: SwitchRecord[];
+  /**
+   * D-518, D-519 (amendment 16 §15's Spirit question; WU-161): on a read stage, its Spirit on the weapon set it is measured
+   * on: PoB's Spirit, unreserved Spirit and their difference (`reserved`, null where PoB gives no figure), and each plan
+   * group's active skill that reserves Spirit, with PoB's reservation for it (its supports and the build's modifiers
+   * applied), in group order. The measure asks which buffs stay on from it when `unreserved` is below 0.
+   */
+  spirit?: {
+    weaponSet: 1 | 2;
+    spirit: number | null;
+    unreserved: number | null;
+    reserved: number | null;
+    buffs: { group: number; activeSkill: number; skill: string; reserved: number }[];
+  };
+}
+
+/** D-518 (WU-161): one switched buff's measure (Appendix A.8, with the weapon set it was measured on). */
+export interface SwitchRecord {
+  group: number;
+  off: number[];
+  weaponSet: 1 | 2;
+  spiritUnreserved: number | null;
+  keyFigures: Record<string, number>;
 }
 
 export interface CompileRecord {

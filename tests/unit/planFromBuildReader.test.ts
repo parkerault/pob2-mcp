@@ -290,6 +290,20 @@ describe('AC-W149 (WU-160): the reader on the importer fixture', () => {
     expect(L.json(rel, 'read.json').answers.switch_off).toBeUndefined();
   });
 
+  // WU-161 (the test WU-160 left out): a changed loadout renumbers the plan's groups, so the group answers go, switch_off
+  // among them (planFromBuildHandlers.ts's GROUP_ANSWERS).
+  it('switch_off: a changed loadout clears it with the other group answers', async () => {
+    const rel = L.run();
+    expect((await L.call({ run_folder: rel, build_name: 'imported-character' })).isError).toBeFalsy();
+    expect((await L.call({ run_folder: rel, buffs_on: [5, 6], buffs_swap: [9], switch_off: { 7: [5] } })).isError).toBeFalsy();
+    expect(L.json(rel, 'read.json').answers.switch_off).toEqual({ 7: [5] });
+    expect((await L.call({ run_folder: rel, loadout: 'Leveling' })).isError).toBeFalsy();
+    const answers = L.json(rel, 'read.json').answers;
+    expect(answers.switch_off).toBeUndefined();
+    expect(answers).toEqual({ loadout: 'Leveling' });
+    expect(L.json(rel, 'plan.json').stages[0].skills.groups.some((g: Json) => g.switch !== undefined)).toBe(false);
+  });
+
   it('a tree jewel on a base the pin lacks: left with a stand_in question, and stood in by its "Jewel <node>" key', async () => {
     const rel = L.run();
     const unknownJewel = xml.replace('Phoenix Wound\nRuby\n', 'Phoenix Wound\nRunemastered Ruby\n');

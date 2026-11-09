@@ -1747,6 +1747,42 @@ export const compileStageReply = baseReply.extend({
        * when PoB gives no finite one) and the max hits with every condition against the build.
        */
       conditioned: stageMaxHitsSchema.extend({ ehp: z.number().optional() }).passthrough().optional(),
+      /**
+       * D-519 (WU-161): the toughness read, with `referenceHits` in the params: `outputs`, the stage at those hits'
+       * `TotalEHP`, finite `<Type>MaximumHitTaken`, `ConfiguredNotHitChance` and `ConfiguredDamageChance`, and `immune`.
+       */
+      toughness: z.object({ outputs: luaMap(z.number()), immune: luaArray(z.string()) }).passthrough().optional(),
+      /**
+       * D-518 (WU-161): each switched buff's measure, with `switches` in the params: its group and `off` groups (the plan's
+       * numbers), the weapon set measured, PoB's unreserved Spirit (absent when not finite) and the key figures.
+       */
+      switches: luaArray(
+        z
+          .object({
+            group: z.number().int(),
+            off: luaArray(z.number().int()),
+            set: z.union([z.literal(1), z.literal(2)]),
+            spiritUnreserved: z.number().optional(),
+            keyFigures: luaMap(z.number()),
+          })
+          .passthrough(),
+      ).optional(),
+      /**
+       * D-518, D-519 (WU-161): the Spirit question's figures, with `spiritBuffs` in the params (a read stage): the set the
+       * stage is measured on, PoB's Spirit and unreserved Spirit there (absent when not finite), and each plan group's
+       * active skill that reserves Spirit with PoB's reservation for it.
+       */
+      spirit: z
+        .object({
+          set: z.union([z.literal(1), z.literal(2)]),
+          spirit: z.number().optional(),
+          unreserved: z.number().optional(),
+          buffs: luaArray(
+            z.object({ group: z.number().int(), activeSkill: z.number().int(), skill: z.string(), reserved: z.number() }).passthrough(),
+          ),
+        })
+        .passthrough()
+        .optional(),
       checks: stageChecksSchema,
       /** D-377: the resolved minion selection of each group that names a `minionSkill`, in group order. */
       minionSkills: luaArray(stageMinionSkillSchema),
@@ -2032,15 +2068,20 @@ export interface CompileCheckStage {
   ascendancyNodes: number[];
   weaponSets: { set1: number[]; set2: number[] };
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
-  jewels: Array<{ node: number; text: string }>;
-  /** D-464: a pinned weapon's Swap slot (`sameAs`) holds the text of the set-1 slot it shares. */
-  items: Array<{ slot: string; text: string; sameAs?: string }>;
+  /** D-519 (WU-161): an `owned` jewel (a read plan's) PoB says is no longer obtainable is measured, not refused. */
+  jewels: Array<{ node: number; text: string; owned?: boolean }>;
+  /**
+   * D-464: a pinned weapon's Swap slot (`sameAs`) holds the text of the set-1 slot it shares. D-519 (WU-161): an `owned`
+   * item (a read plan's) PoB says is no longer obtainable is measured, not refused, and keeps its text's quality.
+   */
+  items: Array<{ slot: string; text: string; sameAs?: string; owned?: boolean }>;
   /**
    * D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data; a
    * gem's `enabled` (default true) says whether PoB builds its skills. D-512 (schema 11): a gem's `quality`, a defect
-   * above 0 when the stage's items or allocated passives grant its skill; absent before schema 11.
+   * above 0 when the stage's items or allocated passives grant its skill; absent before schema 11. D-519 (WU-161): an
+   * `owned` group's legacy gem is measured, not refused.
    */
-  groups: Array<{ gems: Array<{ name: string; enabled?: boolean; quality?: number }>; minionSkill?: string; minionStatSet?: number }>;
+  groups: Array<{ gems: Array<{ name: string; enabled?: boolean; quality?: number }>; minionSkill?: string; minionStatSet?: number; owned?: boolean }>;
   main: { group: number; activeSkill: number; statSet?: number };
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */
@@ -2082,13 +2123,15 @@ export interface CompileStageParams {
   ascendancyNodes: number[];
   weaponSets: { set1: number[]; set2: number[] };
   attributeChoices: Array<{ node: number; attribute: AttributeChoice }>;
-  jewels: Array<{ node: number; text: string }>;
+  /** D-519 (WU-161): an `owned` jewel keeps its text's quality. */
+  jewels: Array<{ node: number; text: string; owned?: boolean }>;
   itemSet: StageSetRef;
   /**
    * In PoB's slot order. D-464 (schema 9): a pinned weapon's Swap slot names the set-1 slot it shares (`sameAs`, its
-   * `text` that slot's): the engine puts that slot's item id in both, so the saved file holds one item.
+   * `text` that slot's): the engine puts that slot's item id in both, so the saved file holds one item. D-519 (WU-161):
+   * an `owned` item (a read plan's) keeps its text's quality, where PoB's NormaliseQuality would raise it.
    */
-  items: Array<{ slot: string; text: string; sameAs?: string }>;
+  items: Array<{ slot: string; text: string; sameAs?: string; owned?: boolean }>;
   toggles: Array<{ slot: string; active: boolean }>;
   useSecondWeaponSet: boolean;
   skillSet: StageSetRef;
@@ -2109,11 +2152,30 @@ export interface CompileStageParams {
     weaponSet?: number;
     /** WU-102 (PG-74): which of the set's weapon slots, the compiler's pick (`groupWeaponSlot`); with `weaponSet` only. */
     slot?: string;
+    /** D-518 (WU-161): a group the plan switches as needed (written disabled): PoB's group carries the switched mark. */
+    switched?: boolean;
   }>;
   main: { group: number; activeSkill: number; statSet?: number };
   configSet: StageSetRef;
-  /** Every listed option, earned and scenario: option → value. */
+  /** Every listed option, earned and scenario: option → value. D-519: an option `fileConfig` sets is left out. */
   config: Record<string, boolean | number | string>;
+  /**
+   * D-519 (WU-161, amendment 16 §13, §15): a read plan's `config.file`, input name → value, written into the config set as
+   * PoB's own load writes it, after `config`; absent on any other stage.
+   */
+  fileConfig?: Record<string, boolean | number | string>;
+  /**
+   * D-519 (WU-161): on a stage whose rung's reference hits the compile doesn't write (a read plan's, `config.file`), those
+   * hits (option → value): the toughness read and the conditioned read set them, putting the file's configuration back.
+   */
+  referenceHits?: Record<string, number>;
+  /**
+   * D-518 (WU-161, amendment 16 §14): each switched buff to measure once more: its group, the groups switched off for it
+   * (the plan's numbers) and the weapon set it is measured on.
+   */
+  switches?: Array<{ group: number; off: number[]; set: 1 | 2 }>;
+  /** D-518, D-519 (WU-161): a read stage: the reply gives the Spirit question's figures (`spirit`). */
+  spiritBuffs?: boolean;
   /** D-293: the custom modifier lines, written into PoB's `customMods` option after `config`, one line each. */
   customMods: string[];
   /**

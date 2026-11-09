@@ -217,6 +217,18 @@
 --     list) and once before it is measured, each after wiping PoB's global skill cache, as PoB's own
 --     frame loop does (Build.lua OnFrame), so no stage is measured from another's cache entries.
 --     A failure names the stage; the build holds what was built until then.
+--     A read plan (WU-161; amendment 16 §13 to §15, D-517 to D-519): an item or tree jewel with `owned` keeps its text's
+--     quality (add_item_text's keepQuality); `fileConfig` (the plan's `config.file`) goes into the config set as PoB's
+--     load puts it (write_file_config), and the plan's own custom lines follow its customMods text; a group with
+--     `switched` (written disabled) carries Patches.SWITCHED, so PG-106's recount counts its slot (mark_switched); with
+--     `referenceHits` (option -> value, a rung's hits the stage doesn't write) the reply's `toughness {outputs, immune}`
+--     is the stage measured at those hits (measure_toughness), which the conditioned read sets too; with `switches`
+--     ({group, off, set} each) the reply's `switches` is each switched buff measured with its group on and its `off`
+--     groups off on weapon set `set`, {group, off, set, spiritUnreserved, keyFigures} (measure_switches); with
+--     `spiritBuffs` (a read stage) the reply's `spirit {set, spirit, unreserved, buffs[{group, activeSkill, skill,
+--     reserved}]}` is the Spirit question's figures from the stage's own measure (stage_spirit). Each pass puts
+--     back what it changed. compile_check measures an owned gem, item or jewel PoB marks legacy or no longer obtainable
+--     rather than refusing it (D-519's owned-legacy exemption).
 --     Under POB_API_TEST_ACTIONS=1 only, `__crashForTest` exits the engine (AC-P35), and `__noDeferForTest`
 --     rebuilds after every mutation, as BuildOps does on its own (the deferral's equivalence test).
 --
@@ -476,7 +488,7 @@ local function parse_jewels(st)
   local out = {}
   for _, j in ipairs(list(st.jewels)) do
     local ok, item = pcall(construct, 'Item', tostring(j.text))
-    out[#out + 1] = { node = j.node, text = j.text, item = ok and item or nil }
+    out[#out + 1] = { node = j.node, text = j.text, item = ok and item or nil, owned = j.owned == true }
   end
   return out
 end
@@ -1074,7 +1086,8 @@ local function check_stage(tree, roll, st, defect)
       defect(('tree jewel on node %s: PoB can not parse its text into an item with a base type'):format(tostring(j.node)))
     elseif item.type ~= 'Jewel' then
       defect(('tree jewel on node %s: %s is not a jewel'):format(tostring(j.node), tostring(item.baseName)))
-    elseif BuildOps.is_unobtainable_unique(item) then
+    elseif BuildOps.is_unobtainable_unique(item) and not j.owned then
+      -- D-519 (amendment 16 §15): an owned jewel, the character's own, is measured as the character has it.
       defect(('tree jewel on node %s: %s is no longer obtainable: PoB\'s unique data marks it so'):format(tostring(j.node),
         tostring(item.title or item.name)))
     end
@@ -1099,8 +1112,9 @@ local function check_stage(tree, roll, st, defect)
       local why = tostring(err)
       if why == 'failed to parse item' then why = 'PoB can not parse its text into an item with a base type' end
       defect(('item in %s: %s'):format(slot, why))
-    elseif res.unobtainable then
-      -- D-384: PoB adds it, but the game no longer drops it.
+    elseif res.unobtainable and it.owned ~= true then
+      -- D-384: PoB adds it, but the game no longer drops it. D-519 (amendment 16 §15): an owned item (a read plan's, the
+      -- character's own) is measured as the character has it, not refused.
       defect(('item in %s: %s is no longer obtainable: PoB\'s unique data marks it so'):format(slot, tostring(res.title or res.name)))
     end
   end
@@ -1115,8 +1129,9 @@ local function check_stage(tree, roll, st, defect)
         defect(('skills.groups[%d].gems[%d]: %s'):format(gi - 1, k - 1, tostring(err)))
         resolved[gi] = false
       else
-        -- D-384: PoB builds a legacy gem behind "Show legacy gems", but the game no longer has it.
-        if BuildOps.is_legacy_gem(gemData) then
+        -- D-384: PoB builds a legacy gem behind "Show legacy gems", but the game no longer has it. D-519 (amendment 16
+        -- §15): an owned group's (a read plan's, the character's own) is measured as the character has it.
+        if BuildOps.is_legacy_gem(gemData) and group.owned ~= true then
           defect(('skills.groups[%d].gems[%d]: %s is a legacy gem: PoB marks it legacy, and it is no longer in the game')
             :format(gi - 1, k - 1, tostring(gemData.name)))
         end
@@ -1495,8 +1510,13 @@ local function granted_by(tree, st)
     if it.sameAs == nil then
       local ok, item = pcall(construct, 'Item', item_text(it))
       if ok and item and type(item.grantedSkills) == 'table' then
-        -- The item's quality as PoB holds it once the compile adds it (BuildOps.add_item_text's NormaliseQuality).
-        if type(item.NormaliseQuality) == 'function' then pcall(item.NormaliseQuality, item) end
+        -- The item's quality as PoB holds it once the compile adds it (BuildOps.add_item_text's NormaliseQuality; an owned
+        -- item keeps its text's, D-519, keepQuality).
+        if it.owned == true then
+          if item.base and item.base.quality and item.quality == nil then item.quality = 0 end
+        elseif type(item.NormaliseQuality) == 'function' then
+          pcall(item.NormaliseQuality, item)
+        end
         for _, g in ipairs(item.grantedSkills) do add(g.skillId, { item = item, where = 'in ' .. tostring(it.slot) }) end
       end
     end
@@ -1752,7 +1772,7 @@ local function build_tree(st)
   local socketed, listed = {}, {}
   for _, j in ipairs(list(st.jewels)) do
     local res = must('socketing the tree jewel on node ' .. tostring(j.node),
-      BuildOps.add_item_text({ text = j.text, slotName = 'Jewel ' .. tostring(j.node) }))
+      BuildOps.add_item_text({ text = j.text, slotName = 'Jewel ' .. tostring(j.node), keepQuality = j.owned == true }))
     socketed[#socketed + 1] = { node = j.node, item = build.itemsTab.items[res.id] }
   end
   -- A socket a jewel grants (Voices' Sinister sockets) isn't imported: PoB allocates it itself, as a free node, at the
@@ -1796,8 +1816,9 @@ local function equip(st, added, pick)
       if it.sameAs ~= nil then
         pin(tostring(it.slot), tostring(it.sameAs), added)
       else
+        -- D-519 (amendment 16 §13, §15): an owned item keeps its text's quality (keepQuality).
         local res = must('equipping the item in ' .. tostring(it.slot),
-          BuildOps.add_item_text({ text = anointed_text(st, it), slotName = it.slot }))
+          BuildOps.add_item_text({ text = anointed_text(st, it), slotName = it.slot, keepQuality = it.owned == true }))
         added[tostring(it.slot)] = { id = res.id, name = tostring(res.name) }
       end
     end
@@ -2000,17 +2021,46 @@ local function custom_mods_text(st)
   return table.concat(lines, '\n')
 end
 
--- A new config set gets the listed options, then the custom modifier lines (D-293) in a write of their own.
+-- D-519 (amendment 16 §13, §15; WU-161): a read plan's configuration as the file set it (`fileConfig`, the plan's
+-- `config.file`, input name -> value): each input goes into the config set as PoB's own load puts it (ConfigTab:Load,
+-- Classes/ConfigTab.lua:648-668), as typed and unchecked, after the listed options (which leave out every input the
+-- file sets, so none overrides one); an input the pin's PoB doesn't know is kept, as PoB keeps it, and does nothing.
+local function write_file_config(st)
+  local fileConfig = type(st.fileConfig) == 'table' and st.fileConfig or nil
+  if fileConfig == nil or next(fileConfig) == nil then return end
+  local ct = build.configTab
+  local cs = ct.configSets[ct.activeConfigSetId]
+  if not cs then fail('writing the file\'s configuration needs the stage\'s config set') end
+  for name, value in pairs(fileConfig) do cs.input[tostring(name)] = value end
+  ct:BuildModList()
+end
+
+-- A new config set gets the listed options, then the custom modifier lines (D-293) in a write of their own. D-519: a
+-- read plan's file inputs after the listed options (write_file_config); the plan's own custom lines, if any, follow the
+-- file's custom modifiers in PoB's customMods text, so neither replaces the other.
 local function build_config(st)
   local id, fresh = stage_set('config', st.configSet, st.first)
   if fresh and type(st.config) == 'table' and next(st.config) ~= nil then
     must('writing the config options', BuildOps.set_config(st.config))
   end
+  if fresh then write_file_config(st) end
   local custom = custom_mods_text(st)
   if fresh and custom ~= nil then
+    local own = type(st.fileConfig) == 'table' and st.fileConfig[CUSTOM_MODS] or nil
+    if type(own) == 'string' and own:match('%S') then custom = own .. '\n' .. custom end
     must('writing the custom modifiers', BuildOps.set_config({ [CUSTOM_MODS] = custom }))
   end
   return id
+end
+
+-- D-518, D-510 (amendment 16 §6, §14; WU-161): each plan group the plan switches as needed (`switched`, written disabled)
+-- carries the switched mark on PoB's socket group (Patches.SWITCHED), so PG-106's recount counts its skill slot, as the
+-- game does. PoB doesn't save the mark, so it is set at every compile, on a shared skill set's group too.
+local function mark_switched(st)
+  local groups = build.skillsTab.socketGroupList
+  for gi, group in ipairs(list(st.groups)) do
+    if group.switched == true then groups[pob_index(gi)][Patches.SWITCHED] = true end
+  end
 end
 
 -- Whether the last calculation's main skill stacks its damage over time (D-293): PoB's DotCanStack, which
@@ -2760,6 +2810,40 @@ local function companion_measure(st)
   fail('the stage names a companion, but PoB built no companion skill for its Tame Beast gem')
 end
 
+-- D-518, D-519 (amendment 16 §13 to §15; WU-161): the Spirit question's figures, with `spiritBuffs` in the params (a read
+-- stage): on the set the stage is measured on, as the last calculation measured it, each plan group's active skill that
+-- reserves Spirit, {group (the plan's number), activeSkill, skill, reserved}, PoB's SpiritReservedBase for it after its
+-- supports and the build's reservation modifiers (Modules/CalcDefence.lua:197-325), in group order, and PoB's Spirit and
+-- unreserved Spirit. PoB's own granted groups aren't the plan's and are left out of `buffs`, though their reservation is
+-- in the totals. Nil without `spiritBuffs`.
+local function stage_spirit(st, output)
+  if st.spiritBuffs ~= true then return nil end
+  local env = build.calcsTab and build.calcsTab.mainEnv
+  local _, number = group_indices()
+  local buffs = {}
+  for i, group in ipairs(build.skillsTab.socketGroupList or {}) do
+    if not group.source and number[i] then
+      for k, skill in ipairs(group.displaySkillList or {}) do
+        local effect = skill.activeEffect
+        local measured = nil
+        for _, s in ipairs(env and env.player and env.player.activeSkillList or {}) do
+          if effect and s.activeEffect and s.activeEffect.srcInstance == effect.srcInstance and s.activeEffect.grantedEffect == effect.grantedEffect then
+            measured = s
+          end
+        end
+        local reserved = measured and measured.skillData and tonumber(measured.skillData.SpiritReservedBase) or 0
+        if reserved > 0 then
+          buffs[#buffs + 1] = { group = number[i], activeSkill = k, reserved = reserved,
+            skill = tostring(effect and effect.grantedEffect and effect.grantedEffect.name or '') }
+        end
+      end
+    end
+  end
+  table.sort(buffs, function(a, b) return a.group < b.group or (a.group == b.group and a.activeSkill < b.activeSkill) end)
+  return { set = st.useSecondWeaponSet == true and 2 or 1, spirit = finite(output.Spirit) and output.Spirit or nil,
+    unreserved = finite(output.SpiritUnreserved) and output.SpiritUnreserved or nil, buffs = buffs }
+end
+
 -- WU-120 (amendment 12 §4, D-449): the five damage types of PoB's `<Type>MaximumHitTaken`.
 local MAX_HIT_TYPES = { 'Physical', 'Fire', 'Cold', 'Lightning', 'Chaos' }
 
@@ -3024,13 +3108,95 @@ end
 -- blinded, every other option as it is; its TotalEHP and max hits (`max_hits`) are read and every option is put back as
 -- the boss measure puts its own back, so the saved file's config is the plan's. Nil without `conditioned`.
 local CONDITIONED = { EHPUnluckyWorstOf = 2, conditionBeenHitRecently = true, windDancerStacks = 0, conditionEnemyBlinded = false }
+
+-- D-519 (amendment 16 §15; WU-161): a stage measured at a rung's reference hits it doesn't write (a read plan's, whose
+-- configuration is the file's) names them in `referenceHits` (option -> value), which the toughness read and the
+-- conditioned read set with their own options.
+local function reference_hits(st)
+  return type(st.referenceHits) == 'table' and next(st.referenceHits) ~= nil and st.referenceHits or nil
+end
+
 local function measure_conditioned(st)
   if st.conditioned ~= true then return nil end
-  return with_config('the conditioned read', CONDITIONED, function()
+  local options = {}
+  for k, v in pairs(reference_hits(st) or {}) do options[k] = v end
+  for k, v in pairs(CONDITIONED) do options[k] = v end
+  return with_config('the conditioned read', options, function()
     local output = must('measuring the stage with every condition against it', rebuild())
     local hits, immune = max_hits(output)
     return { ehp = finite(output.TotalEHP) and output.TotalEHP or nil, maxHits = hits, immune = immune }
   end)
+end
+
+-- D-519 (amendment 16 §15; WU-161): the toughness read at the rung's reference hits, on a stage that names them
+-- (`referenceHits`): the stage measured again with only those enemy hits set, every other option as the file set it,
+-- and everything put back as with_config puts it back. `outputs` holds what the toughness reading reads of a stage's own
+-- outputs (TotalEHP, the five max hits, PoB's configured not-hit and damage chances), `immune` the types PoB makes the
+-- build immune to. Nil without `referenceHits`.
+local TOUGHNESS_FIELDS = { 'TotalEHP', 'ConfiguredNotHitChance', 'ConfiguredDamageChance' }
+local function measure_toughness(st)
+  local hits = reference_hits(st)
+  if hits == nil then return nil end
+  return with_config('the toughness read', hits, function()
+    local output = must('measuring the stage at the reference hits', rebuild())
+    local outputs, immune = max_hits(output)
+    for _, k in ipairs(TOUGHNESS_FIELDS) do
+      if finite(output[k]) then outputs[k] = output[k] end
+    end
+    return { outputs = outputs, immune = immune }
+  end)
+end
+
+-- D-518 (amendment 16 §14; WU-161): each switched buff measured once more, with its group on and its `off` groups off, on
+-- the weapon set `set` (the compiler's pick: the group's own set, else the one the stage is measured on), and the groups,
+-- the weapon-set flag and the weapon-fit flags put back and the build recalculated however it ends, as with_config puts
+-- its options back. `st.switches`: {group, off, set} each, the plan's group numbers. Each entry gives them back with PoB's
+-- Spirit, its unreserved Spirit and the main output's key figures (SWITCH_FIGURES). Nil without `switches`.
+local SWITCH_FIGURES = { 'TotalDPS', 'CombinedDPS', 'FullDPS', 'Life', 'EnergyShield', 'Mana', 'Spirit', 'SpiritUnreserved',
+  'TotalEHP', 'FireResist', 'ColdResist', 'LightningResist', 'ChaosResist' }
+local function measure_switches(st)
+  local switches = list(st.switches)
+  if #switches == 0 then return nil end
+  local groups = build.skillsTab.socketGroupList
+  local itemsTab = build.itemsTab
+  local out = {}
+  for _, sw in ipairs(switches) do
+    local on = groups[pob_index(sw.group)]
+    local offs, priorOffs = {}, {}
+    for k, n in ipairs(list(sw.off)) do
+      offs[k] = groups[pob_index(n)]
+      priorOffs[k] = offs[k].enabled
+    end
+    local priorOn = on.enabled
+    local itemSet = itemsTab.activeItemSet
+    local priorSet, flags = itemSet.useSecondWeaponSet, itemsTab.lastWeaponFlagState
+    local set = tonumber(sw.set) == 2 and 2 or 1
+    local ok, res = pcall(function()
+      on.enabled = true
+      for _, g in ipairs(offs) do g.enabled = false end
+      if (set == 2) ~= (priorSet == true) then
+        itemSet.useSecondWeaponSet = set == 2
+        itemsTab.lastWeaponFlagState = nil
+      end
+      local output = must(('measuring switched group %s'):format(tostring(sw.group)), rebuild())
+      local figures = {}
+      for _, k in ipairs(SWITCH_FIGURES) do
+        if finite(output[k]) then figures[k] = output[k] end
+      end
+      local offNumbers = {}
+      for k, n in ipairs(list(sw.off)) do offNumbers[k] = tonumber(n) end
+      return { group = tonumber(sw.group), off = offNumbers, set = set,
+        spiritUnreserved = finite(output.SpiritUnreserved) and output.SpiritUnreserved or nil, keyFigures = figures }
+    end)
+    on.enabled = priorOn
+    for k, g in ipairs(offs) do g.enabled = priorOffs[k] end
+    itemSet.useSecondWeaponSet = priorSet
+    itemsTab.lastWeaponFlagState = flags
+    rebuild()
+    if not ok then error(res, 0) end
+    out[#out + 1] = res
+  end
+  return out
 end
 
 function M.compile_stage(st)
@@ -3071,6 +3237,7 @@ function M.compile_stage(st)
     end)
     rebuild()
     plan_groups_first()
+    mark_switched(st)
     local minionSkills = select_minion_skills(st)
     select_main(st)
     local configSetId = deferring(defer, function()
@@ -3087,12 +3254,15 @@ function M.compile_stage(st)
     local output = must('measuring the stage', rebuild())
     local mainStacks = main_dot_can_stack()
     local companion = companion_measure(st)
+    local spirit = stage_spirit(st, output)
     local outputs, immune = output_map(output)
     if setTwo and st.useSecondWeaponSet == true then outputsSet2 = outputs end
     local configInputs, configSurvivesDrop = {}, {}
     local cs = build.configTab.configSets[configSetId]
     local stored = {}
     for option in pairs(type(st.config) == 'table' and st.config or {}) do stored[#stored + 1] = option end
+    -- D-519: a read plan's file inputs, so the saved file keeps each as the file set it.
+    for option in pairs(type(st.fileConfig) == 'table' and st.fileConfig or {}) do stored[#stored + 1] = tostring(option) end
     -- The custom modifiers' option too (D-293), so the saved file is checked for it like a listed option.
     if custom_mods_text(st) ~= nil then stored[#stored + 1] = CUSTOM_MODS end
     for _, option in ipairs(stored) do
@@ -3112,6 +3282,9 @@ function M.compile_stage(st)
     local boss = measure_boss(st)
     local resisting = measure_resisting(st)
     local conditioned = measure_conditioned(st)
+    -- D-519, D-518 (WU-161): a read stage's toughness read at its rung's reference hits, and each switched buff's measure.
+    local toughness = measure_toughness(st)
+    local switches = measure_switches(st)
     return {
       id = tostring(st.id),
       ids = { spec = specId, itemSet = itemSetId, skillSet = skillSetId, configSet = configSetId },
@@ -3134,6 +3307,9 @@ function M.compile_stage(st)
       boss = boss,
       resisting = resisting,
       conditioned = conditioned,
+      toughness = toughness,
+      switches = switches,
+      spirit = spirit,
       checks = checks,
       minionSkills = minionSkills,
       companion = companion,

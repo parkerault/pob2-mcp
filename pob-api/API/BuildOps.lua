@@ -1613,7 +1613,11 @@ end
 
 -- With `validateOnly`, the text is parsed and the slot checked, and nothing changes (`id` is 0), so a
 -- multi-step tool can check every item before its first change.
--- params: { text: string, slotName?: string, noAutoEquip?: boolean, validateOnly?: boolean }
+-- D-519 (amendment 16 §13, §15; WU-161): with `keepQuality` the item keeps the quality its text gives (none read as 0),
+-- as PoB's own load keeps it: the compile adds a read plan's owned items so, the character's own, where PoB's
+-- NormaliseQuality would raise an item below its base's quality to 20 (Classes/Item.lua:1367-1375) unless it has a
+-- `Unique ID:` line or is corrupted, mirrored or a Charm.
+-- params: { text: string, slotName?: string, noAutoEquip?: boolean, validateOnly?: boolean, keepQuality?: boolean }
 function M.add_item_text(params)
   if not build or not build.itemsTab then return nil, 'items not initialized' end
   if type(params) ~= 'table' or type(params.text) ~= 'string' then return nil, 'missing text' end
@@ -1648,7 +1652,11 @@ function M.add_item_text(params)
       title = unobtainable and item.title or nil }
   end
 
-  item:NormaliseQuality()
+  if params.keepQuality == true then
+    if item.base and item.base.quality and item.quality == nil then item.quality = 0 end
+  else
+    item:NormaliseQuality()
+  end
   -- With a named slot the item goes only there: PoB's auto-equip would also put it into the first
   -- empty slot it fits.
   build.itemsTab:AddItem(item, params.noAutoEquip == true or slotCtrl ~= nil)

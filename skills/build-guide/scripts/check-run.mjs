@@ -1670,6 +1670,9 @@ async function checkBuild(c) {
   }
   const finalRecord = isObj(record) && record.mode === 'final' ? record : null;
   const planStages = isObj(plan) && Array.isArray(plan.stages) ? plan.stages.filter(isObj) : [];
+  // D-519 (amendment 16 §15): in a compile or pricing run, owned content passes the rules that would reject what the game
+  // allows (ownedContent); a guide's (a file run's, a writer run's) meets every rule.
+  const owned = ownedContent(planStages, piece);
   const endgame = planStages.filter((s) => s.variant !== undefined);
   // D-516: a read plan's stage (`source`, Appendix A.5) is the player's file, no campaign stage, until placing gives it a rung.
   const campaign = planStages.filter((s) => s.variant === undefined && !isObj(s.source));
@@ -2073,9 +2076,9 @@ async function checkBuild(c) {
   // Amendment 13 (§22): the runes over the budget in the plan (D-465), corruption (D-471), and flasks and charms (D-472), for
   // a build whose last D1 gate is held to revision 13.
   if (a13Build && isObj(plan)) {
-    checkOverBudgetPlan(planStages, userWords(log), fail);
-    checkCorruption({ plan, planStages, gate: isObj(d1rep) ? d1rep : null, guide: guideText, offline, fail, a14: a14Build });
-    checkFlasks(planStages, fail);
+    checkOverBudgetPlan(planStages, userWords(log), fail, owned);
+    checkCorruption({ plan, planStages, gate: isObj(d1rep) ? d1rep : null, guide: guideText, offline, fail, a14: a14Build, owned });
+    checkFlasks(planStages, fail, owned);
   }
   // Amendment 14 (§25: a build held to 14 by its last D1 gate): the design field's summary (D-478), rares titled by their
   // affixes (D-489), no advice to test in game (D-489), each price entry's listing and spec and no -fallback entry
@@ -2083,9 +2086,9 @@ async function checkBuild(c) {
   // build's folder holding no guide route's file (D-480).
   if (a14Build && isObj(plan)) {
     if (isObj(d1rep?.design)) checkSummary(d1.file, d1rep.design, endgame, fail);
-    checkRareTitles(planStages, fail);
+    checkRareTitles(planStages, fail, owned);
     checkTestAdvice({ guide: guideText, notes: readText('notes.txt'), planStages, fail });
-    checkPrices14({ plan, planStages, gate: isObj(d1rep) ? d1rep : null, fail });
+    checkPrices14({ plan, planStages, gate: isObj(d1rep) ? d1rep : null, fail, owned });
     checkItemSwaps(plan, stages, fail);
     if (guide !== null) checkLevelLabels(guide, endgame, record, fail);
     checkRequestWords({ log, stages, build, runFolder, readText, fail });
@@ -6547,13 +6550,38 @@ function checkDesignField13({ file, design, endgame, plan, record, fresh, fail, 
 const whole = (v) => (isNum(v) ? String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : show(v));
 
 /**
+ * D-519 (amendment 16 §15; WU-161): owned content, the character's own as the file reader took it (`owned: true` on a slot,
+ * a tree jewel or a group of a read plan), is measured and priced as the character has it. In a compile or a pricing run
+ * (a compile run's better round included) it passes the checker's rules that would reject what the game allows: the runes
+ * over the budget (D-465), an item's corruption (D-471, D-484), both parts of flasks (a filled charm slot, Flask 1 without a
+ * life flask: an owned Flask 1, or a read stage's empty one, the character's own), rare-title (D-489), and pricing's spec
+ * and listing (D-483, D-484) for a price entry the D1 gate maps to an owned item. A design that replaces an item drops the
+ * mark, so the replacement meets every rule; a guide (a file run, a writer run) holds owned content to every rule. Returns
+ * `(stageId, key) => boolean`, the key a slot, `jewel <node>` or `group <n>`; nothing is owned in any other run.
+ */
+export function ownedContent(planStages, piece) {
+  if (piece !== 'compile' && piece !== 'pricing') return () => false;
+  const keys = new Set();
+  for (const s of planStages) {
+    for (const x of list(s.items?.slots)) if (x.owned === true) keys.add(`${s.id}|${x.slot}`);
+    for (const x of list(s.items?.treeJewels)) if (x.owned === true) keys.add(`${s.id}|jewel ${x.node}`);
+    list(s.skills?.groups).forEach((g, k) => {
+      if (g?.owned === true) keys.add(`${s.id}|group ${k + 1}`);
+    });
+    // A read stage's empty Flask 1 is the character's own slot, as it holds it.
+    if (isObj(s.source) && !list(s.items?.slots).some((x) => x.slot === 'Flask 1')) keys.add(`${s.id}|Flask 1`);
+  }
+  return (stageId, key) => keys.has(`${stageId}|${key}`);
+}
+
+/**
  * D-465 (amendment 13): a plan's item texts hold no rune line (`Rune: <name>`) of a rune over the budget, a "Legacy of …"
  * soul core or the Raven-Touched Shard, unless the user asked for it (`says`: the brief's `around`, `like` and `notes`,
- * and the gate answers' words).
+ * and the gate answers' words). D-519: an owned item or jewel passes (`owned`, `ownedContent`).
  */
-function checkOverBudgetPlan(planStages, says, fail) {
+function checkOverBudgetPlan(planStages, says, fail, owned = () => false) {
   for (const s of planStages) {
-    for (const it of [...list(s.items?.slots).map((x) => ({ where: `slot "${x.slot}"`, text: x.text })), ...list(s.items?.treeJewels).map((x) => ({ where: `tree jewel in node ${x.node}`, text: x.text }))]) {
+    for (const it of [...list(s.items?.slots).filter((x) => !owned(s.id, x.slot)).map((x) => ({ where: `slot "${x.slot}"`, text: x.text })), ...list(s.items?.treeJewels).filter((x) => !owned(s.id, `jewel ${x.node}`)).map((x) => ({ where: `tree jewel in node ${x.node}`, text: x.text }))]) {
       for (const line of String(it.text ?? '').split(/\r?\n/)) {
         const m = /^\s*Rune:\s*(.+?)\s*$/i.exec(line);
         const kind = m ? overBudgetRune(m[1]) : null;
@@ -6583,9 +6611,9 @@ function corruptionRule(fail) {
  * offline run, the note "offline run" says it). A unique that comes corrupted (its `Corrupted` line with no enchant, as
  * Split Personality drops) is the item as it drops: no rule. The guide (when one is current) says each: "Buy several
  * <unique> and corrupt them until one rolls <line>", and for each `corrupt` gem "Corrupt cheap low-level <gem> gems until
- * one gets +1 level, then level it to 20".
+ * one gets +1 level, then level it to 20". D-519: an owned item passes (`owned`, `ownedContent`).
  */
-function checkCorruption({ plan, planStages, gate, guide, offline, fail, a14 = false }) {
+function checkCorruption({ plan, planStages, gate, guide, offline, fail, a14 = false, owned = () => false }) {
   const rule = corruptionRule(fail);
   const entries = new Map(list(plan?.prices).map((p) => [p.id, p]));
   const lines = typeof guide === 'string' ? guide.split(/\r?\n/).map(plainName) : null;
@@ -6598,7 +6626,8 @@ function checkCorruption({ plan, planStages, gate, guide, offline, fail, a14 = f
     const rung = typeof s.variant === 'string' ? s.variant : 'campaign';
     for (const it of items) {
       const item = itemOf(it.text);
-      if (!item.corrupted) continue;
+      // D-519: an owned item is corrupted as the game corrupted it (ownedContent).
+      if (!item.corrupted || owned(s.id, it.key)) continue;
       const at = `plan.json's stage ${s.id} ${it.where}`;
       if (item.rarity !== 'UNIQUE') {
         fail('corruption', `${at} holds a corrupted ${String(item.rarity ?? 'unknown').toLowerCase()} item; corruption is only on cheap uniques and skill gems, never on a rare, magic or normal item, jewels among them: a corrupted rare cuts the trade supply by an order of magnitude or more (D-471)`);
@@ -6721,14 +6750,15 @@ function hasExtraSocket(textOrNull) {
 /**
  * D-472 (amendment 13): the flasks and charms of a build held to revision 13: every endgame rung holds a life flask in
  * `Flask 1` (its base a Life Flask); no stage fills a charm slot, which stay empty until amendment 14's survey. The flasks
- * are unpriced (`recomputeBudget`); the mana flask is D1-build's judgment, with its claim.
+ * are unpriced (`recomputeBudget`); the mana flask is D1-build's judgment, with its claim. D-519: an owned charm or Flask 1 (a
+ * read stage's empty Flask 1 among them) passes (`owned`, `ownedContent`).
  */
-function checkFlasks(planStages, fail) {
+function checkFlasks(planStages, fail, owned = () => false) {
   for (const s of planStages) {
-    for (const x of list(s.items?.slots).filter((y) => /^Charm \d+$/.test(String(y.slot ?? '')))) {
+    for (const x of list(s.items?.slots).filter((y) => /^Charm \d+$/.test(String(y.slot ?? '')) && !owned(s.id, y.slot))) {
       fail('flasks', `plan.json's stage ${s.id} fills ${show(x.slot)}; the charm slots stay empty for now, charms waiting on amendment 14's survey (D-472)`);
     }
-    if (typeof s.variant !== 'string') continue;
+    if (typeof s.variant !== 'string' || owned(s.id, 'Flask 1')) continue;
     const flask = list(s.items?.slots).find((y) => y.slot === 'Flask 1');
     if (!flask || !/\bLife Flask\b/i.test(String(flask.text ?? ''))) fail('flasks', `plan.json's endgame rung ${s.id} has ${flask ? `${show(itemOf(flask.text).lines.slice(1, 3).join(' / '))} in Flask 1` : 'no Flask 1'}; every endgame rung carries a life flask in Flask 1, the best base its level allows (D-472)`);
   }
@@ -6796,11 +6826,12 @@ function partNames(part, line) {
 
 /**
  * D-489 (§15): a rare is titled by its key affixes, `+2 spell levels, Spirit, chaos resistance`: every comma-separated
- * part of a rare's title names one of its explicit lines; a part that names none is a generated name.
+ * part of a rare's title names one of its explicit lines; a part that names none is a generated name. D-519: an owned rare
+ * keeps the name the game gave it (`owned`, `ownedContent`).
  */
-function checkRareTitles(planStages, fail) {
+function checkRareTitles(planStages, fail, owned = () => false) {
   for (const s of planStages) {
-    const items = [...list(s.items?.slots).map((x) => ({ where: `slot "${x.slot}"`, text: x.text })), ...list(s.items?.treeJewels).map((x) => ({ where: `tree jewel in node ${x.node}`, text: x.text }))];
+    const items = [...list(s.items?.slots).filter((x) => !owned(s.id, x.slot)).map((x) => ({ where: `slot "${x.slot}"`, text: x.text })), ...list(s.items?.treeJewels).filter((x) => !owned(s.id, `jewel ${x.node}`)).map((x) => ({ where: `tree jewel in node ${x.node}`, text: x.text }))];
     for (const it of items) {
       const item = itemOf(it.text);
       if (item.rarity !== 'RARE' || !textOk(item.name)) continue;
@@ -6846,16 +6877,20 @@ const socketCount = (textOrNull) => {
  * spec with `ranking: null` (the loop couldn't rank) is held to neither; a weight other than Full DPS and TotalEHP gives
  * its `why`; the must-haves in order of importance, most important first, a must-have PoB scores at zero (`zeroScored`)
  * ahead of the others (the trade link requires the first three, §14); at most 5 trade searches a slot; and a spec only on
- * a rare (gear or tree jewel) of `b` or `n` (D-372's scope), the slot the D1 gate's basis maps to it.
+ * a rare (gear or tree jewel) of `b` or `n` (D-372's scope), the slot the D1 gate's basis maps to it. D-519: a price entry
+ * the gate maps to an owned item passes both (`owned`, `ownedContent`).
  */
-function checkPrices14({ plan, planStages, gate, fail }) {
+function checkPrices14({ plan, planStages, gate, fail, owned = () => false }) {
   const items = new Map();
   for (const s of planStages) {
     for (const x of list(s.items?.slots)) items.set(`${s.id}|${x.slot}`, x.text);
     for (const x of list(s.items?.treeJewels)) items.set(`${s.id}|jewel ${x.node}`, x.text);
   }
   const mapped = new Map();
+  // D-519: a price entry the gate maps to an owned item is the character's own item priced (ownedContent).
+  const ownedPrices = new Set();
   for (const x of list(gate?.basis?.budget?.slots)) {
+    if (owned(x.stage, x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot)) ownedPrices.add(x.priceId);
     const text = items.get(`${x.stage}|${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`);
     if (typeof text === 'string' && !mapped.has(x.priceId)) mapped.set(x.priceId, { text, where: `${x.stage} ${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`, variant: planStages.find((st) => st.id === x.stage)?.variant });
   }
@@ -6863,6 +6898,7 @@ function checkPrices14({ plan, planStages, gate, fail }) {
   for (const p of list(plan.prices)) {
     const at = `plan.json's price entry ${show(p.id)}`;
     if (String(p.id).endsWith('-fallback')) fail('budget', `${at} is a fallback; in a build held to amendment 14 the dearer item is a find over the budget (trades.json, kind scaling), and no -fallback entry is written (D-483, D-486)`);
+    if (ownedPrices.has(p.id)) continue;
     if ('listing' in p) {
       const l = p.listing;
       if (!isObj(l) || typeof l.corrupted !== 'boolean' || !isInt(l.sockets) || !isInt(l.count) || !isInt(l.position)) fail('listing', `${at} has listing ${show(l)}; {corrupted, sockets, count, position}: the listing's corruption and rune sockets, the search's total and the price's place in it (D-484, Appendix A)`);

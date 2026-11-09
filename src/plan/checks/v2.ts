@@ -26,6 +26,11 @@
  * speed, crit and roll range that `enemyIsBoss` sets (`Modules/CalcDefence.lua:2106-2114, 2090, 2095,
  * 3396`, `Modules/ConfigOptions.lua:2185`), which D-212 names among the placeholders that count as set.
  *
+ * **A file's configuration** (WU-161; amendment 16 §13, §15, D-519): on a stage with `config.file` (a read plan's, written
+ * as the file set it), each file input is listed (`explicit`, class `file`), a scenario entry whose source is the read's
+ * own copy of the file (`source.xml`) isn't resolved against the C1/E1 data, and every finding is a callout on what the
+ * player set (`kind: 'from-file'`), for the measure to show: none fails the verdict.
+ *
  * **configEffective** holds every option that affects the calculation: each listed one (`explicit`, class
  * `earned` or `scenario`), each default-on one the stage doesn't list (`default`, its value in the set) and
  * each placeholder-driven one it doesn't list (`placeholder`, the placeholder's value); an unlisted option's
@@ -53,6 +58,9 @@ export const BOSS_SCENARIO_OPTIONS: readonly string[] = [
   'enemyFireResist', 'enemyColdResist', 'enemyLightningResist', 'enemyChaosResist',
   'enemyCritChance', 'enemyCritDamage',
 ];
+
+/** D-519: the file a read plan's scenario entries cite, the read's own copy of the player's file (`plan_from_build`). */
+export const READ_SOURCE_FILE = 'source.xml';
 
 /** A producer's lookup key in `compile_check`'s reply: `<kind>:<name in lowercase>`. */
 export const producerKey = (kind: string, name: string): string => `${kind}:${name.toLowerCase()}`;
@@ -171,8 +179,11 @@ export function checkV2(input: V2Input): V2Result {
     }
   }
 
-  // Scenario sources resolve (A-P11: V2 checks that they resolve, not their values).
+  // Scenario sources resolve (A-P11: V2 checks that they resolve, not their values). D-519: on a file's configuration, an
+  // entry citing the read's copy of the file is the file's own value.
+  const fromFile = stage.config.file !== undefined;
   for (const e of stage.config.scenario) {
+    if (fromFile && e.source.file === READ_SOURCE_FILE) continue;
     const found = input.ref.resolveFact(e.source.file, e.source.key);
     if (!found.ok) {
       findings.push({
@@ -184,9 +195,11 @@ export function checkV2(input: V2Input): V2Result {
   }
 
   // The effective config (D-212): listed, then default-on and placeholder-driven options it doesn't list.
-  const listed = new Map<string, { value: ConfigValue; cls: 'earned' | 'scenario' }>();
+  const listed = new Map<string, { value: ConfigValue; cls: 'earned' | 'scenario' | 'file' }>();
   for (const e of stage.config.earned) listed.set(e.option, { value: e.value, cls: 'earned' });
   for (const e of stage.config.scenario) listed.set(e.option, { value: e.value, cls: 'scenario' });
+  // D-519: a file's input is written over a listed option of its name, so it is the one in effect.
+  for (const [option, value] of Object.entries(stage.config.file ?? {})) listed.set(option, { value, cls: 'file' });
   for (const [option, { value, cls }] of listed) effective[option] = { value, origin: 'explicit', class: cls };
   const { input: setInput, placeholder } = checks.config;
   // D-250: a conditional option (one PoB shows only for some builds) keeps the baseline only while PoB hides
@@ -247,5 +260,7 @@ export function checkV2(input: V2Input): V2Result {
     }
   }
 
-  return { verdict: { pass: findings.length === 0, findings, notes: facts.notes() }, configEffective: effective };
+  // D-519: on a file's configuration every finding is a callout, never a failure.
+  if (fromFile) for (const f of findings) f.kind = 'from-file';
+  return { verdict: { pass: findings.every((f) => f.kind === 'from-file'), findings, notes: facts.notes() }, configEffective: effective };
 }

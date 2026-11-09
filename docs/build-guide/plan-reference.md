@@ -812,6 +812,29 @@ addition (a plan of version 10 or older errs at it):
   "gems": [{ "name": "Purity of Ice", "level": 20, "quality": 0, "enabled": true }] }
 ```
 
+**How the compile treats them** (C-41, D-518, D-519's compile part):
+- **`config.file` is written as set**, after the listed options, each input as PoB's own load writes it; no listed option
+  overrides one of its inputs, and the stage gets no reference hit. V2's findings on such a stage are callouts on what
+  the player set (`kind: "from-file"` in the record, `(from the file)` in the reply) and never fail its verdict; each file
+  input is in `configEffective` with class `file`, and the scenario's `source.xml` entry isn't resolved against the data.
+- **`measure_as: "non-budget"`** (`compile_plan`, measure-only) measures each read stage (`source`, no `variant`) as the
+  non-budget rung: the Pinnacle boss pass with the Arbiter read, the resisting read, the conditioned read and a toughness
+  read at that rung's reference hits, each putting the file's configuration back after. The stage keeps no variant, so
+  V1's rung rules don't apply; the record gives it `measuredAs` and that rung's `measures`, its `ehp` and `toughness`
+  from the toughness read. A read stage's record also gives `spirit`, the Spirit question's figures: PoB's Spirit,
+  unreserved and reserved Spirit on the set the stage is measured on, and each plan group's skill that reserves Spirit
+  with its reservation.
+- **Owned content** keeps the quality its text gives (PoB raises an added item below its base's quality to 20 unless it
+  has a `Unique ID:` line or is corrupted, mirrored or a Charm), is measured though PoB marks it legacy or no longer
+  obtainable, and passes V1's `sockets`, `affix-cap`, `corruption` and `movement-tier`; in a compile or pricing run the
+  checker's `runes`, item `corruption`, both parts of `flasks` (a read stage's empty Flask 1 among them), `rare-title`
+  and pricing's `spec` and `listing` pass it too. The record lists its slots (`stages.<id>.owned`). The same content
+  without the mark meets every rule.
+- **A switched group** is written disabled and carries the switched mark, so PG-106's recount counts its skill slot. Each
+  is measured once more with its group on and its `off` groups off, on its own weapon set or else the set the stage is
+  measured on: the record's `stages.<id>.switches [{group, off, weaponSet, spiritUnreserved, keyFigures}]`. V1's
+  `switched-spirit` names a switch whose measure leaves unreserved Spirit below 0.
+
 ### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario

@@ -33,7 +33,14 @@
  * | `affix-cap` | (WU-137, D-485) a rare's explicit line over the best its base can roll at the stage's item level (69 on `m`, 82 on `b` and `n`, a campaign stage's C1 area level), summed over the mod groups that write it (a mod counted only when every line it writes is on the item) within 3 prefixes and 3 suffixes (2 and 2 on a rare jewel); a rare whose lines need more affixes than that; a unique's line outside its data's range. A line no mod matches is a note (`checkAffixCap`) |
  * | `sockets` | (WU-137, D-485) more rune sockets than the item can have (a unique's own count, else its base's from `data/items/sockets.json`, +1 on a corrupted unique only; the Exceptional +1 never counted), a `Rune:` line beyond the sockets, or a rune on an item with no `Sockets:` line (`checkSockets`) |
  * | `ascendancy-jewel` | (WU-137, D-492) a unique, or a base other than a basic jewel (Ruby, Emerald, Sapphire), in a socket whose node takes only a "non-Unique Basic Jewel" (Crystalline Phylactery, 17788) (`checkAscendancyJewel`) |
+ * | `switched-spirit` | (WU-161, D-518) a buff switched as needed (a group's `switch`) whose own measure, with it on and its `off` groups off, leaves PoB's unreserved Spirit below 0: the finding names the group and its `off` list (`checkSwitchedSpirit`, from `compile_stage`'s `switches`). PoB's Spirit warning on the measured loadout, where the switched buffs are off, stays `pob-warning`'s |
  * | `custom-defence` | (WU-119, D-451; schema 8 and later) a plan's custom modifier line whose parsed modifiers (`checks.customMods`, PoB's `modLib.parseMod`) include a pool or defence stat (life, energy shield, mana, ward, armour, evasion, deflection, block, a resistance, damage taken: PoB's names in `DEFENCE_MODS`) and whose `reason` gives no `coverage: <status>` result of `check_model_coverage` (`COVERAGE_MARKER`): a custom line stands only for a layer PoB doesn't model. A companion's lines (D-402) aren't the plan's (`checkCustomDefence`) |
+ *
+ * **Owned content** (WU-161; amendment 16 §15, D-519): an item, tree jewel or group a read plan holds as `owned` (the
+ * character's own, as `plan_from_build` took it, and not replaced by a design) passes `sockets`, `affix-cap`, `corruption`
+ * and `movement-tier`, which would reject what the game allows (crafted, corrupted, fractured or over-range rolls, a
+ * corrupted item's extra socket, a gem corrupted off the finishing rungs, boots below a rung's tier); it is measured as
+ * any item is. The same content without the mark meets every rule (`ownedAt`).
  *
  * **The resistance penalty's C1 value** for a progress key is `resistance-penalty.<region>` for the key's
  * region. The interlude value is keyed by area-level ranges (`"<lo>-<hi>"`), so the key's own area level
@@ -45,7 +52,7 @@
  * floor (D-259). A tier-0 gem isn't cut (C1's `skill-tiers` note), so it has no floor; a support gem's level
  * isn't cut either, so neither has one.
  */
-import type { MovementTier, StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
+import type { CompileStageResult, MovementTier, StageChecks, StageTrees, TreeStart } from '../../engine/schemas.js';
 import type { Finding, TravelMeasure, Verdict } from '../record.js';
 import type { PlanReferenceData, ResolvedFact } from '../referenceData.js';
 import { isTemporaryStage, PLAN_VARIANTS, RESPEC_UNTIL, type PlanVariant, type Stage } from '../schema.js';
@@ -110,6 +117,20 @@ export interface V1Input {
    * after them (D-402), which `custom-defence` doesn't read. Absent: every line is the plan's.
    */
   planCustomMods?: number;
+  /** D-518 (WU-161): `compile_stage`'s measure of each switched buff (`switches`), for `switched-spirit`. */
+  switches?: CompileStageResult['switches'];
+}
+
+/**
+ * D-519 (WU-161): whether the stage holds `slot`'s content as owned: an item slot's entry, or a tree jewel's (`Jewel
+ * <node>`), marked `owned`. A pinned Swap slot (`sameAs`) follows the slot whose item it shares.
+ */
+export function ownedAt(stage: Pick<Stage, 'items'>, slot: string): boolean {
+  const jewel = /^Jewel (\d+)$/.exec(slot);
+  if (jewel !== null) return stage.items.treeJewels.some((j) => j.node === Number(jewel[1]) && j.owned === true);
+  const entry = stage.items.slots.find((s) => s.slot === slot);
+  if (entry?.sameAs !== undefined) return stage.items.slots.some((s) => s.slot === entry.sameAs && s.owned === true);
+  return entry?.owned === true;
 }
 
 /** The item slot `movement-tier` reads (D-440). */
@@ -710,12 +731,14 @@ export const CORRUPTION_VARIANTS: readonly PlanVariant[] = ['budget', 'non-budge
  * `corruption` (WU-128, D-471): a gem written with `corrupt` (schema 9) on a stage other than `b` and `n` (the
  * entering-maps rung, a campaign stage or a card skeleton), or one PoB reads as a support gem (`checks.gems`' kind,
  * matched by group and index): corruption is for the finishing-touch rungs, on skill gems. One finding per gem, the
- * support rule first; `data.path` is the gem's `corrupt`.
+ * support rule first; `data.path` is the gem's `corrupt`. D-519: an owned group is skipped.
  */
 export function checkCorruption(stage: Pick<Stage, 'variant' | 'skills'>, checks: Pick<StageChecks, 'gems'>, findings: Finding[]): void {
   const kinds = new Map(checks.gems.map((g) => [`${g.group}:${g.index}`, g.kind]));
   const where = stage.variant === undefined ? 'a campaign stage or card skeleton' : `the ${stage.variant} rung`;
   stage.skills.groups.forEach((g, k) => {
+    // D-519 (WU-161): an owned group's gems are the character's own, corrupted as the game corrupted them.
+    if (g.owned === true) return;
     g.gems.forEach((gem, j) => {
       if (gem.corrupt === undefined) return;
       const at = `skill group ${k + 1} gem ${j + 1}`;
@@ -983,7 +1006,8 @@ export function movementTierOf(
  * (`checks.items[].movementSpeed`). Boots under the tier are a `movement-tier` finding, naming the boots and the tier,
  * unless the stage's `items.bootsException` holds: `travel` with a travel skill in the stage (`travel`, the record's,
  * D-427), or `unique` with unique boots; then the boots are information only, a `boots-exception` note. A stage without
- * boots, a card skeleton, and a plan before schema 7 are skipped. `data.path` is the boots' text in the stage.
+ * boots, a card skeleton, and a plan before schema 7 are skipped, and (D-519) owned boots. `data.path` is the boots' text
+ * in the stage.
  */
 export function checkMovementTier(
   stage: Pick<Stage, 'variant' | 'progress' | 'items'>,
@@ -995,7 +1019,8 @@ export function checkMovementTier(
 ): void {
   if ((input.schemaVersion ?? 0) < MOVEMENT_TIER_SINCE) return;
   const boots = checks.items.find((i) => i.slot === BOOTS_SLOT);
-  if (boots === undefined) return;
+  // D-519 (WU-161): owned boots are the character's own.
+  if (boots === undefined || ownedAt(stage, BOOTS_SLOT)) return;
   const at = movementTierOf(stage, input.movementTiers ?? [], facts);
   if (at === null) return;
   const speed = typeof boots.movementSpeed === 'number' && Number.isFinite(boots.movementSpeed) ? boots.movementSpeed : 0;
@@ -1398,7 +1423,8 @@ export const AFFIX_CAP = 'affix-cap';
  * a rare jewel) and leaving room for the item's other lines. A line over it is a finding naming
  * the cap; a rare whose lines need more affixes than its limit is a finding naming the count. A unique's line outside the
  * range its data gives it is a finding too. A line no mod (or no line of the unique's data) matches is a note, never a
- * finding. A card skeleton's rares are counted, not capped (no rung, so no item level). `data.path` is the item's text.
+ * finding. A card skeleton's rares are counted, not capped (no rung, so no item level). An owned item or jewel (D-519) is
+ * skipped. `data.path` is the item's text.
  */
 export function checkAffixCap(
   stage: Pick<Stage, 'variant' | 'progress' | 'items'>,
@@ -1407,7 +1433,8 @@ export function checkAffixCap(
   findings: Finding[],
   notes: Finding[],
 ): void {
-  const withAffixes = checks.items.filter((it) => it.affixes !== undefined && !pinnedSlot(stage, it.slot));
+  // D-519 (WU-161): an owned item or jewel is the character's own, its rolls as the game rolled them.
+  const withAffixes = checks.items.filter((it) => it.affixes !== undefined && !pinnedSlot(stage, it.slot) && !ownedAt(stage, it.slot));
   if (withAffixes.length === 0) return;
   const level = stageItemLevel(stage, facts);
   for (const item of withAffixes) {
@@ -1526,11 +1553,13 @@ export function socketFactOf(item: Pick<StageItem, 'baseName' | 'baseType' | 'ha
  * rule, so a corrupted rare's extra socket is a finding). The Exceptional +1 is never counted: a designed rare is written
  * without it on the standard rungs (the user's default). More sockets than that, a `Rune:` line beyond the sockets, or a rune on an
  * item with no `Sockets:` line (which the compile drops, `Classes/Item.lua`:1642) is a finding naming the item, the count
- * and the limit. An item the table doesn't count (a jewel, flask or charm) is skipped. `data.path` is the item's text.
+ * and the limit. An item the table doesn't count (a jewel, flask or charm) is skipped, and (D-519) an owned item.
+ * `data.path` is the item's text.
  */
 export function checkSockets(stage: Pick<Stage, 'items'>, checks: Pick<StageChecks, 'items'>, facts: FactReader, findings: Finding[]): void {
   for (const item of checks.items) {
-    if (item.sockets === undefined || pinnedSlot(stage, item.slot)) continue;
+    // D-519 (WU-161): an owned item's sockets are the character's own (a corrupted rare's extra one among them).
+    if (item.sockets === undefined || pinnedSlot(stage, item.slot) || ownedAt(stage, item.slot)) continue;
     const factId = socketFactOf(item);
     if (factId === null) continue;
     const sockets = item.sockets;
@@ -1597,6 +1626,34 @@ export function checkAscendancyJewel(stage: Pick<Stage, 'items'>, checks: Pick<S
   }
 }
 
+/**
+ * `switched-spirit` (WU-161; amendment 16 §14, D-518): each buff the plan switches as needed was measured once more with
+ * its group on and its `off` groups off (`compile_stage`'s `switches`); one whose measure leaves PoB's unreserved Spirit
+ * below 0 is a finding naming the group, its skill and its `off` list, so a buff switched on as the plan says has the
+ * Spirit for it. A switch that fits, or whose measure gives no Spirit figure, has none. `data.path` is its `switch`.
+ */
+export function checkSwitchedSpirit(stage: Pick<Stage, 'skills'>, switches: V1Input['switches'], findings: Finding[]): void {
+  for (const sw of switches ?? []) {
+    const unreserved = sw.spiritUnreserved;
+    if (typeof unreserved !== 'number' || !(unreserved < 0)) continue;
+    const group = stage.skills.groups[sw.group - 1];
+    const nameOf = (n: number) => {
+      const g = stage.skills.groups[n - 1];
+      return g?.label ?? g?.gems.find((x) => x.enabled)?.name ?? g?.gems[0]?.name ?? `group ${n}`;
+    };
+    const off = [...sw.off];
+    const offText = off.length === 0 ? 'nothing switched off for it' : `${off.map((n) => `group ${n} (${nameOf(n)})`).join(', ')} switched off for it`;
+    findings.push({
+      code: 'switched-spirit',
+      message:
+        `skill group ${sw.group} (${nameOf(sw.group)}) is switched on as needed, but with it on and ${offText}, PoB measures ` +
+        `${unreserved} unreserved Spirit on weapon set ${sw.set}: the buffs on together then reserve more Spirit than the character has (D-518). ` +
+        `Switch more off for it (its switch.off), or cut a buff`,
+      data: { group: sw.group, off, set: sw.set, spiritUnreserved: unreserved, path: `skills.groups[${sw.group - 1}].switch`, ...(group === undefined ? { missing: true } : {}) },
+    });
+  }
+}
+
 /** V1 for one compiled stage. */
 export function checkV1(input: V1Input): V1Result {
   const { stage, checks } = input;
@@ -1628,5 +1685,6 @@ export function checkV1(input: V1Input): V1Result {
   checkAffixCap(stage, checks, facts, findings, notes);
   checkSockets(stage, checks, facts, findings);
   checkAscendancyJewel(stage, checks, findings);
+  checkSwitchedSpirit(stage, input.switches, findings);
   return { verdict: { pass: findings.length === 0, findings, notes: [...facts.notes(), ...notes] }, pobWarnings };
 }

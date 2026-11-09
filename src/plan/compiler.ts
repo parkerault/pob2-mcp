@@ -98,6 +98,19 @@
  * adopt (`adoptFile`) and notes (`writeNotes`) modes run with no engine, and its trade-links mode (`writeTradeLinks`) as a
  * `load` of the final compile's copy; see their own comments at the end of this file.
  *
+ * WU-161 (amendment 16 §13 to §15; D-518, D-519's compile part, C-41): a read plan, `plan_from_build`'s. Its
+ * `config.file` is written as the file set it (`fileConfig`; `stageConfig` leaves out every option it sets, and the stage
+ * gets no reference hit, `withReferenceHits`); V2's findings on it are callouts (`kind: 'from-file'`). A measure-only
+ * compile's `measureAs` (`measure_as: "non-budget"`) gives each read stage (`source`, no `variant`) that rung's passes
+ * (`measuredRung`): the boss pass with the Arbiter read, the resisting and conditioned reads, and the toughness read at
+ * the rung's reference hits (`fileStageHits`), each putting the file's configuration back; the stage keeps no variant, so
+ * V1's rung rules don't apply, and the record gives it `measuredAs` and that rung's measures. A read stage's record gains
+ * `spirit`, the Spirit question's figures. Owned content (an item, tree jewel or group marked `owned`) keeps its quality,
+ * is measured though PoB marks it legacy or no longer obtainable (the owned-legacy exemption), and passes V1's `sockets`,
+ * `affix-cap`, `corruption` and `movement-tier`; the record lists it (`owned`). A group with `switch` is written disabled
+ * and marked for PG-106's recount, measured once more with its `off` groups off (`switches`), and V1 reports
+ * `switched-spirit` for one that leaves Spirit below 0.
+ *
  * When the stages differ in a weapon-fit flag (Giant's Blood, Instruments of Power, Lord of the Wilds), the
  * record and the text carry a loadout warning: PoB2 checks a loadout's off-hand against the passives of the
  * loadout it switches from, so switching loadouts in PoB2 can unequip a planned off-hand.
@@ -238,12 +251,13 @@ export interface CompilerEnv {
 }
 
 /**
- * A compile (C-41): measure-only, or final. A final compile with `firstFree` (D-466: a build's first final write, or
+ * A compile (C-41): measure-only, or final. D-519 (WU-161): a measure-only compile's `measureAs` measures each compiled
+ * read stage (`source`, no `variant`) as that rung is measured (`measuredRung`). A final compile with `firstFree` (D-466: a build's first final write, or
  * its campaign's) cleans `buildName` and writes the first free of `<name>`, `<name> <run date>` and
  * `<name> <run date> <k>` (`firstFreeName`).
  */
 export type CompileRequest =
-  | { mode: 'measure-only'; planPath: string; stages?: string[] }
+  | { mode: 'measure-only'; planPath: string; stages?: string[]; measureAs?: PlanVariant }
   | { mode: 'final'; planPath: string; buildName: string; firstFree?: boolean };
 
 export interface CompileResult {
@@ -503,12 +517,75 @@ export function savedConfigWarnings(
   });
 }
 
-/** Every option a stage lists, earned then scenario: option → value (C-32). */
+/**
+ * Every option a stage lists, earned then scenario: option → value (C-32). D-519 (WU-161): an option the stage's
+ * `config.file` sets is left out, so the file's input, which the compile writes after these, is never overridden.
+ */
 export function stageConfig(stage: Pick<Stage, 'config'>): Record<string, ConfigValue> {
   const out: Record<string, ConfigValue> = {};
-  for (const e of stage.config.earned) out[e.option] = e.value;
-  for (const e of stage.config.scenario) out[e.option] = e.value;
+  const file = stage.config.file;
+  for (const e of [...stage.config.earned, ...stage.config.scenario]) {
+    if (file === undefined || !Object.prototype.hasOwnProperty.call(file, e.option)) out[e.option] = e.value;
+  }
   return out;
+}
+
+/**
+ * D-519 (WU-161): what the compile writes into a stage's config set: its listed options (`stageConfig`), then a read
+ * plan's `config.file` inputs as the file set them (the custom modifiers' text among them). The record's `configWritten`.
+ */
+export function writtenConfig(stage: Pick<Stage, 'config'>): Record<string, ConfigValue> {
+  return { ...stageConfig(stage), ...(stage.config.file ?? {}) };
+}
+
+/** D-519 (amendment 16 §13, Appendix A.5): a read stage, one `plan_from_build` wrote: it names its `source`. */
+export function isReadStage(stage: Pick<Stage, 'source'>): boolean {
+  return stage.source !== undefined;
+}
+
+/**
+ * D-519 (amendment 16 §15; WU-161): the rung a stage is measured as: its own `variant`, else, on a read stage, the
+ * measure-only compile's `measureAs` (`measure_as`), which gives it that rung's passes without a variant (so V1's rung
+ * rules don't apply); else none.
+ */
+export function measuredRung(stage: Pick<Stage, 'variant' | 'source'>, measureAs?: PlanVariant): PlanVariant | undefined {
+  if (stage.variant !== undefined) return stage.variant;
+  return measureAs !== undefined && isReadStage(stage) ? measureAs : undefined;
+}
+
+/**
+ * D-519 (WU-161): the reference hits a stage is measured at without writing them: on a stage whose configuration is the
+ * file's (`config.file`) with a rung (`measuredRung`), that rung's five hits (`referenceHits`), option → value, for the
+ * toughness read and the conditioned read; none otherwise.
+ */
+export function fileStageHits(stage: Pick<Stage, 'config'>, rung: PlanVariant | undefined, ref: PlanReferenceData): Record<string, number> | undefined {
+  if (stage.config.file === undefined || rung === undefined) return undefined;
+  return Object.fromEntries(referenceHits(rung, ref).map((e) => [e.option, e.value as number]));
+}
+
+/**
+ * D-519 (amendment 16 §15, Appendix A.8; WU-161): the record's `owned`: the stage's slots holding owned content, its item
+ * slots in plan order, then each owned tree jewel's `Jewel <node>`; undefined when it holds none.
+ */
+export function ownedSlots(stage: Pick<Stage, 'items'>): string[] | undefined {
+  const out = [
+    ...stage.items.slots.filter((s) => s.owned === true).map((s) => s.slot as string),
+    ...stage.items.treeJewels.filter((j) => j.owned === true).map((j) => `Jewel ${j.node}`),
+  ];
+  return out.length > 0 ? out : undefined;
+}
+
+/**
+ * D-518 (amendment 16 §14; WU-161): each switched group's measure request: its group (from 1), its `off` list, and the
+ * weapon set it is measured on: the group's own set when it has one, else the set the stage is measured on (a
+ * proceed-on: on a stage measured on set 2, set 2).
+ */
+export function switchesOf(stage: Pick<Stage, 'skills' | 'items'>): Array<{ group: number; off: number[]; set: 1 | 2 }> {
+  return stage.skills.groups.flatMap((g, k) =>
+    g.switch === undefined
+      ? []
+      : [{ group: k + 1, off: [...g.switch.off], set: (g.weaponSet ?? (stage.items.useSecondWeaponSet ? 2 : 1)) as 1 | 2 }],
+  );
 }
 
 /**
@@ -545,7 +622,8 @@ function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBas
  * WU-128 (amendment 13): a pinned weapon's Swap slot is checked with the text of the slot it shares (D-464, `slotTexts`),
  * and, with the plan's schema version, a schema-9 stage's custom modifier reasons, whose comment lines PoB must not parse
  * whole (D-469, `customModReasons`). WU-154 (D-512): from schema 11 each gem's quality, which `compile_check` refuses above
- * 0 on a skill the stage's items or allocated passives grant; an older plan's gems go without it.
+ * 0 on a skill the stage's items or allocated passives grant; an older plan's gems go without it. WU-161 (D-519): an owned
+ * item, tree jewel or group carries `owned`, so its content PoB marks legacy or no longer obtainable is measured.
  */
 export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?: number, schemaVersion?: number): CompileCheckStage {
   const bossEntries = (stage.skills.boss?.entries ?? []).map((e, k) => ({
@@ -566,8 +644,11 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
     groups: stage.skills.groups.map((g) => ({
       gems: g.gems.map((gem) => ({ name: gem.name, enabled: gem.enabled, ...(withQuality ? { quality: gem.quality } : {}) })),
       ...minionFields(g),
+      // D-519 (WU-161): an owned group's legacy gem is measured, not refused (the owned-legacy exemption).
+      ...(g.owned === true ? { owned: true } : {}),
     })),
     main: stage.skills.main,
+    // D-519: the listed options only; a read plan's file inputs are written as PoB's load writes them, unchecked.
     config: Object.entries(stageConfig(stage)).map(([option, value]) => ({ option, value })),
     customMods: customModLines(stage),
     ...withCustomModReasons(stage, schemaVersion),
@@ -580,12 +661,15 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
 /**
  * D-464 (schema 9): the stage's filled slots, each with its item's text: a pinned weapon's Swap slot (`sameAs`) has the
  * text of the set-1 slot it shares, and keeps `sameAs` so `compile_stage` puts that one item in both slots. In plan order.
+ * D-519 (WU-161): an owned item carries `owned` (it keeps its text's quality; compile_check measures it if PoB says it is
+ * no longer obtainable).
  */
-export function slotTexts(stage: Pick<Stage, 'items'>): Array<{ slot: string; text: string; sameAs?: string }> {
+export function slotTexts(stage: Pick<Stage, 'items'>): Array<{ slot: string; text: string; sameAs?: string; owned?: boolean }> {
   const texts = new Map(stage.items.slots.flatMap((s) => (s.text !== undefined ? [[s.slot as string, s.text] as const] : [])));
-  return stage.items.slots.map((s) =>
-    s.sameAs !== undefined ? { slot: s.slot, text: texts.get(s.sameAs) ?? '', sameAs: s.sameAs } : { slot: s.slot, text: s.text ?? '' },
-  );
+  return stage.items.slots.map((s) => ({
+    ...(s.sameAs !== undefined ? { slot: s.slot, text: texts.get(s.sameAs) ?? '', sameAs: s.sameAs } : { slot: s.slot, text: s.text ?? '' }),
+    ...(s.owned === true ? { owned: true } : {}),
+  }));
 }
 
 /** D-377: a group's minion skill and its stat set, as the engine actions take them (absent when it names none). */
@@ -641,12 +725,14 @@ function withCustomModReasons(stage: Pick<Stage, 'config'>, schemaVersion: numbe
 /**
  * D-293, D-321: whether the stage is measured with custom modifiers present, so its figures carry the mark:
  * its written config holds PoB's `customMods` option with text, whatever its source. That is
- * `config.customMods`, or, in a version-1 plan (D-332), an `earned` or `scenario` entry for the option. An
+ * `config.customMods`, or, in a version-1 plan (D-332), an `earned` or `scenario` entry for the option, or (D-519) a read
+ * plan's `config.file` input. An
  * empty value clears the option (`BuildOps.lua`'s `config_value`), and blank text adds no modifier.
  */
 export function measuredWithCustomMods(stage: Pick<Stage, 'config'>): boolean {
   if (customModLines(stage).length > 0) return true;
-  const listed = stageConfig(stage)[CUSTOM_MODS_OPTION];
+  // D-519: a read plan's file holds its custom modifiers in its customMods input.
+  const listed = writtenConfig(stage)[CUSTOM_MODS_OPTION];
   return listed !== undefined && String(listed).trim() !== '';
 }
 
@@ -787,10 +873,13 @@ export function referenceHitRung(stage: Pick<Stage, 'variant' | 'progress'>): Pl
 /**
  * D-353: an endgame stage with every reference hit its scenario omits added from the data (`referenceHits`), so
  * it is written, grouped (A-P2) and checked like a listed one; a hit the plan lists, as earned or scenario, keeps
- * its own value. D-423: a card skeleton gets the budget rung's hits (`referenceHitRung`). Any other stage is returned
- * as it is.
+ * its own value. D-423: a card skeleton gets the budget rung's hits (`referenceHitRung`). D-519: a stage with
+ * `config.file` gets none. Any other stage is returned as it is.
  */
 export function withReferenceHits(stage: Stage, ref: PlanReferenceData): Stage {
+  // D-519 (WU-161): a stage whose configuration is the file's (`config.file`) is written as set; a rung's hits are read
+  // in its toughness read instead (`fileStageHits`).
+  if (stage.config.file !== undefined) return stage;
   const rung = referenceHitRung(stage);
   if (rung === undefined) return stage;
   const listed = stageConfig(stage);
@@ -1069,6 +1158,12 @@ function setRef(title: string, created: Map<number, number>, group: number): Sta
  * What `compile_stage` builds for one stage. WU-128 (amendment 13, schema 9): a pinned weapon's Swap slot carries `sameAs`
  * (D-464), a corrupted gem its `corrupt` (D-471), and, with the plan's `schemaVersion`, the custom modifiers their reasons
  * for the comment lines (D-469).
+ *
+ * WU-161 (amendment 16 §13 to §15; D-518, D-519): `read.rung` is the rung the stage is measured as (`measuredRung`: its
+ * variant, or a read stage's `measure_as`), which keys the boss, resisting, Arbiter and conditioned passes as a variant
+ * does; `read.referenceHits` (`fileStageHits`) the hits its toughness read sets. A read plan's `config.file` goes as
+ * `fileConfig`, an owned item with `owned`, and each switched group (`switch`, written disabled) is marked `switched` and
+ * measured once more (`switches`, `switchesOf`).
  */
 export function stageParams(
   stage: Stage,
@@ -1080,8 +1175,11 @@ export function stageParams(
   grants?: WeaponGrants,
   measure?: MeasureData,
   schemaVersion?: number,
+  read?: { rung?: PlanVariant; referenceHits?: Record<string, number> },
 ): CompileStageParams {
   const slots = groupSlots(stage, grants);
+  const rung = read?.rung ?? stage.variant;
+  const switches = switchesOf(stage);
   return {
     id: stage.id,
     first,
@@ -1126,11 +1224,15 @@ export function stageParams(
         ...minionFields(g),
         // D-426 (§24.2): the weapon set the group is on, socketed in that set's slot; absent, both sets.
         ...(g.weaponSet !== undefined ? { weaponSet: g.weaponSet, slot: slots[k]! } : {}),
+        // D-518 (WU-161): a buff switched as needed, written disabled, carries the switched mark for the recount.
+        ...(g.switch !== undefined ? { switched: true } : {}),
       };
     }),
     main: stage.skills.main,
     configSet: refs.config,
     config: stageConfig(stage),
+    // D-519 (WU-161): a read plan's configuration as the file set it, written after the listed options.
+    ...(stage.config.file !== undefined ? { fileConfig: { ...stage.config.file } } : {}),
     customMods: customModLines(stage),
     // D-469 (schema 9): each line's reason, written as the comment line `# <reason>` before it.
     ...withCustomModReasons(stage, schemaVersion),
@@ -1143,21 +1245,27 @@ export function stageParams(
     // WU-111 (D-437, D-447): an endgame variant stage is measured against a Pinnacle boss too: the named source's group
     // and the boss rotation's, with the measured fields and a minion's ailments. WU-120 (D-449): on `b` and `n` the pass
     // also reads the chances at the Arbiter's accuracy and the deflected max hits.
-    ...(stage.variant !== undefined
+    ...(rung !== undefined
       ? {
           boss: {
             groups: bossMeasureGroups(stage),
             fields: bossFields(offenseFields),
-            ...(measure !== undefined && ARBITER_VARIANTS.includes(stage.variant) ? { arbiter: { accuracy: measure.arbiterAccuracy } } : {}),
+            ...(measure !== undefined && ARBITER_VARIANTS.includes(rung) ? { arbiter: { accuracy: measure.arbiterAccuracy } } : {}),
           },
         }
       : {}),
     // WU-120 (D-454): an endgame variant stage's named source, against the map enemy with every elemental resistance at
-    // the waystone modifier's top roll; (D-449) the conditioned read on `n`.
-    ...(stage.variant !== undefined && measure !== undefined
+    // the waystone modifier's top roll; (D-449) the conditioned read on `n`. D-519: a read stage measured as a rung too.
+    ...(rung !== undefined && measure !== undefined
       ? { resisting: { groups: [stage.skills.main.group], fields: bossFields(offenseFields), resist: measure.resist } }
       : {}),
-    ...(stage.variant === 'non-budget' && measure !== undefined ? { conditioned: true } : {}),
+    ...(rung === 'non-budget' && measure !== undefined ? { conditioned: true } : {}),
+    // D-519 (WU-161): the rung's reference hits a file's configuration doesn't hold, for the toughness read.
+    ...(read?.referenceHits !== undefined ? { referenceHits: { ...read.referenceHits } } : {}),
+    // D-518 (WU-161): each switched buff, measured once more with its off groups off.
+    ...(switches.length > 0 ? { switches } : {}),
+    // D-518, D-519 (WU-161): a read stage's Spirit question: each buff's reservation on its measured set.
+    ...(isReadStage(stage) ? { spiritBuffs: true } : {}),
   };
 }
 
@@ -1279,6 +1387,15 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   };
   const compiledIds = new Set(loaded.compiled.map((s) => s.id));
   const preflight = checkedPlan.stages.filter((s) => compiledIds.has(s.id));
+  // D-519 (WU-161): measure_as measures a read stage (one with `source` and no variant) as its rung; a compile with none
+  // has nothing for it to measure.
+  const measureAs = request.mode === 'measure-only' ? request.measureAs : undefined;
+  if (measureAs !== undefined && !preflight.some((s) => isReadStage(s) && s.variant === undefined)) {
+    throw new CompileError(
+      `measure_as measures a read stage (one plan_from_build wrote: it names its source and has no variant), but none of ` +
+        `the stages compiled (${preflight.map((s) => s.id).join(', ')}) is one. Nothing was compiled.`,
+    );
+  }
   // V2's baseline list (D-230), checked with the plan: an invalid file stops the compile here.
   const baselineList = readConfigBaseline(env);
   // WU-120 (D-449, D-454): the new measure passes' data, read before any engine request.
@@ -1362,8 +1479,14 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       refs[kind] = setRef(grouped[kind].groups[g].title, created[kind], g);
     }
     const t = env.clock();
+    // D-519 (WU-161): the rung the stage is measured as, and on a file's configuration that rung's reference hits.
+    const rung = measuredRung(stage, measureAs);
+    const hits = fileStageHits(stage, rung, refData);
     const reply = await ctx.client.compileStage(
-      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id), measureData, plan.schemaVersion),
+      stageParams(stage, i === 0, refs, env.offenseFields, anoints.get(stage.id)?.notable, companionChecks.get(stage.id)?.id, grantsOf.get(stage.id), measureData, plan.schemaVersion, {
+        ...(rung !== undefined ? { rung } : {}),
+        ...(hits !== undefined ? { referenceHits: hits } : {}),
+      }),
     );
     const elapsedMs = env.clock() - t;
     // D-447: every boss rotation entry is a selection PoB's boss measure has (compile_check bounded it already).
@@ -1410,6 +1533,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       // companion's (D-402), for custom-defence.
       ...(stage.variant !== undefined && plan.schemaVersion >= DEFENCE_CHECKS_SINCE ? { rungAreaLevel: rungAreaLevel(stage.variant, refData) } : {}),
       planCustomMods: checkedPlan.stages.find((s) => s.id === stage.id)?.config.customMods?.length ?? 0,
+      // D-518 (WU-161): each switched buff's measure, for switched-spirit.
+      ...(reply.switches !== undefined ? { switches: reply.switches } : {}),
     });
     const v2 = checkV2({ stage, checks: reply.checks, producers, defaults: check.configBaseline, baseline: baselineList, ref: refData });
     results.push({ stage, reply, elapsedMs, checked: { v1: v1.verdict, v2: v2.verdict, pobWarnings: v1.pobWarnings, configEffective: v2.configEffective } });
@@ -1512,7 +1637,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
       // WU-102 (§24.2): every group's figures with weapon set 2 active, on a stage that uses it.
       ...(reply.skillOutputsSet2 !== undefined ? { skillOutputsSet2: reply.skillOutputsSet2 } : {}),
       countedSkillOutputs: counted.countedSkillOutputs,
-      configWritten: stageConfig(stage),
+      // D-519: a read plan's file inputs among them, as written.
+      configWritten: writtenConfig(stage),
       customModsWritten,
       computedWithCustomMods,
       configEffective: checked.configEffective,
@@ -1538,11 +1664,41 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
     // D-452 (schema 8): what the stage's tree changes from the stage before it.
     const treeChange = treeChangeOf(plan, stage);
     if (treeChange !== null) stages[stage.id].treeChange = treeChange;
+    // D-519 (WU-161, Appendix A.8): the slots holding owned content, and the rung a read stage was measured as.
+    const owned = ownedSlots(stage);
+    if (owned !== undefined) stages[stage.id].owned = owned;
+    const rung = measuredRung(stage, measureAs);
+    if (stage.variant === undefined && rung !== undefined) stages[stage.id].measuredAs = rung;
+    // D-518, D-519 (WU-161): a read stage's Spirit question, from its own measure.
+    if (reply.spirit !== undefined) {
+      const sp = reply.spirit;
+      const spirit = typeof sp.spirit === 'number' && Number.isFinite(sp.spirit) ? sp.spirit : null;
+      const unreserved = typeof sp.unreserved === 'number' && Number.isFinite(sp.unreserved) ? sp.unreserved : null;
+      stages[stage.id].spirit = {
+        weaponSet: sp.set,
+        spirit,
+        unreserved,
+        reserved: spirit !== null && unreserved !== null ? spirit - unreserved : null,
+        buffs: sp.buffs.map((b) => ({ group: b.group, activeSkill: b.activeSkill, skill: b.skill, reserved: b.reserved })),
+      };
+    }
+    // D-518 (WU-161, Appendix A.8): each switched buff's measure.
+    if (reply.switches !== undefined && reply.switches.length > 0) {
+      stages[stage.id].switches = reply.switches.map((sw) => ({
+        group: sw.group,
+        off: [...sw.off],
+        weaponSet: sw.set,
+        spiritUnreserved: typeof sw.spiritUnreserved === 'number' && Number.isFinite(sw.spiritUnreserved) ? sw.spiritUnreserved : null,
+        keyFigures: { ...sw.keyFigures },
+      }));
+    }
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
     // D-427: the clear measure's travel skill, from the stage's skills with PoB's Travel type.
     // WU-111 (D-437, D-447): with the reply's skill meta and boss measure, the damage figures, trigger and source types.
     if (measuredStage(stage)) {
-      stages[stage.id].measures = stageMeasures(stage, stages[stage.id], arbiterHits, check.gemTexts, reply.travelSkills, {
+      // D-519 (WU-161): a read stage measured as a rung gets that rung's measures, though it has no variant.
+      const measuredAs = rung !== undefined && stage.variant === undefined ? { ...stage, variant: rung } : stage;
+      stages[stage.id].measures = stageMeasures(measuredAs, stages[stage.id], arbiterHits, check.gemTexts, reply.travelSkills, {
         ...(reply.skillMeta !== undefined ? { skillMeta: reply.skillMeta } : {}),
         ...(reply.skillMetaSet2 !== undefined ? { skillMetaSet2: reply.skillMetaSet2 } : {}),
         ...(reply.boss !== undefined ? { boss: reply.boss } : {}),
@@ -1550,6 +1706,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         ...(reply.immune !== undefined ? { immune: reply.immune } : {}),
         ...(reply.resisting !== undefined ? { resisting: reply.resisting } : {}),
         ...(reply.conditioned !== undefined ? { conditioned: reply.conditioned } : {}),
+        // D-519 (WU-161): the toughness read at the rung's reference hits, on a file's configuration.
+        ...(reply.toughness !== undefined ? { toughness: reply.toughness } : {}),
       });
     }
     // C-33, WU-111 (the ledger's boss context): the stage's numbers, with its boss rotation and PoB alone when measured.

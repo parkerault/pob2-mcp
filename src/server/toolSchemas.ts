@@ -1127,6 +1127,11 @@ export function getLuaToolSchemas(): any[] {
             items: { type: "string" },
             description: "measure_only only: the stage ids to compile, in plan order; default every stage",
           },
+          measure_as: {
+            type: "string",
+            enum: ["non-budget"],
+            description: "measure_only only: measure each read stage (one plan_from_build wrote, with no variant) as the non-budget rung is measured: the Pinnacle boss pass with the Arbiter read, the resisting read, the conditioned read and the toughness read at that rung's reference hits, each putting the file's configuration back after. The stage gets no variant, so V1's rung rules don't apply. The record gives it measuredAs and those measures",
+          },
         },
         required: ["plan_path"],
       },

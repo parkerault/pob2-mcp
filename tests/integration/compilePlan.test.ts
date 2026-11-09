@@ -1034,12 +1034,13 @@ describe('AC-P38 (D-216): the plan tools\' metadata and schema (static)', () => 
     const schema = getLuaToolSchemas().find((t) => t.name === 'compile_plan');
     expect(schema).toBeDefined();
     // D-466 (AC-K78): first_free, draft_name and remove_draft join the compile modes' arguments; amendment 14 (AC-K83 to
-    // AC-K85): read_back, adopt, notes_path and trade_links.
+    // AC-K85): read_back, adopt, notes_path and trade_links; amendment 16 (D-519, AC-W151): measure_as.
     expect(Object.keys(schema.inputSchema.properties).sort()).toEqual([
       'adopt',
       'build_name',
       'draft_name',
       'first_free',
+      'measure_as',
       'measure_only',
       'notes_path',
       'plan_path',

@@ -2175,7 +2175,8 @@ async function checkBuild(c) {
   // Amendment 12 (§22): a build held to revision 12's rules by its last D1 gate, logged at or after 12's boundary.
   const a12Build = (d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log, 'stages', 12)) || pieceHeld(12);
   const tradesFile = readJson('trades.json');
-  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build, a13Build, a14Build);
+  // D-522: a file run's placed rung (the stage with the reader's source) may carry the user's tree change as a trade's nodes.
+  if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build, a13Build, a14Build, isFileRun(log) ? planStages.find((st) => isObj(st.source))?.id ?? null : null);
   if (a11Build && isObj(plan)) {
     // A producer after the gate (a D1 step that compiled, or D2) leaves its design field older than the plan and the record.
     const fresh = !stages.slice(d1At + 1).some((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED && !idle(s));
@@ -3235,9 +3236,9 @@ function checkBetterRound({ log, plan, gateReports, exists, fail }) {
  *   around the placed one, above and below); the placed rung is the one stage that keeps the reader's `source`, or none
  *   below the endgame (the read plan's stage unplaced: the three rungs designed, seeded from it, choice A). It is a
  *   guide's rung: no `config.file` (the owner's configuration stays in the read). With no better round, it sits on the
- *   rung `place` gave it and keeps the file's tree and items, each item as read but a rare turned into a spec (its base
- *   kept) or a change a trade shows (its slot, or the item's name in its `from`); a user's request at a design or final
- *   gate that names the rung lifts the tree and item comparison.
+ *   rung `place` gave it and keeps the file's tree and items: its tree as read, each tree trade's `nodes` applied (a change
+ *   the user asked for, shown at the gate), and each item as read but a rare turned into a spec (its base kept) or a change
+ *   a trade shows (its slot, or the item's name in its `from`).
  * - `owned-guide`: a guide holds owned content to every rule. No `owned` mark stays in the plan (V1 would skip it); no
  *   stage keeps what the reader named legacy or no longer obtainable (read.json's `legacy`, D-395), each shown at the
  *   design gate as a trade (`trades.json`, a `from` naming it, a `to` what replaces it); and the placed rung's rares are
@@ -3262,15 +3263,14 @@ function checkFileRun({ log, plan, readPlan, read, trades, gate, fail }) {
   if (placed.length === 1 && isObj(readStage) && !below && !better) {
     const p = placed[0];
     if (p.variant !== readStage.variant) lad(`the placed rung ${show(p.id)} is on ${show(p.variant)}, but place put the character on ${show(readStage.variant)}; the ladder is built around the rung place gave it, never assumed (D-522)`);
-    // A user's request at a design or final gate that names the placed rung (its id, its rung's words) changes it.
-    const words = [`\\b${p.id}\\b`, ...({ 'entering-maps': ['entering[- ]maps'], budget: ['(?<!non[- ])budget'], 'non-budget': ['non[- ]budget'] }[p.variant] ?? []), 'placed rung', 'my (?:character|build)'];
-    const named = new RegExp(words.join('|'), 'i');
-    const revised = list(log.checkpoints).some((c) => ['design', 'final'].includes(c.checkpoint) && /^revise:/.test(String(c.answer)) && named.test(String(c.answer).slice(7)));
-    if (!revised) {
-      const ids = (v) => [...new Set(Array.isArray(v) ? v.map(String) : [])].sort();
-      for (const k of ['nodes', 'ascendancyNodes']) {
-        if (show(ids(p.tree?.[k])) !== show(ids(readStage.tree?.[k]))) lad(`the placed rung ${show(p.id)}'s tree.${k} isn't the file's (plan.json's stage ${show(readStage.id)}); the placed rung keeps its tree, and D1-tree runs on the designed rungs only (D-522)`);
-      }
+    // A change to the placed rung is a trade the gate shows (§18): its tree is the file's, each trade's nodes applied.
+    const ids = (v) => [...new Set(Array.isArray(v) ? v.map(String) : [])].sort();
+    const list2 = (v) => (Array.isArray(v) ? v : []);
+    const moves = tradeList.filter((t) => isObj(t) && t.stage === p.id && isObj(t.nodes));
+    const removed = new Set(moves.flatMap((t) => ids(t.nodes.remove)));
+    const want = ids([...ids([...list2(readStage.tree?.nodes), ...list2(readStage.tree?.ascendancyNodes)]).filter((n) => !removed.has(n)), ...moves.flatMap((t) => ids(t.nodes.add))]);
+    if (show(ids([...list2(p.tree?.nodes), ...list2(p.tree?.ascendancyNodes)])) !== show(want)) lad(`the placed rung ${show(p.id)}'s tree isn't the file's (plan.json's stage ${show(readStage.id)})${moves.length > 0 ? ' with the nodes its trades remove and add' : ''}; the placed rung keeps its tree, D1-tree runs on the designed rungs only, and a change the user asks for there is a trade carrying its nodes (D-522)`);
+    {
       const traded = (where, name) => tradeList.some((t) => isObj(t) && t.stage === p.id && (t.slot === where || (textOk(t.from) && textOk(name) && norm(t.from).includes(norm(name)))));
       const mine = new Map([...list(p.items?.slots).map((x) => [x.slot, x]), ...list(p.items?.treeJewels).map((x) => [`jewel ${x.node}`, x])]);
       for (const it of [...list(readStage.items?.slots), ...list(readStage.items?.treeJewels)]) {
@@ -6408,7 +6408,7 @@ const DEFENCE_REASON = /^(?:one-shot by the Arbiter's [a-z][a-z -]* hit|under th
  * toughness band`; `bossAfter`, measured on the trade's temporary stage (D-456), on a defence, damage or avoidance entry.
  * A build held to 11 keeps the 7 fields.
  */
-function checkTradesFile(file, endgame, fail, a12 = false, a13 = false, a14 = false) {
+function checkTradesFile(file, endgame, fail, a12 = false, a13 = false, a14 = false, placed = null) {
   const bad = (why) => fail('trades', `trades.json${why}`);
   if (!isObj(file) || !Array.isArray(file.trades) || Object.keys(file).length !== 1) return bad(` is ${show(file).slice(0, 80)}; it is {"trades": [...]} (D-439, Appendix A)`);
   const rungs = new Map(endgame.map((s) => [s.id, s.variant]));
@@ -6456,6 +6456,10 @@ function checkTradesFile(file, endgame, fail, a12 = false, a13 = false, a14 = fa
         if (!isNum(t.bossAfter)) bad(`${at} is a boss trade with bossAfter ${show(t.bossAfter)}; it carries the alternative tree's boss figure (D-468, Appendix A)`);
         if (!entriesOk) bad(`${at} is a boss trade with bossEntries ${show(t.bossEntries)}; it lists each boss-rotation entry's figure, [{label, before, after}] (D-468, Appendix A)`);
         if (!nodesOk) bad(`${at} is a boss trade with nodes ${show(t.nodes)}; it names the nodes to remove and add against the final tree, {remove: [ids], add: [ids]} (D-468, Appendix A)`);
+      } else if (t.stage === placed && t.nodes !== null) {
+        // D-522 (§18): a file run's placed rung changes only on the user's request, its tree change a trade with its nodes.
+        if (!nodesOk) bad(`${at} changes the placed rung ${show(placed)}'s tree with nodes ${show(t.nodes)}; it names the nodes to remove and add against the file's tree, {remove: [ids], add: [ids]} (D-522)`);
+        if (t.bossEntries !== null) bad(`${at} is a ${t.kind} trade with bossEntries ${show(t.bossEntries)}; only a boss trade carries them (Appendix A)`);
       } else if (t.bossEntries !== null || t.nodes !== null) bad(`${at} is a ${t.kind} trade with bossEntries ${show(t.bossEntries)} and nodes ${show(t.nodes)}; only a boss trade carries them, null on every other trade (Appendix A)`);
     }
     const mh = t.maxHit;

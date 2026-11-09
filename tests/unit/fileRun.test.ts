@@ -7,16 +7,16 @@
  * (`measure_as`), placed on the budget rung by the user's word; then the ladder in `builds/file/`, m, the placed b and n,
  * compiled by the engine (V1 and V2 passing on every rung), the placed rung keeping the file's design with no owned mark
  * and no `config.file`, its rares as specs, Bloodlust (legacy), the Legacy soul core's vest and the charm shown as trades.
- * `tests/fixtures/file-run` waits at the ladder's design gate (the draft written); `tests/fixtures/file-run-completed`
- * goes on: the design gate's accept, F1's final compile, the audit, W1's guide, V4's full pass, the notes and the final
+ * `tests/fixtures/file-run` waits at the ladder's design gate (the draft written); the completed variant goes on (its own
+ * files alone, `tests/fixtures/file-run-completed`, laid over the first at test time): the design gate's accept, F1's final compile, the audit, W1's guide, V4's full pass, the notes and the final
  * gate's accept, to `completed`. The gate verdicts, the guide and the V4 report are written to the checker's rules from
  * the records, as a run's steps write them.
  *
  * - AC-W156: the brief accepts `from` and `better` and gives the slug `file` (at `init` and in the checker; an import
  *   code never as `from`); a build name that matches no file, or several, is asked about with the closest names (the
  *   runner's step, on `list_builds`' real reply); both fixtures pass the checker in the file-run order (`read`, `measure`,
- *   `place`, then `D1-build`; no R1a, R1b or verification gate); the placed rung's items, tree and rung kept (a user's
- *   request naming it aside), its rares as specs, no owned mark and no `config.file`; a planted owned legacy gem shown as a
+ *   `place`, then `D1-build`; no R1a, R1b or verification gate); the placed rung's items, tree and rung kept (a change the user
+ *   asked for a trade), its rares as specs, no owned mark and no `config.file`; a planted owned legacy gem shown as a
  *   trade; the other rungs designed; the placed rung's floor and tree findings never fail it (a planted run that fails it
  *   for them fails), also once a guide rests on the gate; with `better` the result is placed again; a declined campaign
  *   runs no D2; the completed run holds the measure's dossier row; a resume shows no verification gate.
@@ -85,7 +85,15 @@ function copy(from: string, slug = 'file'): string {
   return dir;
 }
 const fileRun = () => copy(FIXTURE);
-const completedRun = () => copy(COMPLETED);
+/** The completed run: the design-gate fixture with the completed variant's own files laid over it (they alone differ). */
+function completedRun(): string {
+  const dir = copy(FIXTURE);
+  fs.cpSync(COMPLETED, dir, { recursive: true });
+  editJson(dir, 'run-log.json', (l) => {
+    l.runFolder = dir;
+  });
+  return dir;
+}
 /** A fresh run folder for init. */
 function folder(slug: string): string {
   const dir = path.join(TMP, `root-${++copies}`, slug, '2026-12-01-1');
@@ -299,9 +307,9 @@ describe('AC-W156 (WU-164, D-522): both fixture file runs pass the checker in th
     fs.rmSync(path.join(missing, 'dossier.md'));
     expect(lines(check(missing).stderr, 'layout')).toContainEqual(expect.stringMatching(/dossier\.md is missing; a completed run has its dossier/));
     const other = completedRun();
-    fs.writeFileSync(path.join(other, 'dossier.md'), fs.readFileSync(path.join(COMPLETED, 'dossier.md'), 'utf8').replace('| file |', '| r1-a-1 |'));
+    fs.writeFileSync(path.join(other, 'dossier.md'), fs.readFileSync(path.join(FIXTURE, 'dossier.md'), 'utf8').replace('| file |', '| r1-a-1 |'));
     expect(lines(check(other).stderr, 'dossier-sections')).toEqual([expect.stringMatching(/dossier\.md holds "r1-a-1"; a file run's dossier holds one row, its build file's/)]);
-    expect(fs.readFileSync(path.join(COMPLETED, 'dossier.md'), 'utf8')).toMatch(/^\| file \| — \| viable \| .* \| Twister: hit \| — \| — \| none \(offline\) \| .* \|$/m);
+    expect(fs.readFileSync(path.join(FIXTURE, 'dossier.md'), 'utf8')).toMatch(/^\| file \| — \| viable \| .* \| Twister: hit \| — \| — \| none \(offline\) \| .* \|$/m);
   });
 });
 
@@ -370,31 +378,44 @@ describe("AC-W156 (WU-164, §15, §16, §18): a guide's rules on owned content a
     expect(lines(check(base).stderr, 'ladder')).toEqual([]);
   });
 
-  it("the other rungs are designed, and the placed rung keeps the file's tree, unless a user's request at a gate names it", () => {
+  it("the other rungs are designed, and the placed rung keeps the file's tree, but for a change the user asked for, shown as a trade with its nodes", () => {
     const missing = fileRun();
     editJson(missing, LADDER, (p) => {
       p.stages = p.stages.filter((s: Json) => s.id !== 'n');
     });
     expect(lines(check(missing).stderr, 'ladder')).toContainEqual(expect.stringMatching(/builds\/file\/plan\.json: has no non-budget rung; the ladder designs the other rungs around the placed one, above and below/));
-    /** The fixture after the design gate's revise:<words>, its D1 again, b's tree changed. */
-    function revised(words: string): string {
+    // A change the user asks for on the placed rung is a trade the gate shows, carrying its nodes (§18).
+    const RESPEC = { remove: [] as number[], add: [999999] };
+    /** The fixture with b's tree changed by a respec, shown (or not) as a trade on b carrying `nodes`. */
+    function respec(trade: boolean, nodes: Json = RESPEC): string {
       const dir = fileRun();
       editJson(dir, LADDER, (p) => {
         stageOf(p, 'b').tree.nodes.push(999999);
       });
-      editJson(dir, 'run-log.json', (l) => {
-        l.displays = [{ checkpoint: 'design', visit: 1 }];
-        l.checkpoints = [{ checkpoint: 'design', concept: 'file', visit: 1, answer: `revise:${words}`, answeredBy: 'user', questions: 0 }];
-        l.stages.push({ stage: 'D1-tree', concept: 'file', attempt: 2, outcome: 'done', scope: 'ladder' });
+      if (!trade) return dir;
+      // The trade, in trades.json and in the D1 gate's design field, which carries the same trades (D-439).
+      const t = { stage: 'b', kind: 'damage', what: 'the respec the user asked for', ehpChange: 0, damageChange: 2, bossAfter: null, reason: "the user's request at the design gate", maxHit: readJson(dir, 'builds/file/trades.json').trades[0].maxHit, hitsSurvived: null, bossEntries: null, nodes, price: null, from: "the file's tree", to: 'the tree with the node the user asked for' };
+      editJson(dir, 'builds/file/trades.json', (f) => {
+        f.trades.push(t);
+      });
+      editJson(dir, GATE, (g) => {
+        g.design.rungs.find((r: Json) => r.stage === 'b').trades.push(t);
       });
       return dir;
     }
-    const tree = /the placed rung "b"'s tree\.nodes isn't the file's \(plan\.json's stage "b"\); the placed rung keeps its tree/;
-    expect(lines(check(revised('make it clear faster')).stderr, 'ladder')).toEqual([expect.stringMatching(tree)]);
-    expect(lines(check(revised('on the budget rung, take the life wheel for evasion')).stderr, 'ladder')).toEqual([]);
-    expect(lines(check(revised('change my character\'s tree')).stderr, 'ladder')).toEqual([]);
-    // The non-budget rung's name doesn't name the budget rung.
-    expect(lines(check(revised('the non-budget rung wants more damage')).stderr, 'ladder')).toEqual([expect.stringMatching(tree)]);
+    const tree = /the placed rung "b"'s tree isn't the file's \(plan\.json's stage "b"\); the placed rung keeps its tree, D1-tree runs on the designed rungs only, and a change the user asks for there is a trade carrying its nodes/;
+    expect(lines(check(respec(false)).stderr, 'ladder')).toEqual([expect.stringMatching(tree)]);
+    const asked = check(respec(true)).stderr;
+    expect({ ladder: lines(asked, 'ladder'), trades: lines(asked, 'trades') }).toEqual({ ladder: [], trades: [] });
+    // A trade whose nodes don't give the plan's tree still fails; nodes on a designed rung's trade stay a boss trade's only.
+    expect(lines(check(respec(true, { remove: [], add: [888888] })).stderr, 'ladder')).toEqual([expect.stringMatching(/the placed rung "b"'s tree isn't the file's \(plan\.json's stage "b"\) with the nodes its trades remove and add/)]);
+    const designed = fileRun();
+    for (const [rel, of] of [['builds/file/trades.json', (f: Json) => f.trades], [GATE, (g: Json) => g.design.rungs.find((r: Json) => r.stage === 'n').trades]] as Array<[string, (v: Json) => Json[]]>) {
+      editJson(designed, rel, (v) => {
+        of(v).find((x: Json) => x.stage === 'n' && x.kind === 'damage')!.nodes = RESPEC;
+      });
+    }
+    expect(lines(check(designed).stderr, 'trades')).toEqual([expect.stringMatching(/is a damage trade with bossEntries null and nodes .*; only a boss trade carries them, null on every other trade/)]);
     const two = fileRun();
     editJson(two, LADDER, (p) => {
       stageOf(p, 'n').source = stageOf(p, 'b').source;
@@ -553,7 +574,7 @@ describe('AC-W157 (WU-164, D-518, §14): a guide writes one line per buff switch
   const rule = (dir: string) => lines(check(dir).stderr, 'switched-buffs');
 
   it("the completed run's guide has §14's line for each of its four switched buffs, and passes", () => {
-    const groups = stageOf(readJson(COMPLETED, LADDER), 'b').skills.groups.filter((g: Json) => g.switch !== undefined).map((g: Json) => `${g.gems[0].name} ${g.switch.when} ${JSON.stringify(g.switch.off)}`);
+    const groups = stageOf(readJson(FIXTURE, LADDER), 'b').skills.groups.filter((g: Json) => g.switch !== undefined).map((g: Json) => `${g.gems[0].name} ${g.switch.when} ${JSON.stringify(g.switch.off)}`);
     expect(groups).toEqual(['Virtuous Barrier as needed []', 'Trinity as needed [5,10]', 'Blasphemy as needed [5,10]', 'Wind Dancer as needed []']);
     const guide = fs.readFileSync(path.join(COMPLETED, GUIDE), 'utf8');
     expect(guide).toContain('- Trinity: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.');

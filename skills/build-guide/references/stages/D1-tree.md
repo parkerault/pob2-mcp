@@ -336,8 +336,8 @@ main skill's and the owned items' requirements. There is no other rung and no la
 ## The `ladder` scope (D-522)
 
 With `scope: "ladder"` (a file run) search the designed rungs only, as for any rung: the placed rung, the stage that
-keeps the reader's `source`, keeps its tree as it is, and no other rung's search changes it, unless a user's request
-at a gate names that rung. A rung below the endgame's
+keeps the reader's `source`, keeps its tree as it is, and no other rung's search changes it. A change the user asks for
+there is a trade on that rung in `trades.json` carrying its `nodes {remove, add}`, which the design gate shows. A rung below the endgame's
 placed one (none is placed below the endgame, choice A) is seeded from the character's tree.
 
 ## Writes

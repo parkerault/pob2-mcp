@@ -7354,3 +7354,43 @@ What the coordinator folded (revision 2, approved):
   mutations bite; AC-W136's two reports have A.4's shape and say what it requires, no rehearsal worktree or branch
   left; the three changed assertions forced by D-508; waivers `[]`, `vendor/` clean at `7d6f530`. Fix round sent to the
   doer with all seven review findings.
+- **WU-158 dispatched** (M-29's documents) in lane `bg-158` off `370a3ec`, beside WU-155's fix round: the two touch
+  disjoint files; WU-155's rows are written from the work-log and its fix round's note added by the coordinator at merge.
+- **WU-155's fix round** at `6254ab0`: retirement only on an assertion failure (`matcherResult`), a hook error, a
+  thrown error or a skipped case listed as judgment; `--stage` removed, any option refused; the script refuses to start
+  while the pin, its literal tests, the patch modules, their retirement tests or `data/league/` differ from HEAD, and
+  writes the changed paths and the restore after a failed step; `POB_SKIP_ENGINE` kept from the children; `Trade.lua`
+  always `640-669` with the cited lines; LUA_PATH/LUA_CPATH by Node's `path` with the bridge's full list; the dry-run
+  test asserts `judgment: []`; `CLAUDE.md` step 6 reworded; the staged tree deleted. Changed assertions only in its own
+  `pinUpgrade.test.ts` (D-508). The doer's gate rc 0 (255 suites, 4,401 tests), build rc 0. A fresh verifier re-checks
+  the round (targeted, with mutations).
+- **WU-158's doer** finished at `a3ee4aa` on `bg/wu-158` (one commit on `370a3ec`). Static tests rc 0 (50 suites,
+  1,177 tests, the new `tests/static/amendment16Docs.test.ts`'s 15 included; four planted defects fail 6 cases);
+  `words-loaded.mjs` rc 0. Slice 04 (the league rule §2.3, the command §2.1, the Bash line §2.2, requirements 11–12,
+  the criteria and units), notes in slices 01 (§2.1), 02 (§3.2, §3.6, §3.7) and 03 (§5.1, §6, §7.1, §9); the spine's
+  M-29 rows built with their as-built notes, WU-157 not run and AC-W140 open, R-120 and R-122 mitigated, M-29 written
+  built (the coordinator corrects it if the gate fails), status line "Folded through amendment 16 (approved; as built
+  through 15 and amendment 16's M-29)"; `pricing.md`:450 fixed. No existing assertion changed. Deviation: the new
+  static test is outside WU-158's touches row (WU-149's precedent; the row and D-525's note list it). WU-155's rows
+  are written "before its fix round", for the coordinator to complete at merge. A fresh reviewer checks the docs.
+- **WU-155's re-verification** (fresh) passed `6254ab0`: a temp Jest 29.7 suite (plain and ts-jest, in-band and with
+  workers) shows `matcherResult` only on an `expect` failure (a thrown error, a rejected promise, a throwing hook write
+  `{}`; a thrown string, a timeout `{message}`; skipped, todo and `.only`-excluded cases pending), and the script fed
+  that output retires only the assertion cases; two mutations each fail 3 unit cases; `--stage` gone, any option
+  exit 2; the start guard covers the pin, the two literal tests, both patch modules, the four retirement tests and
+  `data/league/` and doesn't block a clean dry run; LUA_PATH/LUA_CPATH equal the bridge's; the dry-run test asserts
+  `judgment: []` unfiltered. 53 suites, 1,219 tests. Three notes sent back as a last small round: a hook failing an
+  `expect` still marks every case with `matcherResult`, so retire only when the bug case is the file's only failure;
+  `git status`'s env; the restore hint `git checkout HEAD --`.
+- **WU-155's last round** at `48b0ea5`: a patch retires only when its "bug still present" case fails on its assertion
+  and is the only failure in its test file (a hook failing an `expect` lists every case; four cases fail with the
+  condition removed); `git status` gets `baseEnv()`; the restore hint reads `git checkout HEAD --`; `CLAUDE.md` step 6
+  matches. **Re-check by the coordinator:** read the script diff; rebased onto `370a3ec` (head `a45457c`); `pnpm
+  build` rc 0; `pinUpgrade`, `fetchPob`, `leagueDigest` and `tests/static` 1,220 of 1,220; no change to
+  `pob-pin.json`.
+- **WU-155 (the scripted pin upgrade) merged** at `a45457c` (fast-forward, four commits on `370a3ec`). AC-W138:
+  `tests/unit/pinUpgrade.test.ts` (19 cases), `tests/static/pinUpgrade.test.ts`, `tests/integration/pobInternals.test.ts`;
+  AC-W136: the two real runs above (the milestone gate re-runs the dry run on the merged tree).
+  - **AC-W162's list, WU-155:** `compilePlan.test.ts`:208–209 (`record.engine` from `pob-pin.json`, `versionNotes`
+    computed; D-508 §4 step 4); `skillSlots.test.ts`'s `pobLine` and `v1SkillSlots.test.ts`:50 (PoB's warning found by
+    its text; §4 step 6).

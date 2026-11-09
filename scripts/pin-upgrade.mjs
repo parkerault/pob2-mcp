@@ -13,8 +13,8 @@
 //
 // It starts only from a tree whose upgrade files are as HEAD has them (GUARDED: pob-pin.json, the pin's literal test
 // files, the patch modules and their retirement tests, data/league/), so a half-written upgrade is never read as the
-// current pin; when a step fails, it prints the files it changed and how to restore them (`git checkout -- <paths>`,
-// then `mise run pob:fetch`).
+// current pin; when a step fails, it prints the files it changed and how to restore them (`git checkout HEAD --
+// <paths>`, then `mise run pob:fetch`).
 //
 // The steps, in order (each recorded in the report's `steps` with its result and elapsed time):
 //   stage            pob:fetch makes sure vendor/ is the current pin; `pnpm build`; the tag's commit from
@@ -501,7 +501,7 @@ export function goldenFigures(message) {
 
 /**
  * The gate's failures sorted (amendment 16 §4, step 7): `retire`, the entries whose retirement case failed on its
- * assertion; and the judgment items: a retirement test's other failures (an error, a hook that threw, a fixture that
+ * assertion, the only failure in its test file; and the judgment items: a retirement test's other failures (an error, a hook that threw, a fixture that
  * won't load), its case when it neither passed nor failed (skipped, not run), a golden test's figures, any other
  * failure as it is.
  */
@@ -514,7 +514,8 @@ export function sortFailures(suites, entries) {
     if (!e.test?.file || !e.test?.case) continue;
     const suite = suites.find((s) => s.file === e.test.file);
     const result = suite?.tests.find((t) => t.title === e.test.case);
-    if (result && result.status === 'failed' && result.assertion) retire.push(e);
+    // A fix upstream fails this case alone, on its assertion; a hook's failed expect() fails every case of the file.
+    if (result && result.status === 'failed' && result.assertion && failuresOf(suite).length === 1) retire.push(e);
     else if (!result || (result.status !== 'passed' && result.status !== 'failed')) {
       // A suite that failed to run is listed below, as itself.
       if (suite && suite.status === 'failed' && suite.tests.length === 0) continue;
@@ -592,7 +593,7 @@ export function gateCommand(line, outputFile) {
 }
 
 function gitStatus(paths = []) {
-  const r = spawnSync('git', ['status', '--porcelain', '--untracked-files=all', '--', ...paths], { cwd: REPO, encoding: 'utf8' });
+  const r = spawnSync('git', ['status', '--porcelain', '--untracked-files=all', '--', ...paths], { cwd: REPO, env: baseEnv(), encoding: 'utf8' });
   return r.status === 0 ? r.stdout.split('\n').filter(Boolean) : null;
 }
 
@@ -619,7 +620,7 @@ function restoreOf(lines) {
   const tracked = lines.filter((l) => !l.startsWith('??')).map((l) => l.slice(3));
   const untracked = lines.filter((l) => l.startsWith('??')).map((l) => l.slice(3));
   const commands = [];
-  if (tracked.length > 0) commands.push(`git checkout -- ${tracked.join(' ')}`);
+  if (tracked.length > 0) commands.push(`git checkout HEAD -- ${tracked.join(' ')}`);
   if (untracked.length > 0) commands.push(`rm -r -- ${untracked.join(' ')}`);
   commands.push('mise run pob:fetch');
   return { paths, commands };

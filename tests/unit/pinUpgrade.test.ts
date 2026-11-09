@@ -411,10 +411,12 @@ function writeFakeData(): void {
     golden,
     other,
   ]));
-  // v0.0.2 to v0.0.3: PG-901's case is skipped; PG-905's fails on its assertion, but its file quotes the title twice.
+  // v0.0.2 to v0.0.3: PG-901's case is skipped; PG-903's beforeAll fails an expect(), failing both its cases on an
+  // assertion; PG-905's fails on its assertion, but its file quotes the title twice.
+  const hookExpect = 'expect(received).toBe(expected)\n\nExpected: true\nReceived: false\n    at beforeAll (tests/integration/pg903.test.ts:3:9)';
   write(path.join(FAKE, 'gate-6.json'), jestResult([
     { file: 'tests/integration/pg901.test.ts', tests: [{ title: CASE[901], status: 'pending' }] },
-    { file: 'tests/integration/pg903.test.ts', tests: [pass(SETUP[903]), pass(CASE[903])] },
+    { file: 'tests/integration/pg903.test.ts', tests: [failed(SETUP[903], hookExpect), failed(CASE[903], hookExpect)] },
     { file: 'tests/integration/pg905.test.ts', tests: [failed(CASE[905], 'expect(received).toEqual(expected)')] },
     { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
   ]));
@@ -776,7 +778,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
     });
 
     it("lists a skipped retirement case, and leaves a retirement it can't cut to judgment, its entry and test file untouched, re-running nothing", () => {
-      expect(ofKind(report, 'retirementTest')).toEqual([
+      expect(ofKind(report, 'retirementTest').filter((j) => j.pg === 'PG-901')).toEqual([
         { kind: 'retirementTest', pg: 'PG-901', test: 'tests/integration/pg901.test.ts', name: CASE[901], message: 'the retirement case was pending, so it shows nothing: re-run it' },
       ]);
       expect(ofKind(report, 'retireByHand')).toEqual([
@@ -786,7 +788,13 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(read(path.join(REPO, 'tests/integration/pg905.test.ts'))).toBe(testFile(905, false));
       expect(report.retired).toEqual([]);
       expect(ofKind(report, 'retired')).toEqual([]);
-      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 1 }));
+      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 3 }));
+    });
+
+    it("retires nothing when a hook's failed expect() fails every case of the file, the retirement case's assertion included, and lists each", () => {
+      expect(ofKind(report, 'retirementTest').filter((j) => j.pg === 'PG-903').map((j) => j.name)).toEqual([SETUP[903], CASE[903]]);
+      expect(read(path.join(REPO, 'pob-api/API/Patches.lua'))).toContain("pg = 'PG-903'");
+      expect(read(path.join(REPO, 'tests/integration/pg903.test.ts'))).toBe(testFile(903, false));
     });
 
     it('lists a missing skill-slot method, its warning gone, and the newer tree', () => {
@@ -813,7 +821,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect({ status: r.status, stdout: r.stdout }).toEqual({ status: 2, stdout: '' });
       expect(r.stderr).toContain(
         'pin-upgrade: refused: the upgrade files differ from HEAD (data/league/embers.md, data/league/new.md): commit or restore them first ' +
-          '(git checkout -- data/league/embers.md, then rm -r -- data/league/new.md, then mise run pob:fetch)',
+          '(git checkout HEAD -- data/league/embers.md, then rm -r -- data/league/new.md, then mise run pob:fetch)',
       );
       expect(calls()).toEqual([]);
       git(REPO, 'checkout', '--', 'data/league/embers.md');
@@ -828,11 +836,11 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(report.failed).toEqual({ step: 'gate', error: expect.stringContaining('wrote no results') });
       expect(report.done).toEqual(['stage', 'probe', 'fingerprints', 'pin', 'fetch', 'skillSlotMethod']);
       const paths = ['pob-pin.json', 'tests/integration/protocol.lua.test.ts', 'tests/unit/pobPin.test.ts'];
-      expect(report.restore).toEqual({ paths, commands: [`git checkout -- ${paths.join(' ')}`, 'mise run pob:fetch'] });
-      expect(r.stdout).toContain(`Changed since HEAD: ${paths.join(', ')}.\nTo restore: git checkout -- ${paths.join(' ')}, then mise run pob:fetch.\n`);
+      expect(report.restore).toEqual({ paths, commands: [`git checkout HEAD -- ${paths.join(' ')}`, 'mise run pob:fetch'] });
+      expect(r.stdout).toContain(`Changed since HEAD: ${paths.join(', ')}.\nTo restore: git checkout HEAD -- ${paths.join(' ')}, then mise run pob:fetch.\n`);
       expect(git(VENDOR, 'rev-parse', 'HEAD')).toBe(PINS['v0.0.2'].commit);
       // Following the restore (the fake mise's pob:fetch is the copied fetch-pob.sh).
-      git(REPO, 'checkout', '--', ...paths);
+      git(REPO, 'checkout', 'HEAD', '--', ...paths);
       const fetch = spawnSync('bash', [path.join(REPO, 'scripts', 'fetch-pob.sh')], { cwd: TMP, env: { ...GIT_ENV, PATH: [path.dirname(process.execPath), '/usr/bin', '/bin'].join(path.delimiter) }, encoding: 'utf8' });
       expect(fetch.status).toBe(0);
       expect(git(VENDOR, 'rev-parse', 'HEAD')).toBe(PINS['v0.0.3'].commit);

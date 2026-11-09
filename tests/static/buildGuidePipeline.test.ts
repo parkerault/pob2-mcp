@@ -3368,12 +3368,13 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     expect(folded(runnerText())).toMatch(/`infeasible`, back to the verification gate with the verdict as evidence/);
   });
 
-  it('data/economy/prices.json holds the conversion table and the league dates as judgment facts of confidence L, citing the study (D-373)', () => {
+  it('data/economy/prices.json holds the conversion table and the league dates as judgment facts of confidence L, citing the study (D-373), but 1.0, which only poe2db dates (D-514)', () => {
     const parsed = parseDataFile('economy/prices.json', fs.readFileSync(path.join(REPO, 'data', 'economy', 'prices.json'), 'utf8'));
     expect(parsed.ok ? [] : parsed.errors).toEqual([]);
     const data = (parsed as { ok: true; data: DataFile }).data;
     const sources = new Map(data.sources.map((src) => [src.id, src]));
-    for (const [id, fact] of Object.entries(data.facts)) {
+    // D-514: 1.0's start comes from poe2db's league cards alone, so its fact cites them (the next test).
+    for (const [id, fact] of Object.entries(data.facts).filter(([id]) => id !== 'league.conquerors-of-wraeclast')) {
       const src = sources.get(fact.source)!;
       expect({ id, kind: src.kind, sourceConfidence: src.confidence, confidence: fact.confidence, cites: src.ref.includes('docs/build-guide/studies/2026-10-16-pricing.md') }).toEqual({
         id,
@@ -3392,13 +3393,64 @@ describe('AC-W63 (WU-75, D-370…D-375): gear pricing in the skill text', () => 
     expect(v('conversion.late-divisor')).toEqual({ min: 2, max: 4 });
     expect(v('conversion.first-day')).toBe(21);
     expect(v('conversion.late-day')).toBe(60);
+    // D-514 (WU-156): the two running leagues end on 2026-12-11, when 1.0 starts.
     expect(Object.entries(data.facts).filter(([id]) => id.startsWith('league.')).map(([, f]) => f.value)).toEqual([
       { name: 'Dawn of the Hunt', start: '2025-04-05', end: '2025-08-27' },
       { name: 'Rise of the Abyssal', start: '2025-08-30', end: '2025-12-08' },
       { name: 'Fate of the Vaal', start: '2025-12-12', end: '2026-05-25' },
-      { name: 'Runes of Aldur', start: '2026-05-29' },
-      { name: 'Forbidden Rites', start: '2026-09-04' },
+      { name: 'Runes of Aldur', start: '2026-05-29', end: '2026-12-11' },
+      { name: 'Forbidden Rites', start: '2026-09-04', end: '2026-12-11' },
+      { name: 'Conquerors of Wraeclast', start: '2026-12-11' },
     ]);
+  });
+
+  it("AC-W141 (WU-156, D-514): prices.json's league facts carry amendment 16 §10's patches and values, the new ones citing poe2db's league cards; the conversion facts keep 0.5.x", () => {
+    const data = (parseDataFile('economy/prices.json', fs.readFileSync(path.join(REPO, 'data', 'economy', 'prices.json'), 'utf8')) as { ok: true; data: DataFile }).data;
+    // §10's table, read from the amendment: `| \`<fact>\`[ (new)] | <patch> | none or the value's change |`.
+    const a16 = fs.readFileSync(path.join(REPO, 'docs', 'build-guide', 'spec', 'amendment-16-pieces-and-launch.md'), 'utf8');
+    const s10 = a16.slice(a16.indexOf("## 10. D-514: `prices.json`'s leagues"), a16.indexOf('## 11. D-515'));
+    const rows = [...s10.matchAll(/^\| `(league\.[a-z-]+)`( \(new\))? \| ([\d.]+) \| (.+) \|$/gm)].map((m) => ({
+      id: m[1],
+      added: Boolean(m[2]),
+      patch: m[3],
+      change: m[4] === 'none' ? {} : Object.fromEntries([...m[4].matchAll(/(\w+): "([^"]+)"/g)].map((p) => [p[1], p[2]])),
+    }));
+    expect(rows.map((r) => [r.id, r.patch])).toEqual([
+      ['league.dawn-of-the-hunt', '0.2'],
+      ['league.rise-of-the-abyssal', '0.3'],
+      ['league.fate-of-the-vaal', '0.4'],
+      ['league.runes-of-aldur', '0.5'],
+      ['league.forbidden-rites', '0.5.5'],
+      ['league.conquerors-of-wraeclast', '1.0'],
+    ]);
+    const leagues = Object.entries(data.facts).filter(([id]) => id.startsWith('league.'));
+    expect(leagues.map(([id, f]) => [id, f.patch])).toEqual(rows.map((r) => [r.id, r.patch]));
+    for (const row of rows) {
+      const value = data.facts[row.id].value as Record<string, string>;
+      if (row.added) expect({ id: row.id, value }).toEqual({ id: row.id, value: row.change });
+      else expect({ id: row.id, value }).toEqual({ id: row.id, value: expect.objectContaining(row.change) });
+    }
+    // The second source: poe2db.tw's homepage league cards, accessed 2026-11-07.
+    const poe2db = data.sources.find((s) => s.id !== 'pricing-study')!;
+    expect(data.sources.map((s) => s.id)).toEqual(['pricing-study', poe2db.id]);
+    expect({ kind: poe2db.kind, ref: poe2db.ref, accessed: poe2db.accessed }).toEqual({ kind: 'external', ref: 'https://poe2db.tw/us/', accessed: '2026-11-07' });
+    // The new ends cite it in their notes, which say an end is the day the league ends; 1.0's start cites it as its source;
+    // the older ends stay the last day of the study's data.
+    for (const row of rows) {
+      const fact = data.facts[row.id];
+      const note = fact.note ?? '';
+      if (row.added) {
+        expect({ id: row.id, source: fact.source, starts: /start is the day the league starts, from poe2db\.tw's homepage league cards/.test(note) }).toEqual({ id: row.id, source: poe2db.id, starts: true });
+      } else if ('end' in row.change) {
+        expect({ id: row.id, source: fact.source, cites: note.includes(`end is the day the league ends, from a second source, ${poe2db.id} (poe2db.tw's homepage league cards, accessed 2026-11-07`) }).toEqual({ id: row.id, source: 'pricing-study', cites: true });
+      } else {
+        expect({ id: row.id, study: note.includes("end is the last date of the study's data") }).toEqual({ id: row.id, study: true });
+      }
+    }
+    // The conversion facts keep "0.5.x": they come from the study across all five leagues.
+    const conversions = Object.entries(data.facts).filter(([id]) => id.startsWith('conversion.'));
+    expect(conversions.length).toBe(8);
+    for (const [id, fact] of conversions) expect({ id, patch: fact.patch }).toEqual({ id, patch: '0.5.x' });
   });
 
   it("the coordinator's tools include find_upgrades and manage_sets, and its standing rules hold D-370's targets", () => {

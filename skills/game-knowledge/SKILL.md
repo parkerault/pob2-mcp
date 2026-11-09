@@ -13,7 +13,7 @@ references is under `${CLAUDE_PLUGIN_ROOT}`, the plugin root.
 **Before anything else, read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/runner-rules.md` whole**, and again
 after a compaction: the rules every pob2 runner follows (D-501). Game knowledge has no run folder, gate, agent step or
 price step, so of those rules the `.env` rule and the network apply here as written, and the rest come down to what
-you never do (below). You need no Bash: Read, Grep and Glob do every read this skill makes.
+you never do (below). Search with `grep` through Bash, as the runner rules allow, and Read a file whole (D-515).
 
 ## What you never do
 
@@ -60,29 +60,29 @@ one is that no build can use it, because it isn't in the game; never "usable, at
 - **Which nodes, keystones, gems or uniques change a standard rule** a build could be built around: the library's "A
   rule changer", then the rule-changer index. Read the ascendancy's section of
   `${CLAUDE_PLUGIN_ROOT}/data/rules/nodes.md` and its keystones whole: a `[rule]` line is a rule changer, with its
-  `creates:`, `pays off on:` and `PoB models it:`. Grep `${CLAUDE_PLUGIN_ROOT}/data/rules/uniques.md` and
+  `creates:`, `pays off on:` and `PoB models it:`. `grep` `${CLAUDE_PLUGIN_ROOT}/data/rules/uniques.md` and
   `${CLAUDE_PLUGIN_ROOT}/data/rules/gems.md` by mechanic or family, and `${CLAUDE_PLUGIN_ROOT}/data/rules/pairs.md`
   for what one entry creates against what another pays off on. Confirm each entry's lines with a lookup.
 - **What is new in the league:** the newest league digest, `${CLAUDE_PLUGIN_ROOT}/data/league/<slug>.md` by its fetch
   date: its head whole, its body by Grep. `[not in pin]` marks an entry the PoB pin doesn't know: PoB can't measure it
   and no plan can compile it. Past the digest's fetch date, poe2db.tw (above); say how old the digest is.
-- **A rare monster's or a tamed beast's modifier:** `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by Grep,
+- **A rare monster's or a tamed beast's modifier:** `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by `grep`,
   as its head says.
 - **Whether PoB models something:** Does PoB model it, below.
 - **What counts as evidence for a claim:** `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`,
   its source tags and its three claim rules.
-- **How PoB computes something:** Grep PoB's source under `${CLAUDE_PLUGIN_ROOT}/vendor/PathOfBuilding-PoE2/src/Modules/`
+- **How PoB computes something:** `grep` PoB's source under `${CLAUDE_PLUGIN_ROOT}/vendor/PathOfBuilding-PoE2/src/Modules/`
   when the checkout holds it, and cite the file and line; a data question (a gem's numbers, a base, a constant) goes
   through the lookups instead.
 - **Why a build idea works, or what pairs with a skill:** the library: its "How to read an entry" first, then the
-  entries whose headings fit (Grep its `### ` lines); an entry's Search line is the lookups to run, in the short forms
+  entries whose headings fit (`grep` its `### ` lines); an entry's Search line is the lookups to run, in the short forms
   "How to read an entry" spells out.
 
 ### Search wide
 
 - **The family, never one member.** Search what a build needs by its whole family and its substitutes, from every
   kind of source; the families are the index's (`${CLAUDE_PLUGIN_ROOT}/data/rules/vocabulary.md`). Run the mechanic
-  query on the family's word, not on one element's or one type's form of it. Grep `-i 'creates: [^|]*<family>'`
+  query on the family's word, not on one element's or one type's form of it. `grep -i 'creates: [^|]*<family>'`
   across `${CLAUDE_PLUGIN_ROOT}/data/rules/` and `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, and the
   family's word in the league digest's body. Cover gems, uniques, passives, ascendancy nodes and monster modifiers.
 - **Follow every term you can't place:** one lookup per unfamiliar term in a result, before you stop. The best
@@ -92,7 +92,7 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   fills them; `…` in a phrase matches any text within one line.
 - **An index entry, a pair or a study is a lead, not a proof:** confirm its lines with a lookup before the answer
   rests on it. The studies show what players do, not game truth.
-- **Grep the committed data** (`${CLAUDE_PLUGIN_ROOT}/data/`) before you say no source holds a fact.
+- **`grep` the committed data** (`${CLAUDE_PLUGIN_ROOT}/data/`) before you say no source holds a fact.
 
 ### Does PoB model it
 
@@ -101,7 +101,7 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   applies none of itself; **possibly unread** is advisory: only a measurement, which this skill doesn't make, settles
   it, so say it is unconfirmed.
 - **The index's** `PoB models it:` (`yes`, `partly` or `no`), from the same check on the entry's lines.
-- **PoB's known gaps and bugs:** Grep `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/pob-gaps.md` for the node's, gem's or
+- **PoB's known gaps and bugs:** `grep` `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/pob-gaps.md` for the node's, gem's or
   item's name. An entry found there goes with the answer: its PG id, what PoB gets wrong and its workaround.
 - What PoB doesn't model, PoB's numbers leave out: a build works it out by hand. Say which part that is.
 

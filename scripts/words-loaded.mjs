@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// The words each build-guide step loads (amendment 15, D-505; AC-W126). A repository script, not a plugin component.
+// The words each pob2 step loads (amendment 15, D-505, AC-W126; amendment 16, D-513, AC-W139). A repository script, not
+// a plugin component.
 //
 //   node scripts/words-loaded.mjs [--root <dir>] [--baseline <file>]   compare each stage with the baseline
 //   node scripts/words-loaded.mjs [--root <dir>] [--at <commit>] --json print the counts in the baseline's format
 //
-// A stage is a stage reference under skills/build-guide/references/stages/, not its README.md. Its words loaded are the
-// words of the agent definition that runs it, the stage reference, and each file under skills/ or agents/ the two name,
-// resolved by amendment 15 §5's path rules. The agent type is the one the stage reference's title names in backticks;
+// A stage is a stage reference under any skills/<piece>/references/stages/, not its README.md (amendment 16, D-513), keyed
+// by its file name; two pieces' stage references of one name fail the run. Its words loaded are the words of the agent
+// definition that runs it, the stage reference, and each file under skills/ or agents/ the two name, resolved by
+// amendment 15 §5's path rules, less any other stage reference that only the definition names (D-513): one the stage's
+// own reference names stays. The agent type is the one the stage reference's title names in backticks;
 // a stage whose title names two (Q: researcher or coordinator) is counted once per type, keyed `<stage>:<type>` with
 // the `build-guide-` prefix dropped (`Q:researcher`, `Q:coordinator`). Files under data/ and run-folder files are left
 // out. A name is a path token in a code span, a fenced block or the prose: root-relative (after a leading
@@ -23,8 +26,13 @@
 // repository. A tree in the layout before amendment 15 (the skill in .claude/skills/build-guide/, the agents in
 // .claude/agents/build-guide/) is resolved in its own layout, and its file lists are written in the new root-relative
 // paths, mapped as the spine's old-to-new path line maps them (game knowledge's six files to skills/game-knowledge/).
-// The committed baseline, scripts/words-loaded.baseline.json, is `--at a8d735c --json`'s output:
-// {"<stage>": {"words": n, "files": ["<root-relative path>", …]}, …}.
+// The committed baseline, scripts/words-loaded.baseline.json, has two sections (D-513): `a8d735c`, which is
+// `--at a8d735c --json`'s output, and `since`, the stages new since that commit, each entry its stage's entry in
+// `--at <commit> --json`'s output with the commit that adds the stage:
+// {"a8d735c": {"<stage>": {"words": n, "files": ["<root-relative path>", …]}, …},
+//  "since": {"<stage>": {"commit": "<commit>", "words": n, "files": […]}, …}}.
+// Each stage is compared with its entry in either section; a stage in both, or a `since` entry with no commit, is a
+// baseline the script can't read (exit 2).
 //
 // Output (stdout), one line per stage, then the largest growth:
 //   <stage> <words> <baseline> <+n.n%>
@@ -129,7 +137,10 @@ const OLD_AGENTS = '.claude/agents/build-guide';
 function layoutOf(tree) {
   if (tree.exists('skills/build-guide/references/stages') === 'dir') {
     const pieces = [...new Set(tree.list('skills').map((f) => f.split('/')[1]))].sort((a, b) => (a === 'build-guide' ? -1 : b === 'build-guide' ? 1 : a.localeCompare(b)));
-    return { stages: 'skills/build-guide/references/stages', skillRoots: pieces.map((p) => `skills/${p}`), agents: 'agents', toNew: (p) => p };
+    const skillRoots = pieces.map((p) => `skills/${p}`);
+    // D-513: every piece's stage references, build-guide's first.
+    const stages = skillRoots.map((r) => `${r}/references/stages`).filter((d) => tree.exists(d) === 'dir');
+    return { stages, skillRoots, agents: 'agents', toNew: (p) => p };
   }
   if (tree.exists(`${OLD_SKILL}/references/stages`) === 'dir') {
     const toNew = (p) => {
@@ -140,7 +151,7 @@ function layoutOf(tree) {
       if (p.startsWith(`${OLD_AGENTS}/`)) return `agents/${p.slice(OLD_AGENTS.length + 1)}`;
       return p;
     };
-    return { stages: `${OLD_SKILL}/references/stages`, skillRoots: [OLD_SKILL], agents: OLD_AGENTS, toNew };
+    return { stages: [`${OLD_SKILL}/references/stages`], skillRoots: [OLD_SKILL], agents: OLD_AGENTS, toNew };
   }
   throw new UsageError('no stage references in the tree (skills/build-guide/references/stages/)');
 }
@@ -261,11 +272,22 @@ export function measure(tree) {
   const resolve = resolver(tree, layout);
   const errors = [];
   const stages = {};
-  const stageFiles = tree
-    .list(layout.stages)
-    .filter((f) => posix.dirname(f) === layout.stages && f.endsWith('.md') && posix.basename(f) !== 'README.md');
+  const stageFiles = layout.stages.flatMap((dir) =>
+    tree.list(dir).filter((f) => posix.dirname(f) === dir && f.endsWith('.md') && posix.basename(f) !== 'README.md'),
+  );
+  const stageRefs = new Set(stageFiles);
+  // A stage is keyed by its file name, so two pieces' stage references of one name can't both be counted.
+  const byStage = new Map();
   for (const ref of stageFiles) {
     const stage = posix.basename(ref, '.md');
+    byStage.set(stage, [...(byStage.get(stage) ?? []), ref]);
+  }
+  for (const [stage, refs] of byStage) {
+    if (refs.length > 1) errors.push(`two stage references are named ${stage}: ${refs.map((r) => layout.toNew(r)).join(', ')}`);
+  }
+  for (const ref of stageFiles) {
+    const stage = posix.basename(ref, '.md');
+    if (byStage.get(stage).length > 1) continue;
     const text = tree.read(ref);
     const title = text.split('\n').find((l) => l.startsWith('# ')) ?? '';
     // The agent types are the title's backticked type names (`build-guide-coordinator`, with or without `pob2:`).
@@ -282,7 +304,9 @@ export function measure(tree) {
         for (const token of tokensOf(tree.read(source))) {
           const r = resolve(source, token);
           if (r.error) errors.push(`${layout.toNew(source)}: cannot resolve \`${r.error}\``);
-          else if (r.file) files.add(r.file);
+          // D-513: another stage reference the definition names is left out; the stage's own reference adds the ones
+          // it names itself.
+          else if (r.file && !(source === def && stageRefs.has(r.file) && r.file !== ref)) files.add(r.file);
         }
       }
       const key = types.length > 1 ? `${stage}:${type.replace(/^build-guide-/, '')}` : stage;
@@ -338,6 +362,12 @@ export function compare(current, baseline) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** The baseline's two sections (D-513). */
+const BASE_SECTION = 'a8d735c';
+const SINCE_SECTION = 'since';
+const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** The baseline's entries, its two sections merged: each stage's from `a8d735c` or from `since`. */
 function readBaseline(file) {
   let data;
   try {
@@ -345,12 +375,24 @@ function readBaseline(file) {
   } catch (e) {
     throw new UsageError(`can't read the baseline ${file}: ${e.message}`);
   }
-  for (const [key, v] of Object.entries(data)) {
-    if (!v || !Number.isInteger(v.words) || v.words <= 0 || !Array.isArray(v.files)) {
-      throw new UsageError(`the baseline's entry ${key} isn't {"words": n, "files": [...]}`);
+  const sections = [BASE_SECTION, SINCE_SECTION];
+  if (!isObject(data) || Object.keys(data).length !== 2 || !sections.every((s) => isObject(data[s]))) {
+    throw new UsageError(`the baseline ${file} isn't {"${BASE_SECTION}": {…}, "${SINCE_SECTION}": {…}}`);
+  }
+  const merged = {};
+  for (const section of sections) {
+    for (const [key, v] of Object.entries(data[section])) {
+      if (!v || !Number.isInteger(v.words) || v.words <= 0 || !Array.isArray(v.files)) {
+        throw new UsageError(`the baseline's entry ${key} isn't {"words": n, "files": [...]}`);
+      }
+      if (section === SINCE_SECTION && (typeof v.commit !== 'string' || v.commit === '')) {
+        throw new UsageError(`the baseline's ${SINCE_SECTION} entry ${key} names no commit`);
+      }
+      if (merged[key]) throw new UsageError(`the baseline's stage ${key} is in both sections`);
+      merged[key] = v;
     }
   }
-  return data;
+  return merged;
 }
 
 function parseArgs(argv) {

@@ -6,6 +6,13 @@
       "kind": "judgment",
       "ref": "The gear-pricing study (docs/build-guide/studies/2026-10-16-pricing.md), from five leagues of currency-exchange prices by league day: its section 5 is the conversion table, rounded over the four leagues other than Fate of the Vaal; its section 2 gives each league's data range, whose first date is league day 0. Exchange goods stand in for gear, and the leagues disagree by 2 to 3 times, so the factors are rough",
       "confidence": "L"
+    },
+    {
+      "id": "poe2db-league-cards",
+      "kind": "external",
+      "ref": "https://poe2db.tw/us/",
+      "accessed": "2026-11-07",
+      "confidence": "M"
     }
   ],
   "facts": {
@@ -68,37 +75,44 @@
     "league.dawn-of-the-hunt": {
       "value": { "name": "Dawn of the Hunt", "start": "2025-04-05", "end": "2025-08-27" },
       "source": "pricing-study",
-      "patch": "0.5.x",
+      "patch": "0.2",
       "confidence": "L",
       "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
     },
     "league.rise-of-the-abyssal": {
       "value": { "name": "Rise of the Abyssal", "start": "2025-08-30", "end": "2025-12-08" },
       "source": "pricing-study",
-      "patch": "0.5.x",
+      "patch": "0.3",
       "confidence": "L",
       "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
     },
     "league.fate-of-the-vaal": {
       "value": { "name": "Fate of the Vaal", "start": "2025-12-12", "end": "2026-05-25" },
       "source": "pricing-study",
-      "patch": "0.5.x",
+      "patch": "0.4",
       "confidence": "L",
       "note": "start is league day 0, the first date the divine traded; end is the last date of the study's data"
     },
     "league.runes-of-aldur": {
-      "value": { "name": "Runes of Aldur", "start": "2026-05-29" },
+      "value": { "name": "Runes of Aldur", "start": "2026-05-29", "end": "2026-12-11" },
       "source": "pricing-study",
-      "patch": "0.5.x",
+      "patch": "0.5",
       "confidence": "L",
-      "note": "start is league day 0, the first date the divine traded; no end recorded, so a market past day 60 reads as late"
+      "note": "start is league day 0, the first date the divine traded; end is the day the league ends, from a second source, poe2db-league-cards (poe2db.tw's homepage league cards, accessed 2026-11-07: it ends at 2026-12-11 20:00 UTC, when 1.0 starts)"
     },
     "league.forbidden-rites": {
-      "value": { "name": "Forbidden Rites", "start": "2026-09-04" },
+      "value": { "name": "Forbidden Rites", "start": "2026-09-04", "end": "2026-12-11" },
       "source": "pricing-study",
-      "patch": "0.5.x",
+      "patch": "0.5.5",
       "confidence": "L",
-      "note": "start is league day 0, the first date the divine traded; no end recorded, so a market past day 60 reads as late"
+      "note": "start is league day 0, the first date the divine traded; end is the day the league ends, from a second source, poe2db-league-cards (poe2db.tw's homepage league cards, accessed 2026-11-07: it ends at 2026-12-11 20:00 UTC, when 1.0 starts)"
+    },
+    "league.conquerors-of-wraeclast": {
+      "value": { "name": "Conquerors of Wraeclast", "start": "2026-12-11" },
+      "source": "poe2db-league-cards",
+      "patch": "1.0",
+      "confidence": "M",
+      "note": "start is the day the league starts, from poe2db.tw's homepage league cards (2026-12-11 20:00 UTC); the name is its poe2db section's, which the trade site's may differ from until launch; no end recorded, so a market past day 60 reads as late"
     }
   }
 }

@@ -179,12 +179,13 @@ describe("D-503 (WU-147): what game knowledge's SKILL.md answers with, and never
     expect(otherTools('`mcp__pob2__lookup_game_data`, get_classes, and `mcp__pob2__compile_plan` refuses them', tools)).toEqual([]);
   });
 
-  it('never writes a file, starts an agent, changes the engine\'s build or prices; it needs no Bash', () => {
+  it('never writes a file, starts an agent, changes the engine\'s build or prices; it searches with grep through Bash (D-515, AC-W142 below)', () => {
     const never = section('## What you never do');
     expect(never).toContain("**Write a file, start an agent or change the engine's build.**");
     expect(never).toContain('No other pob2 tool: nothing that loads, adds, sets, toggles or compiles.');
     expect(never).toContain('**Price anything:** no trade, exchange or currency-rate call.');
-    expect(BODY).toContain('You need no Bash: Read, Grep and Glob do every read this skill makes.');
+    // Amendment 16 (WU-156, D-515): "You need no Bash" was wrong for its runner, which has Bash and so no Grep or Glob.
+    expect(BODY).toContain('Search with `grep` through Bash, as the runner rules allow, and Read a file whole (D-515).');
   });
 
   it('sends the reader to entries its references hold: the library\'s, the lookups\', the source markers\'', () => {
@@ -257,5 +258,62 @@ describe("D-503 (WU-147): the legacy rule's move out of build-guide's hard rules
     expect(folded(skill)).not.toContain('Legacy means not in the game');
     expect(skill).not.toContain('D-395');
     expect(RULES).toContain("The legacy rule (D-395) is game knowledge's");
+  });
+});
+
+describe("AC-W142 (WU-156, D-515): game knowledge's runner searches with grep through Bash; the agent types name no Bash", () => {
+  /** The body's lines, each with its number, and the bullet each sits in (a line that starts `- **`). */
+  const bodyLines = BODY_RAW.split('\n');
+  /** The "What is new in the league" bullet's lines: its league lines are WU-151's (D-507), its search word with them. */
+  const leagueBullet = (() => {
+    const at = bodyLines.findIndex((l) => l.startsWith('- **What is new in the league:**'));
+    const next = bodyLines.findIndex((l, i) => i > at && /^(?:- |#|$)/.test(l));
+    return new Set(bodyLines.slice(at, next < 0 ? undefined : next).map((_, i) => at + i));
+  })();
+
+  it('no longer says "You need no Bash", and tells its runner to search with grep through Bash and Read a file whole', () => {
+    expect(BODY).not.toContain('You need no Bash');
+    expect(BODY).not.toMatch(/Read, Grep and Glob/);
+    expect(BODY).toContain('Search with `grep` through Bash, as the runner rules allow, and Read a file whole (D-515).');
+    // As the runner rules allow: their Bash list holds grep, alone or piped, with no flag that writes a file.
+    const bash = RULES.slice(RULES.indexOf('## Your Bash'), RULES.indexOf('Nothing else:'));
+    expect(bash).toContain('`ls`, `cat`, `head`, `tail`, `wc`, `grep` and `jq`, alone or piped into one another');
+    expect(BODY_RAW.indexOf('Search with `grep` through Bash')).toBeLessThan(BODY_RAW.indexOf('\n## '));
+  });
+
+  it('its other search lines name grep the same way: no Glob, and no Grep outside the league bullet (WU-151 rewrites that one)', () => {
+    expect(leagueBullet.size).toBeGreaterThan(0);
+    expect(BODY_RAW).not.toMatch(/\bGlob\b/);
+    const grepTool = bodyLines.map((l, i) => ({ i, l })).filter(({ i, l }) => /\bGrep\b/.test(l) && !leagueBullet.has(i));
+    expect(grepTool).toEqual([]);
+    for (const line of [
+      '`grep` `${CLAUDE_PLUGIN_ROOT}/data/rules/uniques.md` and',
+      '`${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by `grep`,',
+      '**How PoB computes something:** `grep` PoB\'s source under',
+      '(`grep` its `### ` lines)',
+      "`grep -i 'creates: [^|]*<family>'`",
+      '**`grep` the committed data**',
+      '**PoB\'s known gaps and bugs:** `grep` `${CLAUDE_PLUGIN_ROOT}/docs/build-guide/pob-gaps.md`',
+    ]) {
+      expect({ line, held: BODY_RAW.includes(line) }).toEqual({ line, held: true });
+    }
+  });
+
+  it('stays under 150 lines (D-505)', () => {
+    const lines = RAW.split('\n');
+    if (lines[lines.length - 1] === '') lines.pop();
+    expect(lines.length).toBeLessThan(150);
+  });
+
+  it("no agent definition names Bash (slice 03's R-4): the four types keep Read, Glob and Grep", () => {
+    const AGENTS = path.join(REPO, 'agents');
+    const files = fs.readdirSync(AGENTS).filter((f) => f.endsWith('.md')).sort();
+    expect(files).toEqual(['build-guide-coordinator.md', 'build-guide-researcher.md', 'build-guide-verifier.md', 'build-guide-writer.md']);
+    for (const file of files) {
+      const front = /^---\n([\s\S]*?)\n---\n/.exec(fs.readFileSync(path.join(AGENTS, file), 'utf8'));
+      const toolsLine = (front?.[1] ?? '').split('\n').find((l) => l.startsWith('tools: ')) ?? '';
+      const tools = toolsLine.slice('tools: '.length).split(',').map((t) => t.trim());
+      expect({ file, bash: tools.includes('Bash'), search: ['Read', 'Glob', 'Grep'].every((t) => tools.includes(t)) }).toEqual({ file, bash: false, search: true });
+    }
   });
 });

@@ -13,6 +13,12 @@
  *   than 5% above its baseline or a name doesn't resolve.
  * - The baseline is the same count at `a8d735c`, its file lists written in the new root-relative paths.
  *
+ * Amendment 16 (M-29, WU-156; D-513), AC-W139: the script leaves out another stage reference that only the agent
+ * definition names (one the stage's own reference names stays); the baseline has two sections, `a8d735c`, equal to
+ * `--at a8d735c --json`, and `since`, each entry equal to its stage's entry `--at` the commit it names; the pins are hand
+ * counts at `a8d735c` under that rule; a stage under any `skills/<piece>/references/stages/` is found; every stage is
+ * within 5% of its baseline.
+ *
  * The failing cases run on copies of `skills/` and `agents/` in a temp folder, their text changed there, or on a small
  * tree written there; no tracked file is changed.
  */
@@ -25,7 +31,7 @@ import path from 'path';
 const REPO = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(REPO, 'scripts', 'words-loaded.mjs');
 const BASELINE_FILE = path.join(REPO, 'scripts', 'words-loaded.baseline.json');
-const STAGES = path.join(REPO, 'skills', 'build-guide', 'references', 'stages');
+const SKILLS = path.join(REPO, 'skills');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-words-loaded-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
@@ -34,7 +40,16 @@ interface Entry {
   files: string[];
 }
 type Measure = Record<string, Entry>;
-const BASELINE = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Measure;
+/** D-513's two sections: the stages at `a8d735c`, and the stages new since, each with the commit that adds it. */
+interface Baseline {
+  a8d735c: Measure;
+  since: Record<string, Entry & { commit: string }>;
+}
+const BASELINE_FILE_DATA = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Baseline;
+/** Each stage's baseline entry, from either section. */
+const BASELINE: Measure = { ...BASELINE_FILE_DATA.a8d735c, ...BASELINE_FILE_DATA.since };
+/** A baseline file's content for one section of stages, `since` empty. */
+const twoSections = (a8d735c: Measure): Baseline => ({ a8d735c, since: {} });
 
 interface Result {
   code: number | null;
@@ -88,17 +103,27 @@ function expectGrowth(printed: string, words: number, baseline: number): void {
 }
 const wordsOf = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
+/**
+ * Every stage reference, root-relative, by its stage: each `.md` but README.md directly under any piece's
+ * `skills/<piece>/references/stages/` (D-513; D-505 had build-guide's alone).
+ */
+const STAGE_REFERENCES = new Map(
+  fs
+    .readdirSync(SKILLS)
+    .filter((piece) => fs.statSync(path.join(SKILLS, piece, 'references', 'stages'), { throwIfNoEntry: false })?.isDirectory())
+    .flatMap((piece) =>
+      fs
+        .readdirSync(path.join(SKILLS, piece, 'references', 'stages'))
+        .filter((f) => f.endsWith('.md') && f !== 'README.md')
+        .map((f) => [f.replace(/\.md$/, ''), `skills/${piece}/references/stages/${f}`] as [string, string]),
+    ),
+);
 /** The stages D-505 names: one per stage reference, not its README.md, Q once per agent type that runs it. */
-const EXPECTED_STAGES = fs
-  .readdirSync(STAGES)
-  .filter((f) => f.endsWith('.md') && f !== 'README.md')
-  .map((f) => f.replace(/\.md$/, ''))
-  .flatMap((s) => (s === 'Q' ? ['Q:coordinator', 'Q:researcher'] : [s]))
-  .sort();
+const EXPECTED_STAGES = [...STAGE_REFERENCES.keys()].flatMap((s) => (s === 'Q' ? ['Q:coordinator', 'Q:researcher'] : [s])).sort();
 /** The agent type that runs each stage, as `skills/build-guide/SKILL.md`'s step table routes it. */
 const AGENT: Record<string, string> = { R1a: 'researcher', V4: 'verifier', W1: 'writer', 'Q:researcher': 'researcher', 'Q:coordinator': 'coordinator' };
 const agentOf = (stage: string) => `agents/build-guide-${AGENT[stage] ?? 'coordinator'}.md`;
-const referenceOf = (stage: string) => `skills/build-guide/references/stages/${stage.split(':')[0]}.md`;
+const referenceOf = (stage: string) => STAGE_REFERENCES.get(stage.split(':')[0])!;
 
 /** A copy of the plugin's skills and agents in a temp folder, for a case that changes their text. */
 function copyTree(name: string): string {
@@ -137,7 +162,7 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
     expectGrowth(report.max, 1 + largest, 1);
   });
 
-  it('counts, for each stage, the words of its agent definition, its stage reference and each file under skills/ or agents/ the two name', () => {
+  it('counts, for each stage, the words of its agent definition, its stage reference and each file under skills/ or agents/ the two name, less the other stage references only the definition names (D-513)', () => {
     expect({ code: REPO_MEASURE.code, stderr: REPO_MEASURE.stderr }).toEqual({ code: 0, stderr: '' });
     const measure = JSON.parse(REPO_MEASURE.stdout) as Measure;
     expect(Object.keys(measure)).toEqual(EXPECTED_STAGES);
@@ -147,10 +172,13 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
         .map((m) => m[1])
         .filter((p) => fs.statSync(path.join(REPO, p), { throwIfNoEntry: false })?.isFile());
     const read = (p: string) => fs.readFileSync(path.join(REPO, p), 'utf8');
+    const stageReferences = new Set(STAGE_REFERENCES.values());
     for (const stage of EXPECTED_STAGES) {
       const def = agentOf(stage);
       const ref = referenceOf(stage);
-      const files = [...new Set([def, ref, ...named(read(def)), ...named(read(ref))])].sort();
+      // D-513: of the stage references, the definition's names add none; the stage's own reference adds those it names.
+      const fromDefinition = named(read(def)).filter((f) => !stageReferences.has(f));
+      const files = [...new Set([def, ref, ...fromDefinition, ...named(read(ref))])].sort();
       expect({ stage, files: measure[stage].files }).toEqual({ stage, files });
       expect({ stage, words: measure[stage].words }).toEqual({ stage, words: files.reduce((n, f) => n + wordsOf(read(f)), 0) });
     }
@@ -181,22 +209,31 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
     }
   });
 
-  it('the committed baseline is the same count at a8d735c, one entry per stage, its file lists in the new root-relative paths', () => {
+  it("the committed baseline's a8d735c section is the same count at a8d735c, each since entry the same count at its commit, one entry per stage, its file lists in the new root-relative paths (D-513)", () => {
+    expect(Object.keys(BASELINE_FILE_DATA)).toEqual(['a8d735c', 'since']);
     const r = run(['--at', 'a8d735c', '--json']);
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
-    expect(JSON.parse(r.stdout)).toEqual(BASELINE);
-    expect(Object.keys(BASELINE)).toEqual(EXPECTED_STAGES);
-    for (const [stage, entry] of Object.entries(BASELINE)) {
-      expect({ stage, root: entry.files.every((f) => /^(?:skills|agents)\/[\w./-]+$/.test(f)), sorted: [...entry.files].sort() }).toEqual({ stage, root: true, sorted: entry.files });
-      expect(entry.files).toEqual(expect.arrayContaining([agentOf(stage), referenceOf(stage)]));
+    expect(JSON.parse(r.stdout)).toEqual(BASELINE_FILE_DATA.a8d735c);
+    for (const [stage, { commit, ...entry }] of Object.entries(BASELINE_FILE_DATA.since)) {
+      expect({ stage, inBoth: stage in BASELINE_FILE_DATA.a8d735c }).toEqual({ stage, inBoth: false });
+      const at = run(['--at', commit, '--json']);
+      expect({ stage, commit, code: at.code, stderr: at.stderr }).toEqual({ stage, commit, code: 0, stderr: '' });
+      expect({ stage, commit, entry: (JSON.parse(at.stdout) as Measure)[stage] }).toEqual({ stage, commit, entry });
+    }
+    expect(Object.keys(BASELINE).sort()).toEqual(EXPECTED_STAGES);
+    for (const [stage, { files }] of Object.entries(BASELINE)) {
+      expect({ stage, root: files.every((f) => /^(?:skills|agents)\/[\w./-]+$/.test(f)), sorted: [...files].sort() }).toEqual({ stage, root: true, sorted: files });
+      expect(files).toEqual(expect.arrayContaining([agentOf(stage), referenceOf(stage)]));
     }
     // Game knowledge's moved files appear at their new paths (the spine's old-to-new path line).
     expect(BASELINE.R1a.files).toEqual(expect.arrayContaining(['skills/game-knowledge/references/patterns.md', 'skills/game-knowledge/references/lookups.md', 'skills/game-knowledge/references/source-markers.md']));
   });
 
-  it("the baseline's counts match ones taken by hand at a8d735c, and W1's file list matches its names read by hand", () => {
-    // Summed `git show a8d735c:<old path> | wc -w` over each stage's files (the review of WU-148).
-    const pinned = { V4: 24049, W1: 33684, R1b: 110596, 'Q:researcher': 33041, 'D1-build': 102373 };
+  it("the baseline's counts match ones taken by hand at a8d735c under D-513's rule, and W1's and R1b's file lists match their names read by hand", () => {
+    // Summed `git show a8d735c:<old path> | wc -w` over each stage's files (the review of WU-148), re-counted under
+    // D-513 (WU-156): R1b, D1-build and D2-gate drop the other stage references the coordinator's definition names (from
+    // 110596, 102373 and 77151); V4, W1 and Q:researcher are as they were.
+    const pinned = { V4: 24049, W1: 33684, R1b: 67356, 'Q:researcher': 33041, 'D1-build': 82765, 'D2-gate': 23812 };
     expect(Object.fromEntries(Object.keys(pinned).map((k) => [k, BASELINE[k].words]))).toEqual(pinned);
     // W1 at a8d735c: the writer's definition names the task header, offline-and-test.md and source-markers.md; W1.md
     // names SKILL.md, toughness-targets.json, both guide templates and the two render scripts by path; both scripts
@@ -215,11 +252,31 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
       'skills/game-knowledge/references/source-markers.md',
     ];
     expect(BASELINE.W1.files).toEqual(W1_FILES);
+    // R1b at a8d735c (D-513): the coordinator's definition names SKILL.md, the task header, offline-and-test.md,
+    // pricing.md, lookups.md and source-markers.md, and every coordinator stage's reference, which are left out; R1b.md
+    // names R1a.md and R1a-synthesize.md, which stay, the pattern library, checkpoints.md and the card template.
+    const R1B_FILES = [
+      'agents/build-guide-coordinator.md',
+      'skills/build-guide/SKILL.md',
+      'skills/build-guide/references/checkpoints.md',
+      'skills/build-guide/references/offline-and-test.md',
+      'skills/build-guide/references/pricing.md',
+      'skills/build-guide/references/stages/R1a-synthesize.md',
+      'skills/build-guide/references/stages/R1a.md',
+      'skills/build-guide/references/stages/R1b.md',
+      'skills/build-guide/references/task-header.md',
+      'skills/build-guide/templates/card-template.md',
+      'skills/game-knowledge/references/lookups.md',
+      'skills/game-knowledge/references/patterns.md',
+      'skills/game-knowledge/references/source-markers.md',
+    ];
+    expect(BASELINE.R1b.files).toEqual(R1B_FILES);
     // The old folders' names, joined here so the file doesn't name them itself (AC-W115's old-path guard).
     const dot = ['', 'claude'].join('.');
     const oldPath = (f: string) => (f.startsWith('agents/') ? `${dot}/agents/build-guide/${f.slice('agents/'.length)}` : `${dot}/skills/build-guide/${f.replace(/^skills\/[\w-]+\//, '')}`);
     const git = (blob: string) => execFileSync('git', ['-C', REPO, 'cat-file', 'blob', blob], { encoding: 'utf8', env: ENV });
     expect(W1_FILES.reduce((n, f) => n + wordsOf(git(`a8d735c:${oldPath(f)}`)), 0)).toBe(pinned.W1);
+    expect(R1B_FILES.reduce((n, f) => n + wordsOf(git(`a8d735c:${oldPath(f)}`)), 0)).toBe(pinned.R1b);
   });
 
   it('runs the same through a symbolic link to the script', () => {
@@ -266,14 +323,20 @@ describe('AC-W126 (WU-148, D-505): the bound and the names, on temp copies of th
 
   it('a stage reference far over its baseline fails, and so does every stage that names it', () => {
     const root = copyTree('inflated');
-    edit(root, 'skills/build-guide/references/stages/D2-gate.md', (text) => `${text}\n${'inflated '.repeat(Math.ceil(BASELINE['D2-gate'].words * 0.06))}\n`);
+    // To 6% over its baseline, from where it stands today (D-513's smaller baseline leaves it further under).
+    const today = (JSON.parse(REPO_MEASURE.stdout) as Measure)['D2-gate'].words;
+    edit(root, 'skills/build-guide/references/stages/D2-gate.md', (text) => `${text}\n${'inflated '.repeat(Math.ceil(BASELINE['D2-gate'].words * 1.06) - today)}\n`);
     const r = run(['--root', root]);
     expect(r.code).toBe(1);
     const failed = [...r.stderr.matchAll(/^\[words-loaded\] (\S+): \d+ words, more than the \d+ the 5% bound allows/gm)].map((m) => m[1]);
-    // The coordinator's definition names every coordinator stage's reference, so each of those stages loads it.
+    // The coordinator's definition names every coordinator stage's reference, but under D-513 a stage loads another's
+    // only when its own reference names it.
     const naming = EXPECTED_STAGES.filter((s) => (JSON.parse(REPO_MEASURE.stdout) as Measure)[s].files.includes('skills/build-guide/references/stages/D2-gate.md'));
     expect(failed).toEqual(expect.arrayContaining(['D2-gate']));
     expect(failed.every((s) => naming.includes(s))).toBe(true);
+    // R1b runs on the coordinator's definition, which names D2-gate.md; R1b.md doesn't, so R1b doesn't load it.
+    expect(fs.readFileSync(path.join(REPO, agentOf('R1b')), 'utf8')).toContain('stages/D2-gate.md');
+    expect({ naming: naming.includes('R1b'), failed: failed.includes('R1b') }).toEqual({ naming: false, failed: false });
   });
 
   it("fails with exit 1 on a name that doesn't resolve, in each form that points into skills/ or agents/", () => {
@@ -343,7 +406,7 @@ describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges a
   const words = files.reduce((n, f) => n + wordsOf(fs.readFileSync(path.join(SMALL, f), 'utf8')), 0);
   const withBaseline = (name: string, baseline: Measure) => {
     const file = path.join(TMP, `${name}.json`);
-    fs.writeFileSync(file, JSON.stringify(baseline));
+    fs.writeFileSync(file, JSON.stringify(twoSections(baseline)));
     return run(['--root', SMALL, '--baseline', file]);
   };
 
@@ -379,7 +442,7 @@ describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges a
     write(EDGE, DEF, '# writer\n');
     write(EDGE, S1, `# S1: a step (\`build-guide-writer\`)\n${'w '.repeat(10497)}\n`);
     const base = path.join(TMP, 'edge.json');
-    fs.writeFileSync(base, JSON.stringify({ S1: { words: 10000, files: [DEF, S1] } }));
+    fs.writeFileSync(base, JSON.stringify(twoSections({ S1: { words: 10000, files: [DEF, S1] } })));
     const over = run(['--root', EDGE, '--baseline', base]);
     expect(over).toEqual({ code: 1, stdout: 'S1 10504 10000 +5.0%\nmax +5.0%\n', stderr: "[words-loaded] S1: 10504 words, more than the 10500 the 5% bound allows over its baseline's 10000 (+5.04%)\n" });
     write(EDGE, S1, `# S1: a step (\`build-guide-writer\`)\n${'w '.repeat(10493)}\n`);
@@ -450,5 +513,98 @@ describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges a
     ]);
     expect(measure.S2.files).toEqual(['agents/build-guide-writer.md', 'skills/build-guide/references/stages/S2.md', 'skills/build-guide/references/task-header.md']);
     expect(Object.keys(measure)).toEqual(['S1', 'S2']);
+  });
+});
+
+describe("AC-W139 (WU-156, D-513): another stage's reference, the pieces' stages and the baseline's two sections, on small temp trees", () => {
+  const COORD = 'agents/build-guide-coordinator.md';
+  const stage = (name: string, piece = 'build-guide') => `skills/${piece}/references/stages/${name}.md`;
+  const sumOf = (root: string, files: string[]) => files.reduce((n, f) => n + wordsOf(fs.readFileSync(path.join(root, f), 'utf8')), 0);
+  const measured = (root: string, extra: string[] = []) => {
+    const r = run(['--root', root, ...extra, '--json']);
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    return JSON.parse(r.stdout) as Measure;
+  };
+
+  it("leaves out another stage reference that only the definition names; one the stage's own reference names stays, and so do the definition's other files", () => {
+    const ROOT = path.join(TMP, 'other-stages');
+    // The definition names three stage references, the stages' README.md (not a stage) and a.md, as a step table does.
+    write(ROOT, COORD, ['# coordinator', '', ...['S1', 'S2', 'S3', 'README'].map((s) => `| ${s} | \`\${CLAUDE_PLUGIN_ROOT}/${stage(s)}\` |`), '', 'Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/a.md`.', ''].join('\n'));
+    write(ROOT, stage('README'), '# Stage references\n');
+    write(ROOT, stage('S1'), `# S1: the first (\`build-guide-coordinator\`)\n\nThen \`${stage('S3')}\`, which this step reads too.\n`);
+    write(ROOT, stage('S2'), '# S2: the second (`build-guide-coordinator`)\n');
+    write(ROOT, stage('S3'), '# S3: the third (`build-guide-coordinator`)\n\nwords of its own\n');
+    write(ROOT, 'skills/build-guide/references/a.md', 'a b c\n');
+    const shared = [COORD, 'skills/build-guide/references/a.md', stage('README')];
+    const expected = {
+      S1: [...shared, stage('S1'), stage('S3')].sort(),
+      S2: [...shared, stage('S2')].sort(),
+      S3: [...shared, stage('S3')].sort(),
+    };
+    const measure = measured(ROOT);
+    expect(measure).toEqual(Object.fromEntries(Object.entries(expected).map(([k, files]) => [k, { words: sumOf(ROOT, files), files }])));
+  });
+
+  it("finds a stage under any skills/<piece>/references/stages/, keyed by its name, its skill-relative names read in its own piece, and fails two pieces' stages of one name", () => {
+    const ROOT = path.join(TMP, 'piece-stages');
+    write(ROOT, COORD, `# coordinator\n\n| measure | \`\${CLAUDE_PLUGIN_ROOT}/${stage('measure', 'compile')}\` |\n`);
+    write(ROOT, stage('S1'), '# S1: a step (`build-guide-coordinator`)\n');
+    write(ROOT, stage('measure', 'compile'), '# measure: read and measure (`pob2:build-guide-coordinator`)\n\nThe card: `references/m.md`.\n');
+    write(ROOT, 'skills/compile/SKILL.md', 'the compile runner\n');
+    write(ROOT, 'skills/compile/references/m.md', 'the file card\n');
+    // The build-guide skill's own `references/m.md` isn't the one a compile stage names.
+    write(ROOT, 'skills/build-guide/references/m.md', 'not this one\n');
+    const measure = measured(ROOT);
+    expect(Object.keys(measure)).toEqual(['S1', 'measure']);
+    expect(measure.measure.files).toEqual([COORD, 'skills/compile/references/m.md', stage('measure', 'compile')]);
+    expect(measure.S1.files).toEqual([COORD, stage('S1')]);
+    // A second piece's stage reference named S1 fails the run, naming both.
+    write(ROOT, stage('S1', 'pricing'), '# S1: another (`build-guide-coordinator`)\n');
+    const twice = run(['--root', ROOT, '--json']);
+    expect({ code: twice.code, stderr: twice.stderr }).toEqual({
+      code: 1,
+      stderr: `[words-loaded] two stage references are named S1: ${stage('S1')}, ${stage('S1', 'pricing')}\n`,
+    });
+  });
+
+  it("compares a since entry as it compares the a8d735c section's, each entry the count at the commit it names, and refuses a baseline of another shape", () => {
+    const ROOT = path.join(TMP, 'since-tree');
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-C', ROOT, '-c', 'user.name=words-loaded-test', '-c', 'user.email=words-loaded-test', '-c', 'commit.gpgsign=false', ...args], { encoding: 'utf8', env: ENV, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    write(ROOT, COORD, '# coordinator\n');
+    write(ROOT, stage('S1'), '# S1: a step (`build-guide-coordinator`)\n');
+    git('init', '-q');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'one stage');
+    const first = git('rev-parse', 'HEAD');
+    write(ROOT, stage('measure', 'compile'), '# measure: read and measure (`build-guide-coordinator`)\n\nnew words\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'a piece adds its stage');
+    const second = git('rev-parse', 'HEAD');
+    const atFirst = measured(ROOT, ['--at', first]);
+    const atSecond = measured(ROOT, ['--at', second]);
+    expect(Object.keys(atFirst)).toEqual(['S1']);
+    expect(Object.keys(atSecond)).toEqual(['S1', 'measure']);
+    const compareWith = (name: string, baseline: unknown) => {
+      const file = path.join(TMP, `since-${name}.json`);
+      fs.writeFileSync(file, JSON.stringify(baseline));
+      return run(['--root', ROOT, '--baseline', file]);
+    };
+    const since = { measure: { commit: second, ...atSecond.measure } };
+    const ok = compareWith('ok', { a8d735c: atFirst, since });
+    expect(ok).toEqual({ code: 0, stdout: `S1 ${atFirst.S1.words} ${atFirst.S1.words} +0.0%\nmeasure ${atSecond.measure.words} ${atSecond.measure.words} +0.0%\nmax +0.0%\n`, stderr: '' });
+    // A since entry is held to the bound like any other.
+    const low = Math.floor((atSecond.measure.words * 100) / 106);
+    const over = compareWith('over', { a8d735c: atFirst, since: { measure: { ...since.measure, words: low } } });
+    expect(over.code).toBe(1);
+    expect(over.stderr).toMatch(new RegExp(`^\\[words-loaded\\] measure: ${atSecond.measure.words} words, more than the \\d+ the 5% bound allows over its baseline's ${low} `, 'm'));
+    // Refused (exit 2): the one-section form, a stage in both sections, a since entry with no commit.
+    const refused = (name: string, baseline: unknown, said: string) => {
+      const r = compareWith(name, baseline);
+      expect({ name, code: r.code, said: r.stderr.includes(said) }).toEqual({ name, code: 2, said: true });
+    };
+    refused('flat', atSecond, `isn't {"a8d735c": {…}, "since": {…}}`);
+    refused('both', { a8d735c: atSecond, since }, "the baseline's stage measure is in both sections");
+    refused('no-commit', { a8d735c: atFirst, since: { measure: atSecond.measure } }, "the baseline's since entry measure names no commit");
   });
 });

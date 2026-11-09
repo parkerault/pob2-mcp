@@ -7,7 +7,9 @@
  * met on its case: rolls from the item text, base matching, `left` and `stand_in`, PG-111's line, the granted copies
  * by support, level and weapon set, each kept copy's gem at quality 0 (a planted 5 named), plan-numbered questions,
  * `mainActiveSkill`, `"nil"` as false, `role`, `config.file` and `enemyIsBoss`, `importLeague`, `buffs_on` and
- * `buffs_swap`, `corrupt`, `treeJewels`, `attributeChoices`; the plan passes schema 11. By name and by code the importer
+ * `buffs_swap` (and `switch_off`, the coordinator's ruling departing from Appendix A.7), `corrupt`, `treeJewels` (a jewel on
+ * a base the pin lacks asked about and stood in; one whose socket the newest tree lacks named), `attributeChoices`, the
+ * party tab counted only by its `<ImportedBuffs>`; the plan passes schema 11. By name and by code the importer
  * fixture gives the same plan but `source`. Neither fixture holds a character hash or an account name.
  */
 import fs from 'fs';
@@ -16,7 +18,7 @@ import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { IMPORTER, IMPORTER_CODE, NINJA, readerLayout, sha1, textOf, type Json, type ReaderLayout } from '../helpers/planFromBuild';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { validatePlan } from '../../src/plan/schema';
-import { decodePobCode } from '../../src/utils/buildCode';
+import { decodePobCode, encodePobCode } from '../../src/utils/buildCode';
 import { loadReaderGameData, readItem, withModRanges } from '../../src/services/fileReader';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -265,6 +267,76 @@ describe('AC-W149 (WU-160): the reader on the importer fixture', () => {
     expect(read2.questions.map((q: Json) => q.field)).toEqual(['loadout', 'stand_in.Gloves', 'gem']);
   });
 
+  it("switch_off: a switched buff's off list as the user confirmed it; a buff list given again without one clears it", async () => {
+    const rel = L.run();
+    expect((await L.call({ run_folder: rel, build_name: 'imported-character' })).isError).toBeFalsy();
+    const r = await L.call({ run_folder: rel, buffs_on: [5, 6], buffs_swap: [9], switch_off: { 7: [5], 10: [5, 6] } });
+    expect(r.isError).toBeFalsy();
+    const p = L.json(rel, 'plan.json');
+    expect(validatePlan(p, ref).ok).toBe(true);
+    const switched = (plan: Json) =>
+      plan.stages[0].skills.groups.flatMap((g: Json, i: number) => (g.switch ? [{ group: i + 1, enabled: g.enabled, switch: g.switch }] : []));
+    expect(switched(p)).toEqual([
+      { group: 2, enabled: false, switch: { when: 'as needed', off: [] } },
+      { group: 7, enabled: false, switch: { when: 'as needed', off: [5] } },
+      { group: 10, enabled: false, switch: { when: 'as needed', off: [5, 6] } },
+    ]);
+    // A later answer that leaves the buff list alone keeps the off lists.
+    expect((await L.call({ run_folder: rel, main_group: 4 })).isError).toBeFalsy();
+    expect(switched(L.json(rel, 'plan.json'))[1].switch.off).toEqual([5]);
+    // A new buff list asks the measure's question again: the earlier off lists go.
+    expect((await L.call({ run_folder: rel, buffs_on: [5, 6, 7], buffs_swap: [9] })).isError).toBeFalsy();
+    expect(switched(L.json(rel, 'plan.json'))).toEqual([2, 10].map((group) => ({ group, enabled: false, switch: { when: 'as needed', off: [] } })));
+    expect(L.json(rel, 'read.json').answers.switch_off).toBeUndefined();
+  });
+
+  it('a tree jewel on a base the pin lacks: left with a stand_in question, and stood in by its "Jewel <node>" key', async () => {
+    const rel = L.run();
+    const unknownJewel = xml.replace('Phoenix Wound\nRuby\n', 'Phoenix Wound\nRunemastered Ruby\n');
+    expect((await L.call({ run_folder: rel, import_code: encodePobCode(unknownJewel) })).isError).toBeFalsy();
+    const read1 = L.json(rel, 'read.json');
+    expect(read1.left.find((l: Json) => l.slot === 'Jewel 54127')).toMatchObject({ reason: "base Runemastered Ruby isn't in the pin (PG-110)" });
+    expect(read1.questions.find((q: Json) => q.field === 'stand_in.Jewel 54127')).toMatchObject({ fileValue: 'Runemastered Ruby' });
+    expect(L.json(rel, 'plan.json').stages[0].items.treeJewels).toEqual([]);
+    expect((await L.call({ run_folder: rel, stand_in: { 'Jewel 54127': 'plain base' } })).isError).toBeFalsy();
+    const p = L.json(rel, 'plan.json');
+    expect(validatePlan(p, ref).ok).toBe(true);
+    expect(p.stages[0].items.treeJewels).toEqual([
+      { node: 54127, text: 'Rarity: RARE\nPhoenix Wound\nRuby\nItem Level: 81\nImplicits: 0\n+12% to Fire Resistance\n10% increased Attack Damage', owned: true, standIn: true },
+    ]);
+  });
+
+  it("an older tree's jewel socket the newest tree lacks: the jewel named in left, with its text, never dropped silently", async () => {
+    const rel = L.run();
+    const older = xml
+      .replace(/treeVersion="0_5"/g, 'treeVersion="0_4"')
+      .replace('<Socket nodeId="54127" itemId="15"/>', '<Socket nodeId="5101" itemId="15"/>')
+      .replace('nodes="50986,59915,7741', 'nodes="5101,50986,59915,7741');
+    expect((await L.call({ run_folder: rel, import_code: encodePobCode(older) })).isError).toBeFalsy();
+    expect((await L.call({ run_folder: rel, tree: 'newest' })).isError).toBeFalsy();
+    const read1 = L.json(rel, 'read.json');
+    expect(read1.left.filter((l: Json) => l.node === 5101 || l.slot === 'Jewel 5101')).toEqual([
+      { node: 5101, name: 'Minion Revive Speed and Energy Shield Recharge', reason: "the pin's tree 0_5 has no node 5101" },
+      {
+        slot: 'Jewel 5101',
+        text: 'Rarity: RARE\nPhoenix Wound\nRuby\nItem Level: 81\nImplicits: 0\n+12% to Fire Resistance\n10% increased Attack Damage',
+        reason: "its socket, node 5101, isn't in the pin's tree 0_5",
+      },
+    ]);
+    expect(L.json(rel, 'plan.json').stages[0].items.treeJewels).toEqual([]);
+  });
+
+  it("the party tab counts as filled only by an <ImportedBuffs>: the build's own <ExportedBuffs> doesn't", async () => {
+    const rel = L.run();
+    const exportedOnly = xml.replace(
+      '<ImportedBuffs name="Aura">Purity of Fire</ImportedBuffs>',
+      '<ExportedBuffs name="PartyMemberStats">Life: 2400</ExportedBuffs>',
+    );
+    expect(exportedOnly).not.toContain('ImportedBuffs');
+    expect((await L.call({ run_folder: rel, import_code: encodePobCode(exportedOnly) })).isError).toBeFalsy();
+    expect(L.json(rel, 'read.json').partyFilled).toBe(false);
+  });
+
   it('stand_in: "plain base" types the item on its plain base, marked standIn; a text the pin can read stands in too', async () => {
     const r = await L.call({ run_folder: byName, stand_in: { Gloves: 'plain base' } });
     expect(r.isError).toBeFalsy();
@@ -294,7 +366,6 @@ describe('AC-W149 (WU-160): the reader on the importer fixture', () => {
   it("the campaign case (choice A): the importer fixture read at level 50 gives a level-50 read stage", async () => {
     const rel = L.run();
     const at50 = xml.replace('level="90" className="Mercenary"', 'level="50" className="Mercenary"');
-    const { encodePobCode } = await import('../../src/utils/buildCode');
     expect((await L.call({ run_folder: rel, import_code: encodePobCode(at50) })).isError).toBeFalsy();
     expect(L.json(rel, 'plan.json').stages[0]).toMatchObject({ level: 50, loadoutName: 'Endgame (L50) {f}', progress: 'endgame' });
   });

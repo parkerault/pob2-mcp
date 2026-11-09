@@ -108,8 +108,8 @@
  * 11; WU-160). M-30 adds, each a version-11 addition:
  * - `stages[].source {kind, name?, sha1, loadout}` (D-517): the file a read stage came from (a builds-folder file or an
  *   import code), its sha1 and the loadout read; `plan_from_build` writes it, and `buildSha1` leaves it out (a `source`).
- * - `owned: true` on a slot, a tree jewel or a group, and `standIn: true` on a slot (D-517): the character's own content, as
- *   the reader took it from the file, and a slot's stand-in for an item on a base the pin lacks (PG-110). Only the reader
+ * - `owned: true` on a slot, a tree jewel or a group, and `standIn: true` on a slot or a tree jewel (D-517): the character's own content, as
+ *   the reader took it from the file, and the stand-in for an item or jewel on a base the pin lacks (PG-110). Only the reader
  *   marks them; the compile's exemptions for owned content are C-41's (D-519).
  * - `config.file` (D-517): the file's config set as set, each PoB input by name and value, its custom modifiers among them.
  * - a group's `switch {when, off}` (D-518): a buff switched as needed, written with `enabled: false`; `when` says when to
@@ -384,8 +384,11 @@ const itemsSchema = z
   .object({
     setTitle: setTitle.optional(),
     slots: z.array(slotEntrySchema),
-    // D-517 (schema 11): `owned`, a jewel the file reader took from the character's file.
-    treeJewels: z.array(z.object({ node: nodeId, text: text('text'), owned: z.literal(true).optional() }).strict()),
+    // D-517 (schema 11): `owned`, a jewel the file reader took from the character's file, and `standIn`, the text given for
+    // one on a base the pin lacks (Appendix A.5).
+    treeJewels: z.array(
+      z.object({ node: nodeId, text: text('text'), owned: z.literal(true).optional(), standIn: z.literal(true).optional() }).strict(),
+    ),
     toggles: z.array(toggleSchema),
     useSecondWeaponSet: z.boolean(),
     anoint: anointSchema.optional(),
@@ -1073,10 +1076,13 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
   },
   {
     since: 11,
-    what: "a slot's stand-in, standIn (D-517)",
+    what: "a slot's or a tree jewel's stand-in, standIn (D-517)",
     before: 'no stand-in',
     uses: (plan) =>
-      plan.stages.flatMap((s, i) => s.items.slots.flatMap((e, k) => (e.standIn !== undefined ? [['stages', i, 'items', 'slots', k, 'standIn']] : []))),
+      plan.stages.flatMap((s, i) => [
+        ...s.items.slots.flatMap((e, k) => (e.standIn !== undefined ? [['stages', i, 'items', 'slots', k, 'standIn']] : [])),
+        ...s.items.treeJewels.flatMap((j, k) => (j.standIn !== undefined ? [['stages', i, 'items', 'treeJewels', k, 'standIn']] : [])),
+      ]),
   },
   {
     since: 11,

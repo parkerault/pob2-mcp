@@ -794,16 +794,17 @@ addition (a plan of version 10 or older errs at it):
 - **`owned: true`** on `items.slots[]`, `items.treeJewels[]` and `skills.groups[]` (D-517): the character's own content,
   exactly as the reader took it from the file, real rolls and all. Only the reader writes it; a design that replaces the
   item or group drops it. The compile's exemptions for owned content are C-41's (D-519).
-- **`standIn: true`** on `items.slots[]` (D-517): the slot held an item on a base the pin lacks (PG-110), and holds the
-  item text the user gave for it, or the item typed on its plain base.
+- **`standIn: true`** on `items.slots[]` and `items.treeJewels[]` (D-517): the slot or jewel socket held an item on a base
+  the pin lacks (PG-110), and holds the item text the user gave for it, or the item typed on its plain base.
 - **`config.file`** (D-517): the file's config set as set, each PoB input by its name and value (a string, number or
   boolean), the custom modifier box (`customMods`) among them. On a read stage `config.earned` is empty and
   `config.scenario` holds only `enemyIsBoss`, at the file's value (PoB's default when the file sets none), its `source`
   `{file: "source.xml", key: "enemyIsBoss"}` with a `judgment` tag.
 - **A group's `switch {when, off}`** (D-518): a Spirit buff switched as needed: in the plan and the guide, off in the
   measured numbers. The group has `enabled: false`; `when` is a short player-facing phrase saying when to switch it on
-  ("for bosses", "as needed"), `off` the plan's groups switched off for it (each a group of the stage other than itself;
-  `[]` until the measure's proposal is confirmed).
+  ("for bosses", "as needed"), `off` the plan's groups switched off for it (each a group of the stage other than itself):
+  on a read plan, the list the user confirmed from the measure's proposal (`plan_from_build`'s `switch_off`), `[]` when
+  the user gave none.
 
 ```json
 { "label": "Purity of Ice", "enabled": false, "role": "utility", "owned": true, "weaponSet": 2,
@@ -1153,6 +1154,7 @@ rule may require an optional key in some cases.
 | `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` or, from schema version 10, an ascendancy jewel socket in `tree.ascendancyNodes` (Crystalline Phylactery, 17788); any other ascendancy node errs here | C-31, D-492 |
 | `stages[].items.treeJewels[].text` | string | yes | Non-empty. The jewel's item text | C-31 |
 | `stages[].items.treeJewels[].owned` | `true` | no | The character's own jewel, as the file reader took it. Schema version 11 | D-517 |
+| `stages[].items.treeJewels[].standIn` | `true` | no | The socket held a jewel on a base the pin lacks (PG-110) and holds the text the user gave, or the jewel on its plain base. Schema version 11 | D-517 |
 | `stages[].items.toggles` | object[] | yes | Flask and charm activation, kept on the item set as PoB does. An active toggle is earned state, produced by the item in its slot | C-31, C-32 |
 | `stages[].items.toggles[].slot` | `Flask 1`, `Flask 2`, `Charm 1`, `Charm 2` or `Charm 3` | yes | The flask or charm slot | C-31 |
 | `stages[].items.toggles[].active` | boolean | yes | Whether it is active when the stage is measured | C-32 |
@@ -1184,7 +1186,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].owned` | `true` | no | The character's own group, as the file reader took it. Schema version 11 | D-517 |
 | `stages[].skills.groups[].switch` | object | no | A Spirit buff switched as needed: in the plan and the guide, off in the measured numbers; the group has `enabled: false` (error at `enabled` otherwise). Schema version 11 | D-518 |
 | `stages[].skills.groups[].switch.when` | string | yes | Non-empty. When to switch it on, a short player-facing phrase ("for bosses", "as needed") | D-518 |
-| `stages[].skills.groups[].switch.off` | integer[] | yes | The plan's groups switched off for it, each a group of the stage other than this one (error at `off[n]`) | D-518 |
+| `stages[].skills.groups[].switch.off` | integer[] | yes | The plan's groups switched off for it, each a group of the stage other than this one (error at `off[n]`); on a read plan, the list the user confirmed (`plan_from_build`'s `switch_off`), `[]` without one | D-518 |
 | `stages[].skills.main` | object | yes | The main skill selection | C-31, C-44 |
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |

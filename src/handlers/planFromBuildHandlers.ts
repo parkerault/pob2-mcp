@@ -7,11 +7,16 @@
  *   tools resolve names) and `import_code` (decoded under the 16 MiB cap, D-50), and no answer. It keeps the decoded
  *   document in the run folder as `source.xml`, its sha1 in `read.json`, and writes `plan.json` (schema 11) and
  *   `read.json` (`readBuildIntoPlan`, `src/services/fileReader.ts`);
- * - **the second** gives answers only (`loadout`, `tree`, `main_group`, `buffs_on`, `buffs_swap`, `stand_in`): it reads
- *   `source.xml` back, re-reads a builds-folder source and refuses a changed sha1, and writes `plan.json` and `read.json`
- *   again with every answer so far.
+ * - **the second** gives answers only (`loadout`, `tree`, `main_group`, `buffs_on`, `buffs_swap`, `switch_off`,
+ *   `stand_in`): it reads `source.xml` back, re-reads a builds-folder source and refuses a changed sha1, and writes
+ *   `plan.json` and `read.json` again with every answer so far.
  *
- * Either call refuses to replace a `plan.json` a design step wrote (the run log holds a D1 entry). It fetches nothing,
+ * `switch_off` departs from Appendix A.7, whose input has no field for it (the coordinator's ruling for M-30, WU-160's fix
+ * round): §14 has the reader write a switched buff's `off` "as the user confirms it", from the measure's proposed list.
+ *
+ * A first call is refused on a run folder that already holds a read (`source.xml` or `read.json`): its file, plan and
+ * answers stay, and a piece run's `source` sha1 stays true. Either call refuses to replace a `plan.json` a design step
+ * wrote (the run log holds a D1 entry). It fetches nothing,
  * holds no engine lock and writes only the run folder; the builds folder is read, never written. Every refusal is an
  * `isError` that writes nothing.
  */
@@ -47,10 +52,11 @@ export const SOURCE_FILE = 'source.xml';
 export const READ_FILE = 'read.json';
 export const PLAN_FILE = 'plan.json';
 
-const ARGS = ['run_folder', 'build_name', 'import_code', 'loadout', 'tree', 'main_group', 'buffs_on', 'buffs_swap', 'stand_in'] as const;
-const ANSWERS = ['loadout', 'tree', 'main_group', 'buffs_on', 'buffs_swap', 'stand_in'] as const;
-/** The answers that name the plan's groups: a changed loadout renumbers them, so they go. */
-const GROUP_ANSWERS = ['main_group', 'buffs_on', 'buffs_swap', 'stand_in'] as const;
+// `switch_off` departs from Appendix A.7 (the coordinator's ruling for M-30): see the header.
+const ARGS = ['run_folder', 'build_name', 'import_code', 'loadout', 'tree', 'main_group', 'buffs_on', 'buffs_swap', 'switch_off', 'stand_in'] as const;
+const ANSWERS = ['loadout', 'tree', 'main_group', 'buffs_on', 'buffs_swap', 'switch_off', 'stand_in'] as const;
+/** The answers that name the plan's groups or slots: a changed loadout renumbers them, so they go. */
+const GROUP_ANSWERS = ['main_group', 'buffs_on', 'buffs_swap', 'switch_off', 'stand_in'] as const;
 
 interface Request {
   runFolder: string;
@@ -90,6 +96,16 @@ export function planFromBuildRequestOf(args: Record<string, unknown> | undefined
   }
   if (a.buffs_on !== undefined) answers.buffs_on = groupList(a.buffs_on, 'buffs_on');
   if (a.buffs_swap !== undefined) answers.buffs_swap = groupList(a.buffs_swap, 'buffs_swap');
+  if (a.switch_off !== undefined) {
+    const v = a.switch_off;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) refuse("switch_off must map a switched group's plan number to the plan's groups switched off for it");
+    const out: Record<string, number[]> = {};
+    for (const [k, list] of Object.entries(v as Record<string, unknown>)) {
+      if (!/^[1-9]\d*$/.test(k)) refuse(`switch_off's key "${k}" isn't a plan group number`);
+      out[k] = groupList(list, `switch_off's group ${k}`);
+    }
+    answers.switch_off = out;
+  }
   if (a.stand_in !== undefined) {
     const v = a.stand_in;
     if (typeof v !== 'object' || v === null || Array.isArray(v) || Object.values(v).some((x) => typeof x !== 'string' || x.trim() === '')) {
@@ -165,6 +181,12 @@ export async function handlePlanFromBuild(context: PlanFromBuildContext, args: R
     let first = false;
     if (request.source !== undefined) {
       first = true;
+      const held = [SOURCE_FILE, READ_FILE];
+      for (const name of held) {
+        if ((await readOrNull(await inRun(name))) !== null) {
+          refuse(`this run folder already holds a read (${run.relPath}/${name}); the second call gives answers only, and a new file is read into a new run folder`);
+        }
+      }
       if (request.source.kind === 'builds-folder') {
         let file: Awaited<ReturnType<BuildService['readBuildFile']>>;
         try {
@@ -216,6 +238,10 @@ export async function handlePlanFromBuild(context: PlanFromBuildContext, args: R
       answers = { ...(earlier!.answers ?? {}) };
       if (request.answers.loadout !== undefined && request.answers.loadout !== answers.loadout) {
         for (const k of GROUP_ANSWERS) delete answers[k];
+      }
+      // A changed buff list asks the measure's Spirit question again: an earlier switch_off goes unless this call gives one.
+      if ((request.answers.buffs_on !== undefined || request.answers.buffs_swap !== undefined) && request.answers.switch_off === undefined) {
+        delete answers.switch_off;
       }
       Object.assign(answers, request.answers);
       if (request.answers.stand_in !== undefined) answers.stand_in = { ...(earlier!.answers?.stand_in ?? {}), ...request.answers.stand_in };

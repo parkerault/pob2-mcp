@@ -21,7 +21,8 @@
  *   when no plain copy has more; the kept copy takes its granting items' weapon set;
  * - PG-114: a granted skill's gem is written at quality 0, a file's other value named;
  * - PG-113: the main skill is a question; the file's value stands, unconfirmed, until it's answered;
- * - PG-107: `buffs_on` and `buffs_swap` answer the measure's Spirit question; the other Spirit buffs become switched;
+ * - PG-107: `buffs_on` and `buffs_swap` answer the measure's Spirit question; the other Spirit buffs become switched,
+ *   each with the `off` list `switch_off` gives it (the user's confirmed list from the measure's proposal, §14, §15);
  * - the configuration as set, in `config.file`, `enemyIsBoss` the scenario's one entry.
  */
 import fs from 'fs';
@@ -331,6 +332,12 @@ export interface ReadAnswers {
   main_group?: number;
   buffs_on?: number[];
   buffs_swap?: number[];
+  /**
+   * The coordinator's ruling for M-30 (WU-160's fix round), departing from Appendix A.7, whose input has no field for it:
+   * by switched group, the plan's groups switched off for it, as the user confirmed them from the measure's proposed list
+   * (§14 "`off` as the user confirms it", §15). Keys are plan group numbers.
+   */
+  switch_off?: Record<string, number[]>;
   stand_in?: Record<string, string>;
 }
 
@@ -622,24 +629,38 @@ export async function readBuildIntoPlan(input: ReadInput): Promise<ReadResult> {
     slots.push({ slot, text, owned: true });
     grantsBySlot.push({ slot, item: found.item });
   }
-  for (const slot of Object.keys(standIns)) {
-    if (!pendingStandIns.has(slot) && !slots.some((s) => s.slot === slot && s.standIn === true)) {
-      throw new ReadRefused(`stand_in names "${slot}", which holds no item on a base the pin lacks; the slots that do: ${[...pendingStandIns].join(', ') || 'none'}`);
-    }
-  }
   const treeJewels: Array<Record<string, unknown>> = [];
   const allocatedAny = new Set([...nodes, ...ascendancyNodes]);
+  const lackedNodes = new Set(loadout.spec.nodes.filter((id) => nodeOf(id) === undefined));
   for (const [node, id] of loadout.spec.sockets) {
-    if (!allocatedAny.has(node)) continue;
     const found = itemText(id);
     if (found === null) continue;
     const where = `Jewel ${node}`;
+    if (lackedNodes.has(node)) {
+      // An older tree's socket the newest tree lacks: the jewel can't sit there, so it is named, never dropped silently.
+      left.push({ slot: where, text: found.lines.join('\n'), reason: `its socket, node ${node}, isn't in the pin's tree ${newest}` });
+      continue;
+    }
+    // A jewel in a socket the tree doesn't allocate does nothing in PoB.
+    if (!allocatedAny.has(node)) continue;
     if (found.item.base === null) {
-      left.push({ slot: where, text: found.lines.join('\n'), reason: `base ${found.item.baseLine || found.item.name} isn't in the pin (PG-110)` });
+      const replaced = standIn(where, found.item, found.lines);
+      if (replaced === null) {
+        left.push({ slot: where, text: found.lines.join('\n'), reason: `base ${found.item.baseLine || found.item.name} isn't in the pin (PG-110)` });
+        pendingStandIns.add(where);
+        continue;
+      }
+      treeJewels.push({ node, text: replaced, owned: true, standIn: true });
       continue;
     }
     checkLegacyUnique(found.item, where);
     treeJewels.push({ node, text: found.lines.join('\n'), owned: true });
+  }
+  for (const slot of Object.keys(standIns)) {
+    const stood = slots.some((s) => s.slot === slot && s.standIn === true) || treeJewels.some((j) => `Jewel ${j.node}` === slot && j.standIn === true);
+    if (!pendingStandIns.has(slot) && !stood) {
+      throw new ReadRefused(`stand_in names "${slot}", which holds no item on a base the pin lacks; the slots that do: ${[...pendingStandIns].join(', ') || 'none'}`);
+    }
   }
   const toggles = slots
     .filter((s) => isActivatable(String(s.slot)))
@@ -832,6 +853,7 @@ export async function readBuildIntoPlan(input: ReadInput): Promise<ReadResult> {
     const both = on.filter((n) => swap.includes(n));
     if (both.length > 0) throw new ReadRefused(`group ${both.join(', ')} is in both buffs_on and buffs_swap: a buff stays on or moves to the other weapon set`);
     const otherSet = itemSet.useSecondWeaponSet ? 1 : 2;
+    const switched: number[] = [];
     for (const [g, n] of planOf) {
       const group = planGroups[n - 1];
       if (swap.includes(n)) {
@@ -840,9 +862,27 @@ export async function readBuildIntoPlan(input: ReadInput): Promise<ReadResult> {
       }
       if (on.includes(n) || n === planMain || group.enabled !== true) continue;
       if (!g.gems.some((x) => x.reservesSpirit && x.enabled)) continue;
-      group.enabled = false;
-      group.switch = { when: SWITCH_AS_NEEDED, off: [] };
+      switched.push(n);
     }
+    const offs = answers.switch_off ?? {};
+    for (const [key, off] of Object.entries(offs)) {
+      const n = Number(key);
+      if (!switched.includes(n)) {
+        throw new ReadRefused(
+          `switch_off names group ${key}, which isn't switched: the switched Spirit buffs, neither kept on nor swapped, are ${switched.join(', ') || 'none'}`,
+        );
+      }
+      for (const k of off) {
+        if (k === n) throw new ReadRefused(`switch_off's group ${n} lists itself; off lists the groups switched off for it (D-518)`);
+        checkGroup(k, `switch_off's group ${n}`);
+      }
+    }
+    for (const n of switched) {
+      planGroups[n - 1].enabled = false;
+      planGroups[n - 1].switch = { when: SWITCH_AS_NEEDED, off: [...(offs[String(n)] ?? [])] };
+    }
+  } else if (answers.switch_off !== undefined && Object.keys(answers.switch_off).length > 0) {
+    throw new ReadRefused('switch_off names groups, but no group is switched: buffs_on or buffs_swap answers the Spirit question first');
   }
 
   // The configuration as set (the user's answer 4).

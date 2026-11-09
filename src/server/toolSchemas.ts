@@ -1173,7 +1173,7 @@ export function getLuaToolSchemas(): any[] {
     },
     {
       name: "plan_from_build",
-      description: "Read a player's Path of Building 2 file, a builds-folder file or an import code, into a plan in a run folder, without the engine and without writing the file. The first call (run_folder with build_name or import_code) keeps the decoded file as source.xml in the run folder and writes plan.json (schema 11, one stage 'f' at the file's level, from the file's active loadout) and read.json: every item kept as owned with its own rolls, the tree with its weapon-set tags, attribute choices and jewels, each skill group with its levels, quality and on/off as written, the configuration as set (config.file). PoB's own granted-skill groups aren't written; of each granted skill's plain copies the one with the most supports is kept, at quality 0, on its granting item's weapon set. An item on a base or a gem the pin lacks, or a slot the plan can't hold, is left out and named. The reply lists what was left out and the questions: the main skill (main_group), the loadout when the file holds several, an older tree (tree), a stand-in for an unknown base (stand_in). The second call (run_folder and answers only) reads source.xml again, refuses a builds-folder file that changed since, and writes plan.json and read.json with the answers; buffs_on and buffs_swap answer the measure's Spirit question, the other Spirit buffs becoming switched as needed. Either call refuses a run folder whose plan a design step wrote, a tree version the pin lacks, and a document that isn't a PoB2 build; a refusal writes nothing.",
+      description: "Read a player's Path of Building 2 file, a builds-folder file or an import code, into a plan in a run folder, without the engine and without writing the file. The first call (run_folder with build_name or import_code) keeps the decoded file as source.xml in the run folder and writes plan.json (schema 11, one stage 'f' at the file's level, from the file's active loadout) and read.json: every item kept as owned with its own rolls, the tree with its weapon-set tags, attribute choices and jewels, each skill group with its levels, quality and on/off as written, the configuration as set (config.file). PoB's own granted-skill groups aren't written; of each granted skill's plain copies the one with the most supports is kept, at quality 0, on its granting item's weapon set. An item on a base or a gem the pin lacks, or a slot the plan can't hold, is left out and named. The reply lists what was left out and the questions: the main skill (main_group), the loadout when the file holds several, an older tree (tree), a stand-in for an unknown base (stand_in). The second call (run_folder and answers only) reads source.xml again, refuses a builds-folder file that changed since, and writes plan.json and read.json with the answers; buffs_on and buffs_swap answer the measure's Spirit question, the other Spirit buffs becoming switched as needed, each with the groups switch_off lists for it. A first call is refused on a run folder that already holds a read. Either call refuses a run folder whose plan a design step wrote, a tree version the pin lacks, and a document that isn't a PoB2 build; a refusal writes nothing.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1212,9 +1212,15 @@ export function getLuaToolSchemas(): any[] {
             items: { type: "number" },
             description: "Second call: the plan's groups of Spirit buffs moved to the other weapon set",
           },
+          // Departs from Appendix A.7, whose input has no field for it (the coordinator's ruling for M-30, WU-160's fix round):
+          // §14 writes a switched buff's off list as the user confirms it, from the measure's proposal (§15).
+          switch_off: {
+            type: "object",
+            description: "Second call: by a switched buff's plan group number, the plan's groups switched off for it, as the user confirmed them from the measure's proposal (e.g. {\"7\": [4]}); a switched buff without an entry gets none",
+          },
           stand_in: {
             type: "object",
-            description: "Second call: by slot, what a slot whose base the pin lacks holds: an item text, or 'plain base' for the item typed on its plain base",
+            description: "Second call: by slot (or 'Jewel <node>' for a tree jewel), what a slot whose base the pin lacks holds: an item text, or 'plain base' for the item typed on its plain base",
           },
         },
         required: ["run_folder"],

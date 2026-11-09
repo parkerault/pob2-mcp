@@ -7,8 +7,10 @@
  * - Each refusal of §13 is an `isError` that writes nothing: a document that isn't `<PathOfBuilding2>`, a tree version
  *   the pin lacks (and none), a `build_name` that isn't a builds-folder file, a code that doesn't decode or inflates past
  *   16 MiB, a run folder outside the guides root or without `run-log.json`, both or neither of `build_name` and
- *   `import_code` on the first call, an answer on the first call, a changed builds-folder file on the second, a plan a
- *   design step wrote, and an answer naming a group, loadout or slot the file lacks.
+ *   `import_code` on the first call, an answer on the first call, a first call on a run folder that already holds a read
+ *   (WU-160's fix round), a changed builds-folder file on the second, a plan a design step wrote, an answer naming a group,
+ *   loadout or slot the file lacks, and a `switch_off` entry for a group that isn't switched or an `off` number that isn't
+ *   a plan group or is the group itself (`switch_off`: the coordinator's ruling, departing from Appendix A.7).
  * - A copy of the importer fixture on the `0_4` tree asks the tree question: no plan.json until `tree` is answered;
  *   "newest" reads it onto the pin's newest tree, "stop" reads nothing.
  * - The first call keeps `source.xml` (the file's bytes) and its sha1 in `read.json`; neither the builds folder nor the
@@ -135,6 +137,20 @@ describe('AC-W148 (WU-160, D-517): plan_from_build refuses, writing nothing; the
     await refused(rel, { build_name: 'imported-character', main_group: 2 }, /main_group: the first call takes no answer/);
   });
 
+  it('AC-W148: a first call on a run folder that already holds a read is refused: its source.xml, plan.json and read.json stay', async () => {
+    const rel = L.run();
+    expect((await L.call({ run_folder: rel, build_name: 'imported-character' })).isError).toBeFalsy();
+    expect((await L.call({ run_folder: rel, main_group: 4 })).isError).toBeFalsy();
+    const why = /this run folder already holds a read \(compile\/2026-12-01-\d+\/source\.xml\); the second call gives answers only/;
+    await refused(rel, { build_name: 'imported-ninja' }, why);
+    await refused(rel, { import_code: encodePobCode(xml) }, why);
+    expect(L.json(rel, 'read.json').answers).toEqual({ main_group: 4 });
+    // read.json alone, as an earlier read could leave it, also holds the folder.
+    const other = L.run();
+    fs.writeFileSync(path.join(L.guides, other, 'read.json'), '{}\n');
+    await refused(other, { build_name: 'imported-ninja' }, /already holds a read \(compile\/2026-12-01-\d+\/read\.json\)/);
+  });
+
   it('AC-W148: on the second call, a builds-folder file changed since the first read is refused', async () => {
     const rel = L.run();
     fs.copyFileSync(IMPORTER, path.join(L.builds, 'changing.xml'));
@@ -159,6 +175,19 @@ describe('AC-W148 (WU-160, D-517): plan_from_build refuses, writing nothing; the
     await refused(rel, { buffs_on: [5], buffs_swap: [5] }, /group 5 is in both buffs_on and buffs_swap/);
     await refused(rel, { loadout: 'Atlas' }, /loadout "Atlas" isn't a loadout of the file; its loadouts: "Endgame", "Leveling"/);
     await refused(rel, { stand_in: { Helmet: 'plain base' } }, /stand_in names "Helmet", which holds no item on a base the pin lacks; the slots that do: Gloves/);
+  });
+
+  it('AC-W148: switch_off (departing from A.7) is refused for a group that is not switched, an off group the plan lacks or the group itself, and with no Spirit answer', async () => {
+    const rel = L.run();
+    expect((await L.call({ run_folder: rel, build_name: 'imported-character' })).isError).toBeFalsy();
+    await refused(rel, { switch_off: { 7: [4] } }, /switch_off names groups, but no group is switched: buffs_on or buffs_swap answers the Spirit question first/);
+    const buffs = { buffs_on: [5, 6], buffs_swap: [9] };
+    // Groups 2, 7 and 10 are switched; 5 is kept on.
+    await refused(rel, { ...buffs, switch_off: { 5: [6] } }, /switch_off names group 5, which isn't switched: the switched Spirit buffs, neither kept on nor swapped, are 2, 7, 10/);
+    await refused(rel, { ...buffs, switch_off: { 7: [7] } }, /switch_off's group 7 lists itself/);
+    await refused(rel, { ...buffs, switch_off: { 7: [12] } }, /switch_off's group 7 names group 12, which the plan lacks: its groups are 1 to 11/);
+    await refused(rel, { ...buffs, switch_off: { x: [4] } }, /switch_off's key "x" isn't a plan group number/);
+    await refused(rel, { ...buffs, switch_off: { 7: [4, 4] } }, /switch_off's group 7 names a group twice/);
   });
 
   it('AC-W148: a copy of the importer fixture on the 0_4 tree asks the tree question; "newest" reads it, "stop" reads nothing', async () => {

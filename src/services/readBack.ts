@@ -116,7 +116,7 @@ export interface PobFile {
   active: { spec: string; itemSet: string; skillSet: string; configSet: string };
   /** D-517: `<Import>`'s `lastLeague` and `exportParty` when present; nothing else of it (never the character hash). */
   importInfo: { lastLeague?: string; exportParty?: string } | null;
-  /** D-517: whether the party tab holds anything (a child of `<Party>`). */
+  /** D-517: whether the party tab is filled: `<Party>` holds an `<ImportedBuffs>` (never counting `<ExportedBuffs>`). */
   partyFilled: boolean;
   /** D-517: item id → its `<ModRange>` elements, in the file's order. */
   modRanges: Map<string, PobModRange[]>;
@@ -283,8 +283,9 @@ export function parsePobXml(xml: string): PobFile {
           ...(importNode.lastLeague !== undefined ? { lastLeague: str(importNode.lastLeague) } : {}),
           ...(importNode.exportParty !== undefined ? { exportParty: str(importNode.exportParty) } : {}),
         };
-  const partyNode = child(root, 'Party');
-  const partyFilled = partyNode !== undefined && Object.entries(partyNode).some(([k, v]) => typeof v === 'object' && v !== null && k !== '#text');
+  // The party tab is filled when it holds an `<ImportedBuffs>` (what PoB's load reads, `Classes/PartyTab.lua`); an
+  // `<ExportedBuffs>` is the build's own buff export, which PoB's load ignores (:538–550, commented out).
+  const partyFilled = child(root, 'Party')?.ImportedBuffs !== undefined;
   const active = {
     spec: str(child(root, 'Tree')?.activeSpec),
     itemSet: str(itemsNode?.activeItemSet),

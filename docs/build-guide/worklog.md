@@ -8106,3 +8106,31 @@ What the coordinator folded (revision 2, approved):
   rare" (to WU-166, which touches that file next).
 - **WU-165 (`/pob2:writer`) merged** at `807dfab` (fast-forward, three commits on `6750588`). AC-W158 in
   `tests/static/writerPiece.test.ts` and `tests/unit/writerPiece.test.ts`. The build units but WU-166 are merged.
+- **WU-166's phase 2 sent** to its doer: the rebase onto `28f5b9d` (WU-160 to WU-165 merged since its base), the fetch
+  line in the three piece `SKILL.md`s, the phase-1 verifier's two notes (a test of the fresh-restart edge;
+  `overlayNamesLoaded` leaving out entries `Overlay.lua` refuses), WU-165's nit, within the bounds (D1-finish 69,954
+  of 70,327).
+- **WU-166's phase 2** at `b9dfd3f`, rebased onto `28f5b9d` (`7e33417` phase 1, `6bd618e` and `bc4f320` the fix
+  rounds, `b9dfd3f` phase 2): three conflicts, all in the first commit, both sides kept (`start.md`'s resume step;
+  `compiler.ts`'s stage record, WU-161's fields then `overlay`; `record.ts`'s `StageRecord`); the rest auto-merged;
+  the fetch line in the three piece `SKILL.md`s (`leagueFolder` from `guide_run`, `pob2-league-digest --running --out
+  <leagueFolder>` when online, the folder passed to `init`); a test of the fresh-restart edge; `overlayItemNames`
+  keeping only what `Overlay.lua` loads (`socketableLoads`, `uniqueLoads`; a refused soul core in the engine case,
+  the record's `overlay` still the one core); the writer's line 62 matching `guideCantCarry`. Doer's gate rc 0 (274
+  suites, 4,757 tests); `SKILL.md`s: build-guide 323, compile 134, pricing 134, writer 104, game knowledge 126; words
+  loaded D1-finish 70,014 of 70,327 (+4.5%), W1 +4.2%, D2 +3.8%, D1-build +3.7%, D1-gate +3.7%. No other unit's
+  assertion changed. Re-check, with a full gate on the tree of all eight build units, sent to the gate verifier.
+- **WU-166's phase-2 re-check** (the gate verifier) passed `b9dfd3f`: **a full gate from clean on the tree of all eight
+  build units** rc 0 (274 suites, 4,757 tests; the timing step 2 suites, 4 tests), build rc 0. The rebase: the two fix
+  commits identical by `git range-diff`, the phase-1 commit differing only in context its merged neighbours changed;
+  the added and removed lines of `0731969..04dff84` and `28f5b9d..bc4f320` byte-identical (2,462 insertions, 79
+  deletions, 42 files), so nothing of WU-160 to WU-165 was lost; WU-161's record fields still written before `overlay`.
+  Phase 2's checks bite (a piece's fetch line, the fresh-restart flag, the loads filter for socketables and uniques).
+  The 13 pipeline fixtures identical under `cf16e07`'s checker and the head's; the piece and file fixtures under
+  `28f5b9d`'s and the head's; words loaded worst +4.5% (D1-finish 70,014 of 70,327); build-guide's `SKILL.md` 323
+  lines; tools 86, 85 and 79; the HG-12 grant holding (`toolSchemas.ts` changes only `guide_run`'s description).
+  Nits for WU-167: the writer's line 62 omits the Raven-Touched Shard and lacks a noun ("an owned unique's the
+  corruption rule doesn't allow").
+- **WU-166 (the overlay) merged** at `b9dfd3f` (fast-forward, four commits on `28f5b9d`), the last build unit. AC-W159
+  in `tests/unit/leagueOverlay.test.ts`, `tests/integration/leagueOverlay.test.ts` and
+  `tests/static/leagueOverlay.test.ts`.

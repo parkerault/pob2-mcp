@@ -66,16 +66,17 @@ end
 
 -- PG-106's rule (D-510, the game's): an enabled group counts against the skill slots when its first enabled active gem
 -- (not a support) is granted by neither an item nor the tree; a group with no enabled active gem counts nothing. A
--- group marked switched counts as if enabled. PoB counts a group once any enabled gem in it isn't granted, supports
--- included (Classes/SkillsTab.lua:1577-1582).
+-- gem PoB can't resolve (no granted effect: a gem id the pin lacks, as in a file a newer PoB saved) is an ungranted
+-- active gem, as PoB and the game count it. A group marked switched counts as if enabled. PoB counts a group once any
+-- enabled gem in it isn't granted, supports included (Classes/SkillsTab.lua:1577-1582).
 function M.gem_group_count(groups)
   local count = 0
   for _, group in ipairs(groups or {}) do
     if group.enabled or group[M.SWITCHED] then
       for _, gem in ipairs(group.gemList or {}) do
         local effect = gem.grantedEffect or (gem.gemData and gem.gemData.grantedEffect)
-        if gem.enabled and effect and not effect.support then
-          if not (gem.fromItem or gem.fromTree or effect.fromItem or effect.fromTree) then count = count + 1 end
+        if gem.enabled and not (effect and effect.support) then
+          if not (gem.fromItem or gem.fromTree or (effect and (effect.fromItem or effect.fromTree))) then count = count + 1 end
           break
         end
       end

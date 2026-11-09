@@ -75,8 +75,8 @@ engineDescribe('AC-W134 (WU-152): the gem-group recount, by the game\'s rule (D-
     return reply.result as T;
   };
 
-  const load = async (file: string): Promise<void> => {
-    const reply = await engine.request('load_build_xml', { xml: fixture(file), name: file }, { timeoutMs: 120_000 });
+  const load = async (file: string, xml: string = fixture(file)): Promise<void> => {
+    const reply = await engine.request('load_build_xml', { xml, name: file }, { timeoutMs: 120_000 });
     expect({ file, ok: reply.ok, error: reply.error }).toEqual({ file, ok: true, error: undefined });
   };
 
@@ -139,6 +139,45 @@ engineDescribe('AC-W134 (WU-152): the gem-group recount, by the game\'s rule (D-
     ENGINE_TIMEOUT,
   );
 
+  it(
+    "a group whose only gem PoB can't resolve (a gem id the pin lacks) counts, as PoB's own count counts it: 10 with the nine plain groups",
+    async () => {
+      // The first fixture with the Purity copy replaced by a group holding one gem the pinned data doesn't have, as a
+      // file a newer PoB saved would hold.
+      const xml = fixture('pg106-purity-copy.xml').replace(
+        /\t\t\t<Skill label="Purity of Ice copy"[\s\S]*?<\/Skill>\n/,
+        '\t\t\t<Skill label="Unknown" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">\n' +
+          '\t\t\t\t<Gem gemId="Metadata/Items/Gems/SkillGemNotInThePin" nameSpec="Not In The Pin" level="1" quality="0" enabled="true"/>\n' +
+          '\t\t\t</Skill>\n',
+      );
+      expect(xml).toContain('label="Unknown"');
+      expect(xml).not.toContain('Purity of Ice copy');
+      const counts: Record<string, number | undefined> = {};
+      try {
+        for (const side of ['patched', 'pob'] as const) {
+          if (side === 'pob') expect(await evalLua<boolean>(`return require('API.Patches').revert('PG-106')`)).toBe(true);
+          await load('pg106-unknown-gem.xml', xml);
+          const { count } = await measure();
+          if (side === 'patched') {
+            const unknown = await evalLua<{ gems: number; resolved: boolean }>(`
+              for _, g in ipairs(build.skillsTab.socketGroupList) do
+                if g.label == 'Unknown' then
+                  local gem = g.gemList[1]
+                  return { gems = #g.gemList, resolved = (gem.gemData or gem.grantedEffect) ~= nil }
+                end
+              end`);
+            expect(unknown).toEqual({ gems: 1, resolved: false });
+          }
+          counts[side] = count.groups;
+        }
+      } finally {
+        await evalLua(`require('API.Patches').apply('PG-106') return true`);
+      }
+      expect(counts).toEqual({ patched: 10, pob: 10 });
+    },
+    ENGINE_TIMEOUT,
+  );
+
   describe('with the patch reverted', () => {
     let pobOwn: number | undefined;
 
@@ -162,6 +201,8 @@ engineDescribe('AC-W134 (WU-152): the gem-group recount, by the game\'s rule (D-
     it(
       "with the patch reverted, PoB's own count of the first fixture is 10 (if this fails, PoB no longer counts a granted skill's supports: remove PG-106's entry from pob-api/API/Patches.lua)",
       () => {
+        // Unset only when the case before failed, which carries the setup error (D-509): this case asserts the bug alone.
+        if (pobOwn === undefined) return;
         expect(pobOwn).toBe(10);
       },
     );

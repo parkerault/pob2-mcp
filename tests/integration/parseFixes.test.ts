@@ -140,7 +140,8 @@ engineDescribe("AC-P95 (WU-139): the bridge's parse fix for Crystalline Phylacte
   );
 
   // D-509: the retirement test's "bug still present" case holds only its assertion, so a setup error fails the case
-  // before it, never that one (amendment 16 §5); PG-103's entry names it as its `test`.
+  // before it and not this one, which returns when the setup left nothing to assert on (amendment 16 §5); PG-103's
+  // entry names it as its `test`.
   describe('with the fix list off', () => {
     let off: { cached: Parse; parsed: Parse; rubies: Array<{ asc: string; armourInc: number; nodeJewelEffect: number }> } | undefined;
 
@@ -185,6 +186,8 @@ engineDescribe("AC-P95 (WU-139): the bridge's parse fix for Crystalline Phylacte
     it(
       "with the fix list off, PoB's own parse of the line leaves a remainder and the Ruby counts once in 17788 (if this fails, PoB parses the line itself: remove PG-103's entry from pob-api/API/ParseFixes.lua)",
       () => {
+        // Unset only when the case before failed, which carries the setup error (D-509): this case asserts the bug alone.
+        if (!off) return;
         // Each parse leaves a remainder and gives no SocketedJewelEffect, so the node adds nothing and the Ruby in 17788
         // counts as in a main-tree socket.
         const reading = (source: string, parse: Parse) => ({
@@ -192,7 +195,7 @@ engineDescribe("AC-P95 (WU-139): the bridge's parse fix for Crystalline Phylacte
           remainder: typeof parse.extra === 'string' && parse.extra.trim().length > 0,
           jewelEffect: (parse.list ?? []).some((m) => m.name === 'SocketedJewelEffect'),
         });
-        expect(off && { parses: [reading('ModCache.lua', off.cached), reading('ModParser', off.parsed)], rubies: off.rubies }).toEqual({
+        expect({ parses: [reading('ModCache.lua', off.cached), reading('ModParser', off.parsed)], rubies: off.rubies }).toEqual({
           parses: [
             { source: 'ModCache.lua', remainder: true, jewelEffect: false },
             { source: 'ModParser', remainder: true, jewelEffect: false },

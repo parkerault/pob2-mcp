@@ -192,7 +192,7 @@ M-21's to M-29's formats stay in force where M-30 doesn't change them.
     user to paste into PoB.
   - **Room:** words loaded are near their bounds (D1-finish 70,014 of 70,327; W1 +4.2%), so a fix from a real case that
     adds stage text trims elsewhere. The always-on cost is about 2,882 tokens (R-115).
-  - **HG-8:** the words-loaded baseline's `since` entries (`measure` at `6b4020b`, `price` at `3ac345d`) and every lane
+  - **HG-8:** the words-loaded baseline's `since` entries (`measure` at `c70a56c`, `price` at `8e02ba7`) and every lane
     commit the work-log, the spine and slices 01 to 07 cite are remapped to the signed commits, or a fresh clone's
     test fails.
   - **PG-116:** Earthquake Aftershock's area figure moves with the engine's memory layout; a golden value of it can

@@ -208,7 +208,7 @@ describe('AC-W155 (WU-163, D-520): pricing.md moved to the pricing piece', () =>
     expect(fs.existsSync(path.join(REPO, ...OLD))).toBe(false);
   });
 
-  it('its text is unchanged but for paths: the sha1 at the base, b437f8e, once each path to it is put back', () => {
+  it('its text is unchanged but for paths: the sha1 at the base, 99c8905, once each path to it is put back', () => {
     const text = read('skills', 'pricing', 'references', 'pricing.md').split('skills/pricing/references/pricing.md').join(OLD.join('/'));
     expect(crypto.createHash('sha1').update(text).digest('hex')).toBe('9f5970876659c79f446fb7bfc2b41c0fa3f68e66');
   });

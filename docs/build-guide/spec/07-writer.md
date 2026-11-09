@@ -161,7 +161,7 @@ test compares the guides root and a builds folder by sha1.
   line for it, and the checker's `switched-buffs` fails a guide without it. Unit and static tests:
   `tests/unit/fileRun.test.ts` ("AC-W157 (WU-164, D-518, §14): a guide writes one line per buff switched as needed")
   and `tests/static/fileRun.test.ts` ("AC-W157 (WU-164, D-518, §14): the designers keep a buff switched as needed, and
-  the guide writes its line"). **Holds** (WU-164, merged at `8fe1c0f`).
+  the guide writes its line"). **Holds** (WU-164, merged at `7e66ded`).
 - **AC-W158 (`/pob2:writer`; WU-165).** `skills/writer/SKILL.md` exists with fewer than 150 lines, frontmatter `name`
   and `description` only, at most 1,536 characters, quoting at least two requests in a player's words; a fixture writer
   run on a fixture file run's folder passes the checker, its guide and audit in its own folder and none in the source;
@@ -171,7 +171,7 @@ test compares the guides root and a builds folder by sha1.
   task header's source and the run log's refusal") and `tests/unit/writerPiece.test.ts` (a writer run on a fixture file
   run's folder; `init`'s refusals; a writer run on a better round's source; a writer run writes only its own folder;
   the renders read a writer run's source), on the fixtures `tests/fixtures/pieces/writer-file-run` (on WU-164's fixture
-  file run) and `writer-better-run` (on WU-162's better round). **Holds** (WU-165, merged at `807dfab`).
+  file run) and `writer-better-run` (on WU-162's better round). **Holds** (WU-165, merged at `74cf4c2`).
 - **AC-W160 (the pieces' real cases; WU-168, after M-30), the writer's part.** The work-log records the writer run of
   §6: the request in a player's words and the command it started, the `pob2:` types started and their tool calls, the
   run folder, what it wrote against §6's expected result, and the source's files unchanged. Recorded. **Open** until
@@ -187,7 +187,7 @@ the coordinator remaps them to the signed commits at HG-8.
 
 ### WU-165: `/pob2:writer`
 - kind: build
-- status: built (three commits on `6750588`, one a fix round; merged at `807dfab`)
+- status: built (three commits on `8c73c4a`, one a fix round; merged at `74cf4c2`)
 - depends-on: [WU-164]
 - touches: [`skills/writer/SKILL.md` (new), `skills/build-guide/references/stages/W1.md` (its writer section),
   `task-header.md` (`source`), `run-log.md`, `skills/build-guide/scripts/render-audit.mjs` and `render-notes.mjs`
@@ -208,7 +208,7 @@ the coordinator remaps them to the signed commits at HG-8.
 
 ### WU-164: a guide from a file (the guide's part)
 - kind: build
-- status: built (four commits on `73cf7a1`, two of them fix rounds; merged at `8fe1c0f`)
+- status: built (four commits on `ab635bb`, two of them fix rounds; merged at `7e66ded`)
 - depends-on: [WU-162, WU-163]
 - touches (the guide's part): [`skills/build-guide/references/stages/W1.md` (the switched-buff and quality lines),
   `skills/build-guide/templates/guide-template.md` and `guide-endgame-template.md` (the same lines, the "When you're

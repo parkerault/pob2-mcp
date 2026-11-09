@@ -203,7 +203,7 @@ display. Nothing goes into the builds folder, and the player's file is never wri
   `tests/integration/pricingRun.test.ts` (the fixture runs online through `fixtureFetch` and offline, on the hand-built
   `tests/fixtures/builds/pricing-character.xml`, the resume after a stop and the server's real pace among them), with
   the fixture `tests/fixtures/pieces/pricing-run`. All HTTP goes through `fixtureFetch`, which throws on an unmatched
-  URL; no trade or poe.ninja request was made (WL:7806–7807, :7871–7872). **Holds** (WU-163, merged at `56e9e22`).
+  URL; no trade or poe.ninja request was made (WL:7806–7807, :7871–7872). **Holds** (WU-163, merged at `0dc4456`).
 - **AC-W160 (the pieces' real cases; WU-168, after M-30), pricing's part.** The work-log records, for each pricing run
   of §6: the request in a player's words and the command it started, the `pob2:` types started and their tool calls,
   the run folder, what it priced against §6's expected results, and the source's sha1 in `read.json` equal to its
@@ -220,8 +220,8 @@ the coordinator remaps them to the signed commits at HG-8.
 
 ### WU-163: `/pob2:pricing`
 - kind: build
-- status: built (four commits on `327fefd`: the feature, its words-loaded entry, a fix round and phase 2; merged at
-  `56e9e22`)
+- status: built (four commits on `2a8afe5`: the feature, its words-loaded entry, a fix round and phase 2; merged at
+  `0dc4456`)
 - depends-on: [WU-159, WU-161; phase 2 after WU-162]
 - touches: [`skills/pricing/` (new: `SKILL.md`, `references/stages/price.md`; `references/pricing.md` moved from
   `skills/build-guide/references/`), every file naming the old path (build-guide's `SKILL.md`, `start.md`,

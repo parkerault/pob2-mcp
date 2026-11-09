@@ -257,7 +257,7 @@ WL:7848–7853, :7892–7893). It never writes the user's file: the reader keeps
   asks the tree question; the first call keeps `source.xml` and its sha1; neither the builds folder nor the source
   changes. MCP and unit tests: `tests/mcp/planFromBuild.test.ts` ("AC-W148 (WU-160, D-517): plan_from_build is listed
   as the 86th tool"; "… refuses, writing nothing; the first call keeps source.xml"). **Holds** (WU-160, merged at
-  `9ca04ce`).
+  `3f889b0`).
 - **AC-W149 (the reader on the fixtures; WU-160).** By name and by code the importer fixture gives the same plan but
   `source`, each rule of a16 §13 met on its case; the plan passes schema 11; the poe.ninja fixture gives its main group
   as set, no `importLeague`, set 2 and its untitled spec; neither fixture holds a character hash or account name. Unit
@@ -274,7 +274,7 @@ WL:7848–7853, :7892–7893). It never writes the user's file: the reader keeps
   Engine and unit tests: `tests/integration/compileReadPlan.test.ts` ("AC-W151, AC-W152 (WU-161): compile_plan on a read
   plan", its AC-W151 blocks, callout (a)'s among them) and `tests/unit/readPlanCompile.test.ts` (its AC-W151 blocks, the
   checker's rules on owned content). The probe's compile half is recorded at WL:7670–7679. **Holds** (WU-161, merged at
-  `122a89a`).
+  `594191f`).
 - **AC-W152 (switched buffs; WU-161).** A stage with one switched group measures with it off and marks it for the
   recount; the record's `switches` holds its set with its `off` groups off, measured on set 2 on a stage using set 2; V1
   reports `switched-spirit` for a switch that leaves Spirit below 0 and nothing for one that fits; a stage without
@@ -285,7 +285,7 @@ WL:7848–7853, :7892–7893). It never writes the user's file: the reader keeps
   `runner-rules.md` first; `measure.md` holds a16 §15's parts; the coordinator's step table names `measure`; game
   knowledge's description names the three new commands; every root-folder path resolves. Static test:
   `tests/static/compileSkill.test.ts` ("AC-W153 (WU-162, D-519): skills/compile/SKILL.md"; "… the measure step's
-  reference holds §15's parts"). **Holds** (WU-162, merged at `91a39df`; 134 lines after WU-163's and WU-166's lines).
+  reference holds §15's parts"). **Holds** (WU-162, merged at `fda5b5d`; 134 lines after WU-163's and WU-166's lines).
 - **AC-W154 (the better round; WU-162).** D1-build, D1-tree, D1-finish and D1-gate each hold a `scope: "better"`
   section; a fixture compile run with a better round (offline) passes the checker, its D1 loop in order; the checker
   fails a planted round whose missed target isn't shown as a finding; its design display names the draft first; no file
@@ -312,7 +312,7 @@ the coordinator remaps them to the signed commits at HG-8. The units' order is t
 
 ### WU-160: `plan_from_build`, the file reader
 - kind: build
-- status: built (two commits on `0731969`, one a fix round; merged at `9ca04ce`)
+- status: built (two commits on `7150437`, one a fix round; merged at `3f889b0`)
 - depends-on: [M-29]
 - touches: [`src/services/fileReader.ts` (new), `src/services/readBack.ts` (the parser's fields),
   `src/handlers/planFromBuildHandlers.ts` (new), `src/handlers/planHandlers.ts`, `src/server/toolSchemas.ts`,
@@ -337,7 +337,7 @@ the coordinator remaps them to the signed commits at HG-8. The units' order is t
 
 ### WU-161: the compile on a read plan
 - kind: build
-- status: built (two commits on `9baf7b2`, one a fix round; merged at `122a89a`)
+- status: built (two commits on `5abe462`, one a fix round; merged at `594191f`)
 - depends-on: [WU-160; merged after WU-159]
 - touches: [`src/plan/compiler.ts`, `src/plan/record.ts`, `src/plan/checks/v1.ts`, `src/plan/checks/v2.ts`,
   `src/engine/schemas.ts`, `src/handlers/planHandlers.ts`, `docs/build-guide/plan-reference.md`,
@@ -362,7 +362,7 @@ the coordinator remaps them to the signed commits at HG-8. The units' order is t
 
 ### WU-162: `/pob2:compile`
 - kind: build
-- status: built (four commits on `b437f8e`, one a fix round; merged at `91a39df`)
+- status: built (four commits on `99c8905`, one a fix round; merged at `fda5b5d`)
 - depends-on: [WU-159, WU-161]
 - touches: [`skills/compile/` (new: `SKILL.md`, `references/stages/measure.md`), `agents/build-guide-coordinator.md`
   (the `measure` row), `skills/build-guide/references/stages/D1-build.md`, `D1-tree.md`, `D1-finish.md`, `D1-gate.md`,

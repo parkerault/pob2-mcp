@@ -261,7 +261,7 @@ Amendment 16's M-29 criteria for this piece (a16 §25):
 Amendment 16's M-30 criteria for this piece (a16 §25):
 - **AC-W153 (`/pob2:compile`; WU-162), game knowledge's part.** Game knowledge's description names the three new
   commands. Static test: `tests/static/compileSkill.test.ts`, with `tests/static/amendment15GameKnowledge.test.ts`'s
-  AC-W124 description check, which follows it. **Holds** (WU-162, merged at `91a39df`).
+  AC-W124 description check, which follows it. **Holds** (WU-162, merged at `fda5b5d`).
 - **AC-W159 (the overlay; WU-166), game knowledge's part.** From fixture pages the digest script writes a16 Appendix
   A.11's sidecar, with `type` and `statOrder`s; `rune-slots.json` maps every in-pin socketable label of
   `runes-of-aldur.md` to `Data/ModRunes.lua`'s keys; a retired entry is reported by `--reflag`; `--running` runs only
@@ -271,7 +271,7 @@ Amendment 16's M-30 criteria for this piece (a16 §25):
   `tests/unit/leagueOverlay.test.ts` (the sidecar from fixture pages; `--running`; the `bin/` command runs `--running`
   alone; a user-side digest reaches `init` and the header), `tests/static/leagueOverlay.test.ts` (`rune-slots.json`
   against the pinned corpus; the fifth command and the runner's lines) and `tests/unit/leagueDigest.test.ts`. The
-  server's part, the engine tests, is slice 01's note. **Holds** (WU-166, merged at `b9dfd3f`).
+  server's part, the engine tests, is slice 01's note. **Holds** (WU-166, merged at `857f34a`).
 - **AC-W161 (M-30's documents; WU-167).** Slices 05, 06 and 07 exist with this slice's headings; slice 03 carries a16
   §21's notes; the spine names C-61 to C-66; `specSpine.test.ts` passes; the gate's verifier records the rows built
   and the status line "Folded through amendment 16". Static tests: `tests/static/amendment16Docs.test.ts` (its AC-W161
@@ -400,7 +400,7 @@ the signed commits at HG-8). The units' order is the spine's M-28, M-29 and M-30
 
 ### WU-162: `/pob2:compile` (game knowledge's part)
 - kind: build
-- status: built (four commits on `b437f8e`, one a fix round; merged at `91a39df`)
+- status: built (four commits on `99c8905`, one a fix round; merged at `fda5b5d`)
 - depends-on: [WU-159, WU-161]
 - touches (this piece's part): [`skills/game-knowledge/SKILL.md` (the description's three commands, the "Stay on the
   question" bullet), `tests/static/amendment15GameKnowledge.test.ts` (the AC-W124 description check)]
@@ -412,7 +412,7 @@ the signed commits at HG-8). The units' order is the spine's M-28, M-29 and M-30
 
 ### WU-166: the overlay (game knowledge's part)
 - kind: build
-- status: built (four commits on `28f5b9d`: phase 1, two fix rounds and phase 2; merged at `b9dfd3f`)
+- status: built (four commits on `9331522`: phase 1, two fix rounds and phase 2; merged at `857f34a`)
 - depends-on: [WU-159; merged after WU-165]
 - touches (this piece's part): [`skills/game-knowledge/scripts/league-digest.mjs` (the sidecar, `--running`,
   `--command`), `overlay.mjs` (new), `leagues.mjs` (`--league`), `data/league/rune-slots.json` (new), `bin/pob2-league-digest`

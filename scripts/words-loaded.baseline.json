@@ -262,7 +262,7 @@
   },
   "since": {
     "measure": {
-      "commit": "6b4020b",
+      "commit": "c70a56c",
       "words": 25947,
       "files": [
         "agents/build-guide-coordinator.md",
@@ -279,7 +279,7 @@
       ]
     },
     "price": {
-      "commit": "3ac345d",
+      "commit": "8e02ba7",
       "words": 24729,
       "files": [
         "agents/build-guide-coordinator.md",

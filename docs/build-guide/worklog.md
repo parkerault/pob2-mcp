@@ -7471,7 +7471,7 @@ What the coordinator folded (revision 2, approved):
   both waiver files `[]`.
 - **Wave 1 dispatched:** WU-159 (piece runs, lane `bg-159`) and WU-160 (`plan_from_build`, lane `bg-160`), one brief
   for every M-30 unit.
-- **WU-159's doer** finished at `3ecc5bf` on `bg/wu-159` (0.59M subagent tokens). Its own gate rc 0 (258 suites, 4,436
+- **WU-159's doer** finished at `7ae02fa` on `bg/wu-159` (0.59M subagent tokens). Its own gate rc 0 (258 suites, 4,436
   tests; the timing step 2 suites, 4 tests), build rc 0. AC-W145…AC-W147 in `tests/unit/pieceRuns.test.ts` and
   `tests/static/pieceRuns.test.ts`; the 13 pipeline fixtures' checker output identical to the base's; every stage
   within 5% (D2 +1.8%). **AC-W162's list, WU-159** (each forced by D-516): skill revision 16's init and resume pins in
@@ -7528,7 +7528,7 @@ What the coordinator folded (revision 2, approved):
   name equals the source's", and finding 3 (the design display's invitation in a compile run names the pipeline's guide
   and verification gate, and the checkpoint accepts `verification` and `accept:file`; AC-W154's "names the draft
   first"). Every other deviation accepted.
-- **WU-159's gate verifier** (fresh context) **failed `3ecc5bf`** on one finding, the review's (2): a compile run stopped
+- **WU-159's gate verifier** (fresh context) **failed `7ae02fa`** on one finding, the review's (2): a compile run stopped
   at `place` passes with pricing's rules filtered out (probe: a `place` with `rate_limited`, then a second `place`
   pricing without a resume, checker "ok"; with the filter off, `nfr-22`, `pricing` and two `offline-prices`). Otherwise:
   gate from clean rc 0 (258 suites, 4,436 tests, none skipped; the timing step 2 suites, 4 tests), build rc 0; twelve
@@ -7567,7 +7567,7 @@ What the coordinator folded (revision 2, approved):
   caller (`guide_run`, `planHandlers.ts`:757) unchanged byte for byte. Notes: `switch.off` (ruled above); a stand-in is
   `owned` too, so §15's exemptions cover text the user types (for WU-167's slice notes). **Fix round** sent to the doer:
   the review's 1 to 3 and `switch_off`.
-- **WU-159's fix round** at `fa92de7` (one commit on `3ecc5bf`): `place` counted by `pieceTags` (three tests: a stop at
+- **WU-159's fix round** at `7063d5c` (one commit on `7ae02fa`): `place` counted by `pieceTags` (three tests: a stop at
   `place` fails `nfr-22`, pricing again before a resume fails `pricing`, an offline `place` with trade calls fails
   `offline-prices`); `final-build.xml` and `readback.json` in the compile run's files, A.6's omission stated (a pricing
   run still fails `layout` on them); the withdrawal takes `file` in the `withdrawn` entry, `withdrawals[]` and, one more
@@ -7575,17 +7575,17 @@ What the coordinator folded (revision 2, approved):
   fails); `run-log.md`'s `sha1` at `init`; synthetic sample names; `pob2-render-notes` without `--build` on a non-piece
   folder back to the usage error, rc 2 (the one changed assertion, in the unit's own new test file). Doer's gate rc 0
   (258 suites, 4,441 tests). Targeted re-check sent to the gate verifier.
-- **WU-159's targeted re-check** (the gate verifier) passed `fa92de7`: build rc 0; the four targeted suites (468
+- **WU-159's targeted re-check** (the gate verifier) passed `7063d5c`: build rc 0; the four targeted suites (468
   tests); each fix's test fails with its fix reverted in a temporary copy (`place` out of `pieceTags`, F1's two files
   out of or into pricing's list, each of the three withdrawal sites card-only, `withdrawals[]` taking `file` in any
   run, the `pieceRunAt` guard removed); AC-W162's one changed assertion forced by fix 6; the 13 fixtures identical;
-  nothing outside the unit's scope. Its full gate at `3ecc5bf` stands for the rest.
-- **WU-159 (piece runs) merged** at `fa92de7` (fast-forward, two commits on `9f00715`). AC-W145…AC-W147 in
+  nothing outside the unit's scope. Its full gate at `7ae02fa` stands for the rest.
+- **WU-159 (piece runs) merged** at `7063d5c` (fast-forward, two commits on `9f00715`). AC-W145…AC-W147 in
   `tests/unit/pieceRuns.test.ts` and `tests/static/pieceRuns.test.ts`.
-- **WU-166 dispatched** (the overlay, lane `bg-166` off `0731969`), in two phases: phase 1 now, everything but the
+- **WU-166 dispatched** (the overlay, lane `bg-166` off `7150437`), in two phases: phase 1 now, everything but the
   three piece `SKILL.md`s' fetch lines (those files come with WU-162, WU-163 and WU-165), verified and reviewed; phase
   2 after WU-165 merges, the rebase and those lines, re-checked.
-- **WU-160's fix round** (`62de2ef`, rebased by the coordinator onto `0731969` as `9ca04ce`, no conflict): a first call
+- **WU-160's fix round** (`62de2ef`, rebased by the coordinator onto `7150437` as `3f889b0`, no conflict): a first call
   on a folder holding `source.xml` or `read.json` refused, writing nothing (the earlier answers survive); `partyFilled`
   by `<ImportedBuffs>` only; a tree jewel on a base the pin lacks asked as `stand_in.Jewel <node>` (`standIn` on the
   tree-jewel schema, as A.5 lists it), an older tree's jewel whose node the newest tree lacks named in `left` with its
@@ -7596,16 +7596,16 @@ What the coordinator folded (revision 2, approved):
   suites, 4,462 tests). **The probe re-run at this head:** the read results unchanged, all three plans pass `guide_run
   {validate}`, sha1s unchanged. Re-check sent to the gate verifier: the fix diff, and a full gate on the rebased tree
   (the first holding WU-159 and WU-160).
-- **WU-160's re-check** (the gate verifier) passed `9ca04ce`: gate from clean rc 0 (260 suites, 4,485 tests; the
+- **WU-160's re-check** (the gate verifier) passed `3f889b0`: gate from clean rc 0 (260 suites, 4,485 tests; the
   first tree holding WU-159 and WU-160), build rc 0; the feature patch unchanged by the rebase but one hunk offset;
   each of the four fixes' tests fails with its fix broken in a temporary copy (each `switch_off` refusal on its own);
   no existing assertion changed; the 13 fixtures pass; words loaded max +1.9%; waivers `[]`. The doer's two unasked
   behaviours judged right (stale group numbers would point at the wrong groups). **One untested line:** a loadout change
   clearing `switch_off` (removing it leaves all 41 tests passing); its test goes to WU-161, which works on the switched
   buffs next.
-- **WU-160 (`plan_from_build`, the file reader) merged** at `9ca04ce` (fast-forward, two commits on `0731969`). AC-W148
+- **WU-160 (`plan_from_build`, the file reader) merged** at `3f889b0` (fast-forward, two commits on `7150437`). AC-W148
   in `tests/mcp/planFromBuild.test.ts`, AC-W149 in `tests/unit/planFromBuildReader.test.ts`, AC-W150 recorded above.
-- **WU-161 dispatched** (the compile on a read plan, lane `bg-161` off `9baf7b2`), with M-29's binding facts (owned
+- **WU-161 dispatched** (the compile on a read plan, lane `bg-161` off `5abe462`), with M-29's binding facts (owned
   items skip `NormaliseQuality`, the granted copy's quality, the switched mark), WU-160's notes (Bloodlust and the
   owned-legacy exemption, `switch_off`) and the loadout-change test, and the probe's compile half on the two
   characters.
@@ -7616,7 +7616,7 @@ What the coordinator folded (revision 2, approved):
   `bin/` command runs `--running` only and refuses the other modes (maintainers keep `node
   skills/game-knowledge/scripts/league-digest.mjs …`, which no allow rule names), and `--running` writes only inside
   the league folder its `--out` names (an existing folder named `league`), with a test for each refusal.
-- **WU-166's doer, phase 1,** finished at `3509c5e` on `bg/wu-166` (one commit on `0731969`; 0.54M subagent tokens).
+- **WU-166's doer, phase 1,** finished at `3509c5e` on `bg/wu-166` (one commit on `7150437`; 0.54M subagent tokens).
   Its own gate rc 0 (261 suites, 4,476 tests; the timing step 2 suites, 4 tests), build rc 0; words loaded max +2.1%
   (D2); build-guide's `SKILL.md` 318 lines. AC-W159 in `tests/unit/leagueOverlay.test.ts`,
   `tests/integration/leagueOverlay.test.ts` and `tests/static/leagueOverlay.test.ts` (the overlay soul core measured
@@ -7662,7 +7662,7 @@ What the coordinator folded (revision 2, approved):
   `bin/` command `--running` only and `--out` an existing `league` folder outside the plugin root, failed fetches
   recorded per UTC day, the three clauses, `Overlay.lua`'s checks, the lookups' limits, `socketableType` against the
   pin's 287, the nits; each with a test.
-- **WU-161's doer** finished at `796be2e` on `bg/wu-161` (one commit on `9baf7b2`; 0.64M subagent tokens). Its own gate
+- **WU-161's doer** finished at `70786bb` on `bg/wu-161` (one commit on `5abe462`; 0.64M subagent tokens). Its own gate
   rc 0 (262 suites, 4,519 tests; the timing step 2 suites, 4 tests), build rc 0. AC-W151 in
   `tests/integration/compileReadPlan.test.ts` (10 engine tests) and `tests/unit/readPlanCompile.test.ts` (a real
   `check-run` on a better-round copy passes the six owned exemptions with the marks and fails all six without);
@@ -7730,7 +7730,7 @@ What the coordinator folded (revision 2, approved):
   dropped; fresh now also needs `engineHoldsNewBuild` (set on a first start and recovery's no-snapshot path, cleared
   once a build is restored). Targeted suites rc 0 (`tests/unit` and `tests/static` 141 suites, 3,005 tests; the
   session suites). Re-check of the session's states sent to the gate verifier.
-- **WU-161's gate verifier** (fresh context) **failed `796be2e`** on AC-W151's "every exemption of §15 exercised":
+- **WU-161's gate verifier** (fresh context) **failed `70786bb`** on AC-W151's "every exemption of §15 exercised":
   `compile_check`'s refusal of a unique PoB marks unobtainable (D-384), exempted for an owned item
   (`Compile.lua`:1115) and tree jewel (:1089), is untested (both exemptions removed, all 15 engine tests pass), the
   review's (4). Otherwise: gate from clean rc 0 (262 suites, 4,519 tests; the timing step 2 suites, 4 tests), build
@@ -7752,7 +7752,7 @@ What the coordinator folded (revision 2, approved):
   change, then a sidecar change keeps level 44. No path where a stale flag drops a build. For phase 2: a test of the
   fresh-restart edge (setting the first-start flag false passes every test); `overlayNamesLoaded` reads the files in
   Node, so an entry `Overlay.lua` refuses would still be named in a record.
-- **WU-161's fix round** at `122a89a` (one commit on `796be2e`): the unobtainable unique's owned exemption tested
+- **WU-161's fix round** at `594191f` (one commit on `70786bb`): the unobtainable unique's owned exemption tested
   (Thunderstep in Boots, and a unique jewel carrying its own `Source: No longer obtainable` line, since PoB2's data marks
   no jewel so; marked measured, unmarked refused with the two defects); `record-verdicts` leaving out `from-file`
   findings; callout (a) as V2's `unproduced-state`; the D1 gate's band from `measures.ehp` on a stage naming `source`
@@ -7765,7 +7765,7 @@ What the coordinator folded (revision 2, approved):
   read through `debug.getupvalue` (`Compile.lua` `invalid_options`), fail-closed if a release renames it; its engine
   test then fails at the pin. A partial stand-in: inputs PoB doesn't gate (charges, "enemy Chilled") get no callout,
   and a disabled skill's option still counts as valid. Re-check sent to the gate verifier.
-- **WU-161's re-check** (the gate verifier) passed `122a89a`: 4 suites, 133 tests, build rc 0; each fix's test fails
+- **WU-161's re-check** (the gate verifier) passed `594191f`: 4 suites, 133 tests, build rc 0; each fix's test fails
   with it removed (each exemption on its own, the `from-file` filter, `invalid_options` returning nothing, each band
   site on its own, the piece limit, the set switch); the bridge's `invalid_options` only reads (PoB's show predicate,
   `ConfigTab.lua`:214–270, and `GetDefaultState`), and makes no call on a plan without a read stage (0 calls across the
@@ -7776,20 +7776,20 @@ What the coordinator folded (revision 2, approved):
   gives 1.8 again, as does the old code at another path: PoB's figure moves with the engine's memory layout (an
   iteration order, likely), not with the unit's logic. For WU-167: a `pob-gaps.md` entry, noted against the golden
   values; no test pins it.
-- **WU-161 (the compile on a read plan) merged** at `122a89a` (fast-forward, two commits on `9baf7b2`). AC-W151 in
+- **WU-161 (the compile on a read plan) merged** at `594191f` (fast-forward, two commits on `5abe462`). AC-W151 in
   `tests/integration/compileReadPlan.test.ts` and `tests/unit/readPlanCompile.test.ts`, its probe recorded above;
   AC-W152 in the same files.
-- **WU-162 and WU-163 dispatched** in parallel off `b437f8e` (lanes `bg-162`, `bg-163`), each owning its skill folder.
+- **WU-162 and WU-163 dispatched** in parallel off `99c8905` (lanes `bg-162`, `bg-163`), each owning its skill folder.
   WU-162 carries the reviews' items: `checkFlow4`'s D1-loop order for a compile run with a better round, F1's "no file
   name equals the source's", the design display's piece-run invitation and narrower answers, the `interview` rule for
   a better round's notes, `measure.md` passing `switch_off`. **The coordinator's call on the callouts:** since
   `unproduced-state` covers only the inputs PoB gates, `measure.md` has the measure also judge the ungated ones
   (charges, enemy conditions) by what the build produces, beside (b) and (c), none changed. WU-163 in two phases:
   phase 1 all but the coordinator's `price` row and compile's placement line, added after WU-162 merges.
-- **WU-162's doer** finished at `084851a` on `bg/wu-162` (three commits on `b437f8e`; 0.66M subagent tokens). Its own
+- **WU-162's doer** finished at `9efb190` on `bg/wu-162` (three commits on `99c8905`; 0.66M subagent tokens). Its own
   gate rc 0 (264 suites, 4,558 tests; the timing step 2 suites, 4 tests), build rc 0; `skills/compile/SKILL.md` 120
   lines, build-guide's 317, game knowledge's 126; words loaded max +2.3% (D2), the D1 stages +0.7% to +2.0%; the new
-  `since.measure` entry names the lane commit `6b4020b` (remapped at signing). AC-W153 in
+  `since.measure` entry names the lane commit `c70a56c` (remapped at signing). AC-W153 in
   `tests/static/compileSkill.test.ts`; AC-W154 in `tests/unit/compileBetterRound.test.ts` (16 tests; skipping
   `checkFlow4` again fails 8) and the static better-scope tests; the fixture `tests/fixtures/pieces/compile-better-run`.
   The 13 pipeline and 4 piece fixtures' checker output byte-identical at base and head. **AC-W162's list, WU-162:**
@@ -7802,7 +7802,7 @@ What the coordinator folded (revision 2, approved):
   with `compile: "none"` writes only the file card; the place step names pricing's placement without a path (WU-163).
   **For the fix round:** `mcp__pob2__list_builds` joins the run settings example's allow list (the name match would
   prompt). Gate verifier and reviewer dispatched in parallel.
-- **WU-163's doer, phase 1,** finished at `dfff01c` on `bg/wu-163` (two commits on `b437f8e`: `a36b226` the feature,
+- **WU-163's doer, phase 1,** finished at `dfff01c` on `bg/wu-163` (two commits on `99c8905`: `a36b226` the feature,
   `dfff01c` the baseline entry; 0.63M subagent tokens). Its own gate rc 0 (265 suites, 4,580 tests; the timing step 2
   suites, 4 tests), build rc 0; no trade or poe.ninja request (HTTP through `fixtureFetch` only).
   `skills/pricing/SKILL.md` 121 lines (description 1,184 characters); build-guide's 317; words loaded max +1.9%, the
@@ -7820,7 +7820,7 @@ What the coordinator folded (revision 2, approved):
   must-have (at most 2 searches); the price step's header gaining `league`, `budget`, `rung` (in `price.md` only); at a
   stop with no rung, `price` once more with no trade call; `upgrades.json` only with a budget; within 0.1 divine of 5
   either rung. Gate verifier and reviewer dispatched in parallel.
-- **WU-162's gate verifier** (fresh context) **failed `084851a`** on one defect: a missed target's cost never reaches
+- **WU-162's gate verifier** (fresh context) **failed `9efb190`** on one defect: a missed target's cost never reaches
   the user. D1-gate's `better` section (`D1-gate.md`:327) and §17 show a missed target at the design gate with what
   reaching it would cost, but a floor failing on costed findings goes straight to the design gate, and neither display
   (`run-log.mjs`:2903–2943 `designDisplay14`, the `--detail` one at :2972–3022) nor `skills/compile/SKILL.md`:103–110
@@ -7828,7 +7828,7 @@ What the coordinator folded (revision 2, approved):
   only "an endgame rung misses the survival floor"). Otherwise: gate from clean rc 0 (264 suites, 4,558 tests; the
   timing step 2 suites, 4 tests), build rc 0; four mutations each failing their test (`costShown`, `betterRung`, the
   source-name check, the better branch of `checkFlow4`); the four D1 sections against §17's keep and change lists; the
-  `since.measure` entry equal to `--at 6b4020b --json` (25,947 words, 11 files; its list names `pricing.md` at the old
+  `since.measure` entry equal to `--at c70a56c --json` (25,947 words, 11 files; its list names `pricing.md` at the old
   path, which prints a difference once WU-163 moves it, expected under D-513); AC-W162's three assertions forced; the
   17 fixtures byte-identical; nothing outside §24's row; all deviations acceptable. Notes: an escalation accept's
   draft has no home in a compile run (no `builds[].draftFile`, so F1's `draftFile` is missing); the fixture's
@@ -7882,7 +7882,7 @@ What the coordinator folded (revision 2, approved):
   and the pipeline's own `pricing.md` prices a lineage support by name and a +1 corrupted gem as the gem (:83–85,
   :103), so gems are priced and counted by the place. **Fix round** sent to the doer: the review's 1 to 7 with the two
   rulings, and the verifier's findings.
-- **WU-162's fix round** at `91a39df` (one commit on `084851a`): D1-gate and F1 say a `from-file` V2 finding fails
+- **WU-162's fix round** at `fda5b5d` (one commit on `9efb190`): D1-gate and F1 say a `from-file` V2 finding fails
   nothing; **the better-round fixture rebuilt on the real path** (`plan_from_build` on `imported-character.xml`,
   `main_group` 4, `buffs_on` [5, 10], `switch_off` {6: [5, 10], 7: [5, 10]}; the engine's measure-only compile and F1's
   final compile; `config.file` with 10 `from-file` callouts, one `unproduced-state`; the leftover `scaling` trade gone),
@@ -7896,7 +7896,7 @@ What the coordinator folded (revision 2, approved):
   as compile's). The fixture's round is synthetic and weakens the character (Twister 20 → 5), since the importer
   fixture can't meet its own attribute requirements and V1 must pass. Doer's gate rc 0 (264 suites, 4,567 tests);
   `SKILL.md` 128 lines; the 16 fixtures byte-identical. Re-check sent to the gate verifier.
-- **WU-162's re-check** (the gate verifier) passed `91a39df`: build rc 0; 7 suites, 515 tests; words loaded max +2.4%,
+- **WU-162's re-check** (the gate verifier) passed `fda5b5d`: build rc 0; 7 suites, 515 tests; words loaded max +2.4%,
   `measure` unchanged; each fix's test fails with it removed (the "Not reached within your budget" lines in both
   displays, the full `m` round, "Changes", the escalation's stop, `pieceHeld`, `draftFile` in the display and at
   write time). **The fixture checked real:** a probe server's `plan_from_build` on `imported-character.xml` with the
@@ -7904,10 +7904,10 @@ What the coordinator folded (revision 2, approved):
   by the round's edits; recompiled measure-only, all 660 outputs, V1, V2's 10 callouts, `configWritten`, `measures`,
   `spirit`, `owned` and both sha1s equal the fixture's record; the weakened round still tests the flow, the floor, the
   callouts and the display. The two extra checker changes touch only `config.file` stages (the floor matches the
-  compiler's `fileStageHits`), and the 16 fixtures are byte-identical at `b437f8e` and the head. Notes: the checker's
+  compiler's `fileStageHits`), and the 16 fixtures are byte-identical at `99c8905` and the head. Notes: the checker's
   own `draftFile` rule (`check-run.mjs`:3104) is untested (the write-time rule is); three price entries in the
   fixture's plan carry the wrong "Item Level" label (cosmetic, the prices offline).
-- **WU-162 (`/pob2:compile`) merged** at `91a39df` (fast-forward, four commits on `b437f8e`). AC-W153 in
+- **WU-162 (`/pob2:compile`) merged** at `fda5b5d` (fast-forward, four commits on `99c8905`). AC-W153 in
   `tests/static/compileSkill.test.ts`, AC-W154 in `tests/unit/compileBetterRound.test.ts` and the static better-scope
   tests.
 - **WU-163's fix round** at `24c259a` (one commit on `dfff01c`): `measure_as` only while the stage is unplaced, a placed
@@ -7923,11 +7923,11 @@ What the coordinator folded (revision 2, approved):
   resume; the verifier's split test, `owned-spec` requiring a spec, the day-21 "over 200 divines" line, the banner.
   Deviations: the checker counts gem entries without requiring one per gem (a passive's granted skill isn't a gem);
   uncut gems count no search (the exchange lists them). Only WU-163's own tests changed. Doer's gate rc 0 (265 suites,
-  4,594 tests); `SKILL.md` 132 lines; words loaded max +1.9%. Phase 2 sent: the rebase onto `327fefd`, the
+  4,594 tests); `SKILL.md` 132 lines; words loaded max +1.9%. Phase 2 sent: the rebase onto `2a8afe5`, the
   coordinator's `price` row and compile's placement line; then one re-check of both.
-- **WU-163's phase 2** at `56e9e22`, rebased onto `327fefd` (`3ac345d` feature, `bcc4298` the `since.price` entry,
-  `02d83d5` the fix round, `56e9e22` phase 2): one conflict, the baseline's `since` section, both entries kept
-  (`measure` as WU-162 recorded it at `6b4020b`, 25,947 words; `price` recounted at `3ac345d`, 24,729, since WU-162's
+- **WU-163's phase 2** at `0dc4456`, rebased onto `2a8afe5` (`8e02ba7` feature, `1a830d6` the `since.price` entry,
+  `30b2e60` the fix round, `0dc4456` phase 2): one conflict, the baseline's `since` section, both entries kept
+  (`measure` as WU-162 recorded it at `c70a56c`, 25,947 words; `price` recounted at `8e02ba7`, 24,729, since WU-162's
   coordinator text is part of its count); the coordinator's `price` row beside `measure` (its `stage: "place"` running
   the placement scope alone) and the description's stage list; compile's §5 place line naming the step, its reference
   from the plugin root, `writes`, and `maxSearches` counted without the upgrades. **A checker change the merge
@@ -7937,7 +7937,7 @@ What the coordinator folded (revision 2, approved):
   fails `spec`). Doer's gate rc 0 (267 suites, 4,635 tests); compile's `SKILL.md` 132 lines, pricing's 132,
   build-guide's 317; words loaded max +2.6% (D2), `price` +2.0%, `measure` +0.3% (the `price` row). Re-check of the
   fix round and phase 2, with a full gate on the tree holding both pieces, sent to the gate verifier.
-- **WU-163's re-check** (the gate verifier) passed `56e9e22`, the fix round and phase 2: gate from clean rc 0 (267
+- **WU-163's re-check** (the gate verifier) passed `0dc4456`, the fix round and phase 2: gate from clean rc 0 (267
   suites, 4,635 tests, the 6 `pricingRun` engine tests run; the timing step 2 suites, 4 tests), build rc 0; each fix's
   check bites in a temporary copy; phase 2's row and place line pinned; the merge's checker change right against D-519
   and §15, only in compile and pricing runs (`ownedContent` false elsewhere), biting (off, 21 pricing tests fail and
@@ -7947,18 +7947,18 @@ What the coordinator folded (revision 2, approved):
   both `since` entries equal `--at <commit>`; the bounds held. **For WU-164:** pipeline `b`/`n` rares carry
   `query.slot` too (`pricing.md`:314–316), so `ownedContent` extended to file runs, where other rungs sit beside the
   read stage, needs a guard (skip entries the gate maps to another stage).
-- **WU-163 (`/pob2:pricing`) merged** at `56e9e22` (fast-forward, four commits on `327fefd`). AC-W155 in
+- **WU-163 (`/pob2:pricing`) merged** at `0dc4456` (fast-forward, four commits on `2a8afe5`). AC-W155 in
   `tests/static/pricingPiece.test.ts`, `tests/unit/pricingPiece.test.ts` and `tests/integration/pricingRun.test.ts`.
-- **WU-164 dispatched** (a guide from a file, lane `bg-164` off `73cf7a1`), carrying `ownedContent`'s guard for file
+- **WU-164 dispatched** (a guide from a file, lane `bg-164` off `ab635bb`), carrying `ownedContent`'s guard for file
   runs, the `cost` cover for `ladder`, a test of the checker's `draftFile` rule, the granted-quality facts, and room in
   build-guide's `SKILL.md` (at most 323 lines, WU-166's fetch line to come).
-- **WU-164's doer** finished at `53d1771` on `bg/wu-164` (two commits on `73cf7a1`: `5c3e98e` the feature, `53d1771` a
-  wording fix in `file-run.md`; 0.62M subagent tokens). Its own gate rc 0 at `5c3e98e` (269 suites, 4,670 tests; the
+- **WU-164's doer** finished at `a227df8` on `bg/wu-164` (two commits on `ab635bb`: `b1c4d2b` the feature, `a227df8` a
+  wording fix in `file-run.md`; 0.62M subagent tokens). Its own gate rc 0 at `b1c4d2b` (269 suites, 4,670 tests; the
   timing step 2 suites, 4 tests), build rc 0; the targeted suites after the wording commit (57 suites, 1,287 tests).
   Build-guide's `SKILL.md` 321 lines; words loaded D1-finish +4.1% (about 600 words of room left for WU-165 and
   WU-166), D1-build +3.3%, D2 +3.3%. AC-W144 and AC-W156 in `tests/static/fileRun.test.ts` (10) and
   `tests/unit/fileRun.test.ts` (25); AC-W157 there (`switched-buffs`). The 13 pipeline fixtures byte-identical under
-  `cf16e07`'s, `73cf7a1`'s and the head's checker. **AC-W162's list, WU-164** (each forced by D-522):
+  `cf16e07`'s, `ab635bb`'s and the head's checker. **AC-W162's list, WU-164** (each forced by D-522):
   `pieceRuns.test.ts`:359 and :435 (a file run's `init` takes `brief.from`; `init` refuses the slug `file` without it),
   `buildGuideD1Tree.test.ts`:173 (the `ladder` H2). The carried items: `ownedContent` not extended to file runs (§15:
   a guide holds owned content to every rule; tested); the `ladder` cover (the placed rung's tree findings as they are,
@@ -7969,7 +7969,7 @@ What the coordinator folded (revision 2, approved):
   `build` entry after the measure; three new rules (`ladder`, `owned-guide`, `switched-buffs`); the fixture
   `tests/fixtures/file-run` hand-made from run-a14's ladder; text placement (a `start.md` bullet, a `SKILL.md` §1
   paragraph, D1-build's inline spec rule). Gate verifier and reviewer dispatched in parallel.
-- **WU-164's gate verifier** (fresh context) **failed `53d1771`** on the fixture: `tests/fixtures/file-run`'s read files
+- **WU-164's gate verifier** (fresh context) **failed `a227df8`** on the fixture: `tests/fixtures/file-run`'s read files
   aren't in the reader's and the compile's shape (the root `plan.json` has no `config.file`, ten skeleton entries in
   `config.scenario` where the reader writes only `enemyIsBoss`, no `claims` or `ledger`; the root record has no `owned`
   and carries reference hits a `config.file` stage never gets; `read.json`'s `unconfirmed` and `notRead` differ; the
@@ -8002,7 +8002,7 @@ What the coordinator folded (revision 2, approved):
   failing any mark left. **Fix round** sent to the doer: the fixture rebuilt on the real path with a completed variant,
   the rulings, findings 4 to 9, and the verifier's notes (W1's wording, `init` refusing a `from` that looks like an
   import code, a check of the placed rung's items against the read stage's).
-- **WU-164's fix round** at `01534d2` (one commit on `53d1771`): **the fixtures rebuilt on the real path** by an
+- **WU-164's fix round** at `c0dcef6` (one commit on `a227df8`): **the fixtures rebuilt on the real path** by an
   uncommitted engine probe from `imported-character.xml` with WU-162's answers (the root read files the reader's and
   the compile's output; the ladder `m`, the placed `b` and `n` compiled by the engine, V1 and V2 passing on each; the
   verdict, guide and V4 report written to the checker's rules): `tests/fixtures/file-run` at the ladder's design gate,
@@ -8016,7 +8016,7 @@ What the coordinator folded (revision 2, approved):
   of the placed rung's items against the read stage's. No other unit's assertion changed. Doer's gate rc 0 (269
   suites, 4,678 tests); build-guide's `SKILL.md` 322 lines; words loaded D1-finish +4.3% (about 470 words of room),
   D1-build +3.5%, D1-gate +3.4%, D2 +3.4%. Re-check sent to the gate verifier.
-- **WU-164's re-check** (the gate verifier) passed `01534d2`: 10 suites, 613 tests, build rc 0; **the fixtures checked
+- **WU-164's re-check** (the gate verifier) passed `c0dcef6`: 10 suites, 613 tests, build rc 0; **the fixtures checked
   real** (a probe server's `plan_from_build` with the fixture's answers gives its `read.json`, and its plan once the
   measure's and the place's additions are set aside; a measure-only recompile gives the same `planSha1` and an equal
   root record; the ladder plan's recompile the same `planSha1` and `buildSha1` and every rung's fields; the
@@ -8026,25 +8026,25 @@ What the coordinator folded (revision 2, approved):
   placed rung misfires both ways (`\bm\b` matches "I'm"; "the rung I play now" doesn't match), so a change to the
   placed rung is a trade shown at the gate, as the item check already accepts; and the two fixtures duplicate about
   800 KB, so the completed variant is built at test time from `file-run` and its own files. Sent to the doer.
-- **WU-164's follow-ups** at `8fe1c0f` (one commit on `01534d2`): the word match removed; the placed rung's tree must
+- **WU-164's follow-ups** at `7e66ded` (one commit on `c0dcef6`): the word match removed; the placed rung's tree must
   equal the read stage's nodes after each trade on that rung carrying `nodes {remove, add}`, which `checkTradesFile`
   now allows on a file run's placed rung (any kind; on a designed rung `nodes` stays a boss trade's only), D1-tree's
   line saying so; the completed fixture now only its own files, laid over `file-run` at test time (1.3 MB in all, from
   1.64 MB). Targeted suites (8 suites, 565 tests) and build rc 0; words loaded unchanged. Short re-check sent to the
   gate verifier.
-- **WU-164's short re-check** (the gate verifier) passed `8fe1c0f`: build rc 0, 5 suites, 490 tests; the four tree-trade
+- **WU-164's short re-check** (the gate verifier) passed `7e66ded`: build rc 0, 5 suites, 490 tests; the four tree-trade
   cases behave as specified and each piece bites (the comparison, applying the nodes, the placed-rung branch in
   `checkTradesFile`, its restriction to the placed rung); the 13 pipeline fixtures byte-identical to `cf16e07`'s
-  checker; `file-run` with the completed overlay equals `01534d2`'s committed completed fixture file for file (20
+  checker; `file-run` with the completed overlay equals `c0dcef6`'s committed completed fixture file for file (20
   files, `diff -r` empty). Note: a boss trade on the placed rung would be applied wrongly, which can't arise since
   D1-tree, which writes boss trades, runs only on the designed rungs.
-- **WU-164 (a guide from a file) merged** at `8fe1c0f` (fast-forward, four commits on `73cf7a1`). AC-W144, AC-W156 and
+- **WU-164 (a guide from a file) merged** at `7e66ded` (fast-forward, four commits on `ab635bb`). AC-W144, AC-W156 and
   AC-W157 in `tests/static/fileRun.test.ts` and `tests/unit/fileRun.test.ts`; the fixtures `tests/fixtures/file-run`
   and `file-run-completed`.
-- **WU-165 dispatched** (`/pob2:writer`, lane `bg-165` off `6750588`), carrying the writer run's checks against its
+- **WU-165 dispatched** (`/pob2:writer`, lane `bg-165` off `8c73c4a`), carrying the writer run's checks against its
   source (WU-159's deferral), the words-loaded room, and room under 150 lines for WU-166's fetch line.
-- **WU-165's doer** finished at `cd61f41` on `bg/wu-165` (`4c5ab30` the feature on `6750588`, `cd61f41` a one-line path
-  fix; 0.60M subagent tokens). Its own gate rc 0 at `4c5ab30` (271 suites, 4,700 tests; the timing step 2 suites, 4
+- **WU-165's doer** finished at `e77556a` on `bg/wu-165` (`cf4a25c` the feature on `8c73c4a`, `e77556a` a one-line path
+  fix; 0.60M subagent tokens). Its own gate rc 0 at `cf4a25c` (271 suites, 4,700 tests; the timing step 2 suites, 4
   tests), build rc 0. `skills/writer/SKILL.md` 100 lines (description 1,153 characters); build-guide's 322; words
   loaded W1 +3.4%, D1-finish +4.4% (WU-166 adds about 243 words to W1's files, about +4.1% then). AC-W158 in
   `tests/static/writerPiece.test.ts` (9) and `tests/unit/writerPiece.test.ts` (13): the writer run on a file run passes
@@ -8072,21 +8072,21 @@ What the coordinator folded (revision 2, approved):
   accepted but the notes write; the header `source` and "no claims at `init`" go to WU-167's notes (A.2, §18).
   **The coordinator's call on (1):** the writer writes only its own folder; `notes.txt` stays there, and the runner
   tells the user where it is to paste into PoB's Notes. Fix round after the verifier.
-- **WU-165's gate verifier** (fresh context) **failed `cd61f41`** on one gap: `guideCantCarry` (`run-log.mjs`:870)
+- **WU-165's gate verifier** (fresh context) **failed `e77556a`** on one gap: `guideCantCarry` (`run-log.mjs`:870)
   refuses only owned rares with a corrupted line, but §15 and §18 hold a guide's owned content to D-471 (never on a
   rare, magic or normal item) and D-484 (a bare `Corrupted` line only on an always-corrupted, cheap or extra-socket
   unique); probe: an owned normal Winged Spear and an owned unique amulet each with a bare `Corrupted` line pass
   `init`, and the checker's `corruption` rule (tagged compile and pricing) is filtered out of a writer run
-  (`check-run.mjs`:2459). Otherwise: gate from clean rc 0 at `cd61f41` (271 suites, 4,700 tests; the timing step 2
+  (`check-run.mjs`:2459). Otherwise: gate from clean rc 0 at `e77556a` (271 suites, 4,700 tests; the timing step 2
   suites, 4 tests), build rc 0; AC-W158's claims confirmed on a real-path source (`file-run` with the completed
   overlay; the audit and notes re-rendered byte for byte; the source sha1-identical); eleven mutations each biting;
-  18 fixtures byte-identical under `6750588`'s checker and the head's; AC-W162's two assertions forced by D-522 (§18's
+  18 fixtures byte-identical under `8c73c4a`'s checker and the head's; AC-W162's two assertions forced by D-522 (§18's
   `[--build <id>]` for a writer's render amending D-516 for the writer only); words loaded max +4.4% (D1-finish), W1
   +3.4%; build-guide's `SKILL.md` 322 lines. It judged the notes write acceptable as a proceed-on; **the coordinator's
   ruling stands** (the writer writes only its own folder). **Fix round** sent to the doer: the corruption gap, the
   ruling, the routing sentences and the writer's match on compile runs' final files, `owned-guide`'s anchored match,
   the audit re-rendered on resume, the text items.
-- **WU-165's fix round** at `807dfab` (one commit on `cd61f41`): `guideCantCarry` refusing corruption on any owned
+- **WU-165's fix round** at `74cf4c2` (one commit on `e77556a`): `guideCantCarry` refusing corruption on any owned
   non-unique item (D-471), owned uniques through the existing `corruption` logic (`ownedCorruption`, reported under
   `owned-guide`, passed into `init`); the notes call dropped, `notes.txt` left in the writer's folder for the user to
   paste (a test comparing the guides root and a builds folder by sha1); a quoted sentence in build-guide's and
@@ -8097,21 +8097,21 @@ What the coordinator folded (revision 2, approved):
   `pricing.md`), as in the pipeline. No other assertion changed. Doer's gate rc 0 (271 suites, 4,707 tests); writer's
   `SKILL.md` 102 lines, build-guide's 322; descriptions 1,153 to 1,417 characters; words loaded D1-finish +4.4%
   (69,954 against 70,327: 373 words of room for WU-166). Re-check sent to the gate verifier.
-- **WU-165's re-check** (the gate verifier) passed `807dfab`: build rc 0, the named suites (556 tests) and five suites
+- **WU-165's re-check** (the gate verifier) passed `74cf4c2`: build rc 0, the named suites (556 tests) and five suites
   running pipeline `init` (124) pass; the probe refused (the Winged Spear by D-471, the dear Choir of the Storm by
   D-484), the unpriced offline one passing as ruled; the dynamic import and `extra` reached only by a writer `init`;
   each fix bites but two equivalent mutations on this fixture (the owned-uniques filter and an online run's unpriced
   unique untested, minor); the guides root guarded by sha1, the builds folder only by the call's absence; words loaded
   as reported; the 18 fixtures byte-identical. Nit: `skills/writer/SKILL.md`:62's example still says "a corrupted
   rare" (to WU-166, which touches that file next).
-- **WU-165 (`/pob2:writer`) merged** at `807dfab` (fast-forward, three commits on `6750588`). AC-W158 in
+- **WU-165 (`/pob2:writer`) merged** at `74cf4c2` (fast-forward, three commits on `8c73c4a`). AC-W158 in
   `tests/static/writerPiece.test.ts` and `tests/unit/writerPiece.test.ts`. The build units but WU-166 are merged.
-- **WU-166's phase 2 sent** to its doer: the rebase onto `28f5b9d` (WU-160 to WU-165 merged since its base), the fetch
+- **WU-166's phase 2 sent** to its doer: the rebase onto `9331522` (WU-160 to WU-165 merged since its base), the fetch
   line in the three piece `SKILL.md`s, the phase-1 verifier's two notes (a test of the fresh-restart edge;
   `overlayNamesLoaded` leaving out entries `Overlay.lua` refuses), WU-165's nit, within the bounds (D1-finish 69,954
   of 70,327).
-- **WU-166's phase 2** at `b9dfd3f`, rebased onto `28f5b9d` (`7e33417` phase 1, `6bd618e` and `bc4f320` the fix
-  rounds, `b9dfd3f` phase 2): three conflicts, all in the first commit, both sides kept (`start.md`'s resume step;
+- **WU-166's phase 2** at `857f34a`, rebased onto `9331522` (`5e81bcf` phase 1, `a34e537` and `055b66d` the fix
+  rounds, `857f34a` phase 2): three conflicts, all in the first commit, both sides kept (`start.md`'s resume step;
   `compiler.ts`'s stage record, WU-161's fields then `overlay`; `record.ts`'s `StageRecord`); the rest auto-merged;
   the fetch line in the three piece `SKILL.md`s (`leagueFolder` from `guide_run`, `pob2-league-digest --running --out
   <leagueFolder>` when online, the folder passed to `init`); a test of the fresh-restart edge; `overlayItemNames`
@@ -8120,29 +8120,29 @@ What the coordinator folded (revision 2, approved):
   suites, 4,757 tests); `SKILL.md`s: build-guide 323, compile 134, pricing 134, writer 104, game knowledge 126; words
   loaded D1-finish 70,014 of 70,327 (+4.5%), W1 +4.2%, D2 +3.8%, D1-build +3.7%, D1-gate +3.7%. No other unit's
   assertion changed. Re-check, with a full gate on the tree of all eight build units, sent to the gate verifier.
-- **WU-166's phase-2 re-check** (the gate verifier) passed `b9dfd3f`: **a full gate from clean on the tree of all eight
+- **WU-166's phase-2 re-check** (the gate verifier) passed `857f34a`: **a full gate from clean on the tree of all eight
   build units** rc 0 (274 suites, 4,757 tests; the timing step 2 suites, 4 tests), build rc 0. The rebase: the two fix
   commits identical by `git range-diff`, the phase-1 commit differing only in context its merged neighbours changed;
-  the added and removed lines of `0731969..04dff84` and `28f5b9d..bc4f320` byte-identical (2,462 insertions, 79
+  the added and removed lines of `7150437..04dff84` and `9331522..055b66d` byte-identical (2,462 insertions, 79
   deletions, 42 files), so nothing of WU-160 to WU-165 was lost; WU-161's record fields still written before `overlay`.
   Phase 2's checks bite (a piece's fetch line, the fresh-restart flag, the loads filter for socketables and uniques).
   The 13 pipeline fixtures identical under `cf16e07`'s checker and the head's; the piece and file fixtures under
-  `28f5b9d`'s and the head's; words loaded worst +4.5% (D1-finish 70,014 of 70,327); build-guide's `SKILL.md` 323
+  `9331522`'s and the head's; words loaded worst +4.5% (D1-finish 70,014 of 70,327); build-guide's `SKILL.md` 323
   lines; tools 86, 85 and 79; the HG-12 grant holding (`toolSchemas.ts` changes only `guide_run`'s description).
   Nits for WU-167: the writer's line 62 omits the Raven-Touched Shard and lacks a noun ("an owned unique's the
   corruption rule doesn't allow").
-- **WU-166 (the overlay) merged** at `b9dfd3f` (fast-forward, four commits on `28f5b9d`), the last build unit. AC-W159
+- **WU-166 (the overlay) merged** at `857f34a` (fast-forward, four commits on `9331522`), the last build unit. AC-W159
   in `tests/unit/leagueOverlay.test.ts`, `tests/integration/leagueOverlay.test.ts` and
   `tests/static/leagueOverlay.test.ts`.
-- **`CLAUDE.md`** (the coordinator, `49a4c7f`): "Where things are" names the three pieces and `pob2-league-digest`; the
+- **`CLAUDE.md`** (the coordinator, `05e2cb6`): "Where things are" names the three pieces and `pob2-league-digest`; the
   pin upgrade's step 8 names `invalid_options`' read of ConfigTab's option gate through `debug.getupvalue`. `tests/static`
   rc 0 (57 suites, 1,268 tests) after a rebuild (the README test reads the built tool list).
-- **WU-167 dispatched** (M-30's documents, lane `bg-167` off `49a4c7f`), with the coordinator's list of as-built items
+- **WU-167 dispatched** (M-30's documents, lane `bg-167` off `05e2cb6`), with the coordinator's list of as-built items
   (each decision's notes and the coordinator's calls), the `pob-gaps.md` entry for the Aftershock radius, and the
   writer's line-62 nit.
-- **WU-167's doer** finished at `da9d02f` on `bg/wu-167` (`0503fef` the work, `da9d02f` one line of the spine's HG-12
-  note; 0.69M subagent tokens). Its own gate rc 0 at `0503fef` (274 suites, 4,776 tests; the timing step 2 suites, 4
-  tests), build rc 0; the spine and docs tests after `da9d02f` (55). New slices 05 (compile), 06 (pricing) and 07
+- **WU-167's doer** finished at `61f33c7` on `bg/wu-167` (`d84619a` the work, `61f33c7` one line of the spine's HG-12
+  note; 0.69M subagent tokens). Its own gate rc 0 at `d84619a` (274 suites, 4,776 tests; the timing step 2 suites, 4
+  tests), build rc 0; the spine and docs tests after `61f33c7` (55). New slices 05 (compile), 06 (pricing) and 07
   (writer), each with a "Real cases" section of WU-168's expected results (compile's from the probe); slice 03's M-30
   notes (§5.2 holding the file run's expected results); slice 04's commands; notes in 01 and 02; the spine "Folded
   through amendment 16, 2026-11-09", D-516…D-525 and C-61…C-66 built with as-built notes and the coordinator's calls
@@ -8153,7 +8153,7 @@ What the coordinator folded (revision 2, approved):
   M-30 still approved" now expects M-30 built (D-525). Deviations reported: slice 03's shrink as notes only (§8 pinned
   by `s8Rows`, as M-28 did); two D-496 notes (C-36 names D-520; D-516 names D-522); §1.2 and §9.3 recording M-29's gate
   and signing; lane commits cited as-is (remapped at HG-8). Gate verifier and reviewer dispatched in parallel.
-- **WU-167's review** (fresh, read-only, against the work-log, the code at `da9d02f`, §20, §21 and A.2/A.6/A.7): every
+- **WU-167's review** (fresh, read-only, against the work-log, the code at `61f33c7`, §20, §21 and A.2/A.6/A.7): every
   item on the coordinator's list present; the status line in M-28's form; every older row an M-30 decision amends
   marked; the departures (A.6's files and `draftFile`, A.2's, the overlay's restart and `--out league` rule, the
   writer's own folder, gems, the search bound, `measure_as`) right against the code; no personal detail. Findings:
@@ -8167,7 +8167,7 @@ What the coordinator folded (revision 2, approved):
   the placed rung's budget findings left out; the library file starts from an import code (not in the builds folder).
   Deviations all accepted. **The coordinator's call:** the file run at WU-168 is offline unless the user approves a
   trade run (the handoff's trade rule), marked as the coordinator's. Fix round after the verifier.
-- **WU-167's gate verifier** (fresh context) **passed `da9d02f`**: gate from clean rc 0 (274 suites, 4,776 tests; the
+- **WU-167's gate verifier** (fresh context) **passed `61f33c7`**: gate from clean rc 0 (274 suites, 4,776 tests; the
   timing step 2 suites, 4 tests), build rc 0; AC-W161's expected values from the amendment's own text; 11 of 12 planted
   defects caught (an EHP figure the work-log alone gives passed, so every slice 05 figure was checked against the
   work-log's probe results by hand: all match); the status line in amendment 14's form; all 32 "(amendment 16,
@@ -8176,7 +8176,7 @@ What the coordinator folded (revision 2, approved):
   D-525 and the helper change only narrowing; nothing outside the unit's scope; words loaded unchanged. Fix round sent
   to the doer for the review's findings (the `loadout` answer, two notes, the test's fidelity, WU-168's expected
   results with the coordinator's offline call).
-- **WU-167's fix round** at `edb4eed` (one commit on `da9d02f`): `loadout` a second-call answer in slice 05 §2.1 and
+- **WU-167's fix round** at `4110fc7` (one commit on `61f33c7`): `loadout` a second-call answer in slice 05 §2.1 and
   §2.3 and C-62 (its as-built note stating the departure from the row's input text; every other `plan_from_build`
   field checked against the handler and `toolSchemas.ts`); D-522's note (`ladder` fails a kept `config.file`,
   `owned-guide` a kept `owned` mark; the coordinator's list had named `owned-guide` for both); the owned replace-cost
@@ -8186,24 +8186,24 @@ What the coordinator folded (revision 2, approved):
   call; the placed rung's floor, tree and budget findings; the library file's run from an import code, its loadout on
   the second call). `tests/static` rc 0 (57 suites, 1,287 tests); no further assertion changed. Re-check sent to the
   reviewer.
-- **WU-167's re-check** (the reviewer) passed `edb4eed`: all five findings fixed, the diff docs and the docs test only,
+- **WU-167's re-check** (the reviewer) passed `4110fc7`: all five findings fixed, the diff docs and the docs test only,
   39 tests; `loadout` and the other fields sampled against the handler's `ARGS`/`ANSWERS` and `toolSchemas.ts`;
   `owned-spec` only in pricing runs (`check-run.mjs`:1700–1705); planted deletions fail (D-520's note, C-64's and C-62's
   markers, §9.3 cut to "built"); D-524's exemption right. Left, low: with D-516's own note removed the suite still
   passes, its "amended by D-522 (amendment 16, as built)" mark matching `\bas built\b`; a loadout change also clears
   `stand_in` (named by slot, not group). No personal detail added.
-- **WU-167 (M-30's documents) merged** at `edb4eed` (fast-forward, three commits on `49a4c7f`). AC-W161 in
+- **WU-167 (M-30's documents) merged** at `4110fc7` (fast-forward, three commits on `05e2cb6`). AC-W161 in
   `tests/static/amendment16Docs.test.ts` and `specSpine.test.ts`. Every M-30 unit but WU-168 is merged.
-- **M-30's milestone gate dispatched** to a fresh verifier on `5f48715` (brief: the full gate from clean,
+- **M-30's milestone gate dispatched** to a fresh verifier on `6f29521` (brief: the full gate from clean,
   `fresh-clone-check.sh`, the load check with five skills and four agents and the always-on cost against R-115's, the
   pin-upgrade dry run on the merged tree, each M-30 criterion with its test, AC-W162 over the milestone against
   `cf16e07`, the fold, the fixed things, nothing personal committed).
-- **M-30's milestone gate** (fresh verifier) **passed on `5f48715`** (the four lines above were uncommitted in the
+- **M-30's milestone gate** (fresh verifier) **passed on `6f29521`** (the four lines above were uncommitted in the
   working tree during the run; the fresh clone took HEAD, and the dry run left them as they were):
   - `mise run test` rc 0 (274 suites, 4,776 tests, none failed or skipped, the engine suites included; the timing step
     2 suites, 4 tests: compilePlanNfr 150.9 s, tradeQueryNfr 17.0 s), `pnpm build` rc 0; 574 s in all.
   - `scripts/fresh-clone-check.sh` rc 0: 86 tools, 85 with poe.ninja off; `lua_load_build` grenadator.xml Life 2,977;
-    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (5f48715…)".
+    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (6f29521…)".
   - **The load check on the merged tree:** `claude plugin validate` rc 0, only the expected warnings (no `version`
     twice, the root `CLAUDE.md`, `ICON_MISSING`); `plugin details pob2` rc 0: Skills (5) `build-guide`, `compile`,
     `game-knowledge`, `pricing`, `writer`; Agents (4); Hooks (1) `SessionStart`. **The always-on cost about 2,882
@@ -8235,3 +8235,8 @@ What the coordinator folded (revision 2, approved):
   - A fixture built by hand from another run hid two defects (WU-162's and WU-164's); real-path fixtures from an
     uncommitted engine probe caught them. Build fixtures from the reader's and the compile's output.
   - A fresh worktree's static tests need `pnpm build` first (the README test and the F1 checker test read `build/`).
+- **Signed onto `main` (HG-8, 2026-11-09).** All 39 commits sign-rebased onto `9f00715` and fast-forwarded into
+  `main` at `1d05fe9`; the trees are equal, and the unsigned originals are kept at `refs/archive/pre-sign-m30-2026-11-09`.
+  This section, the spine, slices 04 to 07, the handoff's M-30 section and `pricingPiece.test.ts`'s title cite the
+  signed commits (252 citations in 9 files), and the words-loaded baseline's `since` entries name them: `measure` at
+  `c70a56c`, `price` at `8e02ba7`.

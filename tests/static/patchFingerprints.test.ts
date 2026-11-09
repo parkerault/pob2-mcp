@@ -21,12 +21,10 @@ const POB_SRC = path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src');
 const MODULES = ['pob-api/API/ParseFixes.lua', 'pob-api/API/Patches.lua'];
 
 /**
- * The entries laid out as stubs for the units that build them (WU-152's layout, amendment 16 §24). Each unit deletes
- * its own line when it fills its entry in Patches.lua.
+ * The entries laid out as stubs for the units that build them (WU-152's layout, amendment 16 §24). WU-153 and WU-154 built
+ * PG-109's and PG-114's, so none is left; a unit that lays out a stub adds its PG id here, and deletes it when it builds it.
  */
-const STUBS = new Set<string>([
-  // (this line keeps the two units' edits apart)
-]);
+const STUBS = new Set<string>([]);
 
 interface Fingerprint {
   file: string;

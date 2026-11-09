@@ -3138,7 +3138,7 @@ describe('WU-70 part B (AC-W53, D-354, D-346, D-348): D2 plans a lean campaign',
   });
 
   it("keeps a tree-granted group within D-359's estimated support count, and plans no Jeweller's Orbs for it", () => {
-    expect(d2()).toMatch(/\*\*Supports on a granted skill\*\* \(D-359\)\. A skill an item grants holds the supports its item's sockets allow\. A skill a passive grants \(the tree or the ascendancy\) holds at most the estimated count at the stage's level: 3 supports below level 40, 4 from 40, 5 from 60 \(`campaign\/gems\.json#support-sockets\.tree-granted`, a judgment of confidence L\)\. V1's `support-sockets` reports a group over it/);
+    expect(d2()).toMatch(/\*\*Supports on a granted skill\*\* \(D-359, D-512\)\. A skill an item grants holds as many supports as its item's level gives, and Jeweller's Orbs on the item add more; no source gives the thresholds, so nothing checks them\. A skill a passive grants \(the tree or the ascendancy\) holds at most the estimated count at the stage's level: 3 supports below level 40, 4 from 40, 5 from 60 \(`campaign\/gems\.json#support-sockets\.tree-granted`, a judgment of confidence L\)\. V1's `support-sockets` reports a group over it/);
     expect(d2()).toMatch(/Jeweller's Orbs add sockets to an item, never to a skill a passive grants: plan none for it/);
   });
 
@@ -3190,7 +3190,7 @@ describe('WU-70 part B (AC-W53, D-353, D-354, D-358, D-359): the guide template 
     expect(sectionOf("What PoB can't show")).toContain(`[only when a skill a passive grants holds supports; said once, here and nowhere else (D-359)] <The skill>'s support count is an estimate, as no source gives it: ${estimate}.`);
     expect(body).not.toMatch(/Jeweller/);
     expect(folded(/<!--([\s\S]*?)-->/.exec(text)![1])).toMatch(/Never tell the reader to save or use Jeweller's Orbs for a skill a passive grants: they add sockets to items only \(D-359\)/);
-    expect(folded(readStage('W1'))).toMatch(/Never tell the reader to save or use Jeweller's Orbs for it: they add sockets to items only/);
+    expect(folded(readStage('W1'))).toMatch(/Never tell the reader to save or use Jeweller's Orbs for it: they add supports only to a skill an item grants, used on that item, whose item level sets its count \(D-512\)/);
   });
 
   it("labels b and n by the Arbiter verdict, copies each rung's Checks block, and has no kill time or hits to kill (D-353, D-355)", () => {

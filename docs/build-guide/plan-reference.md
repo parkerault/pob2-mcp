@@ -81,10 +81,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   Version 11 (amendment 16; see a granted skill's quality and support slots below):
   - adds no field yet (amendment 16's second milestone adds the fields a plan read from a PoB file carries);
   - `compile_check` refuses a quality above 0 on a gem for a skill the stage's items or allocated passives grant
-    (D-512), naming the stage, the group and the skill.
-  A schema-10 plan compiles as before, its gems' qualities unchecked. The granted skill's quality from its wand, staff or
-  sceptre (PG-114, corrected in the bridge) applies on any schema, so an older plan with such an item measures its
-  granted skill at the item's quality.
+    (D-512), naming the stage, the group and the skill;
+  - the compile writes a wand's, staff's or sceptre's quality on the plan's copy of the skill it grants (D-512).
+  A schema-10 plan compiles as before, its gems' qualities unchecked and kept. PoB's own granted group of a wand's,
+  staff's or sceptre's skill gets the item's quality on any schema (PG-114, corrected in the bridge).
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -756,14 +756,19 @@ The game's rules (the user, 2026-11-08):
   item's granted skill's supports.
 
 In the plan:
-- **The item says it.** A wand's, staff's or sceptre's quality is its item text's `Quality:` line, as for any item; the
-  compile gives the skill the item grants that quality (PG-114's bridge patch). An item whose text gives less than its
-  base's quality and isn't corrupted gets PoB's default quality, 20, when the compile adds it, as PoB adds an item.
+- **The item says it.** A wand's, staff's or sceptre's quality is its item text's `Quality:` line, as for any item. An
+  item whose text gives less than its base's quality and isn't corrupted gets PoB's default quality, 20, when the compile
+  adds it, as PoB adds an item.
 - **The gem has quality 0.** A plan's gem for a skill the stage's items or allocated passives grant (the copy that
   carries the skill's supports, PG-108) has `quality: 0`. On schema 11, `compile_check` refuses more, naming the stage,
   the group and the skill and saying where its quality comes from: the item's quality for a wand, staff or sceptre;
   otherwise quality modifiers. The items are the stage's slots and tree jewels; the passives its tree and ascendancy
   nodes.
+- **The compile gives the item's quality.** On schema 11, the compile writes the item's quality (as PoB holds it once it
+  adds the item) on the plan's copy of a skill the stage's wand, staff or sceptre grants, the gem PoB measures, and in
+  the file it composes; stages whose items differ in quality then keep their own skill sets. PoB's own granted group gets
+  it too (PG-114's bridge patch). A skill a passive or another item grants stays at the plan's 0. A schema-10 or older
+  plan's copy keeps the plan's quality, so its record is as before.
 
 ```json
 { "slot": "Weapon 1", "text": "Rarity: Normal\nShrine Sceptre\nQuality: 20\nImplicits: 1\nGrants Skill: Level 20 Purity of Ice" }
@@ -774,8 +779,8 @@ In the plan:
   "gems": [{ "name": "Purity of Ice", "level": 20, "quality": 0, "enabled": true }] }
 ```
 
-The compile measures this Purity of Ice at the sceptre's quality 20: +8 points of cold resistance over quality 0
-(+0.4% per 1% quality). With `"quality": 5` on the gem, a schema-11 plan is refused: "Purity of Ice is a skill the
+On schema 11 the compile writes this Purity of Ice at the sceptre's quality 20 and measures it there: +8 points of cold
+resistance over quality 0 (+0.4% per 1% quality). With `"quality": 5` on the gem, a schema-11 plan is refused: "Purity of Ice is a skill the
 Shrine Sceptre in Weapon 1 grants, so its gem has quality 0, not 5 (D-512)".
 
 ### Reference hits and measures (D-353, D-407)

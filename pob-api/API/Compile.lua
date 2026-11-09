@@ -79,10 +79,13 @@
 --     A granted skill's quality (WU-154, D-512, plan schema 11): a gem's `quality` above 0 is a defect when the stage's
 --     items (its slots and tree jewels) or allocated passives grant its skill, naming the group, the skill and what grants
 --     it, and saying where the skill's quality comes from: a wand's, staff's or sceptre's own quality (PG-114), otherwise
---     quality modifiers. The compiler sends `quality` from schema 11 only.
+--     quality modifiers. The compiler sends `quality` from schema 11 only. `grantedQualities` (WU-154's fix round): each
+--     such schema-11 gem, not a support, whose skill the stage's wand, staff (not a quarterstaff) or sceptre grants, with
+--     the item's quality as PoB holds it once added, {stage, group, gem, quality, skill, item}, for the compiler to write
+--     on the measured copy.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
 --         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}, weaponGrants[{stage, slot, skills[]}],
---         movementTiers[{value, itemLevel}],
+--         movementTiers[{value, itemLevel}], grantedQualities[{stage, group, gem, quality, skill, item}],
 --         trees[{stage, starts[{node?, name, exits[], grantedBy?, grantedByName?, granted?}],
 --                main[{nodes[], exits[]}], ascendancy?{start, name, trees[{nodes[]}]}}],
 --         companions[{stage, species, id, name, companionReservation, parsed[]}]}
@@ -1492,6 +1495,8 @@ local function granted_by(tree, st)
     if it.sameAs == nil then
       local ok, item = pcall(construct, 'Item', item_text(it))
       if ok and item and type(item.grantedSkills) == 'table' then
+        -- The item's quality as PoB holds it once the compile adds it (BuildOps.add_item_text's NormaliseQuality).
+        if type(item.NormaliseQuality) == 'function' then pcall(item.NormaliseQuality, item) end
         for _, g in ipairs(item.grantedSkills) do add(g.skillId, { item = item, where = 'in ' .. tostring(it.slot) }) end
       end
     end
@@ -1514,16 +1519,14 @@ local function granted_by(tree, st)
   return out
 end
 
-local function check_granted_quality(tree, st, defect)
-  local granted
+local function check_granted_quality(st, grants, defect)
   for gi, group in ipairs(list(st.groups)) do
     for k, gem in ipairs(list(group.gems)) do
       local quality = tonumber(gem.quality)
       if quality and quality > 0 then
         local gemData = BuildOps.resolve_gem(gem.name)
         local skillId = type(gemData) == 'table' and (gemData.grantedEffectId or (gemData.grantedEffect and gemData.grantedEffect.id))
-        granted = granted or granted_by(tree, st)
-        local source = skillId and granted[skillId]
+        local source = skillId and grants()[skillId]
         if source then
           local name = tostring(gemData.name or gem.name)
           local by, why
@@ -1544,6 +1547,30 @@ local function check_granted_quality(tree, st, defect)
           end
           defect(('skills.groups[%d].gems[%d]: %s is a skill %s grants, so its gem has quality 0, not %s (D-512): %s')
             :format(gi - 1, k - 1, name, by, tostring(gem.quality), why))
+        end
+      end
+    end
+  end
+end
+
+-- The measured copy's quality (WU-154's fix round, D-512, plan schema 11). The compile measures the plan's copy of a
+-- granted skill (the group with the supports, PG-108, no `source`), which the refusal above holds at quality 0, and
+-- PG-114's wrap reaches only PoB's own granted group (CalcSetup calls ProcessSocketGroup only on the groups it makes).
+-- The game gives the skill its wand's, staff's or sceptre's quality, so for each gem with a `quality` (schema 11) that
+-- is no support and whose skill such an item of the stage grants, this appends {stage, group, gem (both from 1),
+-- quality, skill, item} to `out`: the item's quality as PoB holds it once the compile adds it. The compiler writes it on
+-- that gem. A skill a passive or another item grants isn't reported: it stays at the plan's 0.
+local function granted_qualities(st, grants, out)
+  for gi, group in ipairs(list(st.groups)) do
+    for k, gem in ipairs(list(group.gems)) do
+      if gem.quality ~= nil then
+        local gemData = BuildOps.resolve_gem(gem.name)
+        local effect = type(gemData) == 'table' and gemData.grantedEffect or nil
+        local skillId = type(gemData) == 'table' and (gemData.grantedEffectId or (effect and effect.id))
+        local source = skillId and not (effect and effect.support) and grants()[skillId]
+        if source and source.item and Patches.gives_quality(source.item) then
+          out[#out + 1] = { stage = tostring(st.id), group = gi, gem = k, quality = tonumber(source.item.quality) or 0,
+            skill = tostring(gemData.name or gem.name), item = tostring(source.item.baseName or source.item.name) }
         end
       end
     end
@@ -1579,14 +1606,20 @@ function M.compile_check(params)
   if not roll then defects[#defects + 1] = 'roll: ' .. rollErr end
   if roll then roll.starts = tree_starts(tree, roll) end
   local stages = list(params.stages)
-  local anoints, trees, companions, grants = {}, {}, {}, {}
+  local anoints, trees, companions, grants, qualities = {}, {}, {}, {}, {}
   for _, st in ipairs(stages) do
     local function defect(msg) defects[#defects + 1] = 'stage ' .. tostring(st.id) .. ': ' .. msg end
     trees[#trees + 1] = check_stage(tree, roll, st, defect)
     anoints[#anoints + 1] = check_anoint(tree, st, defect)
     companions[#companions + 1] = check_companion(st, defect)
     weapon_grants(st, grants)
-    check_granted_quality(tree, st, defect)
+    local grantsOf
+    local function grants()
+      grantsOf = grantsOf or granted_by(tree, st)
+      return grantsOf
+    end
+    check_granted_quality(st, grants, defect)
+    granted_qualities(st, grants, qualities)
   end
   local producers = {}
   for _, p in ipairs(list(params.producers)) do
@@ -1595,7 +1628,7 @@ function M.compile_check(params)
   end
   return { defects = defects, treeVersion = tostring(latestTreeVersion), stageCount = #stages, producers = producers,
     configBaseline = config_baseline(), anoints = anoints, gemTexts = gem_texts(params.describeGems), trees = trees,
-    companions = companions, weaponGrants = grants, movementTiers = movement_tiers() }
+    companions = companions, weaponGrants = grants, movementTiers = movement_tiers(), grantedQualities = qualities }
 end
 
 -- ---------------------------------------------------------------------------------------------------

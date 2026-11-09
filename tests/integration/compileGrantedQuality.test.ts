@@ -45,6 +45,9 @@ const gem = (name: string, level: number, quality: number) => ({ name, level, qu
 const SCEPTRE = (quality: number, corrupted = false) =>
   ['Rarity: Normal', 'Shrine Sceptre', `Quality: ${quality}`, 'Implicits: 1', 'Grants Skill: Level 20 Purity of Ice', ...(corrupted ? ['Corrupted'] : [])].join('\n');
 const SPEAR = ['Rarity: Normal', 'Hardwood Spear', 'Quality: 20', 'Implicits: 1', 'Grants Skill: Spear Throw'].join('\n');
+/** A Withered Wand, "Grants Skill: Level 20 Chaos Bolt" (`Data/Bases/wand.lua`); Chaos Bolt's quality gives +2% projectile speed per 1%. */
+const WAND = (quality: number, corrupted = false) =>
+  ['Rarity: Normal', 'Withered Wand', `Quality: ${quality}`, 'Implicits: 1', 'Grants Skill: Level 20 Chaos Bolt', ...(corrupted ? ['Corrupted'] : [])].join('\n');
 
 /** Every leaf path of `want` whose value `got` doesn't hold equally (a missing key included), as compileSchema8's. */
 function differences(want: unknown, got: unknown, at = '$', out: string[] = []): string[] {
@@ -72,6 +75,24 @@ function lichStage(id: string, slots: Json[], groups: Json[], arcQuality = 0): J
 
 const purityCopy = (quality: number) => ({ label: 'Purity of Ice', enabled: true, role: 'utility', gems: [gem('Purity of Ice', 20, quality)] });
 const spearCopy = (quality: number) => ({ label: 'Spear Throw', enabled: true, role: 'utility', gems: [gem('Spear Throw', 1, quality)] });
+/** The plan's copy of the wand's Chaos Bolt with a support, the stage's main skill (group 2, after the Lich's Arc). */
+const chaosBoltCopy = { label: 'Chaos Bolt', enabled: true, role: 'clear', gems: [gem('Chaos Bolt', 20, 0), gem('Pierce I', 1, 0)] };
+function wandStage(id: string, text: string): Json {
+  const s = lichStage(id, [{ slot: 'Weapon 1', text }], [chaosBoltCopy]);
+  s.skills.main = { group: 2, activeSkill: 1, statSet: 1 };
+  return s;
+}
+
+/** The quality of each Chaos Bolt gem in a plan group (no `source`) of each skill set in a compiled file, by set title. */
+function copyQualities(xml: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const set of xml.matchAll(/<SkillSet [^>]*title="([^"]*)"[^>]*>([\s\S]*?)<\/SkillSet>/g)) {
+    out[set[1]] = [...set[2].matchAll(/<Skill (?![^>]*source=)[^>]*>([\s\S]*?)<\/Skill>/g)].flatMap((g) =>
+      [...g[1].matchAll(/<Gem [^>]*nameSpec="Chaos Bolt"[^>]*>/g)].map((m) => /quality="(\d+)"/.exec(m[0])![1]),
+    );
+  }
+  return out;
+}
 
 /** The Lich plan at `version` with `stages`. */
 function lichPlan(version: number, stages: Json[]): Json {
@@ -91,6 +112,7 @@ engineDescribe('AC-W137 (WU-154): a granted skill\'s quality through compile_pla
   let n = 0;
   const outcomes: Record<string, ToolOutcome> = {};
   const records: Record<string, CompileRecord> = {};
+  const files: Record<string, string> = {};
 
   /** Compiles `plan` measure-only in a new run folder; its outcome, and its record when it compiled. */
   async function compile(name: string, plan: Json): Promise<void> {
@@ -103,6 +125,8 @@ engineDescribe('AC-W137 (WU-154): a granted skill\'s quality through compile_pla
     outcomes[name] = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
     const rec = path.join(abs, 'compile-record.json');
     if (!outcomes[name].isError && fs.existsSync(rec)) records[name] = read(rec) as unknown as CompileRecord;
+    const xml = path.join(abs, 'compiled-build.xml');
+    if (fs.existsSync(xml)) files[name] = fs.readFileSync(xml, 'utf8');
   }
 
   /** The refusal's defect lines (after "nothing was compiled:"), or the compile's text when it compiled. */
@@ -132,6 +156,9 @@ engineDescribe('AC-W137 (WU-154): a granted skill\'s quality through compile_pla
         lichStage('q0', [{ slot: 'Weapon 1', text: SCEPTRE(0, true) }], [purityCopy(0)], 20),
       ]),
     );
+    const wands = [wandStage('w20', WAND(20)), wandStage('w0', WAND(0, true))];
+    await compile('copy11', lichPlan(11, wands));
+    await compile('copy10', lichPlan(10, wands));
     await compile('lich', read(LICH));
     await compile('runA14', read(RUN_A14));
   }, ENGINE_TIMEOUT);
@@ -182,6 +209,34 @@ engineDescribe('AC-W137 (WU-154): a granted skill\'s quality through compile_pla
       const cold = (id: string) => records.measured.stages[id].outputs.ColdResist as number;
       expect(cold('q20') - cold('q0')).toBe(8);
       expect(cold('q20')).toBeLessThan(75);
+    });
+  });
+
+  describe("schema 11: the plan's measured copy of a wand's granted skill takes the wand's quality (D-512)", () => {
+    const speed = (name: string, id: string) => records[name].stages[id].outputs.ProjectileSpeedMod as number;
+
+    it('both plans compile', () => {
+      for (const name of ['copy11', 'copy10']) {
+        expect({ name, out: defectsOf(name) }).toEqual({ name, out: [expect.stringMatching(/^compiled: Compiled .*: 2 stages \(measure-only\)/)] });
+      }
+    });
+
+    it("the main skill, the plan's Chaos Bolt copy with Pierce I, measures +40% projectile speed beside the quality 20 wand over a corrupted quality 0 one", () => {
+      expect(speed('copy11', 'w0')).toBeGreaterThan(0);
+      expect(speed('copy11', 'w20')).toBeCloseTo(speed('copy11', 'w0') * 1.4, 6);
+      expect(records.copy11.stages.w20.skillOutputs.g2s1p1.skill).toBe('Chaos Bolt');
+    });
+
+    it("the file the compile composes holds the copy's gem at the wand's quality: 20 beside the quality 20 wand, 0 beside the corrupted one", () => {
+      const q = copyQualities(files.copy11);
+      expect(Object.values(q).sort()).toEqual([['0'], ['20']]);
+      expect(Object.entries(q).find(([title]) => title.includes('{w20}'))?.[1]).toEqual(['20']);
+    });
+
+    it("at schema 10 the copy keeps the plan's quality 0: the two stages measure alike and share one skill set (§26)", () => {
+      expect(speed('copy10', 'w20')).toBe(speed('copy10', 'w0'));
+      expect(speed('copy10', 'w20')).toBe(speed('copy11', 'w0'));
+      expect(Object.values(copyQualities(files.copy10))).toEqual([['0']]);
     });
   });
 

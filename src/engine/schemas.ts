@@ -1395,10 +1395,21 @@ export const compileCheckReply = baseReply.extend({
        * mods boots roll, `Data/ModItem.lua`), each its value and the item level it needs, lowest item level first.
        */
       movementTiers: luaArray(z.object({ value: z.number(), itemLevel: z.number() }).passthrough()).optional(),
+      /**
+       * WU-154 (D-512, plan schema 11): each schema-11 gem, not a support, whose skill the stage's wand, staff (not a
+       * quarterstaff) or sceptre grants: its group and gem (both from 1) and the item's quality as PoB holds it once the
+       * compile adds the item, which the compiler writes on that gem; `[]` for none.
+       */
+      grantedQualities: luaArray(
+        z
+          .object({ stage: z.string(), group: z.number().int(), gem: z.number().int(), quality: z.number(), skill: z.string(), item: z.string() })
+          .passthrough(),
+      ).optional(),
     })
     .passthrough(),
 });
 export type CompileCheckResult = z.infer<typeof compileCheckReply>['result'];
+export type GrantedQuality = NonNullable<CompileCheckResult['grantedQualities']>[number];
 export type MovementTier = NonNullable<CompileCheckResult['movementTiers']>[number];
 
 /** One allocated node after a stage's import, with its weapon-set tag (0, 1 or 2). */

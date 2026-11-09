@@ -112,6 +112,7 @@ import path from 'path';
 import type { EngineCallContext } from '../engine/session.js';
 import type {
   CompileCheckStage,
+  GrantedQuality,
   CompileFinishResult,
   CompileStageParams,
   CompileStageResult,
@@ -593,6 +594,24 @@ function minionFields(g: Stage['skills']['groups'][number]): { minionSkill?: str
     ...(g.minionSkill !== undefined ? { minionSkill: g.minionSkill } : {}),
     ...(g.minionStatSet !== undefined ? { minionStatSet: g.minionStatSet } : {}),
   };
+}
+
+/**
+ * WU-154's fix round (D-512, plan schema 11): the stage with each gem `compile_check` names (`grantedQualities`: a skill
+ * the stage's wand, staff or sceptre grants, on the plan's copy that carries its supports, PG-108) at its item's quality,
+ * as the game gives it. The refusal holds the plan's copy at 0, and PoB measures that copy, so the compile writes the
+ * item's quality on it, in the file it composes too. Without entries the stage is unchanged.
+ */
+export function withGrantedQuality<S extends Pick<Stage, 'skills'>>(stage: S, entries: readonly GrantedQuality[] | undefined): S {
+  if (entries === undefined || entries.length === 0) return stage;
+  const groups = stage.skills.groups.map((g, gi) => ({
+    ...g,
+    gems: g.gems.map((gem, k) => {
+      const hit = entries.find((e) => e.group === gi + 1 && e.gem === k + 1);
+      return hit === undefined ? gem : { ...gem, quality: hit.quality };
+    }),
+  }));
+  return { ...stage, skills: { ...stage.skills, groups } };
 }
 
 /** D-293: a stage's custom modifier lines, `config.customMods` texts in plan order (none for a version-1 plan). */
@@ -1298,9 +1317,17 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   }
   // D-402: the companion lines PoB parses join the custom modifiers, each with its reason, before the sets are grouped.
   const companionChecks = new Map(check.companions.map((c) => [c.stage, c]));
+  // D-512 (schema 11): the copy of a skill the stage's wand, staff or sceptre grants takes the item's quality, before the
+  // sets are grouped (stages whose items differ in quality keep their own skill sets).
+  const qualitiesOf = new Map<string, GrantedQuality[]>();
+  if (checkedPlan.schemaVersion >= GRANTED_QUALITY_SINCE) {
+    for (const q of check.grantedQualities ?? []) qualitiesOf.set(q.stage, [...(qualitiesOf.get(q.stage) ?? []), q]);
+  }
   const plan: Plan = {
     ...checkedPlan,
-    stages: checkedPlan.stages.map((s) => withCompanionLines(s, companions.get(s.id), companionChecks.get(s.id))),
+    stages: checkedPlan.stages.map((s) =>
+      withGrantedQuality(withCompanionLines(s, companions.get(s.id), companionChecks.get(s.id)), qualitiesOf.get(s.id)),
+    ),
   };
   const compiled = plan.stages.filter((s) => compiledIds.has(s.id));
 

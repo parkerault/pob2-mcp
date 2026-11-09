@@ -28,8 +28,10 @@
  * (`applyGemMods`, `CalcSetup.lua`:1892-1895), so an item-only granted skill would miss them. The check runs on the
  * fixture wand: PoB gives its Chaos Bolt the wand's +2 levels and a quality modifier, because the granted gem has PoB's
  * gem data. Every `Grants Skill:` line resolves through ModParser's name lookup, built from the gems
- * (`Modules/ModParser.lua`:2170-2186), so at the pin every skill an item's line grants has a gem; PG-115 doesn't hold
- * there, and `docs/build-guide/pob-gaps.md` doesn't record it.
+ * (`Modules/ModParser.lua`:2170-2186), so at the pin every skill a `Grants Skill:` line grants has a gem; PG-115
+ * doesn't hold for those, and `docs/build-guide/pob-gaps.md` doesn't record it. A skill PoB grants through another line
+ * may have none: Bloodbarrier (`Data/Skills/other.lua`:21065, granted at `ModParser.lua`:3642 without the lookup) has
+ * no gem, but it has one level and no quality stats, so no figure changes.
  */
 import fs from 'fs';
 import path from 'path';

@@ -7079,3 +7079,83 @@ What the coordinator folded (revision 2, approved):
     input, the two-section wrapper; D-513); `buildGuidePipeline.test.ts`'s D-373 test (1.0's fact out of the study
     loop, the league values; D-514); `amendment15GameKnowledge.test.ts`:187 (the removed "You need no Bash" sentence;
     D-515; implied scope, outside the spine's touches row, `docs/spec/README.md`:2926, which WU-158 adds).
+- **WU-151's doer** finished at `0e273af` on `bg/wu-151` (two commits; 0.49M subagent tokens). Its own gate rc 0 (245
+  suites, 4,305 tests), build rc 0; the pipeline fixtures' checker results equal `cf16e07`'s. Deviations: the
+  `digests:` report lines printed by `init`, `resume` and `leagues.mjs` (no format in the spec); the resume stamp says
+  "revisions"; the test clock is `BUILD_GUIDE_TEST_NOW`; "the same league" is the same file name; a card with no start
+  slot writes no sentence; the runner rules' new command is its own bullet (AC-W121 pins the opening sentence); the
+  `node <root>/skills/game-knowledge/scripts/leagues.mjs` command exempted from AC-W115's "every run command is a
+  `bin/` command" check. **The coordinator's call:** the exemption is forced: §3 (:218) and C-59 give that command
+  form, and the spec wins over amendment 15's check; recorded as a departure for WU-158's notes.
+- **WU-151's rebase round** (sent before verification): rebase onto `338f03d`, keep both units' lines in game
+  knowledge's `SKILL.md`, write the league bullet's search as `grep` and drop WU-156's `leagueBullet` exemption (the
+  review's low finding), check every stage's words within 5% of WU-156's new baseline, then its gate again.
+- **WU-152's doer** finished at `afc42eb` on `bg/wu-152` (two commits; 0.29M subagent tokens). Its own gate rc 0 (246
+  suites, 4,304 tests), build rc 0, after one failure on `advice.test.ts`'s golden case. Rebased by the coordinator onto
+  `338f03d` (no overlapping files): head `4c07cbe`. Changed assertions: AC-A1's golden case expects no skill-slot line
+  (its Grenade is a crossbow's granted skill, so the recount gives 9 groups against 9 slots; D-510, inside M-29's
+  HG-12 grant); PG-103's retirement case split into a setup case and the bug case (D-509; no value changed).
+  Deviations: PG-109 and PG-114 laid out as full entries with `stub = true` and a refusing `apply`, which bootstrap 5d
+  skips; the fingerprint reader and hasher in `scripts/patch-fingerprints.mjs` (an unimported `src/` module fails
+  `deadModules.test.ts`); the cut rules (anchors unique, whitespace-trimmed match, the sha1 over CRLF-ended lines, as
+  `manifestSha1`); the switched mark `Patches.SWITCHED = 'pob2Switched'`, a field PoB doesn't save (WU-161 sets it);
+  `M.wrap` wraps only a method defined on the class itself. Gate verifier and reviewer dispatched in parallel.
+- **WU-151's rebase round** at `5be4037` (three commits on `338f03d`): one conflict, game knowledge's league hunk,
+  resolved keeping both units' lines; the league bullet names `grep` through Bash; the `leagueBullet` exemption removed
+  from `amendment15GameKnowledge.test.ts` (the no-Grep check fails with "its body by Grep" put back: 1 of 20). Words
+  loaded against WU-156's baseline: every stage within 5% (highest Q:researcher +0.6%). Its gate rc 0 (245 suites,
+  4,313 tests), build rc 0; the 13 fixtures' checker results unchanged. Gate verifier and reviewer dispatched.
+- **WU-152's review** (fresh, read-only): the recount follows §6's rule on a luajit probe of hand-built groups; the
+  revert restores PoB's function; a wrap over a missing method refuses before it sets anything; bootstrap runs 5c then
+  5d; each fingerprint covers the lines the spec names, its sha1 equal to `manifestSha1`. Deviations 1–4 and 6
+  accepted. Two findings, both confirmed by the coordinator against the code:
+  - **Medium:** the "bug still present" cases (`pg106.test.ts`:165, `parseFixes.test.ts`:195) assert on a value only
+    the case before sets, so a setup error fails the bug case too, against §5 ("so a setup error fails another case");
+    WU-155's script would then retire a patch on a setup error. Fix: the bug case returns before its assertion when the
+    setup value is unset, and the parseFixes comment is corrected.
+  - **Low:** `M.gem_group_count` (`Patches.lua`:77) skips an enabled gem PoB can't resolve (no granted effect: a gem a
+    newer PoB saved, the file reader's case at 1.0), so its group counts nothing; PoB counts it
+    (`Classes/SkillsTab.lua`:1577–1581, `provided` nil). Fix: an unresolved enabled gem is an ungranted active gem.
+  Fix round to the doer after the gate verifier frees the lane.
+- **WU-152's gate verifier** (fresh) passed `4c07cbe`: gate from clean rc 0 (246 suites, 4,312 tests; the timing step
+  2 suites, 4 tests), build rc 0. Its own hashes of PG-106's function and PG-103's line match; the fingerprint script
+  exits 1 naming PG-106 and the file on a changed line; three mutations bite (recount removed, revert a no-op, switched
+  mark ignored). AC-A1's golden case: Grenade is `fromItem` (`other.lua`:7881), Virtuous Barrier `fromTree` (:19588),
+  the other 9 plain, so 9 against 9 slots; the change is inside the HG-12 grant, and AC-A1's text
+  (`04-advice-docs.md`:173) never required the line. Waivers `[]`; `vendor/` identical to the main checkout's at the
+  pin. It noted both review findings as observations.
+- **The coordinator's call on the unresolved gem:** the review's fix, not the verifier's reading ("no enabled active
+  gem counts nothing"). §6 changes only supports in granted skills; a gem PoB can't resolve isn't known to be a
+  support, PoB counts its group, and the game would, so the recount keeps PoB's count there. Fix round sent to the
+  doer (both findings).
+- **WU-151's review** (fresh, read-only): no high or medium finding; the rule, the run log's two forms, the checker's
+  boundary reading, the card parsing, the rewrite and the readers hold; the ten deviations accepted (9 with a wording
+  nit: "the same lines" only if no league started or ended since `init`). Four low ones, the coordinator confirming 1
+  and 3 in the code; all cheap, so one fix round after the gate verifier frees the lane:
+  1. `runningLeagues.test.ts`:159–161 copies every committed digest and :202–206 expect none at 2026-12-11 20:00, so
+     committing 1.0's digest before launch (R-121's launch note) breaks the gate; copy the two by name.
+  2. The real-clock tests (`buildGuideSchema4`, `buildGuideScripts`, `buildGuideAmendment11`–`14`,
+     `buildGuideResumeNoNinja`, `amendment15Commands`) read the clock twice and can disagree across the boundary; give
+     them `BUILD_GUIDE_TEST_NOW`.
+  3. `leagues.mjs`:168's main guard compares an unresolved `argv[1]` with the real path, so through a symlinked plugin
+     root the command prints nothing and exits 0; compare `fs.realpathSync(process.argv[1])`.
+  4. `patterns.md`:591–592 names only the task header's `digests`; add `leagues.mjs`'s list (as `lookups.md`:125).
+- **WU-151's gate verifier** (fresh) passed `5be4037`: gate from clean rc 0 (245 suites, 4,313 tests; the timing step
+  2 suites, 4 tests), build rc 0. AC-W130's test drives the real scripts and catches 13 mutations (one surviving branch
+  a valid log can't reach); AC-W131's under a throwing `fetch`; the committed instants checked against §3 by hand
+  (Runes of Aldur 2026-05-29 20:00, Forbidden Rites 2026-09-04 20:00, both to 2026-12-11 20:00 UTC). Every changed
+  assertion traces to D-507 or §24's revision 15; the 13 fixtures identical under `cf16e07`'s checker and the head's.
+  Waivers `[]`; `SKILL.md` 317 lines, game knowledge's 125. Wording nits (comments and two references) joined the fix
+  round, which was sent to the doer with the review's four.
+- **WU-152's fix round** at `4130f96`: the two bug cases return before their assertion when the setup value is unset
+  (a setup case made to throw: only it fails); an enabled gem with no granted effect counts its group, with a new case
+  (a gem id the pin lacks: 10 patched and 10 by PoB's own count; 9 under the old rule). No fingerprint moved. The
+  doer's gate rc 0 (246 suites, 4,313 tests), build rc 0. **Re-check by the coordinator:** read the diff (3 files, 53
+  lines), re-ran the six suites (41 tests pass) and `scripts/patch-fingerprints.mjs` (rc 0); the verifier's full gate
+  at `4c07cbe` stands for the rest.
+- **WU-152 (the patch frame and PG-106) merged** at `4130f96` (fast-forward, three commits on `338f03d`). AC-W133:
+  `tests/static/patchFingerprints.test.ts`, `tests/integration/patches.test.ts`; AC-W134:
+  `tests/integration/pg106.test.ts`, `skillSlots.test.ts` unchanged.
+  - **AC-W162's list, WU-152:** `advice.test.ts`, AC-A1's golden case: no skill-slot line (D-510; its Grenade is the
+    crossbow's), plus a colour-code check on the low-Strength lines (an addition); `parseFixes.test.ts`, PG-103's
+    retirement case split into a setup case and the bug case, guarded (D-509; no value changed).

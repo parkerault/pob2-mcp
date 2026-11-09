@@ -11,7 +11,7 @@
  *   absolute paths in `POB2_OVERLAY_SIDECARS` (a JSON list), which bootstrap step 5e reads (`pob-api/API/Overlay.lua`).
  *   The session compares the list (paths and modification times) before a load or a compile with the one the running
  *   engine started with, and restarts the engine on a change, so step 5e reads the new entries.
- * - **The marks**: the names a plan stage's items take from the overlay (a socketed `Rune:` or a unique's name), less
+ * - **The marks**: the names a plan stage's items take from the overlay the running engine loaded (a socketed `Rune:` or a unique's name), less
  *   those the pin now defines (retired: the engine skips them), go in the record's `stages.<id>.overlay` (Appendix A.8).
  */
 import fs from 'fs';

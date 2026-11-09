@@ -185,8 +185,11 @@ describe('AC-W159 (WU-166, D-523): the engine, the tool and the marks', () => {
     expect(read('skills', 'build-guide', 'scripts', 'render-audit.mjs')).toContain("export const overlayMark = (name) => `measured with ${name}'s lines from poe2db, not in PoB's release`;");
   });
 
-  it('a card resting on an overlay entry is no not-in-pin card (R1a, R1a-assemble, R1b)', () => {
-    for (const stage of ['R1a', 'R1a-assemble', 'R1b']) expect({ stage, overlay: folded(read('skills', 'build-guide', 'references', 'stages', `${stage}.md`)).includes('overlay.json') }).toEqual({ stage, overlay: true });
+  it('a card resting on an overlay entry is no not-in-pin card (R1a, R1a-assemble, R1b), the entry one the sidecar adds, not one it skipped', () => {
+    for (const stage of ['R1a', 'R1a-assemble', 'R1b']) {
+      const text = folded(read('skills', 'build-guide', 'references', 'stages', `${stage}.md`));
+      expect({ stage, overlay: text.includes('`<slug>.overlay.json`'), adds: text.includes('under `socketables` or `uniques`, not `skipped`') }).toEqual({ stage, overlay: true, adds: true });
+    }
   });
 
   it("the upgrade script's reflag step lists the overlay entries that retire", () => {

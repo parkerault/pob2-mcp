@@ -60,6 +60,8 @@ const ALL_SLOTS = writeSidecar(path.join(tmp, 'lua', 'saltmarsh-rites.overlay.js
     // outside the per-file pcall) and a type that isn't a string.
     { name: 'Bad Order Rune', type: 'Rune', rank: [1], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+1 to maximum Life'], statOrder: ['x'] }] },
     { name: 'Bad Type Rune', type: 5, rank: [1], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+1 to maximum Life'], statOrder: [LIFE_ORDER] }] },
+    // And a rank that isn't a number (PoB reads rank[1] of every rune of a slot type).
+    { name: 'Bad Rank Rune', type: 'Rune', rank: ['x'], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+1 to maximum Life'], statOrder: [LIFE_ORDER] }] },
   ],
   uniques: [
     { name: TEST_UNIQUE, base: 'Gold Ring', level: 30, implicits: ['(6-15)% increased Rarity of Items found'], explicits: ['+(30-40) to maximum Life', '+(10-15)% to Cold Resistance'] },
@@ -127,10 +129,10 @@ out.runeListBad = false
 out.runeListSorted = true
 for i, r in ipairs(list or {}) do
   if r.name == ${JSON.stringify(TEST_RUNE)} then out.runeListHas = true end
-  if r.name == 'Bad Order Rune' or r.name == 'Bad Type Rune' then out.runeListBad = true end
+  if r.name == 'Bad Order Rune' or r.name == 'Bad Type Rune' or r.name == 'Bad Rank Rune' then out.runeListBad = true end
   if type(r.order) ~= 'number' then out.runeListSorted = false end
 end
-out.badInData = data.itemMods.Runes['Bad Order Rune'] ~= nil or data.itemMods.Runes['Bad Type Rune'] ~= nil
+out.badInData = data.itemMods.Runes['Bad Order Rune'] ~= nil or data.itemMods.Runes['Bad Type Rune'] ~= nil or data.itemMods.Runes['Bad Rank Rune'] ~= nil
 -- The unique, in PoB's unique database.
 local unique
 for _, it in pairs(main.uniqueDB.list) do if it.title == ${JSON.stringify(TEST_UNIQUE)} then unique = it end end
@@ -173,10 +175,11 @@ return out`,
     }
   });
 
-  it('refuses an entry whose statOrder is no number or whose type is no string, logged, and step 5e goes on to the others', () => {
+  it('refuses an entry whose statOrder or rank is no number or whose type is no string, logged, and step 5e goes on to the others', () => {
     expect({ inData: facts.badInData, inList: facts.runeListBad, ordered: facts.runeListSorted }).toEqual({ inData: false, inList: false, ordered: true });
     expect(lua.stderr()).toContain('Bad Order Rune: the statOrder of "+1 to maximum Life" is not a number');
     expect(lua.stderr()).toContain('Bad Type Rune: its type is not a string');
+    expect(lua.stderr()).toContain('Bad Rank Rune: its rank is not a number');
   });
 
   it("puts the socketable in the items tab's rune list, and the unique in PoB's unique database", () => {
@@ -187,27 +190,39 @@ return out`,
 
 const read = (file: string): Json => JSON.parse(fs.readFileSync(file, 'utf8')) as Json;
 
+// The text's own rune line, +1%, is what PoB keeps for a rune it doesn't know; one it knows it rebuilds from its data.
+const HELMET = ['Rarity: Rare', 'Brine Crown', 'Sorcerous Tiara', 'Sockets: S', `Rune: ${CORE}`, 'Implicits: 0', '{rune}+1% to Chaos Resistance', '+40 to maximum Energy Shield'].join('\n');
+/** The sidecar that adds the helmet's soul core, +17% to Chaos Resistance. */
+const CORE_SIDECAR = (league: string, file = 'saltmarsh-rites.overlay.json') =>
+  writeSidecar(path.join(league, file), {
+    schemaVersion: 1,
+    league: 'Saltmarsh Rites',
+    fetched: '2026-11-09',
+    socketables: [{ name: CORE, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+17% to Chaos Resistance'], statOrder: [CHAOS_ORDER] }] }],
+    uniques: [{ name: TEST_UNIQUE, base: 'Gold Ring', level: 30, implicits: ['(6-15)% increased Rarity of Items found'], explicits: ['+(30-40) to maximum Life'] }],
+    skipped: [],
+  });
+
+/** The LICH fixture's stage with the helmet, compiled measure-only in a run folder of `f`; its record. */
+async function compileHelmet(f: SessionFixture, slug: string): Promise<CompileRecord> {
+  const plan = read(LICH);
+  const s = plan.stages[0];
+  s.items.slots = [...s.items.slots.filter((x: Json) => x.slot !== 'Helmet'), { slot: 'Helmet', text: HELMET }];
+  plan.stages = [s];
+  const made = await f.call('guide_run', { new_run: slug });
+  if (made.isError) throw new Error(`guide_run failed: ${made.text}`);
+  const abs = /^Created run folder (.+)$/m.exec(made.text)![1];
+  const planPath = /^plan_path for this run: (\S+)$/m.exec(made.text)![1];
+  fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(plan, null, 2)}\n`);
+  const out = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
+  expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
+  return read(path.join(abs, 'compile-record.json')) as unknown as CompileRecord;
+}
+
 engineDescribe('AC-W159 (WU-166, D-523): the overlay through the server, a sidecar in the league folder', () => {
   let f: SessionFixture;
   let league: string;
-  // The text's own rune line, +1%, is what PoB keeps for a rune it doesn't know; one it knows it rebuilds from its data.
-  const HELMET = ['Rarity: Rare', 'Brine Crown', 'Sorcerous Tiara', 'Sockets: S', `Rune: ${CORE}`, 'Implicits: 0', '{rune}+1% to Chaos Resistance', '+40 to maximum Energy Shield'].join('\n');
-
-  /** The LICH fixture's stage with the helmet, compiled measure-only in a run folder; its record. */
-  async function compile(slug: string): Promise<CompileRecord> {
-    const plan = read(LICH);
-    const s = plan.stages[0];
-    s.items.slots = [...s.items.slots.filter((x: Json) => x.slot !== 'Helmet'), { slot: 'Helmet', text: HELMET }];
-    plan.stages = [s];
-    const made = await f.call('guide_run', { new_run: slug });
-    if (made.isError) throw new Error(`guide_run failed: ${made.text}`);
-    const abs = /^Created run folder (.+)$/m.exec(made.text)![1];
-    const planPath = /^plan_path for this run: (\S+)$/m.exec(made.text)![1];
-    fs.writeFileSync(path.join(f.guides, planPath), `${JSON.stringify(plan, null, 2)}\n`);
-    const out = await f.call('compile_plan', { plan_path: planPath, measure_only: true });
-    expect({ isError: out.isError, text: out.isError ? out.text : '' }).toEqual({ isError: false, text: '' });
-    return read(path.join(abs, 'compile-record.json')) as unknown as CompileRecord;
-  }
+  const compile = (slug: string) => compileHelmet(f, slug);
 
   beforeAll(async () => {
     f = await startSessionFixture({ testActions: true });
@@ -230,14 +245,7 @@ engineDescribe('AC-W159 (WU-166, D-523): the overlay through the server, a sidec
       expect(pid).not.toBeNull();
       expect(before.stages[stage].overlay).toBeUndefined();
       // The sidecar appears while the engine runs.
-      writeSidecar(path.join(league, 'saltmarsh-rites.overlay.json'), {
-        schemaVersion: 1,
-        league: 'Saltmarsh Rites',
-        fetched: '2026-11-09',
-        socketables: [{ name: CORE, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+17% to Chaos Resistance'], statOrder: [CHAOS_ORDER] }] }],
-        uniques: [{ name: TEST_UNIQUE, base: 'Gold Ring', level: 30, implicits: ['(6-15)% increased Rarity of Items found'], explicits: ['+(30-40) to maximum Life'] }],
-        skipped: [],
-      });
+      CORE_SIDECAR(league);
       const after = await compile('overlay-after');
       // The engine restarted to read it (bootstrap step 5e), and the soul core's line is the sidecar's: +17% for +1%.
       expect(f.session.enginePid()).not.toBe(pid);
@@ -354,6 +362,29 @@ engineDescribe('AC-W159 (WU-166, D-523): a changed sidecar list restarts the eng
       const again = f.session.enginePid();
       expect((await f.call('lookup_game_data', { mode: 'unique', query: `Brine Loop ${n}` })).isError).toBe(false);
       expect(f.session.enginePid()).toBe(again);
+    },
+    ENGINE_TIMEOUT,
+  );
+
+  it(
+    "an engine not restarted (its build changed, with no snapshot to restore) keeps its sidecars, and the record's overlay names only what it loaded",
+    async () => {
+      // The build changed since the engine's spawn; a failed export leaves no snapshot (set here by hand).
+      expect(f.session.revision).toBeGreaterThan(0);
+      (f.session as unknown as { snapshot: unknown }).snapshot = null;
+      const pid = f.session.enginePid();
+      CORE_SIDECAR(league, 'core.overlay.json');
+      const kept = await compileHelmet(f, 'overlay-kept');
+      const stage = Object.keys(kept.stages)[0];
+      // No restart: the engine never read the new sidecar, so the record names no overlay item, and the soul core's
+      // line is the item text's own.
+      expect(f.session.enginePid()).toBe(pid);
+      expect(kept.stages[stage].overlay).toBeUndefined();
+      // That compile left a snapshot, so the next call restarts and the engine reads the sidecar.
+      const read2 = await compileHelmet(f, 'overlay-read');
+      expect(f.session.enginePid()).not.toBe(pid);
+      expect(read2.stages[stage].overlay).toEqual([CORE]);
+      expect(read2.stages[stage].outputs.ChaosResist - kept.stages[stage].outputs.ChaosResist).toBe(16);
     },
     ENGINE_TIMEOUT,
   );

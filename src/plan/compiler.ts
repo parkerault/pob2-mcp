@@ -219,7 +219,7 @@ import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline
 import { checkV1, DEFENCE_CHECKS_SINCE, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
 import { compareBuilds, parsePobXml, readBackSummary, type ReadBackFile, type ReadBackNames } from '../services/readBack.js';
-import { listSidecars, overlayFolders, overlayItemNames, stageOverlayNames } from '../services/leagueOverlay.js';
+import { stageOverlayNames } from '../services/leagueOverlay.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
 export class CompileError extends Error {
@@ -1620,8 +1620,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const stages: Record<string, StageRecord> = {};
   /** D-321: the stages measured with custom modifiers present, whose figures carry the mark. */
   const marked = new Set<string>();
-  // D-523: the overlay's items, from the sidecars the engine read (the retired ones left out).
-  const overlayNames = overlayItemNames(listSidecars(overlayFolders(env.stateDir)));
+  // D-523: the overlay's items, from the sidecars the running engine was started with (the retired ones left out), never
+  // a sidecar on disk it hasn't read.
+  const overlayNames = env.ctx.overlayNames?.() ?? new Set<string>();
   for (const { stage, reply, elapsedMs, checked } of results) {
     // D-293, D-321: the raw figures stay as measured; the counted ones beside them apply each group's Count.
     const counted = countedFigures(stage, reply.outputs, reply.skillOutputs, reply.dotCanStack);

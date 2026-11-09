@@ -31,7 +31,7 @@ import { resolvePobApiDir, resolvePobSrc } from "./pobPath.js";
 import { readPin } from "./pinCheck.js";
 import { canonicalBuildPath, sanitizeBuildName } from "../utils/pathSanitizer.js";
 import type { DroppedSupportGroup } from "./schemas.js";
-import { OVERLAY_ENV, overlayEnvValue, sidecarKey, type Sidecar } from "../services/leagueOverlay.js";
+import { OVERLAY_ENV, overlayEnvValue, overlayItemNames, sidecarKey, type Sidecar } from "../services/leagueOverlay.js";
 
 export type EngineKind = "read" | "mutate" | "load" | "lifecycle";
 
@@ -95,6 +95,11 @@ export interface EngineCallContext {
    * `revision += 1`. Returns the last mutating tool when unsaved changes were discarded.
    */
   stopEngine(): Promise<{ discardedFrom: string | null }>;
+  /**
+   * D-523: the league overlay's item names the running engine was started with (its sidecars, read at its spawn, less
+   * those the pin defines), so a compile record's `overlay` names only what the engine loaded. Absent from a test double.
+   */
+  overlayNames?(): ReadonlySet<string>;
 }
 
 export interface EngineSession {
@@ -329,8 +334,12 @@ class Session implements EngineSession {
   private overlayStarted: string | null = null;
   /** D-523: the revision when that engine was spawned, so a restart of an unchanged engine needs no restore. */
   private overlayStartRevision = 0;
+  /** D-523: the running engine holds the empty build it started with (a first start), not a restored one. */
+  private engineHoldsNewBuild = false;
   /** D-523: the restart step 3 is about to restore was the overlay's, not a crash (its notice says so). */
   private overlayRestart = false;
+  /** D-523: the overlay's item names the running engine got at its spawn (`EngineCallContext.overlayNames`). */
+  private overlayNamesLoaded: ReadonlySet<string> = new Set();
 
   // FIFO mutex
   private locked = false;
@@ -412,6 +421,7 @@ class Session implements EngineSession {
     const list = this.opts.overlaySidecars();
     this.overlayStarted = sidecarKey(list);
     this.overlayStartRevision = this.revisionValue;
+    this.overlayNamesLoaded = overlayItemNames(list, resolvePobSrc(this.opts.env));
     return { [OVERLAY_ENV]: overlayEnvValue(list) };
   }
 
@@ -428,7 +438,8 @@ class Session implements EngineSession {
     const client = this.client();
     if (!client.isAlive() || this.crashed) return;
     if (sidecarKey(this.opts.overlaySidecars()) === this.overlayStarted) return;
-    const fresh = this.revisionValue === this.overlayStartRevision;
+    // Nothing to lose: the engine holds the empty build it started with, and nothing changed since its spawn.
+    const fresh = this.engineHoldsNewBuild && this.revisionValue === this.overlayStartRevision;
     const restore = this.snapshot !== null && this.loadedValue !== null;
     if (!fresh && !restore) {
       console.error("[Engine Session] the league overlay's sidecars changed, but the build has no snapshot to restore: the engine reads them at its next start");
@@ -645,6 +656,7 @@ class Session implements EngineSession {
     // no-snapshot path): if recovery fails part-way, or a deadline cuts it, the next call must still
     // take step 3.
     if (!this.crashed) {
+      this.engineHoldsNewBuild = true;
       this.loadedValue = this.newBuildRecord();
       this.snapshot = null;
       this.interrupted = null;
@@ -660,6 +672,7 @@ class Session implements EngineSession {
     // D-523: the restart was the overlay's (reloadOverlay), not a crash.
     const overlay = this.overlayRestart;
     this.overlayRestart = false;
+    this.engineHoldsNewBuild = false;
     if (snapshot && this.loadedValue) {
       try {
         // keepLevel: the restore must give back the state after the last change, so PoB's level
@@ -697,6 +710,7 @@ class Session implements EngineSession {
     this.interrupted = null;
     this.snapshot = null;
     this.loadedValue = this.newBuildRecord();
+    this.engineHoldsNewBuild = true;
     this.crashed = false;
     if (call.kind === "read" || call.kind === "mutate") throw new EngineSessionError(RESTORE_FAILED);
     notices.push(RESTORE_FAILED);
@@ -1035,6 +1049,9 @@ class Session implements EngineSession {
         session.interrupted = null;
         session.revisionValue += 1;
         return { discardedFrom };
+      },
+      overlayNames(): ReadonlySet<string> {
+        return session.overlayNamesLoaded;
       },
     };
   }

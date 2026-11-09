@@ -31,6 +31,7 @@ import { resolvePobApiDir, resolvePobSrc } from "./pobPath.js";
 import { readPin } from "./pinCheck.js";
 import { canonicalBuildPath, sanitizeBuildName } from "../utils/pathSanitizer.js";
 import type { DroppedSupportGroup } from "./schemas.js";
+import { OVERLAY_ENV, overlayEnvValue, sidecarKey, type Sidecar } from "../services/leagueOverlay.js";
 
 export type EngineKind = "read" | "mutate" | "load" | "lifecycle";
 
@@ -136,6 +137,12 @@ export interface EngineSessionOptions {
    * from is still guarded (C-17 step 3, FR-E4; D-86).
    */
   onFileFingerprint?: (relPath: string, fp: Fingerprint) => void;
+  /**
+   * D-523 (amendment 16 §19): the overlay's sidecars now (`listSidecars`, `src/services/leagueOverlay.ts`). The engine
+   * child gets their paths at each start (bootstrap step 5e); before a load or a compile (kind `load`, which replaces
+   * the build anyway) an engine started with another list is stopped and started again, so 5e reads the new entries.
+   */
+  overlaySidecars?: () => readonly Sidecar[];
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -317,6 +324,8 @@ class Session implements EngineSession {
    * next call.
    */
   private readyPid: number | null = null;
+  /** D-523: the sidecar list the running engine was started with (its key), or null before any start. */
+  private overlayStarted: string | null = null;
 
   // FIFO mutex
   private locked = false;
@@ -386,9 +395,37 @@ class Session implements EngineSession {
             pobSrc: resolvePobSrc(this.opts.env),
             pobApiDir: resolvePobApiDir(),
             pin: readPin(),
+            childVars: () => this.overlayVars(),
           });
     }
     return this.clientInstance;
+  }
+
+  /** D-523: the overlay's child variable at a spawn, the list's key kept for the reload check. */
+  private overlayVars(): Record<string, string> {
+    if (!this.opts.overlaySidecars) return {};
+    const list = this.opts.overlaySidecars();
+    this.overlayStarted = sidecarKey(list);
+    return { [OVERLAY_ENV]: overlayEnvValue(list) };
+  }
+
+  /**
+   * D-523: before a load or a compile, an engine started with another sidecar list stops, as `lua_stop` stops it, and
+   * step 2 starts it again with the new list; the call replaces the build either way.
+   */
+  private async reloadOverlay(call: EngineCall): Promise<void> {
+    if (call.kind !== "load" || !this.opts.overlaySidecars || this.overlayStarted === null) return;
+    const client = this.client();
+    if (!client.isAlive() || this.crashed) return;
+    if (sidecarKey(this.opts.overlaySidecars()) === this.overlayStarted) return;
+    console.error("[Engine Session] the league overlay's sidecars changed: restarting the engine so it reads them");
+    await client.stop();
+    this.engineRunning = false;
+    this.crashed = false;
+    this.readyPid = null;
+    this.loadedValue = null;
+    this.snapshot = null;
+    this.interrupted = null;
   }
 
   private acquire(call: EngineCall): Promise<void> {
@@ -465,6 +502,7 @@ class Session implements EngineSession {
       return this.runFn(fn, state);
     }
 
+    await this.reloadOverlay(call); // D-523: a changed sidecar list restarts the engine before a load
     await this.ensureEngine(call, notices); // steps 2–3
     if (call.kind !== "load") await this.checkDisk(call, state, notices); // step 4
 

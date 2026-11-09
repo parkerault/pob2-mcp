@@ -412,6 +412,7 @@ export function variantText(variants: Variants): string {
  */
 function renderUnique(unique: LookupUnique): string[] {
   const lines: string[] = [`## ${unique.name} (${unique.type})`];
+  if (unique.notInRelease) lines.push(NOT_IN_RELEASE);
   if (unique.baseName) lines.push(`Base: ${unique.baseName}`);
   if (unique.byName && unique.matchedLines.length === 0) lines.push("Matched: its name");
   for (const m of unique.matchedLines) {
@@ -434,9 +435,15 @@ function renderUnique(unique: LookupUnique): string[] {
   return lines;
 }
 
-/** One mechanic hit: `[<kind>] <source>: <line>`. */
+/**
+ * D-523 (amendment 16 §19): the mark on an entry the league overlay added to PoB's data from a digest's sidecar, which
+ * the engine measures from poe2db's lines before a PoB release knows it.
+ */
+export const NOT_IN_RELEASE = "Not in PoB's release: the league overlay adds it from poe2db's lines (D-523).";
+
+/** One mechanic hit: `[<kind>] <source>: <line>`, an overlay entry's marked. */
 export function renderHit(hit: LookupHit): string {
-  return `[${hit.kind}] ${hit.source}: ${hit.line}`;
+  return `[${hit.kind}] ${hit.source}: ${hit.line}${hit.notInRelease ? " (not in PoB's release: the league overlay's, from poe2db)" : ""}`;
 }
 
 /** The line under a mod hit that lists its base types (WU-60, D-277). */

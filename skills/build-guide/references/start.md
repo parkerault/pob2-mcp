@@ -94,13 +94,18 @@ text doesn't give, and never invent one:
      finalizes (D-286): one build per finalized card (D-411, D-412).
 2. **Run folder.** Call `mcp__pob2__guide_run {new_run: <slug>}`, the slug from the brief
    (`skills/build-guide/references/run-folder.md`: `titan-blood-hunt`, `titan-open`, `open-<first playstyle tag>`). Keep its
-   absolute path (`runFolder`), its root-relative path (`runFolderRel`) and `loadedBuildUnsaved`. The card
-   finalized later goes in the run log, not in the folder name.
+   absolute path (`runFolder`), its root-relative path (`runFolderRel`), `loadedBuildUnsaved` and `leagueFolder`, the
+   server's league folder (never resolve it yourself, D-523). The card finalized later goes in the run log, not in the
+   folder name. **The new league's items** (D-523): online and not under `--test`, run `pob2-league-digest --running
+   --out <leagueFolder>`. When no running league has a digest, or the newest records no end, it reads poe2db's
+   homepage (at most once a UTC day) and makes each running league's missing digest and its sidecar there, whose
+   socketables and uniques the server measures from poe2db's lines; name once each league its output says still has
+   none. Offline, nothing is fetched: say once that a new league's items aren't in the committed data.
 3. **Run log.** Check the test config if one was given with `--offline`: `pob2-run-log
    <runFolder> test-config <path>`. A file that can't be read or isn't the documented shape is refused, and the run stops: write
    `run-log.json` with `testConfig: "refused"` and `status: "stopped"`, finish (`skills/build-guide/SKILL.md` §8), and give the reason in your reply (`skills/build-guide/references/offline-and-test.md`).
    Otherwise write `run-log.json` with `status: "running"`, the mode, `testConfig`, `noNinja` (`true` with
-   `--no-ninja`, else `false`) and the parsed brief; no build yet. Either first write is `pob2-run-log <runFolder>
+   `--no-ninja`, else `false`), `leagueFolder` (step 2's) and the parsed brief; no build yet. Either first write is `pob2-run-log <runFolder>
    init`, with `noNinja` always (`init` refuses an entry without it), never Write (`skills/build-guide/references/run-log.md`).
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
@@ -112,8 +117,8 @@ text doesn't give, and never invent one:
    until its end, if one is recorded; `pob2-run-log` applies that rule, never you. Keep its `digests:` line, the
    running digests' paths: every R1a and researcher Q header copies it as `digests`
    (`skills/build-guide/references/task-header.md`); after a compaction,
-   `node <root>/skills/game-knowledge/scripts/leagues.mjs` prints the same lines, unless a league started or ended
-   since `init`. The user runs `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch lands;
+   `node <root>/skills/game-knowledge/scripts/leagues.mjs --league <leagueFolder>` prints the same lines, unless a
+   league started or ended since `init`. The user runs `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch lands;
    nothing waits on it.
 
 Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
@@ -138,7 +143,8 @@ run again. In this order:
 2. **A schema-3 log** (a run from before amendment 9: `"schemaVersion": 3` in `run-log.json`, `head -3`):
    `pob2-run-log <runFolder> migrate`, which rewrites it as schema 4, its build at the root (`folder: "."`).
 3. **The resume entry:** `pob2-run-log <runFolder> resume` with `{"noNinja": <this session's --no-ninja>}`. It
-   records the session (the pin's commit, the running digests, the lists' lengths) and sets `status` `running`. Pricing
+   records the session (the pin's commit, the running digests, those in the league folder `init` recorded too, the
+   lists' lengths) and sets `status` `running`. Pricing
    starts afresh in the new session: a stop in an earlier session doesn't hold (D-415, `skills/pricing/references/pricing.md`).
 4. **Unsaved build** (D-210), once per resume: as step 4 above, when `loadedBuildUnsaved` is `true`.
 5. **The league digests' staleness line**, as step 5 above, from the lines `resume` printed.

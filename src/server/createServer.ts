@@ -50,6 +50,7 @@ import {
 import { isToolAvailable } from "./toolMeta.js";
 import { wrapWithTruncation, type ToolResponse } from "./responseUtils.js";
 import { monotonicNow } from "../utils/clock.js";
+import { listSidecars, overlayFolders } from "../services/leagueOverlay.js";
 
 export type { Credentials } from "../trade/credentials.js";
 
@@ -280,6 +281,8 @@ export function createServer(deps: ServerDeps): {
     now,
     // C-17 step 3 (D-86): the writer remembers the engine's fingerprint of every file it loaded or saved.
     onFileFingerprint: (rel, fp) => buildFileWriter.noteEngineFingerprint(rel, fp),
+    // D-523: the league overlay's sidecars, committed and in the league folder, read at each engine start.
+    overlaySidecars: () => listSidecars(overlayFolders(deps.stateDir)),
   });
   const engineAccess = sessionScopedEngine(session);
   // C-17: the only path for server writes into the builds folder (backups go to the state dir, C-16).

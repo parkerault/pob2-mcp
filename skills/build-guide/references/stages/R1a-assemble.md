@@ -64,7 +64,8 @@ It compiles nothing, prices nothing, and edits a card only to rename it (step 7)
    card's `Defence:` line (D-451) or a `Means:` line's second means (D-457): they are leads for the design, not links
    the payoff rests on, and a card written before amendment 12 has neither. A card whose
    named damage source or load-bearing link is a digest entry marked `[not in pin]` passes, dealt as `can't be
-   finalized yet: <why> | waits on the pin: <entry>`, the entry by its digest name (D-400).
+   finalized yet: <why> | waits on the pin: <entry>`, the entry by its digest name (D-400), unless the sidecar beside
+   its digest (`<slug>.overlay.json`) names it: the overlay measures it, and the card is dealt as any other (D-523).
 4. **Under-played cards** (D-298 as D-335 restates it; D-339). Each researcher built at least one of its 3
    cards on a pattern-library shape it judges under-played, labelled `Under-played (judgment)` in its pitch.
    Read each label against the library: keep it when the shape is one few builds use with this skill,

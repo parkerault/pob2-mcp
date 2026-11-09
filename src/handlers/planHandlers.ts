@@ -14,8 +14,9 @@
  *   it, with the copy of what the server wrote, and writes `readback.json` beside the plan; `{adopt}` takes that file as
  *   the server's own; `{notes_path}` (D-487) writes a text file's notes into the final file; all three run as kind
  *   `none`. `{trade_links: true}` (D-488) writes `trade-links.json` from the final compile's copy, as kind `load`.
- * - `guide_run {new_run}` creates the next run folder `<slug>/<YYYY-MM-DD>-<n>` (D-207) and says whether the
- *   engine's build has unsaved changes the next compile would discard (D-210); it never touches the
+ * - `guide_run {new_run}` creates the next run folder `<slug>/<YYYY-MM-DD>-<n>` (D-207), says whether the
+ *   engine's build has unsaved changes the next compile would discard (D-210) and names the server's league folder,
+ *   `<stateDir>/league` (D-523, C-66), where the user's side makes a running league's digest; it never touches the
  *   engine (the router runs it as kind `none`, D-216). `guide_run {validate, stages?}` checks a plan
  *   against its schema, the reference data and the game data (`compile_check`) without changing the build.
  * - `guide_run {view: {plan, stage}}` and `{view: {plan, claims: true}}` (D-356) read part of a plan without
@@ -36,6 +37,7 @@ import type { EngineCallContext, LoadedBuild } from '../engine/session.js';
 import type { BuildFileWriter } from '../services/buildFileWriter.js';
 import { readPin } from '../engine/pinCheck.js';
 import { checkGuidesRoot, createRunFolder, realPathInGuides, resolveInGuidesRoot } from '../utils/guidesPath.js';
+import { LEAGUE_FOLDER_LINE, leagueFolderOf } from '../services/leagueOverlay.js';
 import { wrapHandler } from '../utils/errorHandling.js';
 import {
   adoptFile,
@@ -797,6 +799,8 @@ export async function handleGuideRun(context: PlanContext, args: Record<string, 
         `Created run folder ${run.absPath}`,
         `plan_path for this run: ${run.relPath}/plan.json`,
         `loadedBuildUnsaved: ${unsaved}`,
+        // D-523 (C-50, C-66): the server's league folder, which the runner passes to pob2-league-digest and pob2-run-log.
+        `${LEAGUE_FOLDER_LINE}: ${leagueFolderOf(context.stateDir)}`,
       ];
       if (unsaved) lines.push(unsavedLine(context));
       return { content: [{ type: 'text' as const, text: lines.join('\n') }] };

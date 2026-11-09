@@ -68,7 +68,8 @@ describe('AC-W114 (WU-145, D-499): the repository is the plugin pob2', () => {
   });
 
   it("bin/ holds exactly the four commands, each executable, each Appendix A's form running its script from the plugin root", () => {
-    expect(fs.readdirSync(path.join(REPO, 'bin')).sort()).toEqual(COMMANDS);
+    // Amendment 16 (WU-166, D-523): C-57 gains a fifth, pob2-league-digest, game knowledge's (tests/static/leagueOverlay.test.ts).
+    expect(fs.readdirSync(path.join(REPO, 'bin')).sort()).toEqual([...COMMANDS, 'pob2-league-digest'].sort());
     for (const command of COMMANDS) {
       const file = path.join(REPO, 'bin', command);
       expect({ command, executable: (fs.statSync(file).mode & 0o111) === 0o111 }).toEqual({ command, executable: true });

@@ -1,0 +1,3 @@
+#!/bin/sh
+d=$(cd -P "$(dirname "$0")/.." && pwd -P)
+exec node "$d/skills/game-knowledge/scripts/league-digest.mjs" "$@"

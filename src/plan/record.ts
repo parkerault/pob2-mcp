@@ -1544,6 +1544,11 @@ export interface StageRecord {
     reserved: number | null;
     buffs: { group: number; activeSkill: number; skill: string; reserved: number }[];
   };
+  /**
+   * D-523 (amendment 16 §19, Appendix A.8): the stage's items the overlay adds to PoB's data (a socketed socketable or a
+   * unique, by name), measured with poe2db's lines, not in PoB's release. Absent when it holds none.
+   */
+  overlay?: string[];
 }
 
 /** D-518 (WU-161): one switched buff's measure (Appendix A.8, with the weapon set it was measured on). */

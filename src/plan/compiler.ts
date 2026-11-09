@@ -219,6 +219,7 @@ import { loadConfigBaseline, type ConfigBaseline } from './checks/configBaseline
 import { checkV1, DEFENCE_CHECKS_SINCE, groupWeaponSlot, predecessorOf, type WeaponGrants } from './checks/v1.js';
 import { checkV2, producerKey } from './checks/v2.js';
 import { compareBuilds, parsePobXml, readBackSummary, type ReadBackFile, type ReadBackNames } from '../services/readBack.js';
+import { listSidecars, overlayFolders, overlayItemNames, stageOverlayNames } from '../services/leagueOverlay.js';
 
 /** A compile that stops with an error the caller shows as is; nothing was written. */
 export class CompileError extends Error {
@@ -1619,6 +1620,8 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
   const stages: Record<string, StageRecord> = {};
   /** D-321: the stages measured with custom modifiers present, whose figures carry the mark. */
   const marked = new Set<string>();
+  // D-523: the overlay's items, from the sidecars the engine read (the retired ones left out).
+  const overlayNames = overlayItemNames(listSidecars(overlayFolders(env.stateDir)));
   for (const { stage, reply, elapsedMs, checked } of results) {
     // D-293, D-321: the raw figures stay as measured; the counted ones beside them apply each group's Count.
     const counted = countedFigures(stage, reply.outputs, reply.skillOutputs, reply.dotCanStack);
@@ -1692,6 +1695,9 @@ export async function compilePlan(env: CompilerEnv, request: CompileRequest): Pr
         keyFigures: { ...sw.keyFigures },
       }));
     }
+    // D-523 (Appendix A.8): the stage's items measured with poe2db's lines, not in PoB's release.
+    const overlay = stageOverlayNames(stage, overlayNames);
+    if (overlay.length > 0) stages[stage.id].overlay = overlay;
     // D-353: the endgame measures, a card skeleton's pace measures included (D-407); D-358: the anoint's recipe.
     // D-427: the clear measure's travel skill, from the stage's skills with PoB's Travel type.
     // WU-111 (D-437, D-447): with the reply's skill meta and boss measure, the damage figures, trigger and source types.

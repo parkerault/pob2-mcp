@@ -131,6 +131,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md` and do it, i
 line: line 3 of each running league's digest, which `init` or `resume` printed after the `digests:` line a researcher's header copies (D-400,
 D-507). `init` records `--no-ninja` as `noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every
 pricing step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
+Online and not under `--test`, `pob2-league-digest --running --out <leagueFolder>` first makes a running league's missing digest (D-523).
 
 **A run from a PoB file** (D-522): a request for a guide to the player's own build or file starts it ("a build guide for
 my build MyCharacter123"), its brief's `from`, `better` and `campaign`, its slug `file`; a one-word `/pob2:build-guide <name>`

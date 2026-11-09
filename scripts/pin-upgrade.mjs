@@ -35,7 +35,8 @@
 //   rulesIndex       the new pin's candidates (written for the agents who rewrite changed entries, amendment 8 §3),
 //                    the entries that differ from the old pin's, and `rules-index.mjs check --text` on them.
 //   reflag           league-digest.mjs --reflag on each digest in data/league/, offline; a digest is written only
-//                    when a flag or the pin's label changes.
+//                    when a flag or the pin's label changes. From M-30 (D-523) the overlay entries of its sidecar the
+//                    new pin now defines, which retire, are listed as judgment (`overlayRetired`).
 // The probe and the candidates boot PoB: each runs with POB_DIRECTORY, XDG_STATE_HOME, TMPDIR and POB_GUIDES_DIRECTORY
 // at temporary folders, the candidates from a temporary cwd, the probe from the tree's src/ (PoB loads its modules
 // relative to it, as the engine's cwd is), never the repository root.
@@ -54,6 +55,12 @@ import { MODULES, readEntries, checkPatches } from './patch-fingerprints.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VENDOR = path.join('vendor', 'PathOfBuilding-PoE2');
+
+/** D-523: the overlay entries `league-digest.mjs --reflag` printed as retired (its RETIRED_LINE). */
+export function overlayRetiredOf(stdout) {
+  const m = /^Overlay entries the pin now defines, retired \(\d+\): (.*)\.$/m.exec(String(stdout ?? ''));
+  return m ? m[1].split(', ').filter((x) => x !== '') : [];
+}
 
 /** The steps, in the order they run. */
 export const STEPS = ['stage', 'probe', 'fingerprints', 'pin', 'fetch', 'skillSlotMethod', 'gate', 'rulesIndex', 'reflag'];
@@ -878,7 +885,7 @@ export async function pinUpgrade(tag) {
         for (const d of digests) {
           const file = path.join(dir, d);
           const before = fs.readFileSync(file, 'utf8');
-          runOk(process.execPath, [path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'league-digest.mjs'), '--reflag', d.replace(/\.md$/, '')], { cwd: t.cwd, env: baseEnv(t.env) });
+          const r = runOk(process.execPath, [path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'league-digest.mjs'), '--reflag', d.replace(/\.md$/, '')], { cwd: t.cwd, env: baseEnv(t.env) });
           const after = fs.readFileSync(file, 'utf8');
           const flags = (text) => text.split('\n').filter((l) => l.startsWith('- In pin: '));
           const a = flags(before);
@@ -886,6 +893,12 @@ export async function pinUpgrade(tag) {
           const changed = b.filter((l, i) => l !== a[i]).length;
           out[d] = { written: after !== before, changed };
           if (changed > 0) report.judgment.push({ kind: 'digestFlags', digest: d, changed });
+          // D-523: the sidecar's entries the new pin defines retire (the server skips them); --reflag lists them.
+          const retired = overlayRetiredOf(r.stdout);
+          if (retired.length > 0) {
+            out[d].overlayRetired = retired;
+            report.judgment.push({ kind: 'overlayRetired', digest: d, entries: retired });
+          }
         }
       } finally {
         t.remove();

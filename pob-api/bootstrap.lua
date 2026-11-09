@@ -91,6 +91,15 @@ do
   if not ok then io.stderr:write('[Patches] not applied: ' .. tostring(err) .. '\n') end
 end
 
+-- 5e. The league overlay (C-66, D-523): API/Overlay.lua adds the socketables and uniques of the sidecars the server lists
+--     in POB2_OVERLAY_SIDECARS (Node lists them: headless PoB can't list a folder) to PoB's data, after the patches and
+--     before any build loads; an entry the pin already defines is skipped and logged. A failure is logged as
+--     `[Overlay] ...` and the engine starts without the overlay. The server restarts the engine when the list changes.
+do
+  local ok, err = pcall(function() require('API.Overlay').apply_env() end)
+  if not ok then io.stderr:write('[Overlay] not applied: ' .. tostring(err) .. '\n') end
+end
+
 -- 6. Safety net: ensure the globals the API relies on exist even if a future
 --    wrapper stops setting them directly.
 if not _G.build and mainObject and mainObject.main and mainObject.main.modes then

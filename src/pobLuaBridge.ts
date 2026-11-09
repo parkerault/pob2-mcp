@@ -73,6 +73,8 @@ export interface PoBLuaApiOptions {
   /** The vendored bridge directory (`resolvePobApiDir`, C-6). */
   pobApiDir: string;
   pin: Pin;
+  /** D-523: variables the child gets at each spawn, read then (the overlay's sidecar list, bootstrap step 5e). */
+  childVars?: () => Record<string, string>;
 }
 
 export interface RequestOptions {
@@ -249,6 +251,7 @@ export class PoBLuaApiClient {
   private readonly pobSrc: string;
   private readonly pobApiDir: string;
   private readonly pin: Pin;
+  private readonly childVars: (() => Record<string, string>) | undefined;
 
   private conn: Conn | null = null;
   private starting: Promise<void> | null = null;
@@ -261,6 +264,7 @@ export class PoBLuaApiClient {
     this.pobSrc = opts.pobSrc;
     this.pobApiDir = opts.pobApiDir;
     this.pin = opts.pin;
+    this.childVars = opts.childVars;
   }
 
   /** True while an engine is running and ready for requests. */
@@ -348,6 +352,7 @@ export class PoBLuaApiClient {
       `${api}${path.sep}?.lua${sep}${api}${path.sep}?${path.sep}init.lua${sep}` +
       `${runtimeLuaPath}${path.sep}?.lua${sep}${runtimeLuaPath}${path.sep}?${path.sep}init.lua${sep}${sep}`;
     env.LUA_CPATH = `${runtimeDir}${path.sep}?.${luaExt}${sep}${luaRocksPath}${path.sep}?.${luaExt}${sep}${sep}`;
+    if (this.childVars) Object.assign(env, this.childVars());
     return env;
   }
 

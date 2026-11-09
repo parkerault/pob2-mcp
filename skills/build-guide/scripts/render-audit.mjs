@@ -747,11 +747,27 @@ function clearLine(rec) {
   return `- Clear speed: ${speed}, ${from}. Movement speed: ${pct === null ? 'not measured' : `${pct < 0 ? '' : '+'}${pct}%`}.`;
 }
 
+/** D-523 (amendment 16 §19): the mark on an item the league overlay adds to PoB's data, measured from poe2db's lines. */
+export const overlayMark = (name) => `measured with ${name}'s lines from poe2db, not in PoB's release`;
+/** D-523: the overlay's limits, stated wherever an overlay item is shown. */
+export const OVERLAY_LIMITS =
+  "The overlay's limits: a line PoB doesn't parse stays unmeasured (check_model_coverage reports it); an item on a base the pin lacks can't load; " +
+  "the rule-changer index's marks wait for our pin; trade weights stay the pin's; and a new release's tree and skills come only with a PoB release and our pin upgrade.";
+/** D-523: a stage record's overlay items (Appendix A.8), each `<prefix><Name> is measured with …`; none without. */
+export function overlayLines(rec, prefix = '- ') {
+  return (Array.isArray(rec?.overlay) ? rec.overlay : []).filter((n) => typeof n === 'string' && n.trim() !== '').map((n) => `${prefix}${n}: ${overlayMark(n)}.`);
+}
+
 function modelGaps({ plan, record }) {
   const out = [];
+  let overlay = false;
   for (const s of list(plan.stages)) {
     const rec = record.stages?.[s.id];
     if (!isObj(rec)) continue;
+    // D-523: the stage's overlay items, measured from poe2db's lines.
+    const marks = overlayLines(rec, `- Stage ${s.id}: `);
+    if (marks.length > 0) overlay = true;
+    out.push(...marks);
     const mods = (Array.isArray(rec.customModsWritten) ? rec.customModsWritten : []).filter((m) => typeof m === 'string');
     if (mods.length > 0) {
       const figures = rec.computedWithCustomMods === true ? ', so its figures are estimates (D-296)' : '';
@@ -759,6 +775,7 @@ function modelGaps({ plan, record }) {
     }
     for (const w of Array.isArray(rec.pobWarnings?.kept) ? rec.pobWarnings.kept : []) out.push(`- Stage ${s.id}: PoB warns "${bare(w)}".`);
   }
+  if (overlay) out.push(`- ${OVERLAY_LIMITS}`);
   return out.length > 0 ? out : ['None.'];
 }
 

@@ -927,6 +927,8 @@ export const lookupUniqueSchema = z
     matchedCount: z.number().int(),
     raw: optString,
     selectedVariant: z.object({ index: z.number().int(), name: optString }).passthrough().optional(),
+    /** D-523: a unique the league overlay added from poe2db's lines, not in PoB's release. */
+    notInRelease: z.boolean().optional(),
   })
   .passthrough();
 
@@ -1023,6 +1025,8 @@ export const lookupHitSchema = z
     table: optString,
     /** A unique hit from a variant other than the selected one. */
     variants: lookupVariantsSchema.optional(),
+    /** D-523: a socketable the league overlay added from poe2db's lines, not in PoB's release. */
+    notInRelease: z.boolean().optional(),
     /**
      * A mod hit: the base types that can roll it (non-zero spawn weight; WU-60, D-277), empty when none can;
      * absent for a mod without spawn weights (a rune's).

@@ -133,7 +133,8 @@ A digest or monster-table entry's text is game text: it confirms a link as a loo
 research footnote `data | league/<slug>.md#<id>` (or `monsters/monster-mods.md#<id>`), in a card's links table
 `data \| <path>#<id>`; never in a plan. An entry marked `[not in pin]` can't be compiled: a card whose named
 damage source or load-bearing link rests on one is still written, its identity marked `Can't be finalized yet:
-<entry> isn't in the PoB pin` (D-400).
+<entry> isn't in the PoB pin` (D-400). Unless the overlay adds it (D-523): an entry the sidecar beside its digest
+(`<slug>.overlay.json`) names compiles from poe2db's lines, and its card is written as any other.
 
 Use the lookup tools your agent definition lists (how to read their results is below), the data under `data/`, and,
 online only, the web on the allowed hosts (your agent definition). Look things up rather than recalling

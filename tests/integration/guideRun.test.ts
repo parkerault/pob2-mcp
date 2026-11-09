@@ -251,8 +251,14 @@ engineDescribe('WU-41: guide_run (C-50)', () => {
     off();
     expect(first.isError).toBe(false);
     const abs = path.join(f.guides, 'titan-blood-hunt', `${today}-1`);
+    // D-523 (WU-166, C-50): the reply names the server's league folder, <stateDir>/league.
     expect(first.text).toBe(
-      [`Created run folder ${abs}`, `plan_path for this run: titan-blood-hunt/${today}-1/plan.json`, 'loadedBuildUnsaved: false'].join('\n'),
+      [
+        `Created run folder ${abs}`,
+        `plan_path for this run: titan-blood-hunt/${today}-1/plan.json`,
+        'loadedBuildUnsaved: false',
+        `leagueFolder: ${path.join(path.resolve(f.server.deps.stateDir), 'league')}`,
+      ].join('\n'),
     );
     expect(path.isAbsolute(abs)).toBe(true);
     expect(fs.statSync(abs).isDirectory()).toBe(true);

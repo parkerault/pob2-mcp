@@ -222,6 +222,10 @@
 // or normal item, D-471; and, by the run checker's corruption rule, `ownedCorruption`, an owned unique's corruption it
 // doesn't allow, D-471, D-484), each named, pointing to a file run.
 //
+// Amendment 16's M-30 (WU-166; D-523, C-66): `init` takes `leagueFolder`, the league folder `guide_run {new_run}` names
+// (absolute), and the log keeps it after `digest`; `digest` and what `init` and `resume` print then read the user-side
+// digests in it after `data/league/`, a committed digest winning (C-59), and a resume reads the folder from the log.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
 // (D-486, default false). What needs the deck (a new card's `from` and its name) is checked when the gate's checkpoint is
@@ -233,7 +237,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { playersWords, bossFigure, arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedPercent, typeWords } from './render-audit.mjs';
+import { playersWords, bossFigure, arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedPercent, typeWords, overlayLines, OVERLAY_LIMITS } from './render-audit.mjs';
 import { runningDigests, report as leagueReport, instantOf } from '../../game-knowledge/scripts/leagues.mjs';
 
 /**
@@ -483,8 +487,9 @@ const FIELDS4 = {
   // Amendment 14: the `ask` checkpoint's `kind` and `build` (D-482); the design accept's `scaling` (D-486).
   checkpoint: ['checkpoint', 'concept', 'kind', 'build', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note', 'scaling'],
   set: ['status', 'dossier', 'faults'],
-  // D-516 (Appendix A.6): a piece run's `init` takes `piece` and `source` in place of `slug` and `brief`.
-  init: ['slug', 'brief', 'piece', 'mode', 'testConfig', 'noNinja', 'status', 'source'],
+  // D-516 (Appendix A.6): a piece run's `init` takes `piece` and `source` in place of `slug` and `brief`. D-523: the
+  // league folder guide_run {new_run} names.
+  init: ['slug', 'brief', 'piece', 'mode', 'testConfig', 'noNinja', 'status', 'source', 'leagueFolder'],
   // D-466 (amendment 13): `draftFile`, the latest draft's path, on a log at 13.
   build: ['id', 'roll', 'name', 'status', 'guide', 'pobFile', 'draftFile'],
   resume: ['noNinja'],
@@ -716,6 +721,8 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION, op
     if (e.status !== undefined && !['running', 'stopped'].includes(e.status)) bad.push('a first write\'s status is running, or stopped for a refused test config');
     // D-412, D-420: the run's --no-ninja, which every pricing step reads from the log.
     if (v4 && typeof e.noNinja !== 'boolean') bad.push('noNinja is true or false: whether the run prices without poe.ninja (--no-ninja, D-412)');
+    // D-523: the league folder guide_run {new_run} named, as it named it.
+    if (e.leagueFolder !== undefined && !(typeof e.leagueFolder === 'string' && path.isAbsolute(e.leagueFolder))) bad.push(`leagueFolder is ${show(e.leagueFolder)}; the league folder guide_run {new_run} names, an absolute path (D-523)`);
   } else if (kind === 'build') {
     // D-412: a finalized card's build, added queued with its card's identity; later writes change its status, its
     // guide (as the plan decides, D-414) or its PoB file (the final compile's record path).
@@ -986,7 +993,8 @@ export function writeLog(runFolder, kind, entry, extra = []) {
     // D-516 (Appendix A.6): a piece run's log, its fields in A.6's order: no slug, brief, dossier or builds.
     log = {
       schemaVersion: 4, skillRevision: SKILL_REVISION, piece: entry.piece, runFolder: path.resolve(runFolder), status: entry.status ?? 'running',
-      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(),
+      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(REPO, leagueNow(), leagueOf(entry)),
+      ...leagueField(entry),
       source: Object.fromEntries(SOURCE_FIELDS.filter((k) => entry.source[k] !== undefined).map((k) => [k, entry.source[k]])),
       stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [], pricing: { stops: [], retries: [] },
     };
@@ -996,7 +1004,8 @@ export function writeLog(runFolder, kind, entry, extra = []) {
     // pricing stops and retries.
     log = {
       schemaVersion: 4, skillRevision: SKILL_REVISION, runFolder: path.resolve(runFolder), slug: entry.slug, brief: entry.brief, status: entry.status ?? 'running',
-      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(),
+      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(REPO, leagueNow(), leagueOf(entry)),
+      ...leagueField(entry),
       dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [], pricing: { stops: [], retries: [] },
     };
   } else {
@@ -1362,16 +1371,26 @@ export function leagueNow() {
 const leagueFolder = (repo = REPO) => path.join(repo, 'data', 'league');
 
 /**
- * D-507: the running leagues' digests, as the run log records them from revision 15: their file names, the latest start
- * first, then by name (`runningDigests`, C-59), possibly empty.
+ * D-523 (amendment 16 §19): the server's league folder, `<state folder>/league/`, which `guide_run {new_run}` names and
+ * the runner passes to `init` as `leagueFolder`; the log keeps it, so a resume reads the same folder. Null without one.
  */
-export function runningDigestNames(repo = REPO, now = leagueNow()) {
-  return runningDigests([leagueFolder(repo)], now).map((d) => d.name);
+const leagueOf = (entryOrLog) => (isObj(entryOrLog) && text(entryOrLog.leagueFolder) ? path.resolve(entryOrLog.leagueFolder) : null);
+const leagueField = (entry) => (leagueOf(entry) !== null ? { leagueFolder: leagueOf(entry) } : {});
+
+/** The digests' folders the rule reads: the committed one, then the league folder (a committed digest wins, C-59). */
+const digestFolders = (repo, league) => [leagueFolder(repo), ...(league ? [league] : [])];
+
+/**
+ * D-507: the running leagues' digests, as the run log records them from revision 15: their file names, the latest start
+ * first, then by name (`runningDigests`, C-59), possibly empty; D-523: with the league folder, its user-side digests too.
+ */
+export function runningDigestNames(repo = REPO, now = leagueNow(), league = null) {
+  return runningDigests(digestFolders(repo, league), now).map((d) => d.name);
 }
 
 /** D-507: what `init` and `resume` print after their first line, for the runner to copy (`leagues.mjs`'s report). */
-export function digestReport(repo = REPO, now = leagueNow()) {
-  return leagueReport([leagueFolder(repo)], now, repo);
+export function digestReport(repo = REPO, now = leagueNow(), league = null) {
+  return leagueReport(digestFolders(repo, league), now, repo);
 }
 
 /** Today's date, YYYY-MM-DD, in local time. */
@@ -1388,7 +1407,7 @@ const today = () => {
  */
 function resumeEntry(log, noNinja) {
   const n = (k) => (Array.isArray(log[k]) ? log[k].length : 0);
-  return { date: today(), pinCommit: pinCommit(), digest: runningDigestNames(), noNinja, lengths: { stages: n('stages'), checkpoints: n('checkpoints'), escalations: n('escalations'), displays: n('displays') } };
+  return { date: today(), pinCommit: pinCommit(), digest: runningDigestNames(REPO, leagueNow(), leagueOf(log)), noNinja, lengths: { stages: n('stages'), checkpoints: n('checkpoints'), escalations: n('escalations'), displays: n('displays') } };
 }
 
 /** The log at `file`, schema 3 or 4, or throws an Error saying why not. */
@@ -2680,6 +2699,8 @@ function verificationDisplay(dir, log) {
     ref.push(`${k + 1}. ${name(r.id)}: ${r.id}`);
   });
   if (a11 && rows.length > 0) out.push(NUMBERS_LATER, '');
+  // D-523: a card's skeleton measured with an item the league overlay adds, marked, and the overlay's limits.
+  out.push(...overlayBlock(rows.map((r) => ({ label: name(r.id), rec: Object.values(readJson(dir, `concepts/${r.id}/compile-record.json`)?.stages ?? {})[0] }))));
   // D-408: a rival that found no faster structure says so, with what it tried (an older run's).
   const rv = lastStage(log, ['RV']);
   if (rv?.outcome === 'none-found') out.push(`The rival, a researcher with fresh context, found no structure that clears faster. What it tried: ${text(rv.tried) ? plain(rv.tried) : 'not given'}`, '');
@@ -2732,7 +2753,7 @@ const digestWords = (v) => (Array.isArray(v) ? (v.length > 0 ? v.join(', ') : 'n
  */
 function pinChanges(log) {
   const recorded = [{ pinCommit: log.pinCommit, digest: log.digest }, ...objects(log.resumes)];
-  const now = recorded.length > 1 ? recorded[recorded.length - 1] : { pinCommit: pinCommit(), digest: runningDigestNames() };
+  const now = recorded.length > 1 ? recorded[recorded.length - 1] : { pinCommit: pinCommit(), digest: runningDigestNames(REPO, leagueNow(), leagueOf(log)) };
   const before = recorded.length > 1 ? recorded[recorded.length - 2] : recorded[0];
   const out = [];
   if (text(before.pinCommit) && text(now.pinCommit) && before.pinCommit !== now.pinCommit) {
@@ -2743,6 +2764,15 @@ function pinChanges(log) {
     out.push(text(before.digest) && text(now.digest) ? `The league digest changed since this run last ran (${before.digest}, now ${now.digest}).` : `The league digests changed since this run last ran (${digestWords(before.digest)}, now ${digestWords(now.digest)}).`);
   }
   return out;
+}
+
+/**
+ * D-523 (amendment 16 §19): a display's block for the items the league overlay adds, from the records' `overlay`
+ * (Appendix A.8): `Not in PoB's release:`, a line per stage and item, then the overlay's limits once; none without.
+ */
+function overlayBlock(entries) {
+  const lines = entries.flatMap(({ label, rec }) => overlayLines(rec, `- ${label}: `));
+  return lines.length > 0 ? ["Not in PoB's release:", ...lines, `- ${OVERLAY_LIMITS}`, ''] : [];
 }
 
 /** A plan's endgame stage label in words: "Entering maps (level 65)". */
@@ -3224,6 +3254,7 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     const placed = fileRun && isObj(st.source) ? notReachedLines(r, gate, rec) : [];
     if (placed.length > 0) out.push('**Not reached on this rung**', ...placed, '');
   }
+  out.push(...overlayBlock(rungs.map((r) => ({ label: `${buildName}: ${RUNG_WORDS[stageOf(r.stage).variant]}`, rec: record?.stages?.[r.stage] }))));
   out.push(`**The catch.** ${text(summary.catch) ? stop(summary.catch) : 'not given'}`, '');
   // D-521: a compile run's better round, its draft named first (above): accept runs F1, ask for changes, or stop.
   out.push(pieceOf(log) === 'compile' ? INVITE4.better : fileRun ? (s.scope === 'better' ? INVITE4.fileBetter : INVITE4.fileLadder) : INVITE4.design14, '', '**Options**');
@@ -3302,6 +3333,8 @@ function designDisplay(dir, log, id, opts = {}) {
     if (pieceOf(log) === 'compile') out.push(...notReachedLines(r, gate, rec).map((l) => l.replace(/^- /, '- Not reached within your budget: ')));
     out.push('');
   }
+  // D-523: the overlay's items, marked, and its limits.
+  out.push(...overlayBlock(objects(gate.design.rungs).map((r) => ({ label: rungLabel(plan, r.stage), rec: record?.stages?.[r.stage] }))));
   // An estimate the gate wrote for one rung (`b: …`) names the rung in words.
   const ids = new Set(objects(gate.design.rungs).map((r) => r.stage));
   const estimates = (Array.isArray(gate.design.estimates) ? gate.design.estimates.filter(text) : []).map((e) => e.replace(/^(\w+):\s*/, (m, rung) => (ids.has(rung) ? `${rungLabel(plan, rung)}: ` : m)));
@@ -3399,6 +3432,9 @@ async function finalDisplay(dir, log, id) {
     }
   }
   if (budget.length > 0) out.push('', 'The budget, from the last design check:', ...budget);
+  // D-523: the final build's overlay items, marked, and the overlay's limits.
+  const marks = overlayBlock(objects(plan?.stages).map((x) => ({ label: rungLabel(plan, x.id), rec: record?.stages?.[x.id] })));
+  if (marks.length > 0) out.push('', ...marks.slice(0, -1));
   // A fallback (`<id>-fallback`) counts in no total (D-371), so its price is never a D-164 reason.
   const unknown = objects(plan?.prices).some((p) => p.status === 'unavailable' && !String(p.id).endsWith('-fallback'));
   if (unknown) out.push("Some prices are unavailable, so the total of each rung they price isn't known.");
@@ -3547,7 +3583,8 @@ async function main(argv) {
     const what = writeLog(path.resolve(args[0]), args[1], entry, extra);
     // D-507: init and resume print the running leagues' digests, which the runner copies into the headers' `digests`
     // and prints as the staleness line.
-    const digests = ['init', 'resume'].includes(args[1]) ? digestReport().map((l) => `${l}\n`).join('') : '';
+    // D-523: with the league folder init recorded, the user-side digests in it too.
+    const digests = ['init', 'resume'].includes(args[1]) ? digestReport(REPO, leagueNow(), leagueOf(readLog(path.join(path.resolve(args[0]), 'run-log.json')))).map((l) => `${l}\n`).join('') : '';
     process.stdout.write(`run-log: wrote ${what}\n${digests}`);
     return 0;
   } catch (e) {

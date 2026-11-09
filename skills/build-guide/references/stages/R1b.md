@@ -528,7 +528,8 @@ finding `{part: "compiled", code: "not-a-skill", message: "not compiled: its dam
 (D-334)"}`, `compiles: 0` and `recordPath: null`. The runner doesn't re-run it: no retry can compile it, and
 the card can't be finalized yet (D-303). **So does a card that rests on a digest entry the PoB pin doesn't
 know** (D-400), its finding `{part: "compiled", code: "not-in-pin", message: "not compiled: <entry> isn't in the
-PoB pin"}`: the pin can't compile it until an upgrade.
+PoB pin"}`: the pin can't compile it until an upgrade. An entry the overlay adds (the sidecar beside its digest,
+`<slug>.overlay.json`, names it, D-523) isn't one: it compiles, its record's `overlay` naming it.
 
 ## Writes
 

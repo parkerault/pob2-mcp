@@ -63,6 +63,8 @@ interface TreeOptions {
   gems: string[];
   warning: boolean;
   trees: string[];
+  /** D-523 (WU-166): the socketables Data/ModRunes.lua defines; default Iron Rune alone. */
+  runes?: string[];
 }
 
 const COUNT_V1 = ['\tlocal count = 0', '\treturn count'];
@@ -89,7 +91,7 @@ function tree(o: TreeOptions): Record<string, string> {
     'src/Data/Uniques/amulet.lua': 'return {\n[[\nStar Clasp\nGold Amulet\n]],\n}\n',
     'src/Data/Uniques/Special/Generated.lua': '-- none\n',
     'src/Data/Bases/ring.lua': 'itemBases["Gold Ring"] = {\n}\n',
-    'src/Data/ModRunes.lua': 'return {\n\t["Iron Rune"] = {\n\t},\n}\n',
+    'src/Data/ModRunes.lua': `return {\n${(o.runes ?? ['Iron Rune']).map((r) => `\t["${r}"] = {\n\t},\n`).join('')}}\n`,
     'src/GameVersions.lua': `treeVersionList = { ${o.trees.map((t) => `"${t}"`).join(', ')} }\n`,
     ...Object.fromEntries(o.trees.map((t) => [`src/TreeData/${t}/tree.json`, '{"classes":[],"nodes":{}}\n'])),
     'runtime/lua/dkjson.lua': '-- stub\n',
@@ -106,10 +108,12 @@ const V1: TreeOptions = {
   warning: true,
   trees: ['0_5'],
 };
-// v0.0.2: PG-901's method body, TradeQuery.lua and the gems change; Common.lua doesn't.
-const V2: TreeOptions = { ...V1, version: '0.0.2', countBody: ['\tlocal count = 1', '\treturn count'], tradeQuery: '-- trade query 2\n', gems: ['Fireball', 'Frostbolt'] };
-// v0.0.3: Common.lua changes, the skill-slot method is renamed, the warning goes and a newer tree arrives.
-const V3: TreeOptions = { ...V2, version: '0.0.3', method: 'CountGemGroups', common: '-- common 3\n', warning: false, trees: ['0_5', '0_6'] };
+// v0.0.2: PG-901's method body, TradeQuery.lua and the gems change; Common.lua doesn't. D-523 (WU-166): it defines the
+// sidecar's Tidal Soul Core, which retires.
+const V2: TreeOptions = { ...V1, version: '0.0.2', countBody: ['\tlocal count = 1', '\treturn count'], tradeQuery: '-- trade query 2\n', gems: ['Fireball', 'Frostbolt'], runes: ['Iron Rune', 'Tidal Soul Core'] };
+// v0.0.3: Common.lua changes, the skill-slot method is renamed, the warning goes and a newer tree arrives (its runes are
+// v0.0.1's, so nothing of the sidecar retires again).
+const V3: TreeOptions = { ...V2, version: '0.0.3', method: 'CountGemGroups', common: '-- common 3\n', warning: false, trees: ['0_5', '0_6'], runes: ['Iron Rune'] };
 
 function commitTree(files: Record<string, string>, message: string): string {
   for (const entry of fs.readdirSync(ORIGIN)) if (entry !== '.git') fs.rmSync(path.join(ORIGIN, entry), { recursive: true, force: true });
@@ -502,6 +506,8 @@ beforeAll(() => {
     'scripts/check-construct.lua',
     'skills/game-knowledge/scripts/league-digest.mjs',
     'skills/game-knowledge/scripts/leagues.mjs',
+    // D-523 (WU-166): league-digest.mjs imports the sidecar's module.
+    'skills/game-knowledge/scripts/overlay.mjs',
     'skills/game-knowledge/scripts/rules-index.mjs',
     'package.json',
     'data/rules/vocabulary.md',
@@ -526,6 +532,11 @@ beforeAll(() => {
   for (const n of [901, 902, 903, 904, 905]) write(path.join(REPO, `tests/integration/pg${n}.test.ts`), testFile(n, n === 904));
   for (const rel of ['tests/unit/pobPin.test.ts', 'tests/integration/protocol.lua.test.ts']) write(path.join(REPO, rel), withPin(rel, p1));
   write(path.join(REPO, 'data/league/embers.md'), DIGEST('the PoB2 pin v0.0.1', false));
+  // D-523 (WU-166): the digest's sidecar, one socketable the old pin lacks.
+  write(
+    path.join(REPO, 'data/league/embers.overlay.json'),
+    `${JSON.stringify({ schemaVersion: 1, league: 'Embers of Tarn', fetched: '2026-11-01', socketables: [{ name: 'Tidal Soul Core', type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+10 to maximum Life'], statOrder: [887] }] }], uniques: [], skipped: [] }, null, 2)}\n`,
+  );
   write(path.join(REPO, 'data/rules/nodes.md'), '# Nodes\n\n## Infernalist\n\n- Pyromantic Pact (1, Infernalist) — Life and Mana are one pool.\n\n## Keystones\n\n- Blood Magic (2, keystone) — Mana costs are paid with Life.\n');
   write(path.join(REPO, 'data/rules/uniques.md'), '# Uniques\n\nMost uniques give up the resistances, life and defences a rare provides; a block lists only the penalties its own lines state.\n');
   write(path.join(REPO, 'data/rules/gems.md'), '# Gems\n');
@@ -746,6 +757,9 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
 
     it('re-flags each digest offline and lists its changed flags', () => {
       expect(ofKind(report, 'digestFlags')).toEqual([{ kind: 'digestFlags', digest: 'embers.md', changed: 1 }]);
+      // D-523 (WU-166, §4 step 9): the sidecar's entries the new pin defines retire, listed as judgment.
+      expect(ofKind(report, 'overlayRetired')).toEqual([{ kind: 'overlayRetired', digest: 'embers.md', entries: ['Tidal Soul Core'] }]);
+      expect(((report.steps as Json).reflag as Json).digests).toEqual({ 'embers.md': { written: true, changed: 1, overlayRetired: ['Tidal Soul Core'] } });
       const digest = read(path.join(REPO, 'data/league/embers.md'));
       expect(digest).toContain('- Frostbolt (gem, Spell): A cold bolt.\n');
       expect(digest).toContain('checked against the PoB2 pin v0.0.2 on ');

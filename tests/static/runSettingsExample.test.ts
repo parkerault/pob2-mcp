@@ -137,6 +137,8 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
       'Bash(pob2-run-log:*)',
       'Bash(pob2-render-audit:*)',
       'Bash(pob2-render-notes:*)',
+      // Amendment 16 (WU-166, D-523): the fifth command, the runner's at a run's start.
+      'Bash(pob2-league-digest:*)',
       ...pob2,
     ]);
     expect(new Set(allow)).toEqual(expected);

@@ -8,6 +8,7 @@
       "Bash(pob2-run-log:*)",
       "Bash(pob2-render-audit:*)",
       "Bash(pob2-render-notes:*)",
+      "Bash(pob2-league-digest:*)",
       "mcp__pob2__compile_plan",
       "mcp__pob2__guide_run",
       "mcp__pob2__plan_from_build",

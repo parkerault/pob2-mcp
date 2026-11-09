@@ -55,6 +55,8 @@
 local M = {}
 
 local BuildOps = require('API.BuildOps')
+-- D-523: the league overlay's entries, which every lookup that shows one marks "not in PoB's release" (`notInRelease`).
+local Overlay = require('API.Overlay')
 
 local DEFAULT_MAX_RESULTS = 20
 
@@ -1043,6 +1045,7 @@ local function lookupUniques(query, slot, maxResults, leaveOut)
     local result = {
       kind = 'unique', id = m.id, name = m.name, type = m.item.type, baseName = m.item.baseName,
       byName = m.byName, matchedLines = matched, matchedCount = #m.lines,
+      notInRelease = Overlay.is_overlay(m.name) or nil,
     }
     if #shown == 1 then
       -- PG-105: without the dropped variants, the rest numbered as `raw` numbers them.
@@ -1818,7 +1821,12 @@ local function lookupMechanics(match, kind, maxResults, leaveOut)
     local mods = d.itemMods[tableName]
     if type(mods) == 'table' then
       for _, entryId in ipairs(sortedKeys(mods)) do
+        local before = #hits
         collectModHits(hits, tableName, tostring(entryId), mods[entryId], match)
+        -- D-523: a socketable the league overlay added, from poe2db's lines.
+        if tableName == 'Runes' and Overlay.is_overlay(tostring(entryId)) then
+          for i = before + 1, #hits do hits[i].notInRelease = true end
+        end
       end
     end
   end

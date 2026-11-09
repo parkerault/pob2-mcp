@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Running leagues (amendment 16 §3, D-507; C-59): the one rule every reader of the league digests takes.
 //
-//   node skills/game-knowledge/scripts/leagues.mjs [--at <instant>]
+//   node skills/game-knowledge/scripts/leagues.mjs [--at <instant>] [--league <league folder>]
 //
 // **The rule.** A league is running from its start instant until its end instant, both UTC: it is running at `now` when
 // `now` is at or after its start and, if an end is recorded, before its end. `now` is the machine's clock read as a UTC
@@ -22,8 +22,10 @@
 // the plugin root, absolute elsewhere), which the runner copies into a task header's `digests`; then each one's third
 // line, newest first, or, with none, `No running league has a league digest: what is new in it isn't in the committed
 // data.`; then `<path> records no league dates: re-run its digest script` for each undated digest. It reads
-// `data/league/` under the plugin root. `--at <instant>` (`2026-12-11T19:59Z`, `2026-12-11 19:59`, read as UTC unless
-// it names an offset) reads the rule at that instant instead of the clock.
+// `data/league/` under the plugin root, and with `--league <folder>` (amendment 16 §19, D-523) the server's league
+// folder after it, as `guide_run {new_run}` names it, where `pob2-league-digest` makes a running league's digest on the
+// user's side. `--at <instant>` (`2026-12-11T19:59Z`, `2026-12-11 19:59`, read as UTC unless it names an offset) reads
+// the rule at that instant instead of the clock.
 //
 // Exit 0: printed. Exit 2: usage error.
 
@@ -148,20 +150,32 @@ export function report(folders, now, root = ROOT) {
   ];
 }
 
-const USAGE = 'usage: node leagues.mjs [--at <instant>]';
+const USAGE = 'usage: node leagues.mjs [--at <instant>] [--league <league folder>]';
 
 export function main(argv, out = process.stdout, err = process.stderr) {
   const args = argv.slice(2);
   let now = Date.now();
-  if (args.length > 0) {
-    const at = args[0] === '--at' && args.length === 2 ? instantOf(args[1]) : NaN;
+  const folders = [COMMITTED];
+  const seen = new Set();
+  for (let i = 0; i < args.length; i += 2) {
+    const [flag, value] = [args[i], args[i + 1]];
+    if (!['--at', '--league'].includes(flag) || value === undefined || seen.has(flag)) {
+      err.write(`leagues: ${['--at', '--league'].includes(flag) && !seen.has(flag) ? `${flag} needs a value` : 'the options are --at <instant> and --league <league folder>, each once'}\n${USAGE}\n`);
+      return 2;
+    }
+    seen.add(flag);
+    if (flag === '--league') {
+      folders.push(path.resolve(value));
+      continue;
+    }
+    const at = instantOf(value);
     if (!Number.isFinite(at)) {
-      err.write(`leagues: ${args[0] === '--at' && args.length === 2 ? `"${args[1]}" isn't an instant (2026-12-11T19:59Z, or 2026-12-11 19:59 in UTC)` : 'the one option is --at <instant>'}\n${USAGE}\n`);
+      err.write(`leagues: "${value}" isn't an instant (2026-12-11T19:59Z, or 2026-12-11 19:59 in UTC)\n${USAGE}\n`);
       return 2;
     }
     now = at;
   }
-  out.write(`${report([COMMITTED], now).join('\n')}\n`);
+  out.write(`${report(folders, now).join('\n')}\n`);
   return 0;
 }
 

@@ -4,6 +4,7 @@
 //
 //   node skills/game-knowledge/scripts/league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]
 //   node skills/game-knowledge/scripts/league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]
+//   pob2-league-digest --running --out <league folder> [--pin-names <file.json>]
 //
 // <slug> is poe2db's name for the section, as its URLs spell it (`Runes_of_Aldur`). The digest's file is the slug in
 // lowercase with hyphens (`runes-of-aldur.md`); `--reflag` takes either spelling.
@@ -68,13 +69,23 @@
 // `League:` sentence stays. It writes the digest only when a flag or the pin's label changes (D-508), so a re-check
 // against the pin the digest names leaves the file as it was.
 //
+// **The sidecar** (amendment 16 §19, D-523; Appendix A.11): beside every digest it writes, `<file slug>.overlay.json`, the
+// socketables and uniques the pin doesn't define, as the server's overlay adds them to PoB's data (`overlay.mjs` says
+// how), and the entries it can't add, which it lists. `--reflag` prints the sidecar's entries the pin now defines, which
+// retire (the server skips them at load).
+//
+// **`--running --out <league folder>`** (D-523), the `bin/` command `pob2-league-digest` a runner runs at a run's start,
+// online and not under `--test`: the digests of the running leagues that have none, made on the user's side in the
+// server's league folder (`running`, below). It reads the test clock `BUILD_GUIDE_TEST_NOW` as leagues.mjs's `--at`.
+//
 // Exit 0: written. Exit 1: refused (stderr), the digest unwritten (pages fetched so far stay saved). Exit 2: usage error.
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEAGUE_SENTENCE, leagueSentence } from './leagues.mjs';
+import { LEAGUE_SENTENCE, leagueSentence, leagueDigests, runningDigests, isRunning, instantOf } from './leagues.mjs';
+import { readSlots, sidecarOf, sidecarName, pinRunesFromVendor, pinRunesFromNames } from './overlay.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
@@ -374,7 +385,7 @@ export function rewriteOthers(out, file, cards) {
   const changes = [];
   for (const name of names) {
     const p = path.join(out, name);
-    if (path.resolve(p) === path.resolve(file)) continue;
+    if (file !== null && path.resolve(p) === path.resolve(file)) continue;
     const lines = fs.readFileSync(p, 'utf8').split('\n');
     const m = THIRD_LINE.exec(lines[2] ?? '');
     if (!m) continue;
@@ -421,11 +432,14 @@ function linesOf(divs, dropRepeats = false) {
     if (hasClass(div, 'separator')) continue;
     const type = hasClass(div, 'requirements') ? 'requires' : hasClass(div, 'property') || hasClass(div, 'enchantMod') ? 'property' : 'mod';
     const implicit = hasClass(div, 'implicitMod');
+    const bonded = hasClass(div, 'bondedMod');
+    const corrupted = hasClass(div, 'corrupted');
     linesIn([div]).forEach((text, i) => {
       if (type === 'property' && /^Stack Size:/.test(text)) return;
       if (dropRepeats && lines.length > 0 && lines[lines.length - 1].text === text) return;
       // `wrapped`: the line goes on from the one before, as one line of the game's that wraps. `implicit`: the base's.
-      lines.push({ type, text, ...(i > 0 ? { wrapped: true } : {}), ...(implicit ? { implicit: true } : {}) });
+      // `bonded` and `corrupted` (D-523): a socketable's bonded line and a unique's corrupted mark, for the sidecar.
+      lines.push({ type, text, ...(i > 0 ? { wrapped: true } : {}), ...(implicit ? { implicit: true } : {}), ...(bonded ? { bonded: true } : {}), ...(corrupted ? { corrupted: true } : {}) });
     });
   }
   return lines;
@@ -574,7 +588,8 @@ export function pinFromVendor(src) {
   } catch {
     // a label only
   }
-  return makePin(label, { gem, unique, item, ascendancy, passive, socketable });
+  // D-523: the pin's rune lines, whose statOrders the sidecar's lines take.
+  return { ...makePin(label, { gem, unique, item, ascendancy, passive, socketable }), runes: pinRunesFromVendor(src) };
 }
 
 /** `has(kind, name)`: the pin knows it; `isSocketable(name)`: the pin knows it as a socketable (Data/ModRunes.lua). */
@@ -593,7 +608,7 @@ export function pinFromNames(file) {
   for (const k of [...KINDS, 'socketable']) {
     if (json[k] !== undefined && !(Array.isArray(json[k]) && json[k].every((n) => typeof n === 'string'))) throw new Refusal(`--pin-names ${file}: "${k}" isn't a list of names`);
   }
-  return makePin(typeof json.pin === 'string' && json.pin ? json.pin : path.basename(file), json);
+  return { ...makePin(typeof json.pin === 'string' && json.pin ? json.pin : path.basename(file), json), runes: pinRunesFromNames(json) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -680,7 +695,9 @@ export function renderDigest({ slug, fileSlug, section, entries, currency, pin, 
       'currency). Socketables (runes, soul cores and idols) are in the body; the head names only those judged to change ' +
       `a rule, marked \`[rule]\` with why (\`${fileSlug}.rule-changers.json\`). ` +
       '`[not in pin]` marks an entry the PoB pin doesn\'t know: no plan can ' +
-      "compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. " +
+      "compile it, so a card that rests on one can't be finalized yet, unless the overlay adds it: " +
+      `\`${fileSlug}.overlay.json\` beside this file lists the socketables and uniques the server measures from poe2db's lines (D-523). ` +
+      'Read the head whole; Grep the body by mechanic. ' +
       `Cite an entry by its id: \`data | league/${fileSlug}.md#<id>\`. Written by ` +
       `\`skills/game-knowledge/scripts/league-digest.mjs ${slug}\`; re-run it rather than editing by hand, and ` +
       `\`--reflag ${slug}\` after a pin upgrade.`,
@@ -830,7 +847,14 @@ function fetcher(userAgent) {
 }
 
 /** The pages a run reads: `{home, lists: {gems?, uniques?, items?}}`, each `{html, date}`. */
-async function loadPages(slug, opts) {
+async function loadPages(slug, opts, preloaded = null) {
+  if (preloaded) {
+    // D-523: the --running run's homepage, read once, and its reader, which reuses a page saved the same UTC day.
+    const section = parseSection(preloaded.home.html, slug);
+    const lists = {};
+    for (const l of LISTS.filter((x) => section.lists.includes(x))) lists[l] = await preloaded.page(pageUrl(slug, l), `${slug}_${l}.html`);
+    return { home: preloaded.home, section, lists };
+  }
   if (opts.from) {
     const read = (file) => {
       const p = path.join(opts.from, file);
@@ -859,10 +883,130 @@ async function loadPages(slug, opts) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// The overlay's retirement and the running leagues (D-523)
+
+/** The pin a run checks against: `--pin-names`' list, or the pinned PoB2 data. */
+function loadPin(opts) {
+  return opts.pinNames ? pinFromNames(opts.pinNames) : pinFromVendor(path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src'));
+}
+
+export const RETIRED_LINE = 'Overlay entries the pin now defines, retired';
+
+/** D-523: the sidecar's entries the pin now defines (a socketable or a unique of that name), which the server skips. */
+export function retiredOverlay(file, pin) {
+  let json;
+  try {
+    json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return [];
+  }
+  return [
+    ...(json.socketables ?? []).filter((x) => pin.isSocketable(x.name) || pin.has('item', x.name)).map((x) => x.name),
+    ...(json.uniques ?? []).filter((x) => pin.has('unique', x.name)).map((x) => x.name),
+  ];
+}
+
+/** The instant the running-league rule reads: the clock, or the test clock `BUILD_GUIDE_TEST_NOW` (tests only). */
+function leagueNow() {
+  const at = process.env.BUILD_GUIDE_TEST_NOW;
+  if (at === undefined || at === '') return Date.now();
+  const ms = instantOf(at);
+  if (!Number.isFinite(ms)) throw new Usage(`BUILD_GUIDE_TEST_NOW is "${at}", which isn't an instant (2026-12-11T19:59Z)`);
+  return ms;
+}
+
+const utcDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+/** The poe2db slug of the homepage's section whose `<small>` the card's version label ends, or null. */
+export function sectionSlugFor(html, card) {
+  const home = parseHtml(html);
+  for (const vte of findAll(home, (el) => hasClass(el, 'vte'))) {
+    const header = find(vte, (el) => hasClass(el, 'card-header'));
+    const small = header && find(header, (el) => el.tag === 'small');
+    const label = small ? clean(lineOf([small]).replace(/[<>]/g, '')) : '';
+    if (cardFor(label, [card]) === null) continue;
+    for (const a of findAll(vte, (el) => el.tag === 'a' && el.attrs.href)) {
+      const m = /^([A-Za-z0-9_]+)_(?:gems|uniques|items)$/.exec(hrefPage(a.attrs.href));
+      if (m) return m[1];
+    }
+  }
+  return null;
+}
+
+/**
+ * `--running --out <league folder>` (D-523, amendment 16 §19): at a run's start, online and not under `--test`, the
+ * runner's command (`pob2-league-digest`). It reads the running digests of `data/league/` and the league folder (a
+ * committed digest winning, D-507). When none is running, or the newest records no end (a digest made before its end was
+ * announced keeps counting after the next league starts), it reads poe2db's homepage cards, at most once a UTC day: the
+ * homepage is kept as `<league folder>/pages/home.html`, and a page saved the same UTC day is read instead of fetched.
+ * For each running league whose card no digest of either folder matches, it writes the digest and its sidecar into the
+ * league folder, at the fetch rules above (one fetcher for the whole run: serial, 3 s apart, no cookie, one retry after
+ * 60 s, nothing fetched twice); with none to write it still rewrites the league folder's digests' `League:` sentences
+ * from the cards. It writes only the league folder (its pages in `pages/`). It prints each running league still without
+ * a digest, which the runner names once.
+ */
+async function running(opts) {
+  const now = leagueNow();
+  const out = path.resolve(opts.out);
+  const folders = [path.join(REPO, 'data', 'league'), out];
+  const before = runningDigests(folders, now);
+  if (before.length > 0 && before[0].dates.end !== null) {
+    console.log(`league-digest: the running leagues have their digests (${before.map((d) => d.name).join(', ')}), and the newest records its end: poe2db isn't read.`);
+    return;
+  }
+  const pages = path.join(out, 'pages');
+  fs.mkdirSync(pages, { recursive: true });
+  const get = fetcher(`pob2-mcp-server/${packageVersion()}`);
+  const page = async (url, file) => {
+    const p = path.join(pages, file);
+    let st = null;
+    try {
+      st = fs.statSync(p);
+    } catch {
+      st = null;
+    }
+    if (st && utcDay(st.mtimeMs) === utcDay(now)) return { html: fs.readFileSync(p, 'utf8'), date: localDate(st.mtime), url };
+    const got = await get(url);
+    fs.writeFileSync(p, got.html);
+    return { html: got.html, date: localDate(new Date()), url: got.url };
+  };
+  const home = await page(POE2DB, 'home.html');
+  const cards = parseCards(home.html);
+  const live = cards.filter((c) => c.start !== null && isRunning({ start: c.start, end: c.end }, now));
+  const digests = leagueDigests(folders);
+  const hasDigest = (card) =>
+    digests.some((d) => {
+      const m = THIRD_LINE.exec(d.line);
+      return m !== null && cardFor(m[2], [card]) !== null;
+    });
+  const missing = [];
+  let wrote = 0;
+  for (const card of live) {
+    if (hasDigest(card)) continue;
+    const slug = sectionSlugFor(home.html, card);
+    if (slug === null) {
+      missing.push(`${card.name} (${card.version}): the homepage has no section for its version`);
+      continue;
+    }
+    try {
+      await run({ ...opts, slug, out, from: null, save: pages, reflag: false }, { home, page });
+      wrote += 1;
+    } catch (e) {
+      if (!(e instanceof Refusal)) throw e;
+      missing.push(`${card.name} (${card.version}): ${e.message}`);
+    }
+  }
+  if (wrote === 0) for (const c of rewriteOthers(out, null, cards)) console.log(`league-digest: ${c.file}: ${c.to} (was: ${c.from ?? 'no League: sentence'})`);
+  if (live.length === 0) console.log("league-digest: poe2db's homepage shows no running league.");
+  for (const m of missing) console.log(`league-digest: a running league has no digest: ${m}`);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // The command line
 
 function parseArgs(argv) {
-  const opts = { slug: null, reflag: false, from: null, save: null, out: path.join(REPO, 'data', 'league'), pinNames: null };
+  const opts = { slug: null, reflag: false, running: false, from: null, save: null, out: path.join(REPO, 'data', 'league'), pinNames: null };
+  let outGiven = false;
   const args = argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -872,13 +1016,23 @@ function parseArgs(argv) {
       return v;
     };
     if (a === '--reflag') opts.reflag = true;
+    else if (a === '--running') opts.running = true;
     else if (a === '--from') opts.from = value();
     else if (a === '--save') opts.save = value();
-    else if (a === '--out') opts.out = value();
+    else if (a === '--out') {
+      opts.out = value();
+      outGiven = true;
+    }
     else if (a === '--pin-names') opts.pinNames = value();
     else if (a.startsWith('--')) throw new Usage(`unknown option ${a}`);
     else if (opts.slug === null) opts.slug = a;
     else throw new Usage(`one slug only, not "${a}"`);
+  }
+  if (opts.running) {
+    // D-523: the league folder, as guide_run {new_run} names it; the pages go in its pages/, so no temporary folder.
+    if (opts.slug !== null || opts.reflag || opts.from || opts.save) throw new Usage('--running takes --out <league folder> (and --pin-names) only: no slug, --reflag, --from or --save');
+    if (!outGiven) throw new Usage('--running needs --out <league folder>, the folder guide_run {new_run} names');
+    return opts;
   }
   if (!opts.slug) throw new Usage('a slug is required');
   if (opts.reflag && (opts.from || opts.save)) throw new Usage('--reflag reads the committed digest: no --from or --save');
@@ -889,12 +1043,13 @@ function parseArgs(argv) {
 
 const USAGE =
   'usage: league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]\n' +
-  '       league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]';
+  '       league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]\n' +
+  '       league-digest.mjs --running --out <league folder> [--pin-names <file.json>]';
 
-async function run(opts) {
+async function run(opts, preloaded = null) {
   const fileSlug = slugify(opts.slug);
   const file = path.join(opts.out, `${fileSlug}.md`);
-  const pin = opts.pinNames ? pinFromNames(opts.pinNames) : pinFromVendor(path.join(REPO, 'vendor', 'PathOfBuilding-PoE2', 'src'));
+  const pin = loadPin(opts);
   const today = localDate(new Date());
   if (opts.reflag) {
     if (!fs.existsSync(file)) throw new Refusal(`${file} is missing`);
@@ -906,9 +1061,12 @@ async function run(opts) {
     if (r.changed.length === 0) console.log('No flag changed.');
     if (now.length > 0) console.log(`Now in the pin: ${now.map((c) => `${c.name} (${c.kind})`).join(', ')}.`);
     if (gone.length > 0) console.log(`No longer in the pin: ${gone.map((c) => `${c.name} (${c.kind})`).join(', ')}.`);
+    // D-523: the overlay's entries the pin now defines retire: the server skips them at load.
+    const retired = retiredOverlay(path.join(opts.out, sidecarName(fileSlug)), pin);
+    if (retired.length > 0) console.log(`${RETIRED_LINE} (${retired.length}): ${retired.join(', ')}.`);
     return;
   }
-  const { home, section, lists } = await loadPages(opts.slug, opts);
+  const { home, section, lists } = await loadPages(opts.slug, opts, preloaded);
   const raw = [];
   let currency = 0;
   const parsers = { gems: (p) => parseGems(p.html, p.url), uniques: (p) => parseUniques(p.html, p.url) };
@@ -949,6 +1107,12 @@ async function run(opts) {
   fs.mkdirSync(opts.out, { recursive: true });
   fs.writeFileSync(file, text);
   console.log(`league-digest: wrote ${file}. ${countsLine(entries)} Currency left out: ${currency}.`);
+  // D-523 (Appendix A.11): the sidecar beside it, the entries the overlay adds to PoB's data.
+  const sidecar = sidecarOf({ league: section.name, fetched: [...new Set(entries.map((e) => e.fetched))].sort()[0] ?? today, entries, slots: readSlots(), pinRunes: pin.runes, hasBase: (b) => pin.has('item', b) });
+  const sidecarFile = path.join(opts.out, sidecarName(fileSlug));
+  fs.writeFileSync(sidecarFile, `${JSON.stringify(sidecar, null, 2)}\n`);
+  console.log(`league-digest: wrote ${sidecarFile}: the overlay adds ${sidecar.socketables.length} socketable${sidecar.socketables.length === 1 ? '' : 's'} and ${sidecar.uniques.length} unique${sidecar.uniques.length === 1 ? '' : 's'}.`);
+  if (sidecar.skipped.length > 0) console.log(`league-digest: not in the overlay (${sidecar.skipped.length}): ${sidecar.skipped.map((x) => `${x.name} (${x.reason})`).join('; ')}.`);
   if (league === null) {
     console.log(`league-digest: no league card on the homepage gives ${section.name}${section.label ? ` (${section.label})` : ''} a start, so the digest records no league dates and no reader takes it as running.`);
   }
@@ -972,15 +1136,30 @@ export async function main(argv) {
     return 2;
   }
   try {
-    await run(opts);
+    if (opts.running) await running(opts);
+    else await run(opts);
     return 0;
   } catch (e) {
+    if (e instanceof Usage) {
+      console.error(`league-digest: ${e.message}\n${USAGE}`);
+      return 2;
+    }
     if (!(e instanceof Refusal)) throw e;
     console.error(`league-digest: refused: ${e.message}`);
     return 1;
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+/** Whether this file is the command Node runs, through a symbolic link to the plugin root or not (as leagues.mjs). */
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) {
   process.exitCode = await main(process.argv);
 }

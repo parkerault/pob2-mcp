@@ -61,13 +61,14 @@ export function luaEnv(testActions: boolean, apiDir: string = resolvePobApiDir()
   return env;
 }
 
-export async function startLuaLineClient(opts: { testActions?: boolean; apiDir?: string } = {}): Promise<LuaLineClient> {
+/** `env` (D-523, WU-166): variables the child gets beside the bridge's, such as the overlay's sidecar list. */
+export async function startLuaLineClient(opts: { testActions?: boolean; apiDir?: string; env?: Record<string, string> } = {}): Promise<LuaLineClient> {
   const testActions = opts.testActions ?? true;
   const apiDir = opts.apiDir ?? resolvePobApiDir();
   const child: ChildProcessWithoutNullStreams = spawn(
     process.env.POB_CMD || 'luajit',
     [path.join(apiDir, 'bootstrap.lua')],
-    { cwd: resolvePobSrc(process.env), env: luaEnv(testActions, apiDir), stdio: ['pipe', 'pipe', 'pipe'] },
+    { cwd: resolvePobSrc(process.env), env: { ...luaEnv(testActions, apiDir), ...(opts.env ?? {}) }, stdio: ['pipe', 'pipe', 'pipe'] },
   );
   child.stdin.on('error', () => undefined);
 

@@ -40,7 +40,8 @@ states it.
 ## Where you write
 
 - **Write only inside the run folder**: the `Known issues` lists (step 14) and the interview notes; by script the
-  run log, the round copy, `audit.md` and `notes.txt`; each agent its header's `writes`.
+  run log, the round copy, `audit.md` and `notes.txt`; each agent its header's `writes`. One script writes outside it:
+  `pob2-league-digest`, only in the league folder `guide_run {new_run}` names (D-523).
 
 ## Agents
 
@@ -66,7 +67,11 @@ states it.
     a gate's display, `pob2-run-log <runFolder> display <gate>` (D-367),
     and `pob2-run-log <runFolder> test-config <path>` (D-394);
   - the running league digests, `node <root>/skills/game-knowledge/scripts/leagues.mjs [--at <instant>]` (D-507),
-    `<root>` the plugin root: it prints what `init` and `resume` print after their first line;
+    `<root>` the plugin root: it prints what `init` and `resume` print after their first line, with `--league
+    <leagueFolder>` the league folder's digests too (D-523);
+  - a running league's digest made on the user's side, `pob2-league-digest --running --out <leagueFolder>` (D-523), at
+    a run's start, online and not under `--test`, `<leagueFolder>` the folder `guide_run {new_run}` names, never one
+    you resolve yourself;
   - `git status --porcelain` in the session's working directory, **the stray-file check** (D-474, D-501): when that
     folder, the one the session started in, is a git work tree, keep the untracked paths at the run's start or resume
     in your context; after each step, tell the user each new one, and delete nothing. When it isn't one (git says

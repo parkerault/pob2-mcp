@@ -77,6 +77,13 @@ const newDir = (name: string) => {
 
 type Edit = { file: string; from: string; to: string };
 
+/** D-523 (WU-166): a run's output without the sidecar's two lines (its write and the entries it can't add). */
+const withoutSidecar = (stdout: string) =>
+  stdout
+    .split('\n')
+    .filter((l) => !/^league-digest: wrote .*\.overlay\.json: /.test(l) && !l.startsWith('league-digest: not in the overlay ('))
+    .join('\n');
+
 /** A copy of the fixture pages, saved at SAVED, with each edit applied to its page's text. */
 function pages(edits: Edit | Edit[] = []): string {
   const dir = newDir('pages');
@@ -286,7 +293,8 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     const r = run([SLUG, '--from', dir, '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     expect(r.stdout).not.toContain('saving the pages');
-    expect(fs.readdirSync(out)).toEqual([FILE]);
+    // D-523 (WU-166): the sidecar beside every digest the script writes.
+    expect(fs.readdirSync(out)).toEqual([FILE, 'embers-of-tarn.overlay.json']);
     // The preload works: a run that fetches is refused under it.
     const live = run([SLUG, '--save', newDir('save'), '--out', newDir('out'), '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
     expect(live.code).toBe(1);
@@ -430,7 +438,8 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     fs.writeFileSync(upgraded, JSON.stringify({ ...names, pin: 'the upgraded list', passive: ['Kindled Resolve'], item: [...names.item.filter((n: string) => n !== 'Coral Loop'), 'Legacy of Ashen Grip', 'Rune of Smouldering'] }));
     const r = run(['--reflag', 'embers-of-tarn', '--out', out, '--pin-names', upgraded], { preload: NO_NETWORK });
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
-    expect(r.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNow in the pin: Legacy of Ashen Grip (item), Rune of Smouldering (item), Kindled Resolve (passive).\nNo longer in the pin: Coral Loop (item).\n`);
+    // D-523 (WU-166): and the sidecar's entries the pin now defines, which retire.
+    expect(r.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNow in the pin: Legacy of Ashen Grip (item), Rune of Smouldering (item), Kindled Resolve (passive).\nNo longer in the pin: Coral Loop (item).\nOverlay entries the pin now defines, retired (1): Legacy of Ashen Grip.\n`);
     const today = day(new Date());
     const expected = text
       .replace(`checked against the fixture name list on ${today}.`, `checked against the upgraded list on ${today}.`)
@@ -445,7 +454,7 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(fs.readFileSync(file, 'utf8')).toBe(expected);
     // The poe2db slug works as well, and the same list changes nothing.
     const again = run(['--reflag', SLUG, '--out', out, '--pin-names', upgraded]);
-    expect(again.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNo flag changed.\n`);
+    expect(again.stdout).toBe(`league-digest: re-flagged ${file} against the upgraded list: 11 of the 16 in the pin.\nNo flag changed.\nOverlay entries the pin now defines, retired (1): Legacy of Ashen Grip.\n`);
     expect(fs.readFileSync(file, 'utf8')).toBe(expected);
   });
 
@@ -477,11 +486,11 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     fs.writeFileSync(gemsFile, gems.slice(0, last) + gems.slice(gems.indexOf(end, last) + end.length));
     fs.utimesSync(gemsFile, SAVED, SAVED);
     const first = digestOf(dir);
-    expect(first.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 2 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 15 in the pin. Currency left out: 1.\nAdded: the first digest of Embers_of_Tarn, so all 15 entries are new.\n`);
+    expect(withoutSidecar(first.stdout)).toBe(`league-digest: wrote ${first.file}. Entries: 2 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 15 in the pin. Currency left out: 1.\nAdded: the first digest of Embers_of_Tarn, so all 15 entries are new.\n`);
     const second = digestOf(pages(), first.out);
-    expect(second.stdout).toBe(`league-digest: wrote ${first.file}. Entries: 3 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 16 in the pin. Currency left out: 1.\nAdded since the last digest (1):\n- Tarnished Infusion (gem)\n`);
+    expect(withoutSidecar(second.stdout)).toBe(`league-digest: wrote ${first.file}. Entries: 3 gems, 4 uniques, 7 items, 1 ascendancy, 1 passive; 9 of the 16 in the pin. Currency left out: 1.\nAdded since the last digest (1):\n- Tarnished Infusion (gem)\n`);
     const third = digestOf(pages(), first.out);
-    expect(third.stdout.split('\n')[1]).toBe('Added since the last digest: none.');
+    expect(withoutSidecar(third.stdout).split('\n')[1]).toBe('Added since the last digest: none.');
   });
 
   it("refuses, writing nothing, a list page whose entries aren't its header's count, a section the homepage doesn't link and a missing page; a bad command line is a usage error", () => {
@@ -548,7 +557,7 @@ describe("AC-W131 (WU-151, D-507): the digest script's league dates, from the ho
     expect(third(fs.readFileSync(hollow, 'utf8'))).toBe(`Hollow Crown (1.0) on poe2db.tw, fetched 2026-11-07. ${HOLLOW} In-pin flags: checked against the fixture name list on 2026-11-07.`);
     expect(fs.readFileSync(old, 'utf8')).toBe(oldText);
     expect(fs.readFileSync(saltmarsh, 'utf8').split('\n').slice(3)).toEqual(['', 'A body line.', '']);
-    expect(stdout.split('\n').filter((l) => l.startsWith('league-digest: ') && !l.startsWith('league-digest: wrote '))).toEqual([
+    expect(withoutSidecar(stdout).split('\n').filter((l) => l.startsWith('league-digest: ') && !l.startsWith('league-digest: wrote '))).toEqual([
       `league-digest: ${hollow}: ${HOLLOW} (was: no League: sentence)`,
       `league-digest: ${saltmarsh}: ${SALTMARSH} (was: League: from 2026-10-02 20:00 UTC until no end announced.)`,
     ]);

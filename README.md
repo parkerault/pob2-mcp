@@ -57,7 +57,8 @@ Code starts it from. In a new Claude Code session, `/mcp` shows `pob2` connected
 
 This repository is also a Claude Code plugin, `pob2`, and its own marketplace, `pob2-mcp`. The plugin carries
 the build-guide skill (`/pob2:build-guide`), its four agent types, the run scripts' commands (`pob2-check-run`,
-`pob2-run-log`, `pob2-render-audit`, `pob2-render-notes`) and the compaction reminder's hook. Install it from
+`pob2-run-log`, `pob2-render-audit`, `pob2-render-notes`, and `pob2-league-digest`, which makes a running league's
+digest on the user's side) and the compaction reminder's hook. Install it from
 your checkout, in a Claude Code session:
 
 ```

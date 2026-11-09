@@ -7582,3 +7582,26 @@ What the coordinator folded (revision 2, approved):
   nothing outside the unit's scope. Its full gate at `3ecc5bf` stands for the rest.
 - **WU-159 (piece runs) merged** at `fa92de7` (fast-forward, two commits on `9f00715`). AC-W145…AC-W147 in
   `tests/unit/pieceRuns.test.ts` and `tests/static/pieceRuns.test.ts`.
+- **WU-166 dispatched** (the overlay, lane `bg-166` off `0731969`), in two phases: phase 1 now, everything but the
+  three piece `SKILL.md`s' fetch lines (those files come with WU-162, WU-163 and WU-165), verified and reviewed; phase
+  2 after WU-165 merges, the rebase and those lines, re-checked.
+- **WU-160's fix round** (`62de2ef`, rebased by the coordinator onto `0731969` as `9ca04ce`, no conflict): a first call
+  on a folder holding `source.xml` or `read.json` refused, writing nothing (the earlier answers survive); `partyFilled`
+  by `<ImportedBuffs>` only; a tree jewel on a base the pin lacks asked as `stand_in.Jewel <node>` (`standIn` on the
+  tree-jewel schema, as A.5 lists it), an older tree's jewel whose node the newest tree lacks named in `left` with its
+  text; `switch_off` as ruled, refused for a group not switched, a group naming itself, an `off` number the plan
+  lacks, a non-numeric key, a duplicate, or no Spirit answer yet. The doer's own calls: buff lists given again without
+  `switch_off` clear the stored lists (the measure asks again), and a loadout change clears them. The tool's
+  description 1,619 characters; the README table unchanged. No existing assertion changed. Doer's gate rc 0 (258
+  suites, 4,462 tests). **The probe re-run at this head:** the read results unchanged, all three plans pass `guide_run
+  {validate}`, sha1s unchanged. Re-check sent to the gate verifier: the fix diff, and a full gate on the rebased tree
+  (the first holding WU-159 and WU-160).
+- **WU-160's re-check** (the gate verifier) passed `9ca04ce`: gate from clean rc 0 (260 suites, 4,485 tests; the
+  first tree holding WU-159 and WU-160), build rc 0; the feature patch unchanged by the rebase but one hunk offset;
+  each of the four fixes' tests fails with its fix broken in a temporary copy (each `switch_off` refusal on its own);
+  no existing assertion changed; the 13 fixtures pass; words loaded max +1.9%; waivers `[]`. The doer's two unasked
+  behaviours judged right (stale group numbers would point at the wrong groups). **One untested line:** a loadout change
+  clearing `switch_off` (removing it leaves all 41 tests passing); its test goes to WU-161, which works on the switched
+  buffs next.
+- **WU-160 (`plan_from_build`, the file reader) merged** at `9ca04ce` (fast-forward, two commits on `0731969`). AC-W148
+  in `tests/mcp/planFromBuild.test.ts`, AC-W149 in `tests/unit/planFromBuildReader.test.ts`, AC-W150 recorded above.

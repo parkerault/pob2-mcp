@@ -7026,3 +7026,56 @@ What the coordinator folded (revision 2, approved):
   marked "amended by", and D-384 and D-465 too (the owned-content exemption, a16 §15, narrows both without naming
   them; kept); the handoff's M-29 and M-30 sections; the fold rule's middle step for a two-milestone amendment in the
   spine, `CLAUDE.md` and the handoff. Status line: "Folded through amendment 16 (approved; as built through 15)".
+
+## 2026-11-08: M-29 (amendment 16 Part I) build started
+
+- **The user's go** (verbatim): "You can use `twister-spirit-walker-snoobae` for the guide-library test file. I pushed
+  the two commits, go ahead and start the build." `main` and `origin/main` at `34426a7`.
+- **Choice D answered:** the guide-library real case is `twister-spirit-walker-snoobae` (the private library's
+  `guides/twister-spirit-walker-snoobae`), read in place at WU-168, nothing copied or committed. Not read in M-29.
+- **Trade:** none in M-29 (the handoff: no unit sends a trade request). Told the user before the go that the cookie
+  isn't needed; a trade run at WU-168 only with their approval.
+- **Integration worktree** `pob2-mcp-wt/m29`, branch `build-guide/m29`, off `main` at `34426a7` (the approval commit is
+  the head). `vendor/` copied from the main checkout, `pnpm install --frozen-lockfile` rc 0, `mise run pob:fetch` rc 0,
+  signing off in the worktree.
+- **De-risk** (the assumption Part I rides on: the PoB methods the bridge patches wrap exist at the pin with the lines
+  §5 to §8 cite): checked at approval (§31, the sites in `CalcSetup.lua` and `SkillsTab.lua`), and made structural by
+  WU-152's fingerprint test, which fails on the pin if a wrapped line moves. WU-153 and WU-154 start only after it.
+- **Recon:** none dispatched. §24's table and the handoff's M-29 bullets are the contention map: WU-151 and WU-156
+  share game knowledge's `SKILL.md` and `buildGuidePipeline.test.ts` in separate hunks; WU-153 and WU-154 share
+  `Patches.lua` and `pob-gaps.md` in separate hunks; the rest are disjoint.
+- **Baseline gate** on `34426a7` (the integration head, clean rebuild, under the lock, run by the coordinator in the
+  background): `mise run test` rc 0 (243 suites, 4,285 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0;
+  both waiver files `[]`.
+- **Wave 1 dispatched:** WU-151 (running leagues), WU-152 (the patch frame and PG-106) and WU-156 (the small fixes),
+  each a doer in its own lane (`bg-151`, `bg-152`, `bg-156`) with one brief for every M-29 unit.
+- **WU-156's doer** finished at `2acbd75` on `bg/wu-156` (one commit; 0.29M subagent tokens). Its own gate rc 0 (243
+  suites, 4,293 tests), build rc 0. Hand counts at `a8d735c` under D-513's rule: R1b 67,356, D1-build 82,765, D2-gate
+  23,812, as the survey's simulation gave; every stage on today's tree 0.5% to 1.6% under its baseline. The 13
+  pipeline fixtures' checker results equal `cf16e07`'s (12 pass; `run-rival` exits 1 under both). Deviations: the two
+  running leagues' price facts keep `source: pricing-study` and cite `poe2db-league-cards` in a note (a fact holds one
+  source id, `referenceData.ts`:69–76); the baseline's two-section shape; a stage name used by two pieces fails the run;
+  `amendment15GameKnowledge.test.ts`:187 changed outside the spine's touches (it pinned the removed "You need no Bash"
+  line). Friction kept for M-30: the baseline's `since` entries name commits, and the signed rebase at HG-8 rewrites
+  lane commits, so WU-162's and WU-163's entries must name commits on `main` after signing. Gate verifier and reviewer
+  dispatched in parallel.
+- **WU-156's review** (fresh, read-only): no high or medium finding; the four deviations accepted. Two low ones, both
+  routed: (1) the AC-W142 test exempts game knowledge's league bullet (:66–68, WU-151's) from its no-Grep check, so a
+  "by Grep" left there would pass; whichever of WU-151 and WU-156 merges second writes the bullet's search as `grep`
+  and drops the exemption. (2) `skills/build-guide/references/pricing.md`:450 says the league facts carry "`end` for a
+  league that ended", but the running leagues now carry one too; wording only, routed to WU-158 ("`end` once one is
+  recorded").
+- **WU-156's gate verifier** (fresh) passed `2acbd75`: gate from clean rc 0 (243 suites, 4,293 tests; the timing step
+  2 suites, 4 tests), build rc 0. Its own hand counts at `a8d735c` agree (R1b 67,356, D1-build 82,765, D2-gate
+  23,812); `--at a8d735c --json` equals the baseline's section byte for byte; the tests bite (the exclusion removed: 7
+  fail; own names excluded too: 3; build-guide's stages only: the any-piece case). `prices.json` matches §10's table.
+  The checker on all 13 fixtures from trees at `cf16e07` and at the head: identical but for the folder path. Waivers
+  `[]`; dependencies, pin, `vendor/` and `docs/` unchanged.
+- **WU-156 (the small fixes) merged** at `2acbd75` (fast-forward). AC-W139: `tests/unit/wordsLoaded.test.ts`; AC-W141:
+  `tests/static/buildGuidePipeline.test.ts` (the AC-W141 and D-373 tests); AC-W142:
+  `tests/static/amendment15GameKnowledge.test.ts` (the AC-W142 block).
+  - **AC-W162's list, WU-156:** `wordsLoaded.test.ts` (the derivation's exclusion, the baseline read by section, the
+    pins R1b 110,596→67,356 and D1-build 102,373→82,765 with a D2-gate pin and R1b's file list, the inflation test's
+    input, the two-section wrapper; D-513); `buildGuidePipeline.test.ts`'s D-373 test (1.0's fact out of the study
+    loop, the league values; D-514); `amendment15GameKnowledge.test.ts`:187 (the removed "You need no Bash" sentence;
+    D-515; implied scope, outside the spine's touches row, `docs/spec/README.md`:2926, which WU-158 adds).

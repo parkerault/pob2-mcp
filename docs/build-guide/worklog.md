@@ -7159,3 +7159,27 @@ What the coordinator folded (revision 2, approved):
   - **AC-W162's list, WU-152:** `advice.test.ts`, AC-A1's golden case: no skill-slot line (D-510; its Grenade is the
     crossbow's), plus a colour-code check on the low-Strength lines (an addition); `parseFixes.test.ts`, PG-103's
     retirement case split into a setup case and the bug case, guarded (D-509; no value changed).
+- **Wave 2 dispatched:** WU-153 (PG-109, rune rolls) and WU-154 (PG-114, a granted skill's quality, and PG-115's
+  check), each in its own lane off `25777ed`, each filling its own stub block in `Patches.lua`, its own `STUBS` line
+  and its own `pob-gaps.md` entry.
+- **WU-151's fix round** at `1cf761c`: the run-log and checker cases run on a layout holding only the two 0.5 digests
+  (a committed 1.0 digest can't move them); every real-clock test spawns with `BUILD_GUIDE_TEST_NOW` set to the
+  helper's `TEST_NOW` and computes its expectation at the same instant; `leagues.mjs`'s main guard compares both real
+  paths, with a test through a symlinked root (fails on the old guard); `patterns.md` names
+  `skills/game-knowledge/scripts/leagues.mjs`'s list (the bare name fails AC-W115's check); the wording nits. The
+  doer's gate rc 0 (245 suites, 4,314 tests), build rc 0. Rebased by the coordinator onto `25777ed` (no overlap with
+  WU-152): head `abbc81c`. **Re-check by the coordinator:** read the code changes; on the rebased tree `pnpm build` rc 0,
+  all of `tests/static` and the build-guide unit suites 1,897 of 1,897, `words-loaded.mjs` rc 0. The verifier's full
+  gate at `5be4037` stands for the rest.
+- **WU-151 (running leagues) merged** at `abbc81c` (fast-forward, four commits on `25777ed`). AC-W130:
+  `tests/unit/runningLeagues.test.ts`; AC-W131: `tests/unit/leagueDigest.test.ts` (the AC-W131 block); AC-W132:
+  `tests/static/runningLeagueReaders.test.ts`. Skill revision 15.
+  - **AC-W162's list, WU-151:** `leagueDigest.test.ts`'s line-3 pins (D-507, A.1); `buildGuideScripts.test.ts` and
+    `buildGuideSchema4.test.ts` (the digests report, revision 14→15, `digest` as a list, the fetch-date test rewritten
+    to the running rule; D-507, §24); `buildGuideAmendment11`–`14`, `buildGuideResumeNoNinja`, `amendment15Commands`
+    (the stamp 15 and "revisions"; amendment 12's invalid revision 15→16; §24); `buildGuidePipeline.test.ts` (the Bash
+    list gains `leagues.mjs`, C-59; the R1a line, the staleness line, `start.md` step 5; D-507);
+    `amendment15Layout.test.ts` (`D507_EDITS` restored before hashing; D-507); `amendment15Paths.test.ts` (§3's `node
+    …/leagues.mjs` command exempted; D-507, a departure from amendment 15's `bin/` rule for WU-158's notes);
+    `amendment15GameKnowledge.test.ts` (the league bullet's exemption removed; D-515); `runningLeagueReaders.test.ts`'s
+    patterns pin (D-507). Setup only: temp layouts copy game knowledge's scripts; the test clock.

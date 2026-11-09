@@ -1,13 +1,19 @@
 # Slice 04: Game knowledge, the first piece of the skill split
 
-**Status: written current 2026-11-06 (WU-149, D-504), as built at M-28.** Part of the project spine,
+**Status: written current 2026-11-06 (WU-149, D-504), as built at M-28; updated 2026-11-09 for amendment 16's M-29
+(WU-158, D-525): the running-league rule and the Bash line.** Part of the project spine,
 [`docs/spec/README.md`](../../spec/README.md) ("spine"), which wins any disagreement; fold fixes back into it. It
 covers the game-knowledge piece (D-503, contract C-58): its files, the plugin layout it lives in (C-57) as far as the
 piece uses it, its work units WU-145 (the file moves), WU-147 and WU-149, all built, and WU-150 (human, recorded: HG-37 passed),
 and its acceptance criteria AC-W120, AC-W124, AC-W125, AC-W128 and AC-W129. Its source is amendment 15
 (`amendment-15-plugin-and-knowledge.md`, approved 2026-11-06, cited "a15 §n"), §4, §8, §9 and §13 to §17, with the
 work-log's record of M-28 (`../worklog.md`, "WL:n"), which wins where the build differs from the amendment's text.
-Paths are root-relative: from the repository root, which is the plugin root (C-57).
+Since M-29 it also covers what amendment 16 (`amendment-16-pieces-and-launch.md`, approved 2026-11-08, cited "a16
+§n") changed in the piece: the running-league rule (D-507, contract C-59; a16 §3) and the Bash line (D-515; a16 §11),
+built by WU-151 and WU-156 (their game-knowledge parts), with this update, WU-158; their criteria AC-W132 (its
+game-knowledge part), AC-W142 and AC-W143; and AC-W140, the agent types' probe (WU-157, not run). The work-log's record
+of M-29 (WL:7030 on) wins where the build differs. Amendment 16's M-30 changes (the description's three new commands,
+a16 §12, §15) come with WU-167. Paths are root-relative: from the repository root, which is the plugin root (C-57).
 
 ## 1. Scope
 
@@ -18,9 +24,10 @@ stand alone: a player or an agent asks it a game question with `/pob2:game-knowl
 read its files by path.
 
 In scope:
-- the piece's `SKILL.md`, its three references and its three data builders, in `skills/game-knowledge/`;
+- the piece's `SKILL.md`, its three references, its three data builders and, since M-29, the league rule's module and
+  command `leagues.mjs` (C-59), in `skills/game-knowledge/`;
 - the questions it answers: how a mechanic, gem, unique, passive or ascendancy works for a build; what is new in the
-  league; whether PoB models something; what counts as evidence for a claim;
+  running leagues; whether PoB models something; what counts as evidence for a claim;
 - its real cases (§6), the piece's own test set.
 
 Out of scope, each with its home:
@@ -50,12 +57,17 @@ C-58 in the spine is the binding summary; this section gives its detail as built
     (D-395);
   - `source-markers.md`, the source tags and the three claim rules (C-30, D-273). It stays whole here, its V4 report
     form included, until review moves (amendment 17).
-- **The committed data** (`data/`): the league digest, `data/league/<slug>.md` (D-400); the rule-changer index,
-  `data/rules/` (`nodes.md`, `uniques.md`, `gems.md`, `pairs.md`, `vocabulary.md`; D-401); the monster table,
-  `data/monsters/monster-mods.md` (D-402). Read with Read and Grep.
-- **PoB's gaps and bugs:** `docs/build-guide/pob-gaps.md`, by Grep for a name; a PG entry found goes with the answer.
-- **PoB's source,** under `vendor/PathOfBuilding-PoE2/src/Modules/`, by Grep, when the checkout holds it, for how PoB
-  computes something.
+- **The committed data** (`data/`): the running leagues' digests, `data/league/<slug>.md` (D-400), which the league
+  command lists (below; D-507); the rule-changer index, `data/rules/` (`nodes.md`, `uniques.md`, `gems.md`,
+  `pairs.md`, `vocabulary.md`; D-401); the monster table, `data/monsters/monster-mods.md` (D-402). Read whole with
+  Read, searched with `grep` through Bash (D-515).
+- **The league command,** `node <root>/skills/game-knowledge/scripts/leagues.mjs [--at <instant>]` (C-59, D-507;
+  `${CLAUDE_PLUGIN_ROOT}` for `<root>` in the skill's text): it prints the running leagues' digests, newest first,
+  with each one's line 3 (§2.3's league rule). It reads only, and it is in the runner rules' Bash list
+  (`runner-rules.md`:61–62).
+- **PoB's gaps and bugs:** `docs/build-guide/pob-gaps.md`, by `grep` for a name; a PG entry found goes with the answer.
+- **PoB's source,** under `vendor/PathOfBuilding-PoE2/src/Modules/`, by `grep`, when the checkout holds it, for how
+  PoB computes something.
 - **The five lookup tools,** which read only: `lookup_game_data`, `check_model_coverage`, `search_tree_nodes`,
   `list_gems` and `get_classes` (as `mcp__pob2__…`, the user's own server registration until amendment 18, C-57).
 - **The web:** poe2db.tw only, with WebFetch, for what the lookups and the committed data don't hold (such as an entry
@@ -67,21 +79,47 @@ The other pieces read the same files by path. Today that is `/pob2:build-guide`:
 R1a, R1a-synthesize, R1a-assemble, R1b, D1-build, `start.md`, the card template and the researcher's definition;
 `lookups.md` from `SKILL.md`, Q, `runner-rules.md`, `skills/build-guide/references/stages/README.md` and the
 researcher's and coordinator's definitions; `source-markers.md` from `SKILL.md`, R1a, V4, `run-folder.md`,
-`skills/build-guide/references/stages/README.md`, the checker and three agent definitions.
+`skills/build-guide/references/stages/README.md`, the checker and three agent definitions. Since M-29 the league rule
+is game knowledge's too: `skills/build-guide/scripts/run-log.mjs` imports `runningDigests` from `leagues.mjs` (:196)
+for the run log's `digest` list and the `digests:` line `init` and `resume` print; build-guide's runner rules,
+`start.md` and `run-log.md` name the command; and `lookups.md` (:124–126) and `patterns.md` (:591–592) name the task
+header's `digests` or the command's list where they used to read "the newest" digest.
 
 ### 2.2 What it writes
 
 Nothing. It writes no file, starts no agent, changes no engine build (no pob2 tool beyond the five lookups: nothing
-that loads, adds, sets, toggles or compiles), and prices nothing (no trade, exchange or currency-rate call). It needs
-no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
+that loads, adds, sets, toggles or compiles), and prices nothing (no trade, exchange or currency-rate call). Its answer
+is the session's reply.
+
+**The Bash line** (D-515, as built at M-29, WU-156): the runner searches with `grep` through Bash, as the runner rules
+allow (`runner-rules.md`:46–49: reading commands only, no redirection and nothing that writes), and Reads a file whole
+(`SKILL.md`:16); every other search line in the skill names `grep` the same way, the league bullet's too (WU-151's
+rebase round). Its Bash runs only those reads and the league command (§2.1). Amendment 15's "You need no Bash: Read,
+Grep and Glob make every read" is gone: in this Claude Code a session with Bash has no Grep or Glob tool (a16 §11),
+as the M-28 real cases' agents found (§6). An agent a piece starts searches with Grep and Glob; no agent definition
+names Bash (R-4, D-515).
 
 ### 2.3 The rules it follows
 
 - **Where an answer starts:** each kind of question names the file or tool it starts from (the skill's "Where each
   kind of question starts"): the lookups for how a named thing works; "Supply by family" for what supplies a resource,
   a charge, a buff, a ground effect or an ailment; "A rule changer" and the index for a node, keystone, gem or unique
-  that changes a standard rule; the newest digest for the league; the monster table for a monster's or a beast's
-  modifier; `source-markers.md` for evidence.
+  that changes a standard rule; the running leagues' digests for the league (the league rule, below); the monster
+  table for a monster's or a beast's modifier; `source-markers.md` for evidence.
+- **The league rule** (D-507, C-59; as built at M-29, WU-151): a league is running from its start instant until its
+  end instant, both UTC, read against the machine's clock as a UTC instant, never a local date; so 1.0 counts from
+  2026-12-11 20:00 UTC, the instant both 0.5 leagues stop. A digest records its league's instants in the `League:`
+  sentence on its line 3 (`League: from <YYYY-MM-DD HH:MM> UTC until <YYYY-MM-DD HH:MM> UTC.`, or `… until no end
+  announced.`); one with no sentence isn't running, and its reader names it once ("<path> records no league dates:
+  re-run its digest script"). For "what is new in the league", the runner takes the running digests from the league
+  command, each head whole and newest first, the body by `grep` (`SKILL.md`:66–72); an ended league's digest only when
+  the user asks about that league; a league not yet started from poe2db.tw as announced content, never a digest; and,
+  as before, poe2db.tw past a digest's fetch date or with no digest for the league asked about. With no running digest
+  the command prints "No running league has a league digest: what is new in it isn't in the committed data."
+  (`leagues.mjs`:43). The two committed digests carry their sentences by hand: Runes of Aldur from 2026-05-29 20:00 UTC
+  and Forbidden Rites from 2026-09-04 20:00 UTC, both until 2026-12-11 20:00 UTC (`data/league/*.md`:3).
+  `league-digest.mjs` writes the sentence from poe2db's homepage cards and rewrites the other digests' in its output
+  folder (a16 §3); `--reflag` keeps it.
 - **Search wide:** the whole family and its substitutes, from every kind of source, never one member; one lookup per
   term it can't place; skills as well as mods; an index entry, a pair or a study is a lead, confirmed by a lookup;
   the committed data searched before it says no source holds a fact.
@@ -106,7 +144,11 @@ no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
    `lookups.md`, `source-markers.md`) and `scripts/` (`rules-index.mjs`, `league-digest.mjs`, `monster-mods.mjs`).
    The data builders are maintenance commands, run from the repository with `node skills/game-knowledge/scripts/<x>.mjs`
    and no `bin/` command; their output headers name their new paths, and `CLAUDE.md`'s pin-upgrade step 7 runs them
-   there.
+   there. Since M-29 `scripts/` also holds `leagues.mjs`, the league rule's module and command (C-59, D-507), which a
+   runner runs as `node <root>/skills/game-knowledge/scripts/leagues.mjs`. As built (WL:7087–7089, :7182–7183): that
+   command is exempted from amendment 15's check that every run command is a `bin/` command (AC-W115,
+   `tests/static/amendment15Paths.test.ts`:112–117), a departure from amendment 15's rule, forced because a16 §3 and
+   C-59 give the command that form (the coordinator's call).
 2. **The command** is `/pob2:game-knowledge`, the plugin `pob2`'s (C-57); the bare `/game-knowledge` works once the
    plugin is installed.
 3. **Its `SKILL.md`** has fewer than 150 lines (D-505); its frontmatter holds `name` and `description` only. The
@@ -122,6 +164,11 @@ no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
 9. **Its references keep their text** except paths, moved once (WU-145) from build-guide's folder; build-guide's
    stages read them at their new paths.
 10. **Its real cases pass** (§6): each, asked of a fresh agent as §6 says, gets the expected answer with a source tag.
+11. **It reads the running leagues' digests** (D-507, M-29): the list the league command prints, never one digest by
+    its fetch date; an ended league's only when the user asks about it; a league not yet started from poe2db.tw as
+    announced content; the poe2db.tw fallback kept (§2.3).
+12. **Its runner searches with `grep` through Bash** and Reads a file whole (D-515, M-29); the skill never says it
+    needs no Bash; it stays under 150 lines (§2.2).
 
 ## 4. Acceptance criteria
 
@@ -155,13 +202,37 @@ no Bash: Read, Grep and Glob make every read. Its answer is the session's reply.
   folder, `/pob2:game-knowledge` answers §6's case 3, and whether an approval was asked for a plugin file. A prompt
   goes to amendment 18 (R-114) and doesn't fail HG-37. Human. **Holds** (HG-37 passed 2026-11-07; WL:6827–6872).
 
+Amendment 16's M-29 criteria for this piece (a16 §25):
+- **AC-W132 (the readers; WU-151), game knowledge's part.** `skills/game-knowledge/SKILL.md` and
+  `skills/game-knowledge/references/lookups.md` name running leagues and no longer choose "the newest" digest "by its
+  fetch date"; game knowledge keeps its poe2db fallback and reads an ended league's digest only when the user asks.
+  Static test: `tests/static/runningLeagueReaders.test.ts` ("game knowledge takes the running digests from
+  leagues.mjs, reads an ended league's only when asked, and keeps its poe2db fallback", with the readers' phrase
+  check). **Holds** (WU-151, merged at `abbc81c`). The rule itself, `runningDigests` at set instants, is AC-W130's
+  (`tests/unit/runningLeagues.test.ts`), and the digest script's dates AC-W131's (`tests/unit/leagueDigest.test.ts`).
+- **AC-W140 (the agent types' search; WU-157).** For each of the four `pob2:` types, the work-log records one Grep and
+  one Glob call that returned results, in a `--plugin-dir` session (HG-38). Recorded. **Open:** not run; WU-168
+  records it at the latest.
+- **AC-W142 (the Bash line; WU-156).** `skills/game-knowledge/SKILL.md` no longer says "You need no Bash", tells its
+  runner to search with `grep` through Bash, and stays under 150 lines; no agent definition names Bash (R-4). Static
+  test: `tests/static/amendment15GameKnowledge.test.ts` ("AC-W142 (WU-156, D-515): …"), whose no-Grep check covers the
+  league bullet too since WU-151's rebase round (WL:7103–7105). **Holds** (WU-156, merged at `2acbd75`; WU-151 at
+  `abbc81c`; 125 lines).
+- **AC-W143 (M-29's documents; WU-158).** This slice states the running-league rule and the Bash line; slices 01, 02
+  and 03 carry a16 §21's notes for M-29; the spine names C-59 and C-60; `specSpine.test.ts` passes; the gate's verifier
+  records M-29's rows built and the status line (the spine test checks only the folded number). Static tests:
+  `tests/static/amendment16Docs.test.ts` (new) and `specSpine.test.ts`; and a record. **Holds** (WU-158), the record
+  the gate verifier's.
+
 AC-W115 (every root-folder path in `skills/` and `agents/` resolves, the old forms banned) and AC-W116 (the pipeline
-unchanged) cover this piece's files with the rest of the plugin; they are slice 03's and C-57's.
+unchanged) cover this piece's files with the rest of the plugin; they are slice 03's and C-57's. From M-29 every build
+unit also holds AC-W162: every pipeline fixture gives the checker's result it gave at `cf16e07`, and each changed test
+assertion is listed with the decision that forces it (WL:7077–7081, :7177–7185 for this piece's files).
 
 ## 5. Work units
 
-Status lines give the commits on the integration branch `build-guide/m28` (the work-log's M-28 section, WL:6542 on).
-The units' order is the spine's M-28 line (§9.3).
+Status lines give the commits on the integration branches: `build-guide/m28` (the work-log's M-28 section, WL:6542
+on) and `build-guide/m29` (its M-29 section, WL:7030 on). The units' order is the spine's M-28 and M-29 lines (§9.3).
 
 ### WU-145: the plugin layout and every path (game knowledge's part)
 - kind: build
@@ -217,13 +288,70 @@ The units' order is the spine's M-28 line (§9.3).
   `/pob2:game-knowledge` §6's case 3 in a session started from an empty folder (HG-37). Its result goes to amendment
   18 (R-114).
 
+### WU-151: running leagues (game knowledge's part)
+- kind: build
+- status: built (four commits on `25777ed`, merged at `abbc81c`)
+- depends-on: []
+- touches (this piece's part): [`skills/game-knowledge/scripts/leagues.mjs` (new), `league-digest.mjs` (the cards and
+  the `League:` sentence, the other digests' rewrite), `data/league/runes-of-aldur.md` and `forbidden-rites.md` (line 3
+  by hand), `tests/fixtures/poe2db/league/home.html` (hand-written cards), `skills/game-knowledge/SKILL.md` (the
+  league bullet, :66–72), `references/lookups.md`, `references/patterns.md`; `tests/helpers/runningDigests.ts`
+  (replacing `newestDigest.ts`)]
+- produces: [the league rule, C-59]
+- acceptance: [AC-W130, AC-W131, AC-W132; the run log's, the checker's and build-guide's readers are slice 03's]
+- milestone: M-29
+- summary: The rule and its readers (a16 §3). As built (WL:7082–7089, :7103–7107, :7165–7176): the `digests:` report
+  that `init`, `resume` and `leagues.mjs` print; the test clock `BUILD_GUIDE_TEST_NOW`; "the same league" is the same
+  file name; a card with no start slot writes no sentence; the league bullet searches with `grep`, so the AC-W142
+  check covers it; `leagues.mjs`'s main guard compares real paths, so the command works through a symlinked root; the
+  command exempted from AC-W115's `bin/` rule (§3, requirement 1); skill revision 15.
+
+### WU-156: the small fixes (game knowledge's part)
+- kind: build
+- status: built (one commit on `34426a7`, merged at `2acbd75`)
+- depends-on: []
+- touches (this piece's part): [`skills/game-knowledge/SKILL.md` (the Bash line, :16, and its other search lines but
+  the league bullet), `tests/static/amendment15GameKnowledge.test.ts` (the AC-W142 block; :187's pin of the removed
+  "You need no Bash" sentence)]
+- produces: [the Bash line, D-515]
+- acceptance: [AC-W142; its AC-W139 and AC-W141 are slice 03's and C-35's]
+- milestone: M-29
+- summary: The skill's runner searches with `grep` through Bash (a16 §11). As built (WL:7052–7058, :7062–7067): the
+  `amendment15GameKnowledge.test.ts`:187 change sits outside the spine's touches row, which WU-158 adds.
+
+### WU-157: the agent types' Grep and Glob
+- kind: human, then the coordinator
+- status: not run; WU-168 records it at the latest
+- depends-on: [the user's `--plugin-dir` session (HG-38)]
+- touches: [the work-log]
+- acceptance: [AC-W140]
+- milestone: M-29 (outside its gate)
+- summary: In a session the user starts with `claude --plugin-dir` on the main checkout, the coordinator starts each
+  of the four `pob2:` types with one task, a Grep for a fixed line of a committed file and a Glob for a committed
+  folder, and records the calls (a16 §11).
+
+### WU-158: M-29's documents
+- kind: docs
+- status: built (2026-11-09)
+- depends-on: [WU-151…WU-156]
+- touches: [this slice (the league rule, the Bash line), notes in `01-server-tools.md`, `02-plan-compiler.md` and
+  `03-pipeline.md`, `docs/spec/README.md`, `tests/static/amendment16Docs.test.ts` (new),
+  `skills/build-guide/references/pricing.md`:450 (a wording fix)]
+- acceptance: [AC-W143]
+- milestone: M-29
+- summary: This slice's M-29 update; the notes in slices 01 to 03 for the patches, the granted-quality rule and the
+  league rule; the spine's M-29 rows as built, its status line "Folded through amendment 16 (approved; as built
+  through 15 and amendment 16's M-29)" (a16 §21).
+
 ## 6. Real cases
 
 The piece's own test set, from real misses (the design's §4). **How they're asked** (a15 §8): the coordinator asks
 each of a fresh general-purpose agent, giving it the piece's `SKILL.md` text with `${CLAUDE_PLUGIN_ROOT}` replaced by
 the tree's absolute path, and telling it to use only Read, Grep, Glob and the five lookup tools, with no web; the
 gate's verifier checks its recorded tool calls. A wrong answer is asked once more of another fresh agent; a second miss
-is fixed in the piece's files and the case asked again (R-117).
+is fixed in the piece's files and the case asked again (R-117). **Amended by D-515 (M-29):** a piece's real cases are
+asked of a `pob2:` agent type, never of a general-purpose agent, which has Bash and so no Grep in this Claude Code
+(a16 §11); the M-28 runs below were asked the old way.
 
 1. **"A cold spell build wants Infusions. What can supply them?"** Expected: the search covers the whole Infusion
    family, and the answer names Powered by Verisium (`patterns.md`'s "Supply by family"; the Varashta run's miss).

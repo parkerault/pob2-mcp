@@ -467,6 +467,14 @@ ToolSearch, so ToolSearch joins no row.
 
 ### 5.1 Task header (D-267)
 
+> **Note (amendment 16, D-507; M-29).** Since M-29 R1a's and a researcher Q's header carries `digests`, the running
+> league digests' paths, newest first (the latest start first), root-relative (a user-side digest's absolute, from
+> M-30), copied verbatim from the `digests:` line `pob2-run-log`'s `init` or `resume` printed, `[]` when no running
+> league has one (`skills/build-guide/references/task-header.md`, its `digests` row; a16 Appendix A.2). The step reads
+> those digests and no other: each head whole, newest first, the bodies by Grep. Neither the runner nor the agent picks
+> a digest itself. The rule is game knowledge's, in slice 04 ([`04-game-knowledge.md`](04-game-knowledge.md), §2.3)
+> and the spine's C-59; §6's note gives the run log's side.
+
 Every agent prompt starts with a fenced `json` block, the task header. The runner builds it from the run
 state; the agent reads its job from the header and the stage reference it names, and nothing else in the
 prompt contradicts it.
@@ -985,6 +993,21 @@ V4 re-checks only `--changed`'s set. A revision's output is reported beside the 
 
 ## 6. Run log `run-log.json` (D-270)
 
+> **Note (amendment 16, D-507; M-29).** From skill revision 15 (`REVISIONS`, `run-log.mjs`:281) the run log's `digest`
+> is the running leagues' digests, a list of file names, the latest start first, possibly empty, which `init` and
+> `resume` record through `leagues.mjs`'s `runningDigests` (`run-log.mjs`:196, :664, :980). A league runs from its start
+> instant until its end instant, both UTC, read on a digest's line 3 (the league rule, slice 04,
+> [`04-game-knowledge.md`](04-game-knowledge.md) §2.3; C-59). The top-level `digest` keeps the form of the revision
+> `init` wrote, each `resumes[]` entry that of its resume (a string or null before 15); D-415's line compares two lists
+> as sets, and a string with a list's first entry: "The league digests changed since this run last ran"
+> (`digestsDiffer`, `run-log.mjs`:2295); the checker accepts each form where its revision puts it
+> (`check-run.mjs`:145–148). `init` and `resume` also print the `digests:` line the task header copies (§5.1), then
+> the staleness line: line 3 of each running digest, newest first, or "No running league has a league digest: what is
+> new in it isn't in the committed data.", then each undated digest once (`skills/build-guide/SKILL.md`:128–130,
+> `references/start.md`:103–111). As built (WL:7082–7089): the test clock `BUILD_GUIDE_TEST_NOW`, which only tests set;
+> the resume stamp says "revisions"; the run log, the checker and the readers are WU-151's (AC-W130, AC-W132). The
+> trade league for designs is unchanged (D-20).
+
 Schema version 2. Only the runner writes it, as soon as the run folder exists, and rewrites it whole after
 every step, checkpoint and question. It records the run's control flow; the artifacts record the rest, and
 the checker reads both.
@@ -1094,6 +1117,15 @@ with `/exit`.
 ## 7. Stage artifact formats
 
 ### 7.1 Plans
+
+> **Note (amendment 16, D-512; M-29).** A granted skill's quality and supports, as built at M-29 (WU-154): a plan's gem
+> for a skill the stage's items or allocated passives grant has quality 0; from plan schema 11 `compile_check` refuses
+> more, and the compile gives a skill a wand, a staff or a sceptre grants its item's quality (slice 02 §3.2 and §3.6,
+> notes; `docs/build-guide/plan-reference.md`, "A granted skill's quality and support slots"). The plans' writers stay
+> at schema 10 until M-30, where the designers may raise such an item to quality 20, unpriced (WU-164, approved). An
+> item's granted skill holds as many supports as its item's level gives, Jeweller's Orbs on the item adding more, with
+> no known threshold: D2's supports line (`skills/build-guide/references/stages/D2.md`:93–95) and W1's support-sockets
+> line (`stages/W1.md`:295–299) say so, a passive's granted skill keeping D-359's estimate.
 
 `plan.json` and the skeletons follow C-31; agents read the committed reference
 `docs/build-guide/plan-reference.md` (D-167). On top of C-31:
@@ -1552,6 +1584,13 @@ damage. Since WU-82 (built; D-389): the `FAQ` answers the user's gate questions 
 ask too, from the gates' interview notes, within its 3–5.
 
 ## 9. Pricing procedure (T1; `references/pricing.md`; D-133, D-160, D-164, D-169, D-202, D-218)
+
+> **Note (amendment 16, D-514; M-29).** `data/economy/prices.json`'s league table, which the market's league day reads
+> (`skills/build-guide/references/pricing.md`:449–451), carries each league's patch, the running leagues' end
+> 2026-12-11 and 1.0's start (Conquerors of Wraeclast) since M-29 (WU-156), so `end` is there once one is recorded,
+> not only for a league that ended. The two running leagues' facts keep `source: pricing-study` and cite
+> `poe2db-league-cards` in a note, since a fact holds one source id (`src/plan/referenceData.ts`:71–77; WL:7055–7057).
+> This section moves to the pricing piece's slice, 06, with M-30 (D-520, D-525).
 
 - **Who.** Only coordinator steps price, with P's tools and C-49's dated outputs (D-112, D-178).
 - **Order** (D-133): R1b prices concept key items; D1 prices every filled slot **and every tree jewel**

@@ -99,6 +99,28 @@ bridge actions that the spine delegates to this slice.
 
 ### 2.1 Bridge changes (C-2, C-5; modified)
 
+> **Note (amendment 16, D-509…D-512; M-29).** Since M-29 the bridge corrects three PoB bugs with function patches in
+> `pob-api/API/Patches.lua` (C-60, D-509): each entry a wrap on PoB's class table, applied at bootstrap step 5d after
+> the parse fixes (5c; `pob-api/bootstrap.lua`:85–92), with its PoB gap, the fingerprints of the PoB code it relies on
+> (checked by `tests/static/patchFingerprints.test.ts`) and its retirement test. They change these replies, inside
+> amendment 16's HG-12 grant for M-29 (a16 §28):
+> - **PG-106, the gem-group recount** (D-510): PoB's skill-slot warning, which `get_build_issues`, the advice report,
+>   V1's `skill-slots` and the load replies read, counts a group only when its first enabled active gem isn't granted,
+>   so a support in a granted skill no longer counts its group; as built, an enabled gem PoB can't resolve counts its
+>   group, as PoB and the game do (`Patches.lua`:66–85; WL:7127–7130). No figure moves.
+> - **PG-109, rune rolls** (D-511): every file the engine composes (`compile_plan`'s files, `lua_save_build`,
+>   `export_build` with notes, the snapshots) leaves out PoB's `<ModRange>` copies, every load drops them from an item
+>   whose text has a `{range:` tag, and `import_build {save_as}` writes its code with them dropped on those items
+>   (`dropModRangeCopies`, `src/utils/buildCode.ts`:166). As built, `export_build` without notes stays an exact byte
+>   copy (D-42; `src/handlers/exportHandlers.ts`:64–66; WL:7223–7226).
+> - **PG-114, a granted skill's quality** (D-512): a skill a wand, a staff (not a quarterstaff) or a sceptre grants is
+>   calculated at its item's quality in every calculation, whatever a file saved on PoB's granted group; every other
+>   granted skill keeps PoB's value (`Patches.lua`:204–209). PG-115 (an item-only granted skill missing level and
+>   quality modifiers) was checked and isn't recorded: every "Grants Skill:" line resolves through the gem list
+>   (`Modules/ModParser.lua`:2170–2186; WL:7277–7279).
+>
+> The rest is in a16 §5 to §8 and the spine's C-2 and C-60; this slice is folded at amendment 18 (D-506, D-525).
+
 | Lua action | Module | Params (camelCase) | Reply | WU |
 |---|---|---|---|---|
 | `lookup_game_data` (new) | `pob-api/API/Lookup.lua` | `mode`, `query?`, `level?`, `quality?`, `slot?`, `kind?` (mechanic mode, D-240; `essence` since WU-60), `maxResults?` | `{result:{mode, total, results[]}}`, carrying what §2.2 renders; mechanic mode adds `kinds`, every kind's hit total (D-240), `essence` included. Since WU-60 (D-277), a mod hit adds `baseTypes[]` (`{name, count, total, itemType?, names?}`) and `notRolled?`, and an essence hit `itemTypes[]`, `modId` and `affix?` | WU-31; WU-60 |

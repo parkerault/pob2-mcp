@@ -244,6 +244,18 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
 
 ### 3.2 C-30, C-31, C-32: the plan schema (WU-38)
 
+> **Note (amendment 16, D-512; M-29).** Plan schema 11 exists since M-29 (WU-154): `PLAN_SCHEMA_VERSIONS` runs to 11
+> (`src/plan/schema.ts`:124), and at M-29 it adds one rule, a granted skill's quality. A plan's gem for a skill the
+> stage's items or allocated passives grant (the copy that carries its supports, PG-108) has quality 0; from schema 11
+> `compile_check` refuses more (`GRANTED_QUALITY_SINCE`, `src/plan/schema.ts`:1023; `check_granted_quality`,
+> `pob-api/API/Compile.lua`:1522), naming the stage, the group and the skill and saying where its quality comes from:
+> the item's quality for a wand, a staff or a sceptre, otherwise quality modifiers. The plan says a wand's, staff's or
+> sceptre's quality on its item text's `Quality:` line, with no schema field (revision 1's `skills.granted` dropped).
+> An older schema is never refused for it. The plan reference (`docs/build-guide/plan-reference.md`, "A granted
+> skill's quality and support slots") states the rule and D-359's item support slots. The plans' writers stay at
+> version 10 until M-30's designs; M-30 adds the read plan's fields and `switch` (D-517, D-518), as approved. Detail:
+> a16 §8 and Appendix A.5; the spine's C-31 and D-512. This slice is folded at amendment 18 (D-506, D-525).
+
 `src/plan/schema.ts` exports the zod schema `planSchema` and
 `validatePlan(json, refData?) → {ok:true, plan} | {ok:false, errors:{path, message}[]}`.
 - **Paths.** zod's issue path, rendered with `.` between keys and `[n]` for indices
@@ -511,6 +523,30 @@ real keys.
 - **Tests.** The test-only encoders switch to `encodePobCode`.
 
 ### 3.6 C-41: `compile_plan` (WU-41; checks by WU-42)
+
+> **Note (amendment 16, D-509, D-511, D-512; M-29).** Since M-29 every compile runs on the bridge's function patches
+> (`pob-api/API/Patches.lua`, C-60, D-509), which change what a compile writes and measures, inside amendment 16's
+> HG-12 grant for M-29 (a16 §28):
+> - **No `<ModRange>`** (D-511, PG-109): every file the compile composes, and every copy made from one, leaves out
+>   PoB's second copy of each roll; each roll is in the item text's `{range:}` tags, which desktop PoB reads on the
+>   first open. As built, an older plan's record differs from its old
+>   one only in `pobFile.bytes`, which is smaller; every figure is equal (WL:7191–7192, :7233–7234;
+>   `compileSchema8.test.ts` and `compileMovementTier.test.ts` compare without it).
+> - **Granted quality** (D-512, PG-114): the wrap on PoB's `SkillsTabClass:ProcessSocketGroup` gives PoB's own granted
+>   group of a wand, a staff (not a quarterstaff) or a sceptre its item's quality. As built, from schema 11 the compile
+>   also writes that quality, as PoB holds it after `NormaliseQuality`, on the plan's copy of the skill, the group PoB
+>   measures, in the file it composes too: `compile_check` replies `grantedQualities` (an engine reply field,
+>   `src/engine/schemas.ts`:1403) and `withGrantedQuality` (`src/plan/compiler.ts`:605) sets the gems before the sets
+>   are grouped. A schema-10 or older plan's copy keeps the plan's value. This is a departure from a16 §8's letter
+>   (the patch on PoB's group only), inside its intent and the HG-12 grant, the coordinator's call (WL:7245–7259,
+>   :7285–7290). The compile raises every non-corrupted item below its base's quality to 20 (`NormaliseQuality`,
+>   `pob-api/API/BuildOps.lua`:1651), so a plan's wand, staff or sceptre measures its granted skill at 20 unless its
+>   item is corrupted; M-30 decides it for owned items (WU-161).
+> - **The refusal** (D-512): §3.2's note.
+>
+> a16 §26 overclaims slightly: older fixtures that hold a granting wand, staff or sceptre (`off-hand-fresh`,
+> `off-hand-shared`, `weapon-sets`, and open-spell's `r1-s-2` and `r1-s-4`) now measure PoB's own granted group at the
+> item's quality (WL:7268–7270). Detail: a16 §7, §8; the spine's C-41, D-511, D-512.
 
 **Modes.** Only these argument combinations are allowed. Any other is `isError` naming the conflict, and
 nothing is done. Creating a run folder and validating a plan are `guide_run`'s modes (§3.8, D-216);
@@ -908,6 +944,15 @@ run in one `--runInBand` Jest call, so both run when one fails and either failur
 `jest.config.cjs` leaves both out of the parallel run, and `compilePlan.test.ts`' static checks cover it.
 
 ### 3.7 V1 and V2 (WU-42, `src/plan/checks/`)
+
+> **Note (amendment 16, D-510, D-512; M-29).** Since M-29 `skill-slots` reads the bridge's recount (D-510, PG-106;
+> `pob-api/API/Patches.lua`'s PG-106 entry): an enabled group counts against PoB's skill slots when its first enabled
+> active gem isn't granted by an item or the tree, so a support in a granted skill no longer counts its group; a group
+> the compile marks switched (`Patches.SWITCHED`, set from M-30, D-518) counts as if enabled; as built, an enabled gem
+> PoB can't resolve counts its group (WL:7127–7130). No figure moves. `support-sockets` is unchanged; by D-512 an
+> item's granted skill has as many support slots as its item's level gives, Jeweller's Orbs adding more, with no known
+> threshold, so nothing checks it, and the comments at `src/plan/checks/v1.ts`:25 and :765 say so. Detail: a16 §6,
+> §8; the spine's D-428, D-510, D-359.
 
 Both run in TypeScript, over `compile_stage`'s reply, the plan and the reference data. A finding that rests
 on an M or L fact also adds a note naming the fact and its confidence (A-29).

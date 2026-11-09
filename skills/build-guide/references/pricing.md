@@ -447,7 +447,7 @@ used (`skills/build-guide/references/gates.md`). If the rates are unavailable, t
 tool in group `ninja` (D-333), every total is `unverified`.
 
 **The market's league day** is the date the prices were seen less the league's start date, from the league
-table in `data/economy/prices.json` (the `league.*` facts: `name`, `start`, and `end` for a league that ended). A
+table in `data/economy/prices.json` (the `league.*` facts: `name`, `start`, and `end` once one is recorded). A
 market past day 60, or in a league whose end date has passed, reads as **late**. A league not in the table
 converts as days 21–60, and the guide says its day is unknown.
 

@@ -262,14 +262,8 @@ describe("D-503 (WU-147): the legacy rule's move out of build-guide's hard rules
 });
 
 describe("AC-W142 (WU-156, D-515): game knowledge's runner searches with grep through Bash; the agent types name no Bash", () => {
-  /** The body's lines, each with its number, and the bullet each sits in (a line that starts `- **`). */
+  /** The body's lines, each with its number. */
   const bodyLines = BODY_RAW.split('\n');
-  /** The "What is new in the league" bullet's lines: its league lines are WU-151's (D-507), its search word with them. */
-  const leagueBullet = (() => {
-    const at = bodyLines.findIndex((l) => l.startsWith('- **What is new in the league:**'));
-    const next = bodyLines.findIndex((l, i) => i > at && /^(?:- |#|$)/.test(l));
-    return new Set(bodyLines.slice(at, next < 0 ? undefined : next).map((_, i) => at + i));
-  })();
 
   it('no longer says "You need no Bash", and tells its runner to search with grep through Bash and Read a file whole', () => {
     expect(BODY).not.toContain('You need no Bash');
@@ -281,12 +275,13 @@ describe("AC-W142 (WU-156, D-515): game knowledge's runner searches with grep th
     expect(BODY_RAW.indexOf('Search with `grep` through Bash')).toBeLessThan(BODY_RAW.indexOf('\n## '));
   });
 
-  it('its other search lines name grep the same way: no Glob, and no Grep outside the league bullet (WU-151 rewrites that one)', () => {
-    expect(leagueBullet.size).toBeGreaterThan(0);
+  // WU-151 (D-507) rewrote the league bullet with `grep` through Bash, so the check covers every line.
+  it('its other search lines name grep the same way: no Glob, and no Grep anywhere in the body', () => {
     expect(BODY_RAW).not.toMatch(/\bGlob\b/);
-    const grepTool = bodyLines.map((l, i) => ({ i, l })).filter(({ i, l }) => /\bGrep\b/.test(l) && !leagueBullet.has(i));
+    const grepTool = bodyLines.map((l, i) => ({ i, l })).filter(({ l }) => /\bGrep\b/.test(l));
     expect(grepTool).toEqual([]);
     for (const line of [
+      'each head whole, newest first, the body by `grep` through Bash.',
       '`grep` `${CLAUDE_PLUGIN_ROOT}/data/rules/uniques.md` and',
       '`${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by `grep`,',
       '**How PoB computes something:** `grep` PoB\'s source under',

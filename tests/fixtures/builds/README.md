@@ -112,3 +112,20 @@ league), a spec with no title, its main group set by the export (Essence Drain, 
 | | |
 |---|---|
 | Re-check | On a PoB pin bump: whether the bases, gems and nodes they name are still in the pin (the reader names any it lacks). |
+
+## `pricing-character.xml` (the pricing piece's runs, D-520)
+
+Written by hand from the pin's game data for `/pob2:pricing`'s fixture runs (WU-163,
+`tests/integration/pricingRun.test.ts`); no player's build, no character hash and no account name. A level-75 Witch /
+Lich (the endgame, choice A) in `imported-ninja.xml`'s shape, its `<Import lastLeague>` Forbidden Rites (the league
+price.md takes when trade lists it), one skill group (Essence Drain) and three items, each owned once read:
+
+| What | Item |
+|---|---|
+| An owned rare of three explicit lines, priced by its spec (life 60, cold 35, fire 28: Stout's T6, the Polar Bear's T3, the Furnace's T4 on a helmet at item level 82, `Data/ModItem.lua`) | item 1, a Soldier Greathelm |
+| An owned rare with a rune in its one socket, priced apart from poe.ninja's exchange | item 2, Lizardscale Boots with a Greater Iron Rune |
+| An owned unique, priced by name | item 3, Choir of the Storm |
+
+| | |
+|---|---|
+| Re-check | On a PoB pin bump: whether the bases, the unique, the rune, the gems and the nodes are still in the pin, and the tiers. |

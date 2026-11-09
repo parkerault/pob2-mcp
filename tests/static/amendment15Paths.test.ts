@@ -208,7 +208,7 @@ describe('AC-W115 (WU-145, D-500): SKILL.md and the agent bodies name plugin fil
     expect(unprefixed('as in `x` (`skills/build-guide/references/checkpoints.md`).')).toEqual(['skills/build-guide/references/checkpoints.md']);
     expect(unprefixed('a span that wraps, `Test config:\n  first-n:2` (`skills/build-guide/references/checkpoints.md`)')).toEqual(['skills/build-guide/references/checkpoints.md']);
     expect(unprefixed('staleness line, `head -3 data/league/<newest>.md`, the newest')).toEqual(['head -3 data/league/<newest>.md']);
-    expect(unprefixed('read `<root>/skills/build-guide/references/pricing.md` first')).toEqual(['<root>/skills/build-guide/references/pricing.md']);
+    expect(unprefixed('read `<root>/skills/pricing/references/pricing.md` first')).toEqual(['<root>/skills/pricing/references/pricing.md']);
     expect(unprefixed('## The fix round (skills/build-guide/SKILL.md steps 12 and 16)')).toEqual(['skills/build-guide/SKILL.md']);
     expect(unprefixed('then `Read\n  <root>/skills/build-guide/references/stages/<stage>.md and do that step.` Add')).toEqual([]);
     expect(unprefixed('(`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/checkpoints.md`), `head -3 ${CLAUDE_PLUGIN_ROOT}/data/league/<newest>.md`')).toEqual([]);

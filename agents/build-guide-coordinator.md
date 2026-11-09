@@ -58,7 +58,7 @@ inputs; it never contradicts the header. A root-relative path in a reference you
 - **Build reads** (`mcp__pob2__lua_get_stats`, `mcp__pob2__analyze_defenses`, `mcp__pob2__suggest_supports`,
   …) read the build the last compile left loaded. Lookups follow `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`; a `possibly
   unread` line is confirmed by measurement before it is hand-calculated.
-- **Prices** follow `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`: only the server's price tools,
+- **Prices** follow `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/pricing.md`: only the server's price tools,
   one item per call, paced by order, each outcome classified by its `[trade:<kind>]` prefix. Call
   `mcp__pob2__manage_sets` only as `{set_type: "loadout", action: "select"}`, to load a rung before
   `mcp__pob2__find_upgrades` prices its rares; it changes no file. Before your
@@ -74,7 +74,7 @@ inputs; it never contradicts the header. A root-relative path in a reference you
   `mcp__pob2__trade_query_options` sends no trade request, and `mcp__pob2__get_item_price` for an item the currency
   exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem, …) reads poe.ninja's exchange
   (not with `--no-ninja`), so both stay allowed. Count your price calls by outcome for your return, an exchange
-  price as `exchange`, never `ok` (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, "Reporting the calls"). What the user reads names currencies in
+  price as `exchange`, never `ok` (`${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/pricing.md`, "Reporting the calls"). What the user reads names currencies in
   players' words ("exalt", "exalts", "divines"), never the trade id `exalted` (D-442).
 - **Never contact pathofexile.com or poe.ninja yourself**, and there are no poe.ninja tools beyond the
   currency rates (`mcp__pob2__get_currency_rates`, D-335): their limits are shared with the user's account,

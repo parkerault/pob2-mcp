@@ -15,10 +15,29 @@
   "league": null,
   "stages": [
     {
-      "id": "f",
-      "loadoutName": "Endgame (L90) {f}",
+      "id": "b",
+      "loadoutName": "Endgame (L90) {b}",
       "level": 90,
       "progress": "endgame",
+      "variant": "budget",
+      "ascendancyPoints": 0,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "the character's own level, from its file",
+          "confidence": "H"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the character's own gem levels, from its file",
+          "confidence": "H"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the character's own ascendancy points, from its file",
+          "confidence": "H"
+        }
+      },
       "source": {
         "kind": "builds-folder",
         "name": "Fixture Titan",
@@ -120,14 +139,59 @@
   "prices": [
     {
       "id": "f-helmet",
-      "item": "Grim Crown (Iron Cap): +60 to maximum Life, +35% to Cold Resistance",
-      "query": {},
+      "item": "Iron Cap: life, cold resistance",
+      "query": {
+        "slot": "Helmet",
+        "item_type": "Iron Cap",
+        "mods": [
+          {
+            "stat_id": "explicit.stat_3299347043",
+            "min": 60
+          },
+          {
+            "stat_id": "explicit.stat_4220027924",
+            "min": 31
+          }
+        ],
+        "corrupted": false,
+        "limit": 10
+      },
       "amount": null,
       "currency": null,
       "date": "2026-12-01",
       "league": null,
       "status": "unavailable",
-      "note": "offline run"
+      "note": "offline run",
+      "spec": {
+        "base": "Iron Cap",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 6,
+            "min": 60
+          },
+          {
+            "affix": "#% to Cold Resistance",
+            "tradeId": "explicit.stat_4220027924",
+            "tier": 3,
+            "min": 31
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
     }
   ]
 }

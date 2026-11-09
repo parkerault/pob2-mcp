@@ -26,7 +26,7 @@ states it.
   after its display; log the answer with `pob2-run-log <runFolder> pricing`. Tell every coordinator step until then:
   no `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`,
   `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed
-  (`skills/build-guide/references/pricing.md`).
+  (`skills/pricing/references/pricing.md`).
 - **In a piece run, a pricing stop ends the run** (D-516): a `/pob2:compile` or `/pob2:pricing` run has no gate that
   asks to retry. When a step's `priceOutcomes` counts a stop, `pob2-run-log` records it as above; then ask the user for
   the rung first when none is placed (entering maps, budget or non-budget, or "in the campaign"), set the status
@@ -34,7 +34,7 @@ states it.
   `/pob2:<piece> --resume <run folder>` after the lockout: the resume clears the stop, and the step runs again, reusing
   every price the plan holds. A piece run logs no `pricing` answer, and no trade request comes before the lockout ends.
 - **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
-  and that their browser shares the limit; one trade call at a time (`skills/build-guide/references/pricing.md`,
+  and that their browser shares the limit; one trade call at a time (`skills/pricing/references/pricing.md`,
   "Pace").
 
 ## Where you write

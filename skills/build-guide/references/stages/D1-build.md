@@ -465,7 +465,7 @@ request (D-411, D-413).
      its seed, PG-102). Write them in `pieces.md`'s `## Unique jewels` (Writes).
    - **Required affixes and targets** (D-370, D-372). For each rare gear slot and rare tree jewel of `b` and
      `n`, write its `prices[]` entry: in a revision-14 run priced by you, by the spec loop below, with its `listing`
-     and `spec` (`skills/build-guide/references/pricing.md`, "Recording a price"); in an older run, for D1-finish to price with PoB2's
+     and `spec` (`skills/pricing/references/pricing.md`, "Recording a price"); in an older run, for D1-finish to price with PoB2's
      weighted trade search:
      `{"id": "b-helmet", "item": "<a short description>", "query": {"slot": …, "required": […], "target": {…}},
      "amount": null, "currency": null, "date": "<the run folder's date>", "league": <the plan's league>,
@@ -487,7 +487,7 @@ request (D-411, D-413).
      A target guides what you design; it is never a reason to drop or weaken a piece the build needs (D-371). A
      rare's affixes aren't pieces: the spec loop sets their tiers, and drops the least important, for the rare's
      price (D-483, which supersedes D-371's "an over-target slot keeps its designed item" for rares).
-   - **Rares as specs: the spec loop** (D-483, revision 14; `skills/build-guide/references/pricing.md`, "A rare of `b` or `n`", has
+   - **Rares as specs: the spec loop** (D-483, revision 14; `skills/pricing/references/pricing.md`, "A rare of `b` or `n`", has
      each call whole). For each rare gear slot of `b` and `n`, as you design it, so D1-tree measures items the
      budget buys. The rung's item level is 69 on `m` and 82 on `b` and `n`; an affix's best tier allowed is the best
      its base rolls at that level, its floor two tiers under it (T3 when T1 is allowed).
@@ -528,7 +528,7 @@ request (D-411, D-413).
      7. **The compiled rare** holds each must-have at its tier's lowest roll, the tier the loop ended at, so every
         listing found meets the PoB file's figures, with its base's implicit lines and its runes in its sockets, and
         nothing else, titled by its key affixes.
-     When the loop can't run (offline, a pricing stop, no session cookie, `--no-ninja`), `skills/build-guide/references/pricing.md`
+     When the loop can't run (offline, a pricing stop, no session cookie, `--no-ninja`), `skills/pricing/references/pricing.md`
      says what it does instead: offline the spec's `ranking` is `null`, the must-haves are yours with their reasons,
      and the rares compile at their floor tiers' lowest rolls. `m`'s rares are specs too, their must-haves at their
      floor tiers' lowest rolls, priced by D1-finish's depth check, with no `spec` field. Never write a listing's lines
@@ -566,7 +566,7 @@ request (D-411, D-413).
      stat, so whatever the build gets in exchange must be of equal or greater value"). A valid exception is V1's
      note `boots-exception`, which fails nothing; the design gate shows it as a trade (D1-finish).
    - **Gear searches** (D-444). You may price a gear choice with `mcp__pob2__find_upgrades` (a loaded rung, its
-     loadout selected) while pricing isn't stopped, one call at a time (`skills/build-guide/references/pricing.md`, "Pace"): count
+     loadout selected) while pricing isn't stopped, one call at a time (`skills/pricing/references/pricing.md`, "Pace"): count
      its calls by outcome for your return, which the runner logs as your `priceOutcomes`. Never while pricing is
      stopped (Read, above); offline, never. Never judge a weapon by a listing's DPS (D-456): D1-finish re-checks
      weapons on the build's own figure. In a revision-14 run the spec loop's calls are your gear searches, its depth

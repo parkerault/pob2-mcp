@@ -311,7 +311,7 @@ changed PoB file and answer accept: F1 runs again and accepts no finding.
 
 ## Other references
 
-`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md`, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/pricing.md`, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/source-markers.md`, `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/lookups.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/references/patterns.md` (C-53), the design's targets `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/toughness-targets.json` (D-441) and
 `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/boss-floor.json` (D-448), corruption's cheap line `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/corruption.json` (D-471),
 `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/`, `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/templates/card-template.md` (C-52) and `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/scripts/`.

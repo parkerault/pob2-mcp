@@ -443,7 +443,7 @@ describe("D-443 (§11) and D-444 (§12): SKILL.md's rows and its pricing stop", 
     // Amendment 15 (WU-146, D-501): the stop moved with the shared rules to runner-rules.md, a reference, so its path
     // to pricing.md is root-relative.
     expect(ref('runner-rules.md')).toMatch(/stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `pob2-run-log <runFolder> pricing`/);
-    expect(ref('runner-rules.md')).toMatch(/the exchange stays allowed \(`skills\/build-guide\/references\/pricing\.md`\)/);
+    expect(ref('runner-rules.md')).toMatch(/the exchange stays allowed \(`skills\/pricing\/references\/pricing\.md`\)/);
     expect(ref('pricing.md')).toMatch(/\*\*poe\.ninja's exchange stays allowed\*\* \(D-422 allows it\), so every item the currency exchange sells keeps its price/);
     // run-log.md gives the command SKILL.md names.
     expect(read(path.join(SKILL_DIR, 'references', 'run-log.md'))).toContain('pob2-run-log <runFolder> pricing - <<\'JSON\'');

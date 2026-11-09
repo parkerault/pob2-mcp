@@ -13,7 +13,7 @@ A stage reference says, for its step:
 - **Inputs**: what it reads (paths relative to `runFolder`; a build's files in its folder, the header's
   `buildFolder`, D-412), which header fields it uses, and what the prompt adds.
 - **Work**: what it does, and the tools it may call, each by its full name (`mcp__pob2__lookup_game_data`):
-  lookups (`skills/game-knowledge/references/lookups.md`), compiles as the header's `compile` allows, prices (`skills/build-guide/references/pricing.md`, coordinator
+  lookups (`skills/game-knowledge/references/lookups.md`), compiles as the header's `compile` allows, prices (`skills/pricing/references/pricing.md`, coordinator
   steps only).
 - **Writes**: exactly the header's `writes`, inside the run folder. A gate step writes its own verdict file
   (`skills/build-guide/references/gates.md`).

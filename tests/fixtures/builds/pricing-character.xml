@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build characterLevelAutoMode="false" viewMode="TREE" level="75" className="Witch" mainSocketGroup="1" ascendClassName="Lich" targetVersion="0_1">
+	</Build>
+	<Notes>
+Written by hand from the game data for /pob2:pricing's tests (WU-163); no player's build.
+	</Notes>
+	<Party destination="All" append="false" ShowAdvanceTools="false"/>
+	<Tree activeSpec="1">
+		<Spec title="Endgame" classInternalId="1" classId="1" ascendClassId="3" secondaryAscendClassId="nil" ascendancyInternalId="Witch3" masteryEffects="" treeVersion="0_5" nodes="54447,4739,18845,23710">
+		</Spec>
+	</Tree>
+	<Import lastRealm="PoE2" lastLeague="Forbidden Rites" exportParty="false"/>
+	<Items useSecondWeaponSet="nil" activeItemSet="1" showStatDifferences="true">
+		<Item id="1">
+Rarity: RARE
+Doom Visor
+Soldier Greathelm
+Item Level: 82
+Quality: 20
+LevelReq: 60
+Implicits: 0
++60 to maximum Life
++35% to Cold Resistance
++28% to Fire Resistance
+		</Item>
+		<Item id="2">
+Rarity: RARE
+Gale Stride
+Lizardscale Boots
+Item Level: 80
+Quality: 20
+Sockets: S
+Rune: Greater Iron Rune
+LevelReq: 60
+Implicits: 1
+{enchant}{rune}18% increased Armour, Evasion and Energy Shield
+30% increased Movement Speed
++70 to maximum Life
++30% to Lightning Resistance
+		</Item>
+		<Item id="3">
+Rarity: UNIQUE
+Choir of the Storm
+Jade Amulet
+Item Level: 79
+LevelReq: 55
+Implicits: 2
+Grants Skill: Level 20 Lightning Bolt
++12 to Dexterity
++75% to Lightning Resistance
+Critical Hits Ignore Enemy Monster Lightning Resistance
+Trigger Lightning Bolt Skill on Critical Hit
+		</Item>
+		<ItemSet useSecondWeaponSet="nil" title="Endgame" id="1">
+			<Slot itemId="1" name="Helmet" itemPbURL=""/>
+			<Slot itemId="2" name="Boots" itemPbURL=""/>
+			<Slot itemId="3" name="Amulet" itemPbURL=""/>
+		</ItemSet>
+	</Items>
+	<Skills showLegacyGems="false" defaultGemLevel="normalMaximum" activeSkillSet="1" sortGemsByDPSField="CombinedDPS" showSupportGemTypes="ALL" defaultGemQuality="0" sortGemsByDPS="true">
+		<SkillSet id="1" title="Endgame">
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gems/SkillGemEssenceDrain" variantId="EssenceDrain" skillId="EssenceDrainPlayer" nameSpec="Essence Drain" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMagnifiedEffectTwo" variantId="MagnifiedAreaSupportTwo" skillId="SupportMagnifiedAreaPlayerTwo" nameSpec="Magnified Area II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Endgame">
+			<Input name="conditionEnemyPoisoned" boolean="true"/>
+		</ConfigSet>
+	</Config>
+</PathOfBuilding2>

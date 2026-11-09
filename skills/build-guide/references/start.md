@@ -18,7 +18,7 @@ always `ascendancy` and the second always `skill`, whatever the lookups find (D-
   gate (D-157). No `--test`: `testConfig: "none"`.
 - `--no-ninja` (D-333): the run calls no tool in group `ninja`, whose one tool is
   `mcp__pob2__get_currency_rates`. Tell every pricing step, the D1 gate included, to price without currency
-  rates, so totals in divines are `unverified` (`skills/build-guide/references/pricing.md`). The run log records it as `noNinja`
+  rates, so totals in divines are `unverified` (`skills/pricing/references/pricing.md`). The run log records it as `noNinja`
   (D-412, D-420), and you read it there for every pricing step, never from memory: a compaction may drop it.
 - `--resume <run folder>` and `--campaign <run folder> <id>` (D-415) go on with an earlier run instead of starting
   one: "Resuming a run", below.
@@ -134,7 +134,7 @@ run again. In this order:
    `pob2-run-log <runFolder> migrate`, which rewrites it as schema 4, its build at the root (`folder: "."`).
 3. **The resume entry:** `pob2-run-log <runFolder> resume` with `{"noNinja": <this session's --no-ninja>}`. It
    records the session (the pin's commit, the running digests, the lists' lengths) and sets `status` `running`. Pricing
-   starts afresh in the new session: a stop in an earlier session doesn't hold (D-415, `skills/build-guide/references/pricing.md`).
+   starts afresh in the new session: a stop in an earlier session doesn't hold (D-415, `skills/pricing/references/pricing.md`).
 4. **Unsaved build** (D-210), once per resume: as step 4 above, when `loadedBuildUnsaved` is `true`.
 5. **The league digests' staleness line**, as step 5 above, from the lines `resume` printed.
 6. **The verification gate** (`skills/build-guide/SKILL.md` §3, `skills/build-guide/references/checkpoints.md`): `display verification` lists every

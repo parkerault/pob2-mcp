@@ -74,7 +74,7 @@ of unique mods, 30% of keystones and 32% of ascendancy notables, so hand calcula
     `  Tiers on <bases> (this mod: T<n>): as listed above`. A base's **best tier allowed** at an item level is the best
     tier whose item level is at most it (69 on `m`, 82 on `b` and `n`; a campaign stage its area level), its
     **floor** two tiers under it, and a tier's **lowest roll** the low end of its range: the spec loop's tiers
-    (`skills/build-guide/references/pricing.md`, D-483). Example: on boots, maximum Life lists `    T1 (item level 60): 120–149` and
+    (`skills/pricing/references/pricing.md`, D-483). Example: on boots, maximum Life lists `    T1 (item level 60): 120–149` and
     `    T3 (item level 46): 85–99`, so at item level 82 its best tier allowed is T1 and its floor T3, lowest roll 85.
   - **Essences** (D-277). An `[essence]` hit names the essence, the item types it applies that mod to,
     and Prefix or Suffix when PoB gives one. Example: `[essence] Greater Essence of Haste (Bow,

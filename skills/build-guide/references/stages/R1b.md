@@ -237,20 +237,20 @@ so a failed attempt's rows say why (the run checker holds a composite with a wri
      no `pricing.retries[]` entry answered `retry-pricing` after it and no resume after it, `resumes[].lengths.stages`
      past its `at`): the stop holds until the user approves a retry at a gate. Make no trade-site call. An item the
      currency exchange sells (a rune, soul core, idol, Distilled Emotion, lineage support gem and the rest,
-     `skills/build-guide/references/pricing.md`) is still priced from poe.ninja's exchange with `mcp__pob2__get_item_price` (not with
+     `skills/pricing/references/pricing.md`) is still priced from poe.ninja's exchange with `mcp__pob2__get_item_price` (not with
      `--no-ninja`), which sends no trade request; every other entry (a unique, a base) is `unavailable`, note
      `pricing stopped`.
    - **online:** reuse an entry with the same item, query and league from any plan of this run first;
      otherwise one call per item, paced by order: `mcp__pob2__get_item_price` for a unique and for an item the
      currency exchange sells, which it prices from poe.ninja's exchange by its category with no trade request
-     (`query` `{"exchange": "<category>", "name": "<item>"}`, `skills/build-guide/references/pricing.md`). An entry is
+     (`query` `{"exchange": "<category>", "name": "<item>"}`, `skills/pricing/references/pricing.md`). An entry is
      `{id, item, query, amount, currency, date, league, status}`: each result's league and its `Checked:` date;
      `unavailable` has `amount` and `currency` null and a `note`. Classify a failed call by its
      `[trade:<kind>]` prefix only: `would_wait` (price others, call it again later; its third refusal makes it
      `unavailable`, note `rate-limited`); `locked_out` or `rate_limited` (pricing stops: no more trade-site calls
      until the user approves a retry at the next gate, so every remaining item is `unavailable` but the exchange's);
      any other kind, `unavailable`. Count every call by its outcome for your return, an exchange price as
-     `exchange` (`skills/build-guide/references/pricing.md`, "Reporting the calls").
+     `exchange` (`skills/pricing/references/pricing.md`, "Reporting the calls").
    - **converted for the card** (D-373, D-374): a key price reaches the user as a range at a league day, never
      as a raw number from another market. Get the rates with `mcp__pob2__get_currency_rates` once (not with
      `--no-ninja`), and convert each `ok` price to day 7, when the reader buys the early endgame gear a key item
@@ -543,7 +543,7 @@ draft call, the step's one write there (D-479).
 At most 8 lines: the outcome (`compiled`, with the damage kinds PoB shows; `compiled, damage missing: <the
 finding's message>`, a failed attempt; or `failed: <why>`), the verdict file, the card with its checklist and probe
 counts (`probes <n>`: every probe run, a probe whose compile failed included; on a composite, then its pieces
-measured, `pieces <n> measured (<n> not measured)`), your price calls counted by outcome (`skills/build-guide/references/pricing.md`), and on a
+measured, `pieces <n> measured (<n> not measured)`), your price calls counted by outcome (`skills/pricing/references/pricing.md`), and on a
 damage pass `skeleton: <relpath>` (or `skeleton: none: <why>`) after step 10's draft call:
 
 ```

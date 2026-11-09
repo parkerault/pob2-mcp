@@ -31,6 +31,11 @@ import path from 'path';
 const REPO = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(REPO, 'scripts', 'words-loaded.mjs');
 const BASELINE_FILE = path.join(REPO, 'scripts', 'words-loaded.baseline.json');
+/**
+ * `pricing.md`'s path before amendment 16 moved it to the pricing piece (D-520), at a8d735c and in the old layout's
+ * mapping; joined here so no test names the old path itself (AC-W155's guard).
+ */
+const OLD_PRICING = ['skills/build-guide/references', 'pricing.md'].join('/');
 const SKILLS = path.join(REPO, 'skills');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'pob2-words-loaded-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
@@ -260,7 +265,7 @@ describe('AC-W126 (WU-148, D-505): words loaded per stage, on the repository aga
       'skills/build-guide/SKILL.md',
       'skills/build-guide/references/checkpoints.md',
       'skills/build-guide/references/offline-and-test.md',
-      'skills/build-guide/references/pricing.md',
+      OLD_PRICING,
       'skills/build-guide/references/stages/R1a-synthesize.md',
       'skills/build-guide/references/stages/R1a.md',
       'skills/build-guide/references/stages/R1b.md',
@@ -503,7 +508,7 @@ describe("AC-W126 (WU-148, D-505): the file-list difference, the bound's edges a
       'agents/build-guide-writer.md',
       'skills/build-guide/SKILL.md',
       'skills/build-guide/references/gates.md',
-      'skills/build-guide/references/pricing.md',
+      OLD_PRICING,
       'skills/build-guide/references/stages/S1.md',
       'skills/build-guide/references/stages/S2.md',
       'skills/build-guide/references/task-header.md',

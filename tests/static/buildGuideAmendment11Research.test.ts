@@ -12,7 +12,7 @@
  * - `skills/build-guide/references/stages/RV.md` deleted, and no reference or agent definition runs a rival; describing an older run's rival is
  *   allowed (D-443, §19).
  * - `skills/build-guide/references/stages/R1a.md`: published guides allowed and cited with the `external` marker (D-445).
- * - `skills/build-guide/references/pricing.md`: the stop until a gate's retry, its trade-site scope, and players' currency words (D-442,
+ * - `skills/pricing/references/pricing.md`: the stop until a gate's retry, its trade-site scope, and players' currency words (D-442,
  *   D-444).
  *
  * The values are read from the amendment itself (its sections and Appendix A) and from the run scripts' own

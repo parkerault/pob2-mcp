@@ -140,7 +140,8 @@ const withoutPaths = (text: string) =>
     .replace(/(?:\.\.\/)+/g, '')
     .replace(/\.claude\/skills\/build-guide\//g, '')
     .replace(/\.claude\/agents\/build-guide\//g, '')
-    .replace(/skills\/(?:build-guide|game-knowledge)\//g, '')
+    // Amendment 16 (D-520): pricing.md moved to the pricing piece, skills/pricing/, a path like the others.
+    .replace(/skills\/(?:build-guide|game-knowledge|pricing)\//g, '')
     .replace(/\bnode (?=(?:scripts\/)?(?:check-run|run-log|render-audit|render-notes)\.mjs)/g, '')
     .replace(/\bpob2-(check-run|run-log|render-audit|render-notes)\b/g, '$1.mjs')
     .replace(/(?<![\w-])(?:references\/(?:stages\/)?|stages\/|templates\/|scripts\/)(?=[\w.-]+\.(?:md|json|mjs)\b)/g, '');

@@ -7,7 +7,7 @@
  *   one-shot defence trade, the keep, the damage trade's max hit, the avoidance trade, the measured boss cut, the
  *   re-split shares, weapons by compile) and `skills/build-guide/references/stages/D1-gate.md`'s design field.
  * - AC-W98, the gates, the guide and the skill: `skills/build-guide/references/checkpoints.md`, `skills/build-guide/references/gates.md`, `skills/build-guide/references/stages/D2.md`, `skills/build-guide/references/stages/W1.md`, both guide templates and
- *   the audit template, `skills/build-guide/references/stages/V4.md`, `skills/build-guide/references/pricing.md` and `skills/build-guide/SKILL.md`.
+ *   the audit template, `skills/build-guide/references/stages/V4.md`, `skills/pricing/references/pricing.md` and `skills/build-guide/SKILL.md`.
  *
  * Numbers and forms are read from the amendment (`docs/build-guide/spec/amendment-12-defence-and-design.md`), the
  * reference files and the run scripts, so the text is held to the spec and to the code that reads it; the D1 gate's

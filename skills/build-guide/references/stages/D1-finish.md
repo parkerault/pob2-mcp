@@ -95,7 +95,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    plan of this run first.
    - **No entry for a Flask slot** (D-472): a plain flask costs nothing worth counting. **No entry for a pinned
      weapon's Swap slot** (`sameAs`, D-464): it is its set-1 slot's item, priced once by that slot's entry.
-   - **The pace line first** (D-474; `skills/build-guide/references/pricing.md`, "Pace"): read your first trade call's reply for
+   - **The pace line first** (D-474; `skills/pricing/references/pricing.md`, "Pace"): read your first trade call's reply for
      `Pace: 45 s between searches, at most 7 in 5 minutes.`; with no such line, or `Pace: off (test setting).`,
      make no more trade calls and return the stop `pace: missing` or `pace: off`, the call counted `pace`.
    - **`n`'s shares, re-split** (D-453), before you price: D1-tree adds a price entry for each tree jewel its
@@ -104,7 +104,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      over-target jewel keeps its lines, like any over-target rare (a minion build's `b` jewel among them).
    - **One trade call at a time** (D-461): the server waits at least 45 s between one search and the next, inside
      the call, and refuses a wait over 60 s (`would_wait`); calls in parallel queue past it, so never batch them.
-   - **The rares of `b` and `n`: specs** (D-483; `skills/build-guide/references/pricing.md`, "A rare of `b` or `n`: the spec loop"). In a
+   - **The rares of `b` and `n`: specs** (D-483; `skills/pricing/references/pricing.md`, "A rare of `b` or `n`: the spec loop"). In a
      revision-14 run D1-build priced each rare gear slot of `b` and `n` by the spec loop as it designed it; you
      **re-price each spec as compiled**, by one depth check at its must-haves' tiers (the `mcp__pob2__search_trade_items`
      call its `query` records: the base, the must-haves as `mods` at their tiers' lowest rolls, `corrupted: false`, the
@@ -147,7 +147,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    - **Everything else:** a unique, and every item the currency exchange sells (a rune, soul core or idol in a
      socket, an anoint's Distilled Emotions, a lineage support gem), by `mcp__pob2__get_item_price`, by name:
      exchange items from poe.ninja's exchange by their category, with no trade request, the trade site for the
-     rest (D-444, `skills/build-guide/references/pricing.md`); a magic or normal item, and every slot of `m` by
+     rest (D-444, `skills/pricing/references/pricing.md`); a magic or normal item, and every slot of `m` by
      `mcp__pob2__search_trade_items` with `mods`. One item per call. **A unique whose corruption or sockets matter**
      (D-484): `mcp__pob2__get_item_price` can't filter or show either, so a unique whose plan copy is corrupted (but
      for the cheap rule below, priced uncorrupted by name) or holds more sockets than its own is priced by `mcp__pob2__search_trade_items
@@ -175,7 +175,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
      note is expected.
    - **A slot that serves a set-2 skill** (D-473; `pieces.md`'s `## Skill levels`): pass `mcp__pob2__find_upgrades`
      `sort_stats` weighting that skill (from the stats `mcp__pob2__trade_query_options` lists), since the default
-     weights read the main skill (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`").
+     weights read the main skill (`skills/pricing/references/pricing.md`, "A rare of `b` or `n`").
    - **No fallback entry** in a revision-14 build (D-483): the dearer spec is a find over the budget (`trades.json`,
      kind `scaling`, step 5), never a `<id>-fallback` entry (the run checker's `budget` fails one). A build whose last
      D1 gate ran before revision 14 keeps its older rule: an over-target rare kept its item (D-371), and you may add
@@ -185,7 +185,7 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    - An entry: `{id, item, query, amount, currency, date, league, status, note?, listing?, spec?}`, `league` the
      plan's, `date` the result's `Checked:` date; `unavailable` has `amount` and `currency` null and a `note`;
      `listing` on a price read from a search's listings (D-484), `spec` on a `b` or `n` rare (D-483), both outside
-     `buildSha1` (`skills/build-guide/references/pricing.md`, "Recording a price"). **The priced copy matches the compiled copy**: a
+     `buildSha1` (`skills/pricing/references/pricing.md`, "Recording a price"). **The priced copy matches the compiled copy**: a
      listing's corruption is the item's `Corrupted` line and its rune sockets at least the item's, but for a cheap
      unique priced uncorrupted, whose `note` says so.
    - Classify a failed call by its `[trade:<kind>]` prefix only: `would_wait` (price others, call it again
@@ -458,7 +458,7 @@ at schema 9 gets D1-build first, to move it to 10 (§25). Do only this:
 
 1. **Write the item as the user gave it**: a read-back's item exactly as edited; a unique as named (its text from
    `mcp__pob2__lookup_game_data {mode: "unique"}`); a rare whose affixes the user named, those affixes as its
-   must-haves, the spec loop (`skills/build-guide/references/pricing.md`) only setting the tiers the user didn't state and pricing it.
+   must-haves, the spec loop (`skills/pricing/references/pricing.md`) only setting the tiers the user didn't state and pricing it.
    Nothing the user didn't ask for is added (D-482): no extra affix, no "better roll" on `n`. A departure (the market
    holds no such item, a must-have the base can't roll) is returned as `request: <id> departs: <how>`, and the runner
    asks the user before the gate.
@@ -489,7 +489,7 @@ At the final gate (a guide build's), the swap then runs the D1 gate, F1, W1's pa
 
 Your header's `scope: "scaling"` (revision 14): the user answered yes to "late endgame scaling, yes or no?" at the
 design gate's accept, and you run before F1. Re-price the finds over the budget in `trades.json` (kind `scaling`) by
-the depth rule (`skills/build-guide/references/pricing.md`), one depth check each, announced by the runner and paced like any pricing
+the depth rule (`skills/pricing/references/pricing.md`), one depth check each, announced by the runner and paced like any pricing
 step, **at most 15 trade searches a build**, and measure any of the top 5 (by gain) not yet measured, each on a
 temporary stage as step 5 does. **Write only `trades.json`**: each find's `price` and `repriced: true`, and for a find
 you measure, its `damage`, `ehp` and `measured: true`. **Restore the plan byte for byte**: Read its text before your

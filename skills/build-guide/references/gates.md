@@ -101,7 +101,7 @@ coordinator step: D1-build, D1-tree and D1-finish (D-356, D-418), then the gate.
   - `over-target`, information on a passing or unverified part: a rare of `b` or `n` whose range's midpoint is
     above its target, and `m`'s total when its midpoint is above 5 divines.
   - **In a build held to amendment 14** (D-483, D-484): a rare's price is its spec's **depth price**, the 5th-cheapest
-    of at least 10 listings of a search for its must-haves (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`: the spec loop"),
+    of at least 10 listings of a search for its must-haves (`skills/pricing/references/pricing.md`, "A rare of `b` or `n`: the spec loop"),
     never one listing's; its entry carries `listing {corrupted, sockets, count, position}` and, on a `b` or `n` rare,
     `spec`. **No `<id>-fallback` entry**: the dearer spec is a find over the budget (`trades.json`, kind `scaling`,
     D-486), counted in no total. A slot the loop left thin with no other source of its stat is `unavailable`, `note`

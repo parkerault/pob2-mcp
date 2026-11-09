@@ -71,7 +71,7 @@ digests (a list, D-507) as the repository and the clock give them then, the sess
 `checkpoints[]`, `escalations[]` and `displays[]` held at the resume. So every entry after it can be placed: the
 run checker accepts entries after a build's or the run's end only behind a resume, and the pricing stop holds
 only for the session it happened in (a `stages[]` entry from index `resumes[<last>].lengths.stages` on,
-`skills/build-guide/references/pricing.md`). When the pin's commit or the digests differ from the run's last recorded ones, the verification
+`skills/pricing/references/pricing.md`). When the pin's commit or the digests differ from the run's last recorded ones, the verification
 display says so: two lists compare as sets, and an older run's string with a list's first entry ("The league digests
 changed since this run last ran").
 
@@ -159,7 +159,7 @@ brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
   `shortReason`. The engine rule (D-405) doesn't apply to composites.
 - **`priceOutcomes`**, on a pricing step (R1b, D1-build, D1-finish, D1-gate, D2) that made price calls: its calls
   counted by outcome, `{"ok": 12, "would_wait": 1}`, each key `ok`, `error` or a `[trade:<kind>]` kind (D-218,
-  `skills/build-guide/references/pricing.md`), and `exchange` for the calls priced from poe.ninja's currency exchange, which send no trade request
+  `skills/pricing/references/pricing.md`), and `exchange` for the calls priced from poe.ninja's currency exchange, which send no trade request
   (D-444). D1-build logs its `find_upgrades` calls (D-444). Amendment 13 (D-474): `pace` counts the trade call whose
   reply had no pace line, or `Pace: off (test setting).`, after which the step made no more trade calls and returned
   the stop `pace: missing` or `pace: off`. Never in an offline run. NFR-22 reads it: no `rate_limited` and no

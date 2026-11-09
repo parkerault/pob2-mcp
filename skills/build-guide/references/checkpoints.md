@@ -144,7 +144,7 @@ needs the user's yes before anything is taken (R-83):
    answers); **a tree change only**, D1-tree; **anything else**, the full chain
    from D1-build. At the verification gate they join the picked card's `changes`, its build's first design brief; at
    the design gate they are a `revise:`; at the final gate a `revise:` there. An edited item is taken literally: the
-   plan takes its lines as the user wrote them, priced at the depth price of a search for its lines (`skills/build-guide/references/pricing.md`).
+   plan takes its lines as the user wrote them, priced at the depth price of a search for its lines (`skills/pricing/references/pricing.md`).
 
 ## The user's words, the request lines and the `ask` checkpoints (D-482)
 
@@ -199,7 +199,7 @@ JSON
   `unavailable`, and the next gate asks again.
 
 Asked only while a stop is open (the script refuses it otherwise), once per gate visit. A resume clears a stop too,
-as before (`skills/build-guide/references/pricing.md`).
+as before (`skills/pricing/references/pricing.md`).
 
 ## The unsaved-build question (FR-W2 step 4; D-210)
 

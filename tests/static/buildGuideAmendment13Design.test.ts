@@ -9,7 +9,7 @@
  *   removed passives, the boss target, the fall's reason and the boss trade, the stale-server check, unique jewels in
  *   the socket test, and none of the superseded guards), `skills/build-guide/references/stages/D1-finish.md` and `skills/build-guide/references/stages/D1-gate.md`.
  * - AC-W104, the gates, pricing, the guide and the runner: `skills/build-guide/references/checkpoints.md`, `skills/build-guide/references/stages/F1.md`, `skills/build-guide/references/stages/D2-gate.md`, `skills/build-guide/references/gates.md`,
- *   `skills/build-guide/references/pricing.md`, W1 and the templates, `skills/build-guide/references/stages/V4.md`, the coordinator's standing rules, `skills/build-guide/references/task-header.md`, `skills/build-guide/references/fix-round.md`,
+ *   `skills/pricing/references/pricing.md`, W1 and the templates, `skills/build-guide/references/stages/V4.md`, the coordinator's standing rules, `skills/build-guide/references/task-header.md`, `skills/build-guide/references/fix-round.md`,
  *   the verifier's definition and `skills/build-guide/SKILL.md`, D-477's claims pass among them.
  *
  * The numbers are read from the amendment (`docs/build-guide/spec/amendment-13-tree-and-finishing-touches.md`) and the
@@ -20,7 +20,7 @@
  * `buildGuidePipeline.test.ts`).
  *
  * Amendment 14 (M-27), WU-142: AC-W110 and AC-W111, the design and pricing docs (D1-build, D1-tree, D1-finish, D1-gate,
- * D2, `skills/build-guide/references/pricing.md`, `skills/build-guide/references/gates.md`, `skills/game-knowledge/references/lookups.md`), in their own blocks at the end, read against amendment 14
+ * D2, `skills/pricing/references/pricing.md`, `skills/build-guide/references/gates.md`, `skills/game-knowledge/references/lookups.md`), in their own blocks at the end, read against amendment 14
  * (`amendment-14-files-specs-and-repairs.md`) and the revision-14 fixture `run-a14`.
  */
 import { describe, it, expect, afterAll } from '@jest/globals';

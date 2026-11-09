@@ -2195,7 +2195,7 @@ describe('WU-62: the entering-maps rung m in D1, D2 and the gates (D-281, D-282,
     expect(gates).toContain('| `m` | 7 | 5 divines in all |');
     expect(gates).toMatch(/on `m`, its total, when it has one and its midpoint is above 5/);
     expect(gate).toMatch(/\*\*FI-2\*\* \(only when the header's `faults` holds it\): before anything else, set the first endgame stage's \(the ladder's first rung: `m`, else `b`\) `level` to `1`/);
-    expect(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8')).toContain('| `m`, entering maps | day 7 | 5 divines in all |');
+    expect(fs.readFileSync(referencePath('pricing.md'), 'utf8')).toContain('| `m`, entering maps | day 7 | 5 divines in all |');
     // The run checker holds the area level, and m's price day and 5-divine target come from the render's
     // conversion, which it imports (WU-76): no ceiling and no tolerance is left in either script.
     const checker = fs.readFileSync(path.join(SKILL_DIR, 'scripts', 'check-run.mjs'), 'utf8');
@@ -2891,7 +2891,7 @@ describe('WU-70 (AC-W53, D-356): the agent definitions batch independent calls',
  * `<root>/`. Before amendment 15 a pointer was the file's full repository path and a citation its bare name;
  * D-500 writes both root-relative, so the words around the path tell a pointer from a citation of an excerpt's source.
  */
-const SHARED_REF = '`(?:\\$\\{CLAUDE_PLUGIN_ROOT\\}\\/|<root>\\/)?skills\\/(?:build-guide|game-knowledge)\\/references\\/(?:gates|pricing|source-markers|lookups)\\.md`';
+const SHARED_REF = '`(?:\\$\\{CLAUDE_PLUGIN_ROOT\\}\\/|<root>\\/)?skills\\/(?:build-guide|game-knowledge|pricing)\\/references\\/(?:gates|pricing|source-markers|lookups)\\.md`';
 const wholeReads = (text: string): string[] => text.match(new RegExp(`\\bread (?:the whole of )?${SHARED_REF}|${SHARED_REF}(?:,| [a-z]+){0,3} whole\\b`, 'gi')) ?? [];
 
 /** The stage references part B of WU-70 restates (D-356): each states its rules as excerpts. */
@@ -2899,13 +2899,13 @@ const PART_B_STAGES = ['R1a', 'R1a-assemble', 'R1b', 'R1b-assemble', 'D2', 'D2-g
 
 describe('WU-70 (AC-W53, D-356): the stage references state their rules as excerpts, not whole files', () => {
   it('the pointer check finds a read of a whole shared reference and passes a citation of its source', () => {
-    expect(wholeReads('Read `skills/build-guide/references/pricing.md` before you price.')).toHaveLength(1);
+    expect(wholeReads('Read `skills/pricing/references/pricing.md` before you price.')).toHaveLength(1);
     expect(wholeReads('read `<root>/skills/game-knowledge/references/lookups.md` whole first')).toHaveLength(1);
     expect(wholeReads('first read `skills/build-guide/references/gates.md`, then')).toHaveLength(1);
     expect(wholeReads('Read the whole of `skills/game-knowledge/references/source-markers.md` before the report.')).toHaveLength(1);
-    expect(wholeReads('Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/pricing.md` first.')).toHaveLength(1);
+    expect(wholeReads('Read `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/pricing.md` first.')).toHaveLength(1);
     expect(wholeReads('fill each part (`skills/build-guide/references/gates.md`). Then')).toEqual([]);
-    expect(wholeReads('weights read the main skill (`skills/build-guide/references/pricing.md`, "A rare of `b` or `n`")')).toEqual([]);
+    expect(wholeReads('weights read the main skill (`skills/pricing/references/pricing.md`, "A rare of `b` or `n`")')).toEqual([]);
   });
 
   it.each(['D1-build', 'D1-finish', 'D1-gate', ...PART_B_STAGES, 'V4'])('%s sends no agent to read a shared reference or plan-reference.md whole', (stage) => {
@@ -4121,11 +4121,11 @@ describe('AC-W77 (WU-95): SKILL.md carries amendment 9\'s rules', () => {
     expect(s).toMatch(/- \*\*No trade request after pricing stops, until the user approves a retry\*\* \(D-415, D-422, D-444\)\. A step whose `priceOutcomes` counts a `locked_out`, `rate_limited` or `pace` call \(D-474: then ask the user to reconnect the server with `\/mcp`\) stops trade-site pricing until a gate's `retry-pricing` or a resume: the next gate asks first, after its display; log the answer with `pob2-run-log <runFolder> pricing`/);
     for (const tool of ['get_leagues', 'search_trade_items', 'search_stats', 'find_upgrades']) expect({ tool, named: s.includes(`\`mcp__pob2__${tool}\``) }).toEqual({ tool, named: true });
     expect(s).toMatch(/`mcp__pob2__get_item_price` for an item/);
-    expect(s).toMatch(/the exchange stays allowed \(`skills\/build-guide\/references\/pricing\.md`\)/);
+    expect(s).toMatch(/the exchange stays allowed \(`skills\/pricing\/references\/pricing\.md`\)/);
     expect(s).not.toMatch(/Pricing stops for the session|for a Distilled Emotion reads/);
     // pricing.md holds the rule as amendment 11 (WU-114, D-444) amends it: the stop holds until a gate's retry, and
     // every exchange item keeps its price from poe.ninja's exchange.
-    const pricing = folded(fs.readFileSync(path.join(SKILL_DIR, 'references', 'pricing.md'), 'utf8'));
+    const pricing = folded(fs.readFileSync(referencePath('pricing.md'), 'utf8'));
     expect(pricing).toMatch(/## After pricing stops \(D-415, D-422, D-444\) \*\*The stop holds until the user approves a retry at a gate\.\*\*/);
     expect(pricing).toMatch(/\*\*While a stop is open, no step makes a trade-site request:\*\* `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for a unique or any item the exchange doesn't sell, `mcp__pob2__search_trade_items`, `mcp__pob2__search_stats` and `mcp__pob2__find_upgrades`/);
     expect(pricing).not.toMatch(/stop pricing for the rest of the (run|session)/);

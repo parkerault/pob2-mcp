@@ -172,8 +172,8 @@
 // `check-run: warning: <message>`.
 //
 // The shapes it reads are documented in skills/build-guide/references/ (run-folder.md, run-log.md, gates.md,
-// pricing.md, stages/V4.md), skills/game-knowledge/references/source-markers.md and skills/build-guide/templates/;
-// keep them in step with this file.
+// stages/V4.md), skills/pricing/references/ (pricing.md, stages/price.md), skills/game-knowledge/references/source-markers.md
+// and skills/build-guide/templates/; keep them in step with this file.
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -185,6 +185,8 @@ import {
   arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedOf, typeWords,
   divinesOf, ratesOf, pinnedSlots, FLASK_SLOT,
 } from './render-audit.mjs';
+// D-520 (WU-163): a pricing run's place, by D-373's conversion of each entry.
+import { rangeAt } from './render-audit.mjs';
 import {
   parseCard, parseDeck, DECK_HEADER, DECK_FOOTER, MADE_MARK, RIVAL_CARD, CANT_FINALIZE, inFolder,
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
@@ -396,6 +398,8 @@ export const RULE_PIECES = {
   'tree-change': ['writer'], levels: ['writer'],
   // Pricing: the prices, their stops and the budget.
   'offline-prices': ['pricing'], 'nfr-22': ['pricing'], pricing: ['pricing'], budget: ['pricing'], listing: ['pricing'], spec: ['pricing'],
+  // D-520 (WU-163): a pricing run's place by its replace cost, its owned rares' specs and its upgrades.
+  placement: ['pricing'], 'owned-spec': ['pricing'], upgrades: ['pricing'],
   // Shared: runes, corruption and flasks (compile and pricing); known issues (the writer and review); the advice to test
   // in game and the campaign rewards (the writer and compile).
   runes: ['compile', 'pricing'], corruption: ['compile', 'pricing'], flasks: ['compile', 'pricing'],
@@ -1624,6 +1628,14 @@ export async function checkRun(runFolder) {
     for (const rel of ['source.xml', 'plan.json', 'read.json', 'compile-record.json', piece === 'compile' ? 'measure.md' : 'prices.md']) {
       if (!exists(rel)) fail('layout', `${rel} is missing; a completed ${piece} run holds source.xml, plan.json and read.json (its read), compile-record.json and ${piece === 'compile' ? 'measure.md (its measure)' : 'prices.md (its price)'} at its folder's root (D-516, Appendix A.6)`);
     }
+  }
+  // D-520 (§16, Appendix A.10): a pricing run's place by its replace cost, its owned rares' specs and its upgrades.
+  if (piece === 'pricing' && isObj(buildPlans.get(builds[0]))) {
+    const plan = buildPlans.get(builds[0]);
+    checkPlacement({ plan, log, pricesMd: readText('prices.md'), fail });
+    checkOwnedSpecs({ plan, fail });
+    const upgrades = exists('upgrades.json') ? readJson('upgrades.json', 'upgrades') : null;
+    if (upgrades !== null) checkUpgrades({ upgrades, plan, log, fail });
   }
   for (const build of piece === 'writer' ? [] : builds) {
     // A build's own steps: its card's (in "." also those of cards with no folder of their own), refused calls aside.
@@ -7704,6 +7716,254 @@ export async function changedSince(runFolder, n, folder = '.') {
 
 // ---------------------------------------------------------------------------------------------------
 // Command line
+// ---------------------------------------------------------------------------------------------------
+// Amendment 16's M-30 (WU-163; D-520, C-64, Appendix A.10): a pricing run's replace cost, its place and its upgrades
+// ---------------------------------------------------------------------------------------------------
+
+/** D-520 (§16): the rung ids by variant, and the place line's words for each place. */
+const RUNG_OF = { 'entering-maps': 'm', budget: 'b', 'non-budget': 'n' };
+const PLACE_WORDS = { 'entering maps (m)': 'm', 'budget (b)': 'b', 'non-budget (n)': 'n', 'in the campaign': 'campaign' };
+/** price.md's place line in prices.md: `Place: <place>, <basis>.`, the basis the replace cost, the user's word or the level. */
+const PLACE_LINE = /^Place: (entering maps \(m\)|budget \(b\)|non-budget \(n\)|in the campaign), (by the replace cost|the user's word|by its level)\./m;
+const PLACE_FORM = '"Place: <entering maps (m) | budget (b) | non-budget (n) | in the campaign>, <by the replace cost | the user\'s word | by its level>."';
+/** D-520: a slot the replace cost leaves out: a flask (D-472) or a charm (charms deferred). */
+const UNPRICED_SLOT = /^(?:Flask|Charm) \d+$/;
+/** D-520: the slots the upgrades search, the gear slots: not a flask, a charm or a tree jewel. */
+const isGearSlot = (slot) => typeof slot === 'string' && !UNPRICED_SLOT.test(slot) && !/^Jewel \d+$/.test(slot);
+
+/** D-520 (choice A): the endgame starts at the first waystone tier's area level, `area-level.offset` + 1 (65). */
+const endgameLevel = () => (factValue('enemies/waystones.json', 'area-level.offset') ?? 64) + 1;
+
+/** A read plan's read stage (its `source`, Appendix A.5), and what it holds by slot: `{slot, text, owned}`, a tree jewel's slot `Jewel <node>`. */
+function readStageOf(plan) {
+  const read = list(plan?.stages).find((s) => isObj(s.source)) ?? null;
+  const items = new Map();
+  if (read === null) return { read, items };
+  for (const x of list(read.items?.slots)) if (typeof x.text === 'string' && x.text.trim() !== '') items.set(x.slot, { slot: x.slot, text: x.text, owned: x.owned === true });
+  for (const j of list(read.items?.treeJewels)) if (typeof j.text === 'string') items.set(`Jewel ${j.node}`, { slot: `Jewel ${j.node}`, text: j.text, owned: j.owned === true });
+  return { read, items };
+}
+
+/** D-520: an item text's `Rune:` lines, the socketables price.md prices as `query.socket` 1, 2, … */
+const runeLines = (text) => String(text ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => /^Rune:\s*\S/i.test(l));
+/** A PoB item text's header lines, which come before its implicits and are no affix. */
+const ITEM_HEADER = /^(?:Item Level|Quality|Sockets|Rune|LevelReq|Level|Requires|Unique ID|Charm Slots|Radius|Limited to|Item Class|Prefix|Suffix|Implicits)\s*:/i;
+
+/**
+ * D-520 (§16): an item text's explicit lines, its affixes: the lines after its `Implicits: <n>` block (after its rarity,
+ * name and base and its header lines when it has none), never an enchantment or rune line, `Corrupted` or `Mirrored`.
+ */
+export function affixLines(text) {
+  const lines = String(text ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const imp = lines.findIndex((l) => /^Implicits:\s*\d+$/i.test(l));
+  const rarity = /^Rarity:\s*(\S+)/i.exec(lines[0] ?? '')?.[1]?.toUpperCase();
+  const body = imp >= 0 ? lines.slice(imp + 1 + Number(/\d+/.exec(lines[imp])[0])) : lines.slice(['RARE', 'UNIQUE'].includes(rarity) ? 3 : 2).filter((l) => !ITEM_HEADER.test(l));
+  return body.filter((l) => !/^\{enchant\}/i.test(l) && !/^(?:Corrupted|Twice Corrupted|Mirrored|Unidentified)$/i.test(l));
+}
+/** An affix or a line as a key: markers dropped, each number or `(a-b)` range a `#`, a leading `+` dropped, lower case. */
+export const affixKey = (t) => String(t ?? '').replace(/\{[^}]*\}/g, '').replace(/\(\s*-?\d+(?:\.\d+)?\s*-\s*-?\d+(?:\.\d+)?\s*\)/g, '#')
+  .replace(/-?\d+(?:\.\d+)?/g, '#').replace(/\+#/g, '#').replace(/\s+/g, ' ').trim().toLowerCase();
+/** A line's roll: its numbers' mean, a `(a-b)` range read at its `{range:<r>}` (PoB's 0.5 without one); null with none. */
+export function lineValue(line) {
+  const r = Number(/\{range:([\d.]+)\}/.exec(String(line))?.[1] ?? 0.5);
+  const vals = [];
+  String(line).replace(/\{[^}]*\}/g, '').replace(/\(\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*\)|(-?\d+(?:\.\d+)?)/g, (m, a, b, n) => {
+    vals.push(n !== undefined ? Number(n) : Number(a) + r * (Number(b) - Number(a)));
+    return m;
+  });
+  return vals.length > 0 ? vals.reduce((x, y) => x + y, 0) / vals.length : null;
+}
+
+/**
+ * D-520 (§16), the place by the replace cost: the read stage's entries mapped by `query.slot` (a socketable's with
+ * `query.socket`), each in divines by the plan's `rate-<currency>` entries, its range at day 7 by D-373's conversion.
+ * `{known, why}` when it can't place (offline, `--no-ninja`, an entry missing, unavailable or without a rate); else the
+ * rungs it allows: `m` when the whole cost's midpoint is at most 5 divines, else `b` when no rare's, rare tree jewel's or
+ * unique's own entry has a midpoint over 5 (choice B), else `n`. A midpoint within the 5-divine target's margin of 5
+ * allows both sides. `total21` is the whole cost's day-21 midpoint, for the "over 200 divines" line.
+ */
+export function placeByCost(plan, log) {
+  const { read, items } = readStageOf(plan);
+  const prices = list(plan?.prices);
+  if (read === null) return { known: false, why: 'the plan has no read stage' };
+  if (log?.mode !== 'online') return { known: false, why: 'an offline run prices nothing' };
+  if (log?.noNinja === true) return { known: false, why: 'no currency rates under --no-ninja' };
+  const rates = new Map(prices.filter((p) => /^rate-/.test(String(p.id)) && p.status === 'ok' && isNum(p.amount) && /^divine/i.test(String(p.currency)))
+    .map((p) => [String(isObj(p.query) && typeof p.query.rates === 'string' ? p.query.rates : String(p.id).slice(5)).toLowerCase(), p.amount]));
+  const entries = prices.filter((p) => isObj(p.query) && typeof p.query.slot === 'string' && items.has(p.query.slot));
+  for (const [slot, it] of items) {
+    if (UNPRICED_SLOT.test(slot)) continue;
+    if (!entries.some((p) => p.query.slot === slot && p.query.socket === undefined)) return { known: false, why: `${slot} has no entry` };
+    if (runeLines(it.text).some((_, k) => !entries.some((p) => p.query.slot === slot && p.query.socket === k + 1))) return { known: false, why: `a socket of ${slot} has no entry` };
+  }
+  const bad = entries.find((p) => divinesOf(p, rates) === null);
+  if (bad) return { known: false, why: `${show(bad.id)} is ${bad.status !== 'ok' ? `unavailable (${bad.note ?? 'no note'})` : `in ${bad.currency}, which has no rate`}` };
+  let table;
+  try {
+    table = priceTable();
+  } catch (e) {
+    return { known: false, why: e.message };
+  }
+  const market = marketOf(plan, { slots: entries.map((p) => ({ priceId: p.id })) }, table);
+  const at = (p, day) => rangeAt(divinesOf(p, rates), day, market, table).mid;
+  const total = entries.reduce((sum, p) => sum + at(p, 7), 0);
+  const total21 = entries.reduce((sum, p) => sum + at(p, 21), 0);
+  const own = entries.filter((p) => p.query.socket === undefined && ['RARE', 'UNIQUE'].includes(itemOf(items.get(p.query.slot).text).rarity));
+  const dearest = own.reduce((m, p) => (m === null || at(p, 7) > at(m, 7) ? p : m), null);
+  const top = dearest === null ? 0 : at(dearest, 7);
+  const margin = targetMargin(M_TARGET);
+  const rungs = new Set();
+  if (total <= M_TARGET + margin) rungs.add('m');
+  if (total > M_TARGET - margin) {
+    if (top <= M_TARGET + margin) rungs.add('b');
+    if (top > M_TARGET - margin) rungs.add('n');
+  }
+  const why = `the whole cost is about ${round2(total)} divines at day 7${dearest ? `, the dearest rare or unique (${show(dearest.id)}) about ${round2(top)}` : ''}`;
+  return { known: true, rungs, why, total, total21 };
+}
+
+/**
+ * D-520 (§16), the run checker's `placement` for a pricing run: the read stage placed as its rung's id and variant
+ * (Appendix A.5), never below the endgame (choice A); every filled slot (flasks and charms aside), tree jewel and socket
+ * priced, each entry naming its slot in `query.slot`; prices.md's place line naming the plan's place and its basis; and,
+ * when the replace cost is known, the rung it gives (`placeByCost`), unless the owner said "in the campaign".
+ */
+function checkPlacement({ plan, log, pricesMd, fail }) {
+  const { read, items } = readStageOf(plan);
+  if (read === null) return;
+  const level0 = endgameLevel();
+  const placed = read.variant !== undefined ? RUNG_OF[read.variant] ?? null : null;
+  const place = placed ?? 'campaign';
+  if (placed !== null && read.id !== placed) fail('placement', `plan.json's read stage is ${show(read.id)} with variant ${show(read.variant)}; placing renames it to its rung's id, ${placed} (D-520, Appendix A.5)`);
+  if (read.variant === undefined && read.id !== 'f') fail('placement', `plan.json's read stage is ${show(read.id)} with no variant; until it is placed it keeps the id f (D-517, Appendix A.5)`);
+  if (placed !== null && isNum(read.level) && read.level < level0) fail('placement', `plan.json's read stage is placed on ${placed}, but its level ${read.level} is below the endgame (under ${level0}, the first waystone tier's area level): its place is "in the campaign", with no rung (D-520, choice A)`);
+  const prices = list(plan.prices);
+  for (const [slot, it] of items) {
+    if (UNPRICED_SLOT.test(slot)) continue;
+    if (!prices.some((p) => isObj(p.query) && p.query.slot === slot && p.query.socket === undefined)) fail('placement', `the read stage's ${slot} has no prices[] entry naming it in query.slot; the replace cost prices every filled slot and tree jewel, flasks and charms aside (D-520)`);
+    runeLines(it.text).forEach((line, k) => {
+      if (!prices.some((p) => isObj(p.query) && p.query.slot === slot && p.query.socket === k + 1)) fail('placement', `${slot}'s socket ${k + 1} (${line}) has no prices[] entry with query.slot ${show(slot)} and query.socket ${k + 1}; the replace cost prices what each socket holds (D-520)`);
+    });
+  }
+  for (const p of prices) {
+    if (isObj(p.query) && typeof p.query.slot === 'string' && !items.has(p.query.slot)) fail('placement', `plan.json's price entry ${show(p.id)} names ${show(p.query.slot)} in query.slot, which isn't a filled slot or tree jewel of the read stage (D-520)`);
+  }
+  const got = placeByCost(plan, log);
+  let basis = null;
+  if (pricesMd !== null) {
+    const m = PLACE_LINE.exec(pricesMd);
+    if (!m) fail('placement', `prices.md has no place line; it says ${PLACE_FORM} (D-520)`);
+    else {
+      basis = m[2];
+      if (PLACE_WORDS[m[1]] !== place) fail('placement', `prices.md says "${m[1]}", but plan.json's read stage is ${placed !== null ? `on ${placed}` : 'unplaced, in the campaign'}; the place line names the plan's place (D-520)`);
+      if (basis === 'by the replace cost' && !got.known) fail('placement', `prices.md places it by the replace cost, but the cost can't place it: ${got.why}; then the player names the rung, "the user's word" (D-520, never assumed)`);
+      if (basis === 'by its level' && !(place === 'campaign' && read.level < level0)) fail('placement', `prices.md places it by its level, which only a character below the endgame (under ${level0}) is, in the campaign (D-520, choice A)`);
+    }
+  }
+  if (got.known && isNum(read.level) && read.level >= level0 && !(place === 'campaign' && basis === "the user's word") && !got.rungs.has(place)) {
+    fail('placement', `plan.json's read stage is ${placed !== null ? `on ${placed}` : 'unplaced'}, but its replace cost places it on ${[...got.rungs].join(' or ')}: ${got.why} (D-520, D-371's targets: m within 5 divines in all; b no rare, rare jewel or unique over about 5, choice B; else n)`);
+  }
+}
+
+/**
+ * D-520 (§16), the run checker's `owned-spec`: each price entry with a `spec` that prices an owned rare of the read stage
+ * (by `query.slot`) holds the owned rare's spec: its base the item's; 3 or 4 must-haves (every explicit line when it
+ * carries fewer), each one of the item's own explicit lines, its `min` at most the item's roll, searched by an `explicit.`
+ * trade id (a fractured, crafted or desecrated line as a plain explicit mod), and each of PoB's top 4 the item carries but
+ * doesn't require in `leftOut` with its why; an `ok` price's depth check asks for the must-haves at their mins, uncorrupted.
+ */
+function checkOwnedSpecs({ plan, fail }) {
+  const { read, items } = readStageOf(plan);
+  if (read === null) return;
+  for (const p of list(plan.prices)) {
+    if (!('spec' in p)) continue;
+    const at = `plan.json's price entry ${show(p.id)}`;
+    const it = isObj(p.query) ? items.get(p.query.slot) : undefined;
+    if (it === undefined) {
+      fail('owned-spec', `${at} has a spec, but its query.slot ${show(p.query?.slot)} names no filled slot or tree jewel of the read stage (D-520)`);
+      continue;
+    }
+    if (!it.owned) continue;
+    const item = itemOf(it.text);
+    const sp = p.spec;
+    if (item.rarity !== 'RARE') {
+      fail('owned-spec', `${at} has a spec, but ${it.slot} holds a${item.rarity === 'UNIQUE' ? ' unique' : ` ${String(item.rarity ?? 'unknown').toLowerCase()} item`}; a spec is an owned rare's (D-520)`);
+      continue;
+    }
+    if (!isObj(sp) || !textOk(sp.base) || !Array.isArray(sp.weights) || !(sp.ranking === null || Array.isArray(sp.ranking)) || !Array.isArray(sp.mustHaves) || !Array.isArray(sp.leftOut) || !isInt(sp.searches)) {
+      fail('owned-spec', `${at} has spec ${show(sp)}; {base, weights, ranking | null, mustHaves, leftOut, searches} (D-483, D-520)`);
+      continue;
+    }
+    const base = item.lines[2] ?? null;
+    if (sp.base !== base) fail('owned-spec', `${at}'s spec has base ${show(sp.base)}; the owned rare in ${it.slot} is a ${show(base)} (D-520)`);
+    const lines = affixLines(it.text).map((line) => ({ line, key: affixKey(line), value: lineValue(line) }));
+    const musts = list(sp.mustHaves);
+    const want = Math.min(3, lines.length);
+    if (musts.length < want || musts.length > 4) fail('owned-spec', `${at}'s spec requires ${musts.length} affix(es); an owned rare's must-haves are the 3 or 4 of its own lines that rank highest (all ${lines.length} when it carries fewer than 3) (D-520)`);
+    const mods = isObj(p.query) && Array.isArray(p.query.mods) ? p.query.mods.filter(isObj) : [];
+    for (const mh of musts) {
+      const own = lines.find((l) => l.key === affixKey(mh.affix));
+      if (own === undefined) fail('owned-spec', `${at}'s must-have ${show(mh.affix)} isn't one of the owned rare's explicit lines in ${it.slot} (${lines.map((l) => l.line.replace(/\{[^}]*\}/g, '')).join('; ')}); its spec requires lines it carries (D-520)`);
+      else if (isNum(mh.min) && isNum(own.value) && mh.min > own.value + 1e-6) fail('owned-spec', `${at}'s must-have ${show(mh.affix)} requires at least ${mh.min}, above the owned rare's roll ${round2(own.value)} (${own.line.replace(/\{[^}]*\}/g, '')}); each is required at the lowest roll of the tier its value falls in (D-520)`);
+      if (!/^explicit\./.test(String(mh.tradeId ?? ''))) fail('owned-spec', `${at}'s must-have ${show(mh.affix)} is searched by ${show(mh.tradeId)}; an owned rare's lines are searched as explicit mods, a fractured line as a plain one (never the fractured filter), a crafted or desecrated line by its text (D-520)`);
+      if (p.status === 'ok' && !mods.some((m) => m.stat_id === mh.tradeId && m.min === mh.min)) fail('owned-spec', `${at}'s depth check doesn't ask for its must-have ${show(mh.affix)} (${show(mh.tradeId)}, min ${show(mh.min)}) in query.mods; the price is the search for the spec's must-haves (D-520)`);
+    }
+    if (p.status === 'ok' && isObj(p.query) && p.query.corrupted !== false) fail('owned-spec', `${at}'s depth check has corrupted ${show(p.query.corrupted)}; an owned rare's spec is searched uncorrupted, corrupted: false (corruption never on rares, D-520)`);
+    if (sp.ranking === null) continue;
+    for (const r of list(sp.ranking)) {
+      const key = affixKey(r.affix);
+      if (!lines.some((l) => l.key === key) || musts.some((mh) => affixKey(mh.affix) === key)) continue;
+      if (!list(sp.leftOut).some((x) => affixKey(x.affix) === key && textOk(x.why))) fail('owned-spec', `${at} leaves out ${show(r.affix)}, one of PoB's top 4 that the owned rare carries, with no leftOut entry giving its why (D-520)`);
+    }
+    for (const mh of musts) {
+      if (!list(sp.ranking).some((r) => affixKey(r.affix) === affixKey(mh.affix)) && mh.zeroScored !== true && !textOk(mh.why)) fail('owned-spec', `${at}'s must-have ${show(mh.affix)} is outside PoB's top 4 with no why and isn't zeroScored; a line PoB doesn't rank is required only when the build needs it (D-520)`);
+    }
+  }
+}
+
+/**
+ * D-520 (Appendix A.10), the run checker's `upgrades`: `upgrades.json`, written only by an online run with a budget, is
+ * `{budget: {divines}, league, checked, slots: [{slot, listings: [{price: {amount, currency}, gain: {fullDps, ehp, maxHit:
+ * {type, change}}, link}], link?}], chosen: [{slot, listing}], spent}`: its league the plan's, each slot a gear slot of
+ * the read stage once, a slot with no listing given its link when it has one, each pick a listing the file holds.
+ */
+function checkUpgrades({ upgrades, plan, log, fail }) {
+  const at = 'upgrades.json';
+  if (log?.mode === 'offline') fail('upgrades', `${at} is in an offline run; offline, no upgrade search runs (D-520)`);
+  if (!isObj(upgrades)) return fail('upgrades', `${at} is ${show(upgrades)}; Appendix A.10's object {budget, league, checked, slots, chosen, spent} (D-520)`);
+  const keys = Object.keys(upgrades);
+  const want = ['budget', 'league', 'checked', 'slots', 'chosen', 'spent'];
+  if (want.some((k) => !keys.includes(k)) || keys.some((k) => !want.includes(k))) fail('upgrades', `${at} holds ${keys.join(', ')}; Appendix A.10's fields are ${want.join(', ')} (D-520)`);
+  if (!isObj(upgrades.budget) || !isNum(upgrades.budget.divines) || upgrades.budget.divines <= 0) fail('upgrades', `${at}'s budget is ${show(upgrades.budget)}; {"divines": <the player's budget>} (D-520, Appendix A.10)`);
+  if (upgrades.league !== plan?.league) fail('upgrades', `${at}'s league is ${show(upgrades.league)}, but the plan's is ${show(plan?.league)}; the upgrades are searched in the run's league (D-520)`);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(String(upgrades.checked))) fail('upgrades', `${at}'s checked is ${show(upgrades.checked)}; the replies' Checked: time, YYYY-MM-DDTHH:MM:SSZ (C-49)`);
+  const { items } = readStageOf(plan);
+  const slots = Array.isArray(upgrades.slots) ? upgrades.slots : [];
+  if (!Array.isArray(upgrades.slots)) fail('upgrades', `${at}'s slots is ${show(upgrades.slots)}; a list, one entry a gear slot (D-520)`);
+  const seen = new Set();
+  slots.forEach((x, i) => {
+    const where = `${at} slots[${i}]`;
+    if (!isObj(x) || typeof x.slot !== 'string' || !Array.isArray(x.listings) || Object.keys(x).some((k) => !['slot', 'listings', 'link'].includes(k))) return fail('upgrades', `${where} is ${show(x)}; {slot, listings, link?} (Appendix A.10)`);
+    if (seen.has(x.slot)) fail('upgrades', `${where} names ${x.slot} again; one entry a gear slot (D-520)`);
+    seen.add(x.slot);
+    if (!isGearSlot(x.slot) || !items.has(x.slot)) fail('upgrades', `${where} names ${show(x.slot)}, which isn't a filled gear slot of the read stage (a flask, a charm or a tree jewel isn't one) (D-520)`);
+    if (x.link !== undefined && !/^https:\/\/\S+$/.test(String(x.link))) fail('upgrades', `${where}'s link is ${show(x.link)}; the trade site's link (D-520)`);
+    if (x.link !== undefined && x.listings.length > 0) fail('upgrades', `${where} has listings and a link of its own; a slot's link stands alone, without a cookie or after a stop (D-520)`);
+    x.listings.forEach((l, k) => {
+      const ok = isObj(l) && isObj(l.price) && isNum(l.price.amount) && l.price.amount >= 0 && textOk(l.price.currency) && isObj(l.gain) && isNum(l.gain.fullDps) && isNum(l.gain.ehp)
+        && isObj(l.gain.maxHit) && textOk(l.gain.maxHit.type) && isNum(l.gain.maxHit.change) && /^https:\/\/\S+$/.test(String(l.link));
+      if (!ok) fail('upgrades', `${where}.listings[${k}] is ${show(l)}; {price: {amount, currency}, gain: {fullDps, ehp, maxHit: {type, change}}, link} (Appendix A.10)`);
+    });
+  });
+  const chosen = Array.isArray(upgrades.chosen) ? upgrades.chosen : null;
+  if (chosen === null) fail('upgrades', `${at}'s chosen is ${show(upgrades.chosen)}; the player's picks, [{slot, listing}] (Appendix A.10)`);
+  for (const [k, c] of (chosen ?? []).entries()) {
+    const slot = isObj(c) ? slots.find((x) => isObj(x) && x.slot === c.slot) : undefined;
+    if (!isObj(c) || slot === undefined || !isInt(c.listing) || c.listing >= list(slot.listings).length) fail('upgrades', `${at} chosen[${k}] is ${show(c)}; a pick names a slot of the file and the index of one of its listings (Appendix A.10)`);
+  }
+  if (!isNum(upgrades.spent) || upgrades.spent < 0) fail('upgrades', `${at}'s spent is ${show(upgrades.spent)}; the picks' total in divines, 0 with none (Appendix A.10)`);
+}
+
 // ---------------------------------------------------------------------------------------------------
 
 /**

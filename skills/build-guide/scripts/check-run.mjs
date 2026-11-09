@@ -1633,6 +1633,7 @@ export async function checkRun(runFolder) {
   if (piece === 'pricing' && isObj(buildPlans.get(builds[0]))) {
     const plan = buildPlans.get(builds[0]);
     checkPlacement({ plan, log, pricesMd: readText('prices.md'), fail });
+    checkSearches({ log, pricesMd: readText('prices.md'), fail });
     checkOwnedSpecs({ plan, fail });
     const upgrades = exists('upgrades.json') ? readJson('upgrades.json', 'upgrades') : null;
     if (upgrades !== null) checkUpgrades({ upgrades, plan, log, fail });
@@ -7715,8 +7716,6 @@ export async function changedSince(runFolder, n, folder = '.') {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Command line
-// ---------------------------------------------------------------------------------------------------
 // Amendment 16's M-30 (WU-163; D-520, C-64, Appendix A.10): a pricing run's replace cost, its place and its upgrades
 // ---------------------------------------------------------------------------------------------------
 
@@ -7734,15 +7733,22 @@ const isGearSlot = (slot) => typeof slot === 'string' && !UNPRICED_SLOT.test(slo
 /** D-520 (choice A): the endgame starts at the first waystone tier's area level, `area-level.offset` + 1 (65). */
 const endgameLevel = () => (factValue('enemies/waystones.json', 'area-level.offset') ?? 64) + 1;
 
-/** A read plan's read stage (its `source`, Appendix A.5), and what it holds by slot: `{slot, text, owned}`, a tree jewel's slot `Jewel <node>`. */
+/**
+ * A read plan's read stage (its `source`, Appendix A.5), what it holds by slot (`{slot, text, owned}`, a tree jewel's
+ * slot `Jewel <node>`) and its gems by `<group>|<gem>`, each 1-based as price.md's `query.group` and `query.gem` name them.
+ */
 function readStageOf(plan) {
   const read = list(plan?.stages).find((s) => isObj(s.source)) ?? null;
   const items = new Map();
-  if (read === null) return { read, items };
+  const gems = new Map();
+  if (read === null) return { read, items, gems };
   for (const x of list(read.items?.slots)) if (typeof x.text === 'string' && x.text.trim() !== '') items.set(x.slot, { slot: x.slot, text: x.text, owned: x.owned === true });
   for (const j of list(read.items?.treeJewels)) if (typeof j.text === 'string') items.set(`Jewel ${j.node}`, { slot: `Jewel ${j.node}`, text: j.text, owned: j.owned === true });
-  return { read, items };
+  list(read.skills?.groups).forEach((g, i) => list(g.gems).forEach((gem, k) => gems.set(`${i + 1}|${k + 1}`, gem)));
+  return { read, items, gems };
 }
+/** D-520: a price entry of the replace cost's: a slot's (`query.slot`, a socket's with `query.socket`) or a gem's (`query.group`, `query.gem`). */
+const gemKey = (p) => (isObj(p.query) && isInt(p.query.group, 1) && isInt(p.query.gem, 1) ? `${p.query.group}|${p.query.gem}` : null);
 
 /** D-520: an item text's `Rune:` lines, the socketables price.md prices as `query.socket` 1, 2, … */
 const runeLines = (text) => String(text ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => /^Rune:\s*\S/i.test(l));
@@ -7776,21 +7782,22 @@ export function lineValue(line) {
 
 /**
  * D-520 (§16), the place by the replace cost: the read stage's entries mapped by `query.slot` (a socketable's with
- * `query.socket`), each in divines by the plan's `rate-<currency>` entries, its range at day 7 by D-373's conversion.
+ * `query.socket`) and its gems' by `query.group` and `query.gem`, each in divines by the plan's `rate-<currency>` entries, its range at day 7 by D-373's conversion.
  * `{known, why}` when it can't place (offline, `--no-ninja`, an entry missing, unavailable or without a rate); else the
  * rungs it allows: `m` when the whole cost's midpoint is at most 5 divines, else `b` when no rare's, rare tree jewel's or
  * unique's own entry has a midpoint over 5 (choice B), else `n`. A midpoint within the 5-divine target's margin of 5
  * allows both sides. `total21` is the whole cost's day-21 midpoint, for the "over 200 divines" line.
  */
 export function placeByCost(plan, log) {
-  const { read, items } = readStageOf(plan);
+  const { read, items, gems } = readStageOf(plan);
   const prices = list(plan?.prices);
   if (read === null) return { known: false, why: 'the plan has no read stage' };
   if (log?.mode !== 'online') return { known: false, why: 'an offline run prices nothing' };
   if (log?.noNinja === true) return { known: false, why: 'no currency rates under --no-ninja' };
   const rates = new Map(prices.filter((p) => /^rate-/.test(String(p.id)) && p.status === 'ok' && isNum(p.amount) && /^divine/i.test(String(p.currency)))
     .map((p) => [String(isObj(p.query) && typeof p.query.rates === 'string' ? p.query.rates : String(p.id).slice(5)).toLowerCase(), p.amount]));
-  const entries = prices.filter((p) => isObj(p.query) && typeof p.query.slot === 'string' && items.has(p.query.slot));
+  // The slots' and the sockets' entries, and the gems' (§16: uncut gems from the exchange), each counted in the whole cost.
+  const entries = prices.filter((p) => (isObj(p.query) && typeof p.query.slot === 'string' && items.has(p.query.slot)) || (gemKey(p) !== null && gems.has(gemKey(p))));
   for (const [slot, it] of items) {
     if (UNPRICED_SLOT.test(slot)) continue;
     if (!entries.some((p) => p.query.slot === slot && p.query.socket === undefined)) return { known: false, why: `${slot} has no entry` };
@@ -7808,7 +7815,7 @@ export function placeByCost(plan, log) {
   const at = (p, day) => rangeAt(divinesOf(p, rates), day, market, table).mid;
   const total = entries.reduce((sum, p) => sum + at(p, 7), 0);
   const total21 = entries.reduce((sum, p) => sum + at(p, 21), 0);
-  const own = entries.filter((p) => p.query.socket === undefined && ['RARE', 'UNIQUE'].includes(itemOf(items.get(p.query.slot).text).rarity));
+  const own = entries.filter((p) => gemKey(p) === null && p.query.socket === undefined && ['RARE', 'UNIQUE'].includes(itemOf(items.get(p.query.slot).text).rarity));
   const dearest = own.reduce((m, p) => (m === null || at(p, 7) > at(m, 7) ? p : m), null);
   const top = dearest === null ? 0 : at(dearest, 7);
   const margin = targetMargin(M_TARGET);
@@ -7829,7 +7836,7 @@ export function placeByCost(plan, log) {
  * when the replace cost is known, the rung it gives (`placeByCost`), unless the owner said "in the campaign".
  */
 function checkPlacement({ plan, log, pricesMd, fail }) {
-  const { read, items } = readStageOf(plan);
+  const { read, items, gems } = readStageOf(plan);
   if (read === null) return;
   const level0 = endgameLevel();
   const placed = read.variant !== undefined ? RUNG_OF[read.variant] ?? null : null;
@@ -7847,6 +7854,7 @@ function checkPlacement({ plan, log, pricesMd, fail }) {
   }
   for (const p of prices) {
     if (isObj(p.query) && typeof p.query.slot === 'string' && !items.has(p.query.slot)) fail('placement', `plan.json's price entry ${show(p.id)} names ${show(p.query.slot)} in query.slot, which isn't a filled slot or tree jewel of the read stage (D-520)`);
+    if (isObj(p.query) && (p.query.group !== undefined || p.query.gem !== undefined) && !gems.has(String(gemKey(p)))) fail('placement', `plan.json's price entry ${show(p.id)} names group ${show(p.query.group)}, gem ${show(p.query.gem)}, which isn't a gem of the read stage's groups (query.group and query.gem, from 1) (D-520)`);
   }
   const got = placeByCost(plan, log);
   let basis = null;
@@ -7863,6 +7871,24 @@ function checkPlacement({ plan, log, pricesMd, fail }) {
   if (got.known && isNum(read.level) && read.level >= level0 && !(place === 'campaign' && basis === "the user's word") && !got.rungs.has(place)) {
     fail('placement', `plan.json's read stage is ${placed !== null ? `on ${placed}` : 'unplaced'}, but its replace cost places it on ${[...got.rungs].join(' or ')}: ${got.why} (D-520, D-371's targets: m within 5 divines in all; b no rare, rare jewel or unique over about 5, choice B; else n)`);
   }
+  // §16: on n, the place says so when the whole cost is over 200 divines at n's price day, 21.
+  if (got.known && place === 'n' && got.total21 > 200 + targetMargin(200) && pricesMd !== null && !/over 200 divines/.test(pricesMd)) {
+    fail('placement', `prices.md places it on n, but doesn't say the whole cost is over 200 divines: about ${round2(got.total21)} at day 21, over n's 100–200 (D-520, D-371)`);
+  }
+}
+
+/** price.md's searches line in prices.md: the trade searches the step made, and the most the notice announced. */
+const SEARCHES_LINE = /^Searches: (\d+) of at most (\d+)\.$/m;
+
+/**
+ * D-520 (§16 step 3, D-461): an online pricing run's price step never makes more trade searches than the notice
+ * announced (the header's `maxSearches`), and prices.md's searches line says how many it made of how many announced.
+ */
+function checkSearches({ log, pricesMd, fail }) {
+  if (log?.mode !== 'online' || pricesMd === null) return;
+  const m = SEARCHES_LINE.exec(pricesMd);
+  if (!m) return fail('pricing', `prices.md has no searches line; an online pricing run's says "Searches: <made> of at most <announced>.", the most its notice announced (D-520, D-461)`);
+  if (Number(m[1]) > Number(m[2])) fail('pricing', `prices.md says the step made ${m[1]} trade searches, more than the ${m[2]} its notice announced; the price step stops once it reaches the bound, and the runner announces any more first (D-520, D-461)`);
 }
 
 /**
@@ -7876,8 +7902,13 @@ function checkOwnedSpecs({ plan, fail }) {
   const { read, items } = readStageOf(plan);
   if (read === null) return;
   for (const p of list(plan.prices)) {
-    if (!('spec' in p)) continue;
     const at = `plan.json's price entry ${show(p.id)}`;
+    if (!('spec' in p)) {
+      // An owned rare's ok price is its spec's depth price: an ok entry for one carries the spec it priced.
+      const it = isObj(p.query) && p.query.socket === undefined && gemKey(p) === null ? items.get(p.query.slot) : undefined;
+      if (p.status === 'ok' && it !== undefined && it.owned && itemOf(it.text).rarity === 'RARE') fail('owned-spec', `${at} prices the owned rare in ${it.slot}, but has no spec; an owned rare is priced by its spec from its own lines, at the spec loop's depth price (D-520)`);
+      continue;
+    }
     const it = isObj(p.query) ? items.get(p.query.slot) : undefined;
     if (it === undefined) {
       fail('owned-spec', `${at} has a spec, but its query.slot ${show(p.query?.slot)} names no filled slot or tree jewel of the read stage (D-520)`);
@@ -7964,6 +7995,8 @@ function checkUpgrades({ upgrades, plan, log, fail }) {
   if (!isNum(upgrades.spent) || upgrades.spent < 0) fail('upgrades', `${at}'s spent is ${show(upgrades.spent)}; the picks' total in divines, 0 with none (Appendix A.10)`);
 }
 
+// ---------------------------------------------------------------------------------------------------
+// Command line
 // ---------------------------------------------------------------------------------------------------
 
 /**

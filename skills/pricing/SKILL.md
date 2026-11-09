@@ -26,9 +26,10 @@ the run's `run-log.json`.
   into the log, a header or a reply.
 - **Price, compile or change the engine's build yourself.** Every price, league, rate and compile call is the
   coordinator step's (D-178). Your pob2 tools are `mcp__pob2__list_builds`, `mcp__pob2__guide_run` (`{new_run:
-  "pricing"}`, `{resume: <run folder>}`) and `mcp__pob2__plan_from_build`.
-- **Read `plan.json` or the compile record.** Route on the reader's reply, `read.json`, the step's return,
-  `prices.md` and `upgrades.json`.
+  "pricing"}`, `{resume: <run folder>}`, and one `{view: {plan, stage}}` for the notice's count) and
+  `mcp__pob2__plan_from_build`.
+- **Read `plan.json` or the compile record** with Read or Bash. Route on the reader's reply, `read.json`, that one
+  view, the step's return, `prices.md` and `upgrades.json`.
 - **Assume a rung.** The replace cost places the character; without trade, or with a price or a rate missing, the
   player names the rung (answer 2). Never assume non-budget.
 
@@ -36,7 +37,8 @@ the run's `run-log.json`.
 
 "Price my build MyCharacter123" names a builds-folder file: call `mcp__pob2__list_builds`; a file whose name equals
 the name the player gave, ignoring case and `.xml`, is the build. Otherwise list the closest names and ask; never
-guess. A pasted import code is the reader's `import_code`.
+guess. A request that names no build ("what is my gear worth"): list the builds and ask which one, or take an import
+code the player pastes. A pasted import code is the reader's `import_code`.
 
 ## The steps
 
@@ -64,26 +66,29 @@ upgrades, and for how many divines; "no" means no upgrade search. Offline, nothi
 for the rung (entering maps, budget, non-budget, or in the campaign), unless the reader's reply puts the character under
 level 65, below the endgame, whose place is in the campaign (choice A).
 
-**2. Read.** `mcp__pob2__plan_from_build {run_folder: <runFolder>, build_name | import_code}`. Its reply names what it
-left out and its questions: the main skill (`main_group`; PoB's choice may be its guess), the loadout when the file holds
-several, an older tree (`tree`), a stand-in for a base the pin lacks (`stand_in`). Ask them as an interview, the reply's
-numbers and the file's beside them, never as a multiple choice; then make the second call with the answers. Log
+**2. Read.** `mcp__pob2__plan_from_build {run_folder: <runFolder>, build_name | import_code}`. Its reply names what
+it left out and its questions: the main skill (`main_group`; PoB's choice may be its guess), the loadout when the file
+holds several, an older tree (`tree`), a stand-in for a base the pin lacks (`stand_in`). Ask them as an interview, the
+reply's numbers and the file's beside them, never as a multiple choice; then make the second call with the answers. Log
 `pob2-run-log <runFolder> stage` `{"stage": "read", "attempt": 1, "outcome": "done"}`, or `"fail"` when the reader
 refused the file, and stop there with its reason. The Spirit question is compile's: pricing measures the file as read.
 
 **3. The notice** (D-461, `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/pricing.md`, "Pace"). Online, before step 4:
-tell the player that pricing starts, about how many searches it makes (one depth check a rare and rare jewel, one a
-unique or magic item, and with a budget about two a gear slot: from the reader's `<k> items`, about <k> plus 2 a gear
-slot), that they go at least 45 s apart (about <n> minutes), and that their browser shares the trade site's limit.
-Over 30 searches, wait for the player's yes first. Offline, no notice.
+tell the player that pricing starts, the most searches it makes, that they go at least 45 s apart (about <n> minutes
+at most), and that their browser shares the trade site's limit. **The bound** is counted from one view of the read
+stage, `mcp__pob2__guide_run {view: {plan: "<runFolderRel>/plan.json", stage: "<its id>"}}`, its items: 2 a rare item
+or rare tree jewel (its depth check and the thin retry), 1 a unique or a magic or normal item (flasks and charms
+aside), 1 a rune, soul core or idol in a socket (the exchange may not list it), and with a budget 2 a gear slot (a
+weapon, armour piece, ring, amulet or belt). Over 30, wait for the player's yes first (30 without asking). The bound
+goes in the header as `maxSearches`: the step never makes more. Offline, no notice and `maxSearches` 0.
 
 **4. Price.** Call one fresh coordinator, alone:
 
 ````
 ```json
 {"stage": "price", "attempt": 1, "mode": "online", "runFolder": "<abs>", "runFolderRel": "pricing/2026-12-01-1",
- "buildFolder": ".", "compile": "measure-only", "league": null, "budget": 50, "rung": null, "faults": [],
- "writes": ["plan.json", "prices.md", "upgrades.json"], "root": "<the plugin root>",
+ "buildFolder": ".", "compile": "measure-only", "league": null, "budget": 50, "rung": null, "maxSearches": 26,
+ "faults": [], "writes": ["plan.json", "prices.md", "upgrades.json"], "root": "<the plugin root>",
  "reference": "skills/pricing/references/stages/price.md"}
 ```
 Read <root>/skills/pricing/references/stages/price.md and do that step.
@@ -91,16 +96,20 @@ Read <root>/skills/pricing/references/stages/price.md and do that step.
 
 `budget` is the player's divines or `null`; `league` and `rung` are `null` until the player answers. Log its return as
 `pob2-run-log <runFolder> stage` `{"stage": "price", "attempt": <n>, "outcome": "done", "priceOutcomes": {…}}` from its
-`prices:` line (`{}` for `prices: none`). Route on its return:
+`prices:` line (`{}` for `prices: none`). Route on its return, a stop first:
+- **A pricing stop** (its counts hold `rate_limited`, `locked_out` or `pace`) wins over every other line: `pob2-run-log`
+  records it, and the run ends `stopped` (D-516, §12, the runner rules). Ask for the rung first when the return names
+  none (its `place: ask`), run the step once more with `rung` (the stop open, it makes no trade request and writes the
+  place), set the status `stopped` with `pob2-run-log <runFolder> set`, tell the player when the lockout ends, and
+  stop.
 - `league: ask (<leagues>)`: the file's league isn't one trade lists, or is Standard, hardcore or SSF. Ask which league
   to price in, then run the step again with `league`. Never price in another league without the player's word.
+- `searches: cap <made> of <bound>`: the step reached the notice's bound with items or slots left. Tell the player
+  what is unpriced, count the bound again for what's left (step 3; over 30, the yes first) and run the step again with
+  it: it reuses every price the plan holds.
 - `place: ask`: the cost can't place it (offline, an `unavailable` price, no rates under `--no-ninja`). Ask for the
   rung (entering maps, budget or non-budget, or in the campaign), then run the step again with `rung`: it reuses every
   price the plan holds and searches nothing new.
-- **A pricing stop** (its counts hold `rate_limited`, `locked_out` or `pace`): `pob2-run-log` records it, and the run
-  ends (D-516, the runner rules). Ask for the rung first when the return names none, run the step once more with
-  `rung` (the stop open, it makes no trade request and writes the place), set the status `stopped` with
-  `pob2-run-log <runFolder> set`, tell the player when the lockout ends, and stop.
 - `fail` (the compile refused the plan): say so, set the status `stopped`, and stop.
 
 **5. The display.** From `prices.md` and `upgrades.json`, short and in players' words ("exalts", "divines"): the
@@ -117,5 +126,7 @@ the player the run folder, the files (`prices.md`, `upgrades.json`) and each vio
 
 `/pob2:pricing --resume <run folder>`, after the lockout ends, is the retry (D-516): `mcp__pob2__guide_run {resume:
 <run folder>}`, then `pob2-run-log <runFolder> resume` with this session's `noNinja`, which clears the stop. Read
-`run-log.json`; the read is done, so give the notice (step 3) and run step 4 again: it reuses every price the plan
-holds, prices the rest and may place the character again. Then steps 5 and 6.
+`run-log.json`; the read is done. The budget is `upgrades.json`'s, and the league `prices.md`'s `League:` line; ask
+only for what's missing (with no `upgrades.json`, whether the player wants upgrades). Give the notice (step 3) and
+run step 4 again: the placed stage is measured as its own rung, the step reuses every price the plan holds, prices the
+rest and may place the character again. Then steps 5 and 6.

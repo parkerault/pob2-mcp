@@ -10,6 +10,9 @@
  *   a stop) or under `--no-ninja` and for a league trade doesn't list, Standard, hardcore or SSF, before any search; it
  *   holds §16's parts (the replace cost, the owned rare's spec, the place by D-371's targets and choice B, choice A's
  *   campaign, the upgrades capped at the budget, links without a cookie) and A.10's `upgrades.json`.
+ * - The fix round: the notice's bound by kind and the step's cap at it (`maxSearches`); `measure_as` only on an unplaced
+ *   stage, so a resume compiles; the gems priced as uncut gems; a thin retry's dropped must-have in `leftOut`; a stop
+ *   winning over a place question; a request naming no build; the resume's budget and league.
  * - `pricing.md` is at its new path, `skills/pricing/references/pricing.md`, its text unchanged but for paths, and no
  *   file under `skills/`, `agents/`, `src/`, `scripts/` (the words-loaded baseline aside) or `tests/` names the old one.
  */
@@ -83,11 +86,12 @@ describe("AC-W155 (WU-163, D-520): /pob2:pricing's SKILL.md", () => {
   it("calls the price step as a pob2: coordinator with price.md, never prices itself, and never writes the player's file", () => {
     expect(BODY).toContain('`pob2:build-guide-coordinator`, fresh');
     expect(BODY).toContain('Read <root>/skills/pricing/references/stages/price.md and do that step.');
-    expect(BODY).toMatch(/Your pob2 tools are `mcp__pob2__list_builds`, `mcp__pob2__guide_run` \(`\{new_run: "pricing"\}`, `\{resume: <run folder>\}`\) and `mcp__pob2__plan_from_build`/);
+    expect(BODY).toMatch(/Your pob2 tools are `mcp__pob2__list_builds`, `mcp__pob2__guide_run` \(`\{new_run: "pricing"\}`, `\{resume: <run folder>\}`, and one `\{view: \{plan, stage\}\}` for the notice's count\) and `mcp__pob2__plan_from_build`/);
     for (const tool of ['get_item_price', 'search_trade_items', 'find_upgrades', 'get_currency_rates', 'get_leagues', 'compile_plan']) expect({ tool, named: BODY.includes(`mcp__pob2__${tool}`) }).toEqual({ tool, named: false });
     expect(BODY).toContain("**Write the player's file.**");
-    // §12: a build the player names is matched against list_builds, never guessed.
+    // §12: a build the player names is matched against list_builds, never guessed; one the request doesn't name is asked for.
     expect(BODY).toMatch(/a file whose name equals the name the player gave, ignoring case and `\.xml`, is the build\. Otherwise list the closest names and ask; never guess/);
+    expect(BODY).toMatch(/A request that names no build \("what is my gear worth"\): list the builds and ask which one, or take an import code the player pastes/);
   });
 
   it('has §16\'s steps in order, the notice before any trade request (over 30 searches the yes first), and a stop that ends the run (D-516)', () => {
@@ -95,8 +99,19 @@ describe("AC-W155 (WU-163, D-520): /pob2:pricing's SKILL.md", () => {
     expect(steps).toEqual([[1, 'Start'], [2, '`read`'], [3, 'The notice'], [4, '`price`'], [5, 'The display'], [6, 'End']]);
     expect(BODY).toMatch(/before any trade request, the pricing notice; over 30 searches, the player's yes first/);
     expect(BODY).toMatch(/that they go at least 45 s apart .*, and that their browser shares the trade site's limit/);
-    expect(BODY).toMatch(/\*\*A pricing stop\*\* .*the run ends \(D-516, the runner rules\)\. Ask for the rung first when the return names none/);
+    // §12: a stop wins over a place question, so the run ends stopped.
+    expect(BODY).toMatch(/Route on its return, a stop first: - \*\*A pricing stop\*\* .* wins over every other line: .* the run ends `stopped` \(D-516, §12, the runner rules\)\. Ask for the rung first when the return names none \(its `place: ask`\)/);
     expect(BODY).toMatch(/`\/pob2:pricing --resume <run folder>`, after the lockout ends, is the retry \(D-516\)/);
+    // The resume takes the budget and the league the run recorded, asking only for what's missing.
+    expect(BODY).toMatch(/The budget is `upgrades\.json`'s, and the league `prices\.md`'s `League:` line; ask only for what's missing/);
+    expect(BODY).toMatch(/the placed stage is measured as its own rung/);
+  });
+
+  it("states the notice's bound by kind, over 30 the yes first, passes it as maxSearches and routes the step's cap (§16 step 3, the fix round)", () => {
+    expect(BODY).toMatch(/\*\*The bound\*\* is counted from one view of the read stage, `mcp__pob2__guide_run \{view: \{plan: "<runFolderRel>\/plan\.json", stage: "<its id>"\}\}`, its items: 2 a rare item or rare tree jewel \(its depth check and the thin retry\), 1 a unique or a magic or normal item \(flasks and charms aside\), 1 a rune, soul core or idol in a socket \(the exchange may not list it\), and with a budget 2 a gear slot/);
+    expect(BODY).toMatch(/Over 30, wait for the player's yes first \(30 without asking\)\. The bound goes in the header as `maxSearches`: the step never makes more/);
+    expect(BODY).toContain('"maxSearches": 26');
+    expect(BODY).toMatch(/`searches: cap <made> of <bound>`: the step reached the notice's bound .* count the bound again for what's left \(step 3; over 30, the yes first\) and run the step again with it/);
   });
 });
 
@@ -152,6 +167,30 @@ describe("AC-W155 (WU-163, D-520): price.md, the pricing piece's stage reference
     expect(PRICE).toMatch(/With no budget, no upgrade search runs and no `upgrades\.json` is written/);
     // A.10's shape, with the link-only slot.
     expect(PRICE).toMatch(/Appendix A\.10's shape: `\{"budget": \{"divines": <n>\}, "league", "checked": .*"slots": \[\{"slot", "listings": \[\{"price": \{"amount", "currency"\}, "gain": \{"fullDps", "ehp", "maxHit": \{"type", "change"\}\}, "link"\}\]\}\], "chosen": \[\], "spent": 0\}`/);
+  });
+
+  it('compiles with measure_as only while the stage is unplaced; a placed stage, on a resume, as its own rung', () => {
+    expect(PRICE).toMatch(/While the read stage is unplaced \(id `f`, no `variant`\), `mcp__pob2__compile_plan \{plan_path: "<plan>", measure_only: true, measure_as: "non-budget"\}`; once placed \(a resume, or a run again\), the stage is measured as its own rung, `\{plan_path: "<plan>", measure_only: true\}` with no `measure_as`, which a placed stage refuses/);
+  });
+
+  it('never makes more trade searches than the notice announced: it counts each and stops at the bound', () => {
+    expect(PRICE).toMatch(/2\. \*\*The cap\*\* \(D-461, §16 step 3\)\. Never make more trade searches than the header's `maxSearches`, the notice's bound/);
+    expect(PRICE).toMatch(/a `mcp__pob2__find_upgrades` call its reply's `Searches <n>`/);
+    expect(PRICE).toMatch(/a rare's depth check needs 2 \(its thin retry\), a `find_upgrades` call 2, any other call that may search 1\. With too few left, stop searching: every item still to price is `unavailable`, `note` `search cap`/);
+    expect(PRICE).toMatch(/return `searches: cap <made> of <maxSearches>`/);
+    expect(PRICE).toContain('Searches: <made> of at most <maxSearches>.');
+  });
+
+  it("prices the gems, as §16 lists them: uncut gems from the exchange at their levels, a support at its tier, a lineage support by name; the place counts them", () => {
+    expect(PRICE).toMatch(/\*\*The gems\*\* \(§16: uncut gems from poe\.ninja's exchange\): each gem of the read stage's groups but a skill an item or a passive grants/);
+    expect(PRICE).toMatch(/a skill gem as `Uncut Skill Gem \(Level <its level>\)`, a Spirit gem .* as `Uncut Spirit Gem \(Level <its level>\)`, a gem corrupted \+1 at its level less 1/);
+    expect(PRICE).toMatch(/a support gem as `Uncut Support Gem \(Level <its tier>\)`, its `Tier:` from `mcp__pob2__lookup_game_data \{mode: "gem", query: <its name>\}`; a lineage support by its own name/);
+    expect(PRICE).toMatch(/The place counts them/);
+    expect(PRICE).not.toMatch(/gems aren't part of it/);
+  });
+
+  it("puts a thin retry's dropped must-have in leftOut, its why thin with it: <count>", () => {
+    expect(PRICE).toMatch(/check once more, the dropped one in `leftOut` with the why `thin with it: <count>`/);
   });
 
   it('reads pricing.md by its new path, and pricing.md says the notice, the pace and the stop', () => {

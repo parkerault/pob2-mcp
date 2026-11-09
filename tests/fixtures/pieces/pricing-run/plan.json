@@ -192,6 +192,48 @@
         "leftOut": [],
         "searches": 0
       }
+    },
+    {
+      "id": "f-gem-1-1",
+      "item": "Blood Hunt: Uncut Skill Gem (Level 20)",
+      "query": {
+        "group": 1,
+        "gem": 1
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-gem-1-2",
+      "item": "Bloodlust: an Uncut Support Gem at its tier",
+      "query": {
+        "group": 1,
+        "gem": 2
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-gem-2-1",
+      "item": "Rolling Slam: Uncut Skill Gem (Level 20)",
+      "query": {
+        "group": 2,
+        "gem": 1
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
     }
   ]
 }

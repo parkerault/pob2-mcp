@@ -12,6 +12,9 @@
  *   corrupted item's implicits left out, a roll read at its `{range:}`) and fails each planted fault.
  * - `upgrades.json` holds Appendix A.10's shape, a slot without a cookie its link alone, and fails each planted fault.
  * - The offline fixture run passes; its rules are pricing's, which a compile run isn't held to.
+ * - The fix round: the gems count in the whole cost (a character they move off `m`); on `n` over 200 divines the place
+ *   says so; an online run's searches line never exceeds its notice's bound; a thin retry's dropped must-have is in
+ *   `leftOut`; an owned rare's `ok` price carries its spec; each depth-check fault fails on its own.
  *
  * check-run loads the server's compiled `build/plan/`: `mise run test` builds first.
  */
@@ -160,9 +163,15 @@ function placeStage(s: Json, place: Place, level: number): void {
     if (k === 'progress') Object.assign(s, { variant: VARIANT[place], ascendancyPoints: 0, variantBasis: { level: tag('level'), gemLevels: tag('gem levels'), ascendancyPoints: tag('ascendancy points') } });
   }
 }
-function writePlace(dir: string, place: Place, basis: string): void {
-  fs.writeFileSync(path.join(dir, 'prices.md'), `# Prices: Fixture Titan (Endgame, level 90)\n\nLeague: ${LEAGUE}. Rates: 400 exalts a divine, seen ${SEEN}.\n\n## Place\n\nPlace: ${WORDS[place]}, ${basis}.\nAgainst the targets.\n`);
+/** prices.md's head, its searches line (made of at most announced, price.md's cap) and its place line on `basis`. */
+function writePlace(dir: string, place: Place, basis: string, searches = 'Searches: 5 of at most 12.', why = 'Against the targets.'): void {
+  fs.writeFileSync(path.join(dir, 'prices.md'), `# Prices: Fixture Titan (Endgame, level 90)\n\nLeague: ${LEAGUE}. Rates: 400 exalts a divine, seen ${SEEN}.\n${searches}\n\n## Place\n\nPlace: ${WORDS[place]}, ${basis}.\n${why}\n`);
 }
+/** price.md's gem entries (§16: uncut gems from the exchange), the fixture's three gems at `each` divines. */
+const gemPrices = (each: number): Json[] =>
+  [[1, 1, 'Blood Hunt: Uncut Skill Gem (Level 20)'], [1, 2, 'Bloodlust: Uncut Support Gem (Level 2)'], [2, 1, 'Rolling Slam: Uncut Skill Gem (Level 20)']].map(([group, gem, item]) => ({
+    id: `f-gem-${group}-${gem}`, item, query: { group, gem, exchange: 'UncutGems', name: String(item).split(': ')[1] }, amount: each, currency: 'divine', date: SEEN, league: LEAGUE, status: 'ok', note: 'exchange value',
+  }));
 
 // ---------------------------------------------------------------------------------------------------
 // placement
@@ -236,6 +245,46 @@ describe('AC-W155 (WU-163, D-520): placement places a priced character on the la
       expect.stringMatching(/places it by its level, which only a character below the endgame \(under 65\) is/),
       expect.stringMatching(/read stage is unplaced, but its replace cost places it on m/),
     ]);
+  });
+});
+
+describe('AC-W155 (WU-163, D-520, fix round): the gems, the over-200 line and the searches line', () => {
+  it('the gems count in the whole cost: priced uncut gems move a character off m, onto b', () => {
+    const set = { helmet: 2, boots: 1, rune: 0.1, amulet: 2 };
+    // About 3.3 divines at day 7 without the gems (m); three 2-divine uncut gems add about 3.9, over m's 5 in all.
+    passes(onlineRun([...priceSet(set), ...gemPrices(2)], 'b'));
+    expect(lines(check(onlineRun([...priceSet(set), ...gemPrices(2)], 'm')).stderr, 'placement')).toEqual([expect.stringMatching(/is on m, but its replace cost places it on b: the whole cost is about 7\.\d+ divines at day 7/)]);
+    // A cheap gem keeps it on m.
+    passes(onlineRun([...priceSet(set), ...gemPrices(0.1)], 'm'));
+    // An entry naming a gem the read stage lacks fails.
+    const stray = [...priceSet(set), ...gemPrices(0.1), { ...gemPrices(0.1)[0], id: 'f-gem-3-1', query: { group: 3, gem: 1, exchange: 'UncutGems', name: 'Uncut Skill Gem (Level 20)' } }];
+    expect(lines(check(onlineRun(stray, 'm')).stderr, 'placement')).toEqual([expect.stringMatching(/"f-gem-3-1" names group 3, gem 1, which isn't a gem of the read stage's groups/)]);
+  });
+
+  it('on n with the whole cost over 200 divines at day 21, the place says so', () => {
+    // An 800-divine helmet: ×0.5–0.85 to day 21, about 540.
+    const set = { helmet: 800, boots: 5, rune: 0.1, amulet: 6 };
+    const quiet = onlineRun(priceSet(set), 'n');
+    expect(lines(check(quiet).stderr, 'placement')).toEqual([expect.stringMatching(/places it on n, but doesn't say the whole cost is over 200 divines: about 5\d\d(?:\.\d+)? at day 21/)]);
+    const said = onlineRun(priceSet(set), 'n');
+    writePlace(said, 'n', 'by the replace cost', 'Searches: 5 of at most 12.', 'The helmet alone is over 5 divines, and the whole cost is over 200 divines.');
+    passes(said);
+  });
+
+  it("an online run's prices.md says how many searches the step made of the bound its notice announced, never more", () => {
+    const set = { helmet: 6, boots: 5, rune: 0.1, amulet: 6 };
+    const over = onlineRun(priceSet(set), 'b');
+    writePlace(over, 'b', 'by the replace cost', 'Searches: 13 of at most 12.');
+    expect(rulesIn(check(over).stderr)).toEqual(['pricing']);
+    expect(lines(check(over).stderr, 'pricing')).toEqual([expect.stringMatching(/prices\.md says the step made 13 trade searches, more than the 12 its notice announced/)]);
+    const none = onlineRun(priceSet(set), 'b');
+    writePlace(none, 'b', 'by the replace cost', 'No count.');
+    expect(lines(check(none).stderr, 'pricing')).toEqual([expect.stringMatching(/prices\.md has no searches line; an online pricing run's says "Searches: <made> of at most <announced>\."/)]);
+    // At the bound passes; offline there is no line to hold.
+    const at = onlineRun(priceSet(set), 'b');
+    writePlace(at, 'b', 'by the replace cost', 'Searches: 12 of at most 12.');
+    passes(at);
+    passes(fixtureRun());
   });
 });
 
@@ -371,9 +420,33 @@ describe('AC-W155 (WU-163, D-520): the importer fixture, read by plan_from_build
     { name: 'a base that isn\'t the item\'s', edit: (a) => (a.spec.base = 'Ironclad Vest'), says: /spec has base "Ironclad Vest"; the owned rare in Body Armour is a "Slipstrike Vest"/ },
     { name: 'five must-haves', edit: (a) => a.spec.mustHaves.push({ affix: '#% increased Evasion Rating', tradeId: 'explicit.stat_2106365538', tier: 1, min: 100, why: 'x' }, { affix: '#% increased Evasion Rating', tradeId: 'explicit.stat_2106365538', tier: 1, min: 100, why: 'x' }), says: /spec requires 5 affix\(es\); an owned rare's must-haves are the 3 or 4 of its own lines/ },
     {
-      name: 'an ok depth check that is corrupted, and one that leaves a must-have out',
-      edit: (a) => Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '12 found, the 5th cheapest', query: { ...a.query, mods: [{ stat_id: LIFE, min: 85 }, { stat_id: FIRE, min: 26 }], corrupted: true } }),
-      says: /depth check doesn't ask for its must-have "#% to Chaos Resistance"|depth check has corrupted true/,
+      name: 'an ok depth check that is corrupted',
+      edit: (a) => Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '12 found, the 5th cheapest', query: { ...a.query, mods: ARMOUR_SPEC.mustHaves.map((m) => ({ stat_id: m.tradeId, min: m.min })), corrupted: true } }),
+      says: /depth check has corrupted true; an owned rare's spec is searched uncorrupted/,
+    },
+    {
+      name: 'an ok depth check that leaves a must-have out',
+      edit: (a) => Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '12 found, the 5th cheapest', query: { ...a.query, mods: [{ stat_id: LIFE, min: 85 }, { stat_id: FIRE, min: 26 }], corrupted: false } }),
+      says: /depth check doesn't ask for its must-have "#% to Chaos Resistance"/,
+    },
+    {
+      name: "an ok price of an owned rare with no spec",
+      edit: (a) => {
+        Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '12 found, the 5th cheapest' });
+        delete a.spec;
+      },
+      says: /prices the owned rare in Body Armour, but has no spec; an owned rare is priced by its spec from its own lines/,
+    },
+    {
+      name: "a thin retry's dropped must-have kept among the must-haves",
+      edit: (a) => {
+        // Four required, thin; the retry searched three, but the spec still lists the fourth.
+        a.spec.mustHaves.push({ affix: '#% increased Evasion Rating', tradeId: 'explicit.stat_2106365538', tier: 2, min: 111 });
+        a.spec.leftOut = [];
+        Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '11 found, the 5th cheapest', query: { ...a.query, mods: ARMOUR_SPEC.mustHaves.map((m) => ({ stat_id: m.tradeId, min: m.min })), corrupted: false } });
+        a.spec.searches = 2;
+      },
+      says: /depth check doesn't ask for its must-have "#% increased Evasion Rating"/,
     },
   ];
   for (const { name, edit, says } of FAULTS) {
@@ -384,6 +457,19 @@ describe('AC-W155 (WU-163, D-520): the importer fixture, read by plan_from_build
       expect(rulesIn(r.stderr).filter((x) => !['offline-prices'].includes(x))).toEqual(['owned-spec']);
     });
   }
+
+  it("a thin retry's dropped must-have goes to leftOut, its why thin with it: <count>; without it the retry fails owned-spec", () => {
+    // Four required at first (evasion the fourth), 6 found; the retry without evasion found 11: its 5th cheapest prices it.
+    const retried = (leftOut: Json[]) => withSpecs((a) => {
+      Object.assign(a, { status: 'ok', amount: 3, currency: 'divine', note: '11 found, the 5th cheapest', query: { ...a.query, league: LEAGUE, item_type: 'Slipstrike Vest', mods: ARMOUR_SPEC.mustHaves.map((m) => ({ stat_id: m.tradeId, min: m.min })), corrupted: false, limit: 10 } });
+      a.spec.leftOut = leftOut;
+      a.spec.searches = 2;
+    });
+    const ok = check(priced(at90, 'n', "the user's word", retried([{ affix: '#% increased Evasion Rating', why: 'thin with it: 6' }])));
+    expect(lines(ok.stderr, 'owned-spec')).toEqual([]);
+    const missing = check(priced(at90, 'n', "the user's word", retried([])));
+    expect(lines(missing.stderr, 'owned-spec')).toEqual([expect.stringMatching(/leaves out "#% increased Evasion Rating", one of PoB's top 4 that the owned rare carries, with no leftOut entry giving its why/)]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -440,7 +526,10 @@ describe('AC-W155 (WU-163, D-520): the offline fixture pricing run', () => {
     passes(fixtureRun());
     const plan = readJson(PRICING_RUN, 'plan.json');
     expect(plan.stages[0]).toMatchObject({ id: 'b', variant: 'budget', loadoutName: 'Endgame (L90) {b}' });
-    expect(plan.prices).toEqual([expect.objectContaining({ id: 'f-helmet', status: 'unavailable', note: 'offline run', query: expect.objectContaining({ slot: 'Helmet' }) })]);
+    expect(plan.prices).toEqual([
+      expect.objectContaining({ id: 'f-helmet', status: 'unavailable', note: 'offline run', query: expect.objectContaining({ slot: 'Helmet' }) }),
+      ...['f-gem-1-1', 'f-gem-1-2', 'f-gem-2-1'].map((id) => expect.objectContaining({ id, status: 'unavailable', note: 'offline run', query: { group: Number(id[6]), gem: Number(id[8]) } })),
+    ]);
     expect(fs.readFileSync(path.join(PRICING_RUN, 'prices.md'), 'utf8')).toMatch(/^Place: budget \(b\), the user's word\.$/m);
   });
 

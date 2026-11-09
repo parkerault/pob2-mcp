@@ -260,5 +260,23 @@
       ]
     }
   },
-  "since": {}
+  "since": {
+    "measure": {
+      "commit": "6b4020b",
+      "words": 25947,
+      "files": [
+        "agents/build-guide-coordinator.md",
+        "skills/build-guide/SKILL.md",
+        "skills/build-guide/references/boss-floor.json",
+        "skills/build-guide/references/offline-and-test.md",
+        "skills/build-guide/references/pricing.md",
+        "skills/build-guide/references/task-header.md",
+        "skills/build-guide/references/toughness-targets.json",
+        "skills/build-guide/templates/card-template.md",
+        "skills/compile/references/stages/measure.md",
+        "skills/game-knowledge/references/lookups.md",
+        "skills/game-knowledge/references/source-markers.md"
+      ]
+    }
+  }
 }

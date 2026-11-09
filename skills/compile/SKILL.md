@@ -97,9 +97,13 @@ The user asked for it, in the request or after the display. A measure that wrote
 - **The budget**, asked in the user's words, which go verbatim in each design step's prompt. Without trade, the round
   designs at the floor tiers, its prices `unavailable`; say so once.
 - **Place** (amendment 16 §16). Below the endgame (level under 65, or the owner's word) it isn't placed: the round
-  aims at entering maps' targets (choice A). With trade, pricing's placement scope places it; without trade (offline,
-  `--no-ninja`, or a stop before a rung is known), ask the user for the rung: entering maps, budget or non-budget,
-  never assumed. Log `place` with its `priceOutcomes`; a rung the user named goes in D1-build's prompt.
+  aims at entering maps' targets (choice A). With trade, pricing's placement scope places it: a fresh
+  `pob2:build-guide-coordinator`, `stage: "place"`, its reference
+  `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/stages/price.md`, `writes: ["plan.json"]`, `budget` and `rung`
+  null, `maxSearches` the bound your notice announced, counted as `${CLAUDE_PLUGIN_ROOT}/skills/pricing/SKILL.md`
+  step 3 counts it, without the upgrades; without trade (offline, `--no-ninja`, or a stop before a rung is known), ask
+  the user for the rung: entering maps, budget or non-budget, never assumed. Log `place` with its `priceOutcomes`; a
+  rung the user named goes in D1-build's prompt.
 - **D1-build, D1-tree, D1-finish, the D1 gate**, each with `scope: "better"` in its header and its stage reference
   (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/stages/`), in that order, routed as
   `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` §4 routes them, but a compile run logs no `build` entry and no

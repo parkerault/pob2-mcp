@@ -7056,6 +7056,13 @@ function checkPrices14({ plan, planStages, gate, fail, owned = () => false }) {
     const text = items.get(`${x.stage}|${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`);
     if (typeof text === 'string' && !mapped.has(x.priceId)) mapped.set(x.priceId, { text, where: `${x.stage} ${x.jewel !== undefined ? `jewel ${x.jewel}` : x.slot}`, variant: planStages.find((st) => st.id === x.stage)?.variant });
   }
+  // D-520 (WU-163): the replace cost's entry for an owned item names its slot in query.slot (a tree jewel's `Jewel <node>`),
+  // with no gate to map it; it is the character's own item priced, held to pricing's owned-spec instead (ownedContent).
+  const read = planStages.find((st) => isObj(st.source));
+  for (const p of read ? list(plan.prices) : []) {
+    const slot = isObj(p.query) && p.query.socket === undefined && p.query.group === undefined ? p.query.slot : undefined;
+    if (typeof slot === 'string' && owned(read.id, /^Jewel \d+$/.test(slot) ? `jewel ${slot.slice(6)}` : slot)) ownedPrices.add(p.id);
+  }
   const norm14 = (a) => String(a ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
   for (const p of list(plan.prices)) {
     const at = `plan.json's price entry ${show(p.id)}`;

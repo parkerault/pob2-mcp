@@ -537,7 +537,9 @@ describe('AC-W155 (WU-163, D-520): the offline fixture pricing run', () => {
     const stray = { id: 'f-x', item: 'nothing', query: { slot: 'Nowhere' }, amount: null, currency: null, date: '2026-12-01', league: null, status: 'unavailable', note: 'offline run', spec: { base: 'x' } };
     const pricing = fixtureRun();
     editJson(pricing, 'plan.json', (p) => p.prices.push(stray));
-    expect(rulesIn(check(pricing).stderr)).toEqual(['placement', 'owned-spec']);
+    // Since WU-162 a piece run with no D1 gate is held to amendment 14's price rules too, so the stray spec, on no owned
+    // item, fails pricing's spec beside them.
+    expect(rulesIn(check(pricing).stderr)).toEqual(['placement', 'owned-spec', 'spec']);
     const dir = path.join(TMP, `root-${++copies}`, 'compile', '2026-12-01-1');
     fs.mkdirSync(path.dirname(dir), { recursive: true });
     fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'pieces', 'compile-run'), dir, { recursive: true });

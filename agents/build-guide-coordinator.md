@@ -1,6 +1,6 @@
 ---
 name: build-guide-coordinator
-description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the round's composites and the deck (R1a-synthesize, or R1a-assemble in an older run), card skeletons (R1b), the dossier (R1b-assemble), a gate question (Q), each build's design and gate steps (D1-build, D1-tree, D1-finish, D1-gate, F1, D2, D2-gate), and a piece run's measure of a player's file (measure). Started only by a pob2 skill's runner with the Agent tool, one step at a time; never for other tasks.
+description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the round's composites and the deck (R1a-synthesize, or R1a-assemble in an older run), card skeletons (R1b), the dossier (R1b-assemble), a gate question (Q), each build's design and gate steps (D1-build, D1-tree, D1-finish, D1-gate, F1, D2, D2-gate), a piece run's measure of a player's file (measure), and its replace cost, place and upgrades (price, and its placement scope, place). Started only by a pob2 skill's runner with the Agent tool, one step at a time; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_node_power, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates, mcp__pob2__find_upgrades, mcp__pob2__manage_sets
 ---
 
@@ -182,6 +182,7 @@ The rules every design step keeps:
 | Stage | Stage reference | Does |
 |---|---|---|
 | `measure` | `${CLAUDE_PLUGIN_ROOT}/skills/compile/references/stages/measure.md` | the read plan's measure-only compile under its own configuration (`measure_as`), the engagement, the callouts, the Spirit question, the summary against the targets and, for the better round, the file card (D-519) |
+| `price` | `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/stages/price.md` | a pricing run's league, rates and replace cost (an owned rare by its own spec, a unique by name, what its sockets hold and the gems from the exchange), its place on the ladder and, with a budget, the upgrades, within the notice's search cap (D-520); with `stage: "place"`, the placement scope alone, for compile's better round and a file run |
 
 A compile run's better round runs the design steps above with `scope: "better"` (D-521).
 

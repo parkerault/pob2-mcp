@@ -223,6 +223,18 @@ describe('AC-W155 (WU-163, D-520): pricing.md moved to the pricing piece', () =>
     for (const x of forms) expect(forms.some((y) => `see ${x} here`.includes(y))).toBe(true);
   });
 
+  it("phase 2 (§24): the coordinator's step table has the price row, and compile's place step names pricing's placement scope by path", () => {
+    const coordinator = read('agents', 'build-guide-coordinator.md');
+    expect(coordinator).toMatch(/^\| `price` \| `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/pricing\/references\/stages\/price\.md` \| a pricing run's league, rates and replace cost .*; with `stage: "place"`, the placement scope alone, for compile's better round and a file run \|$/m);
+    // The row sits beside compile's measure row, in the pieces' table.
+    const pieces = coordinator.split("## The pieces' steps")[1].split('\n## ')[0];
+    expect(pieces).toMatch(/^\| `measure` \|/m);
+    expect(pieces).toMatch(/^\| `price` \|/m);
+    expect(/^description: .*\(price, and its placement scope, place\)/m.test(coordinator)).toBe(true);
+    const compile = folded(read('skills', 'compile', 'SKILL.md'));
+    expect(compile).toMatch(/With trade, pricing's placement scope places it: a fresh `pob2:build-guide-coordinator`, `stage: "place"`, its reference `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/pricing\/references\/stages\/price\.md`, `writes: \["plan\.json"\]`/);
+  });
+
   it('every reader names the new path: the coordinator, the runner rules and the pipeline\'s pricing steps', () => {
     const NEW = 'skills/pricing/references/pricing.md';
     for (const f of ['agents/build-guide-coordinator.md', 'skills/build-guide/references/runner-rules.md', 'skills/build-guide/SKILL.md', 'skills/build-guide/references/stages/R1b.md', 'skills/build-guide/references/stages/D1-build.md', 'skills/build-guide/references/stages/D1-finish.md', 'skills/build-guide/references/stages/D2.md']) {

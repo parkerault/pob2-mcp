@@ -145,6 +145,16 @@ describe('AC-W159 (WU-166, D-523, C-57): the fifth command and the runner\'s lin
     expect(write).toContain('One script writes outside it: `pob2-league-digest`, only in the league folder `guide_run {new_run}` names (D-523).');
   });
 
+  it("each piece's SKILL.md runs it with guide_run's league folder and passes that folder to init, and stays under 150 lines", () => {
+    for (const piece of ['compile', 'pricing', 'writer']) {
+      const raw = read('skills', piece, 'SKILL.md');
+      const text = folded(raw);
+      expect({ piece, fetch: text.includes('run `pob2-league-digest --running --out <leagueFolder>`'), folder: text.includes('`leagueFolder`'), lines: raw.split('\n').length < 150 }).toEqual({ piece, fetch: true, folder: true, lines: true });
+    }
+    expect(folded(read('skills', 'compile', 'SKILL.md'))).toContain('init` with `{"piece": "compile", "mode", "testConfig": "none", "noNinja", "source", "leagueFolder"}`');
+    expect(read('skills', 'pricing', 'SKILL.md')).toContain('"source": {"kind": "builds-folder", "name": "MyCharacter123"}, "leagueFolder": "<leagueFolder>"}');
+  });
+
   it('the run settings example allows it', () => {
     expect(JSON.parse(read('docs', 'build-guide', 'run-settings.example.json')).permissions.allow).toContain('Bash(pob2-league-digest:*)');
   });

@@ -38,6 +38,7 @@ const TEST_RUNE = 'Saltmarsh Test Rune';
 const TEST_UNIQUE = 'Saltmarsh Loop';
 const PIN_CORE = "Hayoxi's Soul Core of Heatproofing";
 const CORE = "Brinewarden's Soul Core of Tides";
+const BAD_CORE = "Brinewarden's Soul Core of Nets";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'league-overlay-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -192,13 +193,18 @@ const read = (file: string): Json => JSON.parse(fs.readFileSync(file, 'utf8')) a
 
 // The text's own rune line, +1%, is what PoB keeps for a rune it doesn't know; one it knows it rebuilds from its data.
 const HELMET = ['Rarity: Rare', 'Brine Crown', 'Sorcerous Tiara', 'Sockets: S', `Rune: ${CORE}`, 'Implicits: 0', '{rune}+1% to Chaos Resistance', '+40 to maximum Energy Shield'].join('\n');
+const GLOVES = ['Rarity: Rare', 'Brine Grip', 'Vaal Gloves', 'Sockets: S', `Rune: ${BAD_CORE}`, 'Implicits: 0', '{rune}+5% to Chaos Resistance', '+30 to maximum Energy Shield'].join('\n');
 /** The sidecar that adds the helmet's soul core, +17% to Chaos Resistance. */
 const CORE_SIDECAR = (league: string, file = 'saltmarsh-rites.overlay.json') =>
   writeSidecar(path.join(league, file), {
     schemaVersion: 1,
     league: 'Saltmarsh Rites',
     fetched: '2026-11-09',
-    socketables: [{ name: CORE, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+17% to Chaos Resistance'], statOrder: [CHAOS_ORDER] }] }],
+    socketables: [
+      { name: CORE, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+17% to Chaos Resistance'], statOrder: [CHAOS_ORDER] }] },
+      // Refused by Overlay.lua (a statOrder that isn't a number), so the engine never loads it and no record names it.
+      { name: BAD_CORE, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Gloves', keys: ['gloves'], lines: ['+5% to Chaos Resistance'], statOrder: ['x'] }] },
+    ],
     uniques: [{ name: TEST_UNIQUE, base: 'Gold Ring', level: 30, implicits: ['(6-15)% increased Rarity of Items found'], explicits: ['+(30-40) to maximum Life'] }],
     skipped: [],
   });
@@ -207,7 +213,7 @@ const CORE_SIDECAR = (league: string, file = 'saltmarsh-rites.overlay.json') =>
 async function compileHelmet(f: SessionFixture, slug: string): Promise<CompileRecord> {
   const plan = read(LICH);
   const s = plan.stages[0];
-  s.items.slots = [...s.items.slots.filter((x: Json) => x.slot !== 'Helmet'), { slot: 'Helmet', text: HELMET }];
+  s.items.slots = [...s.items.slots.filter((x: Json) => x.slot !== 'Helmet' && x.slot !== 'Gloves'), { slot: 'Helmet', text: HELMET }, { slot: 'Gloves', text: GLOVES }];
   plan.stages = [s];
   const made = await f.call('guide_run', { new_run: slug });
   if (made.isError) throw new Error(`guide_run failed: ${made.text}`);
@@ -251,6 +257,7 @@ engineDescribe('AC-W159 (WU-166, D-523): the overlay through the server, a sidec
       expect(f.session.enginePid()).not.toBe(pid);
       expect(before.stages[stage].outputs.ChaosResist).toBeLessThan(50);
       expect(after.stages[stage].outputs.ChaosResist - before.stages[stage].outputs.ChaosResist).toBe(16);
+      // Only what the engine loaded: the refused gloves' core isn't named.
       expect(after.stages[stage].overlay).toEqual([CORE]);
     },
     ENGINE_TIMEOUT,
@@ -303,6 +310,24 @@ engineDescribe('AC-W159 (WU-166, D-523): a changed sidecar list restarts the eng
   }, ENGINE_TIMEOUT);
 
   afterAll(async () => f?.close(), 60_000);
+
+  it(
+    'an engine that holds only the build it started with (no snapshot, nothing changed) restarts afresh to read a new sidecar',
+    async () => {
+      // A lookup starts the engine: PoB's empty build, no load, no snapshot.
+      expect((await f.call('lookup_game_data', { mode: 'unique', query: 'Andvarius' })).isError).toBe(false);
+      const pid = f.session.enginePid();
+      expect(pid).not.toBeNull();
+      expect(f.session.loaded?.path).toBeNull();
+      sidecarNow();
+      const found = await f.call('lookup_game_data', { mode: 'unique', query: `Brine Loop ${n}` });
+      expect(found.isError).toBe(false);
+      expect(found.text).toContain(`## Brine Loop ${n} (Ring)`);
+      expect(f.session.enginePid()).not.toBe(pid);
+      expect(found.text).not.toContain('restored the build');
+    },
+    ENGINE_TIMEOUT,
+  );
 
   it(
     'an unchanged sidecar list keeps the same engine across loads; a changed one restarts it, and lua_reload_build {} still reloads its file',

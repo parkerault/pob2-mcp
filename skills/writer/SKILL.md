@@ -53,14 +53,16 @@ character ("my build MyCharacter123") is `/pob2:build-guide`'s guide from a file
 
 ## 1. Start
 
-- `mcp__pob2__guide_run {new_run: "writer"}`, before the source: keep `runFolder` and `runFolderRel`.
+- `mcp__pob2__guide_run {new_run: "writer"}`, before the source: keep `runFolder`, `runFolderRel` and `leagueFolder`.
+  When the source run was online, run `pob2-league-digest --running --out <leagueFolder>` (D-523).
 - `pob2-run-log <runFolder> init` with `{"piece": "writer", "mode", "testConfig": "none", "noNinja", "source": {"kind":
   "run-folder", "name": "<slug>/<YYYY-MM-DD>-<n>", "build": "<id>"}}`: `mode` the source run's (its log's `mode`: the
   guide says whether its prices were checked); `noNinja` false, as the writer prices nothing; `build` the source build's
-  id (`file` for a run from a file), none for a `/pob2:compile` run. `init` refuses a source that isn't a build that
-  passed F1 (a compile run with its measure only among them) or that keeps what a guide can't carry (a legacy gem, a
-  Legacy soul core, a corrupted rare): tell the user its reason and the command it names, and stop. Print the lines
-  `init` printed after its first.
+  id (`file` for a run from a file), none for a `/pob2:compile` run; and `"leagueFolder"`. `init` refuses a source that
+  isn't a build that passed F1 (a compile run with its measure only among them) or that keeps what a guide can't carry (a
+  legacy or no longer obtainable gem or unique, an owned Legacy soul core, an owned non-unique item's corruption, or an
+  owned unique's the corruption rule doesn't allow): tell the user its reason and the command it names, and stop. Print
+  the lines `init` printed after its first.
 - **A resume**, `/pob2:writer --resume <run folder>`: `mcp__pob2__guide_run {resume}`, `pob2-run-log <runFolder>
   resume` with `noNinja` false, `pob2-render-audit <runFolder>` again (it keeps the Known issues rows), then the step
   the log shows next (W1 when no `W1` is `done`, else step 4).

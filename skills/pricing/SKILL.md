@@ -53,11 +53,13 @@ code the player pastes. A pasted import code is the reader's `import_code`.
 
 **1. Start.** Read the arguments: the build (a name or an import code), `--budget <divines>`, `--offline` (no trade or
 poe.ninja call at all) and `--no-ninja` (no currency rates, D-333). Call `mcp__pob2__guide_run {new_run: "pricing"}`
-for the run folder, `Guides/pricing/<date>-<n>/`, then write the log's first entry:
+for the run folder, `Guides/pricing/<date>-<n>/`, and its `leagueFolder`. Online, run `pob2-league-digest --running --out
+<leagueFolder>` first: it makes a running league's missing digest, whose new items the server measures (D-523). Then
+write the log's first entry:
 
 ```
 pob2-run-log <runFolder> init - <<'JSON'
-{"piece": "pricing", "mode": "online", "testConfig": "none", "noNinja": false, "source": {"kind": "builds-folder", "name": "MyCharacter123"}}
+{"piece": "pricing", "mode": "online", "testConfig": "none", "noNinja": false, "source": {"kind": "builds-folder", "name": "MyCharacter123"}, "leagueFolder": "<leagueFolder>"}
 JSON
 ```
 

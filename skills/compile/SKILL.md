@@ -54,9 +54,11 @@ header's `root`, `${CLAUDE_PLUGIN_ROOT}`. Returns, refusals, missing returns and
   their build. A name (`MyCharacter123`) is matched against `mcp__pob2__list_builds`: a file name equal to it, case
   and `.xml` ignored, is the build; otherwise list the closest names and ask, never guessing. A long code with no
   spaces is an import code: it goes only to the reader, never in the log or your reply.
-- **The folder and the log.** `mcp__pob2__guide_run {new_run: "compile"}`: keep `runFolder`, `runFolderRel` and
-  `loadedBuildUnsaved`. Then `pob2-run-log <runFolder> init` with `{"piece": "compile", "mode", "testConfig": "none",
-  "noNinja", "source"}`, `source` `{"kind": "builds-folder", "name"}` or `{"kind": "import-code"}`. Print the lines
+- **The folder and the log.** `mcp__pob2__guide_run {new_run: "compile"}`: keep `runFolder`, `runFolderRel`,
+  `loadedBuildUnsaved` and `leagueFolder`. Online, run `pob2-league-digest --running --out <leagueFolder>` first: it
+  makes a running league's missing digest, whose new items the server measures (D-523). Then `pob2-run-log <runFolder>
+  init` with `{"piece": "compile", "mode", "testConfig": "none", "noNinja", "source", "leagueFolder"}`, `source`
+  `{"kind": "builds-folder", "name"}` or `{"kind": "import-code"}`. Print the lines
   `init` printed after its first (the running leagues' digests). When `loadedBuildUnsaved` is true, ask before the
   measure: proceed (the loaded build's unsaved changes are discarded) or stop.
 - **A resume**, `/pob2:compile --resume <run folder>` (the retry after a pricing stop, D-516): `mcp__pob2__guide_run

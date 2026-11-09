@@ -424,7 +424,8 @@ describe("AC-W159: a user-side digest reaches init and the header's digests (C-5
 // The server's sidecar list
 
 describe("AC-W159: the server's sidecar list (src/services/leagueOverlay.ts)", () => {
-  const sidecar = (name: string, extra: Json = {}) => ({ schemaVersion: 1, league: 'L', fetched: '2026-11-09', socketables: [{ name, type: 'SoulCore', rank: [50], socketBound: false, slots: [] }], uniques: [], skipped: [], ...extra });
+  const core = (name: string, extra: Json = {}) => ({ name, type: 'SoulCore', rank: [50], socketBound: false, slots: [{ label: 'Helmets', keys: ['helmet'], lines: ['+1 to maximum Life'], statOrder: [887] }], ...extra });
+  const sidecar = (name: string, extra: Json = {}) => ({ schemaVersion: 1, league: 'L', fetched: '2026-11-09', socketables: [core(name)], uniques: [], skipped: [], ...extra });
 
   it('lists every sidecar of both folders, a committed one replacing a user-side one of the same name; the key moves with a time', () => {
     const committed = newDir('committed');
@@ -444,6 +445,34 @@ describe("AC-W159: the server's sidecar list (src/services/leagueOverlay.ts)", (
     fs.mkdirSync(path.join(pob, 'Data', 'Uniques'), { recursive: true });
     fs.writeFileSync(path.join(pob, 'Data', 'ModRunes.lua'), 'return {\n\t["Other Core"] = {\n\t},\n}\n');
     expect([...overlayItemNames(listSidecars([committed, user]), pob)]).toEqual(['Committed Core']);
+  });
+
+  it('names only the entries pob-api/API/Overlay.lua loads: a malformed socketable and a unique on a base the pin lacks are left out', () => {
+    const folder = newDir('refused');
+    const slot = { label: 'Helmets', keys: ['helmet'], lines: ['+1 to maximum Life'], statOrder: [887] };
+    fs.writeFileSync(
+      path.join(folder, 'x.overlay.json'),
+      JSON.stringify(
+        sidecar('Good Core', {
+          socketables: [
+            core('Good Core'),
+            core('Bad Order Core', { slots: [{ ...slot, statOrder: ['x'] }] }),
+            core('Bad Type Core', { type: 5 }),
+            core('Bad Rank Core', { rank: ['x'] }),
+            core('No Slot Core', { slots: [] }),
+            core('Short Order Core', { slots: [{ ...slot, lines: ['+1 to maximum Life', '+1 to maximum Mana'] }] }),
+          ],
+          uniques: [
+            { name: 'Good Loop', base: 'Gold Ring', level: 1, implicits: [], explicits: ['+10 to maximum Life'] },
+            { name: 'Lost Loop', base: 'Unknown Ring', level: 1, implicits: [], explicits: ['+10 to maximum Life'] },
+          ],
+        }),
+      ),
+    );
+    const pob = newDir('pob');
+    fs.mkdirSync(path.join(pob, 'Data', 'Bases'), { recursive: true });
+    fs.writeFileSync(path.join(pob, 'Data', 'Bases', 'ring.lua'), 'itemBases["Gold Ring"] = {\n}\n');
+    expect([...overlayItemNames(listSidecars([folder]), pob)].sort()).toEqual(['Good Core', 'Good Loop']);
   });
 
   it("the folders are data/league/ and <stateDir>/league; a stage's overlay names come from its Rune: lines and its uniques' names", () => {

@@ -90,17 +90,78 @@ export function overlayEnvValue(list: readonly Sidecar[]): string {
   return JSON.stringify(list.map((s) => s.path));
 }
 
-/** The names a sidecar holds, socketables and uniques; none when it can't be read. */
-function namesIn(file: string): string[] {
+type Json = Record<string, unknown>;
+const isText = (v: unknown): v is string => typeof v === 'string' && v !== '';
+const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * A socketable `pob-api/API/Overlay.lua` adds: a name and a type that are text, a rank that is a number, and slots, each
+ * with keys and lines, each line text with a number for its statOrder (Overlay.lua's `socketableData` refuses any other).
+ */
+export function socketableLoads(e: unknown): boolean {
+  if (typeof e !== 'object' || e === null) return false;
+  const x = e as Json;
+  const rank = Array.isArray(x.rank) ? x.rank[0] : x.rank;
+  if (!isText(x.name) || !isText(x.type) || !isNumber(rank) || !Array.isArray(x.slots) || x.slots.length === 0) return false;
+  return (x.slots as unknown[]).every((sl) => {
+    if (typeof sl !== 'object' || sl === null) return false;
+    const s = sl as Json;
+    const keys = s.keys;
+    const lines = s.lines;
+    const orders = s.statOrder;
+    return (
+      Array.isArray(keys) && keys.length > 0 && keys.every(isText) &&
+      Array.isArray(lines) && lines.length > 0 && Array.isArray(orders) && orders.length === lines.length &&
+      lines.every((l) => typeof l === 'string') && orders.every(isNumber)
+    );
+  });
+}
+
+/** A unique Overlay.lua adds: a name, and a base the pin has (its `data.itemBases`). */
+export function uniqueLoads(e: unknown, bases: ReadonlySet<string>): boolean {
+  if (typeof e !== 'object' || e === null) return false;
+  const x = e as Json;
+  return isText(x.name) && isText(x.base) && bases.has(x.base);
+}
+
+/** The names a sidecar holds that the engine loads (as Overlay.lua checks them); none when it can't be read. */
+function namesIn(file: string, bases: ReadonlySet<string>): string[] {
   try {
-    const json = JSON.parse(fs.readFileSync(file, 'utf8')) as { socketables?: { name?: unknown }[]; uniques?: { name?: unknown }[] };
-    return [...(json.socketables ?? []), ...(json.uniques ?? [])].map((x) => x?.name).filter((n): n is string => typeof n === 'string');
+    const json = JSON.parse(fs.readFileSync(file, 'utf8')) as { socketables?: unknown[]; uniques?: unknown[] };
+    const socketables = (Array.isArray(json.socketables) ? json.socketables : []).filter(socketableLoads);
+    const uniques = (Array.isArray(json.uniques) ? json.uniques : []).filter((u) => uniqueLoads(u, bases));
+    return [...socketables, ...uniques].map((x) => (x as Json).name as string);
   } catch {
     return [];
   }
 }
 
 const pinNamesMemo = new Map<string, Set<string>>();
+const pinBasesMemo = new Map<string, Set<string>>();
+
+/** The base names the pin defines, `Data/Bases/*.lua`'s `itemBases["<name>"]`. Memoized by the PoB source folder. */
+export function pinBaseNames(pobSrc: string): Set<string> {
+  const memo = pinBasesMemo.get(pobSrc);
+  if (memo) return memo;
+  const bases = new Set<string>();
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(path.join(pobSrc, 'Data', 'Bases')).filter((f) => f.endsWith('.lua'));
+  } catch {
+    files = [];
+  }
+  for (const f of files) {
+    let text = '';
+    try {
+      text = fs.readFileSync(path.join(pobSrc, 'Data', 'Bases', f), 'utf8');
+    } catch {
+      text = '';
+    }
+    for (const m of text.matchAll(/^itemBases\["((?:[^"\\]|\\.)*)"\]/gm)) bases.add(m[1].replace(/\\(.)/g, '$1'));
+  }
+  pinBasesMemo.set(pobSrc, bases);
+  return bases;
+}
 
 /**
  * The socketable and unique names the pin defines: `Data/ModRunes.lua`'s entries and the unique texts' first lines in
@@ -136,11 +197,15 @@ export function pinnedPobSrc(root: string = packageRoot()): string {
   return path.join(root, 'vendor', 'PathOfBuilding-PoE2', 'src');
 }
 
-/** The overlay's names now: every sidecar's, less those the pin defines (retired). */
+/**
+ * The overlay's names now: every sidecar's entries the engine loads (Overlay.lua refuses a malformed socketable and a
+ * unique on a base the pin lacks), less those the pin defines (retired).
+ */
 export function overlayItemNames(list: readonly Sidecar[], pobSrc: string = pinnedPobSrc()): Set<string> {
   const pin = pinItemNames(pobSrc);
+  const bases = pinBaseNames(pobSrc);
   const out = new Set<string>();
-  for (const s of list) for (const n of namesIn(s.path)) if (!pin.has(n)) out.add(n);
+  for (const s of list) for (const n of namesIn(s.path, bases)) if (!pin.has(n)) out.add(n);
   return out;
 }
 

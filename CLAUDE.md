@@ -124,9 +124,10 @@ what the script does and what is left:
 6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492), and its function patches,
    `pob-api/API/Patches.lua` (D-509). Each entry corrects a PoB bug (PG-103: Crystalline Phylactery) and names its
    retirement test, whose "bug still present" case fails once the new release fixes the bug (PG-103's is in
-   `tests/integration/parseFixes.test.ts`). The script retires an entry only then: it removes the entry and that case
-   and re-runs the failed suites. Any other failure of a retirement test is judgment, and so is the rest of a retired
-   entry (its `pob-gaps.md` entry, its test file's other cases).
+   `tests/integration/parseFixes.test.ts`). The script retires an entry only when that case fails on its assertion: it
+   removes the entry and that case and re-runs the failed suites. Any other outcome of a retirement test (an error, a
+   hook that throws, a skipped case) is judgment, and so is the rest of a retired entry (its `pob-gaps.md` entry, its
+   test file's other cases).
 7. Rebuild the rule-changer index, `data/rules/` (D-401), and re-check the league digests (D-400). The data builders
    are game knowledge's, in `skills/game-knowledge/scripts/`. List the new pin's candidates with
    `mise exec -- node skills/game-knowledge/scripts/rules-index.mjs candidates --json`, have agents rewrite the

@@ -4,12 +4,17 @@
 // list of what needs judgment. Upgrading the pin stays the user's decision each time (HG-11): run it on a branch, after
 // the user decides, never as a plugin user.
 //
-//   node scripts/pin-upgrade.mjs <tag> [--stage <dir>]
+//   node scripts/pin-upgrade.mjs <tag>
 //
 // <tag> is a tag of pob-pin.json's repository named v<n>.<n>.<n>: a branch, a commit or any other ref is refused
-// (a dev commit carries regressions; POB_ALLOW_UNPINNED stays the development escape). The staging folder (default
-// vendor/.pin-upgrade/<tag>, gitignored with vendor/) holds the new tree, every step's outputs and the report,
+// (a dev commit carries regressions; POB_ALLOW_UNPINNED stays the development escape). The staging folder,
+// vendor/.pin-upgrade/<tag> (gitignored with vendor/), holds the new tree, every step's outputs and the report,
 // pin-upgrade-report.json.
+//
+// It starts only from a tree whose upgrade files are as HEAD has them (GUARDED: pob-pin.json, the pin's literal test
+// files, the patch modules and their retirement tests, data/league/), so a half-written upgrade is never read as the
+// current pin; when a step fails, it prints the files it changed and how to restore them (`git checkout -- <paths>`,
+// then `mise run pob:fetch`).
 //
 // The steps, in order (each recorded in the report's `steps` with its result and elapsed time):
 //   stage            pob:fetch makes sure vendor/ is the current pin; `pnpm build`; the tag's commit from
@@ -36,7 +41,8 @@
 // relative to it, as the engine's cwd is), never the repository root.
 //
 // Exit 0 when every step ran (the gate's failures listed as judgment); 1 when a step failed, the report naming it
-// (`failed`); 2 a usage error or a ref that isn't a release tag (no report).
+// (`failed`) and the restore (`restore`); 2 a usage error, a ref that isn't a release tag or upgrade files that differ
+// from HEAD (no report).
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -67,7 +73,8 @@ export const PIN_LITERAL_FILES = ['tests/unit/pobPin.test.ts', 'tests/integratio
 
 /** The bridge files that mirror PoB code, each listed for a re-read only when a file it mirrors changed. */
 export const MIRRORS = [
-  { file: 'pob-api/API/Trade.lua', mirrors: ['Classes/TradeQuery.lua', 'Classes/TradeQueryGenerator.lua', 'Classes/TradeQueryRequests.lua'] },
+  // `lines`: the mirrored range of Appendix A.4, always listed; the lines citing a changed file are added as `cited`.
+  { file: 'pob-api/API/Trade.lua', lines: '640-669', mirrors: ['Classes/TradeQuery.lua', 'Classes/TradeQueryGenerator.lua', 'Classes/TradeQueryRequests.lua'] },
   { file: 'scripts/check-construct.lua', check: "pob-api/API/Util.lua's construct()", mirrors: ['Modules/Common.lua'] },
 ];
 
@@ -76,16 +83,18 @@ export const SKILL_SLOT_METHOD = { file: 'Classes/SkillsTab.lua', line: 'functio
 export const SKILL_SLOT_WARNING = { file: 'Modules/Build.lua', text: 'You have too many gem groups allocated' };
 
 const COOKIE_VARS = ['POESESSID', 'POE_SESSION_ID'];
+/** Never passed on: the cookie, and the switch that would skip the gate's engine tests. */
+const DROPPED_VARS = [...COOKIE_VARS, 'POB_SKIP_ENGINE'];
 
 class Usage extends Error {}
 
 const rel = (p) => path.relative(REPO, p).split(path.sep).join('/');
 const log = (msg) => process.stderr.write(`[pin-upgrade] ${msg}\n`);
 
-/** The environment every child gets: this one, without the trade cookie. */
+/** The environment every child gets: this one, without the trade cookie and without POB_SKIP_ENGINE. */
 function baseEnv(extra = {}) {
   const env = { ...process.env, ...extra };
-  for (const k of COOKIE_VARS) delete env[k];
+  for (const k of DROPPED_VARS) delete env[k];
   return env;
 }
 
@@ -158,13 +167,17 @@ function tempFolders(label) {
   return { dir, cwd: sub('cwd'), env, remove: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
 
-/** LUA_PATH and LUA_CPATH for a PoB tree's runtime, as the bridge sets them (src/pobLuaBridge.ts). */
+/** LUA_PATH and LUA_CPATH for a PoB tree's runtime, the bridge's list (src/pobLuaBridge.ts, childEnv). */
 function luaEnv(tree) {
+  const api = path.join(REPO, 'pob-api');
   const runtime = path.join(tree, 'runtime');
+  const runtimeLua = path.join(runtime, 'lua');
   const rocks = path.join(os.homedir(), '.luarocks', 'lib', 'lua', '5.1');
+  const ext = process.platform === 'win32' ? 'dll' : 'so';
+  // Lua's search paths are ';'-separated on every OS; a trailing ';;' appends Lua's defaults.
   return {
-    LUA_PATH: `${path.join(REPO, 'pob-api')}/?.lua;${runtime}/lua/?.lua;${runtime}/lua/?/init.lua;;`,
-    LUA_CPATH: `${runtime}/?.so;${rocks}/?.so;;`,
+    LUA_PATH: [path.join(api, '?.lua'), path.join(api, '?', 'init.lua'), path.join(runtimeLua, '?.lua'), path.join(runtimeLua, '?', 'init.lua'), ''].join(';') + ';',
+    LUA_CPATH: [path.join(runtime, `?.${ext}`), path.join(rocks, `?.${ext}`), ''].join(';') + ';',
   };
 }
 
@@ -458,6 +471,8 @@ export function readJestResults(json) {
       fullName: t.fullName ?? [...(t.ancestorTitles ?? []), t.title].join(' '),
       status: t.status,
       message: (t.failureMessages ?? []).join('\n'),
+      // An expect() failure carries its matcher's result; a thrown error or a failed hook doesn't (Jest 29).
+      assertion: (t.failureDetails ?? []).some((d) => d !== null && typeof d === 'object' && 'matcherResult' in d),
     })),
   }));
 }
@@ -485,8 +500,10 @@ export function goldenFigures(message) {
 }
 
 /**
- * The gate's failures sorted (amendment 16 §4, step 7): `retire`, the entries whose retirement case failed; and the
- * judgment items: a retirement test's other failures, a golden test's figures, any other failure as it is.
+ * The gate's failures sorted (amendment 16 §4, step 7): `retire`, the entries whose retirement case failed on its
+ * assertion; and the judgment items: a retirement test's other failures (an error, a hook that threw, a fixture that
+ * won't load), its case when it neither passed nor failed (skipped, not run), a golden test's figures, any other
+ * failure as it is.
  */
 export function sortFailures(suites, entries) {
   const byFile = new Map();
@@ -497,7 +514,13 @@ export function sortFailures(suites, entries) {
     if (!e.test?.file || !e.test?.case) continue;
     const suite = suites.find((s) => s.file === e.test.file);
     const result = suite?.tests.find((t) => t.title === e.test.case);
-    if (result && result.status === 'failed') retire.push(e);
+    if (result && result.status === 'failed' && result.assertion) retire.push(e);
+    else if (!result || (result.status !== 'passed' && result.status !== 'failed')) {
+      // A suite that failed to run is listed below, as itself.
+      if (suite && suite.status === 'failed' && suite.tests.length === 0) continue;
+      const status = result ? result.status : suite ? 'not in its suite' : 'not run';
+      judgment.push({ kind: 'retirementTest', pg: e.pg, test: e.test.file, name: e.test.case, message: `the retirement case was ${status}, so it shows nothing: re-run it` });
+    }
   }
   for (const suite of suites) {
     const owners = byFile.get(suite.file) ?? [];
@@ -568,14 +591,44 @@ export function gateCommand(line, outputFile) {
   return { args, outputFile };
 }
 
-function gitStatus() {
-  const r = spawnSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: REPO, encoding: 'utf8' });
+function gitStatus(paths = []) {
+  const r = spawnSync('git', ['status', '--porcelain', '--untracked-files=all', '--', ...paths], { cwd: REPO, encoding: 'utf8' });
   return r.status === 0 ? r.stdout.split('\n').filter(Boolean) : null;
 }
 
-export async function pinUpgrade(tag, { stage: stageOpt } = {}) {
+/** The files an upgrade writes, root-relative: they must be as HEAD has them before it starts. */
+export function guardedPaths() {
+  const tests = MODULES.flatMap((m) => {
+    try {
+      return readEntries(fs.readFileSync(path.join(REPO, m), 'utf8'), m).map((e) => e.test?.file).filter(Boolean);
+    } catch {
+      return [];
+    }
+  });
+  return [...new Set(['pob-pin.json', ...PIN_LITERAL_FILES, ...MODULES, ...tests, 'data/league/'])];
+}
+
+/** The guarded files that differ from HEAD (`git status --porcelain` lines), or null outside a git checkout. */
+function changedGuarded(paths) {
+  return gitStatus(paths);
+}
+
+/** How to put the guarded files and vendor/ back as HEAD has them. */
+function restoreOf(lines) {
+  const paths = lines.map((l) => l.slice(3));
+  const tracked = lines.filter((l) => !l.startsWith('??')).map((l) => l.slice(3));
+  const untracked = lines.filter((l) => l.startsWith('??')).map((l) => l.slice(3));
+  const commands = [];
+  if (tracked.length > 0) commands.push(`git checkout -- ${tracked.join(' ')}`);
+  if (untracked.length > 0) commands.push(`rm -r -- ${untracked.join(' ')}`);
+  commands.push('mise run pob:fetch');
+  return { paths, commands };
+}
+
+export async function pinUpgrade(tag) {
   const started = performance.now();
-  const stage = path.resolve(stageOpt ?? path.join(REPO, 'vendor', '.pin-upgrade', tag));
+  const stage = path.join(REPO, 'vendor', '.pin-upgrade', tag);
+  const guarded = guardedPaths();
   const pinFile = path.join(REPO, 'pob-pin.json');
   const pin = readJson(pinFile);
   const report = {
@@ -670,7 +723,8 @@ export async function pinUpgrade(tag, { stage: stageOpt } = {}) {
         } else {
           const text = fs.readFileSync(path.join(REPO, m.file), 'utf8').split('\n');
           const cited = text.flatMap((l, i) => (differ.some((f) => l.includes(`${path.basename(f)}:`)) ? [i + 1] : []));
-          item.lines = cited.join(', ');
+          item.lines = m.lines;
+          item.cited = cited.join(', ');
         }
         item.mirrors = differ;
         report.judgment.push(item);
@@ -869,6 +923,12 @@ export async function pinUpgrade(tag, { stage: stageOpt } = {}) {
   }
   report.elapsedMs = Math.round(performance.now() - started);
   report.treeAfter = gitStatus();
+  // A failed run leaves what it wrote: name it and how to restore it, so a re-run never starts from it.
+  if (report.failed) {
+    report.restore = restoreOf(changedGuarded(guarded) ?? []);
+    // vendor/ changes only from the fetch step on; before it, with no file changed, there is nothing to restore.
+    if (report.restore.paths.length === 0 && STEPS.indexOf(report.failed.step) < STEPS.indexOf('fetch')) report.restore.commands = [];
+  }
   fs.mkdirSync(stage, { recursive: true });
   const reportFile = path.join(stage, 'pin-upgrade-report.json');
   fs.writeFileSync(reportFile, `${JSON.stringify(report, null, 2)}\n`);
@@ -923,25 +983,33 @@ function summary(report, reportFile) {
   if (report.retired.length > 0) out.push(`Retired: ${report.retired.map((r) => r.pg).join(', ')}.`);
   out.push(`Elapsed: ${(report.elapsedMs / 1000).toFixed(1)} s${report.steps.gate ? ` (the gate ${(report.steps.gate.elapsedMs / 1000).toFixed(1)} s)` : ''}.`);
   out.push(`Report: ${reportFile}`);
-  if (report.failed) out.push(`Stopped at ${report.failed.step}: ${report.failed.error}`);
+  if (report.failed) {
+    out.push(`Stopped at ${report.failed.step}: ${report.failed.error}`);
+    const r = report.restore;
+    out.push(r.paths.length > 0 ? `Changed since HEAD: ${r.paths.join(', ')}.` : 'No upgrade file changed.');
+    out.push(r.commands.length > 0 ? `To restore: ${r.commands.join(', then ')}.` : 'Nothing to restore.');
+  }
   return `${out.join('\n')}\n`;
 }
 
 function parseArgs(argv) {
   let tag = null;
-  let stage = null;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--stage') {
-      stage = argv[++i];
-      if (!stage) throw new Usage('--stage needs a folder');
-    } else if (a.startsWith('--')) throw new Usage(`unknown option ${a}`);
+  for (const a of argv) {
+    if (a.startsWith('-')) throw new Usage(`unknown option ${a}`);
     else if (tag === null) tag = a;
     else throw new Usage(`one tag only, not "${a}"`);
   }
   if (!tag) throw new Usage('a tag is required');
   if (!RELEASE_TAG.test(tag)) throw new Usage(`"${tag}" isn't a release tag (v<n>.<n>.<n>): the upgrade takes tagged releases only, never a branch or a commit (D-508)`);
-  return { tag, stage };
+  // A half-written upgrade (a run that failed after the pin step) would be read as the current pin: start only from
+  // the files HEAD has.
+  const changed = changedGuarded(guardedPaths());
+  if (changed === null) throw new Usage(`${REPO} isn't a git checkout: the upgrade starts only from files HEAD has`);
+  if (changed.length > 0) {
+    const r = restoreOf(changed);
+    throw new Usage(`the upgrade files differ from HEAD (${r.paths.join(', ')}): commit or restore them first (${r.commands.join(', then ')})`);
+  }
+  return { tag };
 }
 
 export async function main(argv) {
@@ -950,10 +1018,10 @@ export async function main(argv) {
     opts = parseArgs(argv);
   } catch (e) {
     if (!(e instanceof Usage)) throw e;
-    process.stderr.write(`pin-upgrade: refused: ${e.message}\nusage: node scripts/pin-upgrade.mjs <v<n>.<n>.<n>> [--stage <dir>]\n`);
+    process.stderr.write(`pin-upgrade: refused: ${e.message}\nusage: node scripts/pin-upgrade.mjs <v<n>.<n>.<n>>\n`);
     return 2;
   }
-  const { report, reportFile } = await pinUpgrade(opts.tag, { stage: opts.stage });
+  const { report, reportFile } = await pinUpgrade(opts.tag);
   process.stdout.write(summary(report, reportFile));
   return report.failed ? 1 : 0;
 }

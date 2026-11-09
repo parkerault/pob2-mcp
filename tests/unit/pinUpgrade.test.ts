@@ -262,8 +262,10 @@ if (args[0].endsWith('pob-internals.lua')) {
   pnpm: `
 const fs = require('fs'), path = require('path');
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: 'pnpm', args, cwd: process.cwd(), poesessid: process.env.POESESSID ?? null }) + '\\n');
+fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: 'pnpm', args, cwd: process.cwd(), poesessid: process.env.POESESSID ?? null, skipEngine: process.env.POB_SKIP_ENGINE ?? null }) + '\\n');
 if (args[0] === 'build') process.exit(0);
+// FAKE_GATE_FAIL: Jest dies without writing its results, a step failure after the pin step.
+if (process.env.FAKE_GATE_FAIL) process.exit(1);
 const out = args.find((a) => a.startsWith('--outputFile=')).slice('--outputFile='.length);
 const counter = path.join(process.env.FAKE_DIR, 'gate-count');
 const n = (fs.existsSync(counter) ? Number(fs.readFileSync(counter, 'utf8')) : 0) + 1;
@@ -286,7 +288,7 @@ process.exit(r.status ?? 1);
 
 interface Suite {
   file: string;
-  tests: { title: string; status: 'passed' | 'failed'; message?: string; ancestors?: string[] }[];
+  tests: { title: string; status: 'passed' | 'failed' | 'pending'; message?: string; assertion?: boolean; ancestors?: string[] }[];
   error?: string;
 }
 
@@ -302,6 +304,8 @@ function jestResult(suites: Suite[]): string {
       fullName: [...(t.ancestors ?? []), t.title].join(' '),
       status: t.status,
       failureMessages: t.message ? [t.message] : [],
+      // Jest 29's details: an expect() failure carries its matcherResult; a thrown error or a failed hook serializes as {}.
+      failureDetails: t.status === 'failed' ? [t.assertion ? { matcherResult: { pass: false, message: t.message } } : {}] : [],
     })),
   }));
   return JSON.stringify({ success: testResults.every((s) => s.status === 'passed'), testResults }, null, 1);
@@ -323,7 +327,11 @@ const GOLDEN_DIFF = [
 ].join('\n');
 
 const pass = (title: string) => ({ title, status: 'passed' as const });
-const failed = (title: string, message: string) => ({ title, status: 'failed' as const, message });
+/** A case that failed on an assertion. */
+const failed = (title: string, message: string) => ({ title, status: 'failed' as const, message, assertion: true });
+/** A case that failed on a thrown error, its own or its beforeAll hook's. */
+const threw = (title: string, message: string) => ({ title, status: 'failed' as const, message, assertion: false });
+const HOOK = 'Error: the engine did not start\n    at beforeAll (tests/integration/pg903.test.ts:3:9)';
 
 function writeFakeData(): void {
   fs.mkdirSync(FAKE, { recursive: true });
@@ -365,33 +373,52 @@ function writeFakeData(): void {
   write(path.join(FAKE, 'dump-0.0.2.json'), JSON.stringify(dump(['+12 to Strength'], 'Star Clasp\nA')));
   write(path.join(FAKE, 'dump-0.0.3.json'), JSON.stringify(dump(['+12 to Strength'], 'A\nStar Clasp')));
 
-  // Run 1's gate: the main run, the timing run, then the re-run of the failed suites after the retirements.
+  // Every retirement case passing: what the gate gives on a tree whose patches all still hold.
+  const allPass = (): Suite[] => [
+    { file: 'tests/integration/pg901.test.ts', tests: [pass(CASE[901])] },
+    { file: 'tests/integration/pg902.test.ts', tests: [pass(SETUP[902]), pass(CASE[902])] },
+    { file: 'tests/integration/pg903.test.ts', tests: [pass(SETUP[903]), pass(CASE[903])] },
+    { file: 'tests/integration/pg904.test.ts', tests: [pass(CASE[904])] },
+    { file: 'tests/integration/pg905.test.ts', tests: [pass(CASE[905])] },
+    { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
+  ];
+  const nfr = jestResult([{ file: 'tests/integration/compilePlanNfr.test.ts', tests: [pass('AC-P37: compiles in time')] }]);
+  // The dry run (v0.0.1 to v0.0.1): the main run and the timing run, nothing failing.
+  write(path.join(FAKE, 'gate-1.json'), jestResult(allPass()));
+  write(path.join(FAKE, 'gate-2.json'), nfr);
+  // v0.0.1 to v0.0.2: PG-902's and PG-904's cases fail on their assertions (retired); PG-903's beforeAll throws, failing
+  // both its cases (kept); PG-905's case throws an error (kept). Then the re-run of the failed suites.
   const golden = { file: 'tests/integration/golden.test.ts', tests: [failed('AC-F23: all 109 PlayerStat pairs are identical', GOLDEN_DIFF), pass('AC-F24: identical before and after')] };
   const other = { file: 'tests/unit/other.test.ts', tests: [failed('reads the tree', 'expect(received).toBe(expected)\n\nExpected: 1\nReceived: 2')] };
-  write(path.join(FAKE, 'gate-1.json'), jestResult([
+  const hook903 = { file: 'tests/integration/pg903.test.ts', tests: [threw(SETUP[903], HOOK), threw(CASE[903], HOOK)] };
+  const threw905 = { file: 'tests/integration/pg905.test.ts', tests: [threw(CASE[905], 'TypeError: Cannot read properties of undefined (reading \'list\')')] };
+  write(path.join(FAKE, 'gate-3.json'), jestResult([
     { file: 'tests/integration/pg901.test.ts', tests: [pass(CASE[901])] },
     { file: 'tests/integration/pg902.test.ts', tests: [pass(SETUP[902]), failed(CASE[902], 'expect(received).toBe(expected)\n\nExpected: 0\nReceived: 20')] },
-    { file: 'tests/integration/pg903.test.ts', tests: [failed(SETUP[903], 'Error: the fixture would not load'), pass(CASE[903])] },
+    hook903,
     { file: 'tests/integration/pg904.test.ts', tests: [failed(CASE[904], 'expect(received).toEqual(expected)')] },
-    { file: 'tests/integration/pg905.test.ts', tests: [pass(CASE[905])] },
+    threw905,
     golden,
     other,
     { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
   ]));
-  write(path.join(FAKE, 'gate-2.json'), jestResult([{ file: 'tests/integration/compilePlanNfr.test.ts', tests: [pass('AC-P37: compiles in time')] }]));
-  write(path.join(FAKE, 'gate-3.json'), jestResult([
-    { file: 'tests/integration/pg902.test.ts', tests: [failed(SETUP[902], 'Error: no patch PG-902')] },
-    { file: 'tests/integration/pg903.test.ts', tests: [failed(SETUP[903], 'Error: the fixture would not load'), pass(CASE[903])] },
+  write(path.join(FAKE, 'gate-4.json'), nfr);
+  write(path.join(FAKE, 'gate-5.json'), jestResult([
+    { file: 'tests/integration/pg902.test.ts', tests: [threw(SETUP[902], 'Error: no patch PG-902')] },
+    hook903,
     { file: 'tests/integration/pg904.test.ts', tests: [] },
+    threw905,
     golden,
     other,
   ]));
-  // Run 2: PG-905's retirement case fails, but its file quotes the title twice. Run 3: nothing fails.
-  write(path.join(FAKE, 'gate-4.json'), jestResult([
-    { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
+  // v0.0.2 to v0.0.3: PG-901's case is skipped; PG-905's fails on its assertion, but its file quotes the title twice.
+  write(path.join(FAKE, 'gate-6.json'), jestResult([
+    { file: 'tests/integration/pg901.test.ts', tests: [{ title: CASE[901], status: 'pending' }] },
+    { file: 'tests/integration/pg903.test.ts', tests: [pass(SETUP[903]), pass(CASE[903])] },
     { file: 'tests/integration/pg905.test.ts', tests: [failed(CASE[905], 'expect(received).toEqual(expected)')] },
+    { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
   ]));
-  for (const n of [5, 6, 7]) write(path.join(FAKE, `gate-${n}.json`), jestResult([{ file: 'tests/unit/fine.test.ts', tests: [pass('works')] }]));
+  write(path.join(FAKE, 'gate-7.json'), nfr);
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -403,12 +430,17 @@ interface Call {
   env?: Record<string, string | null>;
   version?: string;
   poesessid?: string | null;
+  skipEngine?: string | null;
   xdg?: string | null;
 }
 
 const calls = (): Call[] => (fs.existsSync(LOG) ? read(LOG).split('\n').filter(Boolean).map((l) => JSON.parse(l) as Call) : []);
 
 function upgrade(...args: string[]) {
+  return upgradeWith({}, ...args);
+}
+
+function upgradeWith(extra: Record<string, string>, ...args: string[]) {
   fs.rmSync(LOG, { force: true });
   // Jest's setup points these at its own temporary folders: the script starts without them, as from a shell.
   const { XDG_STATE_HOME, POB_DIRECTORY, POB_GUIDES_DIRECTORY, ...env } = GIT_ENV;
@@ -422,6 +454,9 @@ function upgrade(...args: string[]) {
       FAKE_DIR: FAKE,
       FAKE_REPO: REPO,
       POESESSID: 'not-a-cookie',
+      // Set in the shell; never passed on to the gate.
+      POB_SKIP_ENGINE: '1',
+      ...extra,
     },
     encoding: 'utf8',
     timeout: 120_000,
@@ -502,7 +537,17 @@ beforeAll(() => {
   }
   fs.mkdirSync(path.join(TMP, 'home'), { recursive: true });
   writeFakeData();
+  // The repository is a git checkout, its upgrade files committed, as the script requires.
+  write(path.join(REPO, '.gitignore'), '/vendor/\n/build\n');
+  git(REPO, 'init', '--quiet', '--initial-branch=main');
+  commitRepo('the fixture repository');
 });
+
+/** Commit the temporary repository's state, as the coordinator commits an upgrade before the next. */
+function commitRepo(message: string): void {
+  git(REPO, 'add', '-A');
+  git(REPO, '-c', 'user.name=fixture', '-c', 'user.email=fixture@invalid', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '--allow-empty', '-m', message);
+}
 
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
@@ -511,13 +556,18 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
     expect(built).toBe(true);
   });
 
-  it('refuses a branch and a commit, before any step and without writing anything', () => {
-    for (const ref of ['dev', PINS['v0.0.2'].commit, 'main']) {
-      const r = upgrade(ref);
-      expect({ ref, status: r.status, stdout: r.stdout }).toEqual({ ref, status: 2, stdout: '' });
-      expect(r.stderr).toContain(`pin-upgrade: refused: "${ref}" isn't a release tag (v<n>.<n>.<n>)`);
+  it('refuses a branch, a commit and any option, before any step and without writing anything', () => {
+    for (const args of [['dev'], [PINS['v0.0.2'].commit], ['main']]) {
+      const r = upgrade(...args);
+      expect({ args, status: r.status, stdout: r.stdout }).toEqual({ args, status: 2, stdout: '' });
+      expect(r.stderr).toContain(`pin-upgrade: refused: "${args[0]}" isn't a release tag (v<n>.<n>.<n>)`);
       expect(calls()).toEqual([]);
     }
+    // No staging folder of the caller's choosing: the script never deletes a path it was given.
+    const stage = upgrade('v0.0.2', '--stage', '.');
+    expect({ status: stage.status, stdout: stage.stdout }).toEqual({ status: 2, stdout: '' });
+    expect(stage.stderr).toContain('pin-upgrade: refused: unknown option --stage');
+    expect(calls()).toEqual([]);
     expect(fs.existsSync(path.join(REPO, 'vendor'))).toBe(false);
     // A branch named like a release isn't a tag: the stage step fails, naming it, and nothing changes.
     const branch = upgrade('v9.9.9');
@@ -525,9 +575,29 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
     const report = reportOf('v9.9.9');
     expect(report.failed).toEqual({ step: 'stage', error: `v9.9.9 isn't a tag of file://${ORIGIN} (a branch or another ref isn't taken: tagged releases only)` });
     expect(report.done).toEqual([]);
-    expect(branch.stdout).toContain('Stopped at stage: v9.9.9 isn\'t a tag');
+    expect(report.restore).toEqual({ paths: [], commands: [] });
+    expect(branch.stdout).toContain("Stopped at stage: v9.9.9 isn't a tag");
+    expect(branch.stdout).toContain('No upgrade file changed.\nNothing to restore.\n');
     expect(JSON.parse(read(path.join(REPO, 'pob-pin.json')))).toEqual({ repo: `file://${ORIGIN}`, ...PINS['v0.0.1'] });
     expect(git(VENDOR, 'rev-parse', 'HEAD')).toBe(PINS['v0.0.1'].commit);
+    expect(git(REPO, 'status', '--porcelain')).toBe('');
+  });
+
+  describe('v0.0.1 to v0.0.1, the dry run', () => {
+    it('exits 0, lists no judgment item, and leaves every file as HEAD has it', () => {
+      const run = upgrade('v0.0.1');
+      expect({ status: run.status, stderrTail: run.status === 0 ? '' : run.stderr.slice(-2000) }).toEqual({ status: 0, stderrTail: '' });
+      const report = reportOf('v0.0.1');
+      expect(report.from).toEqual({ tag: 'v0.0.1', commit: PINS['v0.0.1'].commit });
+      expect(report.to).toEqual({ tag: 'v0.0.1', commit: PINS['v0.0.1'].commit, version: '0.0.1' });
+      expect(report.done).toEqual(['stage', 'probe', 'fingerprints', 'pin', 'fetch', 'skillSlotMethod', 'gate', 'rulesIndex', 'reflag']);
+      expect({ judgment: report.judgment, retired: report.retired, failed: report.failed }).toEqual({ judgment: [], retired: [], failed: null });
+      expect({ before: report.treeBefore, after: report.treeAfter }).toEqual({ before: [], after: [] });
+      expect(((report.steps as Json).pin as Json).wrote).toEqual([]);
+      expect(((report.steps as Json).reflag as Json).digests).toEqual({ 'embers.md': { written: false, changed: 0 } });
+      expect(run.stdout).toContain('Judgment: none.\n');
+      expect(git(REPO, 'status', '--porcelain')).toBe('');
+    });
   });
 
   describe('v0.0.1 to v0.0.2', () => {
@@ -564,42 +634,48 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
         expect.objectContaining({ pg: 'PG-901', file: 'Classes/SkillsTab.lua', func: 'function SkillsTabClass:UpdateGlobalGemCountAssignments()' }),
       ]);
       expect(ofKind(report, 'fingerprint')[0].problem).toMatch(/^the code changed/);
-      const patches = read(path.join(REPO, 'pob-api/API/Patches.lua'));
-      expect(patches).toContain("pg = 'PG-901'");
+      expect(read(path.join(REPO, 'pob-api/API/Patches.lua'))).toContain("pg = 'PG-901'");
       expect(read(path.join(REPO, 'tests/integration/pg901.test.ts'))).toBe(testFile(901, false));
     });
 
-    it("removes a patch's entry and its retirement case when that case fails, and re-runs the failed suites once", () => {
+    it("removes a patch's entry and its retirement case when that case fails on its assertion, and re-runs the failed suites once", () => {
       const patches = read(path.join(REPO, 'pob-api/API/Patches.lua'));
       expect(patches).not.toContain('PG-902');
       expect(patches).not.toContain('restorePG902');
       expect(patches).toContain('M.PATCHES = { PG901, PG903 }');
-      expect(patches).toContain("pg = 'PG-903'");
       // Only the retirement case goes: the setup case stays.
       const pg902 = read(path.join(REPO, 'tests/integration/pg902.test.ts'));
       expect(pg902).not.toContain(CASE[902]);
       expect(pg902).toBe(["describe('PG-902', () => {", `  it(${JSON.stringify(SETUP[902])}, () => {`, '    expect(1).toBe(1);', '  });', '});', ''].join('\n'));
-      // The parse fix's list element goes; the other stays.
-      const fixes = read(path.join(REPO, 'pob-api/API/ParseFixes.lua'));
-      expect(fixes).not.toContain('PG-904');
-      expect(fixes).toContain("pg = 'PG-905'");
+      // The parse fix's list element goes.
+      expect(read(path.join(REPO, 'pob-api/API/ParseFixes.lua'))).not.toContain('PG-904');
       expect(read(path.join(REPO, 'tests/integration/pg904.test.ts'))).toBe("describe('PG-904', () => {\n});\n");
-      // The gate: the test task's two Jest commands, then one re-run of the five suites that failed.
+      // The gate: the test task's two Jest commands, then one re-run of the six suites that failed.
       const jest = log.filter((c) => c.tool === 'pnpm' && c.args[0] === 'exec');
       expect(jest.map((c) => c.args.filter((a) => !a.startsWith('--outputFile=')))).toEqual([
         ['exec', 'jest', '--json'],
         ['exec', 'jest', '--runInBand', '--testPathIgnorePatterns', '/node_modules/', '--json', '--', 'tests/integration/compilePlanNfr.test.ts', 'tests/integration/tradeQueryNfr.test.ts'],
-        ['exec', 'jest', '--testPathIgnorePatterns', '/node_modules/', '--json', '--', 'tests/integration/pg902.test.ts', 'tests/integration/pg903.test.ts', 'tests/integration/pg904.test.ts', 'tests/integration/golden.test.ts', 'tests/unit/other.test.ts'],
+        ['exec', 'jest', '--testPathIgnorePatterns', '/node_modules/', '--json', '--', 'tests/integration/pg902.test.ts', 'tests/integration/pg903.test.ts', 'tests/integration/pg904.test.ts', 'tests/integration/pg905.test.ts', 'tests/integration/golden.test.ts', 'tests/unit/other.test.ts'],
       ]);
       expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: ['PG-904', 'PG-902'], rerun: expect.objectContaining({ files: expect.any(Array) }) }));
       expect(ofKind(report, 'retired').map((j) => j.pg)).toEqual(['PG-904', 'PG-902']);
     });
 
-    it("lists a retirement test's other failures and a golden test's figures, old and new, and any other failure as it is", () => {
+    it('retires nothing when the retirement case fails on a thrown error or on its beforeAll hook, and lists each failure', () => {
       expect(ofKind(report, 'retirementTest').map((j) => [j.pg, j.test, j.name])).toEqual([
         ['PG-902', 'tests/integration/pg902.test.ts', SETUP[902]],
         ['PG-903', 'tests/integration/pg903.test.ts', SETUP[903]],
+        ['PG-903', 'tests/integration/pg903.test.ts', CASE[903]],
+        ['PG-905', 'tests/integration/pg905.test.ts', CASE[905]],
       ]);
+      expect(ofKind(report, 'retirementTest')[2].message).toBe(HOOK.split('\n').map((l) => l.trimEnd()).join('\n'));
+      expect(read(path.join(REPO, 'pob-api/API/Patches.lua'))).toContain("pg = 'PG-903'");
+      expect(read(path.join(REPO, 'pob-api/API/ParseFixes.lua'))).toContain("pg = 'PG-905'");
+      expect(read(path.join(REPO, 'tests/integration/pg903.test.ts'))).toBe(testFile(903, false));
+      expect(read(path.join(REPO, 'tests/integration/pg905.test.ts'))).toBe(testFile(905, false));
+    });
+
+    it("lists a golden test's figures, old and new, and any other failure as it is", () => {
       expect(ofKind(report, 'golden')).toEqual([
         { kind: 'golden', test: 'tests/integration/golden.test.ts', stat: 'Life', old: 2977, new: 3010 },
         { kind: 'golden', test: 'tests/integration/golden.test.ts', stat: 'Mana', old: 105, new: 110.5 },
@@ -607,8 +683,8 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(ofKind(report, 'test')).toEqual([{ kind: 'test', test: 'tests/unit/other.test.ts', name: 'reads the tree', message: 'expect(received).toBe(expected)\nExpected: 1\nReceived: 2' }]);
     });
 
-    it("lists Trade.lua's lines when TradeQuery.lua differs, and not construct()'s check while Common.lua doesn't", () => {
-      expect(ofKind(report, 'reread')).toEqual([{ kind: 'reread', file: 'pob-api/API/Trade.lua', lines: '3, 4', mirrors: ['Classes/TradeQuery.lua'] }]);
+    it("lists Trade.lua's mirrored range and its citing lines when TradeQuery.lua differs, and not construct()'s check while Common.lua doesn't", () => {
+      expect(ofKind(report, 'reread')).toEqual([{ kind: 'reread', file: 'pob-api/API/Trade.lua', lines: '640-669', cited: '3, 4', mirrors: ['Classes/TradeQuery.lua'] }]);
     });
 
     it("lists the probe's changed symbols: a body, a missing symbol and a changed type", () => {
@@ -619,7 +695,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       ].sort((a, b) => order(a.symbol) - order(b.symbol)));
     });
 
-    it('its probe and candidates steps get temporary folders, never the repository, and no cookie', () => {
+    it('its probe and candidates steps get temporary folders, never the repository; no cookie and no POB_SKIP_ENGINE reach a child', () => {
       const probes = log.filter((c) => c.tool === 'probe');
       const candidates = log.filter((c) => c.tool === 'candidates');
       expect(probes.map((c) => [c.cwd, c.version])).toEqual([
@@ -642,9 +718,11 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(folders.size).toBe(4 * (probes.length + candidates.length));
       // rules-index boots PoB from its own driver, written in the step's temporary folder.
       for (const c of candidates) expect(c.args[0].startsWith(c.env!.TMPDIR!)).toBe(true);
-      // mise never gets a temporary state folder (it would lose its trust), and no fake got the cookie.
+      // mise never gets a temporary state folder (it would lose its trust); the gate runs its engine tests.
       expect(log.filter((c) => c.tool === 'mise').every((c) => c.xdg === null)).toBe(true);
-      expect(log.filter((c) => c.tool === 'pnpm').every((c) => c.poesessid === null)).toBe(true);
+      const pnpm = log.filter((c) => c.tool === 'pnpm');
+      expect(pnpm.length).toBeGreaterThan(0);
+      expect(pnpm.every((c) => c.poesessid === null && c.skipEngine === null)).toBe(true);
     });
 
     it('writes the new pin and its literal values in the tests, and fetches it into vendor/', () => {
@@ -664,7 +742,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(JSON.parse(read(path.join(stage, 'candidates-changed.json')))).toEqual([{ kind: 'unique', key: 'Star Clasp (Gold Amulet)', change: 'changed' }]);
     });
 
-    it("re-flags each digest offline and lists its changed flags", () => {
+    it('re-flags each digest offline and lists its changed flags', () => {
       expect(ofKind(report, 'digestFlags')).toEqual([{ kind: 'digestFlags', digest: 'embers.md', changed: 1 }]);
       const digest = read(path.join(REPO, 'data/league/embers.md'));
       expect(digest).toContain('- Frostbolt (gem, Spell): A cold bolt.\n');
@@ -679,6 +757,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
     let report: Json;
 
     beforeAll(() => {
+      commitRepo('the upgrade to v0.0.2');
       run = upgrade('v0.0.3');
       report = reportOf('v0.0.3');
     });
@@ -696,7 +775,10 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       ]);
     });
 
-    it("leaves a retirement it can't cut to judgment, its entry and its test file untouched, and re-runs nothing", () => {
+    it("lists a skipped retirement case, and leaves a retirement it can't cut to judgment, its entry and test file untouched, re-running nothing", () => {
+      expect(ofKind(report, 'retirementTest')).toEqual([
+        { kind: 'retirementTest', pg: 'PG-901', test: 'tests/integration/pg901.test.ts', name: CASE[901], message: 'the retirement case was pending, so it shows nothing: re-run it' },
+      ]);
       expect(ofKind(report, 'retireByHand')).toEqual([
         { kind: 'retireByHand', pg: 'PG-905', test: 'tests/integration/pg905.test.ts', error: `2 cases titled "${CASE[905]}"` },
       ]);
@@ -704,7 +786,7 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       expect(read(path.join(REPO, 'tests/integration/pg905.test.ts'))).toBe(testFile(905, false));
       expect(report.retired).toEqual([]);
       expect(ofKind(report, 'retired')).toEqual([]);
-      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 0 }));
+      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 1 }));
     });
 
     it('lists a missing skill-slot method, its warning gone, and the newer tree', () => {
@@ -720,19 +802,41 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
     });
   });
 
-  describe('v0.0.3 to v0.0.3, the dry run', () => {
-    it('exits 0, lists no judgment item, and leaves the pin, the tests and the digest as they were', () => {
-      const files = ['pob-pin.json', 'tests/unit/pobPin.test.ts', 'tests/integration/protocol.lua.test.ts', 'data/league/embers.md', 'pob-api/API/Patches.lua', 'pob-api/API/ParseFixes.lua'];
-      const before = Object.fromEntries(files.map((f) => [f, read(path.join(REPO, f))]));
-      const run = upgrade('v0.0.3');
-      expect(run.status).toBe(0);
-      const report = reportOf('v0.0.3');
-      // v0.0.3's own items stay (its renamed method, its tree), as on any re-run; the dry run's tree has none of them.
-      expect(judgment(report).filter((j) => !['skillSlotMethod', 'skillSlotWarning', 'treeVersion', 'fingerprint'].includes(j.kind as string))).toEqual([]);
-      expect(report.from).toEqual({ tag: 'v0.0.3', commit: PINS['v0.0.3'].commit });
-      expect(((report.steps as Json).pin as Json).wrote).toEqual([]);
-      expect(((report.steps as Json).reflag as Json).digests).toEqual({ 'embers.md': { written: false, changed: 0 } });
-      expect(Object.fromEntries(files.map((f) => [f, read(path.join(REPO, f))]))).toEqual(before);
+  describe('a half-written upgrade', () => {
+    beforeAll(() => commitRepo('the upgrade to v0.0.3'));
+
+    it('refuses to start while an upgrade file differs from HEAD, naming it and how to restore it', () => {
+      const digest = path.join(REPO, 'data/league/embers.md');
+      fs.appendFileSync(digest, '\nedited\n');
+      write(path.join(REPO, 'data/league/new.md'), '# a stray digest\n');
+      const r = upgrade('v0.0.2');
+      expect({ status: r.status, stdout: r.stdout }).toEqual({ status: 2, stdout: '' });
+      expect(r.stderr).toContain(
+        'pin-upgrade: refused: the upgrade files differ from HEAD (data/league/embers.md, data/league/new.md): commit or restore them first ' +
+          '(git checkout -- data/league/embers.md, then rm -r -- data/league/new.md, then mise run pob:fetch)',
+      );
+      expect(calls()).toEqual([]);
+      git(REPO, 'checkout', '--', 'data/league/embers.md');
+      fs.rmSync(path.join(REPO, 'data/league/new.md'));
+      expect(git(REPO, 'status', '--porcelain')).toBe('');
+    });
+
+    it('names the files it changed and the restore when a step fails after the pin step; the restore puts HEAD back', () => {
+      const r = upgradeWith({ FAKE_GATE_FAIL: '1' }, 'v0.0.2');
+      expect(r.status).toBe(1);
+      const report = reportOf('v0.0.2');
+      expect(report.failed).toEqual({ step: 'gate', error: expect.stringContaining('wrote no results') });
+      expect(report.done).toEqual(['stage', 'probe', 'fingerprints', 'pin', 'fetch', 'skillSlotMethod']);
+      const paths = ['pob-pin.json', 'tests/integration/protocol.lua.test.ts', 'tests/unit/pobPin.test.ts'];
+      expect(report.restore).toEqual({ paths, commands: [`git checkout -- ${paths.join(' ')}`, 'mise run pob:fetch'] });
+      expect(r.stdout).toContain(`Changed since HEAD: ${paths.join(', ')}.\nTo restore: git checkout -- ${paths.join(' ')}, then mise run pob:fetch.\n`);
+      expect(git(VENDOR, 'rev-parse', 'HEAD')).toBe(PINS['v0.0.2'].commit);
+      // Following the restore (the fake mise's pob:fetch is the copied fetch-pob.sh).
+      git(REPO, 'checkout', '--', ...paths);
+      const fetch = spawnSync('bash', [path.join(REPO, 'scripts', 'fetch-pob.sh')], { cwd: TMP, env: { ...GIT_ENV, PATH: [path.dirname(process.execPath), '/usr/bin', '/bin'].join(path.delimiter) }, encoding: 'utf8' });
+      expect(fetch.status).toBe(0);
+      expect(git(VENDOR, 'rev-parse', 'HEAD')).toBe(PINS['v0.0.3'].commit);
+      expect(git(REPO, 'status', '--porcelain')).toBe('');
     });
   });
 });

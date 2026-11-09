@@ -7183,3 +7183,62 @@ What the coordinator folded (revision 2, approved):
     …/leagues.mjs` command exempted; D-507, a departure from amendment 15's `bin/` rule for WU-158's notes);
     `amendment15GameKnowledge.test.ts` (the league bullet's exemption removed; D-515); `runningLeagueReaders.test.ts`'s
     patterns pin (D-507). Setup only: temp layouts copy game knowledge's scripts; the test clock.
+- **WU-153's doer** finished at `d6ce914` on `bg/wu-153` (two commits; 0.29M subagent tokens). Its own gate rc 0 (247
+  suites, 4,324 tests), build rc 0, after three failures fixed by the changed assertions. PG-109's entry built: a Save
+  wrap drops PoB's `<ModRange>` copies from every item; a Load wrap drops them only on items whose text has a
+  `{range:` tag, on a copy; both or neither. `import_build {save_as}` writes `dropModRangeCopies(xml)`
+  (`src/utils/buildCode.ts`), byte for byte as before on a file with no `{range:` item. Fingerprints unchanged.
+  Changed assertions: the `STUBS` set loses PG-109; three old-record compile comparisons (`compileSchema8.test.ts`:249,
+  :268; `compileMovementTier.test.ts`:161) leave out `pobFile.bytes` and check the size went down (D-511, C-41).
+  Deviations: D-399's as-built note now holds only for items with no `{range:` tag (for WU-158's spine note); rolls come
+  from the text, rounded to three decimals (`Classes/Item.lua`:1463), the rounding §7 accepts; comments avoid the
+  literal `lua_save_build` (`saveBuildRemoved.test.ts`). Rebased by the coordinator onto `6aa96b3` (no overlap): head
+  `d980bf2`. Gate verifier and reviewer dispatched.
+- **WU-154's doer** finished at `dda3a31` on `bg/wu-154` (one commit; 0.40M subagent tokens). Its own gate rc 0 (249
+  suites, 4,333 tests), build rc 0. The wrap on `ProcessSocketGroup` with `M.gives_quality(item)` (Wand, Sceptre, Staff
+  but not Warstaff); `compile_check`'s `check_granted_quality` from schema 11 (`GRANTED_QUALITY_SINCE = 11`; the
+  stage's slots, tree jewels and allocated passives); `plan-reference.md` (version 11, the quality rule, D-359's item
+  support slots); `pob-gaps.md`'s PG-114 with both real cases' facts from §8. Two schema-10 old records recorded at
+  `25777ed` under `tests/fixtures/plans/schema11/`. Changed assertions: seven plan-schema tests' version pins (the
+  invalid version 11→12; D-512's bump) and PG-114's `STUBS` line. Rebased by the coordinator onto `6aa96b3` (no
+  overlap): head `4f671a7`. Gate verifier and reviewer dispatched, each told to check the two points below.
+  - **PG-115, not recorded:** the doer's fixture wand ("+2 to Level of all Spell Skills", a quality modifier) reads
+    level 22 and quality 25: PoB resolves every "Grants Skill:" line through a lookup built from `data.gems`
+    (`Modules/ModParser.lua`:2170–2186), so every item-granted skill has gem data at the pin, and §8's reading of
+    `CalcSetup.lua`:1892–1895 doesn't hold. The verifier re-checks it.
+  - **Found, for M-30:** the compile raises every non-corrupted item's quality to 20 (`pob-api/API/BuildOps.lua`:1651,
+    `item:NormaliseQuality()`), which the amendment doesn't mention. So with the wrap a plan's wand, staff or sceptre
+    measures its granted skill at 20 (the designers' "may raise it to 20", WU-164, changes no figure), and a read plan's
+    owned sceptre at quality 10 (§20's expected "measured at its sceptre's quality 10") would measure at 20 unless the
+    compile on a read plan keeps an owned item's quality. For WU-161 (M-30) to resolve; noted in the M-30 handoff at
+    WU-158.
+  - **Left outside the row** (for WU-158 or WU-164): `stages/D2.md`:93 (pinned, `buildGuidePipeline.test.ts`:3140),
+    `data/campaign/gems.json`:263, `src/plan/checks/v1.ts`:25 and :765 say a granted skill "holds the supports its
+    item's sockets allow"; W1's support-sockets line doesn't state the item's rule.
+- **WU-153's review** (fresh, read-only): nothing high or medium. The Save wrap replaces only `<Items>`' `Item`
+  children, leaving `ItemSet` and `TradeSearchWeights`; every composing path goes through `ItemsTab:Save`; no roll is
+  lost (PoB tags every ranged line on save, `Item.lua`:1462–1463); the Load wrap is per item and leaves PoB's node;
+  both-or-neither holds by reading (no test). The four deviations accepted. Three low ones, cheap, so one round after
+  the verifier frees the lane: (1) the retirement case (`pg109.test.ts`:222) asserts only that the two round trips
+  differ; assert the moved rolls §7 names; (2) `pob-gaps.md`:744 lists `export_build` among the composed files, but
+  without notes it is a byte copy (`src/handlers/exportHandlers.ts`:65); **the coordinator's call:** the byte copy
+  stays (D-42 promises an exact copy, and a desktop file's copies are no worse exported than in place), and the text
+  says "`export_build` with notes"; (3) `pob-gaps.md`:734–735's Effect bullet into the past tense, as PG-106's.
+  For WU-158: D-399's as-built note (a stored roll survives a save only on an item with no `{range:` tag; a
+  PoB-written file's save is no longer "canonically unchanged", the golden's 80 `<ModRange>` lines drop).
+- **WU-153's gate verifier** (fresh) passed `d980bf2`: gate from clean rc 0 (249 suites, 4,345 tests; the timing step
+  2 suites, 4 tests), build rc 0. Mutations on a temp copy bite every clause of AC-W135 (save wrap removed, load wrap a
+  pass-through, load drop on every item, `dropModRangeCopies` a no-op or dropping everywhere); a PoB whose own Load no
+  longer moves the rolls fails only the retirement case; the copies fixture matches PoB's own save of the wand; a probe
+  without `ItemsTab.Load` shows apply refusing with Save restored. The old-record tests fail only on `$.pobFile.bytes`
+  with the patch on and pass with the drop off, so §26 holds for every figure. Waivers `[]`; no tool description
+  changed. Small fix round (the review's three lows) sent to the doer; targeted re-check after it.
+- **WU-153's fix round** at `b77d0f6`: the retirement case asserts the moved rolls (13% Cast Speed, both per-curse
+  lines at 27%; its guard and title kept); "`export_build` with notes" in `pob-gaps.md` and the `Patches.lua`
+  comment; the Effect bullet in the past tense. **Re-check by the coordinator:** read the diff (3 files, 23 lines);
+  `pg109`, `patches`, `patchFingerprints`, `buildCode` pass (34 tests); the verifier's gate at `d980bf2` stands.
+- **WU-153 (PG-109, rune rolls) merged** at `b77d0f6` (fast-forward, three commits on `6aa96b3`). AC-W135:
+  `tests/integration/pg109.test.ts`, `tests/unit/buildCode.test.ts`.
+  - **AC-W162's list, WU-153:** `patchFingerprints.test.ts`'s `STUBS` loses PG-109 (D-509, the stub built);
+    `compileSchema8.test.ts` (both AC-P82 cases) and `compileMovementTier.test.ts` (AC-P81) leave `pobFile.bytes` out
+    of the old-record comparison and check it went down (D-511, C-41's "no `<ModRange>`"; every figure equal).

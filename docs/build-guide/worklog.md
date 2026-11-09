@@ -7299,3 +7299,58 @@ What the coordinator folded (revision 2, approved):
     (:96–99, and :363–366's invalid version 11→12), `planSchema7`:83, `planSchema8`:66–67, `planSchema9`:95–99,
     `planSchema10`:116–121 (D-512, A.5); `patchFingerprints.test.ts`'s `STUBS` emptied (D-509);
     `buildGuidePipeline.test.ts`:3141 (D2's support line) and :3193 (W1's Jeweller line) (D-512).
+- **WU-155 dispatched** (the upgrade script, D-508) in lane `bg-155` off `6e967b8`, after WU-151, WU-153 and WU-154
+  merged. The doer runs AC-W136's dry run on its lane and the rehearsal in a scratch worktree (discarded after), both
+  in the background under the lock, and reports the results for this log.
+- **WU-155's doer** finished at `6f4759e` on `bg/wu-155` (two commits on `6e967b8`; 0.45M subagent tokens). Its own
+  gate rc 0 (255 suites, 4,398 tests), build rc 0; no commit touches `pob-pin.json`. Built: `scripts/pin-upgrade.mjs`,
+  the S-2 probe committed (`scripts/pob-internals.lua`, 150 symbols in `pob-internals.symbols.json`), `fetch-pob.sh`'s
+  tag-and-destination mode (which also checks the tag points at the commit given), `pinCheck.ts`'s `parseManifest`,
+  `--reflag` writing only on a changed flag or label, `CLAUDE.md`'s procedure (the script first, step 8, the league
+  launch note). Changed assertions (D-508): `compilePlan.test.ts`:208–209 (`record.engine` from `pob-pin.json`),
+  `skillSlots.test.ts`'s `pobLine` and `v1SkillSlots.test.ts`:50 (PoB's warning found by its text). Deviations: the gate
+  step runs `mise.toml`'s three test commands itself with Jest's `--json` (a static test keeps the copy equal); the probe
+  runs with cwd at the tree's `src/`; the old pin's candidates taken in the probe step; staging under
+  `vendor/.pin-upgrade/<tag>` (gitignored); `Trade.lua` listed by the lines citing a changed file; the report carries
+  more than A.4's fields; a retirement removes only the entry and its case (the rest is judgment).
+- **AC-W136, the two real runs** (the doer's, in the background under the lock; reports kept in the coordinator's
+  scratchpad, `m29/dry-run-report.json` and `m29/rehearsal-report.json`):
+  - **Dry run, `v0.23.1` to `v0.23.1`, on the lane:** rc 0, all 9 steps done, no judgment item, nothing retired;
+    `git status` empty before and after, no digest written, no pin file written. Stage 8.9 s, probe 5.4 s (150 symbols,
+    0 changed), fingerprints 4 patches and 6 fingerprints, 0 changed, fetch 0.1 s, gate 600.6 s (257 suites, 4,402
+    tests, 0 failed), rule index 0 changed and 0 problems, reflag 0.1 s; 617.8 s in all, about 17 s besides the gate.
+  - **Rehearsal, `v0.23.1` to `v0.23.0` (`99bc6e1`), in a scratch worktree, removed with its branch after:** rc 0, all
+    9 steps done, nothing retired; the pin step rewrote `pob-pin.json` and its five literals in two tests, both digests
+    rewritten for the new label with no flag changed; the skill-slot method present. Judgment, 29 items: 1 symbol
+    (`TradeQueryRequests:FetchResultBlock`'s body), 1 re-read (`Trade.lua`:591, mirroring
+    `Classes/TradeQueryRequests.lua`), 1 rule-index candidate (Commandment isn't legacy at `v0.23.0`), 26 test failures
+    (`findUpgrades` 12, `ruleBreaks` 4, `compileSchema8` 2, `trade.lua` 2, one each in six more); no golden,
+    fingerprint, tree-version, skill-slot or digest-flag item. Gate 619.4 s; 642.4 s in all, about 23 s besides it.
+- **WU-155's review** (fresh, read-only): the four unit suites pass (54 tests); cutting each real entry and its case in
+  memory leaves parsable Lua; `fetch-pob.sh`'s default mode unchanged; `--reflag` writes only on a real change;
+  `CLAUDE.md` matches the script. Deviations 1–4 and 6–8 accepted, 5 rejected (finding 5). Findings, 1 and 2 confirmed
+  by the coordinator in the code (`pin-upgrade.mjs`:451–510, :578–612):
+  1. **High:** `sortFailures` retires a patch whenever its "bug still present" case reports `failed`, a hook error
+     included; in Jest 29.7 a throwing `beforeAll` fails every case with the hook's error, and all four retirement files
+     start the engine there, so a release whose engine won't boot would cut PG-103, PG-106, PG-109 and PG-114 (§4 step
+     7: such a failure is judgment). Fix: retire only on an `expect` failure (`failureDetails`' `matcherResult`).
+  2. **Medium:** an untested `--stage` option runs `fs.rmSync(recursive)` on any path given (`--stage .` deletes the
+     checkout). Fix: drop it, or refuse a path outside `vendor/.pin-upgrade/`.
+  3. **Medium:** after a failure at or after the pin step the tree holds a half-written upgrade, and a re-run reads it as
+     `from` and compares the new tree with itself, with no warning. Fix: refuse to start when the pin, its literal test
+     files, the patch modules or `data/league/` differ from HEAD; on a failure, print the changed paths and the restore.
+  4. **Low:** `POB_SKIP_ENGINE` in the caller's env reaches the gate, skipping every engine test, and the report says
+     no judgment; a retirement case that neither passed nor failed is reported nowhere.
+  5. **Low:** `Trade.lua` is listed only by `<file>.lua:` citations, missing `:668` and the bare `(:N)` ones; always list
+     A.4's `:640–669` beside them.
+  6. **Low:** LUA_PATH/LUA_CPATH built with a literal `/` and `.so` and without the bridge's `pob-api/?/init.lua` entry
+     (`src/pobLuaBridge.ts`:347–350; D-506).
+  7. **Low:** the dry-run unit test filters four judgment kinds out before asserting none.
+  All seven go to the doer in one round after the gate verifier frees the lane.
+- **WU-155's gate verifier** (fresh): **FAIL** on the review's finding 1, found independently (it confirmed in a temp
+  Jest 29.7 suite that a throwing `beforeAll`, and a thrown error in the case, both report `failed` with no
+  `matcherResult`). Everything else held: gate from clean rc 0 (255 suites, 4,398 tests; the timing step 2 suites, 4
+  tests), build rc 0; every clause of AC-W138 asserted through the real script against a `file://` origin, three
+  mutations bite; AC-W136's two reports have A.4's shape and say what it requires, no rehearsal worktree or branch
+  left; the three changed assertions forced by D-508; waivers `[]`, `vendor/` clean at `7d6f530`. Fix round sent to the
+  doer with all seven review findings.

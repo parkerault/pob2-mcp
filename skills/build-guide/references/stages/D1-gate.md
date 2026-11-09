@@ -77,7 +77,8 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
      note, not a finding: read `stages.<id>.v1.notes` for `boots-exception` (the boots under their tier, covered
      by the stage's `items.bootsException`), report it as a `boots-exception` finding, part `v1`, its message the
      note's, which is information and fails nothing, as `chaos-exception` is on a passing floor; `v1` stays
-     `pass`.
+     `pass`. **A V2 callout** (D-519): a finding with `kind: "from-file"`, on a read stage's own configuration, is
+     reported with its kind and fails nothing; `v2` stays `pass`.
    - **floor**: per endgame stage, `MissingFireResist`, `MissingColdResist` and `MissingLightningResist`
      are 0, and `MissingChaosResist` is 0 or the stage has a `chaosResistException` (then a
      `chaos-exception` finding on a passing floor names the stage's `ChaosResist` value and the reason);
@@ -326,10 +327,13 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
 With `scope: "better"` the one stage is the player's character, judged as its rung is, against that rung's targets
 (`m`'s below the endgame), except that a target the user's budget can't reach is a finding shown at the design gate
 with what reaching it would cost, not a failed attempt: each such survival-floor finding (a resistance, or a max hit
-under its reference hit) carries `cost`, in players' words ("a cold-resistance ring, about 9 divines, 4 over your
-budget"), and the floor part failing only on findings with a `cost` passes to the design gate, the draft included.
-Without a `cost`, the floor fails as today; the legality parts (compiled, V1, V2) fail as today. The draft's name is
-the prompt's `draft_name`, the source's name and ` better`, never the user's file's.
+under its reference hit) carries `cost`, in players' words, from D1-finish's `scaling` finds over the budget in
+`trades.json` that would reach it and their prices ("a cold-resistance ring, about 9 divines, 4 over your budget"; an
+unpriced find says its price is unavailable). A floor failing only on findings with a `cost` passes to the design gate,
+the draft included; without one, the floor fails as today, and the legality parts (compiled, V1, V2) fail as today.
+On the file's configuration (`config.file`) the compiler writes no reference hit: the stage's hits are its rung's,
+D-254's formula at its area level, which its toughness read measured. The draft's name is the prompt's `draft_name`,
+the source's name and ` better`, never the user's file's.
 
 ## Writes
 

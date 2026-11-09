@@ -92,6 +92,19 @@ describe('AC-W153 (WU-162, D-519): skills/compile/SKILL.md', () => {
     expect(BODY).toContain('`buildName` the draft\'s name (`<name> better`), `firstFree: true` on its first write');
   });
 
+  it("tells the runner what a compile run's design gate takes that the pipeline's doesn't (WU-162's fix round)", () => {
+    // The targets the budget can't reach, at the gate; no gate question step; §4's exceptions; F1's accepted findings.
+    expect(BODY).toContain('whose display lists each under "Not reached within your budget"');
+    expect(BODY).toContain('A compile run has no gate question step (`Q`): answer from the display, the verdict file, `trades.json` and your lookups.');
+    expect(BODY).toContain('but a compile run logs no `build` entry and no skeleton, and has no verification gate: an `infeasible` round ends the run `stopped`');
+    expect(BODY).toContain('`accepted` the round\'s accepted findings');
+    // An escalation's accept: the runner writes the draft and logs its path on the escalation; stop ends the run stopped.
+    expect(BODY).toContain('and log the escalation with its path as `draftFile`), retry, or stop, which ends the run `stopped`');
+    expect(BODY).toContain("`draftFile` the draft the display named (the D1 gate verdict's `draft`, or an escalation's `draftFile`)");
+    // A callout the user wants fixed is theirs to change in PoB (§17 keeps the configuration as set).
+    expect(BODY).toContain('A callout the user wants fixed is theirs to change in PoB: the round keeps the configuration as set (§17), so they change it there, save, and start again from the file; you never edit the plan.');
+  });
+
   it("every root-relative path in the piece's files resolves, and the SKILL.md body names plugin files under ${CLAUDE_PLUGIN_ROOT}", () => {
     const roots = fs.readdirSync(REPO, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules').map((e) => e.name);
     let checked = 0;
@@ -187,5 +200,19 @@ describe('AC-W154 (WU-162, D-521): the better scope in the four D1 stage referen
     expect(g).toContain('carries `cost`');
     expect(g).toContain('the legality parts (compiled, V1, V2) fail as today');
     expect(g).toContain("the source's name and ` better`, never the user's file's");
+    // Where a cost comes from, and the reference hits on the file's configuration.
+    expect(g).toContain("from D1-finish's `scaling` finds over the budget in `trades.json` that would reach it and their prices");
+    expect(g).toContain("On the file's configuration (`config.file`) the compiler writes no reference hit: the stage's hits are its rung's, D-254's formula at its area level");
+  });
+
+  it('a V2 callout on the file\'s configuration (kind from-file) fails no D1 gate and no F1 (D-519)', () => {
+    expect(folded(STAGE('D1-gate'))).toContain('**A V2 callout** (D-519): a finding with `kind: "from-file"`, on a read stage\'s own configuration, is reported with its kind and fails nothing; `v2` stays `pass`.');
+    expect(folded(STAGE('F1'))).toContain('A part with any finding is `fail`, but a V2 callout (`kind: "from-file"`, on a read stage\'s own configuration, D-519): report it with its kind; it fails nothing.');
+  });
+
+  it("D1-build writes the rung's ascendancyPoints and variantBasis with it, and hands a replaced rare to D1-finish's spec loop in a sentence", () => {
+    const b = better('D1-build');
+    expect(b).toContain('either way write its `ascendancyPoints` (the file\'s allocated ascendancy nodes, §16) and `variantBasis` (each a judgment tag), which the schema requires with `variant`');
+    expect(b).toContain('a rare is written as a spec, and D1-finish prices it by the spec loop.');
   });
 });

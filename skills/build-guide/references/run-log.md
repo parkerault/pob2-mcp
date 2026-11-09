@@ -630,7 +630,9 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
   with no `--build`. No `build` entry is written.
 - **Gates**: only a compile run's better round has them, its design gate (`display design`, or `display design --build
   file`) and its escalation question, and an `ask` after a departure (D-482), each naming `file`; any other display or
-  checkpoint is refused.
+  checkpoint is refused. Its design gate takes `accept`, `revise:<text>` or `stop`, its escalation no `verification`; an
+  accepted D1 gate escalation carries `draftFile`, the draft the runner then wrote, since a compile run has no `builds[]`
+  (D-521, a departure from Appendix A.6).
 - **A pricing stop ends the run.** A piece run has no gate that asks to retry: a step whose `priceOutcomes` counts
   `rate_limited`, `locked_out` or `pace` records `pricing.stops[]` as above, and the runner asks for the rung first when
   none is placed, sets the status `stopped`, tells the user when the lockout ends, and stops. `/pob2:<piece> --resume

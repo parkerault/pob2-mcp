@@ -124,6 +124,8 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
       `${POB2}guide_run`,
       // D-517 (WU-160): the runner calls the file reader, as it calls guide_run.
       `${POB2}plan_from_build`,
+      // D-519 (WU-162): compile's runner matches a build the user names against the builds folder's list (§12).
+      `${POB2}list_builds`,
       `${POB2}get_node_power`,
       `${POB2}manage_sets`,
       ...coordinatorTools().filter((t) => t.startsWith(POB2) && !isTradeOrNinja(t)),

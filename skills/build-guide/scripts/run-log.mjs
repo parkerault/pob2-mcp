@@ -436,6 +436,9 @@ const FIELDS4 = {
   skeleton: ['concept'],
   'answer-change': ['checkpoint', 'visit', 'from', 'to', 'note'],
   withdrawn: ['build', 'files'],
+  // D-521: a compile run's D1 gate escalation accepted, its draft's path (the runner's draft call): a compile run has no
+  // builds[] (Appendix A.6), so the draft's home is this entry, a departure from A.6.
+  escalation: [...FIELDS.escalation, 'draftFile'],
 };
 /** Amendment 14 (Appendix A): the fields only a log at 14 takes, by kind. */
 const FIELDS14 = { stage: ['skeletonFile', 'scope', 'requests'], checkpoint: ['kind', 'build', 'scaling'] };
@@ -907,6 +910,7 @@ function pieceAgainstRun(log, kind, entry) {
   const piece = pieceOf(log);
   const bad = [];
   if (piece === null) {
+    if (kind === 'escalation' && entry.draftFile !== undefined) bad.push("draftFile is a compile run's escalation's (D-521); a /pob2:build-guide build's draft goes in builds[].draftFile (D-466)");
     if (kind === 'stage' && PIECE_STAGES.includes(entry.stage)) {
       if (entry.stage === 'price') bad.push(`price is /pob2:pricing's step; a /pob2:build-guide run prices inside its own steps (D-516, Appendix A.6)`);
       else if (!isFileRun(log)) bad.push(`${entry.stage} is a file run's step (/pob2:build-guide from a PoB file, slug ${FILE_ID}) or a piece run's; this run's slug is ${show(log.slug)} (D-516)`);
@@ -933,6 +937,7 @@ function pieceAgainstRun(log, kind, entry) {
     // asks no scaling question; its escalation has no verification gate to go back to.
     else if (kind === 'checkpoint' && which === 'design' && (!/^(?:accept|revise:.+|stop)$/s.test(String(entry.answer)) || entry.scaling !== undefined)) bad.push(`answer ${show(entry.answer)}${entry.scaling !== undefined ? ` with scaling ${show(entry.scaling)}` : ''}: a compile run's design gate takes accept (F1 writes the final PoB file), revise:<text> or stop, and asks no scaling question (D-521)`);
     else if ((kind === 'checkpoint' && which === 'escalation' && entry.answer === 'verification') || (kind === 'escalation' && entry.choice === 'verification')) bad.push('a compile run has no verification gate: its escalation takes accept, retry:<guidance> or stop (D-521)');
+    else if (kind === 'escalation' && entry.draftFile !== undefined && !(entry.stage === 'D1-gate' && entry.choice === 'accept' && text(entry.draftFile))) bad.push(`draftFile ${show(entry.draftFile)}: the draft the runner wrote after the D1 gate's escalation was accepted, its path in the builds folder, on that entry only (D-521)`);
   } else if (kind === 'pricing') {
     bad.push(`a ${piece} run has no gate that asks to retry pricing: a stop ends the run (status stopped), and /pob2:${piece} --resume <run folder> after the lockout is the retry, which clears the stop (D-516)`);
   } else if (kind === 'build') {
@@ -2892,6 +2897,30 @@ function overBudgetLines(r, rec, finds) {
   return [...lines, ...tradeLines({ ...r, trades: others }, rec)];
 }
 /**
+ * D-521 (§17): a better round's targets the user's budget can't reach, each a gate finding with its `cost`: one line each,
+ * `<what is short>: <what reaching it would cost>`, the shortfall read from the record (a resistance's percent, a max
+ * hit's type), else the finding's message.
+ */
+function notReachedLines(r, gate, rec) {
+  const stop = (v) => String(v ?? '').trim().replace(/\.+$/, '');
+  return objects(gate?.findings).filter((f) => f.stage === r.stage && f.part === 'floor' && text(f.cost)).map((f) => {
+    const res = /^missing-(fire|cold|lightning|chaos)-resist$/.exec(String(f.code));
+    const hit = /^max-hit-(\w+)$/.exec(String(f.code));
+    const short = res ? rec?.outputs?.[`Missing${res[1][0].toUpperCase()}${res[1].slice(1)}Resist`] : undefined;
+    const what = res ? `${res[1]} resistance${isNum(short) ? ` ${short}% short` : ' short of its cap'}` : hit ? `the ${hit[1]} max hit, under its reference hit` : stop(f.message);
+    return `- ${what}: ${stop(f.cost)}.`;
+  });
+}
+/**
+ * D-521: the draft a compile run's design gate shows: the one the runner wrote after an escalation's accept of this D1
+ * gate attempt (logged on that escalation entry as `draftFile`: a compile run has no builds[], Appendix A.6), else the
+ * one the gate wrote on its pass (its verdict's `draft`).
+ */
+function compileDraft(log, s, gate) {
+  const e = objects(log.escalations).filter((x) => x.stage === s.stage && x.concept === s.concept && x.verdict === verdictFile(s) && text(x.draftFile)).pop();
+  return e ? e.draftFile : text(gate.draft) ? gate.draft : null;
+}
+/**
  * D-478 (amendment 14, Appendix A): the design display of a build held to revision 14 by its D1 gate, the user's form
  * [GR]: the PoB file first (the draft, D-479); How it works (the design field's `summary.how`); then each rung, `m` in two
  * lines (its name and level, its damage and EHP; the draft holds the rest), `b` and `n` in full: the five-row table (map
@@ -2905,7 +2934,9 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
   const b = objects(log.builds).find((x) => x.id === s.concept);
   const buildName = text(b?.name) ? b.name.trim() : name(s.concept);
   // The draft the gate wrote (D-479: builds[].draftFile, else the verdict's draft); once F1 removed it, the final file.
-  const draft = text(b?.draftFile) ? b.draftFile : text(b?.pobFile) ? b.pobFile : text(gate.draft) ? gate.draft : null;
+  // D-521: a compile run's, the gate's or an escalation accept's (`compileDraft`).
+  const compile = pieceOf(log) === 'compile';
+  const draft = compile ? compileDraft(log, s, gate) : text(b?.draftFile) ? b.draftFile : text(b?.pobFile) ? b.pobFile : text(gate.draft) ? gate.draft : null;
   const summary = isObj(gate.design.summary) ? gate.design.summary : {};
   const stop = (v) => String(v ?? '').trim();
   const out = [draft !== null ? `PoB file: ${baseName(draft)} in your Builds folder` : 'PoB file: none written yet', ''];
@@ -2919,7 +2950,8 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     const level = isNum(st.level) ? ` (level ${st.level})` : '';
     const head = `**${buildName}: ${RUNG_WORDS[st.variant]}**${level}`;
     const map = isObj(r.damage) ? r.damage.map : r.dps;
-    if (st.variant === 'entering-maps') {
+    // D-521 (choice A): a better round on m (a character below the endgame) is the round's one rung, shown in full.
+    if (st.variant === 'entering-maps' && !compile) {
       out.push(head, `${shortFigure(map)} damage per second on map packs; ${whole(r.ehp)} effective HP; the draft holds the rest.`, '');
       continue;
     }
@@ -2934,6 +2966,17 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     out.push('**Gear**', ...(gear.length > 0 ? gear.map((g) => `- ${stop(g.slot)}: ${stop(g.text)}`) : ['- not given']), '');
     const groups = objects(st.skills?.groups).map((g) => objects(g.gems).map((x) => String(x.name ?? '').trim()).filter((x) => x !== '')).filter((g) => g.length > 0);
     out.push('**Skills**', ...(groups.length > 0 ? groups.map(([skill, ...supports]) => `- ${skill}${supports.length > 0 ? `: ${supports.join(', ')}` : ''}`) : ['- none']), '');
+    if (compile) {
+      // D-521 (§17): the round's changes within the budget, its finds over it, and each target the budget can't reach
+      // with what reaching it would cost.
+      const changes = tradeLines({ ...r, trades: objects(r.trades).filter((t) => !['scaling', 'boots'].includes(t.kind)) }, rec);
+      const over = overBudgetLines({ ...r, trades: [] }, rec, finds);
+      const missed = notReachedLines(r, gate, rec);
+      if (changes.length > 0) out.push('**Changes**', ...changes, '');
+      if (over.length > 0) out.push('**Over budget**', ...over, '');
+      if (missed.length > 0) out.push('**Not reached within your budget**', ...missed, '');
+      continue;
+    }
     const over = overBudgetLines(r, rec, finds);
     if (over.length > 0) out.push('**Over budget**', ...over, '');
   }
@@ -2972,8 +3015,8 @@ function designDisplay(dir, log, id, opts = {}) {
   const floor = arbiterFloor() ?? ARBITER_FLOOR;
   const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a12 ? PACE_FIRST_A12 : a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
   // D-466 (Appendix A): the draft's one home is the run log's builds[].draftFile; its name, once.
-  // D-521: a compile run has no builds[]: its draft is the gate's own `draft`.
-  const draft = pieceOf(log) === 'compile' ? gate.draft : objects(log.builds).find((b) => b.id === s.concept)?.draftFile;
+  // D-521: a compile run has no builds[]: its draft is the gate's, or an escalation accept's (`compileDraft`).
+  const draft = pieceOf(log) === 'compile' ? compileDraft(log, s, gate) : objects(log.builds).find((b) => b.id === s.concept)?.draftFile;
   if (text(draft)) out.push(`- Draft PoB file: ${baseName(draft)}, in your builds list.`, '');
   // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
   if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces, a11), '');
@@ -3011,6 +3054,8 @@ function designDisplay(dir, log, id, opts = {}) {
     if (a13) out.push(...searchLines(r));
     // D-439…D-441, D-448, D-450: the trades the user may take or leave.
     out.push(...tradeLines(r, rec));
+    // D-521 (§17): a better round's targets the budget can't reach, with what reaching them would cost.
+    if (pieceOf(log) === 'compile') out.push(...notReachedLines(r, gate, rec).map((l) => l.replace(/^- /, '- Not reached within your budget: ')));
     out.push('');
   }
   // An estimate the gate wrote for one rung (`b: …`) names the rung in words.

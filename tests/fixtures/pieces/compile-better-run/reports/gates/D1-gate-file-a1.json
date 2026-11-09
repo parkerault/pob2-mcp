@@ -6,17 +6,115 @@
     "compiled": "pass",
     "v1": "pass",
     "v2": "pass",
-    "floor": "pass",
+    "floor": "fail",
     "budget": "unverified",
     "rolledSkill": "pass",
     "tree": "pass"
   },
   "findings": [
     {
-      "part": "floor",
-      "code": "chaos-exception",
+      "part": "budget",
+      "code": "unverified",
       "stage": "b",
-      "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+      "message": "every budget price is unavailable (offline run)"
+    },
+    {
+      "part": "floor",
+      "code": "missing-fire-resist",
+      "stage": "b",
+      "message": "b.MissingFireResist 15",
+      "cost": "a Two-Stone Ring with fire, cold, lightning and chaos resistance in Ring 1 (the round's over-budget find; its price unavailable offline)"
+    },
+    {
+      "part": "floor",
+      "code": "missing-cold-resist",
+      "stage": "b",
+      "message": "b.MissingColdResist 46",
+      "cost": "a Two-Stone Ring with fire, cold, lightning and chaos resistance in Ring 1 (the round's over-budget find; its price unavailable offline)"
+    },
+    {
+      "part": "floor",
+      "code": "missing-lightning-resist",
+      "stage": "b",
+      "message": "b.MissingLightningResist 26",
+      "cost": "a Two-Stone Ring with fire, cold, lightning and chaos resistance in Ring 1 (the round's over-budget find; its price unavailable offline)"
+    },
+    {
+      "part": "floor",
+      "code": "missing-chaos-resist",
+      "stage": "b",
+      "message": "b.MissingChaosResist 75",
+      "cost": "a Two-Stone Ring with fire, cold, lightning and chaos resistance in Ring 1 (the round's over-budget find; its price unavailable offline)"
+    },
+    {
+      "part": "v2",
+      "code": "unproduced-state",
+      "stage": "b",
+      "message": "windDancerStacks is 3 in the file, but PoB finds nothing in the build it comes from or applies to: PoB marks it \"conditional with missing source and is invalid\", a state nothing in the build produces",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyArmour is driven by PoB's placeholder (6011), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyChaosResist is driven by PoB's placeholder (0), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyColdResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyCritChance is driven by PoB's placeholder (5), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyCritDamage is driven by PoB's placeholder (30), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyEvasion is driven by PoB's placeholder (977), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyFireResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyLightningResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "resistancePenalty is on by default (-60), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
     }
   ],
   "basis": {
@@ -31,17 +129,32 @@
         {
           "stage": "b",
           "slot": "Weapon 1",
-          "priceId": "b-weapon"
+          "priceId": "b-weapon-1"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2",
+          "priceId": "b-weapon-2"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1 Swap",
+          "priceId": "b-weapon-1-swap"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2 Swap",
+          "priceId": "b-weapon-2-swap"
         },
         {
           "stage": "b",
           "slot": "Body Armour",
-          "priceId": "b-body"
+          "priceId": "b-body-armour"
         },
         {
           "stage": "b",
-          "slot": "Helmet",
-          "priceId": "b-helmet"
+          "slot": "Amulet",
+          "priceId": "b-amulet"
         },
         {
           "stage": "b",
@@ -51,22 +164,27 @@
         {
           "stage": "b",
           "slot": "Ring 1",
-          "priceId": "b-ring1"
+          "priceId": "b-ring-1"
         },
         {
           "stage": "b",
           "slot": "Ring 2",
-          "priceId": "b-ring2"
+          "priceId": "b-ring-2"
         },
         {
           "stage": "b",
-          "jewel": 1001,
-          "priceId": "b-jewel"
+          "slot": "Belt",
+          "priceId": "b-belt"
         },
         {
           "stage": "b",
-          "slot": "Anoint",
-          "priceId": "b-anoint"
+          "slot": "Charm 1",
+          "priceId": "b-charm-1"
+        },
+        {
+          "stage": "b",
+          "jewel": 54127,
+          "priceId": "b-jewel-54127"
         }
       ],
       "totals": [
@@ -83,12 +201,8 @@
         "stage": "b",
         "figures": [
           {
-            "group": 1,
-            "figure": "g1s1p1.TotalDPS"
-          },
-          {
-            "group": 2,
-            "figure": "g2s1p1.TotalDPS"
+            "group": 4,
+            "figure": "g4s1p1.TotalDPS"
           }
         ]
       }
@@ -100,65 +214,55 @@
     "rungs": [
       {
         "stage": "b",
-        "dps": 50000,
-        "ehp": 31500,
-        "arbiter": "survives, worst physical 0.68",
+        "dps": 38,
+        "ehp": 2277,
+        "ehpHit": "T15 map hits, area 79: 402 physical",
+        "arbiter": "one-shot, worst physical 2.20",
         "maxHit": {
           "lowest": {
-            "type": "chaos",
-            "value": 3000
+            "type": "physical",
+            "value": 1582
           },
           "immune": [],
           "arbiter": {
             "type": "physical",
-            "evade": 0,
+            "evade": 2,
             "deflect": 0,
-            "hitsSurvived": 100,
+            "hitsSurvived": 2,
             "deflectedRatio": null,
-            "method": null
+            "method": "pass"
           },
-          "oneShot": false
+          "oneShot": true
         },
-        "clearSpeed": "medium",
-        "anoint": "Unbending: Ire, Guilt, Greed",
-        "gear": "a War Spear with increased physical damage; a life and fire-resistance body",
-        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "clearSpeed": "slow",
+        "anoint": null,
+        "gear": "the owned spear, buckler and amulet; a new life and fire-resistance vest and a cold-resistance ring",
+        "gems": "Twister with Salvo and Projectile Acceleration III; Herald of Ice and Combat Frenzy",
         "tree": {
-          "travel": 9,
-          "points": 98,
-          "bestSwap": {
-            "gainPercent": 3.2,
-            "removed": [
-              "Strength",
-              "Strength"
-            ],
-            "added": [
-              "Cold Nature"
-            ]
-          },
-          "needs": [
-            "Unbending holds armour where the tree has none"
-          ]
+          "travel": 0,
+          "points": 12,
+          "bestSwap": null,
+          "needs": []
         },
         "damage": {
-          "map": 50000,
-          "resisting": 44000,
-          "boss": 60000
+          "map": 37.685655,
+          "resisting": 37.685655,
+          "boss": 36.896768622
         },
         "cull": null,
         "trigger": null,
         "boss": {
-          "measured": 60000,
+          "measured": 36.896768622,
           "estimate": null,
           "corrections": [],
-          "start": 58000,
-          "end": 60000,
+          "start": 37,
+          "end": 37,
           "entries": [
             {
-              "label": "Blood Hunt",
-              "start": 58000,
-              "end": 60000,
-              "final": 60000,
+              "label": "Twister",
+              "start": 37,
+              "end": 37,
+              "final": 36.896768622,
               "valuedBy": null
             }
           ],
@@ -168,67 +272,128 @@
           {
             "stage": "b",
             "kind": "damage",
-            "what": "a rare War Spear with 60% increased physical damage in place of the owned spear",
+            "what": "Twister, Herald of Ice and Combat Frenzy at the levels the attributes carry",
             "ehpChange": 0,
-            "damageChange": 25,
+            "damageChange": -48,
             "bossAfter": null,
-            "reason": "the owned spear's physical damage line was its weakest",
+            "reason": "the owned gems' attribute requirements were unmet",
+            "maxHit": {
+              "type": "physical",
+              "before": 1582,
+              "after": 1582
+            },
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "Twister 20, Herald of Ice 18, Combat Frenzy 17",
+            "to": "Twister 5, Herald of Ice 3, Combat Frenzy 5"
+          },
+          {
+            "stage": "b",
+            "kind": "defence",
+            "what": "none found: no slot within the budget lifts the physical max hit over the Arbiter's slam",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "one-shot by the Arbiter's physical hit",
             "maxHit": null,
             "hitsSurvived": null,
             "bossEntries": null,
             "nodes": null,
             "price": null,
-            "from": "rare War Spear, attack speed, accuracy",
-            "to": "rare War Spear, physical damage"
+            "from": null,
+            "to": null
           },
           {
             "stage": "b",
             "kind": "scaling",
-            "slot": "Weapon 1",
-            "from": "rare War Spear, physical damage, attack speed, +3 melee levels",
-            "to": "rare War Spear, physical damage",
+            "slot": "Ring 1",
+            "from": "rare Two-Stone Ring, fire, cold and lightning resistance, chaos resistance",
+            "to": "the owned Gale Loop",
             "price": null,
-            "damage": 21,
-            "ehp": 0,
-            "measured": true,
+            "damage": 0,
+            "ehp": 4,
+            "measured": false,
             "repriced": false,
-            "by": "D1-build"
+            "by": "D1-finish"
           }
         ],
         "life": {
-          "start": 4300,
-          "end": 4200
+          "start": 1582,
+          "end": 1582
         },
-        "swapCap": {
-          "swaps": 30,
-          "lastGain": 1.4
-        },
-        "rebuild": "taken",
+        "swapCap": null,
+        "rebuild": "none",
         "removedForOthers": [],
         "levels": []
       }
     ],
     "estimates": [
-      "b: Blood Loss stacks are a hand calculation (bleed_bonus)",
       "clear speed is a rough estimate from the skill's area"
     ],
     "summary": {
-      "how": "Blood Hunt lunges at a target and consumes its Blood Loss for a burst; Rolling Slam clears the packs between. The bleed builds while you slam, and the lunge cashes it in on rares.",
+      "how": "Twister sends spinning blades through packs from range; the round fits the character's gems to its attributes and patches its resistances where the budget reaches.",
       "gear": [
         {
           "stage": "b",
           "slot": "Weapon 1",
-          "text": "rare War Spear, physical damage"
+          "text": "the owned Hunting Spear"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2",
+          "text": "the owned Leather Buckler"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1 Swap",
+          "text": "the owned Item Level: 70"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2 Swap",
+          "text": "the owned Item Level: 80"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "text": "rare Leather Vest, Life, Fire Resistance"
+        },
+        {
+          "stage": "b",
+          "slot": "Amulet",
+          "text": "the owned Jade Amulet"
         },
         {
           "stage": "b",
           "slot": "Boots",
-          "text": "rare Rough Greaves, movement speed, lightning resistance"
+          "text": "the owned Lizardscale Boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "text": "the owned Two-Stone Ring"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "text": "rare Iron Ring, Cold Resistance, Life"
+        },
+        {
+          "stage": "b",
+          "slot": "Belt",
+          "text": "the owned Heavy Belt"
+        },
+        {
+          "stage": "b",
+          "slot": "Charm 1",
+          "text": "the owned Item Level: 80"
         }
       ],
-      "catch": "The burst needs Blood Loss on the target first; unconfirmed (its uptime on a boss; if it fails: a second bleed support, about 1 div)."
+      "catch": "The resistances stay short of the cap within this budget; unconfirmed (the chaos resistance a Two-Stone Ring rolls; if it fails: a chaos-resistance belt, about 3 divines)."
     }
   },
-  "draft": "Fixture Titan better (draft).xml",
-  "planSha1": "d0df847d75ec0b912da43857a8df7f2683f3f2af"
+  "planSha1": "6911c220c95abd5c3c654ab88f441c99d04480d1",
+  "draft": "imported-character better (draft).xml"
 }

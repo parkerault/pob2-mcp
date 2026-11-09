@@ -1676,9 +1676,12 @@ async function checkBuild(c) {
   // §22 (amendment 13): a build is held to the rules of its last D1 gate, logged at or after a revision's boundary; every
   // rule amendment 13 adds holds a build held to 13 only.
   const lastD1Entry = stages.filter((s) => s.stage === 'D1-gate' && !idle(s)).pop();
-  const a13Build = v4 && lastD1Entry !== undefined && log.stages.indexOf(lastD1Entry) >= heldFrom(log, 'stages', A13);
+  // D-516: a piece run's build with no D1 gate yet (a better round a pricing stop cut short) is held to its log's own
+  // revision, 16, written so from its init.
+  const pieceHeld = (revision) => v4 && piece !== null && lastD1Entry === undefined && (revisionOf(log) ?? 0) >= revision;
+  const a13Build = (v4 && lastD1Entry !== undefined && log.stages.indexOf(lastD1Entry) >= heldFrom(log, 'stages', A13)) || pieceHeld(A13);
   // §25 (amendment 14): likewise, every rule amendment 14 adds but the layout lists holds a build held to 14 only.
-  const a14Build = v4 && lastD1Entry !== undefined && log.stages.indexOf(lastD1Entry) >= heldFrom(log, 'stages', A14);
+  const a14Build = (v4 && lastD1Entry !== undefined && log.stages.indexOf(lastD1Entry) >= heldFrom(log, 'stages', A14)) || pieceHeld(A14);
 
   // A-34, D-352: each round copy is rounds/<n>/, holding the plan, the record and the guide, and nothing else. D-477
   // (amendment 13): the round copy of a build with no guide (a file-only build's claims pass) holds the plan and the record.
@@ -2096,7 +2099,7 @@ async function checkBuild(c) {
   const d1At = d1 ? stages.findLastIndex((s) => s.stage === 'D1-gate' && s.concept === d1.concept && s.attempt === d1.attempt) : -1;
   const a11Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log);
   // Amendment 12 (§22): a build held to revision 12's rules by its last D1 gate, logged at or after 12's boundary.
-  const a12Build = d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log, 'stages', 12);
+  const a12Build = (d1At >= 0 && log.stages.indexOf(stages[d1At]) >= heldFrom(log, 'stages', 12)) || pieceHeld(12);
   const tradesFile = readJson('trades.json');
   if (tradesFile !== null) checkTradesFile(tradesFile, endgame, fail, a12Build, a13Build, a14Build);
   if (a11Build && isObj(plan)) {
@@ -2379,7 +2382,10 @@ function checkRewardPicks(planStages, campaign, guide, fail) {
  * for each reward choice the campaign offers (data/campaign/progress.json), a `config.scenario` (or earned) entry of
  * its option with one of its values, and the endgame guide's `Switching over` names each pick by its first line.
  */
-function checkEndgameRewardPicks(endgame, guide, fail) {
+function checkEndgameRewardPicks(stages, guide, fail) {
+  // D-519, D-521: a stage on the player's own configuration (`config.file`, kept as set) holds the picks the player made.
+  const endgame = stages.filter((s) => !isObj(s.config?.file));
+  if (endgame.length === 0) return;
   const { choices } = rewardChoices();
   const h2 = guide ? h2Named(guide, SWITCHING_H2) : null;
   for (const c of choices) {
@@ -3094,6 +3100,8 @@ function checkPieceFields(log, bad) {
   list(log.escalations).forEach((e, i) => {
     if (piece !== 'compile' || e.concept !== FILE_ID) bad(`escalations[${i}]`, `is ${show(e.stage)} ${show(e.concept)}; only a compile run's better round escalates, naming its one build ${FILE_ID} (D-516)`);
     else if (e.choice === 'verification') bad(`escalations[${i}]`, 'chooses verification; a compile run has no verification gate: its escalation takes accept, retry or stop (D-521)');
+    // D-521: an accepted D1 gate escalation's draft, which the runner writes and logs here (a compile run has no builds[]).
+    else if ('draftFile' in e && !(e.stage === 'D1-gate' && e.choice === 'accept' && typeof e.draftFile === 'string' && e.draftFile.trim() !== '')) bad(`escalations[${i}]`, `has draftFile ${show(e.draftFile)}; only an accepted D1 gate escalation carries one, the draft the runner wrote after it, its path in the builds folder (D-521)`);
   });
   if (isObj(log.pricing) && list(log.pricing.retries).length > 0) bad('pricing.retries', `holds ${list(log.pricing.retries).length} answer(s); a ${piece} run has no gate that asks to retry pricing: a stop ends it, and /pob2:${piece} --resume <run folder> after the lockout is the retry (D-516)`);
 }
@@ -3121,10 +3129,11 @@ function checkBetterRound({ log, plan, gateReports, exists, fail }) {
     const file = `reports/gates/D1-gate-${s.concept}-a${s.attempt}.json`;
     const rep = gateReports.get(file);
     if (!isObj(rep?.verdict)) return;
-    // The draft the gate wrote is named after the source and "better", never the user's file's name (its draft suffix
-    // aside: the name the gate passed as draft_name).
+    // The draft the gate wrote, or the runner after an escalation's accept, is named after the source and "better", never
+    // the user's file's name (its draft suffix aside: the name passed as draft_name).
     const own = sourceFileName(log);
-    if (typeof rep.draft === 'string' && own !== null && (cleanName(path.posix.basename(rep.draft.replace(/\\/g, '/'))) ?? '').replace(/ \(draft(?: \d+)?\)$/i, '').toLowerCase() === own) fail('layout', `${file}'s draft is ${show(rep.draft)}, the name of the file the run read (source.name ${show(log.source.name)}); the better round's draft is named after it and "better", never the user's file's name (D-521)`);
+    const drafts = [rep.draft, ...list(log.escalations).filter((e) => e.verdict === file).map((e) => e.draftFile)].filter((d) => typeof d === 'string');
+    for (const d of drafts) if (own !== null && (cleanName(path.posix.basename(d.replace(/\\/g, '/'))) ?? '').replace(/ \(draft(?: \d+)?\)$/i, '').toLowerCase() === own) fail('layout', `${file}'s draft is ${show(d)}, the name of the file the run read (source.name ${show(log.source.name)}); the better round's draft is named after it and "better", never the user's file's name (D-521)`);
     for (const f of list(rep.findings)) {
       if ('cost' in f && !costShown(f)) bad(`${file} gives ${show(f.code)} (part ${show(f.part)}) a cost ${show(f.cost)}; only a missed target (${TARGET_PARTS.join(', ')}) the budget can't reach carries one, what reaching it would cost, in words; the legality parts fail as today (D-521)`);
     }
@@ -4874,7 +4883,8 @@ function checkFlow4(log, fail, ctx) {
       }
       if (e?.choice === 'accept' && s.stage === 'D1-gate') b.lastD1 = true;
       if (e?.choice === 'verification') endBuild(b, 'dropped');
-      if (e?.choice === 'stop') endBuild(b, 'escalated');
+      // D-521 (the coordinator's ruling at M-30): a compile run's escalation answered stop ends the run stopped.
+      if (e?.choice === 'stop') endBuild(b, better ? 'stopped' : 'escalated');
     }
 
     // The V4 checks (D-352, D-415), per build.
@@ -7251,8 +7261,15 @@ function recomputeFloor(endgame, record, guide, fail) {
     const increased = factValue('enemies/waystones.json', 'mods.increased-monster-damage')?.max;
     const extra = factValue('enemies/waystones.json', 'mods.extra-damage-as-element')?.max;
     const hits = [];
+    // D-519, D-521: a stage on a file's configuration (`config.file`, written as set) gets no reference hit written; its
+    // rung's hits are the ones its toughness read sets (`fileStageHits`), D-254's formula here.
+    const fromFile = isObj(s.config?.file) && isNum(base) && isNum(increased) && isNum(extra);
     for (const type of HIT_TYPES) {
       const t = type.toLowerCase();
+      if (fromFile) {
+        hits.push({ type, value: hitCeiling(base * (1 + increased / 100) * (type === 'Physical' ? 1 : extra / 100)) });
+        continue;
+      }
       const value = written[`enemy${type}Damage`];
       if (!isNum(value) || value <= 0) {
         failures.push(failure('floor', s.id, `reference-hit-missing-${t}`, `stage ${s.id}'s record has no waystone-scaled ${type} reference hit (configWritten.enemy${type}Damage); the compiler writes each one the plan omits (D-119, D-254, D-353)`));

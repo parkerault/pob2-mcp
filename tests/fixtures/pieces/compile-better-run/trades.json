@@ -3,31 +3,51 @@
     {
       "stage": "b",
       "kind": "damage",
-      "what": "a rare War Spear with 60% increased physical damage in place of the owned spear",
+      "what": "Twister, Herald of Ice and Combat Frenzy at the levels the attributes carry",
       "ehpChange": 0,
-      "damageChange": 25,
+      "damageChange": -48,
       "bossAfter": null,
-      "reason": "the owned spear's physical damage line was its weakest",
+      "reason": "the owned gems' attribute requirements were unmet",
+      "maxHit": {
+        "type": "physical",
+        "before": 1582,
+        "after": 1582
+      },
+      "hitsSurvived": null,
+      "bossEntries": null,
+      "nodes": null,
+      "price": null,
+      "from": "Twister 20, Herald of Ice 18, Combat Frenzy 17",
+      "to": "Twister 5, Herald of Ice 3, Combat Frenzy 5"
+    },
+    {
+      "stage": "b",
+      "kind": "defence",
+      "what": "none found: no slot within the budget lifts the physical max hit over the Arbiter's slam",
+      "ehpChange": null,
+      "damageChange": null,
+      "bossAfter": null,
+      "reason": "one-shot by the Arbiter's physical hit",
       "maxHit": null,
       "hitsSurvived": null,
       "bossEntries": null,
       "nodes": null,
       "price": null,
-      "from": "rare War Spear, attack speed, accuracy",
-      "to": "rare War Spear, physical damage"
+      "from": null,
+      "to": null
     },
     {
       "stage": "b",
       "kind": "scaling",
-      "slot": "Weapon 1",
-      "from": "rare War Spear, physical damage, attack speed, +3 melee levels",
-      "to": "rare War Spear, physical damage",
+      "slot": "Ring 1",
+      "from": "rare Two-Stone Ring, fire, cold and lightning resistance, chaos resistance",
+      "to": "the owned Gale Loop",
       "price": null,
-      "damage": 21,
-      "ehp": 0,
-      "measured": true,
+      "damage": 0,
+      "ehp": 4,
+      "measured": false,
       "repriced": false,
-      "by": "D1-build"
+      "by": "D1-finish"
     }
   ]
 }

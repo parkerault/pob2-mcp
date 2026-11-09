@@ -7,14 +7,85 @@
     "v1": "pass",
     "v2": "pass"
   },
-  "findings": [],
-  "planSha1": "d0df847d75ec0b912da43857a8df7f2683f3f2af",
+  "findings": [
+    {
+      "part": "v2",
+      "code": "unproduced-state",
+      "stage": "b",
+      "message": "windDancerStacks is 3 in the file, but PoB finds nothing in the build it comes from or applies to: PoB marks it \"conditional with missing source and is invalid\", a state nothing in the build produces",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyArmour is driven by PoB's placeholder (6011), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyChaosResist is driven by PoB's placeholder (0), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyColdResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyCritChance is driven by PoB's placeholder (5), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyCritDamage is driven by PoB's placeholder (30), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyEvasion is driven by PoB's placeholder (977), but the stage fights a boss, so the baseline list no longer covers it (D-252): list it as a scenario input from E1",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyFireResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "enemyLightningResist is driven by PoB's placeholder (30), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    },
+    {
+      "part": "v2",
+      "code": "default-unlisted",
+      "stage": "b",
+      "message": "resistancePenalty is on by default (-60), but neither the stage nor the baseline list names it",
+      "kind": "from-file"
+    }
+  ],
+  "planSha1": "6911c220c95abd5c3c654ab88f441c99d04480d1",
   "finalCompile": {
     "compiled": true,
     "errors": [],
     "recordPath": "compile-record.json",
-    "pobFile": "Fixture Titan better.xml"
+    "pobFile": "imported-character better.xml"
   },
   "draftLeft": null,
-  "draftRemoved": "Fixture Titan better (draft).xml"
+  "draftRemoved": "imported-character better (draft).xml"
 }

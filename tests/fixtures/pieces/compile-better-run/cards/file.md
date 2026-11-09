@@ -1,29 +1,29 @@
-# Card file: Fixture Titan's Blood Hunt
+# Card file: imported-character's Twister
 
 ## Brainstorm half
 
 ### Identity
 
-- Class: Warrior
-- Ascendancy: Titan
-- Named damage source: Blood Hunt
+- Class: Mercenary
+- Ascendancy: Gemling Legionnaire
+- Named damage source: Twister
 
 ### Pitch
 
-- Name: Fixture Titan's Blood Hunt
-- Why pick it: the character's own build: Blood Hunt finishes the rares and Rolling Slam clears the packs.
-- How it clears: Rolling Slam on a pack, then Blood Hunt on what survives.
-- Bosses: Blood Hunt alone, lunging to consume the bleed.
+- Name: imported-character's Twister
+- Why pick it: the character's own build: Twister's blades clear from range.
+- How it clears: Twister through a pack, then again at the next.
+- Bosses: Twister alone.
 - Needs: a spear; the character's own tree and gear (plan.json, stage f as read).
-- The catch: two buttons for every pack.
-- Defence: life and armour, the resistances from the gear.
+- The catch: its gems outrun its attributes.
+- Defence: life, with the resistances from its gear.
 
 ### Chain
 
-- Damage source: Blood Hunt, reading the target's Blood Loss, carried by the spear in Weapon 1.
-- Means: Bloodlust, against bleeding enemies.
+- Damage source: Twister, carried by the spear in Weapon 1.
+- Means: Salvo and Projectile Acceleration III.
 - Enablers: none beyond the skill gem.
 
 ### Traps
 
-- The burst needs Blood Loss on the target first.
+- The attribute requirements of its Twister and buffs.

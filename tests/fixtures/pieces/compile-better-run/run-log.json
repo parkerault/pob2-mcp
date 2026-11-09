@@ -14,13 +14,18 @@
   ],
   "source": {
     "kind": "builds-folder",
-    "name": "Fixture Titan",
-    "sha1": "dd346b1b547364b85a8a16b04272addf74cd123a"
+    "name": "imported-character",
+    "sha1": "3a99aa4ec297c50d9921a89af7674508853b3e1c"
   },
   "stages": [
     {
       "stage": "read",
       "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "read",
+      "attempt": 2,
       "outcome": "done"
     },
     {

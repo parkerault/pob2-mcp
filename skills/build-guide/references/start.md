@@ -100,10 +100,15 @@ text doesn't give, and never invent one:
 4. **Unsaved build** (D-210). If `loadedBuildUnsaved` is `true`, ask the user before the first compile:
    proceed (the loaded build's unsaved changes will be discarded) or stop (the run ends `stopped`). In
    offline test mode `answers.unsavedBuild` answers it (`skills/build-guide/references/checkpoints.md`).
-5. **The league digest's staleness line** (D-400). Print the newest digest's section and fetch date in your
-   reply, `head -3 data/league/<newest>.md` (`ls data/league` lists them; the newest is the one fetched last, by
-   the date on its third line), so a stale digest shows. The user runs `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch
-   lands; nothing waits on it.
+5. **The league digests' staleness line** (D-400, D-507). Print in your reply the lines `init` printed after its
+   first: line 3 of each running league's digest, the latest start first (its section, fetch date and league dates),
+   so a stale digest shows, or `No running league has a league digest: what is new in it isn't in the committed
+   data.`; and each `<file> records no league dates: re-run its digest script`, once. A league runs from its start
+   until its end, if one is recorded; `pob2-run-log` applies that rule, never you. Keep its `digests:` line, the
+   running digests' paths: every R1a and researcher Q header copies it as `digests`
+   (`skills/build-guide/references/task-header.md`); after a compaction,
+   `node <root>/skills/game-knowledge/scripts/leagues.mjs` prints the same lines. The user runs
+   `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch lands; nothing waits on it.
 
 Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
 them. A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1
@@ -127,12 +132,12 @@ run again. In this order:
 2. **A schema-3 log** (a run from before amendment 9: `"schemaVersion": 3` in `run-log.json`, `head -3`):
    `pob2-run-log <runFolder> migrate`, which rewrites it as schema 4, its build at the root (`folder: "."`).
 3. **The resume entry:** `pob2-run-log <runFolder> resume` with `{"noNinja": <this session's --no-ninja>}`. It
-   records the session (the pin's commit, the digest, the lists' lengths) and sets `status` `running`. Pricing
+   records the session (the pin's commit, the running digests, the lists' lengths) and sets `status` `running`. Pricing
    starts afresh in the new session: a stop in an earlier session doesn't hold (D-415, `skills/build-guide/references/pricing.md`).
 4. **Unsaved build** (D-210), once per resume: as step 4 above, when `loadedBuildUnsaved` is `true`.
-5. **The league digest's staleness line**, as step 5 above.
+5. **The league digests' staleness line**, as step 5 above, from the lines `resume` printed.
 6. **The verification gate** (`skills/build-guide/SKILL.md` §3, `skills/build-guide/references/checkpoints.md`): `display verification` lists every
-   build of the run with its status, and says when PoB's version or the digest changed since the run last ran.
+   build of the run with its status, and says when PoB's version or the digests changed since the run last ran.
    Beside its own answers, a resume offers `guide:<id>` (a `file-only` build), `campaign:<id>` (a `completed` or
    `file-only` build) and `design:<id>` (a `stopped` or `dropped` build whose last D1 gate passed). With
    `--campaign`, its answer is `campaign:<id>`, logged as the user's.

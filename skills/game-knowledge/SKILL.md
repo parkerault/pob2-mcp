@@ -63,9 +63,13 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   `creates:`, `pays off on:` and `PoB models it:`. `grep` `${CLAUDE_PLUGIN_ROOT}/data/rules/uniques.md` and
   `${CLAUDE_PLUGIN_ROOT}/data/rules/gems.md` by mechanic or family, and `${CLAUDE_PLUGIN_ROOT}/data/rules/pairs.md`
   for what one entry creates against what another pays off on. Confirm each entry's lines with a lookup.
-- **What is new in the league:** the newest league digest, `${CLAUDE_PLUGIN_ROOT}/data/league/<slug>.md` by its fetch
-  date: its head whole, its body by Grep. `[not in pin]` marks an entry the PoB pin doesn't know: PoB can't measure it
-  and no plan can compile it. Past the digest's fetch date, poe2db.tw (above); say how old the digest is.
+- **What is new in the league:** the running leagues' digests (D-507), which
+  `node ${CLAUDE_PLUGIN_ROOT}/skills/game-knowledge/scripts/leagues.mjs` lists, newest first, with each one's line 3:
+  each head whole, newest first, the body by `grep` through Bash. An ended league's digest
+  (`${CLAUDE_PLUGIN_ROOT}/data/league/<slug>.md`) only when the user asks about that league; a league not yet started
+  from poe2db.tw as announced content, never a digest. `[not in pin]` marks an entry the PoB pin doesn't know: PoB
+  can't measure it and no plan can compile it. Past a digest's fetch date, or with no digest for the league asked
+  about, poe2db.tw (above); say how old the digest is.
 - **A rare monster's or a tamed beast's modifier:** `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, by `grep`,
   as its head says.
 - **Whether PoB models something:** Does PoB model it, below.

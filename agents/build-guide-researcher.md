@@ -56,8 +56,9 @@ rest of the prompt gives the brief, your focus and your letter, or the question.
   guide's claim is a lead: confirm each link with a lookup.
 - **The committed game data** (D-400 to D-402), online and offline: Read and Grep `${CLAUDE_PLUGIN_ROOT}/data/league/` (the league
   digest), `${CLAUDE_PLUGIN_ROOT}/data/rules/` (the rule-changer index) and `${CLAUDE_PLUGIN_ROOT}/data/monsters/` (rare monster modifiers) as your stage
-  reference says: each file's head whole where it says so, the rest by Grep, never a body whole. Cite an entry
-  `data | <path under data/>#<id>` in a research footnote, never in a plan.
+  reference says: each file's head whole where it says so, the rest by Grep, never a body whole. Of the league
+  digests, read only those your header's `digests` names, the running leagues', each head whole, newest first, the
+  bodies by Grep (D-507). Cite an entry `data | <path under data/>#<id>` in a research footnote, never in a plan.
 - **Offline mode** (the header's `mode` is `offline`; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/offline-and-test.md`):
   no WebSearch or WebFetch at all, even if they are available. Use only the lookup tools and the
   committed data under `${CLAUDE_PLUGIN_ROOT}/data/campaign/`, `${CLAUDE_PLUGIN_ROOT}/data/enemies/`, `${CLAUDE_PLUGIN_ROOT}/data/league/`, `${CLAUDE_PLUGIN_ROOT}/data/rules/` and `${CLAUDE_PLUGIN_ROOT}/data/monsters/`,

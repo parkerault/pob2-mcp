@@ -118,8 +118,10 @@ every card after 1–19. Question 19 now asks every card what it presses on a bo
 
 **Then the committed game data** (D-400 to D-402), as each file's head says:
 
-- **The league digest**, `data/league/<slug>.md`, the newest league's: its head whole (Read up to its `## Body`
-  line), then its body by Grep. It lists what the league added.
+- **The league digests**, your header's `digests` (D-507): the running leagues' digests, newest first. Read each
+  one's head whole (up to its `## Body` line), newest first, then its body by Grep; never a digest the header doesn't
+  name (an ended league's or one not yet started). Each lists what its league added. With `digests` empty, no running
+  league has a digest: say so once in your research file.
 - **The rule-changer index**, `data/rules/`: the tree focus reads `nodes.md`'s section for the brief's ascendancy
   (each candidate's, when the brief names none) and its `## Keystones`, whole, and `a` the ascendancy's section
   for the obvious card; the items focus Greps `uniques.md`; every focus Greps `gems.md` and `pairs.md` for its

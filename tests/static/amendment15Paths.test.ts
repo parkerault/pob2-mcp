@@ -109,9 +109,12 @@ describe('AC-W115 (WU-145, D-500): every path in the skill and agent text is roo
   });
 
   it('no command line runs node …/scripts/<x>.mjs or a bare <x>.mjs <runFolder>: every run command is a bin/ command', () => {
+    // Amendment 16 (WU-151, D-507): but the running leagues' list, `node <root>/skills/game-knowledge/scripts/leagues.mjs`,
+    // the command §3 gives it, in the runner rules' Bash list and game knowledge's league line.
+    const leagues = /^node\s+(?:<root>|\$\{CLAUDE_PLUGIN_ROOT\})\/skills\/game-knowledge\/scripts\/leagues\.mjs$/;
     for (const file of MARKDOWN) {
       const text = fs.readFileSync(file, 'utf8');
-      const found = [...text.matchAll(/\bnode\s+(?:\S*\/)?scripts\/[\w-]+\.mjs|(?<![\w/.-])[\w-]+\.mjs\s+<runFolder>/g)].map((m) => m[0]);
+      const found = [...text.matchAll(/\bnode\s+(?:\S*\/)?scripts\/[\w-]+\.mjs|(?<![\w/.-])[\w-]+\.mjs\s+<runFolder>/g)].map((m) => m[0]).filter((c) => !leagues.test(c));
       expect({ file: rel(file), found }).toEqual({ file: rel(file), found: [] });
     }
     // The runner's Bash list names the four commands, each one in bin/ (WU-146, D-501: the list moved with the shared

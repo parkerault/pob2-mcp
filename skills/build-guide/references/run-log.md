@@ -30,7 +30,7 @@ last D1 gate, a card to those of the round that dealt it ("Runs before amendment
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
 | `noNinja` | `true` or `false`: whether the **current session** prices without poe.ninja's currency rates (`--no-ninja`, D-333): `init` records the first session's flag, and each `resume` replaces it with its session's (its `resumes[]` entry keeps that session's record). Every pricing step is told from here, never from memory (D-412, D-420); `null` in a migrated run until its first resume |
 | `pinCommit` | the PoB pin's commit when `init` ran, which `pob2-run-log` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
-| `digest` | the running leagues' digests when `init` ran (D-507): their file names in `data/league/`, the latest start first, possibly empty, as `pob2-run-log` reads them by each digest's `League:` sentence (`skills/game-knowledge/scripts/leagues.mjs`); in a log `init` wrote below revision 15, the newest digest's file name by its fetch date, or `null` |
+| `digest` | the running leagues' digests when `init` ran (D-507): their file names in `data/league/`, the latest start first, possibly empty, as `pob2-run-log` reads them by each digest's `League:` sentence (`skills/game-knowledge/scripts/leagues.mjs`); in a log `init` wrote below revision 15, the one file name it recorded then (D-412), or `null` |
 | `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
 | `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412), with `name` after `roll` once a `build` entry gave one (D-435), and `draftFile` after `pobFile` in a log at 13 (D-466) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, skeletonFile?, shortReason?, tried?, scope?, requests?}`; R1b's `skeletonRemoved: true` once the runner removed its skeleton file (amendment 14, "Amendment 14's entries" below) |
@@ -585,8 +585,8 @@ beside a skeleton's plan, pass at every revision, since the M-27 server writes t
 
 ## Runs before revision 15
 
-A log `init` wrote below `skillRevision` 15 records its top-level `digest` as the newest digest's file name by fetch
-date, or `null` (D-412), and keeps it; a resume after amendment 16's M-29 stamps 15 and records the running leagues'
+A log `init` wrote below `skillRevision` 15 records its top-level `digest` as one file name, the digest D-412's rule
+chose then, or `null`, and keeps it; a resume after amendment 16's M-29 stamps 15 and records the running leagues'
 list in its own `resumes[]` entry, and the run checker accepts each form where its revision puts it (D-507).
 
 ## Schema 3: runs recorded before amendment 9

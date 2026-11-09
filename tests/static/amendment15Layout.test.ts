@@ -155,6 +155,25 @@ const A8D735C_WITHOUT_PATHS: Record<string, string> = {
   'source-markers.md': 'f1b4a2373634b3175fb3aafe1a27167b433a302d5d92da0d381f5ecb3d7dd0f3',
 };
 
+/**
+ * Amendment 16 (WU-151, D-507): the lines the running-league rule changed after the move, each `[its text now, its text
+ * before]`. The hash is taken with them put back, so any other change to the moved references still shows.
+ */
+const D507_EDITS: Record<string, [string, string][]> = {
+  'lookups.md': [
+    [
+      "- `data/league/<slug>.md`, the league digests from poe2db: only the running leagues' (D-507: a task header's `digests`,\n  or `skills/game-knowledge/scripts/leagues.mjs`'s list), each head whole, newest first, the bodies by Grep. `[not in\n  pin]` marks an entry the PoB pin doesn't know: no plan can compile it.",
+      "- `data/league/<slug>.md`, the league digest from poe2db: its head whole, its body by Grep. `[not in pin]` marks an\n  entry the PoB pin doesn't know: no plan can compile it.",
+    ],
+  ],
+  'patterns.md': [
+    [
+      "and the family's word in the running league digests' bodies (a\n  task header's `digests`, D-507); cover gems,",
+      "and the family's word in the league digest's body\n  (`data/league/`); cover gems,",
+    ],
+  ],
+};
+
 describe("AC-W120 (WU-145, D-503): game knowledge's six files", () => {
   const GK = path.join(REPO, 'skills', 'game-knowledge');
   const BG = path.join(REPO, 'skills', 'build-guide');
@@ -168,9 +187,13 @@ describe("AC-W120 (WU-145, D-503): game knowledge's six files", () => {
     }
   });
 
-  it("the references differ from their a8d735c text only in paths", () => {
+  it("the references differ from their a8d735c text only in paths (and in amendment 16's league lines, D-507)", () => {
     for (const [name, sha] of Object.entries(A8D735C_WITHOUT_PATHS)) {
-      const text = fs.readFileSync(path.join(GK, 'references', name), 'utf8');
+      let text = fs.readFileSync(path.join(GK, 'references', name), 'utf8');
+      for (const [now, before] of D507_EDITS[name] ?? []) {
+        expect({ name, edited: text.includes(now) }).toEqual({ name, edited: true });
+        text = text.replace(now, before);
+      }
       expect({ name, sha: crypto.createHash('sha256').update(withoutPaths(text)).digest('hex') }).toEqual({ name, sha });
     }
   });

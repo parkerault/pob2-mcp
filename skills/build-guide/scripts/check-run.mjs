@@ -2700,11 +2700,8 @@ function checkGateAnswer(c, at, bad, schema = 3, a14 = false) {
 const isDigestName = (v) => typeof v === 'string' && v.trim() !== '';
 /** D-507: the running leagues' digests, as a log at 15 records them: a list of file names, possibly empty. */
 const isDigestList = (v) => Array.isArray(v) && v.every((x) => isDigestName(x) && !/[\\/]/.test(x));
-/** The skill revision `init` wrote: the log's own when no resume stamped it (no boundary for it), else below it. */
-const initRevision = (log) => {
-  const r = revisionOf(log);
-  return r !== null && !(String(r) in boundariesOf(log)) ? r : null;
-};
+/** Whether `init` wrote the log at `revision` or later: the log is at it, and no resume stamped it (a revision init wrote has no boundary). */
+const initWroteFrom = (log, revision) => (revisionOf(log) ?? 0) >= revision && !(String(revision) in boundariesOf(log));
 /**
  * D-507: the first `resumes[]` index whose entry records the running leagues' list: 0 in a log init wrote at 15 or later;
  * in one a resume stamped 15, the resume that stamped it (the first whose digest is a list, its lengths the boundary's);
@@ -2736,7 +2733,7 @@ function checkSchema4Fields(log, bad) {
   if ('pinCommit' in log && log.pinCommit !== null && (typeof log.pinCommit !== 'string' || log.pinCommit.trim() === '')) bad('pinCommit', `is ${show(log.pinCommit)}; the pin's commit, read from pob-pin.json, or null (D-412)`);
   // D-507: the top-level digest keeps the form of the revision init wrote: from 15 the running leagues' list.
   if ('digest' in log) {
-    if (initRevision(log) >= A15) {
+    if (initWroteFrom(log, A15)) {
       if (!isDigestList(log.digest)) bad('digest', `is ${show(log.digest)}; from skill revision ${A15}, which init wrote here, the running leagues' digests: a list of file names, the latest start first, possibly empty (D-507)`);
     } else if (log.digest !== null && !isDigestName(log.digest)) bad('digest', `is ${show(log.digest)}; the newest league digest's file name, or null, in a log init wrote before skill revision ${A15} (D-412, D-507)`);
   }

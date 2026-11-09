@@ -122,8 +122,9 @@ dropped, never kept as a risk. `Tier = 0` isn't legacy: granted skills have it t
 
 Facts the lookups don't hold, under `data/`; each file's head says how to read it:
 
-- `data/league/<slug>.md`, the league digest from poe2db: its head whole, its body by Grep. `[not in pin]` marks an
-  entry the PoB pin doesn't know: no plan can compile it.
+- `data/league/<slug>.md`, the league digests from poe2db: only the running leagues' (D-507: a task header's `digests`,
+  or `skills/game-knowledge/scripts/leagues.mjs`'s list), each head whole, newest first, the bodies by Grep. `[not in
+  pin]` marks an entry the PoB pin doesn't know: no plan can compile it.
 - `data/rules/`, the rule-changer index (`nodes.md`, `uniques.md`, `gems.md` and `pairs.md`, tagged with
   `vocabulary.md`'s families), by Grep: an entry is a lead, confirmed by a lookup.
 - `data/monsters/monster-mods.md`, rare monster modifiers: what a tamed beast keeps, and how a plan models each.

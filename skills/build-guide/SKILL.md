@@ -126,10 +126,10 @@ round or a revision, but for one more round behind its `ask` (D-482, §6).
 
 ## 1. Start (step 1)
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md` and do it, in its order, before any agent runs; its last step prints the league digest's
-staleness line, `head -3 ${CLAUDE_PLUGIN_ROOT}/data/league/<newest>.md`, the newest by fetch date (D-400). `init` records `--no-ninja` as
-`noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every pricing
-step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
+Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md` and do it, in its order, before any agent runs; its last step prints the staleness
+line: line 3 of each running league's digest, which `init` or `resume` printed after the `digests:` line a researcher's header copies (D-400,
+D-507). `init` records `--no-ninja` as `noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every
+pricing step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
 
 **A resume** (D-415; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md`, "Resuming a run", has its order): `/pob2:build-guide --resume <run folder>`
 goes on with an earlier run in its own folder, and `--campaign <run folder> <id>` resumes it and answers

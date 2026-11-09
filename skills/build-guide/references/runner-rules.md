@@ -58,6 +58,8 @@ states it.
     its migration, `pob2-run-log <runFolder> migrate` (D-415),
     a gate's display, `pob2-run-log <runFolder> display <gate>` (D-367),
     and `pob2-run-log <runFolder> test-config <path>` (D-394);
+  - the running league digests, `node <root>/skills/game-knowledge/scripts/leagues.mjs [--at <instant>]` (D-507),
+    `<root>` the plugin root: it prints what `init` and `resume` print after their first line;
   - `git status --porcelain` in the session's working directory, **the stray-file check** (D-474, D-501): when that
     folder, the one the session started in, is a git work tree, keep the untracked paths at the run's start or resume
     in your context; after each step, tell the user each new one, and delete nothing. When it isn't one (git says

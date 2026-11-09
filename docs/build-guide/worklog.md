@@ -7242,3 +7242,60 @@ What the coordinator folded (revision 2, approved):
   - **AC-W162's list, WU-153:** `patchFingerprints.test.ts`'s `STUBS` loses PG-109 (D-509, the stub built);
     `compileSchema8.test.ts` (both AC-P82 cases) and `compileMovementTier.test.ts` (AC-P81) leave `pobFile.bytes` out
     of the old-record comparison and check it went down (D-511, C-41's "no `<ModRange>`"; every figure equal).
+- **WU-154's review** (fresh, read-only): the wrap changes only PoB's own granted group (one gem, `fromItem`,
+  `sourceItem`; `CalcSetup.lua`:1523–1542), in either weapon set, before PoB reads the quality (:1877); `gives_quality`
+  and `check_granted_quality` are right, the refusal only from schema 11. The three deviations accepted. Findings:
+  1. **Medium, a gap in §8:** the compile measures the plan's copy (the group with the supports, PG-108; no `source`),
+     which schema 11 holds at quality 0, and the wrap never reaches it (CalcSetup calls `ProcessSocketGroup` only on
+     its own made groups, :1542, :1590, :1651, checked by the coordinator). A buff comes out right (PoB keeps a buff's
+     higher value, `CalcPerform.lua`:41–62), but a wand's or staff's damage spell measured as the main skill reads
+     quality 0 where the game gives it the item's quality; `plan-reference.md`:760 overclaims. **The coordinator's
+     call** (the user's facts, 2026-11-08: such a skill has its item's quality): from schema 11, where the refusal
+     holds the plan's copy at 0, the compile gives a group whose skill the stage's wand, staff or sceptre grants that
+     item's quality on its gem, so the file the user opens shows the skill as the game has it; older schemas keep the
+     plan's value (§26). A departure from §8's letter (the patch on PoB's group only) within its intent and the HG-12
+     grant ("granted quality from a wand, staff or sceptre"). Loaded files (`analyze_build` of an import) keep PoB's
+     reading, the copy at its file's quality; the read plan (M-30) goes through the compile, so the main case is
+     covered there.
+  2. **Medium, M-30:** the normalisation reaches owned items: every slot item and jewel goes through `add_item_text`
+     (`Compile.lua`:1093, :1722, :1767), which calls `NormaliseQuality` (`BuildOps.lua`:1651, `Item.lua`:1367–1375),
+     raising an item below 20 unless it is corrupted, mirrored or has a `Unique ID:` line (an import keeps its quality
+     only through that line, `ImportTab.lua`:1231). For WU-161: owned slots skip it (a flag on `add_item_text`), so
+     §13's "owned items keep their quality" holds.
+  3. **Low:** PG-115's reasoning (`pg114.test.ts`:31) has one exception, Bloodbarrier (`other.lua`:21065, granted
+     through `ModParser.lua`:3642 without the gem lookup), which has one level and no quality stats, so no figure
+     changes and PG-115 stays unrecorded; the sentence is corrected.
+  - §26 overclaims slightly: older fixtures holding a granting wand, staff or sceptre (`off-hand-fresh`,
+    `off-hand-shared`, `weapon-sets`, open-spell `r1-s-2`, `r1-s-4`) now measure PoB's own granted group at the item's
+    quality; for WU-158's notes. The item rule's old wording (`stages/D2.md`:93, pinned at
+    `buildGuidePipeline.test.ts`:3141; `data/campaign/gems.json`:263; `src/plan/checks/v1.ts`:25, :765) and W1's
+    support-sockets line (§8 names it beside `plan-reference.md`) join WU-154's fix round.
+- **WU-154's gate verifier** (fresh) passed `4f671a7`: gate from clean rc 0 (251 suites, 4,354 tests; the timing step
+  2 suites, 4 tests), build rc 0. Every clause of AC-W137 checked; mutations (Wand dropped, Warstaff let through, saved
+  values kept, revert a no-op, the passive branch removed, quality sent before schema 11) each fail a case. The old
+  records are genuine: the new test file run against `6aa96b3` matches both (the Lich record with its `buildSha1`, the
+  26 defects). **PG-115 confirmed not holding:** "Grants Skill:" lines resolve through the gem lookup
+  (`ModParser.lua`:2170–2186), `CalcSetup.lua`:1533 gives the group a gem id, so `applyGemMods` (:1892–1895) runs;
+  Bloodbarrier is the one gem-less granted skill, with nothing the modifiers would change. **NormaliseQuality at the
+  pin** (`Item.lua`:1367–1375): an item below its base's quality, with no `Unique ID:` line and not corrupted, mirrored
+  or a Charm, becomes 20 (`Main.lua`:106); PoB's own parse calls it only without a `Quality:` line, the bridge on every
+  `add_item_text` (`BuildOps.lua`:1651: the compile's items, `add_item`, `add_multiple_items`); loads never do.
+  Fix round sent: the rebase onto `bd512c7`, the measured copy's quality from schema 11, PG-115's sentence, the item
+  rule's old wording.
+- **WU-154's fix round** at `3865919` (rebased onto `bd512c7` with no conflict; `STUBS` now empty): `compile_check`
+  replies `grantedQualities` (an engine reply field, optional, as `movementTiers`; no tool reply changes), and from
+  schema 11 `compilePlan` writes the item's quality (after `NormaliseQuality`) on the plan's copy before the sets are
+  grouped (`withGrantedQuality`); a Withered Wand's Chaos Bolt with Pierce I measures `ProjectileSpeedMod` 1.4× beside
+  a quality 20 wand against a corrupted quality 0 one, the file's copy gem reads 20 and 0, and at schema 10 both stages
+  measure alike at 0. PG-115's sentence narrowed (Bloodbarrier). The item rule's wording in `D2.md`:93, `W1.md`,
+  `gems.json`:263, `v1.ts`:25 and :765 (D2 35,849 against 35,877, W1 33,411 against 33,684). The doer's gate rc 0 (252
+  suites, 4,369 tests), build rc 0. **Re-check by the coordinator:** read the compile diff (the group and gem indices
+  follow `checkStageOf`'s order-keeping map, `compiler.ts`:566–567); `pnpm build` rc 0; `tests/static`, the plan
+  schema units and the four patch and compile engine suites 1,310 of 1,310; `words-loaded.mjs` rc 0; waivers `[]`.
+- **WU-154 (PG-114, a granted skill's quality) merged** at `3865919` (fast-forward, two commits on `bd512c7`). AC-W137:
+  `tests/integration/pg114.test.ts`, `tests/integration/compileGrantedQuality.test.ts`, `tests/unit/planSchema11.test.ts`.
+  PG-115 not recorded (its check doesn't hold).
+  - **AC-W162's list, WU-154:** the accepted-version lists in `planCompanion`:58–59, `planNeeds`:85–86, `planSchema`
+    (:96–99, and :363–366's invalid version 11→12), `planSchema7`:83, `planSchema8`:66–67, `planSchema9`:95–99,
+    `planSchema10`:116–121 (D-512, A.5); `patchFingerprints.test.ts`'s `STUBS` emptied (D-509);
+    `buildGuidePipeline.test.ts`:3141 (D2's support line) and :3193 (W1's Jeweller line) (D-512).

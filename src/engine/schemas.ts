@@ -2026,9 +2026,10 @@ export interface CompileCheckStage {
   items: Array<{ slot: string; text: string; sameAs?: string }>;
   /**
    * D-377: a group's `minionSkill` and `minionStatSet`, checked against its summon's minion in the game data; a
-   * gem's `enabled` (default true) says whether PoB builds its skills.
+   * gem's `enabled` (default true) says whether PoB builds its skills. D-512 (schema 11): a gem's `quality`, a defect
+   * above 0 when the stage's items or allocated passives grant its skill; absent before schema 11.
    */
-  groups: Array<{ gems: Array<{ name: string; enabled?: boolean }>; minionSkill?: string; minionStatSet?: number }>;
+  groups: Array<{ gems: Array<{ name: string; enabled?: boolean; quality?: number }>; minionSkill?: string; minionStatSet?: number }>;
   main: { group: number; activeSkill: number; statSet?: number };
   config: Array<{ option: string; value: boolean | number | string }>;
   /** D-293: the stage's custom modifier lines; one PoB can't parse whole is a defect (it would add nothing). */

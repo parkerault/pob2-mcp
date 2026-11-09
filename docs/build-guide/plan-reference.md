@@ -1,4 +1,4 @@
-# Build plan reference (`plan.json`, schema version 10)
+# Build plan reference (`plan.json`, schema version 11)
 
 A build plan is the JSON file an agent writes into a guide run folder as `plan.json`. `compile_plan`
 turns it into one PoB2 build with a loadout per stage, and `guide_run`'s validate mode checks it without
@@ -18,10 +18,10 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   `stages[1].config.scenario[0].source`. The root is `$`, and so is a file that isn't valid JSON.
 - **Objects are strict.** A key the schema doesn't define is an error at the path of the object that
   holds it (`$` for a top-level key).
-- **Version first.** A new plan declares `schemaVersion: 10`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9` and
-  `10` are accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted versions
-  `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]`; nothing else is checked.
-- **Older versions** (D-320, D-332). A plan of version 1 to 9 still validates and compiles, with its
+- **Version first.** A new plan declares `schemaVersion: 11`. Versions `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+  and `11` are accepted. Any other value, or none, gives exactly one error, at `schemaVersion`, listing the accepted
+  versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`; nothing else is checked.
+- **Older versions** (D-320, D-332). A plan of version 1 to 10 still validates and compiles, with its
   version's shape: it takes the defaults of what later versions added, and each use of an addition errs at
   its own path, naming the version that added it. Version 2 added:
   - the `entering-maps` variant (`stages[].variant`, D-281); a version-1 plan has no entering-maps stage;
@@ -77,6 +77,14 @@ error is reported as one line `<path>: <message>` (FR-P1, D-163).
   A schema-9 plan compiles as before. Every counted group's `groupCount` (D-493), V1's `affix-cap`, `sockets` and
   `ascendancy-jewel` (D-485, D-492) and the record's `clearSpeed.chains` and `projectiles` (D-491) apply on any schema, so
   an older plan may get findings it didn't.
+
+  Version 11 (amendment 16; see a granted skill's quality and support slots below):
+  - adds no field yet (amendment 16's second milestone adds the fields a plan read from a PoB file carries);
+  - `compile_check` refuses a quality above 0 on a gem for a skill the stage's items or allocated passives grant
+    (D-512), naming the stage, the group and the skill.
+  A schema-10 plan compiles as before, its gems' qualities unchecked. The granted skill's quality from its wand, staff or
+  sceptre (PG-114, corrected in the bridge) applies on any schema, so an older plan with such an item measures its
+  granted skill at the item's quality.
 - **Cross-references** (one field's rule depending on another's value) are checked once each field has
   the right type, each with its own path: a repeated stage id errs at the later stage's `id`, a weapon-set
   node outside the tree at `tree.weaponSetNodes.set1[n]`, a bad ledger formula at `ledger[n].formula`.
@@ -96,8 +104,9 @@ node ids and tree connectivity, config option names and values, the main skill's
 each custom modifier line whole and, on schema 9, no reason's comment line whole (D-469), an anoint's notable (it has a three-emotion recipe, the stage's tree
 doesn't allocate it, and the stage has an amulet), a group's minion skill (its group holds one summon
 whose minion can use it, and its stat set exists; C-41 step 5, D-358, D-377), a companion's species and its
-Tame Beast gem (D-402), and each boss rotation entry's active skill and stat set (D-447, errors at
-`stages[n].skills.boss.entries[k]`). A missing `countReason`, or a custom-modifier `reason` on a plan before schema 9,
+Tame Beast gem (D-402), each boss rotation entry's active skill and stat set (D-447, errors at
+`stages[n].skills.boss.entries[k]`), and, on schema 11, no quality on a granted skill's gem (D-512, errors at
+`stage <id>: skills.groups[g].gems[k]`). A missing `countReason`, or a custom-modifier `reason` on a plan before schema 9,
 isn't a schema error either: the compile's validity check (V1) reports it as `missing-reason` (D-322), and so is a tree
 need with no `claim`, or one naming no claim of its stage (D-418). On schema 9 a custom modifier's `reason` is required
 (an error at `stages[n].config.customMods[k].reason`, D-469).
@@ -733,6 +742,42 @@ clear measure's chains and projectiles hold on any schema.
                 "reason": "the user asked for the unique; the boss figures fall 1-3% for its minion levels" }]
 ```
 
+### A granted skill's quality and support slots (D-512, D-359, schema version 11)
+
+The game's rules (the user, 2026-11-08):
+- **Quality.** A skill an item grants gains base quality only on a wand, a staff or a sceptre, and it is the item's own
+  quality, raised with Arcanist's Etchers. Quarterstaves aren't staves (PoB's staff bases with `subType = "Warstaff"`)
+  and pass nothing. A skill another item grants, or a passive grants, has no quality of its own. Skill level and quality
+  modifiers, local and global (Dialla's Desire and Loreweave give quality), apply to every granted skill on top, though
+  many item-only skills have no quality effect.
+- **Support slots.** An item's granted skill has as many support slots as its item's level gives, and Jeweller's Orbs on
+  the item add more. A passive's granted skill has as many as character level gives: D-359's estimate, 3 below level 40,
+  4 from 40, 5 from 60, which V1's `support-sockets` checks. Neither threshold for items is known, so nothing checks an
+  item's granted skill's supports.
+
+In the plan:
+- **The item says it.** A wand's, staff's or sceptre's quality is its item text's `Quality:` line, as for any item; the
+  compile gives the skill the item grants that quality (PG-114's bridge patch). An item whose text gives less than its
+  base's quality and isn't corrupted gets PoB's default quality, 20, when the compile adds it, as PoB adds an item.
+- **The gem has quality 0.** A plan's gem for a skill the stage's items or allocated passives grant (the copy that
+  carries the skill's supports, PG-108) has `quality: 0`. On schema 11, `compile_check` refuses more, naming the stage,
+  the group and the skill and saying where its quality comes from: the item's quality for a wand, staff or sceptre;
+  otherwise quality modifiers. The items are the stage's slots and tree jewels; the passives its tree and ascendancy
+  nodes.
+
+```json
+{ "slot": "Weapon 1", "text": "Rarity: Normal\nShrine Sceptre\nQuality: 20\nImplicits: 1\nGrants Skill: Level 20 Purity of Ice" }
+```
+
+```json
+{ "label": "Purity of Ice", "enabled": true, "role": "utility",
+  "gems": [{ "name": "Purity of Ice", "level": 20, "quality": 0, "enabled": true }] }
+```
+
+The compile measures this Purity of Ice at the sceptre's quality 20: +8 points of cold resistance over quality 0
+(+0.4% per 1% quality). With `"quality": 5` on the gem, a schema-11 plan is refused: "Purity of Ice is a skill the
+Shrine Sceptre in Weapon 1 grants, so its gem has quality 0, not 5 (D-512)".
+
 ### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
@@ -952,7 +997,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9` or `10` | yes | `10` for a new plan; `1` to `9` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471, D-481, D-483, D-484, D-490, D-492 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10` or `11` | yes | `11` for a new plan; `1` to `10` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471, D-481, D-483, D-484, D-490, D-492, D-512 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -1092,7 +1137,7 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].gems` | object[] | yes | At least one gem, the active skill first | C-31 |
 | `stages[].skills.groups[].gems[].name` | string | yes | Non-empty. The gem's PoB name, e.g. `Boneshatter`, `Rage I`. An unknown gem fails the compile, with suggestions | C-31 |
 | `stages[].skills.groups[].gems[].level` | integer | yes | At least 1 | C-31, D-193 |
-| `stages[].skills.groups[].gems[].quality` | integer | yes | At least 0 | C-31 |
+| `stages[].skills.groups[].gems[].quality` | integer | yes | At least 0. A gem for a skill the stage's items or allocated passives grant has 0; on schema 11 `compile_check` refuses more (see a granted skill's quality above) | C-31, D-512 |
 | `stages[].skills.groups[].gems[].enabled` | boolean | yes | Whether the gem is enabled | C-31 |
 | `stages[].skills.groups[].gems[].corrupt` | `plus_one_level` | no | The skill gem corrupted to +1 level: PoB calculates it one level higher; V1's `gem-availability` reads `level`. On `m`, a campaign stage or a card skeleton, or on a support gem, V1 reports `corruption` (see the tree search's figures and the finishing touches above). Schema version 9 | D-471 |
 | `stages[].skills.groups[].count` | integer | no | At least 1; 1 when absent. How many copies of the group act at once (see Count above). It is the group's Count in PoB (`groupCount`) in every stage and both modes; on the `rolledGroup` PoB's Full DPS counts it; the compile record applies it to every group's figures. Schema version 2 | C-31, D-293, D-320, D-493 |

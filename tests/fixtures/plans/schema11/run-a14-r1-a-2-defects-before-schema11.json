@@ -1,0 +1,30 @@
+{
+  "defects": [
+    "stage m: node 1001 is not a passive tree node",
+    "stage m: node 1002 is not a passive tree node",
+    "stage m: item in Helmet: PoB can not parse its text into an item with a base type",
+    "stage m: skills.groups[0].gems[1]: Bloodlust is a legacy gem: PoB marks it legacy, and it is no longer in the game",
+    "stage b: node 1001 is not a passive tree node",
+    "stage b: node 1002 is not a passive tree node",
+    "stage b: node 1003 is not a passive tree node",
+    "stage b: node 1004 is not a passive tree node",
+    "stage b: node 1005 is not a passive tree node",
+    "stage b: node 1006 is not a passive tree node",
+    "stage b: node 1007 is not a passive tree node",
+    "stage b: node 1008 is not a passive tree node",
+    "stage b: tree jewel on node 1001: that node is not a jewel socket",
+    "stage b: item in Helmet: PoB can not parse its text into an item with a base type",
+    "stage b: skills.groups[0].gems[1]: Bloodlust is a legacy gem: PoB marks it legacy, and it is no longer in the game",
+    "stage b: items.anoint: the stage equips no amulet to anoint with \"Unbending\"; put one in the Amulet slot",
+    "stage n: node 1001 is not a passive tree node",
+    "stage n: node 1002 is not a passive tree node",
+    "stage n: node 1003 is not a passive tree node",
+    "stage n: node 1004 is not a passive tree node",
+    "stage n: node 1005 is not a passive tree node",
+    "stage n: node 1006 is not a passive tree node",
+    "stage n: node 1009 is not a passive tree node",
+    "stage n: node 1010 is not a passive tree node",
+    "stage n: item in Helmet: PoB can not parse its text into an item with a base type",
+    "stage n: skills.groups[0].gems[1]: Bloodlust is a legacy gem: PoB marks it legacy, and it is no longer in the game"
+  ]
+}

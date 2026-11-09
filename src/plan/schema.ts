@@ -4,10 +4,10 @@
  * A plan is one JSON file, validated in full before any engine work (FR-P1, D-163, D-167). Every error
  * names its JSON path: zod's issue path with `.` between keys and `[n]` for indices
  * (`stages[1].config.scenario[0].source`); the root, and a JSON parse error, are `$`. Objects are strict,
- * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 10; any other value is
+ * so an unknown key is an error. `schemaVersion` must be an accepted version, 1 to 11; any other value is
  * the only error reported, naming the accepted versions (C-31, D-332).
  *
- * **Versions** (D-320, D-332). Version 10 is the current one. A plan of an earlier version stays accepted with
+ * **Versions** (D-320, D-332). Version 11 is the current one. A plan of an earlier version stays accepted with
  * its version's shape: it takes the defaults of what later versions added and can't use them, so each use
  * errs at its own path, naming the version that added it (`VERSION_ADDITIONS`).
  *
@@ -97,6 +97,13 @@
  *   tree's jewel sockets (`TREE_JEWEL_SOCKETS`, `containJewelSocket`: Crystalline Phylactery, 17788); any other
  *   ascendancy node errs at its `node`.
  *
+ * **A granted skill's quality** (amendment 16 §8, version 11; WU-154). Version 11 adds no field in M-29 (amendment 16's
+ * M-30 adds its read fields). From version 11 `compile_check` refuses a quality above 0 on a gem for a skill the stage's
+ * items or allocated passives grant (D-512): the game gives such a skill no quality of its own, a wand's, staff's or
+ * sceptre's taking its item's quality (`Quality:` on the item text, PG-114's bridge patch) and any other only quality
+ * modifiers. The compiler sends the gems' qualities to `compile_check` from version 11 only
+ * (`GRANTED_QUALITY_SINCE`), so an older plan is never refused for it.
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -114,7 +121,7 @@ import { MonsterModTableError, type MonsterModTable } from './monsterMods.js';
 export type { PlanReferenceData } from './referenceData.js';
 
 /** The plan schema versions this server accepts, oldest first; the last is the current one (C-31, D-320, D-332). */
-export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const PLAN_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 export type PlanSchemaVersion = (typeof PLAN_SCHEMA_VERSIONS)[number];
 
 /**
@@ -1008,6 +1015,12 @@ export const COMMENT_LINES_SINCE = 9;
 
 /** D-452: the last plan schema version that has `stages[].respec`, and V1's `tree-continuity` with it. */
 export const RESPEC_UNTIL = 7;
+
+/**
+ * D-512 (amendment 16 §8): the first plan schema version whose gem for a skill the stage's items or allocated passives
+ * grant has quality 0, which `compile_check` enforces (it gets the gems' qualities from this version on).
+ */
+export const GRANTED_QUALITY_SINCE = 11;
 
 /** The plan schema: C-31's shape, with the cross-reference rules as refinements. */
 export const planSchema = planObject.superRefine((plan, ctx) => {

@@ -179,6 +179,7 @@ import {
 import {
   COMMENT_LINES_SINCE,
   CUSTOM_MODS_OPTION,
+  GRANTED_QUALITY_SINCE,
   RESPEC_UNTIL,
   validatePlan,
   type Plan,
@@ -542,7 +543,8 @@ function readConfigBaseline(env: Pick<CompilerEnv, 'configBaseline'>): ConfigBas
  * the stage's index in the plan, its boss rotation's entries, each with its path (`stages[n].skills.boss.entries[k]`).
  * WU-128 (amendment 13): a pinned weapon's Swap slot is checked with the text of the slot it shares (D-464, `slotTexts`),
  * and, with the plan's schema version, a schema-9 stage's custom modifier reasons, whose comment lines PoB must not parse
- * whole (D-469, `customModReasons`).
+ * whole (D-469, `customModReasons`). WU-154 (D-512): from schema 11 each gem's quality, which `compile_check` refuses above
+ * 0 on a skill the stage's items or allocated passives grant; an older plan's gems go without it.
  */
 export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?: number, schemaVersion?: number): CompileCheckStage {
   const bossEntries = (stage.skills.boss?.entries ?? []).map((e, k) => ({
@@ -551,6 +553,7 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
     activeSkill: e.activeSkill,
     statSet: e.statSet,
   }));
+  const withQuality = schemaVersion !== undefined && schemaVersion >= GRANTED_QUALITY_SINCE;
   return {
     id: stage.id,
     nodes: stage.tree.nodes,
@@ -560,7 +563,7 @@ export function checkStageOf(stage: Stage, companion?: CompanionPlan, planIndex?
     jewels: stage.items.treeJewels,
     items: slotTexts(stage),
     groups: stage.skills.groups.map((g) => ({
-      gems: g.gems.map((gem) => ({ name: gem.name, enabled: gem.enabled })),
+      gems: g.gems.map((gem) => ({ name: gem.name, enabled: gem.enabled, ...(withQuality ? { quality: gem.quality } : {}) })),
       ...minionFields(g),
     })),
     main: stage.skills.main,

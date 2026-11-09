@@ -113,12 +113,12 @@ function errorsOf(input: unknown): PlanError[] {
 }
 
 describe('WU-137: plan schema 10 (Appendix A, AC-P90)', () => {
-  it('schema 10 is the current version; 1 to 9 stay accepted', () => {
-    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  it('schema 10 stays accepted (schema 11, amendment 16, is the current version); 1 to 9 too', () => {
+    expect([...PLAN_SCHEMA_VERSIONS]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(errorsOf(plan(10))).toEqual([]);
     expect(errorsOf(plan(9))).toEqual([]);
-    expect(errorsOf({ ...plan(10), schemaVersion: 11 })).toEqual([
-      { path: 'schemaVersion', message: 'schemaVersion is 11; the accepted versions are [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]' },
+    expect(errorsOf({ ...plan(10), schemaVersion: 12 })).toEqual([
+      { path: 'schemaVersion', message: 'schemaVersion is 12; the accepted versions are [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]' },
     ]);
   });
 

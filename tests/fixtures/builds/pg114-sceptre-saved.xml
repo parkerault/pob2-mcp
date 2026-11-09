@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build level="90" targetVersion="0_1" className="Witch" ascendClassName="None" mainSocketGroup="1" viewMode="SKILLS" characterLevelAutoMode="false">
+	</Build>
+	<Tree activeSpec="1">
+		<Spec title="Default" treeVersion="0_5" classId="1" ascendClassId="0" secondaryAscendClassId="nil" nodes="" masteryEffects="">
+		</Spec>
+	</Tree>
+	<Skills activeSkillSet="1">
+		<SkillSet id="1" title="Default">
+			<Skill enabled="true" includeInFullDPS="false" label="" slot="Weapon 1" source="Item:1:Shrine Sceptre" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem nameSpec="Purity of Ice" skillId="PurityOfIcePlayer" level="20" quality="0" enabled="true" enableGlobal1="true" enableGlobal2="false" count="1"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Items activeItemSet="1">
+		<Item id="1">
+Rarity: NORMAL
+Shrine Sceptre
+Item Level: 80
+Quality: 20
+Implicits: 1
+Grants Skill: Level 20 Purity of Ice
+		</Item>
+		<ItemSet id="1" title="Default">
+			<Slot itemId="1" name="Weapon 1"/>
+		</ItemSet>
+	</Items>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default"/>
+	</Config>
+	<Notes>
+	</Notes>
+</PathOfBuilding2>

@@ -815,16 +815,30 @@ Reports from `pob-upstream.md` §2, checked against the pin's code and, where a 
   - **Workaround:** ask the player which skill does the damage, or compare the groups' DPS, and set it with
     `set_main_skill` before reading figures.
   - **Upstream:** issue #2536 (open, a feature request); PR #1401 (open) guesses by DPS across the groups.
-- **PG-114, an item's quality doesn't reach the skill it grants.** bug, confirmed in code.
+- **PG-114, an item's quality doesn't reach the skill it grants.** bug, confirmed in code and by probe.
   - **Where:** an item's granted skills carry no quality (`Classes/Item.lua:2211-2222`), and PoB creates the skill's
-    group with quality 0 (`Modules/CalcSetup.lua:1525-1529`). The game applies a Shrine Sceptre's quality to its
-    Purity (the issue).
+    group with quality 0 (`Modules/CalcSetup.lua:1525-1530`); a group a file saved keeps its saved value. The importer
+    starts every gem at quality 0 and sets it only from a `Quality` property (`Classes/ImportTab.lua:990`,
+    `:1053-1054`). The game's rule (the user, 2026-11-08): a granted skill gains base quality only on a wand, a staff or
+    a sceptre, and it is the item's own quality, raised with Arcanist's Etchers; a quarterstaff (PoB's staff bases with
+    `subType = "Warstaff"`, `Data/Bases/staff.lua:162-164`) passes none, and a skill another item or a passive grants
+    has no quality of its own. Skill level and quality modifiers apply to every granted skill on top.
   - **Effect:** each Purity gives +0.4% to its resistance per 1% quality (`Data/Skills/act_int.lua:16123`, `:16246`,
     `:16369`), so a 20% Shrine Sceptre's aura reads 8 points of resistance low. Imported characters and compiled
-    builds are both exposed.
-  - **Seen in:** issue #2575.
-  - **Workaround:** a custom mod for the missing resistance, with its reason.
-  - **Upstream:** issue #2575 (open); PR #2577 (open) gives every item-granted skill its item's quality.
+    builds are both exposed. In both real cases every copy of a granted skill reads quality 0 beside its item's
+    quality: ResurrectForbidden's Purity of Ice beside its quality 10 Shrine Sceptre, and CullTheConquerer's (imported
+    with PoB2's own importer) Sigil of Power beside its quality 18 staff.
+  - **Seen in:** issue #2575; both real cases (amendment 16 §8).
+  - **Workaround:** corrected in the bridge (D-509, D-512). `pob-api/API/Patches.lua`'s PG-114 entry wraps
+    `SkillsTabClass:ProcessSocketGroup`, which PoB's calculation setup calls on every granted group
+    (`Modules/CalcSetup.lua:1542`): a group whose source item is a wand, a staff that isn't a quarterstaff, or a sceptre
+    gets the item's quality, so an import's 0 and a value saved on the group don't stand; every other group keeps
+    PoB's value. In both real cases PoB's own granted group then has its item's quality; the plain copies the import
+    adds (PG-108) keep their 0. Its retirement test, `tests/integration/pg114.test.ts`,
+    fails once a release gives the sceptre's Purity its quality itself. A plan's gem for a granted skill has quality 0,
+    and from plan schema 11 `compile_check` refuses more (`docs/build-guide/plan-reference.md`).
+  - **Upstream:** issue #2575 (open); PR #2577 (open) gives every item-granted skill its item's quality, wider than
+    the game's rule, so re-check a quarterstaff's and a spear's granted skill when a release carries it.
 
 ## Data: missing, out of range, or stale
 

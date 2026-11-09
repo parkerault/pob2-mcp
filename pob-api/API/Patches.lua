@@ -194,12 +194,29 @@ local PG109 = {
   end,
 }
 
--- PG-114 (D-512, amendment 16 §8): a granted skill gets quality 0. WU-154 builds this entry: the wrap on
--- SkillsTabClass:ProcessSocketGroup for a wand's, staff's or sceptre's granted group, its retirement test's file and
--- case, then deletes `stub`. The second fingerprint is the granted-group block of calcs.initEnv.
+-- PG-114 (D-512, amendment 16 §8): a granted skill gets quality 0. PoB makes a granted skill's group with quality 0
+-- and never gives it one (Modules/CalcSetup.lua:1525-1530); a group a file saved keeps its saved value. The game's rule
+-- (the user's, 2026-11-08): a granted skill gains base quality only on a wand, a staff or a sceptre, and it is the
+-- item's own quality (raised with Arcanist's Etchers). A quarterstaff passes none: PoB's staff bases with subType
+-- "Warstaff" (Data/Bases/staff.lua:162-164). A skill another item or a passive grants has no quality of its own; quality
+-- modifiers (PoB's GemProperty) apply on top as PoB applies them.
+--
+-- M.gives_quality(item): whether `item`'s base passes its quality to the skills it grants (a wand, a staff that isn't a
+-- quarterstaff, a sceptre). The compile's refusal of a quality on a granted skill's gem (API/Compile.lua) reads it too.
+function M.gives_quality(item)
+  local base = type(item) == 'table' and item.base or nil
+  if type(base) ~= 'table' then return false end
+  return base.type == 'Wand' or base.type == 'Sceptre' or (base.type == 'Staff' and base.subType ~= 'Warstaff')
+end
+
+-- The wrap: PoB's calculation setup calls ProcessSocketGroup on every granted group right after it makes or updates it,
+-- `sourceItem` and the gem's `fromItem` set (CalcSetup.lua:1523-1542), so the wrap reaches every calculation, the first
+-- included, by every path. For a group whose source item gives quality, it sets each item-granted gem's quality to the
+-- item's, then runs PoB's method: an import's 0 never hides the item's, and a value saved on the group doesn't stand.
+-- Every other group (no source item, another base, a passive's skill) keeps PoB's value.
+local restorePG114
 local PG114 = {
   pg = 'PG-114',
-  stub = true,
   fingerprints = {
     { file = 'Classes/SkillsTab.lua',
       func = 'function SkillsTabClass:ProcessSocketGroup(socketGroup)',
@@ -210,9 +227,25 @@ local PG114 = {
       sha1 = 'f21b404585a9dc2c40f3a2fb9ce7a83f0f44233f' },
   },
   test = { file = 'tests/integration/pg114.test.ts',
-    case = "WU-154: the bug-still-present case's title" },
-  apply = function() error('a stub: WU-154 builds it', 0) end,
-  revert = function() end,
+    case = "with the wrap reverted, PoB's own quality of the quality 20 Shrine Sceptre's Purity of Ice is 0 (if this fails, PoB gives a granted skill its item's quality: remove PG-114's entry from pob-api/API/Patches.lua)" },
+  apply = function()
+    restorePG114 = M.wrap('SkillsTab', 'ProcessSocketGroup', function(pob)
+      return function(self, socketGroup, ...)
+        local item = type(socketGroup) == 'table' and socketGroup.sourceItem or nil
+        if item and M.gives_quality(item) then
+          local quality = tonumber(item.quality) or 0
+          for _, gem in ipairs(socketGroup.gemList or {}) do
+            if gem.fromItem then gem.quality = quality end
+          end
+        end
+        return pob(self, socketGroup, ...)
+      end
+    end)
+  end,
+  revert = function()
+    if restorePG114 then restorePG114() end
+    restorePG114 = nil
+  end,
 }
 
 M.PATCHES = { PG106, PG109, PG114 }

@@ -93,10 +93,10 @@ interface Row {
 
 const ROWS: Row[] = [
   {
-    change: 'schemaVersion: 11',
-    input: () => ({ ...fixture(), schemaVersion: 11 }),
+    change: 'schemaVersion: 12',
+    input: () => ({ ...fixture(), schemaVersion: 12 }),
     path: 'schemaVersion',
-    message: /\[1, 2, 3, 4, 5, 6, 7, 8, 9, 10\]/,
+    message: /\[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11\]/,
   },
   {
     change: 'ledger removed',
@@ -360,10 +360,10 @@ describe('AC-P10 (WU-38, D-163): one change, one error at its JSON path', () => 
     if (row.message) expect(errors.find((e) => e.path === row.path)!.message).toMatch(row.message);
   });
 
-  it('AC-P10: schemaVersion 11 is the only error, even with other faults present', () => {
-    const p = { ...fixture(), schemaVersion: 11, foo: 1, stages: [] };
+  it('AC-P10: schemaVersion 12 is the only error, even with other faults present', () => {
+    const p = { ...fixture(), schemaVersion: 12, foo: 1, stages: [] };
     const errors = errorsOf(p);
-    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }]);
+    expect(errors).toEqual([{ path: 'schemaVersion', message: expect.stringContaining('[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]') }]);
   });
 });
 

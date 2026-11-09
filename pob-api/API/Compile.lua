@@ -76,6 +76,10 @@
 --     any of its active skills has, is a defect naming the entry's path `at`. `movementTiers` (D-440) are the boots'
 --     movement-speed tiers in the game data (the item mods of group MovementVelocity boots roll, Data/ModItem.lua:450-455),
 --     {value, itemLevel}, for V1's `movement-tier`.
+--     A granted skill's quality (WU-154, D-512, plan schema 11): a gem's `quality` above 0 is a defect when the stage's
+--     items (its slots and tree jewels) or allocated passives grant its skill, naming the group, the skill and what grants
+--     it, and saying where the skill's quality comes from: a wand's, staff's or sceptre's own quality (PG-114), otherwise
+--     quality modifiers. The compiler sends `quality` from schema 11 only.
 --     -> {defects[], treeVersion, stageCount, producers[{kind, name, exists}], configBaseline{var: {...}},
 --         anoints[{stage, notable, node, recipe[], emotions[]}], gemTexts{name: text}, weaponGrants[{stage, slot, skills[]}],
 --         movementTiers[{value, itemLevel}],
@@ -226,6 +230,7 @@
 
 local BuildOps = require('API.BuildOps')
 local Lookup = require('API.Lookup')
+local Patches = require('API.Patches')
 local Sets = require('API.Sets')
 local construct = require('API.Util').construct
 
@@ -1469,6 +1474,82 @@ local function weapon_grants(st, out)
   end
 end
 
+-- D-512 (amendment 16 §8, plan schema 11; WU-154): a quality on a granted skill's gem. The game gives a skill an item or a
+-- passive grants no quality of its own: on a wand, a staff (not a quarterstaff) or a sceptre it takes the item's quality
+-- (PG-114's bridge patch, API/Patches.lua's gives_quality), and any other only quality modifiers. So the plan's gem for
+-- such a skill (the copy that carries its supports, PG-108) has quality 0, and one above 0 is a defect naming the stage,
+-- the group and the skill and saying where its quality comes from. The granting items are the stage's slots (each read as
+-- the compile equips it, its base's implicits filled, D-435; a pinned Swap slot's item is its set-1 slot's) and tree
+-- jewels; the granting passives its tree and ascendancy nodes (each node's ExtraSkill lines, as PoB reads them,
+-- Modules/CalcSetup.lua:247-255). A gem's `quality` comes only from schema 11 (the compiler's checkStageOf), so an older
+-- plan is never refused for it.
+local function granted_by(tree, st)
+  local out = {}
+  local function add(skillId, source)
+    if skillId ~= nil and out[skillId] == nil then out[skillId] = source end
+  end
+  for _, it in ipairs(list(st.items)) do
+    if it.sameAs == nil then
+      local ok, item = pcall(construct, 'Item', item_text(it))
+      if ok and item and type(item.grantedSkills) == 'table' then
+        for _, g in ipairs(item.grantedSkills) do add(g.skillId, { item = item, where = 'in ' .. tostring(it.slot) }) end
+      end
+    end
+  end
+  for _, j in ipairs(parse_jewels(st)) do
+    if j.item and type(j.item.grantedSkills) == 'table' then
+      for _, g in ipairs(j.item.grantedSkills) do add(g.skillId, { item = j.item, where = 'on node ' .. tostring(j.node) }) end
+    end
+  end
+  for _, ids in ipairs({ list(st.nodes), list(st.ascendancyNodes) }) do
+    for _, id in ipairs(ids) do
+      local node = tree.nodes[tonumber(id)]
+      if node and node.modList and node.modList.List then
+        for _, v in ipairs(node.modList:List(nil, 'ExtraSkill')) do
+          if type(v) == 'table' then add(v.skillId, { node = node }) end
+        end
+      end
+    end
+  end
+  return out
+end
+
+local function check_granted_quality(tree, st, defect)
+  local granted
+  for gi, group in ipairs(list(st.groups)) do
+    for k, gem in ipairs(list(group.gems)) do
+      local quality = tonumber(gem.quality)
+      if quality and quality > 0 then
+        local gemData = BuildOps.resolve_gem(gem.name)
+        local skillId = type(gemData) == 'table' and (gemData.grantedEffectId or (gemData.grantedEffect and gemData.grantedEffect.id))
+        granted = granted or granted_by(tree, st)
+        local source = skillId and granted[skillId]
+        if source then
+          local name = tostring(gemData.name or gem.name)
+          local by, why
+          if source.node then
+            by = ('the passive %s (%s)'):format(tostring(source.node.dn or source.node.name), tostring(source.node.id))
+            why = 'a skill a passive grants has no quality of its own; only quality modifiers (Dialla\'s Desire, '
+              .. 'Loreweave) raise it'
+          else
+            local base = tostring(source.item.baseName or source.item.name)
+            by = ('the %s %s'):format(base, source.where)
+            if Patches.gives_quality(source.item) then
+              why = ('a granted skill has no quality of its own: on a wand, a staff or a sceptre it takes the item\'s, '
+                .. 'so raise the %s\'s "Quality:" line instead'):format(base)
+            else
+              why = 'a granted skill has no quality of its own, and only a wand, a staff (not a quarterstaff) or a '
+                .. 'sceptre gives it the item\'s; only quality modifiers (Dialla\'s Desire, Loreweave) raise it'
+            end
+          end
+          defect(('skills.groups[%d].gems[%d]: %s is a skill %s grants, so its gem has quality 0, not %s (D-512): %s')
+            :format(gi - 1, k - 1, name, by, tostring(gem.quality), why))
+        end
+      end
+    end
+  end
+end
+
 -- WU-111 (amendment 11 §8, D-440): the boots' movement-speed tiers in the game data, {value, itemLevel}, lowest item
 -- level first: the item mods of group MovementVelocity that boots roll (Data/ModItem.lua:450-455: 10% at item level 1
 -- up to 35% at 82), for V1's `movement-tier`.
@@ -1505,6 +1586,7 @@ function M.compile_check(params)
     anoints[#anoints + 1] = check_anoint(tree, st, defect)
     companions[#companions + 1] = check_companion(st, defect)
     weapon_grants(st, grants)
+    check_granted_quality(tree, st, defect)
   end
   local producers = {}
   for _, p in ipairs(list(params.producers)) do

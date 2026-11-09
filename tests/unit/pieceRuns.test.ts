@@ -82,7 +82,7 @@ function folder(segment: string): string {
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
-const PRICING_INIT = { piece: 'pricing', mode: 'online', testConfig: 'none', noNinja: false, source: { kind: 'builds-folder', name: 'ResurrectForbidden' } };
+const PRICING_INIT = { piece: 'pricing', mode: 'online', testConfig: 'none', noNinja: false, source: { kind: 'builds-folder', name: 'Fixture Titan' } };
 
 // ---------------------------------------------------------------------------------------------------
 // AC-W145: a piece run's log
@@ -97,7 +97,7 @@ describe("AC-W145 (WU-159, D-516): a piece run's log", () => {
     expect(log).toEqual({
       schemaVersion: 4, skillRevision: 16, piece: 'pricing', runFolder: dir, status: 'running', mode: 'online', testConfig: 'none', noNinja: false,
       pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: runningNames(REPO, TEST_NOW_MS),
-      source: { kind: 'builds-folder', name: 'ResurrectForbidden' },
+      source: { kind: 'builds-folder', name: 'Fixture Titan' },
       stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [], pricing: { stops: [], retries: [] },
     });
     for (const k of ['slug', 'brief', 'dossier', 'builds']) expect(log).not.toHaveProperty(k);
@@ -222,6 +222,44 @@ describe('AC-W146 (WU-159, D-516): a pricing stop ends a piece run, and a resume
       l.stages.push({ stage: 'price', attempt: 2, outcome: 'done', priceOutcomes: { ok: 3 } });
     });
     expect(lines(check(open).stderr, 'pricing')).toEqual([expect.stringMatching(/stages\[2\] \(price attempt 2\) makes 3 trade-site price call\(s\) \(ok 3\), but pricing stopped at stages\[1\] \(price, rate_limited\) and no gate's retry-pricing, nor a resume, came after it/)]);
+  });
+
+  // WU-159's fix round: `place` is a better round's first step and prices (Appendix A.6), so a compile run that logged it
+  // is held to pricing's rules, as one that logged a D1 step is.
+  /** An online copy of the compile fixture, placed with `priceOutcomes`. */
+  function placed(priceOutcomes: Json, mode = 'online'): string {
+    const dir = piece('compile');
+    editJson(dir, 'run-log.json', (l) => {
+      l.mode = mode;
+      l.status = 'running';
+    });
+    expect(write(dir, 'stage', { stage: 'place', attempt: 1, outcome: 'done', priceOutcomes }).code).toBe(0);
+    return dir;
+  }
+
+  it("a compile run stopped at place: its stop recorded, the run stopped, and NFR-22's zero rate limits holds it", () => {
+    const dir = placed({ ok: 2, rate_limited: 1 });
+    expect(write(dir, 'set', { status: 'stopped' }).code).toBe(0);
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ status: 'stopped', pricing: { stops: [{ at: 2, step: 'place', outcome: 'rate_limited' }] } });
+    expect(rulesIn(check(dir).stderr)).toEqual(['nfr-22']);
+  });
+
+  it('a compile run that prices again at place before a resume fails pricing; after a resume it may', () => {
+    const open = placed({ ok: 2, locked_out: 1 });
+    expect(write(open, 'stage', { stage: 'place', attempt: 2, outcome: 'done', priceOutcomes: { ok: 2 } }).code).toBe(0);
+    expect(lines(check(open).stderr, 'pricing')).toEqual([expect.stringMatching(/stages\[3\] \(place attempt 2\) makes 2 trade-site price call\(s\) \(ok 2\), but pricing stopped at stages\[2\] \(place, locked_out\) and no gate's retry-pricing, nor a resume, came after it/)]);
+    const resumed = placed({ ok: 2, locked_out: 1 });
+    expect(write(resumed, 'resume', { noNinja: false }).code).toBe(0);
+    expect(write(resumed, 'stage', { stage: 'place', attempt: 2, outcome: 'done', priceOutcomes: { ok: 2 } }).code).toBe(0);
+    expect(lines(check(resumed).stderr, 'pricing')).toEqual([]);
+  });
+
+  it("an offline compile run's place that makes trade calls fails offline-prices", () => {
+    const dir = placed({ ok: 2 }, 'offline');
+    expect(lines(check(dir).stderr, 'offline-prices')).toEqual([expect.stringMatching(/stages\[2\]: an offline run made 2 price call\(s\); offline, no step calls a trade or poe\.ninja tool/)]);
+    // With no trade call it passes: the exchange-free place of an offline run is the user's word.
+    const word = placed({}, 'offline');
+    expect(lines(check(word).stderr, 'offline-prices')).toEqual([]);
   });
 });
 
@@ -374,7 +412,50 @@ describe('AC-W147 (WU-159, D-516): the checker by piece', () => {
     expect(node(RENDER_NOTES, [writer])).toEqual({ code: 0, stdout: expect.stringMatching(/^render-notes: wrote notes\.txt \(\d+ characters\) from guide\.md\n$/), stderr: '' });
     expect(fs.readFileSync(path.join(writer, 'notes.txt'), 'utf8')).toBe(fs.readFileSync(path.join(PIECES, 'writer-run', 'notes.txt'), 'utf8'));
     expect(node(RENDER_NOTES, [writer, '--build', 'r1-a-2'])).toMatchObject({ code: 1, stderr: expect.stringMatching(/a writer run keeps its one build at the folder's root: pob2-render-notes <runFolder>, with no --build/) });
-    expect(node(RENDER_NOTES, [path.join(PIPELINE, 'run-a14')])).toMatchObject({ code: 1, stderr: expect.stringMatching(/pob2-render-notes <runFolder> --build <card id>/) });
+    // Only a piece run takes its root build with no --build: any other folder gets the usage error, as before.
+    expect(node(RENDER_NOTES, [path.join(PIPELINE, 'run-a14')])).toEqual({ code: 2, stdout: '', stderr: expect.stringMatching(/^usage: node render-notes\.mjs <runFolder> --build <card id>/) });
+    expect(node(RENDER_NOTES, [path.join(TMP, 'no-such-folder')])).toMatchObject({ code: 2 });
+  });
+
+  it("F1's final-build.xml and readback.json at a compile run's root are part of its layout (Appendix A.6 omits them)", () => {
+    const dir = betterRound();
+    expect(lines(check(dir).stderr, 'layout')).toEqual([]);
+    fs.writeFileSync(path.join(dir, 'final-build.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<PathOfBuilding2><Build level="90"/></PathOfBuilding2>\n');
+    writeJson(dir, 'readback.json', { file: 'Fixture Titan better.xml', changes: [] });
+    expect(lines(check(dir).stderr, 'layout')).toEqual([]);
+    // A pricing run has no F1, so neither file is its.
+    const pricing = piece('pricing');
+    fs.writeFileSync(path.join(pricing, 'final-build.xml'), '<PathOfBuilding2/>\n');
+    expect(lines(check(pricing).stderr, 'layout')).toEqual([expect.stringMatching(/final-build\.xml isn't part of a pricing run's folder/)]);
+  });
+
+  it('a file run logs the withdrawal after an answer change (D-480) for its build file; a pipeline run takes no file', () => {
+    // A file run (slug file) whose build file passed F1 after the design gate's accept, then changed to the PoB file only.
+    const run = folder('file');
+    expect(write(run, 'init', { slug: 'file', brief: {}, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
+    for (const stage of ['read', 'measure', 'place']) expect(write(run, 'stage', { stage, attempt: 1, outcome: 'done' }).code).toBe(0);
+    expect(write(run, 'build', { id: 'file', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' }).code).toBe(0);
+    const from = path.join(PIPELINE, 'run-a14', 'builds', 'r1-a-2');
+    fs.mkdirSync(path.join(run, 'builds', 'file'), { recursive: true });
+    for (const f of ['plan.json', 'compile-record.json', 'trades.json', 'guide.md', 'audit.md']) fs.copyFileSync(path.join(from, f), path.join(run, 'builds', 'file', f));
+    fs.mkdirSync(path.join(run, 'reports', 'gates'), { recursive: true });
+    fs.copyFileSync(path.join(PIPELINE, 'run-a14', 'reports', 'gates', 'D1-gate-r1-a-2-a1.json'), path.join(run, 'reports', 'gates', 'D1-gate-file-a1.json'));
+    for (const stage of ['D1-build', 'D1-tree', 'D1-finish']) expect(write(run, 'stage', { stage, concept: 'file', attempt: 1, outcome: 'done' }).code).toBe(0);
+    expect(write(run, 'stage', { stage: 'D1-gate', concept: 'file', attempt: 1, outcome: 'pass' }).code).toBe(0);
+    expect(node(RUN_LOG, [run, 'display', 'design', '--build', 'file']).code).toBe(0);
+    expect(write(run, 'checkpoint', { checkpoint: 'design', concept: 'file', visit: 1, answer: 'accept', answeredBy: 'user', questions: 0 }).code).toBe(0);
+    expect(write(run, 'stage', { stage: 'F1', concept: 'file', attempt: 1, outcome: 'pass' }).code).toBe(0);
+    expect(write(run, 'answer-change', { checkpoint: 'design', visit: 1, from: 'accept', to: 'accept:file', note: 'just the file, thanks' })).toEqual({ code: 0, stdout: 'run-log: wrote answerChanges[0] (file: accept to accept:file, at stages[8])\n', stderr: '' });
+    expect(node(RENDER_AUDIT, [run, '--withdraw', 'file'])).toEqual({ code: 0, stdout: 'render-audit: withdrew builds/file/audit.md and builds/file/guide.md for file, and logged withdrawn\n', stderr: '' });
+    expect(readJson(run, 'run-log.json').withdrawals).toEqual([{ build: 'file', files: ['builds/file/audit.md', 'builds/file/guide.md'], at: 8 }]);
+    // The checker takes both entries naming file (the file run's order and its brief's from are WU-164's).
+    expect(lines(check(run).stderr, 'run-log').filter((l) => /answerChanges|withdrawals/.test(l))).toEqual([]);
+    // A pipeline run's withdrawal names a card.
+    const pipeline = copy(path.join(PIPELINE, 'run-a14'), 'titan-blood-hunt/2026-10-08-1');
+    editJson(pipeline, 'run-log.json', (l) => {
+      l.withdrawals = [{ build: 'file', files: [], at: 14 }];
+    });
+    expect(lines(check(pipeline).stderr, 'run-log').filter((l) => /withdrawals/.test(l))).toEqual([expect.stringMatching(/run-log\.json withdrawals\[0\]: is \{"build":"file","files":\[\],"at":14\}; a withdrawal is \{build, files, at\}/)]);
   });
 
   it("display design serves a compile run's better round from its root build; a piece run has no other gate", () => {

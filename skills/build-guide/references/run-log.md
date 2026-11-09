@@ -600,14 +600,15 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
 ```json
 {"schemaVersion": 4, "skillRevision": 16, "piece": "compile", "runFolder": "<absolute>/compile/2026-12-01-1", "status": "running",
  "mode": "online", "testConfig": "none", "noNinja": false, "pinCommit": "…", "digest": ["forbidden-rites.md", "runes-of-aldur.md"],
- "source": {"kind": "builds-folder", "name": "ResurrectForbidden", "sha1": "…"},
+ "source": {"kind": "builds-folder", "name": "Fixture Titan", "sha1": "…"},
  "stages": [], "checkpoints": [], "displays": [], "escalations": [], "faults": [], "resumes": [],
  "pricing": {"stops": [], "retries": []}}
 ```
 
 - **`source`** is what the run started from, `{kind, name?, sha1?, build?}`: for compile and pricing a builds-folder file
-  (`"builds-folder"`, `name` its name, `sha1` once known) or an import code (`"import-code"`, no name: the code itself
-  goes only to the reader, never in the log); for the writer a run folder (`"run-folder"`, `name` relative to the guides
+  (`"builds-folder"`, `name` its name, `sha1` given at `init` when known: `source` is written only there, and
+  `read.json` holds the file's sha1) or an import code (`"import-code"`, no name: the code itself goes only to the
+  reader, never in the log); for the writer a run folder (`"run-folder"`, `name` relative to the guides
   root, `<slug>/<date>-<n>`, and `build`, its build's id when it has `builds/`).
 - **Its steps** (Appendix A.6): compile `read`, `measure` and, with the better round, `place`, `D1-build`, `D1-tree`,
   `D1-finish`, `D1-gate` and `F1`; pricing `read` and `price`; the writer `W1`. `read` is `done` or `fail` (the reader
@@ -622,7 +623,8 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
   rungs around the placed one) go on D1-build, D1-tree, D1-finish and D1-gate.
 - **Its files sit at the folder's root**, with no `builds/`, `dossier` or `builds[]`: compile's `source.xml`,
   `plan.json`, `read.json`, `measure.md`, `compile-record.json`, `compiled-build.xml`, `cards/file.md`, `pieces.md`,
-  `trades.json`, `trade-links.json`, `reports/gates/` and `interviews/`; pricing's `source.xml`, `plan.json`,
+  `trades.json`, `trade-links.json`, `reports/gates/`, `interviews/`, and F1's `final-build.xml` and `readback.json` in
+  a better round (which Appendix A.6 leaves out); pricing's `source.xml`, `plan.json`,
   `read.json`, `compile-record.json`, `compiled-build.xml`, `prices.md` and `upgrades.json`; the writer's `guide.md`,
   `audit.md` and `notes.txt`. `pob2-render-audit <runFolder>` and `pob2-render-notes <runFolder>` take that root build
   with no `--build`. No `build` entry is written.

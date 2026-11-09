@@ -352,7 +352,8 @@ const RESUME_FIELDS = ['date', 'pinCommit', 'digest', 'noNinja', 'lengths'];
 const PIECE_LOG_FIELDS = ['schemaVersion', 'skillRevision', 'piece', 'runFolder', 'status', 'mode', 'testConfig', 'noNinja', 'pinCommit', 'digest', 'source', 'stages', 'checkpoints', 'displays', 'escalations', 'faults', 'resumes', 'pricing'];
 /** D-516 (Appendix A.6): the files at a piece run's root, by piece; the folders `cards/`, `reports/` and `interviews/` among them. */
 export const PIECE_FILES = {
-  compile: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'measure.md', 'compile-record.json', 'compiled-build.xml', 'cards', 'pieces.md', 'trades.json', 'trade-links.json', 'reports', 'interviews'],
+  // F1's copy of the final file and its read-back, at the root in a better round (src/plan/compiler.ts, F1.md): A.6 omits them.
+  compile: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'measure.md', 'compile-record.json', 'compiled-build.xml', 'cards', 'pieces.md', 'trades.json', 'trade-links.json', 'reports', 'interviews', 'final-build.xml', 'readback.json'],
   pricing: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'compile-record.json', 'compiled-build.xml', 'prices.md', 'upgrades.json'],
   writer: ['run-log.json', 'guide.md', 'audit.md', 'notes.txt'],
 };
@@ -393,11 +394,14 @@ export const RULE_PIECES = {
   runes: ['compile', 'pricing'], corruption: ['compile', 'pricing'], flasks: ['compile', 'pricing'],
   'known-issues': ['writer', 'review'], 'test-advice': ['writer', 'compile'], 'campaign-rewards': ['writer', 'compile'],
 };
-/** D-516: the tags whose rules check a piece run: `run`'s, game knowledge's, its piece's, and a better round's pricing. */
+/**
+ * D-516: the tags whose rules check a piece run: `run`'s, game knowledge's, its piece's, and a better round's pricing: a
+ * compile run that logged `place` (the round's first step, which prices, Appendix A.6) or a D1 step.
+ */
 function pieceTags(log) {
   const piece = pieceOf(log);
   if (piece === null) return null;
-  const better = piece === 'compile' && list(log.stages).some((s) => ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'].includes(s.stage));
+  const better = piece === 'compile' && list(log.stages).some((s) => ['place', 'D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'].includes(s.stage));
   return new Set(['run', 'game-knowledge', piece, ...(better ? ['pricing'] : [])]);
 }
 const RESUME_LISTS = ['stages', 'checkpoints', 'escalations', 'displays'];
@@ -2940,7 +2944,8 @@ function checkSchema4Fields(log, bad) {
     if (!Array.isArray(log.answerChanges)) bad('answerChanges', 'is a list, one entry per answer change (D-480)');
     list(log.answerChanges).forEach((x, k) => {
       const keys = ['checkpoint', 'concept', 'visit', 'from', 'to', 'note', 'at'];
-      if (show(Object.keys(x)) !== show(keys) || x.checkpoint !== 'design' || !new RegExp(`^${CARD_ID}$`).test(String(x.concept)) || !isInt(x.visit, 1) || x.from !== 'accept' || x.to !== 'accept:file' || !isText(x.note) || !isInt(x.at)) {
+      // D-516: a file run's one build is `file`.
+      if (show(Object.keys(x)) !== show(keys) || x.checkpoint !== 'design' || !new RegExp(`^${idSource(4, fileIdOk(log))}$`).test(String(x.concept)) || !isInt(x.visit, 1) || x.from !== 'accept' || x.to !== 'accept:file' || !isText(x.note) || !isInt(x.at)) {
         bad(`answerChanges[${k}]`, `is ${show(x)}; an answer change is {${keys.join(', ')}}: the design visit whose accept became accept:file, its build, the user's words and the stages[] length when written (D-480, Appendix A)`);
       } else if (x.at < from14) bad(`answerChanges[${k}]`, `is at stages[${x.at}], before amendment 14's boundary; an answer change is amendment 14's (skillRevision ${A14}, §25)`);
       else {
@@ -2952,7 +2957,8 @@ function checkSchema4Fields(log, bad) {
   if ('withdrawals' in log) {
     if (!Array.isArray(log.withdrawals)) bad('withdrawals', 'is a list, one entry per withdrawal (D-480)');
     list(log.withdrawals).forEach((x, k) => {
-      if (show(Object.keys(x)) !== show(['build', 'files', 'at']) || !new RegExp(`^${CARD_ID}$`).test(String(x.build)) || !Array.isArray(x.files) || !x.files.every(isText) || !isInt(x.at)) bad(`withdrawals[${k}]`, `is ${show(x)}; a withdrawal is {build, files, at}, the files pob2-render-audit <runFolder> --withdraw <id> removed (D-480, Appendix A)`);
+      // D-516: a file run's one build is `file`.
+      if (show(Object.keys(x)) !== show(['build', 'files', 'at']) || !new RegExp(`^${idSource(4, fileIdOk(log))}$`).test(String(x.build)) || !Array.isArray(x.files) || !x.files.every(isText) || !isInt(x.at)) bad(`withdrawals[${k}]`, `is ${show(x)}; a withdrawal is {build, files, at}, the files pob2-render-audit <runFolder> --withdraw <id> removed (D-480, Appendix A)`);
       else if (!list(log.answerChanges).some((y) => y.concept === x.build && isInt(y.at) && y.at <= x.at)) bad(`withdrawals[${k}]`, `withdraws ${x.build}'s files, but no answer change for ${x.build} comes before it; the withdrawal removes the guide route's files after the answer changed to the PoB file only (D-480)`);
     });
   }

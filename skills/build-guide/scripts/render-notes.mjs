@@ -167,10 +167,20 @@ export function writeNotes(runFolder, id) {
   return `wrote ${folder}notes.txt (${text.length} characters) from ${folder}guide.md${links !== null ? ` and ${folder}trade-links.json` : ''}`;
 }
 
+/** D-516: whether the folder holds a piece run's log (its `piece`), whose one build is the folder's root; false when unreadable. */
+function pieceRunAt(runFolder) {
+  try {
+    return PIECES.includes(JSON.parse(fs.readFileSync(path.join(runFolder, 'run-log.json'), 'utf8')).piece);
+  } catch {
+    return false;
+  }
+}
+
 function main(argv) {
   const args = argv.slice(2);
-  // D-516: a piece run's root build takes no --build; a file run's one build is `file`.
-  const root = args.length === 1 && !args[0].startsWith('--');
+  // D-516: only a piece run's root build takes no --build (any other run's is the usage error, as before); a file run's
+  // one build is `file`.
+  const root = args.length === 1 && !args[0].startsWith('--') && pieceRunAt(path.resolve(args[0]));
   if (!root && (args.length !== 3 || args[1] !== '--build' || !/^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(args[2]))) {
     process.stderr.write("usage: node render-notes.mjs <runFolder> --build <card id>, or <runFolder> alone for a piece run's root build (D-516)\n");
     return 2;

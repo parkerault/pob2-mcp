@@ -548,7 +548,7 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION, op
     return bad;
   }
   if (kind === 'withdrawn') {
-    if (!CARD.test(String(e.build))) bad.push(`build ${show(e.build)} isn't a card id`);
+    if (!isId(e.build)) bad.push(`build ${show(e.build)} isn't a card id${idWords}`);
     if (!Array.isArray(e.files) || !e.files.every(text)) bad.push('files lists the paths pob2-render-audit <runFolder> --withdraw <card id> removed, relative to the run folder');
     return bad;
   }

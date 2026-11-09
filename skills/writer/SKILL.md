@@ -60,9 +60,9 @@ character ("my build MyCharacter123") is `/pob2:build-guide`'s guide from a file
   guide says whether its prices were checked); `noNinja` false, as the writer prices nothing; `build` the source build's
   id (`file` for a run from a file), none for a `/pob2:compile` run; and `"leagueFolder"`. `init` refuses a source that
   isn't a build that passed F1 (a compile run with its measure only among them) or that keeps what a guide can't carry (a
-  legacy or no longer obtainable gem or unique, an owned Legacy soul core, an owned non-unique item's corruption, or an
-  owned unique's the corruption rule doesn't allow): tell the user its reason and the command it names, and stop. Print
-  the lines `init` printed after its first.
+  legacy or no longer obtainable gem or unique; on an owned item, a "Legacy of …" soul core, the Raven-Touched Shard, or
+  a corrupted rare, magic or normal item; an owned unique's corruption that the corruption rule doesn't allow): tell the
+  user its reason and the command it names, and stop. Print the lines `init` printed after its first.
 - **A resume**, `/pob2:writer --resume <run folder>`: `mcp__pob2__guide_run {resume}`, `pob2-run-log <runFolder>
   resume` with `noNinja` false, `pob2-render-audit <runFolder>` again (it keeps the Known issues rows), then the step
   the log shows next (W1 when no `W1` is `done`, else step 4).

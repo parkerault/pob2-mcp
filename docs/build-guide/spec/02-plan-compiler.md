@@ -256,6 +256,17 @@ Evidence is in recon §1–§5 and the pin grounding (pin §B, §C). Repo at `e6
 > version 10 until M-30's designs; M-30 adds the read plan's fields and `switch` (D-517, D-518), as approved. Detail:
 > a16 §8 and Appendix A.5; the spine's C-31 and D-512. This slice is folded at amendment 18 (D-506, D-525).
 
+> **Note (amendment 16, D-517, D-518; M-30).** M-30 adds plan schema 11's read fields and `switch` (WU-160; a16
+> Appendix A.5): a read stage's `source` `{kind: "builds-folder" | "import-code", name?, sha1, loadout}`; `owned:
+> true` and `standIn: true` on items and tree jewels (`standIn` on the tree-jewel schema too, as built, WL:7590–7591),
+> `owned: true` on groups; `config.file`, the file's configuration by PoB input name and value; and a group's `switch:
+> {when, off}`, with `enabled: false`, a buff switched as needed (D-518). A read stage is id `f`, `progress:
+> "endgame"`, no variant until placed, its `config.earned` empty and `config.scenario` only `enemyIsBoss`; placing
+> renames it to its rung's id and adds `variant`, `ascendancyPoints` and `variantBasis`. A plan's `league` may be null
+> without prices. As built, a designer writes `schemaVersion: 11` when a plan holds one of these fields, otherwise as
+> before (slice 03 §7.1's note). The reader that writes them is slice 05's ([`05-compile.md`](05-compile.md)); the
+> spine's C-31.
+
 `src/plan/schema.ts` exports the zod schema `planSchema` and
 `validatePlan(json, refData?) → {ok:true, plan} | {ok:false, errors:{path, message}[]}`.
 - **Paths.** zod's issue path, rendered with `.` between keys and `[n]` for indices
@@ -547,6 +558,30 @@ real keys.
 > a16 §26 overclaims slightly: older fixtures that hold a granting wand, staff or sceptre (`off-hand-fresh`,
 > `off-hand-shared`, `weapon-sets`, and open-spell's `r1-s-2` and `r1-s-4`) now measure PoB's own granted group at the
 > item's quality (WL:7268–7270). Detail: a16 §7, §8; the spine's C-41, D-511, D-512.
+
+> **Note (amendment 16, D-518, D-519, D-523; M-30).** Since M-30 `compile_plan` compiles a read plan (C-41's M-30
+> note; WU-161, inside the HG-12 grant for M-30, a16 §28):
+> - `config.file` is written as set, the plan's custom lines after the file's, and no reference hit is filled on its
+>   stage;
+> - `measure_as: "non-budget"`, only with `measure_only` and only on a read stage while it is unplaced, gives the
+>   stage the passes an `n` stage gets (the boss pass with the Arbiter read, the resisting and conditioned reads, a
+>   toughness read at `n`'s reference hits), each putting the file's configuration back after; a placed stage is
+>   measured as its own rung;
+> - an owned item or tree jewel skips PoB's `NormaliseQuality` (`keepQuality` on `add_item_text`,
+>   `pob-api/API/BuildOps.lua`:1655), so it keeps its text's quality, the handoff's binding fact from M-29;
+> - owned content is exempt from V1's `sockets`, `affix-cap`, `corruption` and `movement-tier` and from
+>   `compile_check`'s refusal of legacy and unobtainable content, while a character is measured and priced;
+> - a switched group is written disabled and marked (`Patches.SWITCHED`, set at every `compile_stage` before the
+>   measured rebuild), and each switch is measured once more with it on and its `off` groups off, on its group's own
+>   weapon set, else the stage's;
+> - the record gains per stage `owned`, `switches` and `overlay` (a16 Appendix A.8), and, on read plans only,
+>   `measuredAs`, `spirit` per buff, `switches[].weaponSet`, V2's `file` class and `from-file` kind, and the reply's
+>   tag "(from the file)" (ruled inside the grant by the coordinator, WL:7680–7684);
+> - a plan without a read stage compiles to its old record: all 22 committed fixture plans compiled at base and head
+>   gave equal records but for the times, sha1s and codes, but for one figure that moves with the engine's memory
+>   layout (PG-116, `docs/build-guide/pob-gaps.md`; WL:7768–7778).
+>
+> Detail: a16 §14, §15; slice 05 ([`05-compile.md`](05-compile.md), §2.3); the spine's C-41, D-518 and D-519.
 
 **Modes.** Only these argument combinations are allowed. Any other is `isError` naming the conflict, and
 nothing is done. Creating a run folder and validating a plan are `guide_run`'s modes (§3.8, D-216);
@@ -954,6 +989,16 @@ run in one `--runInBand` Jest call, so both run when one fails and either failur
 > threshold, so nothing checks it, and the comments at `src/plan/checks/v1.ts`:25 and :765 say so. Detail: a16 §6,
 > §8; the spine's D-428, D-510, D-359.
 
+> **Note (amendment 16, D-518, D-519; M-30).** Since M-30: V1's `switched-spirit` (WU-161) names a buff switched as
+> needed whose own measure, with it on and its `off` groups off, leaves unreserved Spirit below 0, with its group and
+> `off` list, while PoB's Spirit warning on the measured loadout, where switched buffs are off, stays `pob-warning`'s;
+> V1 skips owned content for `sockets`, `affix-cap`, `corruption` and `movement-tier`. V2's findings on a stage with
+> `config.file` are callouts (`kind: "from-file"`), never a failed verdict, and a read stage's checks gain
+> `unproduced-state`: a file input PoB itself marks invalid, read from PoB's own gate (`invalid_options`,
+> `pob-api/API/Compile.lua`, through `debug.getupvalue`; `Classes/ConfigTab.lua`:578–631), callout (a) of a16 §15 as
+> built (the coordinator's call, WL:7762–7767). It is partial (inputs PoB doesn't gate get none) and fails closed at a
+> pin that renames the upvalue. Detail: a16 §14, §15; slice 05 ([`05-compile.md`](05-compile.md), §2.3).
+
 Both run in TypeScript, over `compile_stage`'s reply, the plan and the reference data. A finding that rests
 on an M or L fact also adds a note naming the fact and its confidence (A-29).
 
@@ -1022,6 +1067,13 @@ an error naming the file and the option. An option the list covers for the stage
 D-250 or D-252 takes it out (the `default-unlisted` row); there the class is `unlisted`.
 
 ### 3.8 C-50: `guide_run` (WU-41)
+
+> **Note (amendment 16, D-516, D-523; M-30).** Since M-30 `new_run` takes a piece, `compile`, `pricing` or `writer`,
+> as it takes a slug, making `Guides/<piece>/<date>-<n>/` (C-61), and the slug `file` for a run from a player's file
+> (D-522). Its reply gains a line naming the server's league folder, `<stateDir>/league` (C-66), which as built it
+> creates, so `pob2-league-digest --running`, which writes only an existing folder named `league`, can (WL:7692–7693;
+> inside the grant for that reply). `resolveRunFolder` takes the argument's name for `plan_from_build`'s `run_folder`,
+> `guide_run`'s replies unchanged byte for byte (WL:7544–7545, :7566–7567). Detail: a16 §12, §19; the spine's C-50.
 
 The run-folder and validate modes, moved out of `compile_plan` so that neither starts the engine for
 nothing, bumps `revision` or marks the build dirty (D-216).

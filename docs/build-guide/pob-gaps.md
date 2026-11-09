@@ -840,6 +840,34 @@ Reports from `pob-upstream.md` §2, checked against the pin's code and, where a 
   - **Upstream:** issue #2575 (open); PR #2577 (open) gives every item-granted skill its item's quality, wider than
     the game's rule, so re-check a quarterstaff's and a spear's granted skill when a release carries it.
 
+## Found in amendment 16 (2026-11-09)
+
+Found by WU-161's gate verifier, compiling all 22 committed fixture plans before and after the unit (WL:7768–7778).
+PG-115, the number amendment 16 kept for an item-only granted skill missing level and quality modifiers, stays unused:
+its check didn't hold at M-29 (D-512).
+
+- **PG-116, a skill's area figure moves with the engine's memory layout.** bug, confirmed by probe; its cause isn't
+  located in code.
+  - **Where:** not found. The fifteen-stage fixture plan (`tests/fixtures/plans/fifteen-stage/plan.json`) compiled
+    measure-only reads Earthquake Aftershock's `AreaOfEffectRadiusMetres` as 1.8 at one bridge commit and 2.4 to 2.7
+    at the next, in 12 record fields, repeatably. The later code with one logging line added, its new code path never
+    called, reads 1.8 again, and so does the earlier code started from another path. The figure follows how the
+    engine's memory is laid out, not the change: most likely an iteration order in PoB (a `pairs` loop whose order
+    depends on allocation), as a base's variant lines in a saved item's text reorder between processes, written by a
+    `pairs` loop (`Classes/Item.lua:1511`; the same verifier's two titan-rake plans).
+  - **Effect:** a compile's record can differ between two bridge versions in a figure the change doesn't touch, so a
+    before-and-after comparison can blame the wrong change. Any bridge edit can move it, and no test pins this figure.
+    The other 21 fixture plans gave equal records.
+  - **Against the golden values:** the golden build's test (`tests/integration/golden.test.ts`, AC-F23) compares its
+    109 recorded `<PlayerStat>` pairs as strings with the engine's, and its field list holds
+    `AreaOfEffectRadiusMetres` (`tests/integration/golden-stat-fields.json`). The golden build has no Earthquake and
+    its test passes, but a figure of this kind could move there the same way after a bridge edit or a pin upgrade
+    (`CLAUDE.md`'s step 3). When a golden pair or a fixture's figure moves with no cause in the change, compile it
+    again at the base, from a fresh engine, before updating the recorded value.
+  - **Workaround:** recorded, not patched: a bridge patch (D-509) needs the cause found first. Compare such a figure
+    across versions only after the base check above.
+  - **Upstream:** not reported.
+
 ## Data: missing, out of range, or stale
 
 - **PG-41, rolls above PoB's data range.** data, reported. Each has to be typed in:

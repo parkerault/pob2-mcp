@@ -94,6 +94,18 @@ slice fixes the contracts and required behaviours, not the prose of prompts.
 
 ## 2. Run folder layout and file ownership (C-34 inside a run; C-36)
 
+> **Note (amendment 16, D-516, D-522; M-30).** Since M-30 (skill revision 16, C-61) a piece run has a folder of its
+> own, `Guides/<piece>/<date>-<n>/` for `/pob2:compile`, `/pob2:pricing` and `/pob2:writer` (`guide_run {new_run:
+> "<piece>"}`), its files at the folder's root with no `builds/` (a16 Appendix A.6's lists; `PIECE_FILES`,
+> `skills/build-guide/scripts/check-run.mjs`:378). As built, a compile run with a better round also holds F1's
+> `final-build.xml` and `readback.json` at its root, a departure from A.6 (the coordinator's call). A run from a
+> player's file, `/pob2:build-guide` on a builds-folder name or an import code (D-522), has the slug `file`: the
+> reader's and the measure's files at its root (`source.xml`, `read.json`, `plan.json`, `compile-record.json`,
+> `compiled-build.xml`, `measure.md`, `dossier.md`, `cards/file.md`) and its one build in `builds/file/` (D-412's
+> layout), named `file` where a pipeline run names a card. The pieces' files are in slices 05, 06 and 07
+> ([`05-compile.md`](05-compile.md), [`06-pricing.md`](06-pricing.md), [`07-writer.md`](07-writer.md)); the file run
+> is §5.2's note.
+
 After the roll check (FR-W2), the runner's first server write is `guide_run {new_run: <slug>}`; every step
 and agent then uses the returned absolute path (D-207, D-216). `runFolderRel` is `<slug>/<YYYY-MM-DD>-<n>`;
 a plan's `plan_path` is `<runFolderRel>/plan.json`, or `<runFolderRel>/concepts/<id>/plan.json` for a
@@ -151,6 +163,17 @@ writes into an earlier run's (D-153). (Before WU-57 the slug was the roll's `<as
   like any other, reported and never worked around.
 
 ## 3. The skill and its runner (O1; D-152, D-267)
+
+> **Note (amendment 16, D-516, D-522, D-523; M-30).** Since M-30 `/pob2:build-guide` starts from a brief or from a
+> player's own PoB file (D-522; its description quotes "a build guide for my build MyCharacter123", choice F): a build
+> the user names is matched against `list_builds`, and the closest names are listed and asked about when none or
+> several match, never guessed (§5.2's note on the file run). Its `SKILL.md` is 323 lines, under the user's 325
+> (AC-W144). At a run's start, online and not under `--test`, the runner runs `pob2-league-digest --running --out
+> <leagueFolder>`, the folder from `guide_run {new_run}`'s reply (D-523; slice 04,
+> [`04-game-knowledge.md`](04-game-knowledge.md)), which `runner-rules.md`'s Bash list and write rule name. The
+> compaction reminder (`scripts/compact-reminder.sh`, D-420) is worded for any pob2 run with a `run-log.json` in
+> progress, whose runner re-reads that command's `SKILL.md` (D-516). The three new commands are slices 05, 06 and
+> 07's.
 
 `.claude/skills/build-guide/` holds `SKILL.md`, shared references (`references/`), stage references
 (`references/stages/<stage>.md`), templates (`templates/`) and the run checker (`scripts/check-run.mjs`).
@@ -475,6 +498,16 @@ ToolSearch, so ToolSearch joins no row.
 > a digest itself. The rule is game knowledge's, in slice 04 ([`04-game-knowledge.md`](04-game-knowledge.md), §2.3)
 > and the spine's C-59; §6's note gives the run log's side.
 
+> **Note (amendment 16, D-516, D-520, D-521, D-522; M-30).** From skill revision 16 the header also carries: `scope`
+> `better` (the better round on a player's read character, D-521) or `ladder` (a file run's rungs designed around the
+> placed one, D-522) on D1's four steps; `concept: "file"` for a compile run's or a file run's one build;
+> `buildFolder: "."` for a piece run's root build; `source` for W1 in a `/pob2:writer` run, as built `{runFolder,
+> buildFolder}` (the source's absolute path and its build's folder), a departure from a16 Appendix A.2's "relative to
+> the guides root, and its build id" (slice 07, [`07-writer.md`](07-writer.md), §2.3); and on the pricing piece's
+> `price` and `place` steps `league`, `budget`, `rung` and `maxSearches`, stated in `price.md` only, A.2 not updated
+> for them (slice 06, [`06-pricing.md`](06-pricing.md), §2.3). `skills/build-guide/references/task-header.md` holds
+> the as-built rows.
+
 Every agent prompt starts with a fenced `json` block, the task header. The runner builds it from the run
 state; the agent reads its job from the header and the stage reference it names, and nothing else in the
 prompt contradicts it.
@@ -507,6 +540,60 @@ Faults travel only in headers, only in offline test mode, and only to the steps 
 no `pass` field (D-267).
 
 ### 5.2 The steps (D-267, D-268, D-272)
+
+> **Note (amendment 16, D-519, D-520, D-521, D-522; M-30).** The design rows below (6a to 9) also run outside this
+> pipeline since M-30: `/pob2:compile`'s better round runs D1-build, D1-tree, D1-finish and the D1 gate in the scope
+> `better` on a player's read character, then its design gate and F1, in a run folder of its own (slice 05,
+> [`05-compile.md`](05-compile.md), §2.3). Each of the four stage references holds a `better` and a `ladder` section,
+> and stays build-guide's, read by path (a16 §21). The writer row (10) also runs in `/pob2:writer`, which writes a
+> finished build's guide from its source run into a folder of its own; the guide's rules W1 follows in every run are
+> slice 07's ([`07-writer.md`](07-writer.md)). The pricing these steps do reads the procedure at its new path, the
+> pricing piece's (slice 06, [`06-pricing.md`](06-pricing.md)). This slice shrinks to `/pob2:build-guide`'s order of
+> calls as the pieces leave (a16 §21); it is folded at amendment 18 (D-506).
+
+> **Note (amendment 16, D-516, D-522; M-30).** **A run from a player's PoB file** (a "file run", a16 §18; the
+> runner's steps in `skills/build-guide/references/file-run.md`). `/pob2:build-guide <build name or import code>`, or a
+> player's words asking for a guide to their own build ("a build guide for my build MyCharacter123"), starts it. The
+> brief gains `from` (the build's name as `list_builds` gave it, or `"import code"`; as built `init` refuses a `from`
+> that looks like an import code, WL:8015–8016), `better` and, as built, a third field, `campaign` (`false` only when
+> the user declines the campaign, offered once at the start; WL:7967), and the slug is `file`; `init` refuses the slug
+> without `from`, and `from` without the slug. No brief check, R1a, R1b or verification gate runs: the file is the
+> skeleton, the file card its card. Its steps replace 2a to 5:
+>
+> 1. `read` and `measure`, as compile's (slice 05): the reader's two calls at the folder's root, the measure writing
+>    the file card and, as built, `dossier.md`'s one row, which D2 and W1 read (the coordinator's call, WL:7999–8000);
+>    the display as compile's, an answer that changes the plan running both again; then the build `file` in
+>    `builds[]`.
+> 2. `place`, pricing's placement scope (slice 06), announced first; without trade the user names the rung, never
+>    assumed; below the endgame no rung is placed, and the ladder's three rungs are designed, seeded from the
+>    character (choice A).
+> 3. With `better`, the better round to its design gate, in `builds/file/`. As built, a file run's round stops at its
+>    design gate, with no F1: accept places the result again, reusing every price the plan holds (WL:7967–7968).
+> 4. The ladder: D1's four steps in the scope `ladder`, designing the other rungs around the placed one, which keeps
+>    the file's design (or the better round's), its rares as specs, its uniques named. As built (the coordinator's
+>    calls, WL:7983–7987, :7999–8004): the placed rung drops `config.file` and is measured on the guide's
+>    configuration at its rung's reference hits, as every rung is, and drops every `owned` mark, since in a guide
+>    owned content meets every rule; what a guide can't carry is shown at the design gate as a trade with its
+>    replacement; a change the user asks for on the placed rung is a trade, a tree change carrying `nodes {remove,
+>    add}`, and the placed rung's tree must equal the read stage's after those trades (WL:8029–8031). The D1 gate
+>    never fails the placed rung for its floor, tree or budget: those are findings, a floor finding with its `cost`.
+>    The checker's `ladder` and `owned-guide` hold it, and a check compares the placed rung's items with the read
+>    stage's (WL:8016).
+> 5. Then the pipeline's steps from 6c's D1-finish on: the design gate, F1, the campaign by D2 unless the brief
+>    declined it, W1, V4, the fix round, the re-check, known issues, the checker and the final gate. With no
+>    verification gate, a resume runs the step a stop ended again (`file-run.md` §6).
+>
+> `checkFlow4` checks a file run in its own order: `read`, `measure`, `place`, the better round's steps when it ran,
+> then D1 onward. Its criteria are AC-W144 (`SKILL.md` under 325 lines), AC-W156 and AC-W157
+> (`tests/static/fileRun.test.ts`, `tests/unit/fileRun.test.ts`; WU-164), on the fixtures `tests/fixtures/file-run`
+> (at the ladder's design gate) and `file-run-completed` (laid over it at test time), rebuilt on the real path from
+> the importer fixture (WL:8005–8010, :8029–8033). **WU-168's file-run case** (a16 §20, AC-W160): `/pob2:build-guide`
+> from ResurrectForbidden, started by a request such as "a build guide for my build ResurrectForbidden", to its design
+> gate. Expected: the read and the measure as slice 05 §6's case 1; the rung the user names (offline); the ladder's
+> other two rungs designed around it; at the design gate the placed rung's items kept, its rares as specs, any owned
+> content a guide can't carry shown as a trade, and the placed rung's floor and tree reported as findings, never a
+> failed gate. With choice D, the library file (`guides/twister-spirit-walker-snoobae/pob/build.xml`) the same way,
+> its loadout question asked first (its active loadout, "Mid Endgame", one of 10).
 
 `SKILL.md`'s step list, as built (since WU-57, merge `c872dea`; before it, steps 2 to 5 were R1a's concept
 proposals, R1b per concept, R1b-assemble's checkpoint-1 comparison and checkpoint 1, and step 16 was
@@ -1008,6 +1095,30 @@ V4 re-checks only `--changed`'s set. A revision's output is reported beside the 
 > the resume stamp says "revisions"; the run log, the checker and the readers are WU-151's (AC-W130, AC-W132). The
 > trade league for designs is unchanged (D-20).
 
+> **Note (amendment 16, D-516, D-522, D-523; M-30).** Skill revision 16 (`REVISIONS`, `run-log.mjs`:339) adds:
+> - **a piece run's log** (C-61, a16 Appendix A.6): `init` takes `piece` (`compile`, `pricing` or `writer`), `mode`,
+>   `testConfig`, `noNinja`, `status` and `source` (`{kind: "builds-folder" | "import-code" | "run-folder", name?,
+>   sha1?, build?}`; an import code itself is never written) and refuses a `slug` or `brief` beside it; the log has no
+>   `slug`, `brief`, `dossier` or `builds`. As built, `source` is required at `init`, its `sha1` logged then;
+> - the steps `read` and `measure` (`done` or `fail`), `place` and `price` (`done`, with `priceOutcomes`), which carry
+>   no concept; an `ask` checkpoint in a compile run (D-482); the scopes `better` and `ladder` on D1's four steps; the
+>   id `file` where a pipeline run carries a card id, a withdrawal's included;
+> - **a pricing stop ends a piece run** (D-444 amended): the run ends `stopped`, no `pricing` answer is logged in it,
+>   and `/pob2:<piece> --resume <run folder>` after the lockout is the retry, the resume clearing the stop; a compile
+>   run that logged `place` or a D1 step is held to pricing's rules;
+> - a file run's brief fields `from`, `better` and `campaign`, its slug `file` (§5.2's note);
+> - `leagueFolder` (D-523), kept for `resume`.
+>
+> **The checker** is one checker with every rule tagged by its piece (`RULE_PIECES`, `check-run.mjs`:394; the tags
+> `run`, `game-knowledge`, `discovery`, `research`, `review`, `compile`, `writer` and `pricing`; a rule two pieces
+> share carries both). A pipeline run is checked by every rule as before, and a file run too, `checkFlow4` in its own
+> order; a piece run by `run`'s rules as they apply, game knowledge's and its piece's, and a compile run with a better
+> round by pricing's too. As built, a piece run skips the slug-from-brief rule, the pipeline's lists and, but for a
+> compile run's better round, `checkFlow4`; a piece run cut before its first D1 gate is held to its log's revision
+> (`pieceHeld`). Rule names and messages don't change. The renders take a piece run's root build without `--build`,
+> and `pob2-run-log <runFolder> display design` serves a compile run's better round. AC-W145 to AC-W147 hold it
+> (`tests/unit/pieceRuns.test.ts`, `tests/static/pieceRuns.test.ts`; WU-159).
+
 Schema version 2. Only the runner writes it, as soon as the run folder exists, and rewrites it whole after
 every step, checkpoint and question. It records the run's control flow; the artifacts record the rest, and
 the checker reads both.
@@ -1126,6 +1237,15 @@ with `/exit`.
 > item's granted skill holds as many supports as its item's level gives, Jeweller's Orbs on the item adding more, with
 > no known threshold: D2's supports line (`skills/build-guide/references/stages/D2.md`:93–95) and W1's support-sockets
 > line (`stages/W1.md`:295–299) say so, a passive's granted skill keeping D-359's estimate.
+
+> **Note (amendment 16, D-512, D-517, D-518; M-30).** Plan schema 11 gains, from M-30 (WU-160; a16 Appendix A.5): a
+> read stage's `source`; the `owned` and `standIn` marks on items, groups and tree jewels; `config.file`; and a
+> group's `switch: {when, off}` (with `enabled: false`), a buff switched as needed. As built (WU-164), a designer
+> writes `schemaVersion: 11` when a plan holds a schema-11 field, and otherwise as before
+> (`skills/build-guide/references/stages/D1-build.md`:94–95), not at every M-30 design as a16 §26 put it. D1-build and
+> D1-finish may keep a buff the Spirit can't carry with the rest as switched (D-518), and raise a granting wand, staff
+> or sceptre to quality 20, unpriced (D-512). The read plan's rules are slice 05's ([`05-compile.md`](05-compile.md));
+> the schema's are in slice 02's note.
 
 `plan.json` and the skeletons follow C-31; agents read the committed reference
 `docs/build-guide/plan-reference.md` (D-167). On top of C-31:
@@ -1471,6 +1591,17 @@ The render's conversion lives once, in `render-audit.mjs`, which the checker imp
 
 ## 8. Guide template (W1; ext §5, the design's quality bar)
 
+> **Note (amendment 16, D-512, D-518, D-522, D-523; M-30).** The guide's rules since M-30 are slice 07's
+> ([`07-writer.md`](07-writer.md), §2.3), wherever W1 writes a guide (this pipeline, a run from a player's file, or
+> `/pob2:writer`, which writes a finished build's guide into a run folder of its own): owned content meets every rule,
+> and an owned rare is a spec, never its own rolls (`owned-guide`); one line per buff switched as needed under its
+> rung's gems, `- <skill>: switch it on <when>; switch <skills> off for it.`, the "When you're short" line on Spirit
+> pointing to them (`switched-buffs`); one line where a rung's wand, staff or sceptre grants a skill the build uses,
+> its quality raised to 20 with Arcanist's Etchers; and an overlay item's mark, "measured with <name>'s lines from
+> poe2db, not in PoB's release". A better round's guide is the endgame template with its one rung's `Endgame` H2. This
+> section keeps the template's reader layer and its history; the templates stay in `skills/build-guide/templates/`,
+> which W1 reads by path in every run (a16 §21). This slice is folded at amendment 18 (D-506).
+
 `templates/guide-template.md`, as built by WU-62 (merge `a8506ef`; D-276, D-277, D-280, D-281): **the reader
 layer.** `guide.md` has one H1 naming the roll and the concept, then the 14 H2s of the table below, in order,
 and no other H2. It is about 2,840 words, capped at 3,000 (the H1, the import code and the Known issues list
@@ -1591,6 +1722,16 @@ ask too, from the gates' interview notes, within its 3–5.
 > not only for a league that ended. The two running leagues' facts keep `source: pricing-study` and cite
 > `poe2db-league-cards` in a note, since a fact holds one source id (`src/plan/referenceData.ts`:71–77; WL:7055–7057).
 > This section moves to the pricing piece's slice, 06, with M-30 (D-520, D-525).
+
+> **Note (amendment 16, D-520; M-30).** The pricing procedure moved to the pricing piece:
+> `skills/pricing/references/pricing.md`, its text unchanged but for paths (a byte-identical rename, WU-163); every
+> file that named the old path names the new one, and the pipeline's five pricing steps (R1b, D1-build, D1-finish,
+> D1-gate, D2) keep pricing inline and read it there (a16 §16). `/pob2:pricing` uses it on a player's file: the
+> league, the replace cost by the owned rares' specs, the place on the ladder and the upgrades within a budget; its
+> placement scope (`price.md`'s `stage: "place"`) places a character in a compile run's better round and in a file
+> run. A pricing stop ends a piece run (§6's note). The procedure as built is slice 06's
+> ([`06-pricing.md`](06-pricing.md)); this section keeps its history as the pipeline grew. This slice is folded at
+> amendment 18 (D-506).
 
 - **Who.** Only coordinator steps price, with P's tools and C-49's dated outputs (D-112, D-178).
 - **Order** (D-133): R1b prices concept key items; D1 prices every filled slot **and every tree jewel**

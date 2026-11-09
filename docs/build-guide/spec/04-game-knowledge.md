@@ -1,7 +1,8 @@
 # Slice 04: Game knowledge, the first piece of the skill split
 
 **Status: written current 2026-11-06 (WU-149, D-504), as built at M-28; updated 2026-11-09 for amendment 16's M-29
-(WU-158, D-525): the running-league rule and the Bash line.** Part of the project spine,
+(WU-158, D-525): the running-league rule and the Bash line; and for its M-30 (WU-167, D-525): the description's three
+new commands, the checker's tag and the overlay's scripts.** Part of the project spine,
 [`docs/spec/README.md`](../../spec/README.md) ("spine"), which wins any disagreement; fold fixes back into it. It
 covers the game-knowledge piece (D-503, contract C-58): its files, the plugin layout it lives in (C-57) as far as the
 piece uses it, its work units WU-145 (the file moves), WU-147 and WU-149, all built, and WU-150 (human, recorded: HG-37 passed),
@@ -12,8 +13,13 @@ Since M-29 it also covers what amendment 16 (`amendment-16-pieces-and-launch.md`
 §n") changed in the piece: the running-league rule (D-507, contract C-59; a16 §3) and the Bash line (D-515; a16 §11),
 built by WU-151 and WU-156 (their game-knowledge parts), with this update, WU-158; their criteria AC-W132 (its
 game-knowledge part), AC-W142 and AC-W143; and AC-W140, the agent types' probe (WU-157, not run). The work-log's record
-of M-29 (WL:7030 on) wins where the build differs. Amendment 16's M-30 changes (the description's three new commands,
-a16 §12, §15) come with WU-167. Paths are root-relative: from the repository root, which is the plugin root (C-57).
+of M-29 (WL:7030 on) wins where the build differs. Since M-30 it covers amendment 16's other changes in the piece: its
+description's three new commands (D-519; a16 §12, §15), its rules tagged `game-knowledge` in the one checker (D-516,
+C-61) and the overlay's scripts and command in its folder (D-523, C-66; a16 §19), built by WU-159, WU-162, WU-163 and
+WU-166 (their game-knowledge parts), with this update, WU-167; their criteria AC-W153's and AC-W159's game-knowledge
+parts and AC-W161. The work-log's record of M-30 (WL:7449 on) wins where the build differs. The three new pieces are
+slices 05, 06 and 07 ([`05-compile.md`](05-compile.md), [`06-pricing.md`](06-pricing.md),
+[`07-writer.md`](07-writer.md)). Paths are root-relative: from the repository root, which is the plugin root (C-57).
 
 ## 1. Scope
 
@@ -25,20 +31,24 @@ read its files by path.
 
 In scope:
 - the piece's `SKILL.md`, its three references, its three data builders and, since M-29, the league rule's module and
-  command `leagues.mjs` (C-59), in `skills/game-knowledge/`;
+  command `leagues.mjs` (C-59), in `skills/game-knowledge/`; since M-30 also the overlay's module `overlay.mjs` and the
+  digest script's `--running` mode, which the `bin/` command `pob2-league-digest` runs (D-523, §2.3);
 - the questions it answers: how a mechanic, gem, unique, passive or ascendancy works for a build; what is new in the
   running leagues; whether PoB models something; what counts as evidence for a claim;
 - its real cases (§6), the piece's own test set.
 
 Out of scope, each with its home:
-- designing a build from a brief: `/pob2:build-guide` (slice 03);
-- checking or improving a PoB file the player has: no pob2 skill yet; review comes with amendment 17 (D-506), and
-  `/pob2:build-guide` starts from a brief, never from a file;
-- prices: pricing, a piece of amendment 16 (D-506), today inside `/pob2:build-guide`;
+- designing a build from a brief, or a guide from the player's own PoB file: `/pob2:build-guide` (slice 03);
+- measuring or improving the player's own PoB file: `/pob2:compile` since M-30 (slice 05); a review of a PoB file: no
+  pob2 skill yet, review comes with amendment 17 (D-506). Until M-30 neither had a pob2 skill, and `/pob2:build-guide`
+  started from a brief only;
+- prices: `/pob2:pricing` since M-30 (slice 06); until then pricing was inside `/pob2:build-guide`;
+- a guide for a build already designed: `/pob2:writer` since M-30 (slice 07);
 - the committed game data itself (`data/`, C-35) and PoB's gaps list (`docs/build-guide/pob-gaps.md`): they stay
   where they are, and the piece reads them (a15 §8);
-- the checks on its files (`check-run.mjs`'s source tags and `data` citations): they stay in build-guide's checker
-  until amendment 16 sorts the checks by piece (a15 §8, §18).
+- the checks on its files (`check-run.mjs`'s source tags, offline tag, markers and claim kinds): they stay in the one
+  checker, which since M-30 tags them `game-knowledge` and checks them in every run, a piece run's included (D-516,
+  C-61; slice 03 §6's note).
 
 ## 2. The contract
 
@@ -64,7 +74,9 @@ C-58 in the spine is the binding summary; this section gives its detail as built
 - **The league command,** `node <root>/skills/game-knowledge/scripts/leagues.mjs [--at <instant>]` (C-59, D-507;
   `${CLAUDE_PLUGIN_ROOT}` for `<root>` in the skill's text): it prints the running leagues' digests, newest first,
   with each one's line 3 (§2.3's league rule). It reads only, and it is in the runner rules' Bash list
-  (`runner-rules.md`:61–62).
+  (`runner-rules.md`:69–71). Since M-30 it takes `--league <league folder>` too, a run's runner passing the server's
+  league folder so that a digest made on the user's side is listed (D-523, §2.3); game knowledge's own runner starts no
+  run, gets no league folder and passes none (a16 §19).
 - **PoB's gaps and bugs:** `docs/build-guide/pob-gaps.md`, by `grep` for a name; a PG entry found goes with the answer.
 - **PoB's source,** under `vendor/PathOfBuilding-PoE2/src/Modules/`, by `grep`, when the checkout holds it, for how
   PoB computes something.
@@ -120,6 +132,21 @@ names Bash (R-4, D-515).
   and Forbidden Rites from 2026-09-04 20:00 UTC, both until 2026-12-11 20:00 UTC (`data/league/*.md`:3).
   `league-digest.mjs` writes the sentence from poe2db's homepage cards and rewrites the other digests' in its output
   folder (a16 §3); `--reflag` keeps it.
+- **A digest made on the user's side** (D-523, C-66; as built at M-30, WU-166): a running league can also have a
+  digest in the server's league folder, `<stateDir>/league/`, which `guide_run {new_run}`'s reply names. At a pipeline
+  or piece run's start, online and not under `--test`, the runner runs `pob2-league-digest --running --out <league
+  folder>`, the fifth `bin/` command, which runs `league-digest.mjs`'s `--running` mode alone and refuses the
+  maintainer's modes (a security review's finding, WL:7612–7618). When no running digest exists, or the newest records
+  no end, it reads poe2db's homepage cards at most once a UTC day, kept in the league folder, and makes the digest of
+  each running league that has none, at D-497's pace; a failed page is recorded and not fetched again that UTC day
+  (WL:7652–7653, :7694). `--out` must be an existing folder named `league` whose real path isn't under the plugin
+  root, so it never writes `data/league/`. Beside every digest it writes, `league-digest.mjs` writes the sidecar
+  `<slug>.overlay.json` (`overlay.mjs`; a16 Appendix A.11): the league's socketables and uniques the pin doesn't
+  define, each socketable's `type` from its name, matching the pin's type for all 287 of its socketables (WL:7640–7643,
+  :7695–7696), its slot keys from `data/league/rune-slots.json`; `--reflag` prints the entries the pin now defines,
+  which retire. `runningDigests` takes both folders, a committed digest replacing a user-side one of the same league;
+  a run's `init` and `resume` record it, and the task header's `digests` carries its absolute path. The server's use
+  of the sidecars, the overlay, is slice 01's note and the spine's C-66.
 - **Search wide:** the whole family and its substitutes, from every kind of source, never one member; one lookup per
   term it can't place; skills as well as mods; an index entry, a pair or a study is a lead, confirmed by a lookup;
   the committed data searched before it says no source holds a fact.
@@ -148,13 +175,18 @@ names Bash (R-4, D-515).
    runner runs as `node <root>/skills/game-knowledge/scripts/leagues.mjs`. As built (WL:7087–7089, :7182–7183): that
    command is exempted from amendment 15's check that every run command is a `bin/` command (AC-W115,
    `tests/static/amendment15Paths.test.ts`:112–117), a departure from amendment 15's rule, forced because a16 §3 and
-   C-59 give the command that form (the coordinator's call).
+   C-59 give the command that form (the coordinator's call). Since M-30 `scripts/` also holds `overlay.mjs` (D-523), and
+   one data builder has a `bin/` command: `pob2-league-digest` runs `league-digest.mjs --running --out <league
+   folder>` alone, for a run's runner (C-57's fifth command, amending D-499's "no command for the data builders" for
+   this one, a16 §19); every other mode stays a maintainer's `node` command.
 2. **The command** is `/pob2:game-knowledge`, the plugin `pob2`'s (C-57); the bare `/game-knowledge` works once the
    plugin is installed.
 3. **Its `SKILL.md`** has fewer than 150 lines (D-505); its frontmatter holds `name` and `description` only. The
    description says when to use it (the four kinds of question, §1) and when not: designing a build from a brief
-   (`/pob2:build-guide`); checking or improving a player's PoB file (no pob2 skill yet, and never `/pob2:build-guide`);
-   prices. Each later piece's amendment adds its own command to that list (a15 §8).
+   (`/pob2:build-guide`); measuring or improving the player's own PoB file (`/pob2:compile`), what its gear costs or
+   which rung it sits on (`/pob2:pricing`), a guide for a build already designed (`/pob2:writer`); a review of a PoB
+   file isn't a pob2 skill yet; prices. Each later piece's amendment adds its own command to that list (a15 §8): since
+   M-30 (WU-162, D-519) the three new commands are named, the description 760 characters, `SKILL.md` 126 lines.
 4. **It reads the shared rules first** and after a compaction (D-501).
 5. **It reads only** (§2.1) **and writes nothing** (§2.2).
 6. **Its web is poe2db.tw only,** at D-497's pace (choice 1).
@@ -184,7 +216,9 @@ names Bash (R-4, D-515).
   description names `/pob2:build-guide` for designing a build from a brief and says no pob2 skill yet checks or
   improves a player's PoB file; it tells its runner to read `runner-rules.md` first; it carries the legacy rule; it says
   root-relative paths are under `${CLAUDE_PLUGIN_ROOT}`; its web scope is the one the user picked (choice 1). Static
-  test: `tests/static/amendment15GameKnowledge.test.ts`. **Holds** (WU-147, merged at `176366f`; 121 lines).
+  test: `tests/static/amendment15GameKnowledge.test.ts`. **Holds** (WU-147, merged at `176366f`; 121 lines). Since
+  M-30 the description names `/pob2:compile` for the player's own file and `/pob2:pricing` and `/pob2:writer` for the
+  rest, so the test's description check follows (WU-162's AC-W162 list: D-519, C-58 amended; WL:7797).
 - **AC-W125 (its real cases; WU-147).** Each of §6's three cases, asked as §6 says, gets the expected answer with a
   source tag, and the agent's recorded tool calls are only Read, Grep, Glob and the five lookup tools; the questions,
   answers and tool calls are recorded in the work-log, where the gate's verifier checks them. A wrong answer is asked
@@ -224,15 +258,36 @@ Amendment 16's M-29 criteria for this piece (a16 §25):
   `tests/static/amendment16Docs.test.ts` (new) and `specSpine.test.ts`; and a record. **Holds** (WU-158), the record
   the gate verifier's.
 
+Amendment 16's M-30 criteria for this piece (a16 §25):
+- **AC-W153 (`/pob2:compile`; WU-162), game knowledge's part.** Game knowledge's description names the three new
+  commands. Static test: `tests/static/compileSkill.test.ts`, with `tests/static/amendment15GameKnowledge.test.ts`'s
+  AC-W124 description check, which follows it. **Holds** (WU-162, merged at `91a39df`).
+- **AC-W159 (the overlay; WU-166), game knowledge's part.** From fixture pages the digest script writes a16 Appendix
+  A.11's sidecar, with `type` and `statOrder`s; `rune-slots.json` maps every in-pin socketable label of
+  `runes-of-aldur.md` to `Data/ModRunes.lua`'s keys; a retired entry is reported by `--reflag`; `--running` runs only
+  when no running digest exists or the newest records no end, reads the cards once a UTC day, fetches only running
+  leagues without a digest at D-497's pace, no cookie, writes only its league folder, and nothing offline; a user-side
+  digest reaches `init` and the header; `bin/` holds five executable commands. Unit and static tests:
+  `tests/unit/leagueOverlay.test.ts` (the sidecar from fixture pages; `--running`; the `bin/` command runs `--running`
+  alone; a user-side digest reaches `init` and the header), `tests/static/leagueOverlay.test.ts` (`rune-slots.json`
+  against the pinned corpus; the fifth command and the runner's lines) and `tests/unit/leagueDigest.test.ts`. The
+  server's part, the engine tests, is slice 01's note. **Holds** (WU-166, merged at `b9dfd3f`).
+- **AC-W161 (M-30's documents; WU-167).** Slices 05, 06 and 07 exist with this slice's headings; slice 03 carries a16
+  §21's notes; the spine names C-61 to C-66; `specSpine.test.ts` passes; the gate's verifier records the rows built
+  and the status line "Folded through amendment 16". Static tests: `tests/static/amendment16Docs.test.ts` (its AC-W161
+  blocks) and `specSpine.test.ts`; and a record. **Holds** (WU-167), the record the gate verifier's.
+
 AC-W115 (every root-folder path in `skills/` and `agents/` resolves, the old forms banned) and AC-W116 (the pipeline
 unchanged) cover this piece's files with the rest of the plugin; they are slice 03's and C-57's. From M-29 every build
 unit also holds AC-W162: every pipeline fixture gives the checker's result it gave at `cf16e07`, and each changed test
-assertion is listed with the decision that forces it (WL:7077–7081, :7177–7185 for this piece's files).
+assertion is listed with the decision that forces it (WL:7077–7081, :7177–7185 for this piece's files; at M-30,
+WL:7796–7797, :7813–7817 and :7624–7630, with WU-166's two at its fix round, :7696–7698).
 
 ## 5. Work units
 
 Status lines give the commits on the integration branches: `build-guide/m28` (the work-log's M-28 section, WL:6542
-on) and `build-guide/m29` (its M-29 section, WL:7030 on). The units' order is the spine's M-28 and M-29 lines (§9.3).
+on), `build-guide/m29` (its M-29 section, WL:7030 on) and `build-guide/m30` (its M-30 section, WL:7449 on; remapped to
+the signed commits at HG-8). The units' order is the spine's M-28, M-29 and M-30 lines (§9.3).
 
 ### WU-145: the plugin layout and every path (game knowledge's part)
 - kind: build
@@ -342,6 +397,51 @@ on) and `build-guide/m29` (its M-29 section, WL:7030 on). The units' order is th
 - summary: This slice's M-29 update; the notes in slices 01 to 03 for the patches, the granted-quality rule and the
   league rule; the spine's M-29 rows as built, its status line "Folded through amendment 16 (approved; as built
   through 15 and amendment 16's M-29)" (a16 §21).
+
+### WU-162: `/pob2:compile` (game knowledge's part)
+- kind: build
+- status: built (four commits on `b437f8e`, one a fix round; merged at `91a39df`)
+- depends-on: [WU-159, WU-161]
+- touches (this piece's part): [`skills/game-knowledge/SKILL.md` (the description's three commands, the "Stay on the
+  question" bullet), `tests/static/amendment15GameKnowledge.test.ts` (the AC-W124 description check)]
+- acceptance: [AC-W153's game-knowledge part; the rest of WU-162 is slice 05's]
+- milestone: M-30
+- summary: The description routes the player's own file to `/pob2:compile`, its prices to `/pob2:pricing` and a
+  finished build's guide to `/pob2:writer`, and says a review of a PoB file isn't a pob2 skill yet (a16 §12, §15; C-58
+  amended). `SKILL.md` 126 lines.
+
+### WU-166: the overlay (game knowledge's part)
+- kind: build
+- status: built (four commits on `28f5b9d`: phase 1, two fix rounds and phase 2; merged at `b9dfd3f`)
+- depends-on: [WU-159; merged after WU-165]
+- touches (this piece's part): [`skills/game-knowledge/scripts/league-digest.mjs` (the sidecar, `--running`,
+  `--command`), `overlay.mjs` (new), `leagues.mjs` (`--league`), `data/league/rune-slots.json` (new), `bin/pob2-league-digest`
+  (new), `tests/fixtures/poe2db/overlay/` (new), `tests/unit/leagueDigest.test.ts`, `tests/unit/leagueOverlay.test.ts`
+  and `tests/static/leagueOverlay.test.ts` (new)]
+- acceptance: [AC-W159's game-knowledge part; the server's part is slice 01's note and C-66's]
+- milestone: M-30
+- summary: §2.3's user-side digest, as built (WL:7619–7635, :7649–7664, :7688–7699, :8113–8133): `type` from the name,
+  matching the pin's 287 socketables; the sidecar holds only the pin's missing entries, a multi-variant unique skipped
+  and listed; a fresh `statOrder` above the pin's largest; the `bin/` command `--running` only, into an existing
+  `league` folder outside the plugin root; a failed page recorded per UTC day. **AC-W162's list** (each forced by
+  D-523): `leagueDigest.test.ts` (AC-W70's `--from` file list gains the sidecar, both `--reflag` stdout pins the retired
+  line, "prints the entries added" three times, AC-W131's filter compare without the sidecar's lines, "reads nothing
+  when the newest running digest records its end" on an empty `league` folder), `amendment15Layout.test.ts`'s `bin/`
+  listing (C-57's fifth), `runSettingsExample.test.ts`'s allow list, `buildGuidePipeline.test.ts`'s Bash-list regex and
+  the wrapper text pin (`--command`).
+
+### WU-167: M-30's documents
+- kind: docs
+- status: built (2026-11-09)
+- depends-on: [WU-159…WU-166]
+- touches: [`docs/build-guide/spec/05-compile.md`, `06-pricing.md`, `07-writer.md` (new), this slice (the description's
+  commands, the checker's tag, the overlay's scripts), notes in `01-server-tools.md`, `02-plan-compiler.md` and
+  `03-pipeline.md`, `docs/spec/README.md`, `docs/build-guide/pob-gaps.md` (PG-116), `skills/writer/SKILL.md`:62 (a
+  wording fix), `tests/static/amendment16Docs.test.ts`]
+- acceptance: [AC-W161]
+- milestone: M-30
+- summary: The three pieces' slices, written current; slice 03's notes and shrink; this slice's M-30 update; the notes
+  in slices 01 and 02; the spine's M-30 rows as built, its status line "Folded through amendment 16" (a16 §21).
 
 ## 6. Real cases
 

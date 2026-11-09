@@ -97,6 +97,16 @@ bridge actions that the spine delegates to this slice.
 - **Slice choices.** Choices made within that delegation are marked **[slice]** and listed in §6. Those
   the coordinator accepted on 2026-10-07 are marked **[slice, accepted]**.
 
+> **Note (amendment 16, D-517, D-523; M-30).** Since M-30 the server has an 86th tool, `plan_from_build` (C-62, D-517;
+> group `core`, engine kind `none`): 86 tools are listed, 85 with poe.ninja off, 79 with trade and poe.ninja off (the
+> README's table regenerated; `scripts/fresh-clone-check.mjs` expects 86). It reads a player's PoB file, a
+> builds-folder build or an import code, into a plan in a run folder, without the engine and without writing the file,
+> in two calls: the first keeps the decoded file as `source.xml` and writes `plan.json` (plan schema 11, one read
+> stage) and `read.json`; the second takes the answers to its questions. Its contract as built (the reply, the
+> refusals, PoB's gaps in a player's file, `switch_off`, a departure from a16 Appendix A.7) is slice 05's
+> ([`05-compile.md`](05-compile.md), §2.1 and §2.3). `guide_run {new_run}`'s reply also names the server's league
+> folder (C-50, D-523; slice 02 §3.8's note). Detail: a16 §13, §19; the spine's C-1, C-50 and C-62.
+
 ### 2.1 Bridge changes (C-2, C-5; modified)
 
 > **Note (amendment 16, D-509…D-512; M-29).** Since M-29 the bridge corrects three PoB bugs with function patches in
@@ -123,6 +133,31 @@ bridge actions that the spine delegates to this slice.
 >   (`Modules/ModParser.lua`:2170–2186; WL:7277–7279).
 >
 > The rest is in a16 §5 to §8 and the spine's C-2 and C-60; this slice is folded at amendment 18 (D-506, D-525).
+
+> **Note (amendment 16, D-523; M-30).** Since M-30 the bridge adds a running league's new items to PoB's data, the
+> overlay (C-66; a16 §19), inside amendment 16's HG-12 grant for M-30 (a16 §28):
+> - **The sidecars:** the server lists every `<slug>.overlay.json` in `data/league/` and in its league folder,
+>   `<stateDir>/league/`, in Node (`src/services/leagueOverlay.ts`), since headless PoB can't list a folder; a
+>   committed sidecar replaces a user-side one of the same league. It passes their absolute paths to the engine in a
+>   child variable set from its deps.
+> - **Bootstrap step 5e** (`pob-api/API/Overlay.lua`, after the patches, in a `pcall`): a socketable goes into
+>   `data.itemMods.Runes[<name>][<slot key>]` and the items tab's rune list (a file-local list reached through
+>   `debug.getupvalue` on `GetValidRunesForItem`); a unique into `data.uniques[<type>]` and `main.uniqueDB.list`. An
+>   entry the pin already defines is skipped and logged. As built, it checks each entry's `type`, `rank` and
+>   `statOrder`, and sorts the rune list in a `pcall`, so a bad entry can't stop step 5e (WL:7654–7655, :7694).
+> - **The reload** (the coordinator's call, WL:7658–7660, :7722–7724): before every engine call but `lua_start` and
+>   `lua_stop` the server compares the sidecar set (names and modification times) with the one the engine loaded; on a
+>   change it restarts the engine and restores the loaded build and its snapshot into it, bumping `revision` and
+>   keeping it dirty, with a notice on that reply (`src/engine/session.ts`). An engine holding only its start build
+>   restarts fresh; one whose build changed with no snapshot isn't restarted. This replaces a16 §19's "before a load
+>   or a compile", since lookups are read-kind calls that would otherwise miss a sidecar written into a running
+>   engine.
+> - **The marks:** a stage holding an overlay item has the record's `overlay`, from the names the running engine
+>   loaded (WL:7726–7731, :8116–8119); the lookups mark an overlay entry "not in PoB's release" and give the overlay's
+>   limits once per reply with an overlay hit (§2.2's tool, WL:7655–7656, :7695).
+>
+> Detail: a16 §19 and Appendix A.11; the spine's C-66, and slice 04 ([`04-game-knowledge.md`](04-game-knowledge.md))
+> for the digest script's sidecar and `pob2-league-digest`.
 
 | Lua action | Module | Params (camelCase) | Reply | WU |
 |---|---|---|---|---|

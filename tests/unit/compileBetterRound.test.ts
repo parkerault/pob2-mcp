@@ -263,6 +263,28 @@ describe("AC-W154 (WU-162, D-521): the better round's design gate takes accept, 
     expect(detail.stdout).toContain('ask for changes, or stop.');
     expect(detail.stdout).not.toMatch(/verification gate/);
   });
+
+  it('its escalation offers accept, guidance or stop, with no verification gate, at the display and in the log', () => {
+    const dir = better();
+    cut(dir, 7);
+    editJson(dir, 'run-log.json', (l) => {
+      l.stages[6].outcome = 'escalated';
+    });
+    const shown = node(RUN_LOG, [dir, 'display', 'escalation']);
+    expect({ code: shown.code, stderr: shown.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(shown.stdout).toContain('Ask anything about this first. Then accept what failed, give guidance for one more try, or stop.');
+    expect(shown.stdout).not.toMatch(/verification gate/);
+    // A log written by hand with the choice fails the checker's run-log rule.
+    editJson(dir, 'run-log.json', (l) => {
+      l.escalations = [{ stage: 'D1-gate', concept: 'file', verdict: 'reports/gates/D1-gate-file-a1.json', choice: 'verification' }];
+      l.checkpoints = [{ checkpoint: 'escalation', visit: 1, answer: 'verification', answeredBy: 'user', questions: 0 }];
+      l.status = 'stopped';
+    });
+    expect(lines(check(dir).stderr, 'run-log')).toEqual([
+      expect.stringMatching(/checkpoints\[0\]: answers "verification"; a compile run has no verification gate: its escalation takes accept, retry:<guidance> or stop \(D-521\)/),
+      expect.stringMatching(/escalations\[0\]: chooses verification; a compile run has no verification gate: its escalation takes accept, retry or stop \(D-521\)/),
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------------

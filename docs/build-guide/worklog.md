@@ -7412,3 +7412,30 @@ What the coordinator folded (revision 2, approved):
   rc 0, `tests/static` 1,184 of 1,184.
 - **WU-158 (M-29's documents) merged** at `6aea374` (fast-forward, two commits on `9d6a8ea`). AC-W143:
   `tests/static/amendment16Docs.test.ts`, `specSpine.test.ts`; the rows and status line for the gate's verifier.
+- **M-29's milestone gate** (fresh verifier) **passed on `5e0767d`**, the tree clean before and after:
+  - `mise run test` rc 0 (256 suites, 4,418 tests, none skipped; the timing step 2 suites, 4 tests), `pnpm build` rc 0.
+  - `scripts/fresh-clone-check.sh` rc 0: 85 tools, 84 with poe.ninja off; `lua_load_build` grenadator.xml Life 2,977;
+    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (5e0767d…)".
+  - **The load check on the merged tree:** `claude plugin validate` rc 0, only the expected warnings (no `version`
+    twice, the root `CLAUDE.md`, the `ICON_MISSING` advisory); `plugin details pob2` rc 0: Skills (2) `build-guide`,
+    `game-knowledge`; Agents (4); Hooks (1) `SessionStart`; about 1,362 always-on tokens.
+  - **AC-W136 on the merged tree:** `node scripts/pin-upgrade.mjs v0.23.1` rc 0, all 9 steps, "Judgment: none.",
+    nothing retired; stage 8.7 s, probe 5.3 s (150 symbols, 0 changed), fingerprints 4 patches and 6 fingerprints, 0
+    changed, gate 591.5 s (258 suites, 4,422 tests, 0 failed), rule index 2.6 s, reflag 0.1 s (no digest written);
+    608.3 s in all; `git status` empty before and after; the staged tree deleted.
+  - Each of AC-W130 to AC-W139 and AC-W141 to AC-W144 holds, its tests named as above (AC-W130 also by hand:
+    `leagues.mjs` at 2026-12-11 19:59 UTC lists Forbidden Rites then Runes of Aldur, at 20:00 none; AC-W144 at 317
+    lines). AC-W140 not run (WU-157), open by design.
+  - **AC-W162 over the milestone:** 61 test files changed (35 existing); every changed assertion is on its unit's list
+    above with its decision; none flagged (two helper changes alter no assertion: `luaLineClient.ts`'s optional
+    `apiDir`, `newestDigest.ts` replaced by `runningDigests.ts`). The 13 pipeline fixtures under `cf16e07`'s checker and
+    the head's: identical (12 ok, `run-rival` rc 1 under both).
+  - **The fold's middle step:** the status line exact; M-29's rows built, WU-157 and AC-W140 not run, M-30's rows
+    approved and unbuilt. Waivers `[]`; `package.json`, `pnpm-lock.yaml`, `pob-pin.json`, `src/server/` and the README
+    unchanged since `34426a7`; `vendor/` identical to the main checkout's at `7d6f530`.
+- **M-29 built; WU-157 open.** The M-30 handoff section gains "Found while building M-29" (owned items' quality and
+  `NormaliseQuality` for WU-161, the granted skill's copy, PG-115, the patches and the switched mark, `export_build`'s
+  byte copy, the `since` commits at signing, the test clock, the temp layouts). **Cost:** about 5.85M subagent tokens
+  (doers, verifiers and reviewers: WU-151 0.99M, WU-152 0.67M, WU-153 0.66M, WU-154 0.85M, WU-155 1.06M, WU-156 0.61M,
+  WU-158 0.75M; the milestone gate 0.25M). Next, with the user: HG-8 (sign-rebase onto `main`, push), then PG-109's
+  upstream PR draft (choice C), WU-157 when the user starts a `--plugin-dir` session, and M-30.

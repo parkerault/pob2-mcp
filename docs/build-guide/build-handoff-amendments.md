@@ -152,6 +152,32 @@ M-21's to M-29's formats stay in force where M-30 doesn't change them.
   from a request in a player's words, asks its steps of `pob2:` types only, and checks each file unchanged against its
   copy by sha1. Choice G's grant, for these runs only (HG-6): their own folders in the guides folder, and the better
   round's draft and final PoB files in the builds folder under their own names, never over an existing file.
+- **Found while building M-29** (the work-log's M-29 section has the evidence; each is binding for the unit named):
+  - **Owned items keep their quality (WU-161).** The compile raises every item below its base's quality to 20 when it
+    adds it (`BuildOps.add_item_text`, `pob-api/API/BuildOps.lua`:1651, `item:NormaliseQuality()`;
+    `Classes/Item.lua`:1367–1375), unless the item has a `Unique ID:` line or is corrupted, mirrored or a Charm. The
+    amendment doesn't mention it. A read plan's owned slots skip it (a flag on `add_item_text`), so §13's "owned items
+    keep their quality from the text" and §20's "the skill measured at its sceptre's quality 10" hold; test it on an
+    owned item with no `Unique ID:` line.
+  - **The granted skill's copy (WU-160, WU-161).** From schema 11 the compile writes the granting wand's, staff's or
+    sceptre's quality on the plan's copy of the skill (`compile_check`'s `grantedQualities`, `withGrantedQuality` in
+    `src/plan/compiler.ts`; the coordinator's call in M-29, D-512's as-built note): the reader writes a kept copy's gem
+    at quality 0 (§8, §13) and the compile gives it the item's. On a load (`analyze_build`), a copy keeps its file's
+    quality.
+  - **PG-115 doesn't hold** (WU-154's engine check): item-granted skills get skill level and quality modifiers, so the
+    designers' and the guide's quality lines (WU-164) needn't mention it.
+  - **The bridge patches** are in `pob-api/API/Patches.lua` (PG-106, PG-109, PG-114), read by
+    `scripts/patch-fingerprints.mjs`; each retirement test's "bug still present" case returns early when its setup
+    failed. The switched mark WU-161 sets is `Patches.SWITCHED = 'pob2Switched'` (a field PoB doesn't save; the
+    compile sets it at every compile).
+  - **`export_build` without notes** stays a byte copy (D-42); only the files the engine composes drop `<ModRange>`.
+  - **Words loaded (WU-162, WU-163).** The baseline's `since` entries name a commit; HG-8's sign-rebase rewrites the
+    lane commits, so at signing the coordinator remaps each `since` commit as it remaps the work-log's citations, or a
+    fresh clone's test fails.
+  - **The test clock** for anything that reads the running leagues is `BUILD_GUIDE_TEST_NOW` (`tests/helpers/
+    runningDigests.ts`'s `TEST_NOW`); a test that spawns `run-log` without it can flake at a league boundary.
+  - **Temp layouts** that copy build-guide's scripts also copy `skills/game-knowledge/scripts/` (`run-log.mjs` imports
+    `leagues.mjs`).
 - **Lane bootstrap, network, commits, notification:** as M-29's, with `build-guide/m30`.
 
 ## M-28: amendment 15, the plugin layout, the shared rules and game knowledge (built)

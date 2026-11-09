@@ -7779,3 +7779,134 @@ What the coordinator folded (revision 2, approved):
 - **WU-161 (the compile on a read plan) merged** at `122a89a` (fast-forward, two commits on `9baf7b2`). AC-W151 in
   `tests/integration/compileReadPlan.test.ts` and `tests/unit/readPlanCompile.test.ts`, its probe recorded above;
   AC-W152 in the same files.
+- **WU-162 and WU-163 dispatched** in parallel off `b437f8e` (lanes `bg-162`, `bg-163`), each owning its skill folder.
+  WU-162 carries the reviews' items: `checkFlow4`'s D1-loop order for a compile run with a better round, F1's "no file
+  name equals the source's", the design display's piece-run invitation and narrower answers, the `interview` rule for
+  a better round's notes, `measure.md` passing `switch_off`. **The coordinator's call on the callouts:** since
+  `unproduced-state` covers only the inputs PoB gates, `measure.md` has the measure also judge the ungated ones
+  (charges, enemy conditions) by what the build produces, beside (b) and (c), none changed. WU-163 in two phases:
+  phase 1 all but the coordinator's `price` row and compile's placement line, added after WU-162 merges.
+- **WU-162's doer** finished at `084851a` on `bg/wu-162` (three commits on `b437f8e`; 0.66M subagent tokens). Its own
+  gate rc 0 (264 suites, 4,558 tests; the timing step 2 suites, 4 tests), build rc 0; `skills/compile/SKILL.md` 120
+  lines, build-guide's 317, game knowledge's 126; words loaded max +2.3% (D2), the D1 stages +0.7% to +2.0%; the new
+  `since.measure` entry names the lane commit `6b4020b` (remapped at signing). AC-W153 in
+  `tests/static/compileSkill.test.ts`; AC-W154 in `tests/unit/compileBetterRound.test.ts` (16 tests; skipping
+  `checkFlow4` again fails 8) and the static better-scope tests; the fixture `tests/fixtures/pieces/compile-better-run`.
+  The 13 pipeline and 4 piece fixtures' checker output byte-identical at base and head. **AC-W162's list, WU-162:**
+  `pieceRuns.test.ts`'s `interview` tag `['compile', 'research']` and `better: ['compile']` (D-521);
+  `amendment15GameKnowledge.test.ts`'s AC-W124 description test (the routing sentence for the three commands, D-519,
+  C-58 amended); `buildGuideD1Tree.test.ts`'s H2 list (D-521). **Deviations reported** (for the review): a target the
+  budget can't reach is the survival floor only; the `cost` cover on `better` only; a stage below the endgame takes
+  `m`; the user's named rung written by D1-build; no scaling question and no `verification` choice in a compile run;
+  a resume reruns the stopped step; the source-name check ignores first_free's date and the draft suffix; a measure
+  with `compile: "none"` writes only the file card; the place step names pricing's placement without a path (WU-163).
+  **For the fix round:** `mcp__pob2__list_builds` joins the run settings example's allow list (the name match would
+  prompt). Gate verifier and reviewer dispatched in parallel.
+- **WU-163's doer, phase 1,** finished at `dfff01c` on `bg/wu-163` (two commits on `b437f8e`: `a36b226` the feature,
+  `dfff01c` the baseline entry; 0.63M subagent tokens). Its own gate rc 0 (265 suites, 4,580 tests; the timing step 2
+  suites, 4 tests), build rc 0; no trade or poe.ninja request (HTTP through `fixtureFetch` only).
+  `skills/pricing/SKILL.md` 121 lines (description 1,184 characters); build-guide's 317; words loaded max +1.9%, the
+  new `since.price` entry (24,623 words) naming `a36b226` (remapped at signing). AC-W155 in
+  `tests/static/pricingPiece.test.ts` (19), `tests/unit/pricingPiece.test.ts` (30: `placement` `m`/`b`/`n` and choice
+  B's dear unique on `n`; the importer fixture at level 50 "in the campaign", choice A; `owned-spec`'s 9 and
+  `upgrades.json`'s 8 planted faults) and `tests/integration/pricingRun.test.ts` (4 engine tests on the new hand-built
+  `tests/fixtures/builds/pricing-character.xml`). **AC-W162's list, WU-163** (each forced by D-520's move of
+  `pricing.md`, values unchanged): `buildGuideAmendment11Design.test.ts`:446, `buildGuidePipeline.test.ts`:2894
+  (`SHARED_REF`), :2902, :2906, :2908, :4124, `amendment15Paths.test.ts`:211, `amendment15Layout.test.ts`'s
+  `withoutPaths`, `wordsLoaded.test.ts`'s `OLD_PRICING`; WU-159's `pieces/pricing-run` fixture now placed on `b` with
+  `query.slot` and a spec. **Deviations reported** (for the review): rates as `rate-<currency>` entries in `prices[]`;
+  `query.slot`/`query.socket`, ids `f-<slot>`; `prices.md`'s `Place:` line with a third basis "by its level"; a third
+  rule `upgrades`; gems not priced; a unique at `get_item_price`'s median; a thin rare retried once without its 4th
+  must-have (at most 2 searches); the price step's header gaining `league`, `budget`, `rung` (in `price.md` only); at a
+  stop with no rung, `price` once more with no trade call; `upgrades.json` only with a budget; within 0.1 divine of 5
+  either rung. Gate verifier and reviewer dispatched in parallel.
+- **WU-162's gate verifier** (fresh context) **failed `084851a`** on one defect: a missed target's cost never reaches
+  the user. D1-gate's `better` section (`D1-gate.md`:327) and §17 show a missed target at the design gate with what
+  reaching it would cost, but a floor failing on costed findings goes straight to the design gate, and neither display
+  (`run-log.mjs`:2903–2943 `designDisplay14`, the `--detail` one at :2972–3022) nor `skills/compile/SKILL.md`:103–110
+  shows it (rendered on the fixture with a costed `missing-cold-resist`: the default display shows neither, `--detail`
+  only "an endgame rung misses the survival floor"). Otherwise: gate from clean rc 0 (264 suites, 4,558 tests; the
+  timing step 2 suites, 4 tests), build rc 0; four mutations each failing their test (`costShown`, `betterRung`, the
+  source-name check, the better branch of `checkFlow4`); the four D1 sections against §17's keep and change lists; the
+  `since.measure` entry equal to `--at 6b4020b --json` (25,947 words, 11 files; its list names `pricing.md` at the old
+  path, which prints a difference once WU-163 moves it, expected under D-513); AC-W162's three assertions forced; the
+  17 fixtures byte-identical; nothing outside §24's row; all deviations acceptable. Notes: an escalation accept's
+  draft has no home in a compile run (no `builds[].draftFile`, so F1's `draftFile` is missing); the fixture's
+  `trades.json` keeps run-a14's `scaling` trade; D1-build passes the spec loop to D1-finish only in a parenthesis.
+- **WU-162's review** (fresh, read-only; the scripts run on scratch copies of the fixture): the runner's tool arguments
+  match `toolSchemas.ts` (`plan_from_build`'s two calls with `buffs_on`, `buffs_swap`, `switch_off`; `guide_run`;
+  `compile_plan` with `measure_as` and `draft_name`); every path resolves; `checkFlow4`'s D1-loop order holds through a
+  pricing stop and resume, both revises, an F1 fault and an escalation's accept or retry; both descriptions route.
+  Findings: (1, high) D1-gate's `better` section (:74, :331) and F1 (:48) fail V2 on any finding, but on a read stage
+  every V2 finding is a `from-file` callout with V2 passing (`v2.ts`:187, :283–284), so a file with a callout fails
+  every gate; the fixture's plan has no `config.file`, which hid it; (2, medium) the verifier's finding, wider: a round
+  on `m` prints two lines, and the round's changes sit under "Over budget"; (3, medium) an escalation answered stop
+  needs status `escalated` though `SKILL.md` says `stopped`; (4, medium) a piece run cut before its first D1 gate is
+  checked as an old build (`check-run.mjs`:1679–1681), false `trades` and `budget` violations; (5, medium) the design
+  gate's interview offers a question step `Q` a compile run refuses to log; (6–8, low) §4's routing exceptions, a
+  callout the user wants fixed, the rung's `ascendancyPoints`/`variantBasis`, where `cost` comes from, one routing
+  phrase. Deviations all accepted. **The coordinator's calls:** an escalation answered stop ends a compile run
+  `stopped` (no verification gate to return to), the checker accepting it; a compile run's design gate has no `Q`, the
+  runner answering from the display, verdict, `trades.json` and lookups; a callout the user wants fixed is changed in
+  PoB and the file read again (§17 keeps the configuration as set), the runner never editing the plan; an accepted
+  escalation draft gets a logged home in a compile run (a departure from A.6, stated). **Fix round** sent to the doer:
+  all of these, the fixture rebuilt as a read plan with `config.file` and a callout, and `mcp__pob2__list_builds` in
+  the run settings example's allow list.
+- **WU-163's review** (fresh, read-only), phase 1: `placement` (`m` at most 5 divines in all; else `b` when no rare's,
+  rare jewel's or unique's cost is over 5 at day 7, choice B; else `n`; under level 65 never a rung), `owned-spec`
+  (must-haves from explicit lines only, fractured/crafted/desecrated markers stripped, `min` at most the roll at
+  `{range:}`, an `ok` depth check `corrupted: false`), both only in pricing runs; `pricing.md` a byte-identical rename,
+  every live path updated; the tool arguments; the trade rules (alone, one call at a time, the notice first, a stop
+  ending the run). Findings: (1, high) `price.md`:30–31 always compiles with `measure_as`, which `compile_plan` refuses
+  once the stage is placed (`compiler.ts`:1393–1397), so every resume after a stop fails; (2, medium) the notice counts
+  one search per rare and rare jewel, but each may make two (the thin retry) and nothing caps the step at the announced
+  count, so a run announced at 30 or fewer can make more without the player's yes (`CLAUDE.md`'s 30); (3, medium) gems
+  left unpriced against §16's list ("runes, soul cores, uncut gems and currency from poe.ninja's exchange"); (4–7, low)
+  where a thin retry's dropped must-have goes (`leftOut`), a stop winning over `place: ask`, no step when the request
+  names no build, the budget and league lost on resume; a nit. **The coordinator's calls:** gems priced as §16 says
+  (each gem as its uncut gem from the exchange, a lineage support by name, counted by the place); the notice states
+  the search bound (two per rare and rare jewel, one per unique, and whatever else the step searches), asks the player
+  when it is over 30, and the step never makes more than it announced. Fix round after the verifier.
+- **WU-163's gate verifier** (fresh context) **passed `dfff01c`** (phase 1): gate from clean rc 0 (265 suites, 4,580
+  tests; the timing step 2 suites, 4 tests), build rc 0; `pricingRun`'s 4 engine tests ran (72 s), all HTTP through
+  `fixtureFetch`, which throws on an unmatched URL; the guards and seven checker mutations each caught (choice B, choice
+  A's level, the `m` threshold, a must-have's minimum, the `leftOut` reason, the `explicit.` id, `upgrades.json`'s
+  league); `pricing.md` byte-identical (a pure rename); `pricing-character.xml` hand-built, no account or character name;
+  the `since.price` entry equal to `--at a36b226 --json`; the 13 pipeline fixtures identical; AC-W162's list confirmed
+  and widened (`buildGuidePipeline.test.ts`:2198, :4128 through `referencePath`, `pricingExchangeRule.test.ts`:12,
+  `skillPaths.ts`'s `referencePath`, three comment-only path edits), all forced by D-520's move; the `pricing-run`
+  fixture change forced (the head's checker fails the old one on `placement`). Findings: a test at
+  `pricingPiece.test.ts`:374 plants two faults with one regex, so either check alone can be switched off; an owned
+  rare's `ok` entry with no `spec` passes (`check-run.mjs`:7728). It judged "gems not priced" acceptable (§16's list
+  read as the exchange's categories); **the coordinator holds the ruling above:** §16's replace cost lists uncut gems,
+  and the pipeline's own `pricing.md` prices a lineage support by name and a +1 corrupted gem as the gem (:83–85,
+  :103), so gems are priced and counted by the place. **Fix round** sent to the doer: the review's 1 to 7 with the two
+  rulings, and the verifier's findings.
+- **WU-162's fix round** at `91a39df` (one commit on `084851a`): D1-gate and F1 say a `from-file` V2 finding fails
+  nothing; **the better-round fixture rebuilt on the real path** (`plan_from_build` on `imported-character.xml`,
+  `main_group` 4, `buffs_on` [5, 10], `switch_off` {6: [5, 10], 7: [5, 10]}; the engine's measure-only compile and F1's
+  final compile; `config.file` with 10 `from-file` callouts, one `unproduced-state`; the leftover `scaling` trade gone),
+  which exposed two checker gaps, fixed for `config.file` stages only (the floor's reference hits by D-254's formula,
+  none being written; the player's own reward picks kept); the displays listing costed findings under "Not reached
+  within your budget", an `m` round in full, "Changes" and "Over budget"; an escalation's stop ending the run
+  `stopped`; a piece run with no D1 gate held to the log's revision (`pieceHeld`); no `Q` in a compile run; an accepted
+  escalation's `draftFile` logged (a departure from A.6, stated); the §4 exceptions, F1's `accepted`, callout fixes
+  through PoB; D1-build's rung with `ascendancyPoints` and `variantBasis`; `list_builds` in the run settings example
+  (`runSettingsExample.test.ts`, AC-W162, D-519). "What's wrong with my build" not quoted (§15 and §17 don't count it
+  as compile's). The fixture's round is synthetic and weakens the character (Twister 20 → 5), since the importer
+  fixture can't meet its own attribute requirements and V1 must pass. Doer's gate rc 0 (264 suites, 4,567 tests);
+  `SKILL.md` 128 lines; the 16 fixtures byte-identical. Re-check sent to the gate verifier.
+- **WU-162's re-check** (the gate verifier) passed `91a39df`: build rc 0; 7 suites, 515 tests; words loaded max +2.4%,
+  `measure` unchanged; each fix's test fails with it removed (the "Not reached within your budget" lines in both
+  displays, the full `m` round, "Changes", the escalation's stop, `pieceHeld`, `draftFile` in the display and at
+  write time). **The fixture checked real:** a probe server's `plan_from_build` on `imported-character.xml` with the
+  fixture's answers gives its `read.json` exactly, `source.xml` byte for byte; the plan differs from the reader's only
+  by the round's edits; recompiled measure-only, all 660 outputs, V1, V2's 10 callouts, `configWritten`, `measures`,
+  `spirit`, `owned` and both sha1s equal the fixture's record; the weakened round still tests the flow, the floor, the
+  callouts and the display. The two extra checker changes touch only `config.file` stages (the floor matches the
+  compiler's `fileStageHits`), and the 16 fixtures are byte-identical at `b437f8e` and the head. Notes: the checker's
+  own `draftFile` rule (`check-run.mjs`:3104) is untested (the write-time rule is); three price entries in the
+  fixture's plan carry the wrong "Item Level" label (cosmetic, the prices offline).
+- **WU-162 (`/pob2:compile`) merged** at `91a39df` (fast-forward, four commits on `b437f8e`). AC-W153 in
+  `tests/static/compileSkill.test.ts`, AC-W154 in `tests/unit/compileBetterRound.test.ts` and the static better-scope
+  tests.

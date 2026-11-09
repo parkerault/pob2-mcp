@@ -184,7 +184,9 @@ function layout(committed: Record<string, string>) {
   fs.mkdirSync(data, { recursive: true });
   fs.copyFileSync(path.join(REPO, 'data', 'league', 'rune-slots.json'), path.join(data, 'rune-slots.json'));
   for (const [name, line] of Object.entries(committed)) fs.writeFileSync(path.join(data, name), digestText(line));
+  // The league folder exists, as guide_run {new_run} makes it (D-523: --running writes only an existing one).
   const league = path.join(newDir('state'), 'league');
+  fs.mkdirSync(league);
   const log = path.join(newDir('log'), 'requests.jsonl');
   fs.writeFileSync(log, '');
   return { root, data, league, log, script: path.join(root, 'skills', 'game-knowledge', 'scripts', 'league-digest.mjs') };
@@ -217,7 +219,7 @@ describe('AC-W159: pob2-league-digest --running --out <league folder> (D-523)', 
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     expect(r.requests).toEqual([]);
     expect(r.stdout).toContain('the newest records its end: poe2db isn\'t read');
-    expect(fs.existsSync(l.league)).toBe(false);
+    expect(fs.readdirSync(l.league)).toEqual([]);
   });
 
   it('with no running digest, reads the cards and fetches each running league without one, serially and 3 s apart with no cookie, writing only its league folder', () => {
@@ -274,10 +276,107 @@ describe('AC-W159: pob2-league-digest --running --out <league folder> (D-523)', 
     expect(run(l.script, ['--running', 'Embers_of_Tarn', '--out', l.league], { preload: NO_NETWORK }).code).toBe(2);
   });
 
+  it('records a page that failed and asks for it again only the next UTC day (nothing fetched twice)', () => {
+    // A committed 0.9 digest with no end, so each run reads the cards; 0.9.1 has none, and its page fails.
+    const l = layout({ 'embers-of-tarn.md': EMBERS_LINE.replace('until 2026-12-04 20:00 UTC', 'until no end announced') });
+    const stubPages = pages();
+    fs.rmSync(path.join(stubPages, 'Saltmarsh_Rites_items.html'));
+    const go = (now: string, at = stubPages) => {
+      const r = run(l.script, ['--running', '--out', l.league, '--pin-names', pinNames()], { preload: STUB, env: { STUB_LOG: l.log, STUB_PAGES: at, BUILD_GUIDE_TEST_NOW: now } });
+      const urls = fs.readFileSync(l.log, 'utf8').split('\n').filter(Boolean).map((x) => JSON.parse(x) as Json).filter((e) => e.url).map((e) => e.url as string);
+      fs.writeFileSync(l.log, '');
+      return { ...r, urls };
+    };
+    const first = go(FIXTURE_NOW);
+    expect(first.urls).toEqual(['https://poe2db.tw/us/', 'https://poe2db.tw/us/Saltmarsh_Rites_items']);
+    const marker = path.join(l.league, 'pages', 'Saltmarsh_Rites_items.html.failed.json');
+    expect(read(marker)).toEqual({ day: '2026-10-10', url: 'https://poe2db.tw/us/Saltmarsh_Rites_items', error: 'https://poe2db.tw/us/Saltmarsh_Rites_items: HTTP 404' });
+    // The homepage, saved that day, is read again; the failed page isn't asked for again that UTC day.
+    const home = path.join(l.league, 'pages', 'home.html');
+    const at = new Date(Date.parse(FIXTURE_NOW));
+    fs.utimesSync(home, at, at);
+    const again = go('2026-10-10T20:00Z');
+    expect(again.urls).toEqual([]);
+    expect(again.stdout).toContain('Marsh Festival (0.9.1): https://poe2db.tw/us/Saltmarsh_Rites_items failed earlier this UTC day (https://poe2db.tw/us/Saltmarsh_Rites_items: HTTP 404)');
+    // The next UTC day it is asked for again; found, its marker goes.
+    const next = go('2026-10-11T08:00Z', pages());
+    expect(next.urls).toEqual(['https://poe2db.tw/us/', 'https://poe2db.tw/us/Saltmarsh_Rites_items']);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.existsSync(path.join(l.league, 'saltmarsh-rites.md'))).toBe(true);
+  });
+
+  it('a homepage that failed is refused, recorded, and not asked for again that UTC day', () => {
+    const l = layout({});
+    const empty = newDir('no-pages');
+    const go = (now: string) => {
+      const r = run(l.script, ['--running', '--out', l.league, '--pin-names', pinNames()], { preload: STUB, env: { STUB_LOG: l.log, STUB_PAGES: empty, BUILD_GUIDE_TEST_NOW: now } });
+      const urls = fs.readFileSync(l.log, 'utf8').split('\n').filter(Boolean).map((x) => JSON.parse(x) as Json).filter((e) => e.url).length;
+      fs.writeFileSync(l.log, '');
+      return { ...r, urls };
+    };
+    const first = go(FIXTURE_NOW);
+    expect({ code: first.code, urls: first.urls }).toEqual({ code: 1, urls: 1 });
+    expect(first.stderr).toContain('league-digest: refused: https://poe2db.tw/us/: HTTP 404');
+    const again = go('2026-10-10T23:00Z');
+    expect({ code: again.code, urls: again.urls }).toEqual({ code: 1, urls: 0 });
+    expect(again.stderr).toContain('failed earlier this UTC day');
+    expect(go('2026-10-11T00:30Z').urls).toBe(1);
+  });
+
   it('offline nothing runs it: the runner says the new league\'s items aren\'t in the committed data (start.md)', () => {
     const start = fs.readFileSync(path.join(REPO, 'skills', 'build-guide', 'references', 'start.md'), 'utf8').replace(/\s+/g, ' ');
     expect(start).toContain('online and not under `--test`, run `pob2-league-digest --running --out <leagueFolder>`');
     expect(start).toContain("Offline, nothing is fetched: say once that a new league's items aren't in the committed data.");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// bin/pob2-league-digest: the runner's command runs --running alone, into a league folder outside the plugin root
+
+describe('AC-W159: bin/pob2-league-digest runs --running --out <league folder> only (D-523)', () => {
+  const BIN = path.join(REPO, 'bin', 'pob2-league-digest');
+  const bin = (args: string[], env: Record<string, string> = {}) => {
+    const r = spawnSync(BIN, args, { cwd: TMP, env: { PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, LANG: 'C', NODE_OPTIONS: `--import ${pathToFileURL(NO_NETWORK).href}`, ...env }, encoding: 'utf8', timeout: 60000 });
+    return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+  };
+  const league = path.join(newDir('state'), 'league');
+  fs.mkdirSync(league);
+
+  it('refuses every other mode with a usage error: a slug, --reflag, --from, --save, --pin-names, and --running without its folder', () => {
+    const d = newDir('d');
+    for (const args of [['Embers_of_Tarn'], ['--reflag', 'runes-of-aldur'], ['Embers_of_Tarn', '--from', d], ['Embers_of_Tarn', '--save', d], ['--running', '--out', league, '--pin-names', path.join(LEAGUE_FIXTURES, 'pin-names.json')], ['--running'], ['--out', league, '--running'], []]) {
+      const r = bin(args);
+      expect({ args, code: r.code }).toEqual({ args, code: 2 });
+      expect(r.stderr).toContain('pob2-league-digest runs --running --out <league folder> only');
+    }
+  });
+
+  it("refuses an --out that doesn't exist, isn't a folder, isn't named league, or lies inside the plugin root (the committed data/league/)", () => {
+    const file = path.join(newDir('f'), 'league');
+    fs.writeFileSync(file, '');
+    const other = newDir('not-league');
+    const link = path.join(newDir('link'), 'league');
+    fs.symlinkSync(path.join(REPO, 'data', 'league'), link);
+    const cases: Array<[string, string]> = [
+      [path.join(newDir('gone'), 'league'), "doesn't exist"],
+      [file, "isn't a folder"],
+      [other, "isn't a folder named league"],
+      [path.join(REPO, 'data', 'league'), 'is inside the plugin root'],
+      [link, 'is inside the plugin root'],
+    ];
+    for (const [out, why] of cases) {
+      const r = bin(['--running', '--out', out]);
+      expect({ out, code: r.code, why: r.stderr.includes(why) }).toEqual({ out, code: 2, why: true });
+    }
+    // The committed digests are as they were.
+    expect(fs.readFileSync(path.join(REPO, 'data', 'league', 'runes-of-aldur.md'), 'utf8').split('\n')[2]).toContain('League: from 2026-05-29 20:00 UTC until 2026-12-11 20:00 UTC.');
+  });
+
+  it('runs --running into the league folder: with the committed digests running and the newest dated, nothing is read', () => {
+    const r = bin(['--running', '--out', league], { BUILD_GUIDE_TEST_NOW: TEST_NOW });
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(r.stdout).toContain("the newest records its end: poe2db isn't read");
+    expect(fs.readdirSync(league)).toEqual([]);
   });
 });
 
@@ -405,5 +504,22 @@ describe("AC-W159: the marks' wording in the audit and the design and final disp
     const plain = path.join(newDir('run'), 'run-a14');
     fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-a14'), plain, { recursive: true });
     expect(run(RUN_LOG, [plain, 'display', 'design', '--build', 'r1-a-2']).stdout).not.toContain("Not in PoB's release");
+  });
+
+  it("the verification display marks a card whose skeleton holds an overlay item, and none without", () => {
+    const dir = copyRun();
+    const rec = path.join(dir, 'concepts', 'r1-a-1', 'compile-record.json');
+    const record = read(rec);
+    const stage = Object.keys(record.stages)[0];
+    record.stages[stage].overlay = ['Perfect Tidal Rune'];
+    fs.writeFileSync(rec, `${JSON.stringify(record, null, 2)}\n`);
+    const out = run(RUN_LOG, [dir, 'display', 'verification']);
+    expect({ code: out.code, stderr: out.stderr }).toEqual({ code: 0, stderr: '' });
+    const block = out.stdout.slice(out.stdout.indexOf("Not in PoB's release:"));
+    expect(out.stdout).toContain("Not in PoB's release:\n");
+    expect(block).toMatch(/^Not in PoB's release:\n- .+: Perfect Tidal Rune: measured with Perfect Tidal Rune's lines from poe2db, not in PoB's release\.\n- The overlay's limits: /);
+    const plain = path.join(newDir('run'), 'run-a14');
+    fs.cpSync(path.join(REPO, 'tests', 'fixtures', 'pipeline', 'run-a14'), plain, { recursive: true });
+    expect(run(RUN_LOG, [plain, 'display', 'verification']).stdout).not.toContain("Not in PoB's release");
   });
 });

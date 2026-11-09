@@ -5,8 +5,8 @@
 //
 // **A socketable** the pin doesn't define: `{name, type, rank: [<level>], socketBound, slots: [{label, keys, lines,
 // statOrder}]}`. `type` is PoB's augment type: poe2db tags every socketable `SoulCore` (its item class), so the name's
-// kind word decides it: a "Soul Core" is a `SoulCore`, an "Idol" an `Idol`, any other a `Rune`. `rank` is its level
-// requirement, as PoB's `rank = {n}`; `socketBound` its "Socket-bound" line. Each slot label poe2db prints before a
+// kind word decides it (a "Soul Core" is a `SoulCore`, an "Idol" an `Idol`, the rest as `socketableType` says). `rank` is
+// its level requirement, as PoB's `rank = {n}`; `socketBound` its "Socket-bound" line. Each slot label poe2db prints before a
 // line ("Helmets:", "Martial Weapon:") maps to PoB's slot keys through `data/league/rune-slots.json` (built from the
 // pinned corpus: the in-pin socketables of `runes-of-aldur.md` against `Data/ModRunes.lua`, and checked against it by a
 // test). A bonded line keeps PoB's `Bonded: ` prefix. A line poe2db joins with ", " is split where PoB keeps its stats
@@ -42,10 +42,17 @@ export function readSlots(file = SLOTS_FILE) {
   return new Map(Object.entries(json.labels));
 }
 
-/** PoB's augment type from a socketable's name (poe2db tags them all `SoulCore`). */
+/**
+ * PoB's augment type from a socketable's name (poe2db tags them all `SoulCore`), by the name's kind word, checked against
+ * the type of every socketable `Data/ModRunes.lua` defines (tests/static/leagueOverlay.test.ts): a "Soul Core" or a
+ * "Thesis" is a `SoulCore`, an "Idol" or a "Carved …" an `Idol`, a "… Gaze" an `AbyssalEye`, a "… Shard" a
+ * `CongealedMist`, any other a `Rune`.
+ */
 export function socketableType(name) {
-  if (/\bSoul Core\b/i.test(name)) return 'SoulCore';
-  if (/\bIdol\b/i.test(name)) return 'Idol';
+  if (/\bSoul Core\b|\bThesis\b/i.test(name)) return 'SoulCore';
+  if (/\bIdol\b|^Carved\b/i.test(name)) return 'Idol';
+  if (/\bGaze$/i.test(name)) return 'AbyssalEye';
+  if (/\bShard$/i.test(name)) return 'CongealedMist';
   return 'Rune';
 }
 

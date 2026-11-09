@@ -76,7 +76,8 @@
 //
 // **`--running --out <league folder>`** (D-523), the `bin/` command `pob2-league-digest` a runner runs at a run's start,
 // online and not under `--test`: the digests of the running leagues that have none, made on the user's side in the
-// server's league folder (`running`, below). It reads the test clock `BUILD_GUIDE_TEST_NOW` as leagues.mjs's `--at`.
+// server's league folder (`running`, below). It reads the test clock `BUILD_GUIDE_TEST_NOW` as leagues.mjs's `--at`. The
+// command runs this mode alone (its first argument `--command`): every other mode is a maintainer's, run with node.
 //
 // Exit 0: written. Exit 1: refused (stderr), the digest unwritten (pages fetched so far stay saved). Exit 2: usage error.
 
@@ -938,11 +939,13 @@ export function sectionSlugFor(html, card) {
  * runner's command (`pob2-league-digest`). It reads the running digests of `data/league/` and the league folder (a
  * committed digest winning, D-507). When none is running, or the newest records no end (a digest made before its end was
  * announced keeps counting after the next league starts), it reads poe2db's homepage cards, at most once a UTC day: the
- * homepage is kept as `<league folder>/pages/home.html`, and a page saved the same UTC day is read instead of fetched.
+ * homepage is kept as `<league folder>/pages/home.html`, and a page saved the same UTC day is read instead of fetched;
+ * a page that failed (`<page>.failed.json` beside it, with its UTC day) isn't asked for again before the next UTC day.
  * For each running league whose card no digest of either folder matches, it writes the digest and its sidecar into the
  * league folder, at the fetch rules above (one fetcher for the whole run: serial, 3 s apart, no cookie, one retry after
  * 60 s, nothing fetched twice); with none to write it still rewrites the league folder's digests' `League:` sentences
- * from the cards. It writes only the league folder (its pages in `pages/`). It prints each running league still without
+ * from the cards. It writes only the league folder (its pages in `pages/`), which must exist, be named `league` and lie
+ * outside the plugin root (`checkLeagueFolder`). It prints each running league still without
  * a digest, which the runner names once.
  */
 async function running(opts) {
@@ -966,8 +969,24 @@ async function running(opts) {
       st = null;
     }
     if (st && utcDay(st.mtimeMs) === utcDay(now)) return { html: fs.readFileSync(p, 'utf8'), date: localDate(st.mtime), url };
-    const got = await get(url);
+    // A page that failed this UTC day (a 404, or a 429 or 5xx after its retry) isn't asked for again before the next.
+    const failed = `${p}.failed.json`;
+    let before = null;
+    try {
+      before = JSON.parse(fs.readFileSync(failed, 'utf8'));
+    } catch {
+      before = null;
+    }
+    if (before && before.day === utcDay(now)) throw new Refusal(`${url} failed earlier this UTC day (${before.error}); not asked for again before ${utcDay(now)} ends`);
+    let got;
+    try {
+      got = await get(url);
+    } catch (e) {
+      if (e instanceof Refusal) fs.writeFileSync(failed, `${JSON.stringify({ day: utcDay(now), url, error: e.message })}\n`);
+      throw e;
+    }
     fs.writeFileSync(p, got.html);
+    fs.rmSync(failed, { force: true });
     return { html: got.html, date: localDate(new Date()), url: got.url };
   };
   const home = await page(POE2DB, 'home.html');
@@ -1007,7 +1026,15 @@ async function running(opts) {
 function parseArgs(argv) {
   const opts = { slug: null, reflag: false, running: false, from: null, save: null, out: path.join(REPO, 'data', 'league'), pinNames: null };
   let outGiven = false;
-  const args = argv.slice(2);
+  let args = argv.slice(2);
+  // D-523: bin/pob2-league-digest, the runner's command, runs `--running --out <league folder>` and nothing else; the
+  // maintainers' modes (a slug, --reflag, --from, --save) and the tests' --pin-names are `node … league-digest.mjs`'s.
+  if (args[0] === COMMAND) {
+    args = args.slice(1);
+    if (!(args.length === 3 && args[0] === '--running' && args[1] === '--out' && !args[2].startsWith('--'))) {
+      throw new Usage(`pob2-league-digest runs --running --out <league folder> only, the folder guide_run {new_run} names; the other modes are node skills/game-knowledge/scripts/league-digest.mjs's`);
+    }
+  }
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     const value = () => {
@@ -1032,6 +1059,7 @@ function parseArgs(argv) {
     // D-523: the league folder, as guide_run {new_run} names it; the pages go in its pages/, so no temporary folder.
     if (opts.slug !== null || opts.reflag || opts.from || opts.save) throw new Usage('--running takes --out <league folder> (and --pin-names) only: no slug, --reflag, --from or --save');
     if (!outGiven) throw new Usage('--running needs --out <league folder>, the folder guide_run {new_run} names');
+    checkLeagueFolder(opts.out);
     return opts;
   }
   if (!opts.slug) throw new Usage('a slug is required');
@@ -1041,10 +1069,32 @@ function parseArgs(argv) {
   return opts;
 }
 
+/** The first argument bin/pob2-league-digest passes: the command's one mode (D-523). */
+const COMMAND = '--command';
+
+/**
+ * D-523: `--running` writes only inside its `--out`, which must be an existing folder named `league` whose real path
+ * isn't under the plugin root (so never the committed data/league/, whose digests a run would rewrite).
+ */
+function checkLeagueFolder(out) {
+  let st;
+  try {
+    st = fs.statSync(out);
+  } catch {
+    throw new Usage(`--out ${out} doesn't exist: --running takes the league folder guide_run {new_run} names, which the server makes`);
+  }
+  if (!st.isDirectory()) throw new Usage(`--out ${out} isn't a folder`);
+  const real = fs.realpathSync(out);
+  if (path.basename(real) !== 'league') throw new Usage(`--out ${out} isn't a folder named league: --running takes the league folder guide_run {new_run} names`);
+  const rel = path.relative(fs.realpathSync(REPO), real);
+  if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) throw new Usage(`--out ${out} is inside the plugin root: --running writes only the server's league folder, never the committed data/league/`);
+}
+
 const USAGE =
   'usage: league-digest.mjs <slug> [--from <folder>] [--save <folder>] [--out <dir>] [--pin-names <file.json>]\n' +
   '       league-digest.mjs --reflag <slug> [--out <dir>] [--pin-names <file.json>]\n' +
-  '       league-digest.mjs --running --out <league folder> [--pin-names <file.json>]';
+  '       league-digest.mjs --running --out <league folder> [--pin-names <file.json>]\n' +
+  '       pob2-league-digest --running --out <league folder>';
 
 async function run(opts, preloaded = null) {
   const fileSlug = slugify(opts.slug);

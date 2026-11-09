@@ -793,6 +793,8 @@ export async function handleGuideRun(context: PlanContext, args: Record<string, 
     return wrapHandler('create the run folder', async () => {
       await checkGuidesRoot(context.guidesDirectory, context.pobDirectory);
       const run = await createRunFolder(context.guidesDirectory, request.slug, (context.wallClock ?? (() => new Date()))());
+      // D-523: the league folder exists once named, so pob2-league-digest --running (which writes only an existing one) can.
+      await fs.mkdir(leagueFolderOf(context.stateDir), { recursive: true });
       // D-210: read without the lock, as C-50 says; the skill asks the user before the first compile.
       const unsaved = context.isDirty();
       const lines = [

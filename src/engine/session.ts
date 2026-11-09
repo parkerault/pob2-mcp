@@ -139,8 +139,9 @@ export interface EngineSessionOptions {
   onFileFingerprint?: (relPath: string, fp: Fingerprint) => void;
   /**
    * D-523 (amendment 16 §19): the overlay's sidecars now (`listSidecars`, `src/services/leagueOverlay.ts`). The engine
-   * child gets their paths at each start (bootstrap step 5e); before a load or a compile (kind `load`, which replaces
-   * the build anyway) an engine started with another list is stopped and started again, so 5e reads the new entries.
+   * child gets their paths at each start (bootstrap step 5e). Before every engine call (lookups included), an engine
+   * started with another list is stopped and started again, so 5e reads the new entries, and step 3 restores the build
+   * from its snapshot into the new engine, as after a crash; the revision moves, since the numbers may.
    */
   overlaySidecars?: () => readonly Sidecar[];
 }
@@ -326,6 +327,10 @@ class Session implements EngineSession {
   private readyPid: number | null = null;
   /** D-523: the sidecar list the running engine was started with (its key), or null before any start. */
   private overlayStarted: string | null = null;
+  /** D-523: the revision when that engine was spawned, so a restart of an unchanged engine needs no restore. */
+  private overlayStartRevision = 0;
+  /** D-523: the restart step 3 is about to restore was the overlay's, not a crash (its notice says so). */
+  private overlayRestart = false;
 
   // FIFO mutex
   private locked = false;
@@ -406,26 +411,45 @@ class Session implements EngineSession {
     if (!this.opts.overlaySidecars) return {};
     const list = this.opts.overlaySidecars();
     this.overlayStarted = sidecarKey(list);
+    this.overlayStartRevision = this.revisionValue;
     return { [OVERLAY_ENV]: overlayEnvValue(list) };
   }
 
   /**
-   * D-523: before a load or a compile, an engine started with another sidecar list stops, as `lua_stop` stops it, and
-   * step 2 starts it again with the new list; the call replaces the build either way.
+   * D-523: before every engine call, an engine started with another sidecar list stops, and step 2 starts it again
+   * with the new list. The build stays: `loaded` and the snapshot are kept and the restart is marked for step 3, which
+   * restores the snapshot into the new engine (as after a crash), so a reload, a failed load and the unsaved changes
+   * all hold. An engine that holds only the build it started with (no change since its spawn) starts afresh. One whose
+   * build changed but has no snapshot (its export failed) isn't restarted: it reads the sidecars at its next start.
+   * The revision moves (the overlay may change the numbers), the unsaved-changes state as it was.
    */
-  private async reloadOverlay(call: EngineCall): Promise<void> {
-    if (call.kind !== "load" || !this.opts.overlaySidecars || this.overlayStarted === null) return;
+  private async reloadOverlay(): Promise<void> {
+    if (!this.opts.overlaySidecars || this.overlayStarted === null) return;
     const client = this.client();
     if (!client.isAlive() || this.crashed) return;
     if (sidecarKey(this.opts.overlaySidecars()) === this.overlayStarted) return;
+    const fresh = this.revisionValue === this.overlayStartRevision;
+    const restore = this.snapshot !== null && this.loadedValue !== null;
+    if (!fresh && !restore) {
+      console.error("[Engine Session] the league overlay's sidecars changed, but the build has no snapshot to restore: the engine reads them at its next start");
+      return;
+    }
     console.error("[Engine Session] the league overlay's sidecars changed: restarting the engine so it reads them");
+    const wasDirty = this.isDirty();
     await client.stop();
-    this.engineRunning = false;
-    this.crashed = false;
     this.readyPid = null;
-    this.loadedValue = null;
-    this.snapshot = null;
     this.interrupted = null;
+    this.revisionValue += 1;
+    if (this.loadedValue && !wasDirty) this.loadedValue = { ...this.loadedValue, loadedRevision: this.revisionValue, savedRevision: this.revisionValue };
+    if (fresh && !restore) {
+      // Nothing to restore: step 2 starts it as a first start.
+      this.engineRunning = false;
+      this.crashed = false;
+      return;
+    }
+    this.engineRunning = true;
+    this.crashed = true;
+    this.overlayRestart = true;
   }
 
   private acquire(call: EngineCall): Promise<void> {
@@ -502,7 +526,7 @@ class Session implements EngineSession {
       return this.runFn(fn, state);
     }
 
-    await this.reloadOverlay(call); // D-523: a changed sidecar list restarts the engine before a load
+    await this.reloadOverlay(); // D-523: a changed sidecar list restarts the engine, the build restored in step 3
     await this.ensureEngine(call, notices); // steps 2–3
     if (call.kind !== "load") await this.checkDisk(call, state, notices); // step 4
 
@@ -633,6 +657,9 @@ class Session implements EngineSession {
   private async recover(call: EngineCall, notices: string[]): Promise<void> {
     const interrupted = this.interrupted;
     const snapshot = this.snapshot;
+    // D-523: the restart was the overlay's (reloadOverlay), not a crash.
+    const overlay = this.overlayRestart;
+    this.overlayRestart = false;
     if (snapshot && this.loadedValue) {
       try {
         // keepLevel: the restore must give back the state after the last change, so PoB's level
@@ -643,8 +670,10 @@ class Session implements EngineSession {
         this.crashed = false;
         this.interrupted = null;
         notices.push(
-          `Engine restarted; restored the build to its state after \`${snapshot.afterTool}\`.` +
-            (interrupted ? ` The interrupted call \`${interrupted}\` was not applied.` : ""),
+          overlay
+            ? `The league overlay's sidecars changed: the engine restarted to read them and restored the build to its state after \`${snapshot.afterTool}\` (D-523).`
+            : `Engine restarted; restored the build to its state after \`${snapshot.afterTool}\`.` +
+                (interrupted ? ` The interrupted call \`${interrupted}\` was not applied.` : ""),
         );
         return;
       } catch (error) {

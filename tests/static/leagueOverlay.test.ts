@@ -11,8 +11,10 @@
  *   folder; W1 states the mark's wording; the upgrade script's reflag step lists the retired overlay entries.
  */
 import { describe, it, expect } from '@jest/globals';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'url';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const read = (...p: string[]) => fs.readFileSync(path.join(REPO, ...p), 'utf8');
@@ -67,6 +69,29 @@ describe('AC-W159 (WU-166, D-523): data/league/rune-slots.json against the pinne
   const pin = pinRunes();
   const socketables = corpus();
 
+  it("the sidecar's type rule gives PoB's own type for every socketable Data/ModRunes.lua defines", () => {
+    const types = new Map<string, Set<string>>();
+    let name: string | null = null;
+    for (const raw of read('vendor', 'PathOfBuilding-PoE2', 'src', 'Data', 'ModRunes.lua').split(/\r?\n/)) {
+      const n = /^\t\["((?:[^"\\]|\\.)*)"\] = \{$/.exec(raw);
+      if (n) {
+        name = n[1].replace(/\\(.)/g, '$1');
+        types.set(name, new Set());
+      }
+      const t = /^\t\t\t\ttype = "([^"]+)",$/.exec(raw);
+      if (t && name !== null) types.get(name)!.add(t[1]);
+    }
+    expect(types.size).toBe(287);
+    for (const [n, ts] of types) expect({ n, types: [...ts].length }).toEqual({ n, types: 1 });
+    const names = [...types.keys()];
+    const url = pathToFileURL(path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'overlay.mjs')).href;
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', `import { socketableType } from ${JSON.stringify(url)}; const names = JSON.parse(await new Promise((ok) => { let s = ''; process.stdin.on('data', (c) => { s += c; }); process.stdin.on('end', () => ok(s)); })); process.stdout.write(JSON.stringify(names.map(socketableType)));`], { input: JSON.stringify(names), encoding: 'utf8', env: { PATH: '/usr/bin:/bin', LANG: 'C' } });
+    expect(r.stderr).toBe('');
+    const given = JSON.parse(r.stdout) as string[];
+    const wrong = names.map((n, i) => ({ n, given: given[i], pob: [...types.get(n)!][0] })).filter((x) => x.given !== x.pob);
+    expect(wrong).toEqual([]);
+  });
+
   it('reads the corpus: the in-pin socketables of runes-of-aldur.md, each a rune of Data/ModRunes.lua', () => {
     expect(socketables.size).toBeGreaterThan(100);
     const known = [...socketables.keys()].filter((n) => pin.has(n));
@@ -103,11 +128,12 @@ describe('AC-W159 (WU-166, D-523): data/league/rune-slots.json against the pinne
 });
 
 describe('AC-W159 (WU-166, D-523, C-57): the fifth command and the runner\'s lines', () => {
-  it('bin/ holds five executable commands; pob2-league-digest runs game knowledge\'s league-digest.mjs from the plugin root', () => {
+  it('bin/ holds five executable commands; pob2-league-digest runs game knowledge\'s league-digest.mjs from the plugin root, in its one mode', () => {
     const bin = fs.readdirSync(path.join(REPO, 'bin')).sort();
     expect(bin).toEqual(['pob2-check-run', 'pob2-league-digest', 'pob2-render-audit', 'pob2-render-notes', 'pob2-run-log']);
     for (const c of bin) expect({ c, executable: (fs.statSync(path.join(REPO, 'bin', c)).mode & 0o111) === 0o111 }).toEqual({ c, executable: true });
-    expect(read('bin', 'pob2-league-digest')).toBe('#!/bin/sh\nd=$(cd -P "$(dirname "$0")/.." && pwd -P)\nexec node "$d/skills/game-knowledge/scripts/league-digest.mjs" "$@"\n');
+    // `--command`: the command runs --running --out <league folder> alone (tests/unit/leagueOverlay.test.ts runs each refusal).
+    expect(read('bin', 'pob2-league-digest')).toBe('#!/bin/sh\nd=$(cd -P "$(dirname "$0")/.." && pwd -P)\nexec node "$d/skills/game-knowledge/scripts/league-digest.mjs" --command "$@"\n');
   });
 
   it("runner-rules.md's Bash list names the command and the league folder it takes, and its write rule names that folder", () => {

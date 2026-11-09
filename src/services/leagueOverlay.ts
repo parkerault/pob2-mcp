@@ -18,6 +18,14 @@ import fs from 'fs';
 import path from 'path';
 import { packageRoot } from '../utils/packageRoot.js';
 
+/**
+ * D-523 (amendment 16 §19): the overlay's limits, stated wherever an overlay item is shown (the lookups once per reply;
+ * `render-audit.mjs`'s `OVERLAY_LIMITS` for the audit and the displays, in the same words).
+ */
+export const OVERLAY_LIMITS =
+  "The overlay's limits: a line PoB doesn't parse stays unmeasured (check_model_coverage reports it); an item on a base the pin lacks can't load; " +
+  "the rule-changer index's marks wait for our pin; trade weights stay the pin's; and a new release's tree and skills come only with a PoB release and our pin upgrade.";
+
 /** The reply line of `guide_run {new_run}` naming the league folder (C-50). */
 export const LEAGUE_FOLDER_LINE = 'leagueFolder';
 /** The engine child's variable: the sidecars' absolute paths, a JSON list (bootstrap step 5e). */

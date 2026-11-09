@@ -57,6 +57,7 @@ import type {
 import { wrapHandler } from "../utils/errorHandling.js";
 import { loadReferenceData, type ReferenceData } from "../plan/referenceData.js";
 import { SOCKET_TABLE, socketFactOf } from "../plan/checks/v1.js";
+import { OVERLAY_LIMITS } from "../services/leagueOverlay.js";
 
 export type LookupContext = Pick<LuaHandlerContext, "getLuaClient" | "ensureLuaClient"> & {
   /** The C-35 data (D-485's socket table, D-494's item-only skills); default: `loadReferenceData()` from the package's `data/`. */
@@ -667,6 +668,8 @@ function render(req: Request, result: LookupGameDataResult, socketsOf?: (base: L
       lines.push(...block, "");
     }
   }
+  // D-523 (amendment 16 §19): the overlay's limits, once, where a reply shows an overlay entry.
+  if (result.results.some((r) => (r as { notInRelease?: boolean }).notInRelease === true)) lines.push(OVERLAY_LIMITS);
   return lines.join("\n").trimEnd();
 }
 

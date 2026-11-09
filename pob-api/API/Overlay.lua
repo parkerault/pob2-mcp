@@ -84,24 +84,36 @@ local function sortRunes(list)
 end
 
 -- One socketable's PoB entry: { [slot key] = { type, <lines>, statOrder, tradeHashes, isSocketBound, rank } }.
+-- An entry is refused whole unless its type is a string, its rank a number, and every slot has keys and lines, each line
+-- a string with a number for its statOrder: PoB reads `order = statOrder[1]` of every rune of a slot type, and a nil there
+-- would break the rune list's sort and every item of that type.
 local function socketableData(e)
   if type(e.name) ~= 'string' or e.name == '' then error('a socketable with no name', 0) end
+  if type(e.type) ~= 'string' or e.type == '' then error(e.name .. ': its type is not a string', 0) end
   if type(e.slots) ~= 'table' or #e.slots == 0 then error(e.name .. ' has no slots', 0) end
-  local rank = type(e.rank) == 'table' and tonumber(e.rank[1]) or tonumber(e.rank) or 0
+  local rank = type(e.rank) == 'table' and e.rank[1] or e.rank
+  if type(rank) ~= 'number' then error(e.name .. ': its rank is not a number', 0) end
   local out = {}
   for _, slot in ipairs(e.slots) do
-    if type(slot.keys) ~= 'table' or type(slot.lines) ~= 'table' or type(slot.statOrder) ~= 'table' or #slot.lines ~= #slot.statOrder or #slot.lines == 0 then
+    if type(slot.keys) ~= 'table' or #slot.keys == 0 or type(slot.lines) ~= 'table' or type(slot.statOrder) ~= 'table' or #slot.lines ~= #slot.statOrder or #slot.lines == 0 then
       error(e.name .. ': a slot needs keys, and lines with a statOrder each', 0)
+    end
+    for i, line in ipairs(slot.lines) do
+      if type(line) ~= 'string' then error(e.name .. ': a line is not a string', 0) end
+      if type(slot.statOrder[i]) ~= 'number' then error(e.name .. ': the statOrder of "' .. line .. '" is not a number', 0) end
+    end
+    for _, key in ipairs(slot.keys) do
+      if type(key) ~= 'string' then error(e.name .. ': a slot key is not a string', 0) end
     end
     for _, key in ipairs(slot.keys) do
       local mod = out[key]
       if not mod then
-        mod = { type = e.type or 'Rune', statOrder = {}, tradeHashes = {}, isSocketBound = e.socketBound == true, rank = { rank } }
+        mod = { type = e.type, statOrder = {}, tradeHashes = {}, isSocketBound = e.socketBound == true, rank = { rank } }
         out[key] = mod
       end
       for i, line in ipairs(slot.lines) do
-        table.insert(mod, tostring(line))
-        table.insert(mod.statOrder, tonumber(slot.statOrder[i]))
+        table.insert(mod, line)
+        table.insert(mod.statOrder, slot.statOrder[i])
       end
     end
   end
@@ -192,7 +204,10 @@ function M.apply(paths)
       log(tostring(file) .. ' not read: ' .. tostring(err))
     end
   end
-  if list then sortRunes(list) end
+  if list then
+    local ok, err = pcall(sortRunes, list)
+    if not ok then log('the items tab\'s rune list was not sorted: ' .. tostring(err)) end
+  end
   if #result.added > 0 then log('added ' .. #result.added .. ' entr' .. (#result.added == 1 and 'y' or 'ies') .. ' from ' .. #paths .. ' sidecar' .. (#paths == 1 and '' or 's')) end
   return result
 end

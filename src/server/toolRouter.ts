@@ -39,6 +39,7 @@ import { handleGetCurrencyRates } from "../handlers/poeNinjaHandlers.js";
 import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleEncodeBuildCode } from "../handlers/buildCodeHandlers.js";
 import { compileRequestOf, handleCompilePlan, handleGuideRun } from "../handlers/planHandlers.js";
+import { handlePlanFromBuild } from "../handlers/planFromBuildHandlers.js";
 
 export interface ToolRouterDependencies {
   contextBuilder: ContextBuilder;
@@ -853,6 +854,19 @@ async function dispatch(
 
     case "guide_run":
       return await handleGuideRun({ ...deps.contextBuilder.buildPlanContext(), isDirty: () => deps.session.isDirty() }, args);
+
+    // C-62 (D-517): the file reader; engine kind none, so it runs outside the session
+    case "plan_from_build":
+      return await handlePlanFromBuild(
+        {
+          pobDirectory: handlerContext.pobDirectory,
+          guidesDirectory: deps.contextBuilder.buildPlanContext().guidesDirectory,
+          buildService: handlerContext.buildService,
+          treeData: (version) => handlerContext.treeService.getTreeData(version),
+          pobSrc: () => resolvePobSrc(deps.env),
+        },
+        args,
+      );
 
     default:
       // A TOOL_META entry without a case: still a protocol error, never an isError result.

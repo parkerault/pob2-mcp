@@ -690,9 +690,14 @@ function isInside(base: string, target: string): boolean {
  * inside the root's real path). It is a run folder, `<slug>/<YYYY-MM-DD>-<n>`: two folders under the guides root, the
  * write ledger's key (D-211), so a resumed run's final compile still finds its run; and it holds a `run-log.json` file.
  * Returns its absolute path under the guides root as configured (as `new_run` gives it) and its root-relative path.
+ * D-517: `plan_from_build`'s `run_folder` is resolved the same way, `argName` naming it in the refusals.
  */
-export async function resolveRunFolder(guidesDirectory: string, given: string): Promise<{ absPath: string; relPath: string }> {
-  const refused = (why: string) => new Error(`resume ${JSON.stringify(given)} ${why}; guides root: ${guidesDirectory}. Nothing was done.`);
+export async function resolveRunFolder(
+  guidesDirectory: string,
+  given: string,
+  argName: 'resume' | 'run_folder' = 'resume',
+): Promise<{ absPath: string; relPath: string }> {
+  const refused = (why: string) => new Error(`${argName} ${JSON.stringify(given)} ${why}; guides root: ${guidesDirectory}. Nothing was done.`);
   if (given.includes('\0')) throw refused('contains a NUL byte');
   if (given.split(/[\\/]/).includes('..')) throw refused('has a ".." segment: it must stay inside the guides root');
   let rel = given;
@@ -705,7 +710,7 @@ export async function resolveRunFolder(guidesDirectory: string, given: string): 
   } else if (path.win32.isAbsolute(given)) {
     throw refused("is a Windows path: give the run folder's path on this machine, absolute or relative to the guides root");
   }
-  const real = await resolveInGuidesRoot(guidesDirectory, rel, 'resume');
+  const real = await resolveInGuidesRoot(guidesDirectory, rel, argName);
   const realRoot = await realPathInGuides(guidesDirectory);
   const segments = path.relative(realRoot, real).split(path.sep).filter((s) => s !== '' && s !== '.');
   if (segments.length !== 2) {
@@ -719,9 +724,13 @@ export async function resolveRunFolder(guidesDirectory: string, given: string): 
   const stat = await statOrNull(real);
   if (stat === null) throw refused(`names no folder in the guides root (${relPath})`);
   if (!stat.isDirectory()) throw refused(`names ${relPath} in the guides root, which isn't a folder`);
-  const logStat = await statOrNull(await resolveInGuidesRoot(guidesDirectory, `${relPath}/${RUN_LOG_FILE}`, 'resume'));
+  const logStat = await statOrNull(await resolveInGuidesRoot(guidesDirectory, `${relPath}/${RUN_LOG_FILE}`, argName));
   if (logStat === null || !logStat.isFile()) {
-    throw refused(`names ${relPath}, which holds no ${RUN_LOG_FILE}: only a run the build-guide skill started can be resumed; a new run starts with new_run`);
+    throw refused(
+      argName === 'resume'
+        ? `names ${relPath}, which holds no ${RUN_LOG_FILE}: only a run the build-guide skill started can be resumed; a new run starts with new_run`
+        : `names ${relPath}, which holds no ${RUN_LOG_FILE}: the file reader reads into a run folder that guide_run {new_run} made and pob2-run-log init started`,
+    );
   }
   return { absPath: path.join(path.resolve(guidesDirectory), ...segments), relPath };
 }

@@ -783,6 +783,34 @@ On schema 11 the compile writes this Purity of Ice at the sceptre's quality 20 a
 resistance over quality 0 (+0.4% per 1% quality). With `"quality": 5` on the gem, a schema-11 plan is refused: "Purity of Ice is a skill the
 Shrine Sceptre in Weapon 1 grants, so its gem has quality 0, not 5 (D-512)".
 
+### A plan read from a player's file and Spirit buffs switched as needed (D-517, D-518, schema version 11)
+
+`plan_from_build` (C-62) reads a player's PoB file into a plan with one **read stage**: id `f`, `progress: "endgame"`, no
+variant, its level the file's, its `loadoutName` the loadout's title (a trailing ` (L<n>) {…}` stripped) then
+` (L<level>) {f}`. Placing it on the ladder (D-520) gives it its rung's id and variant fields. Each field is a version-11
+addition (a plan of version 10 or older errs at it):
+- **`stages[].source {kind, name, sha1, loadout}`** (D-517): the file the stage was read from, `builds-folder` (with the
+  file's `name`) or `import-code`, its sha1 and the loadout read. Not build content (`buildSha1` leaves out every `source`).
+- **`owned: true`** on `items.slots[]`, `items.treeJewels[]` and `skills.groups[]` (D-517): the character's own content,
+  exactly as the reader took it from the file, real rolls and all. Only the reader writes it; a design that replaces the
+  item or group drops it. The compile's exemptions for owned content are C-41's (D-519).
+- **`standIn: true`** on `items.slots[]` (D-517): the slot held an item on a base the pin lacks (PG-110), and holds the
+  item text the user gave for it, or the item typed on its plain base.
+- **`config.file`** (D-517): the file's config set as set, each PoB input by its name and value (a string, number or
+  boolean), the custom modifier box (`customMods`) among them. On a read stage `config.earned` is empty and
+  `config.scenario` holds only `enemyIsBoss`, at the file's value (PoB's default when the file sets none), its `source`
+  `{file: "source.xml", key: "enemyIsBoss"}` with a `judgment` tag.
+- **A group's `switch {when, off}`** (D-518): a Spirit buff switched as needed: in the plan and the guide, off in the
+  measured numbers. The group has `enabled: false`; `when` is a short player-facing phrase saying when to switch it on
+  ("for bosses", "as needed"), `off` the plan's groups switched off for it (each a group of the stage other than itself;
+  `[]` until the measure's proposal is confirmed).
+
+```json
+{ "label": "Purity of Ice", "enabled": false, "role": "utility", "owned": true, "weaponSet": 2,
+  "switch": { "when": "for bosses", "off": [4] },
+  "gems": [{ "name": "Purity of Ice", "level": 20, "quality": 0, "enabled": true }] }
+```
+
 ### Reference hits and measures (D-353, D-407)
 
 On an endgame stage (one with `variant`), the compiler fills each of the five reference hits the scenario
@@ -1002,7 +1030,7 @@ rule may require an optional key in some cases.
 
 | Path | Type | Required | Rule | Decision |
 |---|---|---|---|---|
-| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10` or `11` | yes | `11` for a new plan; `1` to `10` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471, D-481, D-483, D-484, D-490, D-492, D-512 |
+| `schemaVersion` | `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10` or `11` | yes | `11` for a new plan; `1` to `10` are still accepted, each with its version's shape (see older versions above). Any other value, or none, is the only error reported, and it lists the accepted versions `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]` | C-31, D-167, D-320, D-332, D-351, D-377, D-402, D-418, D-437, D-451, D-452, D-464, D-467, D-469, D-471, D-481, D-483, D-484, D-490, D-492, D-512, D-517, D-518 |
 | `roll` | object | yes | The roll the guide is built around | C-31 |
 | `roll.className` | string | yes | Non-empty. A PoB2 class, e.g. `Warrior` | C-31 |
 | `roll.ascendancy` | string | yes | Non-empty. Its ascendancy, e.g. `Titan` | C-31, D-238 |
@@ -1119,9 +1147,12 @@ rule may require an optional key in some cases.
 | `stages[].items.slots[].slot` | item slot | yes | One of `Weapon 1`, `Weapon 1 Swap`, `Weapon 2`, `Weapon 2 Swap`, `Helmet`, `Body Armour`, `Gloves`, `Boots`, `Amulet`, `Ring 1`, `Ring 2`, `Ring 3`, `Belt`, `Charm 1`, `Charm 2`, `Charm 3`, `Flask 1`, `Flask 2`. Unique within `slots` (a repeat errs at the later entry) | C-31 |
 | `stages[].items.slots[].text` | string | no | Non-empty. Required unless the entry has `sameAs` (schema 9, D-464), and never with it (error at `text` without either, at `sameAs` with both). The item in PoB's item-text form (a `Rarity:` line, the name, the base for a rare or unique, then mod lines), lines joined by `\n`. Parsed at compile; a text with no `Implicits:` line, not a unique, gets its base's implicits (see a base's implicits above) | C-31, D-435 |
 | `stages[].items.slots[].sameAs` | item slot | no | A pinned weapon (see the tree search's figures and the finishing touches above): on `Weapon 1 Swap` it names `Weapon 1`, on `Weapon 2 Swap` `Weapon 2`, a slot the stage fills with `text`; the compile puts that one item in both slots. Any other slot or pair, or a named slot without text, errs here. Schema version 9 | D-464 |
+| `stages[].items.slots[].owned` | `true` | no | The character's own item, as the file reader (`plan_from_build`) took it from the file; only the reader writes it, and a design that replaces the item drops it (see a plan read from a player's file above). Schema version 11 | D-517 |
+| `stages[].items.slots[].standIn` | `true` | no | The slot held an item on a base the pin lacks (PG-110) and holds the text the user gave, or the item on its plain base. Schema version 11 | D-517 |
 | `stages[].items.treeJewels` | object[] | yes | The jewels socketed in the tree | C-31 |
 | `stages[].items.treeJewels[].node` | integer | yes | A jewel-socket node in `tree.nodes` or, from schema version 10, an ascendancy jewel socket in `tree.ascendancyNodes` (Crystalline Phylactery, 17788); any other ascendancy node errs here | C-31, D-492 |
 | `stages[].items.treeJewels[].text` | string | yes | Non-empty. The jewel's item text | C-31 |
+| `stages[].items.treeJewels[].owned` | `true` | no | The character's own jewel, as the file reader took it. Schema version 11 | D-517 |
 | `stages[].items.toggles` | object[] | yes | Flask and charm activation, kept on the item set as PoB does. An active toggle is earned state, produced by the item in its slot | C-31, C-32 |
 | `stages[].items.toggles[].slot` | `Flask 1`, `Flask 2`, `Charm 1`, `Charm 2` or `Charm 3` | yes | The flask or charm slot | C-31 |
 | `stages[].items.toggles[].active` | boolean | yes | Whether it is active when the stage is measured | C-32 |
@@ -1150,6 +1181,10 @@ rule may require an optional key in some cases.
 | `stages[].skills.groups[].minionSkill` | string | no | Non-empty. The skill the group's summon's minion uses, as the gem lookup names it (see a minion's skill above). The group holds exactly one summon; the compile resolves the name against the minion's skill list, ignoring case, and refuses a name it can't use, listing its skills. The group's damage figure is then its minion's `MinionTotalDPS`. Schema version 4 | D-377, D-378 |
 | `stages[].skills.groups[].minionStatSet` | integer | no | At least 1; 1 when absent. The minion skill's stat set; only with `minionSkill`. The compile refuses one beyond the skill's stat sets. Schema version 4 | D-377 |
 | `stages[].skills.groups[].weaponSet` | `1` or `2` | no | The weapon set the group is on: the compiler sockets it in one of that set's weapon slots, the main hand unless its item grants a skill (PG-74; see a skill on a weapon set above), so PoB enables it only while that set is active. Absent, it is active on both sets. A group on set 2 makes the stage one that uses set 2; V1 reports a group on a set whose weapon slots are empty (`empty-weapon-set`). Schema version 6 | D-426 |
+| `stages[].skills.groups[].owned` | `true` | no | The character's own group, as the file reader took it. Schema version 11 | D-517 |
+| `stages[].skills.groups[].switch` | object | no | A Spirit buff switched as needed: in the plan and the guide, off in the measured numbers; the group has `enabled: false` (error at `enabled` otherwise). Schema version 11 | D-518 |
+| `stages[].skills.groups[].switch.when` | string | yes | Non-empty. When to switch it on, a short player-facing phrase ("for bosses", "as needed") | D-518 |
+| `stages[].skills.groups[].switch.off` | integer[] | yes | The plan's groups switched off for it, each a group of the stage other than this one (error at `off[n]`) | D-518 |
 | `stages[].skills.main` | object | yes | The main skill selection | C-31, C-44 |
 | `stages[].skills.main.group` | integer | yes | At least 1. The main skill's group, the same in every stage (error at the stage that differs from `stages[0]`) | C-31 |
 | `stages[].skills.main.activeSkill` | integer | yes | At least 1. The active skill within that group; when the group names a `minionSkill`, its summon | C-31, C-44, D-377 |
@@ -1190,6 +1225,7 @@ rule may require an optional key in some cases.
 | `stages[].config.customMods` | object[] | no | Custom modifiers: hand-calculated effects, written into PoB's custom modifier box after `earned` and `scenario`, one line per entry (see custom modifiers above). The compile record marks every figure of the stage. From version 2 on, `customMods` is never an `earned` or `scenario` option. Schema version 2 | C-32, D-293, D-320 |
 | `stages[].config.customMods[].text` | string | yes | Non-empty, one line. A PoB modifier line, e.g. `10% more Damage`; a line PoB can't parse whole fails the compile | D-293 |
 | `stages[].config.customMods[].reason` | string | no | Non-empty. What the line stands for and how it was worked out; without it, V1 reports `missing-reason`. On a schema-8 plan, a line that adds a pool or defence names its coverage result, `coverage: <status>`, or V1 reports `custom-defence` (see custom modifiers above). On schema 9 required and one line, with no line break (error here), and written as the comment line `# <reason>` before the line; a reason whose comment PoB parses whole fails the compile | D-293, D-322, D-451, D-469 |
+| `stages[].config.file` | object | no | The file's config set as set, by PoB input name: each value a string, number or boolean, the custom modifier box (`customMods`) among them. On a read stage `earned` is empty and `scenario` holds only `enemyIsBoss`, from the file (see a plan read from a player's file above). Schema version 11 | D-517 |
 | `stages[].companion` | object | no | The stage's tamed beast: its species and the rare monster modifiers it keeps (see a tamed beast above). The stage holds exactly one `Tame Beast` gem, enabled, in an enabled group, which the compile turns into the beast. Schema version 5 | D-402 |
 | `stages[].companion.species` | string | yes | Non-empty. The beast, as PoB's beast library names it (ignoring case), or its monster id when several beasts share the name; the compile refuses a species the library lacks or a shared name | D-402 |
 | `stages[].companion.mods` | string[] | yes | The kept modifiers' ids in `data/monsters/monster-mods.md`, at most 4, each once; `[]` for none. Each is applied by its row's model: `stats` as custom-modifier estimates, `condition` as its config option, `none` not at all. An id the table lacks errs here; an option a `condition` row writes errs where the stage lists it too | D-402 |
@@ -1199,6 +1235,11 @@ rule may require an optional key in some cases.
 | `stages[].defence.mitigation` | string | yes | Non-empty. The mitigation (armour, resistances, damage taken), names only | D-451 |
 | `stages[].defence.pool` | string | yes | Non-empty. The pool (life, energy shield, mana under damage taken from mana first), names only | D-451 |
 | `stages[].defence.physicalHit` | string | yes | Non-empty. What holds the Arbiter's physical hit, names only | D-451 |
+| `stages[].source` | object | no | The file a read stage was read from (see a plan read from a player's file above). Not build content. Schema version 11 | D-517 |
+| `stages[].source.kind` | `builds-folder` or `import-code` | yes | A builds-folder file, or an import code | D-517 |
+| `stages[].source.name` | string | no | Non-empty. The builds-folder file's name | D-517 |
+| `stages[].source.sha1` | string | yes | 40 lowercase hex digits: the sha1 of the decoded file, as `source.xml` in the run folder keeps it | D-517 |
+| `stages[].source.loadout` | string | yes | Non-empty. The title of the loadout read | D-517 |
 | `stages[].claims` | object[] | yes | The stage's claims, each with its source | C-30, D-105 |
 | `stages[].claims[].id` | string | yes | Non-empty | C-30 |
 | `stages[].claims[].text` | string | yes | Non-empty. The claim as the guide states it | C-30 |

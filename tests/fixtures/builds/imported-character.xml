@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build characterLevelAutoMode="false" viewMode="TREE" level="90" className="Mercenary" mainSocketGroup="11" ascendClassName="Gemling Legionnaire" targetVersion="0_1">
+		<PlayerStat stat="Life" value="2400"/>
+		<PlayerStat stat="Spirit" value="100"/>
+	</Build>
+	<TreeView searchStr="" zoomY="0" showStatDifferences="true" zoomLevel="3" zoomX="0"/>
+	<Notes>
+Written by hand from the game data for plan_from_build's tests; no player's build. The reader leaves notes out.
+	</Notes>
+	<Calcs>
+		<Input number="11" name="skill_number"/>
+	</Calcs>
+	<Party destination="All" append="false" ShowAdvanceTools="false">
+		<ImportedBuffs name="Aura">Purity of Fire</ImportedBuffs>
+	</Party>
+	<Tree activeSpec="1">
+		<Spec title="Endgame" classInternalId="9" classId="9" ascendClassId="3" secondaryAscendClassId="nil" ascendancyInternalId="Mercenary3" masteryEffects="" treeVersion="0_5" nodes="50986,59915,7741,42500,59881,54417,49657,63526,48635,21755,54127,43578,19223,55536,34882,11641">
+			<WeaponSet1 nodes="43578"/>
+			<WeaponSet2 nodes="19223"/>
+			<Sockets>
+				<Socket nodeId="54127" itemId="15"/>
+			</Sockets>
+			<Overrides>
+				<AttributeOverride strNodes="7741,42500,59881" dexNodes="54417,49657,63526" intNodes="48635,21755"/>
+			</Overrides>
+		</Spec>
+		<Spec title="Leveling" classInternalId="9" classId="9" ascendClassId="0" secondaryAscendClassId="nil" ascendancyInternalId="" masteryEffects="" treeVersion="0_5" nodes="50986,59915">
+		</Spec>
+	</Tree>
+	<Import lastRealm="PoE2" lastLeague="Forbidden Rites" exportParty="false"/>
+	<Items useSecondWeaponSet="nil" activeItemSet="1" showStatDifferences="true">
+		<Item id="1">
+Rarity: RARE
+Doom Impaler
+Hunting Spear
+Item Level: 82
+Quality: 20
+Sockets: S S
+Rune: Greater Iron Rune
+Rune: Greater Iron Rune
+LevelReq: 70
+Implicits: 3
+{enchant}{rune}36% increased Physical Damage
+Grants Skill: Spear Throw
+20% chance to Maim on Hit
+Adds 10 to 22 Physical Damage
+36% increased Attack Speed
++478 to Accuracy Rating
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+			<ModRange id="6" range="0.5"/>
+		</Item>
+		<Item id="2">
+Rarity: RARE
+Bastion Guard
+Leather Buckler
+Item Level: 80
+Quality: 20
+LevelReq: 60
+Implicits: 1
+Grants Skill: Parry
++40 to maximum Life
+{crafted}+20% to Cold Resistance
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+		</Item>
+		<Item id="3">
+Rarity: NORMAL
+Winged Spear
+Item Level: 70
+Implicits: 1
+Grants Skill: Spear Throw
+		</Item>
+		<Item id="4">
+Rarity: NORMAL
+Shrine Sceptre
+Item Level: 80
+Quality: 20
+Implicits: 1
+Grants Skill: Level 20 Purity of Ice
+		</Item>
+		<Item id="5">
+Rarity: RARE
+Loath Ward
+Slipstrike Vest
+Item Level: 82
+Quality: 20
+Sockets: S S S
+Rune: Greater Iron Rune
+Rune: Greater Iron Rune
+Rune: Legacy of Blackbraid
+LevelReq: 70
+Implicits: 3
+{enchant}{rune}36% increased Armour, Evasion and Energy Shield
+{enchant}{rune}+50% of Armour also applies to Elemental Damage
+{enchant}{rune}Bonded: +15% to all Elemental Resistances
+{fractured}+92 to maximum Life
+{crafted}+30% to Fire Resistance
+{desecrated}+25% to Chaos Resistance
+120% increased Evasion Rating
+Corrupted
+		</Item>
+		<Item id="6">
+Rarity: UNIQUE
+Choir of the Storm
+Jade Amulet
+Item Level: 79
+LevelReq: 55
+Implicits: 2
+Grants Skill: Level 20 Lightning Bolt
++12 to Dexterity
++75% to Lightning Resistance
+Critical Hits Ignore Enemy Monster Lightning Resistance
+Trigger Lightning Bolt Skill on Critical Hit
+		</Item>
+		<Item id="7">
+Rarity: RARE
+Doom Grip
+Runemastered Plated Mitts
+Item Level: 81
+Quality: 20
+Implicits: 0
++70 to maximum Life
++35% to Lightning Resistance
+		</Item>
+		<Item id="8">
+Rarity: RARE
+Gale Stride
+Lizardscale Boots
+Item Level: 80
+Quality: 20
+Sockets: S
+Rune: Soul Core of Topotante
+Implicits: 1
+{enchant}{rune}25% increased Elemental Ailment Threshold
+{range:0.8}+(20-30)% to Fire Resistance
+{range:0.25}+(40-60) to maximum Life
+30% increased Movement Speed
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.8"/>
+			<ModRange id="3" range="0.25"/>
+			<ModRange id="4" range="0.5"/>
+		</Item>
+		<Item id="9">
+Rarity: RARE
+Gale Loop
+Two-Stone Ring
+Item Level: 75
++40 to maximum Life
++30% to Fire Resistance
+		</Item>
+		<Item id="10">
+Rarity: RARE
+Entropy Coil
+Unset Ring
+Item Level: 56
+LevelReq: 48
+Implicits: 1
+Grants 1 additional Skill Slot
++(40-60) to maximum Life
++28% to Lightning Resistance
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.75"/>
+			<ModRange id="3" range="0.5"/>
+		</Item>
+		<Item id="11">
+Rarity: RARE
+Wrath Leash
+Heavy Belt
+Charm Slots: 2
+Item Level: 79
+LevelReq: 50
+Implicits: 2
+24% increased Stun Threshold
+Has 2 Charm Slots
++42 to maximum Life
+		</Item>
+		<Item id="12">
+Rarity: MAGIC
+Seething Ultimate Life Flask of the Distiller
+Item Level: 82
+Quality: 20
+LevelReq: 60
+Implicits: 0
+50% of Recovery applied Instantly
+25% increased Charges gained
+		</Item>
+		<Item id="13">
+Rarity: MAGIC
+Blooming Thawing Charm of the Medic
+Item Level: 80
+Quality: 20
+LevelReq: 12
+Implicits: 1
+Used when you become Frozen
+Recover 60 Life when Used
+25% increased Duration
+		</Item>
+		<Item id="14">
+Rarity: NORMAL
+Combat Arm
+Item Level: 80
+		</Item>
+		<Item id="15">
+Rarity: RARE
+Phoenix Wound
+Ruby
+Item Level: 81
+Implicits: 0
++12% to Fire Resistance
+10% increased Attack Damage
+		</Item>
+		<Item id="16">
+Rarity: NORMAL
+Hunting Spear
+Item Level: 20
+Implicits: 2
+Grants Skill: Spear Throw
+20% chance to Maim on Hit
+		</Item>
+		<ItemSet useSecondWeaponSet="nil" title="Endgame" id="1">
+			<Slot itemId="1" name="Weapon 1" itemPbURL=""/>
+			<Slot itemId="2" name="Weapon 2" itemPbURL=""/>
+			<Slot itemId="3" name="Weapon 1 Swap" itemPbURL=""/>
+			<Slot itemId="4" name="Weapon 2 Swap" itemPbURL=""/>
+			<Slot itemId="5" name="Body Armour" itemPbURL=""/>
+			<Slot itemId="6" name="Amulet" itemPbURL=""/>
+			<Slot itemId="7" name="Gloves" itemPbURL=""/>
+			<Slot itemId="8" name="Boots" itemPbURL=""/>
+			<Slot itemId="9" name="Ring 1" itemPbURL=""/>
+			<Slot itemId="10" name="Ring 2" itemPbURL=""/>
+			<Slot itemId="0" name="Ring 3" itemPbURL=""/>
+			<Slot itemId="11" name="Belt" itemPbURL=""/>
+			<Slot itemId="12" name="Flask 1" active="true" itemPbURL=""/>
+			<Slot itemId="0" name="Flask 2" itemPbURL=""/>
+			<Slot itemId="13" name="Charm 1" active="true" itemPbURL=""/>
+			<Slot itemId="14" name="Arm 1" itemPbURL=""/>
+			<Slot itemId="0" name="Arm 2" itemPbURL=""/>
+			<Slot itemId="0" name="Helmet" itemPbURL=""/>
+		</ItemSet>
+		<ItemSet useSecondWeaponSet="nil" title="Leveling" id="2">
+			<Slot itemId="16" name="Weapon 1" itemPbURL=""/>
+		</ItemSet>
+		<TradeSearchWeights/>
+	</Items>
+	<Skills showLegacyGems="false" defaultGemLevel="normalMaximum" activeSkillSet="1" sortGemsByDPSField="CombinedDPS" showSupportGemTypes="ALL" defaultGemQuality="0" sortGemsByDPS="true">
+		<SkillSet id="1" title="Endgame">
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gem/SkillGemPlayerDefaultSpearThrow" variantId="PlayerDefaultSpearThrow" skillId="SpearThrowPlayer" nameSpec="Spear Throw" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemFrostNexus" variantId="ChillingIceSupport" skillId="SupportChillingIcePlayer" nameSpec="Frost Nexus" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gem/SkillGemPlayerDefaultSpearThrow" variantId="PlayerDefaultSpearThrow" skillId="SpearThrowPlayer" nameSpec="Spear Throw" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gems/SkillGemAscendancyVirtuousBarrier" variantId="AscendancyGemlingVirtuousBarrier" skillId="VirtuousBarrierPlayer" nameSpec="Virtuous Barrier" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gems/SkillGemPurityOfIce" variantId="PurityOfIce" skillId="PurityOfIcePlayer" nameSpec="Purity of Ice" corrupted="false" corruptLevel="0" enabled="true" quality="5"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemClarityTwo" variantId="ClaritySupportTwo" skillId="SupportClarityPlayerTwo" nameSpec="Clarity II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gem/SkillGemParry" variantId="Parry" skillId="ParryPlayer" nameSpec="Parry" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gems/SkillGemLightningBolt" variantId="LightningBolt" skillId="LightningBoltPlayer" nameSpec="Lightning Bolt" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gem/SkillGemTwister" variantId="Twister" skillId="TwisterPlayer" nameSpec="Twister" corrupted="true" corruptLevel="1" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SupportGemSalvo" variantId="SalvoSupport" skillId="SupportSalvoPlayer" nameSpec="Salvo" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemAccelerationThree" variantId="ProjectileAccelerationSupportThree" skillId="SupportProjectileAccelerationPlayerThree" nameSpec="Projectile Acceleration III" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gems/SkillGemHeraldOfIce" variantId="HeraldOfIce" skillId="HeraldOfIcePlayer" nameSpec="Herald of Ice" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemPrimalArmamentTwo" variantId="ElementalArmamentSupportTwo" skillId="SupportElementalArmamentPlayerTwo" nameSpec="Elemental Armament II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemGlacialBloom" variantId="GlacialBloomSupport" skillId="SupportGlacialBloomPlayer" nameSpec="Glacial Bloom" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gem/SkillGemTrinity" variantId="Trinity" skillId="TrinityPlayer" nameSpec="Trinity" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemFireMastery" variantId="FireMasterySupport" skillId="SupportFireMasteryPlayer" nameSpec="Fire Mastery" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="2" mainActiveSkill="2" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="14" count="1" gemId="Metadata/Items/Gems/SkillGemBlasphemy" variantId="Blasphemy" skillId="BlasphemyPlayer" nameSpec="Blasphemy" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="14" count="1" gemId="Metadata/Items/Gems/SkillGemDespair" variantId="Despair" skillId="DespairPlayer" nameSpec="Despair" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemHeightenedCurse" variantId="CurseEffectSupport" skillId="SupportCurseEffectPlayer" nameSpec="Heightened Curse" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SkillGemWhirlingSlash" variantId="WhirlingSlash" skillId="WhirlingSlashPlayer" nameSpec="Whirling Slash" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemBloodlust" variantId="BloodlustSupport" skillId="SupportBloodlustPlayer" nameSpec="Bloodlust" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemRageThree" variantId="RageSupportThree" skillId="SupportRagePlayerThree" nameSpec="Rage III" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMartialTempoThree" variantId="RapidAttacksSupportThree" skillId="SupportRapidAttacksPlayerThree" nameSpec="Rapid Attacks III" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemBlazingCritical" variantId="BlazingCriticalSupport" skillId="SupportBlazingCriticalPlayer" nameSpec="Blazing Critical" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SupportGemRigwaldsFerocity" variantId="RigwaldsFerocitySupport" skillId="SupportRigwaldsFerocityPlayer" nameSpec="Rigwald&apos;s Ferocity" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMagnifiedEffectTwo" variantId="MagnifiedAreaSupportTwo" skillId="SupportMagnifiedAreaPlayerTwo" nameSpec="Magnified Area II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true" groupCount="2">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gem/SkillGemWindDancer" variantId="WindDancer" skillId="WindDancerPlayer" nameSpec="Wind Dancer" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMagnifiedEffectTwo" variantId="MagnifiedAreaSupportTwo" skillId="SupportMagnifiedAreaPlayerTwo" nameSpec="Magnified Area II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gem/SkillGemCombatFrenzy" variantId="CombatFrenzy" skillId="CombatFrenzyPlayer" nameSpec="Combat Frenzy" corrupted="true" corruptLevel="-1" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemProfusionTwo" variantId="ChargeProfusionSupportTwo" skillId="SupportChargeProfusionPlayerTwo" nameSpec="Charge Profusion II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Tree:11641" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SkillGemAscendancyVirtuousBarrier" variantId="AscendancyGemlingVirtuousBarrier" skillId="VirtuousBarrierPlayer" nameSpec="Virtuous Barrier" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:1:Doom Impaler, Hunting Spear" includeInFullDPS="false" label="" enabled="true" slot="Weapon 1">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SkillGemPlayerDefaultSpearThrow" variantId="PlayerDefaultSpearThrow" skillId="SpearThrowPlayer" nameSpec="Spear Throw" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:2:Bastion Guard, Leather Buckler" includeInFullDPS="false" label="" enabled="true" slot="Weapon 2">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SkillGemParry" variantId="Parry" skillId="ParryPlayer" nameSpec="Parry" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SupportGemHeft" variantId="HeftSupport" skillId="SupportHeftPlayer" nameSpec="Heft" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:3:Winged Spear" includeInFullDPS="false" label="" enabled="true" slot="Weapon 1 Swap">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SkillGemPlayerDefaultSpearThrow" variantId="PlayerDefaultSpearThrow" skillId="SpearThrowPlayer" nameSpec="Spear Throw" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:4:Shrine Sceptre" includeInFullDPS="false" label="" enabled="true" slot="Weapon 2 Swap">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gems/SkillGemPurityOfIce" variantId="PurityOfIce" skillId="PurityOfIcePlayer" nameSpec="Purity of Ice" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:6:Choir of the Storm, Jade Amulet" includeInFullDPS="false" label="" enabled="true" slot="Amulet">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gems/SkillGemLightningBolt" variantId="LightningBolt" skillId="LightningBoltPlayer" nameSpec="Lightning Bolt" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+		</SkillSet>
+		<SkillSet id="2" title="Leveling">
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="5" count="1" gemId="Metadata/Items/Gem/SkillGemTwister" variantId="Twister" skillId="TwisterPlayer" nameSpec="Twister" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:16:Hunting Spear" includeInFullDPS="false" label="" enabled="true" slot="Weapon 1">
+				<Gem level="1" count="1" gemId="Metadata/Items/Gem/SkillGemPlayerDefaultSpearThrow" variantId="PlayerDefaultSpearThrow" skillId="SpearThrowPlayer" nameSpec="Spear Throw" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Endgame">
+			<Input name="enemyIsBoss" string="Boss"/>
+			<Input name="enemyLevel" number="84"/>
+			<Input name="customMods" string="+10% to all Elemental Resistances
+5% increased Attack Speed"/>
+			<Input name="conditionEnemyChilled" boolean="true"/>
+			<Input name="usePowerCharges" boolean="true"/>
+			<Input name="windDancerStacks" number="3"/>
+			<Input name="questAct 4Halls Of The DeadTasalio&apos;s Test" string="+5% to Cold Resistance"/>
+		</ConfigSet>
+		<ConfigSet id="2" title="Leveling">
+		</ConfigSet>
+	</Config>
+</PathOfBuilding2>

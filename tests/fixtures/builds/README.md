@@ -73,3 +73,42 @@ as an older PoB writes one: its text with bare ranges, its rolls (1, 0.25, 0.9, 
 |---|---|
 | Effect | On PoB2 `v0.23.1` unpatched, one save and load moves the wand's rolls: 9% Cast Speed reads 13% and the per-curse gains 29% read 27%. With the bridge's PG-109 patch, the rolls stay (`tests/integration/pg109.test.ts`). |
 | Re-check | On a PoB pin bump: whether PoB's load still skips the rune lines (`Classes/ItemsTab.lua`, `ItemsTabClass:Load`); the retirement test says so. |
+
+## `imported-character.xml`, its code `imported-character.code.txt`, and `imported-ninja.xml` (the file reader, D-517)
+
+Written by hand from the game data (the pin's `Data/Bases`, `Data/Gems.lua`, `Data/Skills`, `Data/ModRunes.lua`,
+`Data/Uniques` and the 0_5 passive tree), not from any player's build, with no character hash and no account name
+(amendment 16 §20). `tests/unit/planFromBuildReader.test.ts` and `tests/mcp/planFromBuild.test.ts` read them through
+`plan_from_build`.
+
+`imported-character.xml` is in PoB2's own importer's shape: a level-90 Mercenary / Gemling Legionnaire with
+`<Import lastRealm lastLeague exportParty>`, every group on, PoB's own granted groups saved after the plain ones, and
+`useSecondWeaponSet="nil"`. It holds:
+
+| Case | Where |
+|---|---|
+| Each granted skill twice (PG-108): a supported plain copy kept over an unsupported one (Spear Throw, granted by the Weapon 1 and Weapon 1 Swap spears: both sets); an unsupported copy at another level than PoB's group's, kept (Virtuous Barrier, 20 against the tree's 1); one at PoB's level, dropped (Lightning Bolt, from Choir of the Storm); a granted group with a support added in desktop PoB kept over an unsupported copy (Parry, from the buckler in Weapon 2) | file groups 1–6, 14–19 |
+| A quality 20 Shrine Sceptre in Weapon 2 Swap, its Purity of Ice copy planted at quality 5 (PG-114) | item 4, group 4 |
+| Every skill on, the Spirit buffs over the Spirit (PG-107) | Herald of Ice, Trinity, Wind Dancer, Combat Frenzy, Blasphemy, Virtuous Barrier |
+| PoB's guessed main group, the one with the most gems, not the damage skill (PG-113) | `mainSocketGroup="11"` (Whirling Slash; Twister is group 7) |
+| A group of two active skills, `mainActiveSkill="2"` | group 10 (Blasphemy, Despair) |
+| `<ModRange range="0.5">` on plain lines; a line whose roll lives only in `<ModRange>` | items 1, 2 and 10 |
+| A soul core on an item whose ranged lines carry `{range:}` tags, with PoB's misnumbered `<ModRange>` copies (PG-109) | item 8, the boots |
+| An item on a base the pin lacks, and a gem the pin lacks (PG-110) | item 7 (Runemastered Plated Mitts), Glacial Bloom in group 8 |
+| A base the pin defines more than once, with no `Implicits:` line (PG-111) | item 9 (Two-Stone Ring) |
+| Crafted, fractured, desecrated and corrupted lines, an Exceptional base's extra socket, a Legacy soul core | item 5, the body armour |
+| A gem corrupted +1 and one corrupted -1 | groups 7 and 13 |
+| A legacy gem | Bloodlust in group 11 |
+| A magic flask and charm, a filled charm slot, a filled `Arm` slot, a tree jewel, attribute choices, weapon-set tags | items 12–15, the spec |
+| Custom modifiers, an enemy setting and a filled party tab, for the measure's callouts | the config set, `<Party>` |
+| A second loadout | spec, item, skill and config sets titled "Leveling" |
+
+`imported-character.code.txt` is the fixture as a PoB2 import code (`encodePobCode`), decoding to it byte for byte.
+
+`imported-ninja.xml` is small, in poe.ninja's export's shape: a level-75 Witch / Lich, `<Import exportParty>` only (no
+league), a spec with no title, its main group set by the export (Essence Drain, group 1), saved on weapon set 2
+(`useSecondWeaponSet="true"`), Mana Drain granted by both wands, and a wand line whose roll lives only in `<ModRange>`.
+
+| | |
+|---|---|
+| Re-check | On a PoB pin bump: whether the bases, gems and nodes they name are still in the pin (the reader names any it lacks). |

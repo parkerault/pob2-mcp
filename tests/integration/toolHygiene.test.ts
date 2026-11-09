@@ -35,6 +35,7 @@
  *   at that path (relative to the guides root), for `compile_plan` and `guide_run` (WU-41);
  * - `"$COUNT_PLAN"`: `tests/fixtures/plans/two-stage-count/plan.json`, the two-stage plan with a group's
  *   `count` and a `config.customMods` entry, copied in the same way (WU-55).
+ * - `"$READ_RUN"`: a run folder holding a `run-log.json`, relative to the guides root, for `plan_from_build` (WU-160).
  */
 import fs from 'fs';
 import os from 'os';
@@ -99,9 +100,12 @@ const goldenXml = fs.readFileSync(GOLDEN, 'utf8');
 const TWO_STAGE_PLAN = 'two-stage/fixture-1/plan.json';
 /** Where `$COUNT_PLAN` puts the two-stage plan with a Count and a custom modifier (WU-55). */
 const COUNT_PLAN = 'two-stage-count/fixture-1/plan.json';
+/** `$READ_RUN`: the run folder `plan_from_build` reads into (WU-160, D-517). */
+const READ_RUN = 'compile/2026-12-01-1';
 const PLACEHOLDERS: Record<string, unknown> = {
   $TWO_STAGE_PLAN: TWO_STAGE_PLAN,
   $COUNT_PLAN: COUNT_PLAN,
+  $READ_RUN: READ_RUN,
   $RUBY_RING_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'ruby-ring.txt'), 'utf8'),
   $JEWEL_TEXT: fs.readFileSync(path.join(FIXTURES, 'items', 'jewel.txt'), 'utf8'),
   $GOLDEN_BUILD_CODE: encodePobCode(goldenXml),
@@ -282,6 +286,8 @@ engineDescribe('AC-F26: tool output hygiene on the golden build', () => {
     fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage', 'plan.json'), path.join(guides, TWO_STAGE_PLAN));
     fs.mkdirSync(path.dirname(path.join(guides, COUNT_PLAN)), { recursive: true });
     fs.copyFileSync(path.join(FIXTURES, 'plans', 'two-stage-count', 'plan.json'), path.join(guides, COUNT_PLAN));
+    fs.mkdirSync(path.join(guides, READ_RUN), { recursive: true });
+    fs.writeFileSync(path.join(guides, READ_RUN, 'run-log.json'), '{"schemaVersion": 4, "piece": "compile", "stages": []}\n');
     http = fixtureFetch([
       { match: /\/api\/trade2\/data\/leagues/, respond: { fixture: 'trade2/data-leagues' } },
       { match: /\/api\/trade2\/data\/stats/, respond: { fixture: 'trade2/data-stats' } },

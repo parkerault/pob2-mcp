@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build characterLevelAutoMode="false" viewMode="TREE" level="75" className="Witch" mainSocketGroup="1" ascendClassName="Lich" targetVersion="0_1">
+	</Build>
+	<Notes>
+	</Notes>
+	<Party destination="All" append="false" ShowAdvanceTools="false"/>
+	<Tree activeSpec="1">
+		<Spec classInternalId="1" classId="1" ascendClassId="3" secondaryAscendClassId="nil" ascendancyInternalId="Witch3" masteryEffects="" treeVersion="0_5" nodes="54447,4739,18845,23710">
+		</Spec>
+	</Tree>
+	<Import exportParty="false"/>
+	<Items useSecondWeaponSet="true" activeItemSet="1" showStatDifferences="true">
+		<Item id="1">
+Rarity: NORMAL
+Attuned Wand
+Item Level: 60
+Implicits: 1
+Grants Skill: Level 15 Mana Drain
+		</Item>
+		<Item id="2">
+Rarity: RARE
+Sorrow Eye
+Attuned Wand
+Item Level: 75
+Quality: 10
+LevelReq: 65
+Implicits: 1
+Grants Skill: Level 18 Mana Drain
+(70-90)% increased Spell Damage
++2 to Level of all Chaos Spell Skills
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.6"/>
+			<ModRange id="3" range="0.5"/>
+		</Item>
+		<ItemSet useSecondWeaponSet="true" title="Default" id="1">
+			<Slot itemId="1" name="Weapon 1" itemPbURL=""/>
+			<Slot itemId="2" name="Weapon 1 Swap" itemPbURL=""/>
+		</ItemSet>
+	</Items>
+	<Skills showLegacyGems="false" defaultGemLevel="normalMaximum" activeSkillSet="1" sortGemsByDPSField="CombinedDPS" showSupportGemTypes="ALL" defaultGemQuality="0" sortGemsByDPS="true">
+		<SkillSet id="1">
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gems/SkillGemEssenceDrain" variantId="EssenceDrain" skillId="EssenceDrainPlayer" nameSpec="Essence Drain" corrupted="false" corruptLevel="0" enabled="true" quality="20"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMagnifiedEffectTwo" variantId="MagnifiedAreaSupportTwo" skillId="SupportMagnifiedAreaPlayerTwo" nameSpec="Magnified Area II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="17" count="1" gemId="Metadata/Items/Gems/SkillGemContagion" variantId="Contagion" skillId="ContagionPlayer" nameSpec="Contagion" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemMagnifiedEffectTwo" variantId="MagnifiedAreaSupportTwo" skillId="SupportMagnifiedAreaPlayerTwo" nameSpec="Magnified Area II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+				<Gem level="1" count="1" gemId="Metadata/Items/Gems/SupportGemProfusionTwo" variantId="ChargeProfusionSupportTwo" skillId="SupportChargeProfusionPlayerTwo" nameSpec="Charge Profusion II" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" includeInFullDPS="false" label="" enabled="true">
+				<Gem level="20" count="1" gemId="Metadata/Items/Gem/SkillGemManaDrain" variantId="ManaDrain" skillId="ManaDrainPlayer" nameSpec="Mana Drain" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:1:Attuned Wand" includeInFullDPS="false" label="" enabled="true" slot="Weapon 1">
+				<Gem level="15" count="1" gemId="Metadata/Items/Gem/SkillGemManaDrain" variantId="ManaDrain" skillId="ManaDrainPlayer" nameSpec="Mana Drain" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" source="Item:2:Sorrow Eye, Attuned Wand" includeInFullDPS="false" label="" enabled="true" slot="Weapon 1 Swap">
+				<Gem level="18" count="1" gemId="Metadata/Items/Gem/SkillGemManaDrain" variantId="ManaDrain" skillId="ManaDrainPlayer" nameSpec="Mana Drain" corrupted="false" corruptLevel="0" enabled="true" quality="0"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default">
+			<Input name="conditionEnemyPoisoned" boolean="true"/>
+		</ConfigSet>
+	</Config>
+</PathOfBuilding2>

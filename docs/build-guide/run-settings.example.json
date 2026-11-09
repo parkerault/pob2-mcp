@@ -10,6 +10,7 @@
       "Bash(pob2-render-notes:*)",
       "mcp__pob2__compile_plan",
       "mcp__pob2__guide_run",
+      "mcp__pob2__plan_from_build",
       "mcp__pob2__get_node_power",
       "mcp__pob2__manage_sets",
       "mcp__pob2__lookup_game_data",

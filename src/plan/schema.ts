@@ -104,6 +104,17 @@
  * modifiers. The compiler sends the gems' qualities to `compile_check` from version 11 only
  * (`GRANTED_QUALITY_SINCE`), so an older plan is never refused for it.
  *
+ * **A plan read from a player's file and Spirit buffs switched as needed** (amendment 16 §13 and §14, Appendix A.5, version
+ * 11; WU-160). M-30 adds, each a version-11 addition:
+ * - `stages[].source {kind, name?, sha1, loadout}` (D-517): the file a read stage came from (a builds-folder file or an
+ *   import code), its sha1 and the loadout read; `plan_from_build` writes it, and `buildSha1` leaves it out (a `source`).
+ * - `owned: true` on a slot, a tree jewel or a group, and `standIn: true` on a slot (D-517): the character's own content, as
+ *   the reader took it from the file, and a slot's stand-in for an item on a base the pin lacks (PG-110). Only the reader
+ *   marks them; the compile's exemptions for owned content are C-41's (D-519).
+ * - `config.file` (D-517): the file's config set as set, each PoB input by name and value, its custom modifiers among them.
+ * - a group's `switch {when, off}` (D-518): a buff switched as needed, written with `enabled: false`; `when` says when to
+ *   switch it on, `off` the plan's groups switched off for it (each a group of the stage, not the group itself).
+ *
  * The cross-reference rules (the † rules of §3.2) run as zod refinements, each adding its issue at its
  * own path. The rules that need the C1/E1 data files (each `progress` a C1 key, each `data:` claim a
  * loaded fact; C-35, `referenceData.ts`) run when `validatePlan` is given the loaded data.
@@ -352,7 +363,14 @@ export const PINNED_SLOTS: Readonly<Record<string, string>> = { 'Weapon 1 Swap':
 
 /** One filled slot: its item's text, or (D-464, schema 9) on a Swap weapon slot `sameAs`, the set-1 slot it shares. */
 const slotEntrySchema = z
-  .object({ slot: z.enum(ITEM_SLOTS), text: text('text').optional(), sameAs: z.enum(ITEM_SLOTS).optional() })
+  .object({
+    slot: z.enum(ITEM_SLOTS),
+    text: text('text').optional(),
+    sameAs: z.enum(ITEM_SLOTS).optional(),
+    // D-517 (schema 11): the character's own item, as the file reader took it, and a stand-in for one on a base the pin lacks.
+    owned: z.literal(true).optional(),
+    standIn: z.literal(true).optional(),
+  })
   .strict()
   .superRefine((e, ctx) => {
     if (e.text !== undefined && e.sameAs !== undefined) {
@@ -366,7 +384,8 @@ const itemsSchema = z
   .object({
     setTitle: setTitle.optional(),
     slots: z.array(slotEntrySchema),
-    treeJewels: z.array(z.object({ node: nodeId, text: text('text') }).strict()),
+    // D-517 (schema 11): `owned`, a jewel the file reader took from the character's file.
+    treeJewels: z.array(z.object({ node: nodeId, text: text('text'), owned: z.literal(true).optional() }).strict()),
     toggles: z.array(toggleSchema),
     useSecondWeaponSet: z.boolean(),
     anoint: anointSchema.optional(),
@@ -428,6 +447,14 @@ const bossSchema = z
   })
   .strict();
 
+/** D-518 (schema 11): a buff switched as needed: `when` to switch it on, a short player-facing phrase, and `off`, the plan's groups switched off for it. */
+const switchSchema = z
+  .object({
+    when: text('when'),
+    off: z.array(z.number().int({ message: 'an off entry is a group number' }).min(1, { message: 'an off entry is a group number, from 1' })),
+  })
+  .strict();
+
 const skillsSchema = z
   .object({
     setTitle: setTitle.optional(),
@@ -455,11 +482,18 @@ const skillsSchema = z
             .min(1, { message: 'weaponSet is 1 or 2' })
             .max(2, { message: 'weaponSet is 1 or 2' })
             .optional(),
+          // D-517 (schema 11): the character's own group, as the file reader took it.
+          owned: z.literal(true).optional(),
+          // D-518 (schema 11): a buff switched as needed: when to switch it on, and the plan's groups switched off for it.
+          switch: switchSchema.optional(),
         })
         .strict()
         .superRefine((g, ctx) => {
           if (g.minionStatSet !== undefined && g.minionSkill === undefined) {
             issue(ctx, ['minionStatSet'], "minionStatSet selects the stat set of the group's minion skill, so it needs minionSkill (D-377)");
+          }
+          if (g.switch !== undefined && g.enabled) {
+            issue(ctx, ['enabled'], 'a switched group is written disabled: enabled is false, so its reservation stays out of the measured numbers (D-518)');
           }
         }),
     ),
@@ -517,6 +551,8 @@ const configSchema = z
     earned: z.array(earnedSchema),
     scenario: z.array(scenarioSchema),
     customMods: z.array(customModSchema).optional(),
+    // D-517 (schema 11): the file's config set as set, each PoB input by name and value, custom modifiers among them.
+    file: z.record(z.string().min(1, { message: 'an input name is not empty' }), configValue).optional(),
   })
   .strict()
   .superRefine((config, ctx) => {
@@ -587,6 +623,19 @@ const defenceSchema = z
   })
   .strict();
 
+/** D-517 (schema 11): where a read stage came from: a builds-folder file or an import code. */
+export const READ_SOURCE_KINDS = ['builds-folder', 'import-code'] as const;
+
+/** D-517 (schema 11): a read stage's source: the file's kind, its name (a builds-folder file's), its sha1 and the loadout read. */
+const readSourceSchema = z
+  .object({
+    kind: z.enum(READ_SOURCE_KINDS),
+    name: text('name').optional(),
+    sha1: z.string().regex(/^[0-9a-f]{40}$/, { message: 'sha1 is 40 lowercase hex digits' }),
+    loadout: text('loadout'),
+  })
+  .strict();
+
 const VARIANT_FIELDS = ['variant', 'ascendancyPoints', 'variantBasis'] as const;
 
 const stageSchema = z
@@ -613,6 +662,8 @@ const stageSchema = z
     companion: companionSchema.optional(),
     // D-451 (schema 8): the stage's defence plan.
     defence: defenceSchema.optional(),
+    // D-517 (schema 11): the file a read stage came from.
+    source: readSourceSchema.optional(),
   })
   .strict()
   .superRefine((s, ctx) => {
@@ -650,6 +701,14 @@ const stageSchema = z
       else if (!isAscendancyJewelSocket(j.node)) {
         issue(ctx, at, `ascendancy node ${j.node} has no jewel socket: only an ascendancy node that contains one (Crystalline Phylactery, 17788) holds a tree jewel (D-492)`);
       }
+    });
+    // D-518 (schema 11): a switch's off list names other groups of the stage.
+    s.skills.groups.forEach((g, i) => {
+      (g.switch?.off ?? []).forEach((n, k) => {
+        const at = ['skills', 'groups', i, 'switch', 'off', k];
+        if (n === i + 1) issue(ctx, at, `group ${n} is the switched group itself; off lists the groups switched off for it (D-518)`);
+        else if (s.skills.groups[n - 1] === undefined) issue(ctx, at, `group ${n} names no group; the stage has ${s.skills.groups.length}`);
+      });
     });
   });
 
@@ -994,6 +1053,43 @@ const VERSION_ADDITIONS: readonly VersionAddition[] = [
     what: "the plan's one-item swaps, itemSwaps (D-481)",
     before: 'no swap record',
     uses: (plan) => (plan.itemSwaps !== undefined ? [['itemSwaps']] : []),
+  },
+  {
+    since: 11,
+    what: "a read stage's source, stages[].source (D-517)",
+    before: 'no read stage',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.source !== undefined ? [['stages', i, 'source']] : [])),
+  },
+  {
+    since: 11,
+    what: 'owned content, owned (D-517)',
+    before: 'no owned content',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) => [
+        ...s.items.slots.flatMap((e, k) => (e.owned !== undefined ? [['stages', i, 'items', 'slots', k, 'owned']] : [])),
+        ...s.items.treeJewels.flatMap((j, k) => (j.owned !== undefined ? [['stages', i, 'items', 'treeJewels', k, 'owned']] : [])),
+        ...s.skills.groups.flatMap((g, k) => (g.owned !== undefined ? [['stages', i, 'skills', 'groups', k, 'owned']] : [])),
+      ]),
+  },
+  {
+    since: 11,
+    what: "a slot's stand-in, standIn (D-517)",
+    before: 'no stand-in',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) => s.items.slots.flatMap((e, k) => (e.standIn !== undefined ? [['stages', i, 'items', 'slots', k, 'standIn']] : []))),
+  },
+  {
+    since: 11,
+    what: "a file's configuration, config.file (D-517)",
+    before: 'no configuration from a file',
+    uses: (plan) => plan.stages.flatMap((s, i) => (s.config.file !== undefined ? [['stages', i, 'config', 'file']] : [])),
+  },
+  {
+    since: 11,
+    what: "a switched buff, a group's switch (D-518)",
+    before: 'every buff on as its group is',
+    uses: (plan) =>
+      plan.stages.flatMap((s, i) => s.skills.groups.flatMap((g, k) => (g.switch !== undefined ? [['stages', i, 'skills', 'groups', k, 'switch']] : []))),
   },
   {
     since: 10,

@@ -87,6 +87,8 @@ export const TOOL_META: Record<string, ToolMeta> = {
   // C-50: run folders and plan validation. A call carrying new_run never touches the engine: the router runs
   // it as `none` (D-216, `engineKindFor`); validate is a read.
   guide_run: core('read'),
+  // C-62 (D-517): a player's PoB file read into a plan in a run folder, engine-free (file reads and run-folder writes)
+  plan_from_build: core('none'),
 
   // Engine mutations
   select_spec: core('mutate'),

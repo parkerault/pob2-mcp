@@ -122,6 +122,8 @@ describe('WU-98 (D-420, D-421): docs/build-guide/run-settings.example.json', () 
     const pob2 = new Set([
       `${POB2}compile_plan`,
       `${POB2}guide_run`,
+      // D-517 (WU-160): the runner calls the file reader, as it calls guide_run.
+      `${POB2}plan_from_build`,
       `${POB2}get_node_power`,
       `${POB2}manage_sets`,
       ...coordinatorTools().filter((t) => t.startsWith(POB2) && !isTradeOrNinja(t)),

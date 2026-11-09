@@ -18,6 +18,12 @@
  *
  * It parses the XML with `fast-xml-parser`, as the build service does, so it lives here, not in `src/plan/`, whose modules
  * import no package but zod (AC-P12, D-170); the compiler's read-back mode (`readBackFile`) calls it.
+ *
+ * D-517 (amendment 16 §13): `plan_from_build`'s file reader (`fileReader.ts`) extends the same parser with what a player's
+ * file needs and read-back reads none of: the `<Build>`'s attributes, the active sets, `<Import>`'s `lastLeague` and
+ * `exportParty` (never its character hash), whether the party tab is filled, each `<Spec>`'s weapon-set tags, an item
+ * set's `useSecondWeaponSet` and activation flags, a group's `source`, `mainActiveSkill` and `groupCount`, a gem's ids,
+ * `count` and `corruptLevel`, each item's `<ModRange>` and each config input's type. Read-back's own fields are unchanged.
  */
 import { XMLParser } from 'fast-xml-parser';
 
@@ -34,6 +40,8 @@ export interface PobSpec {
   sockets: Map<number, string>;
   /** Attribute node → its chosen attribute (`<AttributeOverride>`). */
   attributes: Map<number, AttributeName>;
+  /** D-517: the nodes tagged to weapon set 1 and 2 (`<WeaponSet1 nodes>`, `<WeaponSet2 nodes>`). */
+  weaponSets: { set1: number[]; set2: number[] };
 }
 
 export interface PobSet {
@@ -44,6 +52,10 @@ export interface PobSet {
 export interface PobItemSet extends PobSet {
   /** Slot name → item id, for the slots that hold an item. */
   slots: Map<string, string>;
+  /** D-517: the set's `useSecondWeaponSet`, true only for "true", as PoB reads it (`Classes/ItemsTab.lua`:1153). */
+  useSecondWeaponSet: boolean;
+  /** D-517: slot name → its `active` flag (a flask's or charm's activation), for the slots that hold an item. */
+  active: Map<string, boolean>;
 }
 
 export interface PobGem {
@@ -51,6 +63,14 @@ export interface PobGem {
   level: string;
   quality: string;
   enabled: boolean;
+  /** D-517: the gem's attributes as written (`""` when absent): its ids, its name, `count`, `corruptLevel`, `enabled`. */
+  skillId: string;
+  gemId: string;
+  variantId: string;
+  nameSpec: string;
+  count: string;
+  corruptLevel: string;
+  enabledAttr: string;
 }
 
 export interface PobGroup {
@@ -58,6 +78,12 @@ export interface PobGroup {
   slot: string;
   enabled: boolean;
   gems: PobGem[];
+  /** D-517: the group's attributes as written (`""` when absent): PoB's `source` (a granted group), `mainActiveSkill`, `groupCount`, `enabled` and `active`. */
+  source: string;
+  mainActiveSkill: string;
+  groupCount: string;
+  enabledAttr: string;
+  activeAttr: string;
 }
 
 export interface PobSkillSet extends PobSet {
@@ -67,6 +93,14 @@ export interface PobSkillSet extends PobSet {
 export interface PobConfigSet extends PobSet {
   /** Input name → its value as written (`string`, `number` or `boolean`). */
   inputs: Map<string, string>;
+  /** D-517: input name → its value typed as its attribute names it (a `number` input a number, a `boolean` one true or false). */
+  typed: Map<string, string | number | boolean>;
+}
+
+/** D-517: one `<ModRange>` of an item, PoB's second copy of a roll: the mod line it numbers and the roll. */
+export interface PobModRange {
+  id: number;
+  range: number;
 }
 
 export interface PobFile {
@@ -76,9 +110,21 @@ export interface PobFile {
   itemSets: PobItemSet[];
   skillSets: PobSkillSet[];
   configSets: PobConfigSet[];
+  /** D-517: the `<Build>` element's attributes (class, ascendancy, level, `mainSocketGroup`, …). */
+  build: Record<string, string>;
+  /** D-517: the active spec (its 1-based place in `<Tree>`), item set, skill set and config set (their ids), as written. */
+  active: { spec: string; itemSet: string; skillSet: string; configSet: string };
+  /** D-517: `<Import>`'s `lastLeague` and `exportParty` when present; nothing else of it (never the character hash). */
+  importInfo: { lastLeague?: string; exportParty?: string } | null;
+  /** D-517: whether the party tab holds anything (a child of `<Party>`). */
+  partyFilled: boolean;
+  /** D-517: item id → its `<ModRange>` elements, in the file's order. */
+  modRanges: Map<string, PobModRange[]>;
 }
 
-const ARRAYS = new Set(['Spec', 'Socket', 'AttributeOverride', 'Item', 'ItemSet', 'Slot', 'SkillSet', 'Skill', 'Gem', 'ConfigSet', 'Input']);
+const ARRAYS = new Set([
+  'Spec', 'Socket', 'AttributeOverride', 'Item', 'ItemSet', 'Slot', 'SkillSet', 'Skill', 'Gem', 'ConfigSet', 'Input', 'ModRange',
+]);
 
 type Node = Record<string, unknown>;
 
@@ -133,19 +179,31 @@ export function parsePobXml(xml: string): PobFile {
       for (const id of idList(o.dexNodes)) attributes.set(id, 'Dexterity');
       for (const id of idList(o.intNodes)) attributes.set(id, 'Intelligence');
     }
-    return { title: str(spec.title) || 'Default', treeVersion: str(spec.treeVersion), nodes: idList(spec.nodes), sockets, attributes };
+    const weaponSets = { set1: idList(child(spec, 'WeaponSet1')?.nodes), set2: idList(child(spec, 'WeaponSet2')?.nodes) };
+    return { title: str(spec.title) || 'Default', treeVersion: str(spec.treeVersion), nodes: idList(spec.nodes), sockets, attributes, weaponSets };
   });
 
   const itemsNode = child(root, 'Items');
   const items = new Map<string, string[]>();
-  for (const item of asNodes(itemsNode?.Item)) items.set(str(item.id), itemLines(item));
+  const modRanges = new Map<string, PobModRange[]>();
+  for (const item of asNodes(itemsNode?.Item)) {
+    items.set(str(item.id), itemLines(item));
+    const ranges = asNodes(item.ModRange)
+      .map((r) => ({ id: Number(str(r.id)), range: Number(str(r.range)) }))
+      .filter((r) => Number.isInteger(r.id) && Number.isFinite(r.range));
+    if (ranges.length > 0) modRanges.set(str(item.id), ranges);
+  }
   const itemSets: PobItemSet[] = asNodes(itemsNode?.ItemSet).map((set) => {
     const slots = new Map<string, string>();
+    const active = new Map<string, boolean>();
     for (const slot of asNodes(set.Slot)) {
       const id = str(slot.itemId);
-      if (id !== '' && id !== '0') slots.set(str(slot.name), id);
+      if (id !== '' && id !== '0') {
+        slots.set(str(slot.name), id);
+        active.set(str(slot.name), str(slot.active) === 'true');
+      }
     }
-    return { id: str(set.id), title: str(set.title) || 'Default', slots };
+    return { id: str(set.id), title: str(set.title) || 'Default', slots, useSecondWeaponSet: str(set.useSecondWeaponSet) === 'true', active };
   });
 
   const skillsNode = child(root, 'Skills');
@@ -158,7 +216,19 @@ export function parsePobXml(xml: string): PobFile {
       level: str(g.level),
       quality: str(g.quality),
       enabled: str(g.enabled) !== 'false',
+      skillId: str(g.skillId),
+      gemId: str(g.gemId),
+      variantId: str(g.variantId),
+      nameSpec: str(g.nameSpec),
+      count: str(g.count),
+      corruptLevel: str(g.corruptLevel),
+      enabledAttr: str(g.enabled),
     })),
+    source: str(skill.source),
+    mainActiveSkill: str(skill.mainActiveSkill),
+    groupCount: str(skill.groupCount),
+    enabledAttr: str(skill.enabled),
+    activeAttr: str(skill.active),
   });
   let skillSets: PobSkillSet[] = asNodes(skillsNode?.SkillSet).map((set) => ({
     id: str(set.id),
@@ -177,14 +247,52 @@ export function parsePobXml(xml: string): PobFile {
     }
     return inputs;
   };
+  // D-517: each input typed as its attribute names it, as PoB's ConfigTab:Load reads it.
+  const typedOf = (n: Node): Map<string, string | number | boolean> => {
+    const typed = new Map<string, string | number | boolean>();
+    for (const input of asNodes(n.Input)) {
+      const name = str(input.name);
+      if (name === '') continue;
+      if (input.number !== undefined) {
+        const v = Number(str(input.number));
+        if (Number.isFinite(v)) typed.set(name, v);
+      } else if (input.boolean !== undefined) typed.set(name, str(input.boolean) === 'true');
+      else if (input.string !== undefined) typed.set(name, str(input.string));
+    }
+    return typed;
+  };
   let configSets: PobConfigSet[] = asNodes(configNode?.ConfigSet).map((set) => ({
     id: str(set.id),
     title: str(set.title) || 'Default',
     inputs: inputsOf(set),
+    typed: typedOf(set),
   }));
-  if (configSets.length === 0 && configNode !== undefined) configSets = [{ id: '1', title: 'Default', inputs: inputsOf(configNode) }];
+  if (configSets.length === 0 && configNode !== undefined) {
+    configSets = [{ id: '1', title: 'Default', inputs: inputsOf(configNode), typed: typedOf(configNode) }];
+  }
 
-  return { specs, items, itemSets, skillSets, configSets };
+  // D-517: what the file reader needs of the rest of the file.
+  const buildNode = child(root, 'Build');
+  const build: Record<string, string> = {};
+  for (const [k, v] of Object.entries(buildNode ?? {})) if (typeof v !== 'object') build[k] = str(v);
+  const importNode = child(root, 'Import');
+  const importInfo =
+    importNode === undefined
+      ? null
+      : {
+          ...(importNode.lastLeague !== undefined ? { lastLeague: str(importNode.lastLeague) } : {}),
+          ...(importNode.exportParty !== undefined ? { exportParty: str(importNode.exportParty) } : {}),
+        };
+  const partyNode = child(root, 'Party');
+  const partyFilled = partyNode !== undefined && Object.entries(partyNode).some(([k, v]) => typeof v === 'object' && v !== null && k !== '#text');
+  const active = {
+    spec: str(child(root, 'Tree')?.activeSpec),
+    itemSet: str(itemsNode?.activeItemSet),
+    skillSet: str(skillsNode?.activeSkillSet),
+    configSet: str(configNode?.activeConfigSet),
+  };
+
+  return { specs, items, itemSets, skillSets, configSets, build, active, importInfo, partyFilled, modRanges };
 }
 
 // ---------------------------------------------------------------------------------------------------

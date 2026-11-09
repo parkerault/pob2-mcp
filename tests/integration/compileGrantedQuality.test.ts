@@ -19,7 +19,7 @@
  *
  * §26: every schema-10 plan fixture compiles to its old record. The two are the Lich plan and the pipeline fixture
  * `tests/fixtures/pipeline/run-a14/builds/r1-a-2/plan.json`; `tests/fixtures/plans/schema11/` holds what each gave at the
- * integration head before WU-154 (`25777ed`): the Lich plan's compile record, less the fields that change on every
+ * integration head before WU-154 (`b475db9`): the Lich plan's compile record, less the fields that change on every
  * compile (`compiledAt`, `importCode`, `timing`, `pobFile`, each stage's `elapsedMs`), and the pipeline plan's 26
  * defects (a mock plan that never compiled).
  */

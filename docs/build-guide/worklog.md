@@ -7049,7 +7049,7 @@ What the coordinator folded (revision 2, approved):
   both waiver files `[]`.
 - **Wave 1 dispatched:** WU-151 (running leagues), WU-152 (the patch frame and PG-106) and WU-156 (the small fixes),
   each a doer in its own lane (`bg-151`, `bg-152`, `bg-156`) with one brief for every M-29 unit.
-- **WU-156's doer** finished at `2acbd75` on `bg/wu-156` (one commit; 0.29M subagent tokens). Its own gate rc 0 (243
+- **WU-156's doer** finished at `e0166a2` on `bg/wu-156` (one commit; 0.29M subagent tokens). Its own gate rc 0 (243
   suites, 4,293 tests), build rc 0. Hand counts at `a8d735c` under D-513's rule: R1b 67,356, D1-build 82,765, D2-gate
   23,812, as the survey's simulation gave; every stage on today's tree 0.5% to 1.6% under its baseline. The 13
   pipeline fixtures' checker results equal `cf16e07`'s (12 pass; `run-rival` exits 1 under both). Deviations: the two
@@ -7065,13 +7065,13 @@ What the coordinator folded (revision 2, approved):
   and drops the exemption. (2) `skills/build-guide/references/pricing.md`:450 says the league facts carry "`end` for a
   league that ended", but the running leagues now carry one too; wording only, routed to WU-158 ("`end` once one is
   recorded").
-- **WU-156's gate verifier** (fresh) passed `2acbd75`: gate from clean rc 0 (243 suites, 4,293 tests; the timing step
+- **WU-156's gate verifier** (fresh) passed `e0166a2`: gate from clean rc 0 (243 suites, 4,293 tests; the timing step
   2 suites, 4 tests), build rc 0. Its own hand counts at `a8d735c` agree (R1b 67,356, D1-build 82,765, D2-gate
   23,812); `--at a8d735c --json` equals the baseline's section byte for byte; the tests bite (the exclusion removed: 7
   fail; own names excluded too: 3; build-guide's stages only: the any-piece case). `prices.json` matches §10's table.
   The checker on all 13 fixtures from trees at `cf16e07` and at the head: identical but for the folder path. Waivers
   `[]`; dependencies, pin, `vendor/` and `docs/` unchanged.
-- **WU-156 (the small fixes) merged** at `2acbd75` (fast-forward). AC-W139: `tests/unit/wordsLoaded.test.ts`; AC-W141:
+- **WU-156 (the small fixes) merged** at `e0166a2` (fast-forward). AC-W139: `tests/unit/wordsLoaded.test.ts`; AC-W141:
   `tests/static/buildGuidePipeline.test.ts` (the AC-W141 and D-373 tests); AC-W142:
   `tests/static/amendment15GameKnowledge.test.ts` (the AC-W142 block).
   - **AC-W162's list, WU-156:** `wordsLoaded.test.ts` (the derivation's exclusion, the baseline read by section, the
@@ -7087,12 +7087,12 @@ What the coordinator folded (revision 2, approved):
   `node <root>/skills/game-knowledge/scripts/leagues.mjs` command exempted from AC-W115's "every run command is a
   `bin/` command" check. **The coordinator's call:** the exemption is forced: §3 (:218) and C-59 give that command
   form, and the spec wins over amendment 15's check; recorded as a departure for WU-158's notes.
-- **WU-151's rebase round** (sent before verification): rebase onto `338f03d`, keep both units' lines in game
+- **WU-151's rebase round** (sent before verification): rebase onto `288d7d2`, keep both units' lines in game
   knowledge's `SKILL.md`, write the league bullet's search as `grep` and drop WU-156's `leagueBullet` exemption (the
   review's low finding), check every stage's words within 5% of WU-156's new baseline, then its gate again.
 - **WU-152's doer** finished at `afc42eb` on `bg/wu-152` (two commits; 0.29M subagent tokens). Its own gate rc 0 (246
   suites, 4,304 tests), build rc 0, after one failure on `advice.test.ts`'s golden case. Rebased by the coordinator onto
-  `338f03d` (no overlapping files): head `4c07cbe`. Changed assertions: AC-A1's golden case expects no skill-slot line
+  `288d7d2` (no overlapping files): head `4a42ba2`. Changed assertions: AC-A1's golden case expects no skill-slot line
   (its Grenade is a crossbow's granted skill, so the recount gives 9 groups against 9 slots; D-510, inside M-29's
   HG-12 grant); PG-103's retirement case split into a setup case and the bug case (D-509; no value changed).
   Deviations: PG-109 and PG-114 laid out as full entries with `stub = true` and a refusing `apply`, which bootstrap 5d
@@ -7100,7 +7100,7 @@ What the coordinator folded (revision 2, approved):
   `deadModules.test.ts`); the cut rules (anchors unique, whitespace-trimmed match, the sha1 over CRLF-ended lines, as
   `manifestSha1`); the switched mark `Patches.SWITCHED = 'pob2Switched'`, a field PoB doesn't save (WU-161 sets it);
   `M.wrap` wraps only a method defined on the class itself. Gate verifier and reviewer dispatched in parallel.
-- **WU-151's rebase round** at `5be4037` (three commits on `338f03d`): one conflict, game knowledge's league hunk,
+- **WU-151's rebase round** at `5be4037` (three commits on `288d7d2`): one conflict, game knowledge's league hunk,
   resolved keeping both units' lines; the league bullet names `grep` through Bash; the `leagueBullet` exemption removed
   from `amendment15GameKnowledge.test.ts` (the no-Grep check fails with "its body by Grep" put back: 1 of 20). Words
   loaded against WU-156's baseline: every stage within 5% (highest Q:researcher +0.6%). Its gate rc 0 (245 suites,
@@ -7117,7 +7117,7 @@ What the coordinator folded (revision 2, approved):
     newer PoB saved, the file reader's case at 1.0), so its group counts nothing; PoB counts it
     (`Classes/SkillsTab.lua`:1577–1581, `provided` nil). Fix: an unresolved enabled gem is an ungranted active gem.
   Fix round to the doer after the gate verifier frees the lane.
-- **WU-152's gate verifier** (fresh) passed `4c07cbe`: gate from clean rc 0 (246 suites, 4,312 tests; the timing step
+- **WU-152's gate verifier** (fresh) passed `4a42ba2`: gate from clean rc 0 (246 suites, 4,312 tests; the timing step
   2 suites, 4 tests), build rc 0. Its own hashes of PG-106's function and PG-103's line match; the fingerprint script
   exits 1 naming PG-106 and the file on a changed line; three mutations bite (recount removed, revert a no-op, switched
   mark ignored). AC-A1's golden case: Grenade is `fromItem` (`other.lua`:7881), Virtuous Barrier `fromTree` (:19588),
@@ -7147,31 +7147,31 @@ What the coordinator folded (revision 2, approved):
   assertion traces to D-507 or §24's revision 15; the 13 fixtures identical under `cf16e07`'s checker and the head's.
   Waivers `[]`; `SKILL.md` 317 lines, game knowledge's 125. Wording nits (comments and two references) joined the fix
   round, which was sent to the doer with the review's four.
-- **WU-152's fix round** at `4130f96`: the two bug cases return before their assertion when the setup value is unset
+- **WU-152's fix round** at `2ab5b30`: the two bug cases return before their assertion when the setup value is unset
   (a setup case made to throw: only it fails); an enabled gem with no granted effect counts its group, with a new case
   (a gem id the pin lacks: 10 patched and 10 by PoB's own count; 9 under the old rule). No fingerprint moved. The
   doer's gate rc 0 (246 suites, 4,313 tests), build rc 0. **Re-check by the coordinator:** read the diff (3 files, 53
   lines), re-ran the six suites (41 tests pass) and `scripts/patch-fingerprints.mjs` (rc 0); the verifier's full gate
-  at `4c07cbe` stands for the rest.
-- **WU-152 (the patch frame and PG-106) merged** at `4130f96` (fast-forward, three commits on `338f03d`). AC-W133:
+  at `4a42ba2` stands for the rest.
+- **WU-152 (the patch frame and PG-106) merged** at `2ab5b30` (fast-forward, three commits on `288d7d2`). AC-W133:
   `tests/static/patchFingerprints.test.ts`, `tests/integration/patches.test.ts`; AC-W134:
   `tests/integration/pg106.test.ts`, `skillSlots.test.ts` unchanged.
   - **AC-W162's list, WU-152:** `advice.test.ts`, AC-A1's golden case: no skill-slot line (D-510; its Grenade is the
     crossbow's), plus a colour-code check on the low-Strength lines (an addition); `parseFixes.test.ts`, PG-103's
     retirement case split into a setup case and the bug case, guarded (D-509; no value changed).
 - **Wave 2 dispatched:** WU-153 (PG-109, rune rolls) and WU-154 (PG-114, a granted skill's quality, and PG-115's
-  check), each in its own lane off `25777ed`, each filling its own stub block in `Patches.lua`, its own `STUBS` line
+  check), each in its own lane off `b475db9`, each filling its own stub block in `Patches.lua`, its own `STUBS` line
   and its own `pob-gaps.md` entry.
 - **WU-151's fix round** at `1cf761c`: the run-log and checker cases run on a layout holding only the two 0.5 digests
   (a committed 1.0 digest can't move them); every real-clock test spawns with `BUILD_GUIDE_TEST_NOW` set to the
   helper's `TEST_NOW` and computes its expectation at the same instant; `leagues.mjs`'s main guard compares both real
   paths, with a test through a symlinked root (fails on the old guard); `patterns.md` names
   `skills/game-knowledge/scripts/leagues.mjs`'s list (the bare name fails AC-W115's check); the wording nits. The
-  doer's gate rc 0 (245 suites, 4,314 tests), build rc 0. Rebased by the coordinator onto `25777ed` (no overlap with
-  WU-152): head `abbc81c`. **Re-check by the coordinator:** read the code changes; on the rebased tree `pnpm build` rc 0,
+  doer's gate rc 0 (245 suites, 4,314 tests), build rc 0. Rebased by the coordinator onto `b475db9` (no overlap with
+  WU-152): head `b62158f`. **Re-check by the coordinator:** read the code changes; on the rebased tree `pnpm build` rc 0,
   all of `tests/static` and the build-guide unit suites 1,897 of 1,897, `words-loaded.mjs` rc 0. The verifier's full
   gate at `5be4037` stands for the rest.
-- **WU-151 (running leagues) merged** at `abbc81c` (fast-forward, four commits on `25777ed`). AC-W130:
+- **WU-151 (running leagues) merged** at `b62158f` (fast-forward, four commits on `b475db9`). AC-W130:
   `tests/unit/runningLeagues.test.ts`; AC-W131: `tests/unit/leagueDigest.test.ts` (the AC-W131 block); AC-W132:
   `tests/static/runningLeagueReaders.test.ts`. Skill revision 15.
   - **AC-W162's list, WU-151:** `leagueDigest.test.ts`'s line-3 pins (D-507, A.1); `buildGuideScripts.test.ts` and
@@ -7192,15 +7192,15 @@ What the coordinator folded (revision 2, approved):
   :268; `compileMovementTier.test.ts`:161) leave out `pobFile.bytes` and check the size went down (D-511, C-41).
   Deviations: D-399's as-built note now holds only for items with no `{range:` tag (for WU-158's spine note); rolls come
   from the text, rounded to three decimals (`Classes/Item.lua`:1463), the rounding §7 accepts; comments avoid the
-  literal `lua_save_build` (`saveBuildRemoved.test.ts`). Rebased by the coordinator onto `6aa96b3` (no overlap): head
-  `d980bf2`. Gate verifier and reviewer dispatched.
+  literal `lua_save_build` (`saveBuildRemoved.test.ts`). Rebased by the coordinator onto `8687ec5` (no overlap): head
+  `2f45fd0`. Gate verifier and reviewer dispatched.
 - **WU-154's doer** finished at `dda3a31` on `bg/wu-154` (one commit; 0.40M subagent tokens). Its own gate rc 0 (249
   suites, 4,333 tests), build rc 0. The wrap on `ProcessSocketGroup` with `M.gives_quality(item)` (Wand, Sceptre, Staff
   but not Warstaff); `compile_check`'s `check_granted_quality` from schema 11 (`GRANTED_QUALITY_SINCE = 11`; the
   stage's slots, tree jewels and allocated passives); `plan-reference.md` (version 11, the quality rule, D-359's item
   support slots); `pob-gaps.md`'s PG-114 with both real cases' facts from §8. Two schema-10 old records recorded at
-  `25777ed` under `tests/fixtures/plans/schema11/`. Changed assertions: seven plan-schema tests' version pins (the
-  invalid version 11→12; D-512's bump) and PG-114's `STUBS` line. Rebased by the coordinator onto `6aa96b3` (no
+  `b475db9` under `tests/fixtures/plans/schema11/`. Changed assertions: seven plan-schema tests' version pins (the
+  invalid version 11→12; D-512's bump) and PG-114's `STUBS` line. Rebased by the coordinator onto `8687ec5` (no
   overlap): head `4f671a7`. Gate verifier and reviewer dispatched, each told to check the two points below.
   - **PG-115, not recorded:** the doer's fixture wand ("+2 to Level of all Spell Skills", a quality modifier) reads
     level 22 and quality 25: PoB resolves every "Grants Skill:" line through a lookup built from `data.gems`
@@ -7226,18 +7226,18 @@ What the coordinator folded (revision 2, approved):
   says "`export_build` with notes"; (3) `pob-gaps.md`:734–735's Effect bullet into the past tense, as PG-106's.
   For WU-158: D-399's as-built note (a stored roll survives a save only on an item with no `{range:` tag; a
   PoB-written file's save is no longer "canonically unchanged", the golden's 80 `<ModRange>` lines drop).
-- **WU-153's gate verifier** (fresh) passed `d980bf2`: gate from clean rc 0 (249 suites, 4,345 tests; the timing step
+- **WU-153's gate verifier** (fresh) passed `2f45fd0`: gate from clean rc 0 (249 suites, 4,345 tests; the timing step
   2 suites, 4 tests), build rc 0. Mutations on a temp copy bite every clause of AC-W135 (save wrap removed, load wrap a
   pass-through, load drop on every item, `dropModRangeCopies` a no-op or dropping everywhere); a PoB whose own Load no
   longer moves the rolls fails only the retirement case; the copies fixture matches PoB's own save of the wand; a probe
   without `ItemsTab.Load` shows apply refusing with Save restored. The old-record tests fail only on `$.pobFile.bytes`
   with the patch on and pass with the drop off, so §26 holds for every figure. Waivers `[]`; no tool description
   changed. Small fix round (the review's three lows) sent to the doer; targeted re-check after it.
-- **WU-153's fix round** at `b77d0f6`: the retirement case asserts the moved rolls (13% Cast Speed, both per-curse
+- **WU-153's fix round** at `848e0ab`: the retirement case asserts the moved rolls (13% Cast Speed, both per-curse
   lines at 27%; its guard and title kept); "`export_build` with notes" in `pob-gaps.md` and the `Patches.lua`
   comment; the Effect bullet in the past tense. **Re-check by the coordinator:** read the diff (3 files, 23 lines);
-  `pg109`, `patches`, `patchFingerprints`, `buildCode` pass (34 tests); the verifier's gate at `d980bf2` stands.
-- **WU-153 (PG-109, rune rolls) merged** at `b77d0f6` (fast-forward, three commits on `6aa96b3`). AC-W135:
+  `pg109`, `patches`, `patchFingerprints`, `buildCode` pass (34 tests); the verifier's gate at `2f45fd0` stands.
+- **WU-153 (PG-109, rune rolls) merged** at `848e0ab` (fast-forward, three commits on `8687ec5`). AC-W135:
   `tests/integration/pg109.test.ts`, `tests/unit/buildCode.test.ts`.
   - **AC-W162's list, WU-153:** `patchFingerprints.test.ts`'s `STUBS` loses PG-109 (D-509, the stub built);
     `compileSchema8.test.ts` (both AC-P82 cases) and `compileMovementTier.test.ts` (AC-P81) leave `pobFile.bytes` out
@@ -7273,16 +7273,16 @@ What the coordinator folded (revision 2, approved):
 - **WU-154's gate verifier** (fresh) passed `4f671a7`: gate from clean rc 0 (251 suites, 4,354 tests; the timing step
   2 suites, 4 tests), build rc 0. Every clause of AC-W137 checked; mutations (Wand dropped, Warstaff let through, saved
   values kept, revert a no-op, the passive branch removed, quality sent before schema 11) each fail a case. The old
-  records are genuine: the new test file run against `6aa96b3` matches both (the Lich record with its `buildSha1`, the
+  records are genuine: the new test file run against `8687ec5` matches both (the Lich record with its `buildSha1`, the
   26 defects). **PG-115 confirmed not holding:** "Grants Skill:" lines resolve through the gem lookup
   (`ModParser.lua`:2170–2186), `CalcSetup.lua`:1533 gives the group a gem id, so `applyGemMods` (:1892–1895) runs;
   Bloodbarrier is the one gem-less granted skill, with nothing the modifiers would change. **NormaliseQuality at the
   pin** (`Item.lua`:1367–1375): an item below its base's quality, with no `Unique ID:` line and not corrupted, mirrored
   or a Charm, becomes 20 (`Main.lua`:106); PoB's own parse calls it only without a `Quality:` line, the bridge on every
   `add_item_text` (`BuildOps.lua`:1651: the compile's items, `add_item`, `add_multiple_items`); loads never do.
-  Fix round sent: the rebase onto `bd512c7`, the measured copy's quality from schema 11, PG-115's sentence, the item
+  Fix round sent: the rebase onto `76e3d11`, the measured copy's quality from schema 11, PG-115's sentence, the item
   rule's old wording.
-- **WU-154's fix round** at `3865919` (rebased onto `bd512c7` with no conflict; `STUBS` now empty): `compile_check`
+- **WU-154's fix round** at `cbb39a1` (rebased onto `76e3d11` with no conflict; `STUBS` now empty): `compile_check`
   replies `grantedQualities` (an engine reply field, optional, as `movementTiers`; no tool reply changes), and from
   schema 11 `compilePlan` writes the item's quality (after `NormaliseQuality`) on the plan's copy before the sets are
   grouped (`withGrantedQuality`); a Withered Wand's Chaos Bolt with Pierce I measures `ProjectileSpeedMod` 1.4× beside
@@ -7292,17 +7292,17 @@ What the coordinator folded (revision 2, approved):
   suites, 4,369 tests), build rc 0. **Re-check by the coordinator:** read the compile diff (the group and gem indices
   follow `checkStageOf`'s order-keeping map, `compiler.ts`:566–567); `pnpm build` rc 0; `tests/static`, the plan
   schema units and the four patch and compile engine suites 1,310 of 1,310; `words-loaded.mjs` rc 0; waivers `[]`.
-- **WU-154 (PG-114, a granted skill's quality) merged** at `3865919` (fast-forward, two commits on `bd512c7`). AC-W137:
+- **WU-154 (PG-114, a granted skill's quality) merged** at `cbb39a1` (fast-forward, two commits on `76e3d11`). AC-W137:
   `tests/integration/pg114.test.ts`, `tests/integration/compileGrantedQuality.test.ts`, `tests/unit/planSchema11.test.ts`.
   PG-115 not recorded (its check doesn't hold).
   - **AC-W162's list, WU-154:** the accepted-version lists in `planCompanion`:58–59, `planNeeds`:85–86, `planSchema`
     (:96–99, and :363–366's invalid version 11→12), `planSchema7`:83, `planSchema8`:66–67, `planSchema9`:95–99,
     `planSchema10`:116–121 (D-512, A.5); `patchFingerprints.test.ts`'s `STUBS` emptied (D-509);
     `buildGuidePipeline.test.ts`:3141 (D2's support line) and :3193 (W1's Jeweller line) (D-512).
-- **WU-155 dispatched** (the upgrade script, D-508) in lane `bg-155` off `6e967b8`, after WU-151, WU-153 and WU-154
+- **WU-155 dispatched** (the upgrade script, D-508) in lane `bg-155` off `0ad8048`, after WU-151, WU-153 and WU-154
   merged. The doer runs AC-W136's dry run on its lane and the rehearsal in a scratch worktree (discarded after), both
   in the background under the lock, and reports the results for this log.
-- **WU-155's doer** finished at `6f4759e` on `bg/wu-155` (two commits on `6e967b8`; 0.45M subagent tokens). Its own
+- **WU-155's doer** finished at `6f4759e` on `bg/wu-155` (two commits on `0ad8048`; 0.45M subagent tokens). Its own
   gate rc 0 (255 suites, 4,398 tests), build rc 0; no commit touches `pob-pin.json`. Built: `scripts/pin-upgrade.mjs`,
   the S-2 probe committed (`scripts/pob-internals.lua`, 150 symbols in `pob-internals.symbols.json`), `fetch-pob.sh`'s
   tag-and-destination mode (which also checks the tag points at the commit given), `pinCheck.ts`'s `parseManifest`,
@@ -7354,7 +7354,7 @@ What the coordinator folded (revision 2, approved):
   mutations bite; AC-W136's two reports have A.4's shape and say what it requires, no rehearsal worktree or branch
   left; the three changed assertions forced by D-508; waivers `[]`, `vendor/` clean at `7d6f530`. Fix round sent to the
   doer with all seven review findings.
-- **WU-158 dispatched** (M-29's documents) in lane `bg-158` off `370a3ec`, beside WU-155's fix round: the two touch
+- **WU-158 dispatched** (M-29's documents) in lane `bg-158` off `6cacda1`, beside WU-155's fix round: the two touch
   disjoint files; WU-155's rows are written from the work-log and its fix round's note added by the coordinator at merge.
 - **WU-155's fix round** at `6254ab0`: retirement only on an assertion failure (`matcherResult`), a hook error, a
   thrown error or a skipped case listed as judgment; `--stage` removed, any option refused; the script refuses to start
@@ -7364,7 +7364,7 @@ What the coordinator folded (revision 2, approved):
   test asserts `judgment: []`; `CLAUDE.md` step 6 reworded; the staged tree deleted. Changed assertions only in its own
   `pinUpgrade.test.ts` (D-508). The doer's gate rc 0 (255 suites, 4,401 tests), build rc 0. A fresh verifier re-checks
   the round (targeted, with mutations).
-- **WU-158's doer** finished at `a3ee4aa` on `bg/wu-158` (one commit on `370a3ec`). Static tests rc 0 (50 suites,
+- **WU-158's doer** finished at `a3ee4aa` on `bg/wu-158` (one commit on `6cacda1`). Static tests rc 0 (50 suites,
   1,177 tests, the new `tests/static/amendment16Docs.test.ts`'s 15 included; four planted defects fail 6 cases);
   `words-loaded.mjs` rc 0. Slice 04 (the league rule §2.3, the command §2.1, the Bash line §2.2, requirements 11–12,
   the criteria and units), notes in slices 01 (§2.1), 02 (§3.2, §3.6, §3.7) and 03 (§5.1, §6, §7.1, §9); the spine's
@@ -7385,10 +7385,10 @@ What the coordinator folded (revision 2, approved):
 - **WU-155's last round** at `48b0ea5`: a patch retires only when its "bug still present" case fails on its assertion
   and is the only failure in its test file (a hook failing an `expect` lists every case; four cases fail with the
   condition removed); `git status` gets `baseEnv()`; the restore hint reads `git checkout HEAD --`; `CLAUDE.md` step 6
-  matches. **Re-check by the coordinator:** read the script diff; rebased onto `370a3ec` (head `a45457c`); `pnpm
+  matches. **Re-check by the coordinator:** read the script diff; rebased onto `6cacda1` (head `54988ee`); `pnpm
   build` rc 0; `pinUpgrade`, `fetchPob`, `leagueDigest` and `tests/static` 1,220 of 1,220; no change to
   `pob-pin.json`.
-- **WU-155 (the scripted pin upgrade) merged** at `a45457c` (fast-forward, four commits on `370a3ec`). AC-W138:
+- **WU-155 (the scripted pin upgrade) merged** at `54988ee` (fast-forward, four commits on `6cacda1`). AC-W138:
   `tests/unit/pinUpgrade.test.ts` (19 cases), `tests/static/pinUpgrade.test.ts`, `tests/integration/pobInternals.test.ts`;
   AC-W136: the two real runs above (the milestone gate re-runs the dry run on the merged tree).
   - **AC-W162's list, WU-155:** `compilePlan.test.ts`:208–209 (`record.engine` from `pob-pin.json`, `versionNotes`
@@ -7400,22 +7400,22 @@ What the coordinator folded (revision 2, approved):
   (WU-158 ran beside WU-155's fix round by the coordinator's call); (medium) slice 01's PG-114 note says every
   calculation, where a loaded copy keeps its file's quality; (medium) the new static test passes with the status line's
   parenthesis dropped and doesn't check M-30's rows stay unbuilt; (low) two line cites off by one, a pre-rebase hash
-  `4f671a7`, two lost "; " separators. Fix round sent to the doer, with the rebase onto `9d6a8ea` and WU-155's merge
-  head `a45457c` and fix-round notes.
-- **WU-158's fix round** at `6aea374` (rebased onto `9d6a8ea`): WU-155's rows cite `a45457c` with its fix rounds in
+  `4f671a7`, two lost "; " separators. Fix round sent to the doer, with the rebase onto `6d66296` and WU-155's merge
+  head `54988ee` and fix-round notes.
+- **WU-158's fix round** at `8a0ff2f` (rebased onto `6d66296`): WU-155's rows cite `54988ee` with its fix rounds in
   D-508's, C-6's and C-60's notes; slice 01's PG-114 note limited to PoB's own granted group (a loaded copy keeps its
   file's quality; the compile gives it the item's from schema 11); the docs test requires the exact parenthesis while
   M-30 is unbuilt, no M-30 row built before WU-167's, and AC-W140 not run while WU-157 hasn't run (five planted defects
   each fail exactly its check); the cites re-checked on the rebased tree (`run-log.mjs`:2295 is right there);
   §9.3's gates cited from this log; the two separators restored. **Re-check by the coordinator:** no `6f4759e` or
-  `4f671a7` left, `a45457c` cited 7 times, the status line exact, `run-log.mjs`:2295 is `digestsDiffer`; `pnpm build`
+  `4f671a7` left, `54988ee` cited 7 times, the status line exact, `run-log.mjs`:2295 is `digestsDiffer`; `pnpm build`
   rc 0, `tests/static` 1,184 of 1,184.
-- **WU-158 (M-29's documents) merged** at `6aea374` (fast-forward, two commits on `9d6a8ea`). AC-W143:
+- **WU-158 (M-29's documents) merged** at `8a0ff2f` (fast-forward, two commits on `6d66296`). AC-W143:
   `tests/static/amendment16Docs.test.ts`, `specSpine.test.ts`; the rows and status line for the gate's verifier.
-- **M-29's milestone gate** (fresh verifier) **passed on `5e0767d`**, the tree clean before and after:
+- **M-29's milestone gate** (fresh verifier) **passed on `466027c`**, the tree clean before and after:
   - `mise run test` rc 0 (256 suites, 4,418 tests, none skipped; the timing step 2 suites, 4 tests), `pnpm build` rc 0.
   - `scripts/fresh-clone-check.sh` rc 0: 85 tools, 84 with poe.ninja off; `lua_load_build` grenadator.xml Life 2,977;
-    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (5e0767d…)".
+    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (466027c…)".
   - **The load check on the merged tree:** `claude plugin validate` rc 0, only the expected warnings (no `version`
     twice, the root `CLAUDE.md`, the `ICON_MISSING` advisory); `plugin details pob2` rc 0: Skills (2) `build-guide`,
     `game-knowledge`; Agents (4); Hooks (1) `SessionStart`; about 1,362 always-on tokens.
@@ -7439,3 +7439,9 @@ What the coordinator folded (revision 2, approved):
   (doers, verifiers and reviewers: WU-151 0.99M, WU-152 0.67M, WU-153 0.66M, WU-154 0.85M, WU-155 1.06M, WU-156 0.61M,
   WU-158 0.75M; the milestone gate 0.25M). Next, with the user: HG-8 (sign-rebase onto `main`, push), then PG-109's
   upstream PR draft (choice C), WU-157 when the user starts a `--plugin-dir` session, and M-30.
+- **Signed onto `main` (HG-8, 2026-11-09).** All 28 commits sign-rebased onto `34426a7` and fast-forwarded into
+  `main` at `205aea5`; the trees are equal, and the unsigned originals are kept at `refs/archive/pre-sign-m29-2026-11-09`.
+  This section, the spine, slice 04 and `compileGrantedQuality.test.ts`'s comment cite the signed commits. The
+  words-loaded baseline's `since` section is empty, so there was nothing to remap there. **The user, 2026-11-09:** PG-109's
+  upstream PR draft (choice C) and WU-157 wait until after M-30; AC-W140 is then recorded at WU-168, which §11 allows
+  ("The probe holds up neither milestone's merge").

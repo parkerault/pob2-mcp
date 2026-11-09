@@ -208,7 +208,7 @@ Amendment 16's M-29 criteria for this piece (a16 §25):
   fetch date"; game knowledge keeps its poe2db fallback and reads an ended league's digest only when the user asks.
   Static test: `tests/static/runningLeagueReaders.test.ts` ("game knowledge takes the running digests from
   leagues.mjs, reads an ended league's only when asked, and keeps its poe2db fallback", with the readers' phrase
-  check). **Holds** (WU-151, merged at `abbc81c`). The rule itself, `runningDigests` at set instants, is AC-W130's
+  check). **Holds** (WU-151, merged at `b62158f`). The rule itself, `runningDigests` at set instants, is AC-W130's
   (`tests/unit/runningLeagues.test.ts`), and the digest script's dates AC-W131's (`tests/unit/leagueDigest.test.ts`).
 - **AC-W140 (the agent types' search; WU-157).** For each of the four `pob2:` types, the work-log records one Grep and
   one Glob call that returned results, in a `--plugin-dir` session (HG-38). Recorded. **Open:** not run; WU-168
@@ -216,8 +216,8 @@ Amendment 16's M-29 criteria for this piece (a16 §25):
 - **AC-W142 (the Bash line; WU-156).** `skills/game-knowledge/SKILL.md` no longer says "You need no Bash", tells its
   runner to search with `grep` through Bash, and stays under 150 lines; no agent definition names Bash (R-4). Static
   test: `tests/static/amendment15GameKnowledge.test.ts` ("AC-W142 (WU-156, D-515): …"), whose no-Grep check covers the
-  league bullet too since WU-151's rebase round (WL:7103–7105). **Holds** (WU-156, merged at `2acbd75`; WU-151 at
-  `abbc81c`; 125 lines).
+  league bullet too since WU-151's rebase round (WL:7103–7105). **Holds** (WU-156, merged at `e0166a2`; WU-151 at
+  `b62158f`; 125 lines).
 - **AC-W143 (M-29's documents; WU-158).** This slice states the running-league rule and the Bash line; slices 01, 02
   and 03 carry a16 §21's notes for M-29; the spine names C-59 and C-60; `specSpine.test.ts` passes; the gate's verifier
   records M-29's rows built and the status line (the spine test checks only the folded number). Static tests:
@@ -290,7 +290,7 @@ on) and `build-guide/m29` (its M-29 section, WL:7030 on). The units' order is th
 
 ### WU-151: running leagues (game knowledge's part)
 - kind: build
-- status: built (four commits on `25777ed`, merged at `abbc81c`)
+- status: built (four commits on `b475db9`, merged at `b62158f`)
 - depends-on: []
 - touches (this piece's part): [`skills/game-knowledge/scripts/leagues.mjs` (new), `league-digest.mjs` (the cards and
   the `League:` sentence, the other digests' rewrite), `data/league/runes-of-aldur.md` and `forbidden-rites.md` (line 3
@@ -308,7 +308,7 @@ on) and `build-guide/m29` (its M-29 section, WL:7030 on). The units' order is th
 
 ### WU-156: the small fixes (game knowledge's part)
 - kind: build
-- status: built (one commit on `34426a7`, merged at `2acbd75`)
+- status: built (one commit on `34426a7`, merged at `e0166a2`)
 - depends-on: []
 - touches (this piece's part): [`skills/game-knowledge/SKILL.md` (the Bash line, :16, and its other search lines but
   the league bullet), `tests/static/amendment15GameKnowledge.test.ts` (the AC-W142 block; :187's pin of the removed

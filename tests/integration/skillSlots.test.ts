@@ -4,8 +4,8 @@
  *
  * PoB counts the enabled groups that no item or passive grants (`Classes/SkillsTab.lua:1570-1608`) against
  * `SkillSlots`, 9 (`Modules/CalcSetup.lua:728`) plus one per "Grants 1 additional Skill Slot" (the Unset Ring's
- * implicit, `Data/Bases/ring.lua:85`), and warns past it (`Modules/CalcPerform.lua:3604-3609`, the line at
- * `Modules/Build.lua:2222`). The fixture is the committed two-stage plan with stage 2 given ten groups, each a gem of
+ * implicit, `Data/Bases/ring.lua:85`), and warns past it (`Modules/CalcPerform.lua:3604-3609`, the line in
+ * `Modules/Build.lua`, found by its text). The fixture is the committed two-stage plan with stage 2 given ten groups, each a gem of
  * the pinned data at its tier (`Data/Gems.lua`). Every expected value comes from PoB itself (Lua queries of the
  * compiled build) or the pinned source's text, never from the check's own output.
  *
@@ -88,11 +88,16 @@ engineDescribe('WU-103: V1 reports PoB\'s skill-slot warning as `skill-slots`, n
   const v1Of = (record: CompileRecord, code: string): Finding[] =>
     (record.stages['2'].v1?.findings ?? []).filter((x) => x.code === code);
 
-  /** PoB's line (`Modules/Build.lua:2222`), read from the pinned source and filled with PoB's counts. */
+  /**
+   * PoB's line in `Modules/Build.lua`, read from the pinned source and filled with PoB's counts. It is found by its text,
+   * so a pin upgrade that moves the line moves nothing here (D-508); its `if` stands just above it.
+   */
   function pobLine(allowed: number, groups: number): string {
     const build = fs.readFileSync(path.join(POB_SRC, 'Modules', 'Build.lua'), 'utf8').split(/\r?\n/);
-    expect(build[2219]).toContain('itemWarnings.gemGroupCountWarning then');
-    const src = build[2221];
+    const at = build.flatMap((l, i) => (l.includes('You have too many gem groups allocated') ? [i] : []));
+    expect(at).toHaveLength(1);
+    expect(build.slice(Math.max(0, at[0] - 3), at[0]).some((l) => l.includes('itemWarnings.gemGroupCountWarning then'))).toBe(true);
+    const src = build[at[0]];
     const m = /"(You have too many gem groups allocated\. Max allowed is )"\.\.warning\[1\]\.\."(\. You have )"\.\.warning\[2\]\.\."( non-item\/non-granted gem groups allocated\.)"/.exec(src);
     expect(m).not.toBeNull();
     return `${m![1]}${allowed}${m![2]}${groups}${m![3]}`;

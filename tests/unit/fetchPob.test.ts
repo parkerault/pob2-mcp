@@ -160,6 +160,60 @@ describe('scripts/fetch-pob.sh (local origin, no network)', () => {
     expectPinnedCheckout();
   });
 
+  // The tag-and-destination mode (D-508, amendment 16 §4 step 1): the pin upgrade's staging tree.
+  describe('fetch-pob.sh <tag> <commit> <dest>', () => {
+    const runMode = (...args: string[]) =>
+      spawnSync('bash', [path.join(root, 'scripts', 'fetch-pob.sh'), ...args], { cwd: tmp, env: GIT_ENV, encoding: 'utf8', timeout: 60_000 });
+    let commit2: string;
+    let stageDir: string;
+
+    beforeEach(() => {
+      write(path.join(origin, 'src', 'HeadlessWrapper.lua'), '-- headless 2\n');
+      git(origin, 'add', '.');
+      git(origin, '-c', 'user.name=fixture', '-c', 'user.email=fixture@invalid', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'two');
+      git(origin, '-c', 'tag.gpgsign=false', 'tag', 'v2');
+      commit2 = git(origin, 'rev-parse', 'HEAD');
+      stageDir = path.join(tmp, 'stage', 'pob');
+    });
+
+    it("clones another tag's sparse tree into a new folder, leaving vendor/ and pob-pin.json alone", () => {
+      expect(run().status).toBe(0);
+      const pin = fs.readFileSync(path.join(root, 'pob-pin.json'), 'utf8');
+      const r = runMode('v2', commit2, stageDir);
+      expect({ status: r.status, stderr: r.stderr }).toEqual({ status: 0, stderr: '' });
+      expect(git(stageDir, 'rev-parse', 'HEAD')).toBe(commit2);
+      expect(fs.readFileSync(path.join(stageDir, 'src', 'HeadlessWrapper.lua'), 'utf8')).toBe('-- headless 2\n');
+      expect(fs.existsSync(path.join(stageDir, 'src', 'Export'))).toBe(false);
+      expect(fs.existsSync(path.join(stageDir, 'README.md'))).toBe(false);
+      expect(fs.readdirSync(path.dirname(stageDir))).toEqual(['pob']);
+      expectPinnedCheckout();
+      expect(fs.readFileSync(path.join(root, 'pob-pin.json'), 'utf8')).toBe(pin);
+    });
+
+    it('refuses a destination that already exists, touching nothing', () => {
+      fs.mkdirSync(stageDir, { recursive: true });
+      fs.writeFileSync(path.join(stageDir, 'kept.txt'), 'kept\n');
+      const r = runMode('v2', commit2, stageDir);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain('already exists');
+      expect(fs.readdirSync(stageDir)).toEqual(['kept.txt']);
+    });
+
+    it("fails loudly when the commit isn't the tag's, leaving nothing behind", () => {
+      const r = runMode('v2', commit, stageDir);
+      expect(r.status).not.toBe(0);
+      expect(fs.existsSync(stageDir)).toBe(false);
+      expect(fs.readdirSync(path.dirname(stageDir))).toEqual([]);
+    });
+
+    it('takes no arguments or three', () => {
+      const r = runMode('v2', commit2);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain('usage: bash scripts/fetch-pob.sh [<tag> <commit> <dest>]');
+      expect(fs.existsSync(path.join(root, 'vendor'))).toBe(false);
+    });
+  });
+
   it('a failed fetch leaves no half-populated vendor checkout behind', () => {
     hideOrigin();
     const r = run();

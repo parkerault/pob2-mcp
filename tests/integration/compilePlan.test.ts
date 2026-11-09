@@ -43,6 +43,7 @@ import type { CompileRecord } from '../../src/plan/record';
 
 const REPO = path.resolve(__dirname, '..', '..');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'plans', 'two-stage', 'plan.json');
+const PIN = JSON.parse(fs.readFileSync(path.join(REPO, 'pob-pin.json'), 'utf8')) as { tag: string; commit: string };
 const ENGINE_TIMEOUT = 240_000;
 const JUNK = /undefined|NaN|\[object Object\]/;
 
@@ -205,8 +206,15 @@ engineDescribe('WU-41: compile_plan (C-41) on the two-stage fixture', () => {
     expect(record.pobFile).toEqual({ location: 'builds', path: 'm11-two-stage.xml', sha1: sha1(xml), bytes: Buffer.byteLength(xml) });
     expect(record.savedLevel).toEqual({ level: 14, autoMode: true });
     expect(record.activeLoadout).toBe('Act 1 Ogham Manor (L14) {2}');
-    expect(record.engine).toEqual({ pobTag: 'v0.23.1', pobCommit: '7d6f530cbdab20389ff8bc6ba97a37ac27f74e41', treeVersion: '0_5' });
-    expect(record.versionNotes).toEqual([]);
+    // D-508: the engine is the pin, read from pob-pin.json as protocol.lua.test.ts reads it, so a pin upgrade moves no
+    // literal here; the fixture plan's versions name v0.23.1, so a newer pin gives a note per field that differs (C-6).
+    expect(record.engine).toEqual({ pobTag: PIN.tag, pobCommit: PIN.commit, treeVersion: '0_5' });
+    const planned = fixturePlan().versions as Record<string, string>;
+    expect(record.versionNotes).toEqual(
+      (['pobTag', 'pobCommit'] as const)
+        .filter((k) => planned[k] !== record.engine[k])
+        .map((k) => `versions.${k} is "${planned[k]}", but the engine runs "${record.engine[k]}"`),
+    );
     // Every stage holds the same weapon-fit flags and keeps its config through a PoB2 save: no warnings.
     expect(record.loadoutWarnings).toEqual([]);
     expect(record.saveWarnings).toEqual([]);

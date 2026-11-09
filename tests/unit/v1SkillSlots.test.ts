@@ -3,7 +3,7 @@
  * its own code, `skill-slots`, its message naming the Unset Ring ("Grants 1 additional Skill Slot") as the remedy. No
  * new count: the counts are PoB's, read from its line. Every other PoB line stays a `pob-warning`.
  *
- * PoB's line is read from the pinned source (`Modules/Build.lua:2222`) and filled in, so the matcher is checked
+ * PoB's line is read from the pinned source (`Modules/Build.lua`, found by its text) and filled in, so the matcher is checked
  * against PoB's own format; the remedy's text against the Unset Ring's implicit (`Data/Bases/ring.lua`). The engine
  * test, `tests/integration/skillSlots.test.ts`, reaches the real warning through a compile.
  */
@@ -45,9 +45,12 @@ function checksFor(stage: Stage, warnings: string[]): StageChecks {
   } as unknown as StageChecks;
 }
 
-/** PoB's line (`Modules/Build.lua:2222`), filled with `allowed` and `groups`. */
+/** PoB's line in `Modules/Build.lua`, found by its text so a pin upgrade moves nothing here (D-508), filled with `allowed` and `groups`. */
 function pobLine(allowed: number, groups: number): string {
-  const src = fs.readFileSync(path.join(POB_SRC, 'Modules', 'Build.lua'), 'utf8').split(/\r?\n/)[2221];
+  const lines = fs.readFileSync(path.join(POB_SRC, 'Modules', 'Build.lua'), 'utf8').split(/\r?\n/);
+  const found = lines.filter((l) => l.includes('You have too many gem groups allocated'));
+  expect(found).toHaveLength(1);
+  const src = found[0];
   const m = /"(You have too many gem groups allocated\. Max allowed is )"\.\.warning\[1\]\.\."(\. You have )"\.\.warning\[2\]\.\."( non-item\/non-granted gem groups allocated\.)"/.exec(src);
   expect(m).not.toBeNull();
   return `${m![1]}${allowed}${m![2]}${groups}${m![3]}`;

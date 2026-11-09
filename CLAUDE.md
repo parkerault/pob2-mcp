@@ -96,30 +96,53 @@ Both must exit 0. `mise run test` fetches the pin if needed, builds, and runs th
 ## Upgrading the PoB2 pin
 
 The pin is `pob-pin.json` (`repo`, `tag`, `commit`, `version`, `headlessWrapperSha1`). Upgrading it is
-a user decision, because the golden values move. The procedure (spike S-2,
-`docs/stabilization/spikes/S-2-pin-v0.23.1.md`):
+a user decision, because the golden values move. Once the user decides, run the upgrade script on a branch:
+`node scripts/pin-upgrade.mjs <tag>` (D-508), a tagged release `v<n>.<n>.<n>` only, never a branch or a commit. It
+does the mechanical part of the steps below, commits nothing, and writes the list of what needs judgment to
+`vendor/.pin-upgrade/<tag>/pin-upgrade-report.json`. It runs the full gate, so run it like one: in the background, one
+at a time, at `nice -n 19`. The procedure (spike S-2, `docs/stabilization/spikes/S-2-pin-v0.23.1.md`), each step with
+what the script does and what is left:
 
 1. Update `pob-pin.json` to the new tag and commit, its `manifest.xml` version, and the CRLF-normalized
-   sha1 of `src/HeadlessWrapper.lua`.
-2. Run `mise run pob:fetch`.
+   sha1 of `src/HeadlessWrapper.lua`. The script writes them, and the pin's values in `tests/unit/pobPin.test.ts`
+   and `tests/integration/protocol.lua.test.ts`.
+2. Run `mise run pob:fetch`. The script does, after staging the new tree with `scripts/fetch-pob.sh <tag> <commit>
+   <dest>`.
 3. Re-run the PoB internals probe and the golden tests (`mise run test`). The golden build's recorded
-   stats must equal the engine's.
+   stats must equal the engine's. The script runs the probe (`scripts/pob-internals.lua`, its list
+   `scripts/pob-internals.symbols.json`) on both trees and lists each symbol missing or changed, then the gate, listing
+   each golden figure that moved, old and new, and every other failure.
 4. Update the recorded values where the new release legitimately changed them, and re-check the bridge's
-   `construct()` helper and `pob-api/API/Trade.lua` against the new release.
+   `construct()` helper and `pob-api/API/Trade.lua` against the new release. Left to judgment: the report names
+   `scripts/check-construct.lua` and `Trade.lua`'s lines when a PoB file they mirror changed, and the tree version
+   when PoB's newest isn't `0_5`.
 5. Re-check the skills-tab refresh in `BuildOps.get_main_output` (`pob-api/API/BuildOps.lua`): it calls
    `skillsTab:UpdateGlobalGemCountAssignments()` so PoB's skill-slot warning fires headless (D-428). If the
    new release renames that method, the guard skips it silently and the warning stops; the engine test
-   `tests/integration/skillSlots.test.ts` then fails. That test and `tests/unit/v1SkillSlots.test.ts` find PoB's
-   warning by its line number in `Modules/Build.lua`, so update those numbers when the release moves the line.
-6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492): each entry corrects PoB's reading of a
-   line PoB parses only partly (PG-103: Crystalline Phylactery). `tests/integration/parseFixes.test.ts` fails once
-   the new release parses a listed line itself, or no longer carries it; remove that entry then.
+   `tests/integration/skillSlots.test.ts` then fails. The script lists the method when it is gone, and PoB's warning
+   when its text is; the skill-slot tests find the warning's line by its text.
+6. Re-check the bridge's parse fixes, `pob-api/API/ParseFixes.lua` (D-492), and its function patches,
+   `pob-api/API/Patches.lua` (D-509). Each entry corrects a PoB bug (PG-103: Crystalline Phylactery) and names its
+   retirement test, whose "bug still present" case fails once the new release fixes the bug (PG-103's is in
+   `tests/integration/parseFixes.test.ts`). The script retires an entry only then: it removes the entry and that case
+   and re-runs the failed suites. Any other failure of a retirement test is judgment, and so is the rest of a retired
+   entry (its `pob-gaps.md` entry, its test file's other cases).
 7. Rebuild the rule-changer index, `data/rules/` (D-401), and re-check the league digests (D-400). The data builders
    are game knowledge's, in `skills/game-knowledge/scripts/`. List the new pin's candidates with
    `mise exec -- node skills/game-knowledge/scripts/rules-index.mjs candidates --json`, have agents rewrite the
    entries that changed (amendment 8 §3), then run `node skills/game-knowledge/scripts/rules-index.mjs check` and
    `join --write`. Run `node skills/game-knowledge/scripts/league-digest.mjs --reflag <slug>` on each digest in
-   `data/league/`.
+   `data/league/`. The script writes the candidates, lists the entries that differ from the old pin's, and re-flags
+   each digest (written only when a flag or the pin's label changes); the rewrite and the join are left.
+8. Re-check the bridge patches' fingerprints (D-509): each entry of both patch modules records the sha1 of the PoB
+   code it relies on, checked by `tests/static/patchFingerprints.test.ts` through `scripts/patch-fingerprints.mjs`.
+   The script lists each one that changed on the new tree. A changed fingerprint means re-check the patch against the
+   new code and then update its `sha1`, never retire it on that alone.
+
+**League launch.** Commit the new league's digest before or at its launch: the readers take only running leagues, so
+an early digest waits for its start (D-507). Re-run the digest script when poe2db's dates move; it rewrites the other
+digests' `League:` sentences too. Correct `data/economy/prices.json`'s league name and dates (D-514). Each under the
+rules above: poe2db at the digest's pace, anything else with the user's approval.
 
 ## Where things are
 

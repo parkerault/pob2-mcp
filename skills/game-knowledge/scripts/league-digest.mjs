@@ -65,7 +65,8 @@
 //
 // **`--reflag <slug>`**, offline, for a pin upgrade: re-checks only the in-pin flags of the committed digest (each
 // block's `- In pin:`, its head line's marker, the count and the pin's name and date) and prints what changed; the
-// `League:` sentence stays.
+// `League:` sentence stays. It writes the digest only when a flag or the pin's label changes (D-508), so a re-check
+// against the pin the digest names leaves the file as it was.
 //
 // Exit 0: written. Exit 1: refused (stderr), the digest unwritten (pages fetched so far stay saved). Exit 2: usage error.
 
@@ -766,9 +767,15 @@ export function reflag(text, pin, today) {
   const pinAt = lines.findIndex((l) => / In-pin flags: checked against .+ on \d{4}-\d{2}-\d{2}\.$/.test(l));
   const countAt = lines.findIndex((l) => /^Entries: .*; \d+ of the \d+ in the pin\.$/.test(l));
   if (pinAt < 0 || countAt < 0) throw new Refusal("the digest's pin line or entries line is missing");
+  const inPin = blocks.filter((b) => b.inPin).length;
+  // D-508: the digest is written only when a flag or the pin's label changes, so a re-check against the same pin
+  // (the pin upgrade's dry run) leaves it as it was, its date included.
+  const checkedAgainst = / In-pin flags: checked against (.+) on \d{4}-\d{2}-\d{2}\.$/.exec(lines[pinAt])[1];
+  const write = changed.length > 0 || checkedAgainst !== pin.label;
+  if (!write) return { text, write, changed, inPin, total: blocks.length };
   lines[pinAt] = lines[pinAt].replace(/In-pin flags: checked against .+ on \d{4}-\d{2}-\d{2}\.$/, pinLine(pin.label, today));
-  lines[countAt] = lines[countAt].replace(/; \d+ of the (\d+) in the pin\.$/, (_, total) => `; ${blocks.filter((b) => b.inPin).length} of the ${total} in the pin.`);
-  return { text: lines.join('\n'), changed, inPin: blocks.filter((b) => b.inPin).length, total: blocks.length };
+  lines[countAt] = lines[countAt].replace(/; \d+ of the (\d+) in the pin\.$/, (_, total) => `; ${inPin} of the ${total} in the pin.`);
+  return { text: lines.join('\n'), write, changed, inPin, total: blocks.length };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -892,7 +899,7 @@ async function run(opts) {
   if (opts.reflag) {
     if (!fs.existsSync(file)) throw new Refusal(`${file} is missing`);
     const r = reflag(fs.readFileSync(file, 'utf8'), pin, today);
-    fs.writeFileSync(file, r.text);
+    if (r.write) fs.writeFileSync(file, r.text);
     console.log(`league-digest: re-flagged ${file} against ${pin.label}: ${r.inPin} of the ${r.total} in the pin.`);
     const now = r.changed.filter((c) => c.inPin);
     const gone = r.changed.filter((c) => !c.inPin);

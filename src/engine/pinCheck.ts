@@ -72,7 +72,7 @@ export function manifestSha1(buf: Buffer): string {
   return hash.update(out.subarray(0, j)).digest("hex");
 }
 
-interface ManifestFile {
+export interface ManifestFile {
   name: string;
   part: string;
   sha1: string;
@@ -84,7 +84,11 @@ function parseAttributes(tag: string): Record<string, string> {
   return attrs;
 }
 
-function parseManifest(xml: string): { version: string | null; files: ManifestFile[] } {
+/**
+ * `manifest.xml`'s `<Version number>` and its `<File>` entries. Exported for the pin upgrade
+ * (`scripts/pin-upgrade.mjs`, amendment 16 §4), which reads a new release's version with it.
+ */
+export function parseManifest(xml: string): { version: string | null; files: ManifestFile[] } {
   const versionTag = xml.match(/<Version\b[^>]*>/);
   const version = versionTag ? parseAttributes(versionTag[0]).number ?? null : null;
   const files: ManifestFile[] = [];

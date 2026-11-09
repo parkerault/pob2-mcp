@@ -449,6 +449,24 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(fs.readFileSync(file, 'utf8')).toBe(expected);
   });
 
+  it('--reflag writes the digest only when a flag or the pin\'s label changes (D-508): against the pin it names, nothing moves, its date included', () => {
+    const { file, text, out } = digestOf();
+    const older = text.replace(/checked against the fixture name list on \d{4}-\d{2}-\d{2}\./, 'checked against the fixture name list on 2026-01-02.');
+    expect(older).not.toBe(text);
+    fs.writeFileSync(file, older);
+    const same = run(['--reflag', SLUG, '--out', out, '--pin-names', PIN_NAMES], { preload: NO_NETWORK });
+    expect({ code: same.code, stderr: same.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(same.stdout).toContain('No flag changed.');
+    expect(fs.readFileSync(file, 'utf8')).toBe(older);
+    // A new label with no flag changed is still written, dated today.
+    const names = JSON.parse(fs.readFileSync(PIN_NAMES, 'utf8'));
+    const relabelled = path.join(newDir('pin'), 'relabelled.json');
+    fs.writeFileSync(relabelled, JSON.stringify({ ...names, pin: 'the relabelled list' }));
+    const label = run(['--reflag', SLUG, '--out', out, '--pin-names', relabelled], { preload: NO_NETWORK });
+    expect({ code: label.code, stdout: label.stdout }).toEqual({ code: 0, stdout: `league-digest: re-flagged ${file} against the relabelled list: 9 of the 16 in the pin.\nNo flag changed.\n` });
+    expect(fs.readFileSync(file, 'utf8')).toBe(older.replace('checked against the fixture name list on 2026-01-02.', `checked against the relabelled list on ${day(new Date())}.`));
+  });
+
   it('prints the entries added since the digest it replaces', () => {
     const dir = pages({ file: 'Embers_of_Tarn_gems.html', from: 'Embers of Tarn Gem /3 ', to: 'Embers of Tarn Gem /2 ' });
     // Drop the gem list's last column: Tarnished Infusion.

@@ -89,9 +89,9 @@ and `done`; a return without its files is `missing`, and W1 runs once more.
   sentence>`, replacing `None.`; W1's accepted-finding lines stay. Read only the lines you edit, from W1's
   `known-issues-line` and `audit-known-issues-line`.
 - **The notes:** `pob2-render-notes <runFolder>` writes `notes.txt` from your guide and the source build's links;
-  then `mcp__pob2__compile_plan {plan_path: "<source.name>/<its build folder>/plan.json", notes_path:
-  "<runFolderRel>/notes.txt"}` puts them in the build's final PoB file. A refusal (the user changed that file) is told
-  and left.
+  then `mcp__pob2__compile_plan {plan_path: "<source.name>/builds/<id>/plan.json", notes_path:
+  "<runFolderRel>/notes.txt"}` (`<source.name>/plan.json` for a compile run) puts them in the build's final PoB file. A
+  refusal (the user changed that file) is told and left.
 
 ## 5. End
 

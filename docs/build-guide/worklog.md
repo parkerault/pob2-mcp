@@ -8041,3 +8041,68 @@ What the coordinator folded (revision 2, approved):
 - **WU-164 (a guide from a file) merged** at `8fe1c0f` (fast-forward, four commits on `73cf7a1`). AC-W144, AC-W156 and
   AC-W157 in `tests/static/fileRun.test.ts` and `tests/unit/fileRun.test.ts`; the fixtures `tests/fixtures/file-run`
   and `file-run-completed`.
+- **WU-165 dispatched** (`/pob2:writer`, lane `bg-165` off `6750588`), carrying the writer run's checks against its
+  source (WU-159's deferral), the words-loaded room, and room under 150 lines for WU-166's fetch line.
+- **WU-165's doer** finished at `cd61f41` on `bg/wu-165` (`4c5ab30` the feature on `6750588`, `cd61f41` a one-line path
+  fix; 0.60M subagent tokens). Its own gate rc 0 at `4c5ab30` (271 suites, 4,700 tests; the timing step 2 suites, 4
+  tests), build rc 0. `skills/writer/SKILL.md` 100 lines (description 1,153 characters); build-guide's 322; words
+  loaded W1 +3.4%, D1-finish +4.4% (WU-166 adds about 243 words to W1's files, about +4.1% then). AC-W158 in
+  `tests/static/writerPiece.test.ts` (9) and `tests/unit/writerPiece.test.ts` (13): the writer run on a file run passes
+  and leaves the source's files sha1-identical; each planted fault against the source fails its rule alone
+  (verdict-line, switched-buffs, audit-render, import-code, guide-sections); `init` refuses a measure-only compile run,
+  an unaccepted better round and a better round with owned content a guide can't carry (a legacy gem, a Legacy soul
+  core, a corrupted rare), as the checker does. The 13 pipeline and four piece and file fixtures byte-identical.
+  **AC-W162's list, WU-165** (each forced by D-522): `pieceRuns.test.ts`'s `piece('writer')` and AC-W145's writer init
+  lay run-a14 beside the fixture as its source; `pieceRuns.test.ts`:433, `render-notes <writer> --build r1-a-2` now
+  accepted (the source's build). **Deviations reported** (for the review): no claims required at `init`; bare render
+  calls reading the source the log names; a better round's guide holding its one rung's Endgame H2; the rung's D-254
+  hits on a `config.file` stage; the header's `source`; the log's `mode` the source's; the notes into the source
+  build's final PoB file through `compile_plan {plan_path, notes_path}`; a text-match spec check. Gate verifier and
+  reviewer dispatched in parallel.
+- **WU-165's review** (fresh, read-only): every tool argument matches `toolSchemas.ts`, every path resolves, W1 +3.4%.
+  Findings: (1, medium) the notes call (`skills/writer/SKILL.md`:28–29, :91–94) writes the source build's final PoB
+  file in the user's builds folder: safe (`buildFileWriter`, backup first, refused over a changed file,
+  `compiler.ts`:2194–2228), but §18 lets a writer run write only its own folder, it would overwrite the round's final
+  file at WU-168 against choice G's "never over an existing file", and it runs before the checker; (2, medium) neither
+  build-guide's nor compile's description names `/pob2:writer`, and the writer's body sends any request naming a file
+  elsewhere, so "turn my improved character into a guide" can start a file run that re-designs an accepted round; (3,
+  low) `owned-guide`'s text match (`check-run.mjs`:2470) is unanchored and guide-wide (a correct guide failed on a
+  scratch copy; "5%" inside "25%"); (4, low) a resume before the audit render starts W1 with no `audit.md`; (5, low)
+  `builds/<id>` hard-coded, the source listing before `new_run`, pricing and writer runs listed as sources. Deviations
+  accepted but the notes write; the header `source` and "no claims at `init`" go to WU-167's notes (A.2, §18).
+  **The coordinator's call on (1):** the writer writes only its own folder; `notes.txt` stays there, and the runner
+  tells the user where it is to paste into PoB's Notes. Fix round after the verifier.
+- **WU-165's gate verifier** (fresh context) **failed `cd61f41`** on one gap: `guideCantCarry` (`run-log.mjs`:870)
+  refuses only owned rares with a corrupted line, but §15 and §18 hold a guide's owned content to D-471 (never on a
+  rare, magic or normal item) and D-484 (a bare `Corrupted` line only on an always-corrupted, cheap or extra-socket
+  unique); probe: an owned normal Winged Spear and an owned unique amulet each with a bare `Corrupted` line pass
+  `init`, and the checker's `corruption` rule (tagged compile and pricing) is filtered out of a writer run
+  (`check-run.mjs`:2459). Otherwise: gate from clean rc 0 at `cd61f41` (271 suites, 4,700 tests; the timing step 2
+  suites, 4 tests), build rc 0; AC-W158's claims confirmed on a real-path source (`file-run` with the completed
+  overlay; the audit and notes re-rendered byte for byte; the source sha1-identical); eleven mutations each biting;
+  18 fixtures byte-identical under `6750588`'s checker and the head's; AC-W162's two assertions forced by D-522 (§18's
+  `[--build <id>]` for a writer's render amending D-516 for the writer only); words loaded max +4.4% (D1-finish), W1
+  +3.4%; build-guide's `SKILL.md` 322 lines. It judged the notes write acceptable as a proceed-on; **the coordinator's
+  ruling stands** (the writer writes only its own folder). **Fix round** sent to the doer: the corruption gap, the
+  ruling, the routing sentences and the writer's match on compile runs' final files, `owned-guide`'s anchored match,
+  the audit re-rendered on resume, the text items.
+- **WU-165's fix round** at `807dfab` (one commit on `cd61f41`): `guideCantCarry` refusing corruption on any owned
+  non-unique item (D-471), owned uniques through the existing `corruption` logic (`ownedCorruption`, reported under
+  `owned-guide`, passed into `init`); the notes call dropped, `notes.txt` left in the writer's folder for the user to
+  paste (a test comparing the guides root and a builds folder by sha1); a quoted sentence in build-guide's and
+  compile's descriptions routing a finished build or an accepted better round to `/pob2:writer`, and the writer
+  matching a named file against compile runs' F1 `finalCompile.pobFile` first; `owned-guide` reading only the lines
+  naming the rare's slot or base, a roll anchored; the audit re-rendered on resume; the text items. **The coordinator
+  keeps the existing rule:** an offline, unpriced unique's bare `Corrupted` line passes ("cheapness unchecked",
+  `pricing.md`), as in the pipeline. No other assertion changed. Doer's gate rc 0 (271 suites, 4,707 tests); writer's
+  `SKILL.md` 102 lines, build-guide's 322; descriptions 1,153 to 1,417 characters; words loaded D1-finish +4.4%
+  (69,954 against 70,327: 373 words of room for WU-166). Re-check sent to the gate verifier.
+- **WU-165's re-check** (the gate verifier) passed `807dfab`: build rc 0, the named suites (556 tests) and five suites
+  running pipeline `init` (124) pass; the probe refused (the Winged Spear by D-471, the dear Choir of the Storm by
+  D-484), the unpriced offline one passing as ruled; the dynamic import and `extra` reached only by a writer `init`;
+  each fix bites but two equivalent mutations on this fixture (the owned-uniques filter and an online run's unpriced
+  unique untested, minor); the guides root guarded by sha1, the builds folder only by the call's absence; words loaded
+  as reported; the 18 fixtures byte-identical. Nit: `skills/writer/SKILL.md`:62's example still says "a corrupted
+  rare" (to WU-166, which touches that file next).
+- **WU-165 (`/pob2:writer`) merged** at `807dfab` (fast-forward, three commits on `6750588`). AC-W158 in
+  `tests/static/writerPiece.test.ts` and `tests/unit/writerPiece.test.ts`. The build units but WU-166 are merged.

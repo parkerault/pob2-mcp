@@ -1,6 +1,6 @@
 ---
 name: game-knowledge
-description: Answer a Path of Exile 2 game question for a build, with a source for every claim, through the pob2 lookup tools over Path of Building (PoB) and the plugin's committed game data. Use for how a mechanic, gem, unique, passive or ascendancy works for a build, what is new in the league, whether PoB models something, or what counts as evidence for a claim, when the user runs /pob2:game-knowledge <question> or asks such a question. Not for designing a build from a brief (use /pob2:build-guide). Not for checking or improving a PoB file the player has, since no pob2 skill does that yet and /pob2:build-guide starts from a brief, never from a file. Not for prices.
+description: Answer a Path of Exile 2 game question for a build, with a source for every claim, through the pob2 lookup tools over Path of Building (PoB) and the plugin's committed game data. Use for how a mechanic, gem, unique, passive or ascendancy works for a build, what is new in the league, whether PoB models something, or what counts as evidence for a claim, when the user runs /pob2:game-knowledge <question> or asks such a question. Not for designing a build from a brief (use /pob2:build-guide). Not for measuring or improving the player's own PoB file (use /pob2:compile), what its gear costs or which rung it sits on (use /pob2:pricing), or a guide for a build already designed (use /pob2:writer); a review of a PoB file isn't a pob2 skill yet. Not for prices.
 ---
 
 # game-knowledge
@@ -121,5 +121,6 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   carries its source's caveats.
 - **What you couldn't confirm, said once,** with its fallback: "unconfirmed (<what>; if it fails: <the fallback>)".
   Never "test it in game".
-- **Stay on the question.** A request to design a build goes to `/pob2:build-guide`; checking or improving the
-  player's own PoB file has no pob2 skill yet; a price isn't this skill's.
+- **Stay on the question.** A request to design a build goes to `/pob2:build-guide`; measuring or improving the
+  player's own PoB file to `/pob2:compile`; its prices to `/pob2:pricing`; a guide for a finished build to
+  `/pob2:writer`; a review of a PoB file has no pob2 skill yet.

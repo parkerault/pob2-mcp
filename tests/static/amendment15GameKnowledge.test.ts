@@ -4,8 +4,9 @@
  * the server's own code.
  *
  * - AC-W124: `skills/game-knowledge/SKILL.md` exists with fewer than 150 lines; its description names
- *   `/pob2:build-guide` for designing a build from a brief and says no pob2 skill yet checks or improves a player's PoB
- *   file; it tells its runner to read `runner-rules.md` first; it carries the legacy rule; it says root-relative paths
+ *   `/pob2:build-guide` for designing a build from a brief and, from amendment 16 (WU-162, D-519; a15 §8's rule that each
+ *   piece's amendment adds its command), `/pob2:compile` for measuring or improving a player's PoB file, `/pob2:pricing`
+ *   and `/pob2:writer`, a review of a file having no pob2 skill yet; it tells its runner to read `runner-rules.md` first; it carries the legacy rule; it says root-relative paths
  *   are under `${CLAUDE_PLUGIN_ROOT}`; its web scope is the one the user picked (§19, choice 1: poe2db.tw only, at
  *   D-497's pace).
  * - §8's rest, which the criterion rests on: the frontmatter as §3 allows it; the description's four uses and its
@@ -95,11 +96,12 @@ describe("AC-W124 (WU-147, D-503): game knowledge's SKILL.md", () => {
     expect(DESCRIPTION).toContain('Not for designing a build from a brief (use /pob2:build-guide).');
   });
 
-  it("its description says no pob2 skill yet checks or improves a player's PoB file, never sending one to /pob2:build-guide, and isn't for prices", () => {
-    expect(DESCRIPTION).toContain('Not for checking or improving a PoB file the player has, since no pob2 skill does that yet');
-    expect(DESCRIPTION).toContain('/pob2:build-guide starts from a brief, never from a file.');
-    // /pob2:build-guide is named twice: for a brief, and as the skill a file never goes to.
-    expect(DESCRIPTION.match(/\/pob2:build-guide/g)).toHaveLength(2);
+  // WU-162 (D-519, C-58 as amended): a player's PoB file goes to /pob2:compile now, its prices to /pob2:pricing, a guide
+  // for a finished build to /pob2:writer; a review of a file is still no pob2 skill's (amendment 17).
+  it("its description sends a player's PoB file to /pob2:compile, its prices to /pob2:pricing and a finished build's guide to /pob2:writer, and isn't for prices", () => {
+    expect(DESCRIPTION).toContain("Not for measuring or improving the player's own PoB file (use /pob2:compile), what its gear costs or which rung it sits on (use /pob2:pricing), or a guide for a build already designed (use /pob2:writer); a review of a PoB file isn't a pob2 skill yet.");
+    // /pob2:build-guide is named once, for a brief.
+    expect(DESCRIPTION.match(/\/pob2:build-guide/g)).toHaveLength(1);
     expect(DESCRIPTION).toContain('Not for prices.');
   });
 

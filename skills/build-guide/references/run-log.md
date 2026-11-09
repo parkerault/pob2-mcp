@@ -622,7 +622,7 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
 - **The scopes** `better` (the better round on a read plan, a compile run's or a file run's) and `ladder` (a file run's
   rungs around the placed one) go on D1-build, D1-tree, D1-finish and D1-gate.
 - **Its files sit at the folder's root**, with no `builds/`, `dossier` or `builds[]`: compile's `source.xml`,
-  `plan.json`, `read.json`, `measure.md`, `compile-record.json`, `compiled-build.xml`, `cards/file.md`, `pieces.md`,
+  `plan.json`, `read.json`, the measure's report (measure.md), `compile-record.json`, `compiled-build.xml`, `cards/file.md`, `pieces.md`,
   `trades.json`, `trade-links.json`, `reports/gates/`, `interviews/`, and F1's `final-build.xml` and `readback.json` in
   a better round (which Appendix A.6 leaves out); pricing's `source.xml`, `plan.json`,
   `read.json`, `compile-record.json`, `compiled-build.xml`, `prices.md` and `upgrades.json`; the writer's `guide.md`,
@@ -638,7 +638,8 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
   a piece run.
 - **The run checker** holds a piece run to the run's rules as they apply (its layout, its log), game knowledge's and its
   piece's (a compile run with a better round, pricing's too); it skips the slug-from-brief rule, the pipeline's lists and
-  the pipeline's order (D-516, `RULE_PIECES` in `skills/build-guide/scripts/check-run.mjs`).
+  the pipeline's order (D-516, `RULE_PIECES` in `skills/build-guide/scripts/check-run.mjs`), but a compile run's better
+  round keeps the D1 loop's order, D1-build to F1, its design gate taking `accept`, `revise:<text>` or `stop` (D-521).
 
 ## Runs before revision 16
 

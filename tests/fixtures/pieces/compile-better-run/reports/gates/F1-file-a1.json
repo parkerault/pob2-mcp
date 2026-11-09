@@ -1,0 +1,20 @@
+{
+  "stage": "F1",
+  "concept": "file",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "planSha1": "d0df847d75ec0b912da43857a8df7f2683f3f2af",
+  "finalCompile": {
+    "compiled": true,
+    "errors": [],
+    "recordPath": "compile-record.json",
+    "pobFile": "Fixture Titan better.xml"
+  },
+  "draftLeft": null,
+  "draftRemoved": "Fixture Titan better (draft).xml"
+}

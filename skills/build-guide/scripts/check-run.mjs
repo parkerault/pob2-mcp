@@ -156,6 +156,11 @@
 //    and a piece run name their one build `file`; the steps `read`, `measure`, `place` and `price` and the scopes `better`
 //    and `ladder` are revision 16's, where a piece run or a file run takes them. A read plan's stage (its `source`) is no
 //    campaign stage. A pipeline run is checked by every rule, as before.
+//  - WU-162 (D-519, D-521): a compile run with a better round (a D1 step or F1 logged) keeps `checkFlow4`'s D1-loop
+//    order, D1-build to F1, its design gate answering accept, revise:<text> or stop; its interview notes are checked
+//    (`interview`, compile's too); `better` holds its file card, its one stage on its rung (m's below the endgame,
+//    `betterRung`), its scope and each missed target's `cost` (in the `better` scope a floor finding with a cost covers
+//    its part, `costShown`); and no PoB file it writes (the draft, the final file) has the source's name.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -374,8 +379,8 @@ export const RULE_PIECES = {
   // Discovery: the brainstorm and the verification, their deck, cards, probes and dossier.
   deck: ['discovery'], probes: ['discovery'], pieces: ['discovery'], card: ['discovery'], 'gate-card': ['discovery'], rival: ['discovery'],
   'dossier-sections': ['discovery'],
-  // Research: the gates' interview notes and their question steps.
-  interview: ['research'],
+  // Research: the gates' interview notes and their question steps; compile's too, its better round's design gate (D-521).
+  interview: ['research', 'compile'],
   // Review: the V4 passes and their reports.
   reports: ['review'], 'report-shape': ['review'], recheck: ['review'], verification: ['review'],
   // Compile: the gate verdicts, the records, the PoB file, the ledger and the D1 gate's recompute.
@@ -383,6 +388,8 @@ export const RULE_PIECES = {
   ledger: ['compile'], floor: ['compile'], 'rolled-skill': ['compile'], trades: ['compile'], 'design-field': ['compile'],
   toughness: ['compile'], 'boss-estimate': ['compile'], 'boss-floor': ['compile'], 'boss-fall': ['compile'], arbiter: ['compile'],
   'defence-plan': ['compile'], 'rare-title': ['compile'], swap: ['compile'],
+  // Compile's better round (D-521): its file card, its one stage and rung, its scope and its missed targets' costs.
+  better: ['compile'],
   // The writer: the guide, the audit and the notes.
   'guide-sections': ['writer'], 'word-cap': ['writer'], 'guide-markers': ['writer'], 'audit-sections': ['writer'], 'audit-render': ['writer'],
   'checks-block': ['writer'], 'import-code': ['writer'], leveling: ['writer'], 'verdict-line': ['writer'], 'survival-label': ['writer'],
@@ -404,6 +411,11 @@ function pieceTags(log) {
   const better = piece === 'compile' && list(log.stages).some((s) => ['place', 'D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'].includes(s.stage));
   return new Set(['run', 'game-knowledge', piece, ...(better ? ['pricing'] : [])]);
 }
+/** D-516, D-521: the steps of a compile run's better round that make it one (its D1 loop and F1), and D1's four steps. */
+const BETTER_STEPS = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'];
+const D1_SCOPED = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate'];
+/** D-521 (§17): a compile run's design gate answers: accept (F1 next), revise:<text> (D1 again) or stop. */
+const BETTER_DESIGN_ANSWER = /^(?:accept|revise:.+|stop)$/s;
 const RESUME_LISTS = ['stages', 'checkpoints', 'escalations', 'displays'];
 /** C-51, D-285, D-335: the brief's fields, every one optional. */
 const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity'];
@@ -567,6 +579,21 @@ const ELEMENTS = ['Fire', 'Cold', 'Lightning'];
 const HIT_TYPES = ['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'];
 /** Findings that report on a passing part (skills/build-guide/references/gates.md): never failures. D-440: a boots exception, V1's. */
 const INFO_CODES = ['chaos-exception', 'over-target', 'boots-exception'];
+/**
+ * D-521 (§17): the better round's targets the user's budget may fail to reach: the survival floor. In the `better` scope
+ * a missed one is a finding of its part with `cost`, what reaching it would cost, in players' words; such a finding
+ * covers its part, so the gate passes to the design gate, and a missed one without it routes back to D1 as today.
+ */
+const TARGET_PARTS = ['floor'];
+/** D-521: whether a gate finding shows a target the budget can't reach, with what it would cost. */
+export const costShown = (f) => isObj(f) && TARGET_PARTS.includes(f.part) && typeof f.cost === 'string' && f.cost.trim() !== '';
+/** D-521 (choice A): the level from which a character is in the endgame, the first waystone tier's area level (65). */
+export const ENDGAME_LEVEL = 65;
+/**
+ * D-521 (§17, choice A): the rung whose targets a better round's stage aims at: its placed rung's variant, or for a
+ * character below the endgame (under level 65, or not placed: in the campaign) the entering-maps rung `m`'s.
+ */
+export const betterRung = (stage) => (isObj(stage) && isNum(stage.level) && stage.level >= ENDGAME_LEVEL && RUNGS.includes(stage.variant) ? stage.variant : 'entering-maps');
 
 /**
  * D-370, D-371: the targets. `m` aims at 5 divines in all (M_TARGET) and each rare of `b` and `n` at its entry's
@@ -684,6 +711,8 @@ export function cleanName(name) {
   if (s === '') return null;
   return /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(s) ? `${s} (build)` : s;
 }
+/** D-521: a piece run's source file's name, cleaned and in lower case (names compare without case, D-52); null for a code. */
+const sourceFileName = (log) => (isObj(log?.source) && log.source.kind === 'builds-folder' ? cleanName(log.source.name)?.toLowerCase() ?? null : null);
 /**
  * D-466 (§7): the file names a build held to revision 13 may write, compared without case (D-52): its final file
  * `<name>`, `<name> <run date>` and `<name> <run date> <k>` (k from 2), a campaign's each ending ` (campaign)`, and its
@@ -1519,10 +1548,16 @@ export async function checkRun(runFolder) {
     cardExists: (id) => cardIds.has(id),
     legacy,
   };
-  // D-516 (§12): a piece run's flow isn't the pipeline's, so checkFlow4 skips it (a compile run's better round's D1
-  // order is its own unit's, AC-W154).
-  if (piece === null && v4) checkFlow4(log, fail, flowCtx);
+  // D-516 (§12): a piece run's flow isn't the pipeline's, so checkFlow4 skips it, but for a compile run with a better
+  // round (a D1 step or F1 logged), which keeps its D1 loop's order, D1-build to F1 (AC-W154); D-521: that round's own
+  // rules, and its design gate's interview notes.
+  const better = piece === 'compile' && stages.some((s) => BETTER_STEPS.includes(s.stage));
+  if ((piece === null || better) && v4) checkFlow4(log, fail, { ...flowCtx, better });
   else if (piece === null) checkFlow(log, fail, flowCtx);
+  if (better) {
+    checkBetterRound({ log, plan: buildPlans.get(builds[0]), gateReports, exists, fail });
+    checkInterviews(log, listDir('interviews'), readText, exists, questionProbes, fail);
+  }
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
   // D-516: a piece run has no brainstorm, deck or probes.
@@ -1732,7 +1767,12 @@ async function checkBuild(c) {
     const lastFinal = stages.filter((s) => FINAL_GATES.includes(s.stage) && s.outcome === 'pass').pop();
     const campaignFile = campaignAsked && lastFinal?.stage === 'D2-gate';
     if (piece !== null) {
-      // D-516: a piece run's final file is named by its piece (the better round's, §17), not by its folder.
+      // D-516: a piece run's final file is named by its piece (the better round's, §17), not by its folder. D-521: F1
+      // writes it into the builds folder under its own name, never the name of the file the run read (first_free's date
+      // aside: the name F1 passed).
+      const own = sourceFileName(log);
+      if (piece === 'compile' && pob.location !== 'builds') fail('layout', `the final compile wrote ${show(pob.path)} outside the builds folder; the better round's F1 writes the final PoB file there, under its own name (D-521)`);
+      else if (piece === 'compile' && own !== null && (cleanName(base) ?? '').replace(/ \d{4}-\d{2}-\d{2}(?: \d+)?$/, '').toLowerCase() === own) fail('layout', `the final compile wrote ${show(pob.path)}, the name of the file the run read (source.name ${show(log.source.name)}); the better round's final file is named after it and "better", never the user's file's name (D-521)`);
     } else if (a13Build && folder !== '.') {
       // D-466 (amendment 13): the file is named by the build's session name, cleaned: `<name>`, `<name> <run date>` or
       // `<name> <run date> <k>`, a campaign's ending ` (campaign)`; never the old `<runName>-<id>`.
@@ -3046,11 +3086,55 @@ function checkPieceFields(log, bad) {
   list(log.checkpoints).forEach((c, i) => {
     if (piece !== 'compile' || !['design', 'escalation', 'ask'].includes(c.checkpoint)) bad(`checkpoints[${i}]`, `is a ${show(c.checkpoint)} checkpoint; a ${piece} run has ${piece === 'compile' ? "only its better round's design gate, escalation question and ask" : 'no gate'} (D-516)`);
     else if ((c.checkpoint === 'design' && c.concept !== FILE_ID) || (c.checkpoint === 'ask' && c.build !== FILE_ID)) bad(`checkpoints[${i}]`, `names ${show(c.checkpoint === 'ask' ? c.build : c.concept)}; a compile run's ${c.checkpoint} checkpoint names its one build, ${FILE_ID} (D-516)`);
+    // D-521 (§17): the better round's design gate takes accept (F1 next), revise:<text> or stop, with no scaling question,
+    // and its escalation no way back to a verification gate.
+    else if (c.checkpoint === 'design' && (!BETTER_DESIGN_ANSWER.test(String(c.answer)) || 'scaling' in c)) bad(`checkpoints[${i}]`, `answers ${show(c.answer)}${'scaling' in c ? ` with scaling ${show(c.scaling)}` : ''}; a compile run's design gate takes accept (F1 writes the final PoB file), revise:<text> or stop, and asks no scaling question (D-521)`);
+    else if (c.checkpoint === 'escalation' && c.answer === 'verification') bad(`checkpoints[${i}]`, "answers \"verification\"; a compile run has no verification gate: its escalation takes accept, retry:<guidance> or stop (D-521)");
   });
   list(log.escalations).forEach((e, i) => {
     if (piece !== 'compile' || e.concept !== FILE_ID) bad(`escalations[${i}]`, `is ${show(e.stage)} ${show(e.concept)}; only a compile run's better round escalates, naming its one build ${FILE_ID} (D-516)`);
+    else if (e.choice === 'verification') bad(`escalations[${i}]`, 'chooses verification; a compile run has no verification gate: its escalation takes accept, retry or stop (D-521)');
   });
   if (isObj(log.pricing) && list(log.pricing.retries).length > 0) bad('pricing.retries', `holds ${list(log.pricing.retries).length} answer(s); a ${piece} run has no gate that asks to retry pricing: a stop ends it, and /pob2:${piece} --resume <run folder> after the lockout is the retry (D-516)`);
+}
+
+/**
+ * D-521 (§17, choice A): a compile run's better round, by its own rules: the file card it reads (`cards/file.md`); one
+ * plan stage, the character's (its `source`), designing no other rung and judged at its rung's targets, `m`'s below the
+ * endgame (`betterRung`); its four design steps in the `better` scope (D1-finish's one-item swap aside, D-481); and each D1
+ * gate it passed showing every target the budget can't reach as a finding with what reaching it would cost (`cost`), the
+ * legality parts failing as today.
+ */
+function checkBetterRound({ log, plan, gateReports, exists, fail }) {
+  const bad = (why) => fail('better', why);
+  if (!exists(`cards/${FILE_ID}.md`)) bad(`cards/${FILE_ID}.md is missing; the better round's design steps read the file card the measure writes from the read plan (D-519, D-521)`);
+  const stages = list(plan?.stages);
+  if (isObj(plan) && (stages.length !== 1 || !isObj(stages[0]?.source))) bad(`plan.json holds ${stages.length} stage(s) (${stages.map((s) => show(s?.id)).join(', ')}); the better round designs the character's own stage, the read stage with its source, and no other rung (D-521)`);
+  const st = stages.length === 1 ? stages[0] : null;
+  if (isObj(st) && st.variant !== betterRung(st)) {
+    bad(`plan.json's stage ${show(st.id)} (level ${show(st.level)}) is ${st.variant === undefined ? 'on no rung' : `on ${show(st.variant)}`}; the better round aims at its placed rung's targets, and below the endgame (level under ${ENDGAME_LEVEL}, choice A) at entering-maps' (m's), so the stage is gated at ${show(betterRung(st))} (D-521)`);
+  }
+  list(log.stages).forEach((s, i) => {
+    if (!D1_SCOPED.includes(s.stage) || s.outcome === 'missing') return;
+    if (s.scope !== 'better' && !(s.stage === 'D1-finish' && s.scope === 'swap')) bad(`run-log.json stages[${i}] (${describe(s)}) has scope ${show(s.scope)}; the better round's design steps run with scope better (D-521; D1-finish's one-item swap, D-481, aside)`);
+    if (s.stage !== 'D1-gate') return;
+    const file = `reports/gates/D1-gate-${s.concept}-a${s.attempt}.json`;
+    const rep = gateReports.get(file);
+    if (!isObj(rep?.verdict)) return;
+    // The draft the gate wrote is named after the source and "better", never the user's file's name (its draft suffix
+    // aside: the name the gate passed as draft_name).
+    const own = sourceFileName(log);
+    if (typeof rep.draft === 'string' && own !== null && (cleanName(path.posix.basename(rep.draft.replace(/\\/g, '/'))) ?? '').replace(/ \(draft(?: \d+)?\)$/i, '').toLowerCase() === own) fail('layout', `${file}'s draft is ${show(rep.draft)}, the name of the file the run read (source.name ${show(log.source.name)}); the better round's draft is named after it and "better", never the user's file's name (D-521)`);
+    for (const f of list(rep.findings)) {
+      if ('cost' in f && !costShown(f)) bad(`${file} gives ${show(f.code)} (part ${show(f.part)}) a cost ${show(f.cost)}; only a missed target (${TARGET_PARTS.join(', ')}) the budget can't reach carries one, what reaching it would cost, in words; the legality parts fail as today (D-521)`);
+    }
+    if (s.outcome !== 'pass') return;
+    for (const part of TARGET_PARTS) {
+      if (rep.verdict[part] !== 'fail') continue;
+      const open = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code) && f.accepted !== true && !costShown(f));
+      if (open.length > 0) bad(`${file} passed the better round with ${part} failing (${open.map((f) => `${f.code}${typeof f.stage === 'string' ? ` on ${f.stage}` : ''}`).join(', ')}) and no cost: a target the user's budget can't reach is a finding shown at the design gate with what reaching it would cost, never a pass without it (D-521)`);
+    }
+  });
 }
 
 function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capWords: () => `a card has at most ${PROBE_CAP} (D-292)` }) {
@@ -3983,9 +4067,17 @@ const describeClass4 = (cls) => ({ ledger: "is the write ledger's refusal (ledge
  * failure its fix round follows, D1 alone (D1-finish first; a claims-only edit goes straight to the re-check, a recompile
  * runs the D1 gate and F1 with no design gate), then one `V4-recheck`, and the build ends `file-only`. A `V4-claims` entry
  * anywhere else fails.
+ *
+ * Amendment 16 (D-516, D-521; §12): a compile run with a better round (`ctx.better`) keeps this D1 loop's order, from
+ * D1-build to F1. Its one build `file` is queued from the start, so its first step is D1-build (`read`, `measure` and
+ * `place` stand outside the loop); its design gate takes `accept` (F1 next), `revise:<text>` (D1 again) and `stop`; an
+ * F1 pass completes the build and ends the run; an escalation's or the D1 gate's way back to a verification gate ends
+ * it; a resume (§12: the retry after a pricing stop) runs the stopped step again, or reopens a stopped build at its
+ * design gate; and its log holds no builds[].
  */
 function checkFlow4(log, fail, ctx) {
   if (!Array.isArray(log.stages) || !log.stages.every(isObj)) return;
+  const better = ctx.better === true;
   const stages = log.stages;
   const escalations = list(log.escalations);
   const checkpoints = list(log.checkpoints);
@@ -4076,10 +4168,13 @@ function checkFlow4(log, fail, ctx) {
   // The findings accepted so far, per card (D-411): an acceptance covers that build's gate attempts after it.
   const acceptedSoFar = [];
   const coveredSoFar = (concept) => (f) => acceptedSoFar.some((a) => a.concept === concept && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
+  // D-521 (§17): in the better scope, a target the budget can't reach is a finding shown with what it would cost (its
+  // `cost`), not a failed attempt: such a finding covers its part as an accepted one does.
+  const coverOf = (s) => (s?.scope === 'better' ? (f) => coveredSoFar(s.concept)(f) || costShown(f) : coveredSoFar(s?.concept));
   const freeFault = (s) => {
     if (s.attempt !== 1 || s.outcome !== 'fail') return false;
     const rep = ctx.verdict(s);
-    const failing = failingFindings(rep, s.stage, coveredSoFar(s.concept));
+    const failing = failingFindings(rep, s.stage, coverOf(s));
     return faults.some(
       (f) => ['FI-1', 'FI-2'].includes(f.id) && FAULT_STAGE[f.id] === s.stage && f.target?.persistent !== true && targets(f.target, s.concept) &&
         list(rep?.faultsApplied).some((a) => a.id === f.id) && failing.length > 0 && failing.every((x) => x.stage === ctx.faultedStage(f.id, s.concept)),
@@ -4104,7 +4199,8 @@ function checkFlow4(log, fail, ctx) {
   const autoRival = afterAssembly?.stage === 'RV' ? afterAssembly : null;
   const rivalIds = rivalCards(stages);
   const atGate = (s) => s.stage === 'Q' || (s.stage === 'RV' && s !== autoRival);
-  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => !idle(s) && !refusedLike(s) && !atGate(s) && !cancelled(s));
+  // D-516: a compile run's read, measure and place stand before its better round's D1 loop, outside it.
+  const steps = stages.map((s, i) => ({ s, i })).filter(({ s }) => !idle(s) && !refusedLike(s) && !atGate(s) && !cancelled(s) && !(better && PIECE_STAGES.includes(s.stage)));
   let round = null;
   let rounds = 0;
   let vround = null;
@@ -4128,6 +4224,12 @@ function checkFlow4(log, fail, ctx) {
   let wantVerification = false;
   let runEnded = null; // why the run ended, or null
   let started = null; // the D1-build that just started a design
+  // D-516 (§17): a compile run's one build, file, is the read plan's design, queued from the start: no gate finalizes it.
+  if (better) {
+    buildOf(FILE_ID);
+    queue = [FILE_ID];
+    finalizeOrder.push(FILE_ID);
+  }
   const chain = (b, gate) => {
     if (!b.chains.has(gate)) b.chains.set(gate, { counted: 0, guided: false, failed: 0 });
     return b.chains.get(gate);
@@ -4172,7 +4274,7 @@ function checkFlow4(log, fail, ctx) {
     }
     runEnded = why;
     if (s !== undefined) {
-      illegal(i, `follows ${why}, which ends the run: no card is queued and no answer asked for the verification gate; entries after it come only behind a resume (D-411, D-415)`);
+      illegal(i, better ? `follows ${why}, which ends the run; entries after it come only behind a resume (D-516)` : `follows ${why}, which ends the run: no card is queued and no answer asked for the verification gate; entries after it come only behind a resume (D-411, D-415)`);
       runEnded = null;
     }
     return 'end';
@@ -4218,8 +4320,13 @@ function checkFlow4(log, fail, ctx) {
         illegal(i, `follows ${where}, but no build is at the design gate`);
         return undefined;
       }
+      // D-521 (§17): a compile run's design gate has no guide to choose and no verification gate to go back to.
+      if (better && (a === 'accept:file' || a === 'verification')) {
+        illegal(i, `follows the design gate answered ${show(a)}, which isn't an answer of a compile run's design gate: accept (F1 writes the final PoB file), revise:<text> (D1 again) or stop (D-516, D-521)`);
+        return undefined;
+      }
       if (a === 'accept' || a === 'accept:file') {
-        cur.after = a === 'accept' ? 'guide' : 'file';
+        cur.after = better ? 'better' : a === 'accept' ? 'guide' : 'file';
         // D-486 (amendment 14): "late endgame scaling, yes?" answered yes runs D1-finish's scaling pass before F1.
         cur.scaling = c.scaling === true && cur.lastD1At >= held14 ? 'wanted' : null;
         if (s === undefined) return 'accept';
@@ -4352,10 +4459,11 @@ function checkFlow4(log, fail, ctx) {
     if (ASSEMBLY_STAGES.includes(p.stage) && s?.stage !== p.stage) return { gate: 'brainstorm' };
     if (p.stage === 'R1b-assemble') return s !== undefined && s === autoRival ? { table: true } : { gate: 'verification' };
     if (p.stage === 'RV' && p.outcome === 'none-found') return { gate: 'verification' };
-    if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return { gate: 'verification' };
+    // D-516: a compile run has no verification gate to go back to: the D1 gate's infeasible ends its better round.
+    if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return better ? { end: `${p.concept}'s D1 gate found the better round infeasible` } : { gate: 'verification' };
     if (p.outcome === 'escalated') {
       const choice = lastEscalation?.choice;
-      if (choice === 'verification') return { gate: 'verification' };
+      if (choice === 'verification') return better ? { end: `${p.stage} ${p.concept}'s escalation answered verification` } : { gate: 'verification' };
       if (choice === 'stop') return { end: `${p.stage} ${p.concept}'s escalation answered stop` };
       if (choice === 'accept' && p.stage === 'D1-gate' && b && !b.verified) return { gate: 'design' };
       return { escalation: choice };
@@ -4363,6 +4471,8 @@ function checkFlow4(log, fail, ctx) {
     // D-444: the D1 gate's re-price pass after the design gate's accept and a retry-pricing goes on to F1, not the gate.
     if (p.stage === 'D1-gate' && p.outcome === 'pass' && b && !b.verified && !b.reprice) return { gate: 'design' };
     if (p.stage === 'F1' && p.outcome === 'pass' && b && b.status === 'file-only') return { end: `${p.concept}'s F1 passed after the design gate's accept:file, which ends the build file-only` };
+    // D-521 (§17): the better round's F1 writes the final PoB file, which completes the build and ends the compile run.
+    if (better && p.stage === 'F1' && p.outcome === 'pass') return { end: `${p.concept}'s F1 passed, which ends the better round and the compile run` };
     // D-477 (amendment 13): a file-only build held to revision 13 ends after its claims pass, or the re-check of its round.
     if (['V4-claims', 'V4-recheck'].includes(p.stage) && b && b.claims?.state === 'ended' && b.status === 'file-only') return { end: `${p.concept}'s ${p.stage === 'V4-claims' ? 'claims pass' : "claims pass's re-check"}, which ends the build file-only (D-477)` };
     // D-487 (amendment 14): a file-only build held to 14 ends after W1 writes its notes (scope notes).
@@ -4375,6 +4485,8 @@ function checkFlow4(log, fail, ctx) {
   let esc = 0;
   /** A resume (D-415): what the step before it led to settles with no step after it, then its verification visit. */
   let resumeVisit = false;
+  /** D-516 (§12): a compile run's resume, after which the stopped step may run again. */
+  let resumeAgain = false;
   const settle = () => {
     if (resumeVisit) {
       resumeVisit = false;
@@ -4396,6 +4508,17 @@ function checkFlow4(log, fail, ctx) {
     }
     if (esc < escalations.length && esc > r.lengths.escalations) fail('order', `run-log.json resumes[${n}] records ${r.lengths.escalations} escalation(s), but ${esc} were logged before it (D-415)`);
     runEnded = null;
+    if (better) {
+      // D-516 (§12): no verification gate: the stopped step runs again, and a build stopped at its design gate (or an
+      // escalation) after a passing D1 gate is back at that gate.
+      const b = B.get(FILE_ID);
+      if (b && ['stopped', 'escalated'].includes(b.status) && b.lastD1 === true) {
+        b.status = 'designing';
+        cur = b;
+      }
+      resumeAgain = true;
+      return;
+    }
     // D-415: the resume prints the verification gate's display; a build in progress waits there with the queue.
     if (cur && !['queued', 'designing', 'writing'].includes(cur.status)) cur = null;
     resumeVisit = true;
@@ -4454,9 +4577,14 @@ function checkFlow4(log, fail, ctx) {
       illegal(i, `follows ${runEnded}, which ended the run; entries after it come only behind a resume (D-415)`);
       runEnded = null;
     }
+    // D-516 (§12): a compile run's resume is the retry: the step a pricing stop ended runs again, as its next attempt.
+    const again = resumeAgain && p !== undefined && p.stage === s.stage && p.concept === s.concept;
+    resumeAgain = false;
     if (resumeVisit) {
       resumeVisit = false;
       via = followGate('verification', s, i) ?? null;
+    } else if (again) {
+      // the stopped step once more
     } else {
       const t = transition(p, s);
       if (t.gate) via = followGate(t.gate, s, i) ?? null;
@@ -4471,12 +4599,13 @@ function checkFlow4(log, fail, ctx) {
         if (!ok) illegal(i, `follows ${p.stage} ${p.concept}'s escalation answered ${show(choice)}, which doesn't lead to ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-236${p.stage === 'F1' ? ', D-413' : ''})`);
       } else {
         const b = typeof p?.concept === 'string' ? B.get(p.concept) : undefined;
-        const cls = p && ['D1-gate', 'D2-gate', 'F1'].includes(p.stage) && isObj(ctx.verdict(p)?.verdict) ? gateClass4(ctx.verdict(p), p.stage, coveredSoFar(p.concept)) : null;
+        const cls = p && ['D1-gate', 'D2-gate', 'F1'].includes(p.stage) && isObj(ctx.verdict(p)?.verdict) ? gateClass4(ctx.verdict(p), p.stage, coverOf(p)) : null;
         const owners = ['D1-finish', 'D2', 'W1'];
         const nextCheck = b?.cycle ? (b.cycle.first === 'done' ? (b.cycle.fix ? 'V4r' : 'V4') : b.cycle.start === 'revision' ? 'V4r' : b.cycle.start === 'campaign' ? 'V4c' : 'V4') : 'V4';
         const legacy = legacyAt(prev?.i);
         const routes = {
-          start: ['R1a'],
+          // D-516: a compile run's better round starts at its D1-build.
+          start: better ? ['D1-build'] : ['R1a'],
           R1a: ['R1a', 'R1a-assemble', 'R1a-synthesize'],
           'R1a-assemble': ['R1a-assemble'],
           'R1a-synthesize': ['R1a-synthesize'],
@@ -4510,6 +4639,7 @@ function checkFlow4(log, fail, ctx) {
         if (!allowed.includes(f)) illegal(i, `can't follow ${p ? describe(p) : 'the start'} (outcome ${show(p?.outcome)}${cls && cls !== 'pass' ? `; its verdict ${describeClass4(cls)}` : ''}); SKILL.md's step list allows ${allowed.join(', ').replace(/\bV4r\b/g, 'V4-recheck').replace(/\bV4c\b/g, 'V4-campaign').replace(/\bV4k\b/g, 'V4-claims') || 'nothing'} next`);
         const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c', 'V4k'].includes(pf);
         if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !same) illegal(i, `is about ${s.concept}, but the build before it is ${p.concept}'s; a build's steps run for its own card until it ends (D-411)`);
+        if (better && pf === 'start' && s.stage === 'D1-build') startDesign(s, i);
       }
     }
     // D-264: a claims-only owner edits in place before any gate of its fix round or revision.
@@ -4685,7 +4815,7 @@ function checkFlow4(log, fail, ctx) {
         const cls = gateClass(rep, 'R1b', () => false);
         if ((s.outcome === 'pass') !== (cls === 'pass')) fail('routing', `${at(i)}: is routed ${s.outcome}, but its verdict ${describeClass(cls)} (${file})`);
       } else {
-        const cls = gateClass4(rep, s.stage, coveredSoFar(s.concept));
+        const cls = gateClass4(rep, s.stage, coverOf(s));
         const claimedInfeasible = s.stage === 'D1-gate' && b.d1?.infeasible === true;
         const toolAgain = s.stage === 'D1-gate' && cls === 'toolError' && b.toolError;
         const why = {
@@ -4729,6 +4859,8 @@ function checkFlow4(log, fail, ctx) {
         else endBuild(b, 'file-only');
       }
       if (s.stage === 'F1' && s.outcome === 'pass' && !(b.after === 'file' && !b.verified) && b.claims === null) b.status = 'writing';
+      // D-521 (§17): the better round's F1 writes the final PoB file, and the build is complete: no guide follows.
+      if (better && s.stage === 'F1' && s.outcome === 'pass') endBuild(b, 'completed');
     }
     if (s.outcome === 'escalated') {
       const e = escalations[esc];
@@ -4829,7 +4961,9 @@ function checkFlow4(log, fail, ctx) {
   } else if (runEnded === null && !['running', 'stopped'].includes(log.status)) {
     fail('order', `run-log.json: status is ${show(log.status)}, but the run hasn't ended: ${queue.length > 0 ? `${queue.join(', ')} still queued` : 'a step or an answer is still to come'}; it is running (D-411)`);
   }
-  // builds[]: one per finalized card, in finalize order, each with its status as the flow ends it (D-412).
+  // builds[]: one per finalized card, in finalize order, each with its status as the flow ends it (D-412). A compile
+  // run has none (D-516).
+  if (better) return;
   const logged = list(log.builds);
   for (const id of finalizeOrder) {
     const x = B.get(id);

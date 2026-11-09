@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 4,
+  "skillRevision": 16,
+  "piece": "compile",
+  "runFolder": "/tmp/pob2-guides/compile/2026-12-01-1",
+  "status": "completed",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": [
+    "forbidden-rites.md",
+    "runes-of-aldur.md"
+  ],
+  "source": {
+    "kind": "builds-folder",
+    "name": "Fixture Titan",
+    "sha1": "dd346b1b547364b85a8a16b04272addf74cd123a"
+  },
+  "stages": [
+    {
+      "stage": "read",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "measure",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "place",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-build",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "better"
+    },
+    {
+      "stage": "D1-tree",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "better"
+    },
+    {
+      "stage": "D1-finish",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "better"
+    },
+    {
+      "stage": "D1-gate",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass",
+      "scope": "better"
+    },
+    {
+      "stage": "F1",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint": "design",
+      "concept": "file",
+      "visit": 1,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0
+    }
+  ],
+  "displays": [
+    {
+      "checkpoint": "design",
+      "visit": 1
+    }
+  ],
+  "escalations": [],
+  "faults": [],
+  "resumes": [],
+  "pricing": {
+    "stops": [],
+    "retries": []
+  }
+}

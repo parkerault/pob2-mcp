@@ -1,0 +1,278 @@
+{
+  "recordVersion": 2,
+  "planSchemaVersion": 11,
+  "planSha1": "d0df847d75ec0b912da43857a8df7f2683f3f2af",
+  "buildSha1": "7120d712fe9afde35f9b3c5ce2c017aa46101dea",
+  "compiledAt": "2026-10-08T11:02:00.000Z",
+  "mode": "final",
+  "stagesCompiled": [
+    "b"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "loadoutWarnings": [],
+  "saveWarnings": [],
+  "pobFile": {
+    "location": "builds",
+    "path": "Fixture Titan better.xml",
+    "sha1": "6565f9c56f4ad492fdeb8392639d0016f11b72ca",
+    "bytes": 140
+  },
+  "importCode": "eJyzsa_IzVEoSy0qzszPs1Uy1DNQUkjNS85PycxLt1UKDXHTtVCyt-OyCUgsyfBPcyrNzAHJGNlx2YQUpaYqJCaXZJalBhekJtsqGSrZcdmAmAolmSU5qbZKrnkp6Ym5qQoaPpYGmgrVSbVK-nZcNvogjSAaw0gAMAwrww==",
+  "savedLevel": {
+    "level": 90,
+    "autoMode": true
+  },
+  "activeLoadout": "Endgame (L90) {b}",
+  "sets": [],
+  "stages": {
+    "b": {
+      "loadoutName": "Endgame (L90) {b}",
+      "level": 90,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4200,
+        "TotalDPS": 50000,
+        "MissingFireResist": 0,
+        "MissingColdResist": 0,
+        "MissingLightningResist": 0,
+        "MissingChaosResist": 47,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 28,
+        "PhysicalMaximumHitTaken": 5100,
+        "FireMaximumHitTaken": 9800,
+        "ColdMaximumHitTaken": 9700,
+        "LightningMaximumHitTaken": 9600,
+        "ChaosMaximumHitTaken": 3000,
+        "EnergyShield": 0,
+        "TotalEHP": 31500,
+        "ConfiguredNotHitChance": 0,
+        "ConfiguredDamageChance": 100
+      },
+      "countedOutputs": {
+        "group": 1,
+        "count": 1,
+        "dotCanStack": false,
+        "fields": {
+          "TotalDPS": 50000
+        }
+      },
+      "skillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "fields": {
+            "TotalDPS": 50000,
+            "AverageHit": 12000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "fields": {
+            "TotalDPS": 21000,
+            "AverageHit": 8000
+          }
+        }
+      },
+      "countedSkillOutputs": {
+        "g1s1p1": {
+          "skill": "Blood Hunt",
+          "statSetLabel": "Lunge",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 50000
+          }
+        },
+        "g2s1p1": {
+          "skill": "Rolling Slam",
+          "statSetLabel": "Slam",
+          "count": 1,
+          "dotCanStack": false,
+          "fields": {
+            "TotalDPS": 21000
+          }
+        }
+      },
+      "configWritten": {
+        "enemyIsBoss": "None",
+        "resistancePenalty": -60,
+        "enemyPhysicalDamage": 402,
+        "enemyFireDamage": 97,
+        "enemyColdDamage": 97,
+        "enemyLightningDamage": 97,
+        "enemyChaosDamage": 97
+      },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "measures": {
+        "dps": 50000,
+        "ehp": 31500,
+        "toughness": {
+          "lowestMaxHit": {
+            "type": "chaos",
+            "value": 3000
+          },
+          "immune": [],
+          "chance": {
+            "notHit": 0,
+            "damage": 100,
+            "factor": 1,
+            "share": 0
+          }
+        },
+        "arbiter": {
+          "verdict": "survives",
+          "worst": {
+            "type": "physical",
+            "hitId": "extendo-spear-combo-slam-1",
+            "ratio": 0.6835294117647058
+          },
+          "rows": [
+            {
+              "type": "physical",
+              "mixed": false,
+              "hitId": "extendo-spear-combo-slam-1",
+              "hit": 3486,
+              "maxHit": 5100,
+              "ratio": 0.6835294117647058,
+              "verdict": "survives",
+              "deflectedRatio": null,
+              "deflectedVerdict": null,
+              "hitsSurvived": 100
+            },
+            {
+              "type": "lightning",
+              "mixed": false,
+              "hitId": "volatile-explode",
+              "hit": 3969,
+              "maxHit": 9600,
+              "ratio": 0.4134375,
+              "verdict": "survives",
+              "deflectedRatio": null,
+              "deflectedVerdict": null,
+              "hitsSurvived": 100
+            },
+            {
+              "type": "physical-lightning",
+              "mixed": true,
+              "hitId": "phase-2-triangulate-split",
+              "hit": 3486,
+              "maxHit": 6661.224489795918,
+              "ratio": 0.5233272058823529,
+              "verdict": "survives",
+              "parts": [
+                {
+                  "type": "physical",
+                  "hit": 1743,
+                  "maxHit": 5100,
+                  "ratio": 0.3417647058823529
+                },
+                {
+                  "type": "lightning",
+                  "hit": 1743,
+                  "maxHit": 9600,
+                  "ratio": 0.1815625
+                }
+              ],
+              "deflectedRatio": null,
+              "deflectedVerdict": null,
+              "hitsSurvived": 100
+            }
+          ]
+        },
+        "clearSpeed": {
+          "speed": "slow",
+          "rough": true,
+          "group": 1,
+          "key": "g1s1p1",
+          "skill": "Blood Hunt",
+          "radiusMetres": 0,
+          "band": "slow",
+          "onDeath": false,
+          "usesPerSecond": null,
+          "longUse": false
+        },
+        "damage": {
+          "map": 50000,
+          "resisting": 44000,
+          "boss": 60000
+        },
+        "sourceTypes": [
+          "Attack",
+          "Melee",
+          "Area"
+        ],
+        "bossGroups": [
+          {
+            "group": 1,
+            "figure": 60000,
+            "usesPerSecond": 1.6,
+            "triggered": false,
+            "triggeredBy": null,
+            "turns": false,
+            "activeSkill": 1,
+            "statSet": 1,
+            "ignite": 0,
+            "bleed": 24000,
+            "poison": 0
+          }
+        ]
+      },
+      "treeChange": {
+        "from": "m",
+        "refunded": 0,
+        "added": 6
+      },
+      "anoint": {
+        "notable": "Unbending",
+        "node": 4031,
+        "recipe": [
+          "Ire",
+          "Guilt",
+          "Greed"
+        ],
+        "emotions": [
+          "Distilled Ire",
+          "Distilled Guilt",
+          "Distilled Greed"
+        ]
+      }
+    }
+  },
+  "ledger": {
+    "bleed_bonus": {
+      "value": 7500,
+      "formula": "b.TotalDPS * share / 100"
+    }
+  },
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 9000,
+    "checkMs": 300,
+    "finishMs": 200,
+    "exportMs": 400
+  }
+}

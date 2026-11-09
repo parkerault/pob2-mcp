@@ -1,0 +1,33 @@
+{
+  "trades": [
+    {
+      "stage": "b",
+      "kind": "damage",
+      "what": "a rare War Spear with 60% increased physical damage in place of the owned spear",
+      "ehpChange": 0,
+      "damageChange": 25,
+      "bossAfter": null,
+      "reason": "the owned spear's physical damage line was its weakest",
+      "maxHit": null,
+      "hitsSurvived": null,
+      "bossEntries": null,
+      "nodes": null,
+      "price": null,
+      "from": "rare War Spear, attack speed, accuracy",
+      "to": "rare War Spear, physical damage"
+    },
+    {
+      "stage": "b",
+      "kind": "scaling",
+      "slot": "Weapon 1",
+      "from": "rare War Spear, physical damage, attack speed, +3 melee levels",
+      "to": "rare War Spear, physical damage",
+      "price": null,
+      "damage": 21,
+      "ehp": 0,
+      "measured": true,
+      "repriced": false,
+      "by": "D1-build"
+    }
+  ]
+}

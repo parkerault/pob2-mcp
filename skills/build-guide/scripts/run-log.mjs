@@ -203,6 +203,9 @@
 //    (a gate's retry answer) is refused in a piece run, and a `resume` on the piece's folder clears the stop, the retry;
 //  - `display design [--build file]` serves a compile run's better round from its root build, `display escalation` its
 //    escalation; a piece run has no other gate, and no `build` entry.
+// WU-162 (D-521): the better round's design display names its draft first (the gate's `draft`) and invites accept (F1
+// writes the final PoB file), changes or stop; its design checkpoint takes `accept`, `revise:<text>` or `stop`, with no
+// `scaling`, and its escalation no `verification`.
 //
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
@@ -926,6 +929,10 @@ function pieceAgainstRun(log, kind, entry) {
     else if (kind === 'checkpoint' && which === 'design' && entry.concept !== FILE_ID) bad.push(`concept ${show(entry.concept)}: a compile run's design checkpoint names its one build, ${FILE_ID} (D-516)`);
     else if (kind === 'checkpoint' && which === 'ask' && entry.build !== FILE_ID) bad.push(`build ${show(entry.build)}: a compile run's ask names its one build, ${FILE_ID} (D-516)`);
     else if (kind === 'escalation' && entry.concept !== FILE_ID) bad.push(`concept ${show(entry.concept)}: a compile run's escalation names its one build, ${FILE_ID} (D-516)`);
+    // D-521 (§17): the better round's design gate takes accept (F1 writes the final PoB file), revise:<text> or stop, and
+    // asks no scaling question; its escalation has no verification gate to go back to.
+    else if (kind === 'checkpoint' && which === 'design' && (!/^(?:accept|revise:.+|stop)$/s.test(String(entry.answer)) || entry.scaling !== undefined)) bad.push(`answer ${show(entry.answer)}${entry.scaling !== undefined ? ` with scaling ${show(entry.scaling)}` : ''}: a compile run's design gate takes accept (F1 writes the final PoB file), revise:<text> or stop, and asks no scaling question (D-521)`);
+    else if ((kind === 'checkpoint' && which === 'escalation' && entry.answer === 'verification') || (kind === 'escalation' && entry.choice === 'verification')) bad.push('a compile run has no verification gate: its escalation takes accept, retry:<guidance> or stop (D-521)');
   } else if (kind === 'pricing') {
     bad.push(`a ${piece} run has no gate that asks to retry pricing: a stop ends the run (status stopped), and /pob2:${piece} --resume <run folder> after the lockout is the retry, which clears the stop (D-516)`);
   } else if (kind === 'build') {
@@ -1886,6 +1893,9 @@ const INVITE4 = {
   // D-480, D-486 (amendment 14): accept alone never means the guide; the gate asks guide or file, and late endgame scaling.
   design14: "Ask anything about this build first. Then accept it (I'll ask: its endgame guide or its PoB file only, and late endgame scaling), ask for changes, go back to the verification gate to finalize another card, or stop.",
   final: 'Ask anything about the guide first. Then accept it, accept it and go back to the verification gate for more builds, add the campaign, ask for changes, or say that you decline it.',
+  // D-521 (§17): a compile run's better round: accept writes the final PoB file (F1), under its own name; no guide follows.
+  better: "Ask anything about this build first. Then accept it (I'll write its final PoB file into your Builds folder under its own name, beside yours), ask for changes, or stop.",
+  betterEscalation: 'Ask anything about this first. Then accept what failed, give guidance for one more try, or stop.',
 };
 /** D-412: a build's status in words, for the verification display's list of the run's builds. */
 const BUILD_WORDS = {
@@ -2928,7 +2938,8 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     if (over.length > 0) out.push('**Over budget**', ...over, '');
   }
   out.push(`**The catch.** ${text(summary.catch) ? stop(summary.catch) : 'not given'}`, '');
-  out.push(INVITE4.design14, '', '**Options**');
+  // D-521: a compile run's better round, its draft named first (above): accept runs F1, ask for changes, or stop.
+  out.push(pieceOf(log) === 'compile' ? INVITE4.better : INVITE4.design14, '', '**Options**');
   return out;
 }
 
@@ -2961,7 +2972,8 @@ function designDisplay(dir, log, id, opts = {}) {
   const floor = arbiterFloor() ?? ARBITER_FLOOR;
   const out = [`The endgame build for ${name(s.concept)}, rung by rung, as its last design check measured it. ${a12 ? PACE_FIRST_A12 : a11 ? PACE_FIRST_A11 : PACE_FIRST}`, ''];
   // D-466 (Appendix A): the draft's one home is the run log's builds[].draftFile; its name, once.
-  const draft = objects(log.builds).find((b) => b.id === s.concept)?.draftFile;
+  // D-521: a compile run has no builds[]: its draft is the gate's own `draft`.
+  const draft = pieceOf(log) === 'compile' ? gate.draft : objects(log.builds).find((b) => b.id === s.concept)?.draftFile;
   if (text(draft)) out.push(`- Draft PoB file: ${baseName(draft)}, in your builds list.`, '');
   // D-434: the build's pieces, once, before the rungs: the D1 gate's design field `pieces`, read from pieces.md.
   if (isObj(gate.design.pieces)) out.push(piecesLine(gate.design.pieces, a11), '');
@@ -3006,7 +3018,7 @@ function designDisplay(dir, log, id, opts = {}) {
   const estimates = (Array.isArray(gate.design.estimates) ? gate.design.estimates.filter(text) : []).map((e) => e.replace(/^(\w+):\s*/, (m, rung) => (ids.has(rung) ? `${rungLabel(plan, rung)}: ` : m)));
   if (estimates.length > 0) out.push('Still estimates:', ...estimates.map((e) => `- ${e}`), '');
   // D-480 (amendment 14): a build held to 14 asks guide or file at its accept, in --detail too.
-  out.push(verdictWords('D1-gate', gate.verdict), '', log.schemaVersion === 4 ? (held14 ? INVITE4.design14 : INVITE4.design) : INVITE.design);
+  out.push(verdictWords('D1-gate', gate.verdict), '', pieceOf(log) === 'compile' ? INVITE4.better : log.schemaVersion === 4 ? (held14 ? INVITE4.design14 : INVITE4.design) : INVITE.design);
   const rungs = objects(gate.design.rungs).map((r) => `${rungLabel(plan, r.stage)}: ${r.stage}`);
   return [...out, ...reference([`Verdict: ${parts(gate.verdict)}`, `Verdict file: ${file}`, ...(rungs.length > 0 ? [`Rungs: ${rungs.join(', ')}`] : [])])];
 }
@@ -3135,7 +3147,8 @@ function escalationDisplay(dir, log) {
   return [
     `${what} for ${name(s.concept)} failed ${failed} ${failed === 1 ? 'time' : 'times'}, so the run stops to ask you. What failed: ${why}${text(first) ? `: ${plain(first)}` : ''}${findings.length > 1 ? ` (and ${findings.length - 1} more, under For reference)` : ''}.`,
     '',
-    INVITE.escalation,
+    // D-521: a compile run has no verification gate to go back to.
+    pieceOf(log) === 'compile' ? INVITE4.betterEscalation : INVITE.escalation,
     ...reference([
       `${s.stage}, ${s.concept}: attempts ${attempts.map((a) => `${a.attempt} ${a.outcome}`).join(', ')}`,
       `Verdict: ${parts(gate?.verdict)}`,

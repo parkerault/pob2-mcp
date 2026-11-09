@@ -1,0 +1,234 @@
+{
+  "stage": "D1-gate",
+  "concept": "file",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass",
+    "floor": "pass",
+    "budget": "unverified",
+    "rolledSkill": "pass",
+    "tree": "pass"
+  },
+  "findings": [
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "b",
+      "message": "MissingChaosResist 47 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    }
+  ],
+  "basis": {
+    "budget": {
+      "rates": [],
+      "market": {
+        "league": null,
+        "day": null,
+        "late": false
+      },
+      "slots": [
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "priceId": "b-weapon"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "priceId": "b-body"
+        },
+        {
+          "stage": "b",
+          "slot": "Helmet",
+          "priceId": "b-helmet"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "priceId": "b-boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "priceId": "b-ring1"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "priceId": "b-ring2"
+        },
+        {
+          "stage": "b",
+          "jewel": 1001,
+          "priceId": "b-jewel"
+        },
+        {
+          "stage": "b",
+          "slot": "Anoint",
+          "priceId": "b-anoint"
+        }
+      ],
+      "totals": [
+        {
+          "stage": "b",
+          "low": null,
+          "high": null,
+          "day": 7
+        }
+      ]
+    },
+    "rolledSkill": [
+      {
+        "stage": "b",
+        "figures": [
+          {
+            "group": 1,
+            "figure": "g1s1p1.TotalDPS"
+          },
+          {
+            "group": 2,
+            "figure": "g2s1p1.TotalDPS"
+          }
+        ]
+      }
+    ]
+  },
+  "recordPath": "compile-record.json",
+  "faultsApplied": [],
+  "design": {
+    "rungs": [
+      {
+        "stage": "b",
+        "dps": 50000,
+        "ehp": 31500,
+        "arbiter": "survives, worst physical 0.68",
+        "maxHit": {
+          "lowest": {
+            "type": "chaos",
+            "value": 3000
+          },
+          "immune": [],
+          "arbiter": {
+            "type": "physical",
+            "evade": 0,
+            "deflect": 0,
+            "hitsSurvived": 100,
+            "deflectedRatio": null,
+            "method": null
+          },
+          "oneShot": false
+        },
+        "clearSpeed": "medium",
+        "anoint": "Unbending: Ire, Guilt, Greed",
+        "gear": "a War Spear with increased physical damage; a life and fire-resistance body",
+        "gems": "Blood Hunt with Bloodlust and Brutality I; Herald of Blood",
+        "tree": {
+          "travel": 9,
+          "points": 98,
+          "bestSwap": {
+            "gainPercent": 3.2,
+            "removed": [
+              "Strength",
+              "Strength"
+            ],
+            "added": [
+              "Cold Nature"
+            ]
+          },
+          "needs": [
+            "Unbending holds armour where the tree has none"
+          ]
+        },
+        "damage": {
+          "map": 50000,
+          "resisting": 44000,
+          "boss": 60000
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 60000,
+          "estimate": null,
+          "corrections": [],
+          "start": 58000,
+          "end": 60000,
+          "entries": [
+            {
+              "label": "Blood Hunt",
+              "start": 58000,
+              "end": 60000,
+              "final": 60000,
+              "valuedBy": null
+            }
+          ],
+          "bossFall": null
+        },
+        "trades": [
+          {
+            "stage": "b",
+            "kind": "damage",
+            "what": "a rare War Spear with 60% increased physical damage in place of the owned spear",
+            "ehpChange": 0,
+            "damageChange": 25,
+            "bossAfter": null,
+            "reason": "the owned spear's physical damage line was its weakest",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "rare War Spear, attack speed, accuracy",
+            "to": "rare War Spear, physical damage"
+          },
+          {
+            "stage": "b",
+            "kind": "scaling",
+            "slot": "Weapon 1",
+            "from": "rare War Spear, physical damage, attack speed, +3 melee levels",
+            "to": "rare War Spear, physical damage",
+            "price": null,
+            "damage": 21,
+            "ehp": 0,
+            "measured": true,
+            "repriced": false,
+            "by": "D1-build"
+          }
+        ],
+        "life": {
+          "start": 4300,
+          "end": 4200
+        },
+        "swapCap": {
+          "swaps": 30,
+          "lastGain": 1.4
+        },
+        "rebuild": "taken",
+        "removedForOthers": [],
+        "levels": []
+      }
+    ],
+    "estimates": [
+      "b: Blood Loss stacks are a hand calculation (bleed_bonus)",
+      "clear speed is a rough estimate from the skill's area"
+    ],
+    "summary": {
+      "how": "Blood Hunt lunges at a target and consumes its Blood Loss for a burst; Rolling Slam clears the packs between. The bleed builds while you slam, and the lunge cashes it in on rares.",
+      "gear": [
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "text": "rare War Spear, physical damage"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "text": "rare Rough Greaves, movement speed, lightning resistance"
+        }
+      ],
+      "catch": "The burst needs Blood Loss on the target first; unconfirmed (its uptime on a boss; if it fails: a second bleed support, about 1 div)."
+    }
+  },
+  "draft": "Fixture Titan better (draft).xml",
+  "planSha1": "d0df847d75ec0b912da43857a8df7f2683f3f2af"
+}

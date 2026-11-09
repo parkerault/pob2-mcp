@@ -497,6 +497,14 @@ first temporary stage and Write that text back when you're done, so F1's check o
 `planSha1`) holds. Finds stay out of the rungs and their totals. Offline, nothing is priced: the finds stay listed
 unpriced (`price: null`). No claim, no price entry, no other file.
 
+## The `better` scope (D-521)
+
+With `scope: "better"` (the better round on the character's own stage): owned content keeps the prices the place step
+gave it, reused; price each replacement by the spec loop (step 2 onward), within the user's budget, which the prompt
+gives. Write the anoint, the ledger and the claims as for a rung. In `trades.json` each change against the character as
+read is a trade of its kind (Appendix A's), with `from` the owned item or setting, `to` the replacement and its
+`price`. A target the budget can't reach stays missed: the D1 gate reports it with what reaching it would cost.
+
 ## The fix round and revisions (D-264, D-352)
 
 With V4 findings or the user's requests in `findings`, you edit the plan in place; you never write it anew.

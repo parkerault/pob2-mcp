@@ -81,10 +81,13 @@ describe('AC-W147 (WU-159, D-516): every rule the checker can emit has a piece t
     const want: Record<string, string> = {
       layout: 'run', 'run-log': 'run', display: 'run', order: 'run', caps: 'run', routing: 'run', 'design-gate': 'run', escalation: 'run', requests: 'run',
       'source-tags': 'game-knowledge', 'offline-tag': 'game-knowledge', markers: 'game-knowledge', 'claim-kind': 'game-knowledge',
-      deck: 'discovery', probes: 'discovery', interview: 'research', reports: 'review', recheck: 'review',
+      deck: 'discovery', probes: 'discovery', reports: 'review', recheck: 'review',
       'record-plan': 'compile', 'pob-file': 'compile', 'guide-sections': 'writer', 'audit-render': 'writer', 'nfr-22': 'pricing', spec: 'pricing', listing: 'pricing', budget: 'pricing',
     };
     for (const [rule, tag] of Object.entries(want)) expect({ rule, tags: pieces[rule] }).toEqual({ rule, tags: [tag] });
+    // WU-162 (D-521): the gates' interview notes are research's, and compile's too, its better round's design gate.
+    expect([...pieces.interview].sort()).toEqual(['compile', 'research']);
+    expect(pieces.better).toEqual(['compile']);
   });
 });
 

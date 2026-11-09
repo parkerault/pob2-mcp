@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+  <Build level="90" className="Warrior" ascendClassName="Titan" mainSocketGroup="1" targetVersion="0_1"/>
+  <Tree activeSpec="1">
+    <Spec title="Endgame" treeVersion="0_5" classId="1" ascendClassId="1" nodes="3936,46325,13397"/>
+  </Tree>
+  <Items activeItemSet="1">
+    <Item id="1">Rarity: RARE
+Grim Crown
+Iron Cap
++60 to maximum Life
++35% to Cold Resistance</Item>
+    <ItemSet id="1" title="Endgame"><Slot name="Helmet" itemId="1"/></ItemSet>
+  </Items>
+  <Skills activeSkillSet="1">
+    <SkillSet id="1" title="Endgame">
+      <Skill enabled="true" mainActiveSkill="1"><Gem nameSpec="Blood Hunt" level="20" quality="0" enabled="true"/><Gem nameSpec="Bloodlust" level="20" quality="0" enabled="true"/></Skill>
+      <Skill enabled="true" mainActiveSkill="1"><Gem nameSpec="Rolling Slam" level="20" quality="0" enabled="true"/></Skill>
+    </SkillSet>
+  </Skills>
+  <Config activeConfigSet="1"><ConfigSet id="1" title="Endgame"><Input name="enemyIsBoss" string="Pinnacle"/></ConfigSet></Config>
+</PathOfBuilding2>

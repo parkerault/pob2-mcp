@@ -321,6 +321,16 @@ check; you don't design. Fix nothing in the plan: a failure goes back to D1 as f
    A refusal (the plan changed since step 3's compile) writes nothing: return `draft: none: <its line>`. No other
    write reaches the builds folder from this step.
 
+## The `better` scope (D-521)
+
+With `scope: "better"` the one stage is the player's character, judged as its rung is, against that rung's targets
+(`m`'s below the endgame), except that a target the user's budget can't reach is a finding shown at the design gate
+with what reaching it would cost, not a failed attempt: each such survival-floor finding (a resistance, or a max hit
+under its reference hit) carries `cost`, in players' words ("a cold-resistance ring, about 9 divines, 4 over your
+budget"), and the floor part failing only on findings with a `cost` passes to the design gate, the draft included.
+Without a `cost`, the floor fails as today; the legality parts (compiled, V1, V2) fail as today. The draft's name is
+the prompt's `draft_name`, the source's name and ` better`, never the user's file's.
+
 ## Writes
 
 The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` only where the

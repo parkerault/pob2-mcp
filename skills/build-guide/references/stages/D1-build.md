@@ -688,6 +688,22 @@ request (D-411, D-413).
 
 Offline mode: no WebSearch, WebFetch or price tool.
 
+## The `better` scope (D-521)
+
+Your header's `scope: "better"` (a `/pob2:compile` run's better round, or a file run's; amendment 16 §17): the plan's
+one stage is the player's character, read from their PoB file (its `source`) and measured, `buildFolder` `.`, and its
+card is the file card `cards/file.md`, with no skeleton, dossier or Pieces table. Start from that stage where step 1
+starts from a card's skeleton and change it toward the targets within the user's budget, which the prompt gives in
+their words; design no other rung, and leave no temporary stage. **Its rung:** a placed stage keeps its id, `variant`
+and `variantBasis`; an unplaced one takes the rung the prompt names (the user's word, without trade), and below the
+endgame (level under 65, or the owner's word that it is in the campaign; choice A) `m`'s, id `m`, `entering-maps`
+and the `{m}` suffix, so it is gated at entering maps' targets. **Kept unless the user's words ask:** the class, the
+ascendancy and its allocated ascendancy nodes, the main skill and the weapon type it needs, the level, `config.file`
+as set, `source`, and each owned item, group and tree jewel (`owned: true`) unless replacing it gains within the
+budget. **Yours to change:** the tree's points, supports and gem levels, any slot's gear within the budget, the
+anoint, and a buff switched as needed (`switch`, §14). A replacement drops the `owned` mark and meets every rule (a rare
+as a spec, which D1-finish prices). The plan stays at `schemaVersion: 11`.
+
 ## The fix round and revisions (D-264, D-352)
 
 With the D1 gate's findings, the user's requests or V4 findings in `findings`, you edit the plan in place; you

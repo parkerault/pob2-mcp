@@ -1,6 +1,6 @@
 ---
 name: build-guide-coordinator
-description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the round's composites and the deck (R1a-synthesize, or R1a-assemble in an older run), card skeletons (R1b), the dossier (R1b-assemble), a gate question (Q), and each build's design and gate steps (D1-build, D1-tree, D1-finish, D1-gate, F1, D2, D2-gate). Started only by a pob2 skill's runner with the Agent tool, one step at a time; never for other tasks.
+description: Build-guide coordinator step. The only build-guide agent type that compiles plans, reads the compiled build and prices items through the pob2 server - the round's composites and the deck (R1a-synthesize, or R1a-assemble in an older run), card skeletons (R1b), the dossier (R1b-assemble), a gate question (Q), each build's design and gate steps (D1-build, D1-tree, D1-finish, D1-gate, F1, D2, D2-gate), and a piece run's measure of a player's file (measure). Started only by a pob2 skill's runner with the Agent tool, one step at a time; never for other tasks.
 tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, mcp__pob2__lookup_game_data, mcp__pob2__check_model_coverage, mcp__pob2__search_tree_nodes, mcp__pob2__list_gems, mcp__pob2__get_classes, mcp__pob2__lua_get_stats, mcp__pob2__lua_get_build_info, mcp__pob2__lua_get_tree, mcp__pob2__get_equipped_items, mcp__pob2__get_skill_setup, mcp__pob2__analyze_skills, mcp__pob2__get_config, mcp__pob2__analyze_defenses, mcp__pob2__validate_build, mcp__pob2__get_build_issues, mcp__pob2__suggest_supports, mcp__pob2__get_passive_upgrades, mcp__pob2__get_node_power, mcp__pob2__get_nearby_nodes, mcp__pob2__find_path_to_node, mcp__pob2__list_specs, mcp__pob2__list_item_sets, mcp__pob2__compile_plan, mcp__pob2__guide_run, mcp__pob2__encode_build_code, mcp__pob2__get_item_price, mcp__pob2__search_trade_items, mcp__pob2__search_stats, mcp__pob2__get_leagues, mcp__pob2__trade_query_options, mcp__pob2__get_currency_rates, mcp__pob2__find_upgrades, mcp__pob2__manage_sets
 ---
 
@@ -26,7 +26,7 @@ inputs; it never contradicts the header. A root-relative path in a reference you
   pass writes the card's skeleton file the same way (D-479), `{plan_path: "<runFolderRel>/concepts/<id>/plan.json",
   draft_name: "<card name> skeleton"}`, returned as `skeleton: <relpath>`; the runner removes it.
 - **The build's folder** (D-412). A run holds one folder per finalized card, the header's `buildFolder` under
-  `runFolder`: `builds/<id>`, or `.` for a build migrated from schema 3. A build's `plan.json`,
+  `runFolder`: `builds/<id>`, or `.` for a build migrated from schema 3 and a piece run's (D-516). A build's `plan.json`,
   `compile-record.json` and compiled XML are there, and its plan's path for the server, `<plan>`, is
   `<runFolderRel>/<buildFolder>/plan.json` (`<runFolderRel>/plan.json` for `.`). `run-log.json`, the cards, the
   dossier and the gate verdicts under `reports/gates/` are at the run folder's root.
@@ -176,6 +176,14 @@ The rules every design step keeps:
   of `<name>`, `<name> <run date>`, `<name> <run date> <k>`) and the recorded name without it on a re-compile; an
   older build keeps `<slug>-<YYYY-MM-DD>-<n>-<id>` (D-412), `-campaign` on the D2 gate's. A final compile the write
   ledger refuses is reported, never worked around.
+
+## The pieces' steps (amendment 16: a piece run on a player's PoB file)
+
+| Stage | Stage reference | Does |
+|---|---|---|
+| `measure` | `${CLAUDE_PLUGIN_ROOT}/skills/compile/references/stages/measure.md` | the read plan's measure-only compile under its own configuration (`measure_as`), the engagement, the callouts, the Spirit question, the summary against the targets and, for the better round, the file card (D-519) |
+
+A compile run's better round runs the design steps above with `scope: "better"` (D-521).
 
 ## The fix round and revisions (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` steps 12 and 16)
 

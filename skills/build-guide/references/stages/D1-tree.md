@@ -327,6 +327,12 @@ entries; no gem, no config, no claim (D1-finish writes the needs' claims and the
 plan at 8 or later has none). Validate with `mcp__pob2__guide_run {validate: "<plan>"}` after your last edit, until
 it reports no error.
 
+## The `better` scope (D-521)
+
+With `scope: "better"` the one stage is the player's character: search from its own tree, as read and as D1-build left
+it. Players respec freely, so any of its nodes may move, one start node the only constraint (D-452); its needs keep the
+main skill's and the owned items' requirements. There is no other rung and no ladder order.
+
 ## Writes
 
 `<buildFolder>/plan.json`: its rungs' `tree` (`nodes`, `attributeChoices`, `needs`, a pool move's

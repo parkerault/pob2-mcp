@@ -1,0 +1,686 @@
+{
+  "stage": "D1-gate",
+  "concept": "file",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass",
+    "floor": "fail",
+    "budget": "unverified",
+    "rolledSkill": "pass",
+    "tree": "pass"
+  },
+  "findings": [
+    {
+      "part": "budget",
+      "code": "unverified",
+      "stage": "b",
+      "message": "every budget price is unavailable (offline run)"
+    },
+    {
+      "part": "floor",
+      "code": "missing-fire-resist",
+      "stage": "b",
+      "message": "b.MissingFireResist 20",
+      "cost": "a fire-resistance ring, its price unavailable offline"
+    },
+    {
+      "part": "floor",
+      "code": "missing-cold-resist",
+      "stage": "b",
+      "message": "b.MissingColdResist 86",
+      "cost": "a cold-resistance ring, its price unavailable offline"
+    },
+    {
+      "part": "floor",
+      "code": "missing-lightning-resist",
+      "stage": "b",
+      "message": "b.MissingLightningResist 3",
+      "cost": "a lightning-resistance ring, its price unavailable offline"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "m",
+      "message": "MissingChaosResist 52 on stage m, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "b",
+      "message": "MissingChaosResist 52 on stage b, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    },
+    {
+      "part": "floor",
+      "code": "chaos-exception",
+      "stage": "n",
+      "message": "MissingChaosResist 52 on stage n, kept by its chaosResistException: no slot can carry chaos resistance without dropping a core item or breaking the budget"
+    }
+  ],
+  "basis": {
+    "budget": {
+      "rates": [],
+      "market": {
+        "league": null,
+        "day": null,
+        "late": false
+      },
+      "slots": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "priceId": "m-weapon-1"
+        },
+        {
+          "stage": "m",
+          "slot": "Weapon 2",
+          "priceId": "m-weapon-2"
+        },
+        {
+          "stage": "m",
+          "slot": "Weapon 1 Swap",
+          "priceId": "m-weapon-1-swap"
+        },
+        {
+          "stage": "m",
+          "slot": "Weapon 2 Swap",
+          "priceId": "m-weapon-2-swap"
+        },
+        {
+          "stage": "m",
+          "slot": "Body Armour",
+          "priceId": "m-body-armour"
+        },
+        {
+          "stage": "m",
+          "slot": "Amulet",
+          "priceId": "m-amulet"
+        },
+        {
+          "stage": "m",
+          "slot": "Boots",
+          "priceId": "m-boots"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 1",
+          "priceId": "m-ring-1"
+        },
+        {
+          "stage": "m",
+          "slot": "Ring 2",
+          "priceId": "m-ring-2"
+        },
+        {
+          "stage": "m",
+          "slot": "Belt",
+          "priceId": "m-belt"
+        },
+        {
+          "stage": "m",
+          "jewel": 54127,
+          "priceId": "m-jewel-54127"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "priceId": "f-weapon-1"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2",
+          "priceId": "f-weapon-2"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1 Swap",
+          "priceId": "f-weapon-1-swap"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 2 Swap",
+          "priceId": "f-weapon-2-swap"
+        },
+        {
+          "stage": "b",
+          "slot": "Body Armour",
+          "priceId": "f-body-armour"
+        },
+        {
+          "stage": "b",
+          "slot": "Amulet",
+          "priceId": "f-amulet"
+        },
+        {
+          "stage": "b",
+          "slot": "Boots",
+          "priceId": "f-boots"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 1",
+          "priceId": "f-ring-1"
+        },
+        {
+          "stage": "b",
+          "slot": "Ring 2",
+          "priceId": "f-ring-2"
+        },
+        {
+          "stage": "b",
+          "slot": "Belt",
+          "priceId": "f-belt"
+        },
+        {
+          "stage": "b",
+          "jewel": 54127,
+          "priceId": "f-jewel-54127"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1",
+          "priceId": "n-weapon-1"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 2",
+          "priceId": "n-weapon-2"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1 Swap",
+          "priceId": "n-weapon-1-swap"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 2 Swap",
+          "priceId": "n-weapon-2-swap"
+        },
+        {
+          "stage": "n",
+          "slot": "Body Armour",
+          "priceId": "n-body-armour"
+        },
+        {
+          "stage": "n",
+          "slot": "Amulet",
+          "priceId": "n-amulet"
+        },
+        {
+          "stage": "n",
+          "slot": "Boots",
+          "priceId": "n-boots"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 1",
+          "priceId": "n-ring-1"
+        },
+        {
+          "stage": "n",
+          "slot": "Ring 2",
+          "priceId": "n-ring-2"
+        },
+        {
+          "stage": "n",
+          "slot": "Belt",
+          "priceId": "n-belt"
+        },
+        {
+          "stage": "n",
+          "jewel": 54127,
+          "priceId": "n-jewel-54127"
+        }
+      ],
+      "totals": [
+        {
+          "stage": "m",
+          "low": null,
+          "high": null,
+          "day": 7
+        },
+        {
+          "stage": "b",
+          "low": null,
+          "high": null,
+          "day": 7
+        },
+        {
+          "stage": "n",
+          "low": null,
+          "high": null,
+          "day": 21
+        }
+      ]
+    },
+    "rolledSkill": [
+      {
+        "stage": "m",
+        "figures": [
+          {
+            "group": 4,
+            "figure": "g4s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "b",
+        "figures": [
+          {
+            "group": 4,
+            "figure": "g4s1p1.TotalDPS"
+          }
+        ]
+      },
+      {
+        "stage": "n",
+        "figures": [
+          {
+            "group": 4,
+            "figure": "g4s1p1.TotalDPS"
+          }
+        ]
+      }
+    ]
+  },
+  "recordPath": "builds/file/compile-record.json",
+  "faultsApplied": [],
+  "design": {
+    "rungs": [
+      {
+        "stage": "m",
+        "dps": 21.59,
+        "ehp": 2894,
+        "ehpHit": null,
+        "arbiter": null,
+        "maxHit": {
+          "lowest": {
+            "type": "physical",
+            "value": 1667
+          },
+          "immune": [],
+          "arbiter": null,
+          "oneShot": false
+        },
+        "clearSpeed": "slow",
+        "anoint": null,
+        "gear": "the character's spear, buckler and amulet; its rares as specs",
+        "gems": "Twister with Salvo and Projectile Acceleration III; Herald of Ice and Combat Frenzy",
+        "tree": {
+          "travel": 0,
+          "points": 12,
+          "bestSwap": null,
+          "needs": []
+        },
+        "damage": {
+          "map": 21.5922,
+          "resisting": 21.5922,
+          "boss": 21.36609882
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 21.36609882,
+          "estimate": null,
+          "corrections": [],
+          "start": 21,
+          "end": 21,
+          "entries": [
+            {
+              "label": "Twister",
+              "start": 21,
+              "end": 21,
+              "final": 21.36609882,
+              "valuedBy": null
+            }
+          ],
+          "bossFall": null
+        },
+        "trades": [],
+        "life": {
+          "start": 1667,
+          "end": 1667
+        },
+        "swapCap": null,
+        "rebuild": "none",
+        "removedForOthers": [],
+        "levels": []
+      },
+      {
+        "stage": "b",
+        "dps": 23.49,
+        "ehp": 2428,
+        "ehpHit": null,
+        "arbiter": "one-shot, worst physical 2.09",
+        "maxHit": {
+          "lowest": {
+            "type": "cold",
+            "value": 1502
+          },
+          "immune": [],
+          "arbiter": {
+            "type": "physical",
+            "evade": 3,
+            "deflect": 0,
+            "hitsSurvived": 3,
+            "deflectedRatio": null,
+            "method": "pass"
+          },
+          "oneShot": true
+        },
+        "clearSpeed": "slow",
+        "anoint": null,
+        "gear": "the character's spear, buckler and amulet; its rares as specs",
+        "gems": "Twister with Salvo and Projectile Acceleration III; Herald of Ice and Combat Frenzy",
+        "tree": {
+          "travel": 0,
+          "points": 12,
+          "bestSwap": null,
+          "needs": []
+        },
+        "damage": {
+          "map": 23.4927,
+          "resisting": 23.4927,
+          "boss": 23.24669787
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 23.24669787,
+          "estimate": null,
+          "corrections": [],
+          "start": 23,
+          "end": 23,
+          "entries": [
+            {
+              "label": "Twister",
+              "start": 23,
+              "end": 23,
+              "final": 23.24669787,
+              "valuedBy": null
+            }
+          ],
+          "bossFall": null
+        },
+        "trades": [
+          {
+            "stage": "b",
+            "kind": "damage",
+            "what": "Twister, Herald of Ice and Combat Frenzy at the levels the attributes carry",
+            "ehpChange": 0,
+            "damageChange": -68,
+            "bossAfter": null,
+            "reason": "the character's gems outran its attributes",
+            "maxHit": {
+              "type": "physical",
+              "before": 1667,
+              "after": 1667
+            },
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "Twister 20, Herald of Ice 18, Combat Frenzy 17",
+            "to": "Twister 5, Herald of Ice 3, Combat Frenzy 5"
+          },
+          {
+            "stage": "b",
+            "kind": "damage",
+            "what": "Bloodlust, the character's legacy support, out of Whirling Slash's group",
+            "ehpChange": 0,
+            "damageChange": 0,
+            "bossAfter": null,
+            "reason": "Bloodlust is legacy (D-395): no player can get it",
+            "maxHit": {
+              "type": "physical",
+              "before": 1667,
+              "after": 1667
+            },
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "Bloodlust in Whirling Slash's group",
+            "to": "Whirling Slash with Rage III, Rapid Attacks III and Blazing Critical"
+          },
+          {
+            "stage": "b",
+            "kind": "damage",
+            "what": "Loath Ward, the character's corrupted vest with a Legacy of Blackbraid, for a rare Leather Vest",
+            "ehpChange": 0,
+            "damageChange": 0,
+            "bossAfter": null,
+            "reason": "a Legacy soul core is over the budget (D-465), and corruption never on rares (D-484)",
+            "maxHit": {
+              "type": "physical",
+              "before": 1667,
+              "after": 1667
+            },
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "Loath Ward, Slipstrike Vest with Legacy of Blackbraid",
+            "to": "a rare Leather Vest with life, fire and chaos resistance"
+          },
+          {
+            "stage": "b",
+            "kind": "unmodelled",
+            "what": "the character's Thawing Charm, out",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "the guide plans no charm yet",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": "Blooming Thawing Charm of the Medic in Charm 1",
+            "to": "no charm"
+          },
+          {
+            "stage": "b",
+            "kind": "avoidance",
+            "what": "none found: the evasion on the rares is the most the slots carry",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "the Arbiter's slam one-shots it",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": null,
+            "to": null
+          },
+          {
+            "stage": "b",
+            "kind": "defence",
+            "what": "none found: no slot lifts the physical max hit over the Arbiter's slam",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "one-shot by the Arbiter's physical hit",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": null,
+            "to": null
+          }
+        ],
+        "life": {
+          "start": 1667,
+          "end": 1667
+        },
+        "swapCap": null,
+        "rebuild": "none",
+        "removedForOthers": [],
+        "levels": []
+      },
+      {
+        "stage": "n",
+        "dps": 23.49,
+        "ehp": 2896,
+        "ehpHit": null,
+        "arbiter": "one-shot, worst physical 2.09",
+        "maxHit": {
+          "lowest": {
+            "type": "physical",
+            "value": 1667
+          },
+          "immune": [],
+          "arbiter": {
+            "type": "physical",
+            "evade": 3,
+            "deflect": 0,
+            "hitsSurvived": 3,
+            "deflectedRatio": null,
+            "method": "pass"
+          },
+          "oneShot": true
+        },
+        "clearSpeed": "slow",
+        "anoint": null,
+        "gear": "the character's spear, buckler and amulet; its rares as specs",
+        "gems": "Twister with Salvo and Projectile Acceleration III; Herald of Ice and Combat Frenzy",
+        "tree": {
+          "travel": 0,
+          "points": 12,
+          "bestSwap": null,
+          "needs": []
+        },
+        "damage": {
+          "map": 23.4927,
+          "resisting": 23.4927,
+          "boss": 23.24669787
+        },
+        "cull": null,
+        "trigger": null,
+        "boss": {
+          "measured": 23.24669787,
+          "estimate": null,
+          "corrections": [],
+          "floor": 250000,
+          "under": true,
+          "start": 23,
+          "end": 23,
+          "entries": [
+            {
+              "label": "Twister",
+              "start": 23,
+              "end": 23,
+              "final": 23.24669787,
+              "valuedBy": null
+            }
+          ],
+          "bossFall": null
+        },
+        "toughness": {
+          "engagement": "distance",
+          "reason": "Twister sends its whirlwinds out from the character: a projectile that travels",
+          "target": 15000,
+          "band": "under",
+          "chanceShare": 18.4,
+          "conditioned": {
+            "ehp": 2439,
+            "band": "under"
+          },
+          "ailmentCut": null,
+          "warning": {
+            "kind": "under",
+            "type": "physical",
+            "fix": "the pool, armour or a physical shift"
+          }
+        },
+        "trades": [
+          {
+            "stage": "n",
+            "kind": "damage",
+            "what": "none found: Twister's gem level is held by the attributes, and no slot lifts it within the rung",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "under the toughness band and the boss floor",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": null,
+            "to": null
+          },
+          {
+            "stage": "n",
+            "kind": "avoidance",
+            "what": "none found: the evasion on the rares is the most the slots carry",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "the Arbiter's slam one-shots it",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": null,
+            "to": null
+          },
+          {
+            "stage": "n",
+            "kind": "defence",
+            "what": "none found: no slot lifts the physical max hit over the Arbiter's slam",
+            "ehpChange": null,
+            "damageChange": null,
+            "bossAfter": null,
+            "reason": "one-shot by the Arbiter's physical hit",
+            "maxHit": null,
+            "hitsSurvived": null,
+            "bossEntries": null,
+            "nodes": null,
+            "price": null,
+            "from": null,
+            "to": null
+          }
+        ],
+        "life": {
+          "start": 1667,
+          "end": 1667
+        },
+        "swapCap": null,
+        "rebuild": "none",
+        "removedForOthers": [],
+        "levels": []
+      }
+    ],
+    "estimates": [
+      "clear speed is a rough estimate from the skill's area"
+    ],
+    "summary": {
+      "how": "Twister sends spinning blades through packs from range; the character's own spear, buckler and amulet carry it, its rares written as the stats to buy.",
+      "gear": [
+        {
+          "stage": "m",
+          "slot": "Weapon 1",
+          "text": "rare Hunting Spear, physical damage, attack speed"
+        },
+        {
+          "stage": "b",
+          "slot": "Weapon 1",
+          "text": "rare Hunting Spear, physical damage, attack speed"
+        },
+        {
+          "stage": "n",
+          "slot": "Weapon 1",
+          "text": "rare Hunting Spear, physical damage, attack speed"
+        }
+      ],
+      "catch": "Its toughness stays low for the Arbiter's slam; unconfirmed (the slam's share of a fight; if it fails: more life on the rares, about 2 divines)."
+    }
+  },
+  "draft": "imported-character's Twister (draft).xml"
+}

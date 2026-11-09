@@ -30,8 +30,9 @@ back to a verification gate. Read this once, at the start, and after a compactio
   questions as an interview, then its second call with the answers only; it writes `source.xml`, `plan.json` and
   `read.json` at the folder's root. Log `read` `done`; a refusal logs `read` `fail` and ends the run `stopped`.
 - **Measure**: a fresh `pob2:build-guide-coordinator`, `stage: "measure"`, `compile: "measure-only"`, `buildFolder: "."`,
-  `writes: ["measure.md", "plan.json", "cards/file.md"]`, its reference
-  `skills/compile/references/stages/measure.md`, the user's words about the character in its prompt. Log `measure`.
+  `writes: ["measure.md", "plan.json", "cards/file.md", "dossier.md"]`, its reference
+  `skills/compile/references/stages/measure.md`, the user's words about the character in its prompt. Log `measure`,
+  then `pob2-run-log <runFolder> set` with `{"dossier": "dossier.md"}`: the file's row, which D2 and W1 read.
 - **The display**, as compile's step 4: the measured file, the headline, each target's distance, the callouts, the
   Spirit question. An answer that changes the plan runs read (its second call: `buffs_on`, `buffs_swap`, `switch_off`,
   `main_group`) and measure again, each logged again.
@@ -42,11 +43,13 @@ back to a verification gate. Read this once, at the start, and after a compactio
 
 Tell the user before pricing starts (`skills/build-guide/references/runner-rules.md`), then a fresh coordinator,
 `stage: "place"`, its reference `skills/pricing/references/stages/price.md` (its placement scope), `buildFolder: "."`,
-`writes: ["plan.json"]`, `budget` and `rung` null, `maxSearches` your notice's bound. Without trade (offline,
-`--no-ninja`, or a stop before a rung is known) ask the user for the rung, never assumed: entering maps, budget or
-non-budget, passed as `rung`. Below the endgame (level under 65, or the owner's word) the place is "in the campaign": no
-rung is placed, and the ladder's three rungs are designed, seeded from the character (choice A). Log `place` with its
-`priceOutcomes`. A pricing stop is the pipeline's: no trade request until a gate's `retry-pricing` or a resume.
+`compile: "measure-only"`, `writes: ["plan.json"]`, `league` (the user's answer, else null), `budget` and `rung` null,
+`maxSearches` your notice's bound. A `league: ask (<leagues>)` return: ask which league to price in, then run the step
+again with `league`. Without trade (offline, `--no-ninja`, or a stop before a rung is known) ask the user for the rung,
+never assumed: entering maps, budget or non-budget, passed as `rung`. Below the endgame (level under 65, or the owner's
+word) `place` still runs, with `rung: "campaign"`: no rung is placed, and the ladder's three rungs are designed, seeded
+from the character (choice A). Log `place` with its `priceOutcomes`. A pricing stop is the pipeline's: no trade request
+until a gate's `retry-pricing` or a resume.
 
 ## 4. The better round (with the brief's `better`; §17)
 
@@ -63,7 +66,8 @@ again, **stop** ends the run `stopped`. After the accept: `place` once more, `bu
 
 SKILL.md §4 to §8 on the build `file`, D1's four steps with `scope: "ladder"`, `concept: "file"`, `buildFolder:
 "builds/file"`. D1-build's first attempt writes `builds/file/plan.json` from the read plan at the root, or edits the
-better round's. **The D1 gate** never fails the placed rung (the stage that keeps the reader's `source`) for its floor,
+better round's. At the ladder's first draft, remove the better round's (`mcp__pob2__compile_plan {plan_path,
+remove_draft: <its draftFile>}`), as the pipeline removes a card's skeleton. **The D1 gate** never fails the placed rung (the stage that keeps the reader's `source`) for its floor,
 tree or budget: a floor or tree failing only on the placed rung's findings, each floor finding with its `cost`, routes
 as a pass, to the design gate. **The design gate** takes accept (the guide or the file only, and late endgame scaling),
 `accept:file`, revise or stop. F1, then the campaign unless the brief declined it: D2 and the D2 gate (SKILL.md §7's

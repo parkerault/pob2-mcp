@@ -1,0 +1,20 @@
+{
+  "stage": "F1",
+  "concept": "file",
+  "attempt": 1,
+  "verdict": {
+    "compiled": "pass",
+    "v1": "pass",
+    "v2": "pass"
+  },
+  "findings": [],
+  "planSha1": "5a4f52844dd24caafced6fb737d680fe6890be3b",
+  "finalCompile": {
+    "compiled": true,
+    "errors": [],
+    "recordPath": "builds/file/compile-record.json",
+    "pobFile": "imported-character's Twister.xml"
+  },
+  "draftLeft": null,
+  "draftRemoved": "imported-character's Twister (draft).xml"
+}

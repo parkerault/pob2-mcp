@@ -1,0 +1,2825 @@
+{
+  "schemaVersion": 11,
+  "roll": {
+    "className": "Mercenary",
+    "ascendancy": "Gemling Legionnaire",
+    "skill": "Twister"
+  },
+  "versions": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5",
+    "enginePatch": "0.5.4",
+    "externalPatch": "0.5.5"
+  },
+  "league": null,
+  "stages": [
+    {
+      "id": "m",
+      "loadoutName": "Entering maps (L90) {m}",
+      "level": 90,
+      "progress": "endgame",
+      "variant": "entering-maps",
+      "ascendancyPoints": 2,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "the character's own level, kept",
+          "confidence": "H"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the character's own, from its file",
+          "confidence": "H"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the file's two allocated ascendancy nodes",
+          "confidence": "H"
+        }
+      },
+      "chaosResistException": {
+        "reason": "no slot can carry chaos resistance without dropping a core item or breaking the budget",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every slot that can roll chaos resistance holds a core damage or life item",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          59915,
+          7741,
+          42500,
+          59881,
+          54417,
+          49657,
+          63526,
+          48635,
+          21755,
+          54127,
+          43578,
+          19223
+        ],
+        "ascendancyNodes": [
+          34882,
+          11641
+        ],
+        "weaponSetNodes": {
+          "set1": [
+            43578
+          ],
+          "set2": [
+            19223
+          ]
+        },
+        "attributeChoices": [
+          {
+            "node": 7741,
+            "attribute": "strength"
+          },
+          {
+            "node": 21755,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 42500,
+            "attribute": "strength"
+          },
+          {
+            "node": 48635,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 49657,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 54417,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 59881,
+            "attribute": "strength"
+          },
+          {
+            "node": 63526,
+            "attribute": "dexterity"
+          }
+        ],
+        "scales": "Twister's cold projectiles",
+        "start": {
+          "ehp": 2894,
+          "lowestMaxHit": {
+            "type": "physical",
+            "value": 1667
+          },
+          "life": 1667,
+          "boss": 21,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 21
+            }
+          ]
+        },
+        "end": {
+          "ehp": 2894,
+          "lowestMaxHit": {
+            "type": "physical",
+            "value": 1667
+          },
+          "life": 1667,
+          "boss": 21,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 21
+            }
+          ]
+        },
+        "search": {
+          "swaps": 0,
+          "lastGain": 0,
+          "capHit": false,
+          "rebuild": "none",
+          "removed": [],
+          "bossFall": null
+        }
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: RARE\nphysical damage, attack speed, accuracy\nHunting Spear\nItem Level: 82\nAdds 10 to 22 Physical Damage\n25% increased Attack Speed\n+478 to Accuracy Rating"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: RARE\nlife, cold resistance\nLeather Buckler\nItem Level: 80\n+40 to maximum Life\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: NORMAL\nWinged Spear\nItem Level: 70\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Weapon 2 Swap",
+            "text": "Rarity: NORMAL\nShrine Sceptre\nItem Level: 80\nQuality: 20\nImplicits: 1\nGrants Skill: Level 20 Purity of Ice"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: RARE\nlife, fire resistance, chaos resistance, evasion\nLeather Vest\nItem Level: 82\n+92 to maximum Life\n+30% to Fire Resistance\n+23% to Chaos Resistance\n120% increased Evasion Rating"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: UNIQUE\nChoir of the Storm\nJade Amulet\nItem Level: 79\nLevelReq: 55\nImplicits: 2\nGrants Skill: Level 20 Lightning Bolt\n+12 to Dexterity\n+75% to Lightning Resistance\nCritical Hits Ignore Enemy Monster Lightning Resistance\nTrigger Lightning Bolt Skill on Critical Hit"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: RARE\nmovement speed, fire resistance, life, cold resistance\nLizardscale Boots\nItem Level: 80\n30% increased Movement Speed\n+28% to Fire Resistance\n+55 to maximum Life\n+10% to Cold Resistance"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: RARE\nlife, fire resistance, dexterity, cold resistance\nTwo-Stone Ring\nItem Level: 75\n+40 to maximum Life\n+30% to Fire Resistance\n+12 to Dexterity\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: RARE\nlife, lightning resistance, fire resistance\nUnset Ring\nItem Level: 56\n+55 to maximum Life\n+28% to Lightning Resistance\n+25% to Fire Resistance"
+          },
+          {
+            "slot": "Belt",
+            "text": "Rarity: RARE\nlife, cold resistance, lightning resistance\nHeavy Belt\nItem Level: 79\n+42 to maximum Life\n+35% to Cold Resistance\n+20% to Lightning Resistance"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: MAGIC\nSeething Ultimate Life Flask of the Distiller\nItem Level: 82\nQuality: 20\nLevelReq: 60\nImplicits: 0\n50% of Recovery applied Instantly\n25% increased Charges gained"
+          }
+        ],
+        "treeJewels": [
+          {
+            "node": 54127,
+            "text": "Rarity: RARE\nfire resistance, attack damage\nRuby\nItem Level: 81\n+12% to Fire Resistance\n10% increased Attack Damage"
+          }
+        ],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "as the file has it"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Spear Throw",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Frost Nexus",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Virtuous Barrier",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Purity of Ice",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          },
+          {
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Twister",
+                "level": 5,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Salvo",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Projectile Acceleration III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Ice",
+                "level": 3,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Elemental Armament II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Trinity",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Fire Mastery",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Blasphemy",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Despair",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Heightened Curse",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Whirling Slash",
+                "level": 1,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Rage III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rapid Attacks III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Blazing Critical",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Wind Dancer",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Magnified Area II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "count": 2,
+            "countReason": "from the file",
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Combat Frenzy",
+                "level": 5,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Charge Profusion II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Parry",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          }
+        ],
+        "main": {
+          "group": 4,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 4,
+        "engagement": {
+          "kind": "distance",
+          "reason": "Twister sends its whirlwinds out from the character: a projectile that travels"
+        }
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "b",
+      "loadoutName": "Endgame (L90) {b}",
+      "level": 90,
+      "progress": "endgame",
+      "variant": "budget",
+      "ascendancyPoints": 2,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "the character's own level, kept",
+          "confidence": "H"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the character's own, from its file",
+          "confidence": "H"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the file's two allocated ascendancy nodes",
+          "confidence": "H"
+        }
+      },
+      "source": {
+        "kind": "builds-folder",
+        "name": "imported-character.xml",
+        "sha1": "3a99aa4ec297c50d9921a89af7674508853b3e1c",
+        "loadout": "Endgame"
+      },
+      "chaosResistException": {
+        "reason": "no slot can carry chaos resistance without dropping a core item or breaking the budget",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every slot that can roll chaos resistance holds a core damage or life item",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          59915,
+          7741,
+          42500,
+          59881,
+          54417,
+          49657,
+          63526,
+          48635,
+          21755,
+          54127,
+          43578,
+          19223
+        ],
+        "ascendancyNodes": [
+          34882,
+          11641
+        ],
+        "weaponSetNodes": {
+          "set1": [
+            43578
+          ],
+          "set2": [
+            19223
+          ]
+        },
+        "attributeChoices": [
+          {
+            "node": 7741,
+            "attribute": "strength"
+          },
+          {
+            "node": 21755,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 42500,
+            "attribute": "strength"
+          },
+          {
+            "node": 48635,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 49657,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 54417,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 59881,
+            "attribute": "strength"
+          },
+          {
+            "node": 63526,
+            "attribute": "dexterity"
+          }
+        ],
+        "scales": "Twister's cold projectiles",
+        "start": {
+          "ehp": 2428,
+          "lowestMaxHit": {
+            "type": "cold",
+            "value": 1502
+          },
+          "life": 1667,
+          "boss": 23,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 23
+            }
+          ]
+        },
+        "end": {
+          "ehp": 2428,
+          "lowestMaxHit": {
+            "type": "cold",
+            "value": 1502
+          },
+          "life": 1667,
+          "boss": 23,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 23
+            }
+          ]
+        },
+        "search": {
+          "swaps": 0,
+          "lastGain": 0,
+          "capHit": false,
+          "rebuild": "none",
+          "removed": [],
+          "bossFall": null
+        }
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: RARE\nphysical damage, attack speed, accuracy\nHunting Spear\nItem Level: 82\nAdds 10 to 22 Physical Damage\n28% increased Attack Speed\n+478 to Accuracy Rating"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: RARE\nlife, cold resistance\nLeather Buckler\nItem Level: 80\n+40 to maximum Life\n+20% to Cold Resistance"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: NORMAL\nWinged Spear\nItem Level: 70\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Weapon 2 Swap",
+            "text": "Rarity: NORMAL\nShrine Sceptre\nItem Level: 80\nQuality: 20\nImplicits: 1\nGrants Skill: Level 20 Purity of Ice"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: RARE\nlife, fire resistance, chaos resistance, evasion\nLeather Vest\nItem Level: 82\n+92 to maximum Life\n+30% to Fire Resistance\n+23% to Chaos Resistance\n120% increased Evasion Rating"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: UNIQUE\nChoir of the Storm\nJade Amulet\nItem Level: 79\nLevelReq: 55\nImplicits: 2\nGrants Skill: Level 20 Lightning Bolt\n+12 to Dexterity\n+75% to Lightning Resistance\nCritical Hits Ignore Enemy Monster Lightning Resistance\nTrigger Lightning Bolt Skill on Critical Hit"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: RARE\nmovement speed, fire resistance, life\nLizardscale Boots\nItem Level: 80\n35% increased Movement Speed\n+28% to Fire Resistance\n+55 to maximum Life"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: RARE\nlife, fire resistance, dexterity\nTwo-Stone Ring\nItem Level: 75\n+40 to maximum Life\n+30% to Fire Resistance\n+12 to Dexterity"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: RARE\nlife, lightning resistance\nUnset Ring\nItem Level: 56\n+55 to maximum Life\n+28% to Lightning Resistance"
+          },
+          {
+            "slot": "Belt",
+            "text": "Rarity: RARE\nlife\nHeavy Belt\nItem Level: 79\n+42 to maximum Life"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: MAGIC\nSeething Ultimate Life Flask of the Distiller\nItem Level: 82\nQuality: 20\nLevelReq: 60\nImplicits: 0\n50% of Recovery applied Instantly\n25% increased Charges gained"
+          }
+        ],
+        "treeJewels": [
+          {
+            "node": 54127,
+            "text": "Rarity: RARE\nfire resistance, attack damage\nRuby\nItem Level: 81\n+12% to Fire Resistance\n10% increased Attack Damage"
+          }
+        ],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "as the file has it"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Spear Throw",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Frost Nexus",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Virtuous Barrier",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Purity of Ice",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          },
+          {
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Twister",
+                "level": 5,
+                "quality": 20,
+                "enabled": true,
+                "corrupt": "plus_one_level"
+              },
+              {
+                "name": "Salvo",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Projectile Acceleration III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Ice",
+                "level": 3,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Elemental Armament II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Trinity",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Fire Mastery",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Blasphemy",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Despair",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Heightened Curse",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Whirling Slash",
+                "level": 1,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Rage III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rapid Attacks III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Blazing Critical",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Wind Dancer",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Magnified Area II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "count": 2,
+            "countReason": "from the file",
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Combat Frenzy",
+                "level": 5,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Charge Profusion II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Parry",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          }
+        ],
+        "main": {
+          "group": 4,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 4,
+        "engagement": {
+          "kind": "distance",
+          "reason": "Twister sends its whirlwinds out from the character: a projectile that travels"
+        }
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    },
+    {
+      "id": "n",
+      "loadoutName": "Endgame non-budget (L90) {n}",
+      "level": 90,
+      "progress": "endgame",
+      "variant": "non-budget",
+      "ascendancyPoints": 2,
+      "variantBasis": {
+        "level": {
+          "kind": "judgment",
+          "ref": "the character's own level, kept",
+          "confidence": "H"
+        },
+        "gemLevels": {
+          "kind": "judgment",
+          "ref": "the character's own, from its file",
+          "confidence": "H"
+        },
+        "ascendancyPoints": {
+          "kind": "judgment",
+          "ref": "the file's two allocated ascendancy nodes",
+          "confidence": "H"
+        }
+      },
+      "chaosResistException": {
+        "reason": "no slot can carry chaos resistance without dropping a core item or breaking the budget",
+        "tag": {
+          "kind": "judgment",
+          "ref": "every slot that can roll chaos resistance holds a core damage or life item",
+          "confidence": "M"
+        }
+      },
+      "tree": {
+        "nodes": [
+          59915,
+          7741,
+          42500,
+          59881,
+          54417,
+          49657,
+          63526,
+          48635,
+          21755,
+          54127,
+          43578,
+          19223
+        ],
+        "ascendancyNodes": [
+          34882,
+          11641
+        ],
+        "weaponSetNodes": {
+          "set1": [
+            43578
+          ],
+          "set2": [
+            19223
+          ]
+        },
+        "attributeChoices": [
+          {
+            "node": 7741,
+            "attribute": "strength"
+          },
+          {
+            "node": 21755,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 42500,
+            "attribute": "strength"
+          },
+          {
+            "node": 48635,
+            "attribute": "intelligence"
+          },
+          {
+            "node": 49657,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 54417,
+            "attribute": "dexterity"
+          },
+          {
+            "node": 59881,
+            "attribute": "strength"
+          },
+          {
+            "node": 63526,
+            "attribute": "dexterity"
+          }
+        ],
+        "scales": "Twister's cold projectiles",
+        "start": {
+          "ehp": 2896,
+          "lowestMaxHit": {
+            "type": "physical",
+            "value": 1667
+          },
+          "life": 1667,
+          "boss": 23,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 23
+            }
+          ]
+        },
+        "end": {
+          "ehp": 2896,
+          "lowestMaxHit": {
+            "type": "physical",
+            "value": 1667
+          },
+          "life": 1667,
+          "boss": 23,
+          "bossEntries": [
+            {
+              "group": 4,
+              "label": "Twister",
+              "figure": 23
+            }
+          ]
+        },
+        "search": {
+          "swaps": 0,
+          "lastGain": 0,
+          "capHit": false,
+          "rebuild": "none",
+          "removed": [],
+          "bossFall": null
+        }
+      },
+      "items": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "text": "Rarity: RARE\nphysical damage, attack speed, accuracy\nHunting Spear\nItem Level: 82\nAdds 10 to 22 Physical Damage\n28% increased Attack Speed\n+478 to Accuracy Rating"
+          },
+          {
+            "slot": "Weapon 2",
+            "text": "Rarity: RARE\nlife, cold resistance\nLeather Buckler\nItem Level: 80\n+40 to maximum Life\n+40% to Cold Resistance"
+          },
+          {
+            "slot": "Weapon 1 Swap",
+            "text": "Rarity: NORMAL\nWinged Spear\nItem Level: 70\nImplicits: 1\nGrants Skill: Spear Throw"
+          },
+          {
+            "slot": "Weapon 2 Swap",
+            "text": "Rarity: NORMAL\nShrine Sceptre\nItem Level: 80\nQuality: 20\nImplicits: 1\nGrants Skill: Level 20 Purity of Ice"
+          },
+          {
+            "slot": "Body Armour",
+            "text": "Rarity: RARE\nlife, fire resistance, chaos resistance, evasion\nLeather Vest\nItem Level: 82\n+92 to maximum Life\n+30% to Fire Resistance\n+23% to Chaos Resistance\n120% increased Evasion Rating"
+          },
+          {
+            "slot": "Amulet",
+            "text": "Rarity: UNIQUE\nChoir of the Storm\nJade Amulet\nItem Level: 79\nLevelReq: 55\nImplicits: 2\nGrants Skill: Level 20 Lightning Bolt\n+12 to Dexterity\n+75% to Lightning Resistance\nCritical Hits Ignore Enemy Monster Lightning Resistance\nTrigger Lightning Bolt Skill on Critical Hit"
+          },
+          {
+            "slot": "Boots",
+            "text": "Rarity: RARE\nmovement speed, fire resistance, life\nLizardscale Boots\nItem Level: 80\n35% increased Movement Speed\n+28% to Fire Resistance\n+55 to maximum Life"
+          },
+          {
+            "slot": "Ring 1",
+            "text": "Rarity: RARE\nlife, fire resistance, dexterity, cold resistance\nTwo-Stone Ring\nItem Level: 75\n+40 to maximum Life\n+30% to Fire Resistance\n+12 to Dexterity\n+35% to Cold Resistance"
+          },
+          {
+            "slot": "Ring 2",
+            "text": "Rarity: RARE\nlife, lightning resistance, fire resistance\nUnset Ring\nItem Level: 56\n+55 to maximum Life\n+28% to Lightning Resistance\n+25% to Fire Resistance"
+          },
+          {
+            "slot": "Belt",
+            "text": "Rarity: RARE\nlife, cold resistance, lightning resistance\nHeavy Belt\nItem Level: 79\n+42 to maximum Life\n+35% to Cold Resistance\n+20% to Lightning Resistance"
+          },
+          {
+            "slot": "Flask 1",
+            "text": "Rarity: MAGIC\nSeething Ultimate Life Flask of the Distiller\nItem Level: 82\nQuality: 20\nLevelReq: 60\nImplicits: 0\n50% of Recovery applied Instantly\n25% increased Charges gained"
+          }
+        ],
+        "treeJewels": [
+          {
+            "node": 54127,
+            "text": "Rarity: RARE\nfire resistance, attack damage\nRuby\nItem Level: 81\n+12% to Fire Resistance\n10% increased Attack Damage"
+          }
+        ],
+        "toggles": [
+          {
+            "slot": "Flask 1",
+            "active": true,
+            "uptime": "as the file has it"
+          }
+        ],
+        "useSecondWeaponSet": false
+      },
+      "skills": {
+        "groups": [
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Spear Throw",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Frost Nexus",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Virtuous Barrier",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Purity of Ice",
+                "level": 20,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 2
+          },
+          {
+            "enabled": true,
+            "role": "single_target",
+            "gems": [
+              {
+                "name": "Twister",
+                "level": 5,
+                "quality": 20,
+                "enabled": true,
+                "corrupt": "plus_one_level"
+              },
+              {
+                "name": "Salvo",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Projectile Acceleration III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Herald of Ice",
+                "level": 3,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Elemental Armament II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Trinity",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Fire Mastery",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Blasphemy",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Despair",
+                "level": 14,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Heightened Curse",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "switch": {
+              "when": "as needed",
+              "off": [
+                5,
+                10
+              ]
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Whirling Slash",
+                "level": 1,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Rage III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Rapid Attacks III",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              },
+              {
+                "name": "Blazing Critical",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": false,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Wind Dancer",
+                "level": 18,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Magnified Area II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "count": 2,
+            "countReason": "from the file",
+            "switch": {
+              "when": "as needed",
+              "off": []
+            }
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Combat Frenzy",
+                "level": 5,
+                "quality": 20,
+                "enabled": true
+              },
+              {
+                "name": "Charge Profusion II",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "enabled": true,
+            "role": "utility",
+            "gems": [
+              {
+                "name": "Parry",
+                "level": 1,
+                "quality": 0,
+                "enabled": true
+              }
+            ],
+            "weaponSet": 1
+          }
+        ],
+        "main": {
+          "group": 4,
+          "activeSkill": 1,
+          "statSet": 1
+        },
+        "rolledGroup": 4,
+        "engagement": {
+          "kind": "distance",
+          "reason": "Twister sends its whirlwinds out from the character: a projectile that travels"
+        }
+      },
+      "defence": {
+        "base": "evasion",
+        "chance": "evasion",
+        "mitigation": "none: an evasion build",
+        "pool": "life",
+        "physicalHit": "evasion and the character's life"
+      },
+      "config": {
+        "earned": [],
+        "scenario": [
+          {
+            "option": "enemyIsBoss",
+            "value": "None",
+            "source": {
+              "file": "enemies/map-monsters.json",
+              "key": "pob-enemy-is-boss"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:1964",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "resistancePenalty",
+            "value": -60,
+            "source": {
+              "file": "campaign/limits.json",
+              "key": "resistance-penalty.endgame"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Modules/ConfigOptions.lua:113",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 2Valley of the TitansMedallion",
+            "value": "30% increased Charm Charges Gained\n\t+1 Charm Slot",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-2-valley-of-the-titans-medallion.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 3Venom CryptsVenom Draught",
+            "value": "25% increased Stun Threshold",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-3-venom-crypts-venom-draught.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Eye of HinekoraTribal Medicine",
+            "value": "30% increased Global Armour, Evasion and Energy Shield",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-eye-of-hinekora-tribal-medicine.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTawhoa's Test",
+            "value": "+5 to Dexterity",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tawhoa-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadTasalio's Test",
+            "value": "+5 to Intelligence",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-tasalio-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Halls Of The DeadNgamahu's Test",
+            "value": "+5 to Strength",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-halls-of-the-dead-ngamahu-s-test.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questAct 4Abandoned PrisonGoddess of Justice",
+            "value": "30% increased Life Recovery from Flasks",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.act-4-abandoned-prison-goddess-of-justice.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          },
+          {
+            "option": "questInterlude 2QimahSeven Pillars",
+            "value": "+5% to all Elemental Resistances",
+            "source": {
+              "file": "campaign/progress.json",
+              "key": "q.interlude-2-qimah-seven-pillars.options"
+            },
+            "tag": {
+              "kind": "pob-data",
+              "ref": "Data/QuestRewards.lua",
+              "patch": "0.5.4",
+              "confidence": "H"
+            }
+          }
+        ]
+      },
+      "claims": []
+    }
+  ],
+  "ledger": [],
+  "prices": [
+    {
+      "id": "m-weapon-1",
+      "item": "Hunting Spear",
+      "query": {
+        "slot": "Weapon 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-weapon-2",
+      "item": "Leather Buckler",
+      "query": {
+        "slot": "Weapon 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-weapon-1-swap",
+      "item": "Winged Spear",
+      "query": {
+        "slot": "Weapon 1 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-weapon-2-swap",
+      "item": "Shrine Sceptre",
+      "query": {
+        "slot": "Weapon 2 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-body-armour",
+      "item": "Leather Vest",
+      "query": {
+        "slot": "Body Armour"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-amulet",
+      "item": "Choir of the Storm",
+      "query": {
+        "slot": "Amulet"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-boots",
+      "item": "Lizardscale Boots",
+      "query": {
+        "slot": "Boots"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-ring-1",
+      "item": "Two-Stone Ring",
+      "query": {
+        "slot": "Ring 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-ring-2",
+      "item": "Unset Ring",
+      "query": {
+        "slot": "Ring 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-belt",
+      "item": "Heavy Belt",
+      "query": {
+        "slot": "Belt"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "m-jewel-54127",
+      "item": "Ruby",
+      "query": {
+        "slot": "Jewel 54127"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-weapon-1",
+      "item": "Hunting Spear",
+      "query": {
+        "slot": "Weapon 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Hunting Spear",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "Adds # to # Physical Damage",
+            "tradeId": "explicit.stat_1940865751",
+            "tier": 1,
+            "min": 10,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Attack Speed",
+            "tradeId": "explicit.stat_681332047",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to Accuracy Rating",
+            "tradeId": "explicit.stat_803737631",
+            "tier": 1,
+            "min": 478,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-weapon-2",
+      "item": "Leather Buckler",
+      "query": {
+        "slot": "Weapon 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Leather Buckler",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 40,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Cold Resistance",
+            "tradeId": "explicit.stat_4220027924",
+            "tier": 1,
+            "min": 20,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-weapon-1-swap",
+      "item": "Item Level: 70",
+      "query": {
+        "slot": "Weapon 1 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-weapon-2-swap",
+      "item": "Item Level: 80",
+      "query": {
+        "slot": "Weapon 2 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-body-armour",
+      "item": "Slipstrike Vest",
+      "query": {
+        "slot": "Body Armour"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Leather Vest",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 92,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 30,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Chaos Resistance",
+            "tradeId": "explicit.stat_2923486259",
+            "tier": 1,
+            "min": 23,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Evasion Rating",
+            "tradeId": "explicit.stat_2106365538",
+            "tier": 1,
+            "min": 120,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-amulet",
+      "item": "Jade Amulet",
+      "query": {
+        "slot": "Amulet"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "f-boots",
+      "item": "Lizardscale Boots",
+      "query": {
+        "slot": "Boots"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Lizardscale Boots",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "#% increased Movement Speed",
+            "tradeId": "explicit.stat_2250533757",
+            "tier": 1,
+            "min": 35,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 55,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-ring-1",
+      "item": "Two-Stone Ring",
+      "query": {
+        "slot": "Ring 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Two-Stone Ring",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 40,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 30,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to Dexterity",
+            "tradeId": "explicit.stat_3261801346",
+            "tier": 1,
+            "min": 12,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-ring-2",
+      "item": "Unset Ring",
+      "query": {
+        "slot": "Ring 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Unset Ring",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 55,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Lightning Resistance",
+            "tradeId": "explicit.stat_1671376347",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-belt",
+      "item": "Heavy Belt",
+      "query": {
+        "slot": "Belt"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Heavy Belt",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 42,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "f-jewel-54127",
+      "item": "Ruby",
+      "query": {
+        "slot": "Jewel 54127"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Ruby",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 12,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Attack Damage",
+            "tradeId": "explicit.stat_2843214518",
+            "tier": 1,
+            "min": 10,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-weapon-1",
+      "item": "Hunting Spear",
+      "query": {
+        "slot": "Weapon 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Hunting Spear",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "Adds # to # Physical Damage",
+            "tradeId": "explicit.stat_1940865751",
+            "tier": 1,
+            "min": 10,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Attack Speed",
+            "tradeId": "explicit.stat_681332047",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to Accuracy Rating",
+            "tradeId": "explicit.stat_803737631",
+            "tier": 1,
+            "min": 478,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-weapon-2",
+      "item": "Leather Buckler",
+      "query": {
+        "slot": "Weapon 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Leather Buckler",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 40,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Cold Resistance",
+            "tradeId": "explicit.stat_4220027924",
+            "tier": 1,
+            "min": 40,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-weapon-1-swap",
+      "item": "Winged Spear",
+      "query": {
+        "slot": "Weapon 1 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-weapon-2-swap",
+      "item": "Shrine Sceptre",
+      "query": {
+        "slot": "Weapon 2 Swap"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-body-armour",
+      "item": "Leather Vest",
+      "query": {
+        "slot": "Body Armour"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Leather Vest",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 92,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 30,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Chaos Resistance",
+            "tradeId": "explicit.stat_2923486259",
+            "tier": 1,
+            "min": 23,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Evasion Rating",
+            "tradeId": "explicit.stat_2106365538",
+            "tier": 1,
+            "min": 120,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-amulet",
+      "item": "Choir of the Storm",
+      "query": {
+        "slot": "Amulet"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run"
+    },
+    {
+      "id": "n-boots",
+      "item": "Lizardscale Boots",
+      "query": {
+        "slot": "Boots"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Lizardscale Boots",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "#% increased Movement Speed",
+            "tradeId": "explicit.stat_2250533757",
+            "tier": 1,
+            "min": 35,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 55,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-ring-1",
+      "item": "Two-Stone Ring",
+      "query": {
+        "slot": "Ring 1"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Two-Stone Ring",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 40,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 30,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+# to Dexterity",
+            "tradeId": "explicit.stat_3261801346",
+            "tier": 1,
+            "min": 12,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Cold Resistance",
+            "tradeId": "explicit.stat_4220027924",
+            "tier": 1,
+            "min": 35,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-ring-2",
+      "item": "Unset Ring",
+      "query": {
+        "slot": "Ring 2"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Unset Ring",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 55,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Lightning Resistance",
+            "tradeId": "explicit.stat_1671376347",
+            "tier": 1,
+            "min": 28,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 25,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-belt",
+      "item": "Heavy Belt",
+      "query": {
+        "slot": "Belt"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Heavy Belt",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+# to maximum Life",
+            "tradeId": "explicit.stat_3299347043",
+            "tier": 1,
+            "min": 42,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Cold Resistance",
+            "tradeId": "explicit.stat_4220027924",
+            "tier": 1,
+            "min": 35,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "+#% to Lightning Resistance",
+            "tradeId": "explicit.stat_1671376347",
+            "tier": 1,
+            "min": 20,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    },
+    {
+      "id": "n-jewel-54127",
+      "item": "Ruby",
+      "query": {
+        "slot": "Jewel 54127"
+      },
+      "amount": null,
+      "currency": null,
+      "date": "2026-12-01",
+      "league": null,
+      "status": "unavailable",
+      "note": "offline run",
+      "spec": {
+        "base": "Ruby",
+        "weights": [
+          {
+            "stat": "FullDPS",
+            "weight": 1
+          },
+          {
+            "stat": "TotalEHP",
+            "weight": 0.5
+          }
+        ],
+        "ranking": null,
+        "mustHaves": [
+          {
+            "affix": "+#% to Fire Resistance",
+            "tradeId": "explicit.stat_3372524247",
+            "tier": 1,
+            "min": 12,
+            "why": "the character's own line, at its tier's lowest roll"
+          },
+          {
+            "affix": "#% increased Attack Damage",
+            "tradeId": "explicit.stat_2843214518",
+            "tier": 1,
+            "min": 10,
+            "why": "the character's own line, at its tier's lowest roll"
+          }
+        ],
+        "leftOut": [],
+        "searches": 0
+      }
+    }
+  ]
+}

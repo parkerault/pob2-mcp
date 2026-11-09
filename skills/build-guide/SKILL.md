@@ -37,7 +37,8 @@ where its card names one.
   resume (D-415): no engine call and nothing written, its reply `Resuming run folder <abs>`, `runFolderRel: <rel>` and
   `loadedBuildUnsaved: …`; and `mcp__pob2__compile_plan`'s engine-free calls: `{plan_path, draft_name}`, an escalation
   accept's draft (§5); `remove_draft`, a picked card's skeleton (§4); `read_back` and `adopt`, the user's edits (§3);
-  `notes_path`, the notes (§6). Every other compile, engine change and price call is a coordinator step's.
+  `notes_path`, the notes (§6); in a run from a file, `mcp__pob2__list_builds` and `mcp__pob2__plan_from_build` too.
+  Every other compile, engine change and price call is a coordinator step's.
 - **Every gate visit prints its display first, in your reply, whoever answers it** (D-265, D-367): the user, a
   pre-supplied answer or a default, at the brainstorm, verification, design and final gates and at an escalation.
   `pob2-run-log <runFolder> display <gate>` prints it (with `--build <id>` at a build's design and final gates);
@@ -54,7 +55,7 @@ where its card names one.
   gate's display), the deck `cards.md`, `run-log.json`, the test config, the agents' returns, the verifiers' reports,
   a read-back's `readback.json` (D-479), the digest's first lines (§1), and at a gate the card and research files
   (D-390). Never read `plan.json`, a compile record, `dossier.md` or `guide.md`, with Read or with Bash; step 14 reads
-  only the `Known issues` lines it edits.
+  only the `Known issues` lines it edits. A run from a file reads its measure.md and `cards/file.md` too.
 
 ## Calling an agent
 
@@ -132,13 +133,13 @@ D-507). `init` records `--no-ninja` as `noNinja`, and a resume replaces it with 
 pricing step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
 
 **A run from a PoB file** (D-522): a request for a guide to the player's own build or file starts it ("a build guide for
-my build MyCharacter123"), its brief's `from`, `better` and `campaign`, its slug `file`. Read
-`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/file-run.md` and do it: its own steps replace 2a to 5.
+my build MyCharacter123"), its brief's `from`, `better` and `campaign`, its slug `file`; a one-word `/pob2:build-guide <name>`
+checks `mcp__pob2__list_builds` first and asks when it could be either. Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/file-run.md` and do it: its own steps replace 2a to 5.
 
 **A resume** (D-415; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md`, "Resuming a run", has its order): `/pob2:build-guide --resume <run folder>`
 goes on with an earlier run in its own folder, and `--campaign <run folder> <id>` resumes it and answers
 `campaign:<id>`: `mcp__pob2__guide_run {resume}`, `migrate` for a schema-3 log, `resume` with this session's
-`noNinja`, the unsaved-build question once per resume, then the verification gate (§3, §7), with no brief check.
+`noNinja`, the unsaved-build question once per resume, then the verification gate (§3, §7), with no brief check. A file run (its brief has `from`) resumes by §6 of `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/file-run.md` instead.
 
 ## 2. Brainstorm (steps 2a to 2c)
 

@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 4,
+  "skillRevision": 16,
+  "runFolder": "/tmp/pob2-guides/file/2026-12-01-1",
+  "slug": "file",
+  "brief": {
+    "from": "imported-character.xml",
+    "campaign": false
+  },
+  "status": "completed",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": [
+    "forbidden-rites.md",
+    "runes-of-aldur.md"
+  ],
+  "dossier": "dossier.md",
+  "builds": [
+    {
+      "id": "file",
+      "roll": {
+        "className": "Mercenary",
+        "ascendancy": "Gemling Legionnaire",
+        "skill": "Twister"
+      },
+      "name": "imported-character's Twister",
+      "status": "completed",
+      "folder": "builds/file",
+      "guide": "endgame",
+      "pobFile": "imported-character's Twister.xml",
+      "draftFile": null
+    }
+  ],
+  "stages": [
+    {
+      "stage": "read",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "measure",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "place",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-build",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-tree",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-finish",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-gate",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass",
+      "scope": "ladder"
+    },
+    {
+      "stage": "F1",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass"
+    },
+    {
+      "stage": "W1",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "V4",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint": "design",
+      "concept": "file",
+      "visit": 1,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0,
+      "scaling": false
+    },
+    {
+      "checkpoint": "final",
+      "concept": "file",
+      "visit": 1,
+      "answer": "accept",
+      "answeredBy": "user",
+      "questions": 0
+    }
+  ],
+  "displays": [
+    {
+      "checkpoint": "design",
+      "visit": 1
+    },
+    {
+      "checkpoint": "final",
+      "visit": 1
+    }
+  ],
+  "escalations": [],
+  "faults": [],
+  "resumes": [],
+  "pricing": {
+    "stops": [],
+    "retries": []
+  }
+}

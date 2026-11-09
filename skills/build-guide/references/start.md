@@ -146,6 +146,7 @@ run again. In this order:
    build of the run with its status, and says when PoB's version or the digests changed since the run last ran.
    Beside its own answers, a resume offers `guide:<id>` (a `file-only` build), `campaign:<id>` (a `completed` or
    `file-only` build) and `design:<id>` (a `stopped` or `dropped` build whose last D1 gate passed). With
-   `--campaign`, its answer is `campaign:<id>`, logged as the user's.
+   `--campaign`, its answer is `campaign:<id>`, logged as the user's. A file run (its brief has `from`) has no
+   verification gate: it resumes by §6 of `skills/build-guide/references/file-run.md`.
 
 A resume takes no `--offline` or `--test`: the run's mode is the log's, and the user answers every gate.

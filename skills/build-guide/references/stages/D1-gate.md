@@ -343,7 +343,8 @@ never failing it for them. Each of its floor findings (a resistance, a max hit u
 what reaching it would cost in players' words, from D1-finish's `scaling` finds in `trades.json` ("a cold-resistance
 ring, about 9 divines"; offline, that its price is unavailable); its tree findings stand as they are. A part failing
 only on the placed rung's findings, each floor finding with its `cost`, passes to the design gate; the legality parts
-(compiled, V1, V2) fail as today on every rung. The draft is the pipeline's, the build's own name.
+(compiled, V1, V2) fail as today on every rung: the placed rung has no `config.file` and no `owned` mark. The draft is
+the pipeline's, the build's own name.
 
 ## Writes
 

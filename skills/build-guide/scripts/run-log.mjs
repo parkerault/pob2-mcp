@@ -223,6 +223,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { playersWords, bossFigure, arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedPercent, typeWords } from './render-audit.mjs';
 import { runningDigests, report as leagueReport, instantOf } from '../../game-knowledge/scripts/leagues.mjs';
@@ -360,6 +361,21 @@ export const isFileRun = (log) => isObj(log) && pieceOf(log) === null && isObj(l
  * user declined the campaign at the start, so D2 doesn't run; the coordinator's proceed-on, beside A.6's two).
  */
 export const FILE_BRIEF_FIELDS = ['from', 'better', 'campaign'];
+/**
+ * C-61 (Appendix A.6): whether a brief's `from` is an import code rather than a file's name: longer than a name may be, or
+ * a run of base64 that inflates to a PoB document.
+ */
+export function looksLikeImportCode(v) {
+  const s = String(v ?? '').trim();
+  if (s.length > 255) return true;
+  if (!/^[A-Za-z0-9+/_=-]{24,}$/.test(s)) return false;
+  try {
+    const xml = zlib.inflateSync(Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64')).toString('utf8');
+    return /<PathOfBuilding/.test(xml);
+  } catch {
+    return false;
+  }
+}
 /** D-522: the problems of a pipeline `init`'s brief and slug against the file run's rules: `from` gives the slug `file`. */
 export function fileBriefProblems(slug, brief) {
   if (!isObj(brief)) return [];
@@ -367,6 +383,8 @@ export function fileBriefProblems(slug, brief) {
   const from = brief.from;
   if (from !== undefined && !(typeof from === 'string' && from.trim() !== '')) bad.push(`brief.from is ${show(from)}; the PoB file the run starts from, a builds-folder name or "import code" (the code itself goes only to the reader), D-522`);
   const file = typeof from === 'string' && from.trim() !== '';
+  // C-61, Appendix A.6: an import code goes only to the reader, never in the log; its message never repeats it.
+  if (file && looksLikeImportCode(from)) bad.push(`brief.from is ${from.length > 255 ? `${from.length} characters long` : 'a code that decodes as a PoB build'}: an import code goes only to the reader, never in the log, so from is "import code" (a builds-folder name is at most 255 characters) (C-61, D-522)`);
   if (file && slug !== FILE_ID) bad.push(`slug is ${show(slug)}; a run from a PoB file (brief.from) has the slug ${FILE_ID}: guide_run {new_run: "${FILE_ID}"} (D-522)`);
   if (!file && slug === FILE_ID) bad.push(`slug ${FILE_ID} is a run from a PoB file's, whose brief names the file in from; this brief has none (D-522)`);
   for (const k of ['better', 'campaign']) {
@@ -3289,6 +3307,8 @@ export async function display(runFolder, gate, build, opts = {}) {
   // no other piece run has a gate.
   if (piece !== null && (piece !== 'compile' || !['design', 'escalation'].includes(gate))) throw new Error(`display: a ${piece} run has no ${gate === 'escalation' ? 'escalation' : `${gate} gate`}; only a compile run's better round has gates, its design gate and its escalation question (D-516)`);
   if (piece !== null && build !== undefined && (gate !== 'design' || build !== FILE_ID)) throw new Error(`display: a compile run's one build is ${FILE_ID}, at the folder's root: display design, or display design --build ${FILE_ID} (D-516)`);
+  // D-522 (§18): a file run has no brainstorm or verification gate, so no display of one (`fileRunGates`).
+  if (isFileRun(log) && ['brainstorm', 'verification'].includes(gate)) throw new Error(`display: a run from a PoB file has no ${gate} gate: the file is its skeleton and cards/${FILE_ID}.md its card; a resume goes on from where it stopped (D-522)`);
   if (piece === null && log.schemaVersion === 4 && perBuild && build === undefined) throw new Error(`display: the ${gate} gate is a build's: display ${gate} --build <card id> (D-411)`);
   if (build !== undefined && !perBuild) throw new Error(`display: --build goes with the design and final gates, not ${gate}`);
   if (piece === null && build !== undefined && !objects(log.builds).some((b) => b.id === build)) throw new Error(`display: ${build} has no build in the run; builds[] holds ${objects(log.builds).map((b) => b.id).join(', ') || 'none'}`);

@@ -91,6 +91,8 @@ request (D-411, D-413).
    search's repairs"): schema 10 adds a price's `listing` and `spec`, `tree.exclude`, `tree.search.targets` and
    `userMoves`, `tree.end.endAfter`, the plan's `itemSwaps` and an ascendancy jewel socket. A step that would write one
    of them into a schema-9 plan (a swap, D1-tree's targets, D1-finish's `listing`, after a resume) runs you first.
+   A plan holding a schema-11 field (a group's `switch`, a stage's `source`, an `owned` mark, `config.file`) is at
+   `schemaVersion: 11`.
    - **Temporary stages** (D-453): every measuring copy you add, here or in any D1 step, has an id that starts
      `tmp`, then letters and digits like every stage id (`tmpb1`, `tmpn2`); no stage counts it as its
      predecessor. Remove each before you finish, and when you start, remove any `tmp` stage a crashed step left in
@@ -341,7 +343,7 @@ request (D-411, D-413).
      its number was worked out. PoB counts the socketed supports of both sets, where the game counts only the active
      set's (PG-71): on a build with a set-2 skill, a per-support modifier (Gem Studded) is overstated, so
      hand-calculate it as a custom modifier with its reason.
-   - **A buff switched as needed** (D-518, schema 11). A buff the Spirit can't carry with the rest may stay, switched
+   - **A buff switched as needed** (D-518; the plan at `schemaVersion: 11`). A buff the Spirit can't carry with the rest may stay, switched
      as needed, instead of being cut: its group `enabled: false` with `switch {when, off}`, `when` a short phrase for
      the player ("for bosses", "as needed"), `off` the stage's groups switched off for it (the fewest whose
      reservation makes room). The compile measures it with its `off` groups off (the record's `switches`), and V1's
@@ -724,11 +726,13 @@ Your header's `scope: "ladder"` (a file run, amendment 16 §18): design the rung
 character, read from their file (its `source`) and placed on its rung, or the better round's result. Attempt 1 writes
 `<buildFolder>/plan.json` anew from the read plan at the run folder's root, or, after a better round, edits its plan;
 the card is the file card `cards/file.md`, with no skeleton, dossier or Pieces table. **The placed rung** keeps the
-file's design (or the round's), its stage `source`, id, `variant` and tree, changed only on the user's request: its
-uniques stay named and owned, but its rares are turned into specs by pricing's rule for an owned rare (§16: its 3 or 4
+file's design (or the round's), its stage `source`, id, `variant`, tree, skills and items, changed only on the user's
+request (the plan at `schemaVersion: 11`). It is a guide's rung, for other players: it drops every `owned` mark (its
+uniques stay named, their prices reused by id) and `config.file`, taking the guide's configuration as every rung does
+(the earned states its build produces and the scenario, at its rung's reference hits); the owner's custom lines, enemy
+settings and party stay in the read at the root, with the measure's callouts. Its rares are turned into specs by pricing's rule for an owned rare (§16: its 3 or 4
 explicit lines PoB weights highest for the slot, each at its tier's lowest roll, a fractured, crafted or desecrated line
-as a plain explicit mod, a corrupted implicit left out), so any player can buy them, each a design's item with no
-`owned` mark; and owned content a guide can't carry (a gem or unique the reader named legacy or no
+as a plain explicit mod, a corrupted implicit left out), so any player can buy them; and owned content a guide can't carry (a gem or unique the reader named legacy or no
 longer obtainable in `read.json`, D-395; a "Legacy of …" soul core or the Raven-Touched Shard, D-465; a corrupted rare's
 implicit, D-484) is replaced, each a trade in `trades.json` (its kind's, `from` the owned item or gem, `to` what replaces
 it), which the design gate shows. **The other rungs:** a rung below takes the placed rung's skill and supports with

@@ -1,0 +1,118 @@
+^xE0C080Gemling Legionnaire / Twister: imported-character's Twister
+
+^xE0C080At a glance
+
+Twister sends spinning blades through packs from range, carried by the character's own spear, buckler and amulet. This guide is the endgame build only: level with any Mercenary build.
+
+- Pros: one button from range; the character's own gear, its rares written as the stats to buy.
+- Cons: its gems sit at low levels until the attributes catch up, and the Arbiter's slam one-shots it.
+- Difficulty: easy.
+
+^xE0C080Your PoB file
+
+Import this code in PoB2 (Import/Export Build, then Import from code):
+
+The file is imported-character's Twister.xml. Its loadouts, in order: Entering maps (L90) {m} → Endgame (L90) {b} → Endgame non-budget (L90) {n}. Engine: PoB2 v0.23.1 (patch 0.5.4). Made offline, so no prices were checked.
+
+^xE0C080Switching over
+
+Level with any Mercenary build, and switch to this one at level 90, gear from level 90, because Spear Throw, Virtuous Barrier and Purity of Ice are gem level 20. Take the Gemling Legionnaire ascendancy in the order the entering-maps loadout lists.
+
+The campaign rewards it takes:
+
+- 30% increased Charm Charges Gained.
+- 25% increased Stun Threshold.
+- 30% increased Global Armour, Evasion and Energy Shield.
+- +5 to Dexterity.
+- +5 to Intelligence.
+- +5 to Strength.
+- 30% increased Life Recovery from Flasks.
+- +5% to all Elemental Resistances.
+
+Respeccing from a levelling build: the PoB file holds each rung's whole tree; refund what the rung doesn't use. The gold cost isn't computed.
+
+^xE0C080Survival by stage
+
+The entering-maps label is my judgment of its line against the map hits; the budget and non-budget labels are the Arbiter of Divinity's verdict.
+
+- Entering maps (L90): watch. Resistances 75/75/75/23% at −60%. Max hit 1,667 physical against about 299, and at least 2,165 elemental or chaos against about 72. Twister about 22 DPS against map monsters, about 22 against resisting rares, about 21 against a Pinnacle boss. Effective HP about 2,894.
+- Budget (L90): one-shot by the Arbiter's physical hit (it survives 3% of them). Resistances 55/-11/72/23% at −60%. Max hit 1,667 physical against about 402, and at least 1,502 elemental or chaos against about 97. Twister about 23 DPS against map monsters, about 23 against resisting rares, about 23 against a Pinnacle boss. Effective HP about 2,428.
+- Non-budget (L90): one-shot by the Arbiter's physical hit (it survives 3% of them). Resistances 75/75/75/23% at −60%. Max hit 1,667 physical against about 439, and at least 2,165 elemental or chaos against about 106. Twister about 23 DPS against map monsters, about 23 against resisting rares, about 23 against a Pinnacle boss. Effective HP about 2,896.
+
+^xE0C080Priorities
+
+My support order: Salvo, then Projectile Acceleration III. Short on spirit? See each rung's switch lines under its gems. Flasks: the character's Ultimate Life Flask on every rung.
+
+^xE0C080Endgame: entering maps
+
+Start here at level 90. Buy, in order: 1. the buckler and the rings, for cold resistance; 2. the belt.
+
+- Virtuous Barrier: switch it on as needed.
+- Trinity: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Blasphemy: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Wind Dancer: switch it on as needed.
+
+^xE0C080Checks
+
+- Chaos resistance stays at 23% because no slot can carry chaos resistance without dropping a core item or breaking the budget.
+- Budget: unknown, against a 5-divine target.
+  Prices are unavailable (offline run), so this rung's total isn't known.
+- Clear speed: slow, a rough estimate from Twister's area. Movement speed: +26%.
+
+^xE0C080Endgame: budget
+
+Move here with the character's own gear: this rung is the character as its file holds it, its rares written as the stats to buy.
+
+- Gems: Twister (level 5, quality 20) with Salvo and Projectile Acceleration III; Herald of Ice and Combat Frenzy.
+- Virtuous Barrier: switch it on as needed.
+- Trinity: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Blasphemy: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Wind Dancer: switch it on as needed.
+- Raise the Shrine Sceptre to quality 20 with Arcanist's Etchers: Purity of Ice takes its quality.
+- Corrupt cheap low-level Twister gems until one gets +1 level, then level it to 20.
+
+^xE0C080Checks
+
+- Chaos resistance stays at 23% because no slot can carry chaos resistance without dropping a core item or breaking the budget.
+- Budget: unknown, aiming at about 5 a slot.
+  Prices are unavailable (offline run), so this rung's total isn't known.
+- The Arbiter of Divinity: one-shot by its physical hit, at 2.09 of your max hit; it survives 3% of them.
+- Clear speed: slow, a rough estimate from Twister's area. Movement speed: +31%.
+
+^xE0C080Endgame: non-budget
+
+Move here when you can afford the resistance rings and belt.
+
+- Corrupt cheap low-level Twister gems until one gets +1 level, then level it to 20.
+- Virtuous Barrier: switch it on as needed.
+- Trinity: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Blasphemy: switch it on as needed; switch Herald of Ice and Combat Frenzy off for it.
+- Wind Dancer: switch it on as needed.
+
+^xE0C080Checks
+
+- Chaos resistance stays at 23% because no slot can carry chaos resistance without dropping a core item or breaking the budget.
+- Budget: unknown, against the 100–200 target.
+  Prices are unavailable (offline run), so this rung's total isn't known.
+- The Arbiter of Divinity: one-shot by its physical hit, at 2.09 of your max hit; it survives 3% of them.
+- Clear speed: slow, a rough estimate from Twister's area. Movement speed: +31%.
+
+^xE0C080How to play it
+
+Twister takes the packs from range and the rares with it: keep moving and recast.
+
+^xE0C080What PoB can't show
+
+Wind Dancer counts two copies, as the file sets it.
+
+^xE0C080Known issues
+
+None.
+
+^xE0C080FAQ
+
+- Why no levelling section? Any Mercenary build levels you to 90; this guide starts there.
+
+^xE0C080Changelog
+
+- 2026-12-01: first version (offline run).

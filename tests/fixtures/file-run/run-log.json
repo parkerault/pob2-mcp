@@ -4,7 +4,8 @@
   "runFolder": "/tmp/pob2-guides/file/2026-12-01-1",
   "slug": "file",
   "brief": {
-    "from": "Fixture Titan.xml"
+    "from": "imported-character.xml",
+    "campaign": false
   },
   "status": "running",
   "mode": "offline",
@@ -15,21 +16,21 @@
     "forbidden-rites.md",
     "runes-of-aldur.md"
   ],
-  "dossier": null,
+  "dossier": "dossier.md",
   "builds": [
     {
       "id": "file",
       "roll": {
-        "className": "Warrior",
-        "ascendancy": "Titan",
-        "skill": "Blood Hunt"
+        "className": "Mercenary",
+        "ascendancy": "Gemling Legionnaire",
+        "skill": "Twister"
       },
-      "name": "Fixture Titan's Blood Hunt",
+      "name": "imported-character's Twister",
       "status": "designing",
       "folder": "builds/file",
       "guide": null,
       "pobFile": null,
-      "draftFile": "Fixture Titan's Blood Hunt (draft).xml"
+      "draftFile": "imported-character's Twister (draft).xml"
     }
   ],
   "stages": [
@@ -78,12 +79,7 @@
     }
   ],
   "checkpoints": [],
-  "displays": [
-    {
-      "checkpoint": "design",
-      "visit": 1
-    }
-  ],
+  "displays": [],
   "escalations": [],
   "faults": [],
   "resumes": [],

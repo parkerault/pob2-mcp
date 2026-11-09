@@ -14,7 +14,7 @@ call out anything that seems wrong to the user").
   "measure-only"` you do the whole step, and `writes` names the measure report (`<runFolder>/measure.md`), `plan.json`
   (the engagement alone) and, when the better round follows, `cards/file.md`. With `compile: "none"` you write the
   file card alone, from the plan, the record and the report the last measure left: the user asked for the better round
-  after the measure.
+  after the measure. In a file run (`/pob2:build-guide` from a PoB file, §18) `writes` also names `dossier.md`.
 - **Prompt:** the user's words about the character, verbatim (that it is in the campaign; what it is for), and
   whether the better round follows.
 - **Read**, the independent calls in one response: `read.json` whole (what the reader left out, dropped, kept at
@@ -87,10 +87,16 @@ call out anything that seems wrong to the user").
    clears, the traps), written from the read plan, the record, the report and the user's words, with no verification
    half. Its name is the source's name and the main skill ("MyCharacter's Ice Strike"). It is the minimum the steps
    that read a card need when there was no brainstorm (D1, D2, W1).
+9. **The dossier row**, only when `writes` names `dossier.md` (a file run, §18), so D2 and W1 find their row: write
+   `dossier.md` whole, `# Dossier: <source name>`, a line `Brief: from <source name>. Mode: <offline | online>.`, then
+   the verification gate's table with its nine columns (Card, Round, Status, Synergy, Damage, Pieces, Key prices,
+   League, Main risk) and one row: `file`, `—`, `viable`, the card's synergy, the named source and the damage kinds PoB
+   shows for it (`Twister: hit`), `—`, `—`, the league or `none (offline)`, and its main risk in a few words, no figure.
 
 ## Writes
 
-`plan.json` (step 1's `skills.engagement` only), the measure report and, when named, `cards/file.md`; the server writes
+`plan.json` (step 1's `skills.engagement` only), the measure report and, when named, `cards/file.md` and
+`dossier.md`; the server writes
 `compile-record.json` and `compiled-build.xml` beside the plan. Nothing in the builds folder.
 
 ## Returns

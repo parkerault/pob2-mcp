@@ -513,7 +513,7 @@ read is a trade of its kind (Appendix A's), with `from` the owned item or settin
 ## The `ladder` scope (D-522)
 
 With `scope: "ladder"` (a file run's rungs around its placed one): finish every rung as today. On the placed rung, the
-stage that keeps the reader's `source`, its owned uniques and gems keep the prices `place` gave them, reused; price its
+stage that keeps the reader's `source`, its uniques and gems keep the prices `place` gave them, reused by id; price its
 rares as the specs D1-build turned them into, by the spec loop; and keep each replacement of owned content a guide can't
 carry as D1-build's trade, priced. Its missed targets are the D1 gate's findings: write a `scaling` find in
 `trades.json` for each, the cheapest change that would reach it with its price, which the gate's `cost` names.

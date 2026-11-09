@@ -1519,7 +1519,14 @@ export async function checkRun(runFolder) {
 
   // ---- Dossier (§7.2, as D-355 reduces it): the verification gate's comparison table -------------------
   const dossierText = readText('dossier.md');
-  if (dossierText !== null) {
+  // D-522 (§18): a file run's dossier is the measure's one row for its build, file, which D2 and W1 read.
+  if (dossierText !== null && fileRun) {
+    const rows = dossierText.split('\n').filter((l) => l.startsWith('|')).map((l) => l.split('|').slice(1, -1).map((c) => c.trim()));
+    if (show(rows[0]) !== show(DOSSIER_COLUMNS_A11)) fail('dossier-sections', `dossier.md's table header is ${show(rows[0] ?? null)}; a file run's dossier is the verification gate's table, ${DOSSIER_COLUMNS_A11.join(', ')}, which the measure writes (D-436, D-522)`);
+    const body = rows.slice(2);
+    if (body.length !== 1 || body[0][0] !== FILE_ID || body[0].length !== DOSSIER_COLUMNS_A11.length) fail('dossier-sections', `dossier.md holds ${body.map((r) => show(r[0])).join(', ') || 'no row'}; a file run's dossier holds one row, its build ${FILE_ID}'s, with the table's ${DOSSIER_COLUMNS_A11.length} cells, which the measure writes (D-522)`);
+  }
+  if (dossierText !== null && !fileRun) {
     const lastAssembly = stages.reduce((at, s, i) => (s.stage === 'R1b-assemble' && s.outcome === 'done' ? i : at), -1);
     const assembled = [...new Set(stages.slice(0, lastAssembly + 1).filter((s) => s.stage === 'R1b').map((s) => s.concept))];
     // D-400, D-408: the terminal code of each card's last R1b attempt, which its row's status says.
@@ -2144,8 +2151,13 @@ async function checkBuild(c) {
       budget: recomputeBudget(endgame, plan, isObj(d1rep) ? d1rep : {}, gateFresh ? d1.file : null, fail, a13Build),
       rolledSkill: recomputeRolledSkill(endgame, plan, record, isObj(d1rep) ? d1rep : {}, ledgerNow, fail),
     };
+    // D-522 (§17, §18): a file run's ladder gate never fails the placed rung for its floor: a recomputed failure there is
+    // covered when the gate shows it as a finding with its cost (`placedCover`).
+    const ladderGate = isFileRun(log) && d1 && stages.some((x) => x.stage === 'D1-gate' && x.concept === d1.concept && x.attempt === d1.attempt && x.scope === 'ladder');
+    const placedId = ladderGate ? planStages.find((st) => isObj(st.source))?.id ?? null : null;
+    const coveredGate = ladderGate ? (f) => covered(f) || list(d1rep?.findings).some((x) => x.stage === f.stage && x.code === f.code && placedCover(placedId)(x)) : covered;
     for (const [part, got] of Object.entries(parts)) {
-      const openFailures = got.failures.filter((f) => !covered(f));
+      const openFailures = got.failures.filter((f) => !coveredGate(f));
       const effective = openFailures.length > 0 ? 'fail' : got.verdict === 'fail' ? (got.unverified ? 'unverified' : 'pass') : got.verdict;
       const why = got.failures.map((f) => f.why).join('; ');
       // The gate's verdict must agree with the records (accepted failures may be counted either way).
@@ -3221,11 +3233,15 @@ function checkBetterRound({ log, plan, gateReports, exists, fail }) {
  * D-522 (§18, §15, §16): a file run's own rules, beside its order (`checkFlow4`'s).
  * - `ladder`: once the ladder's D1-build ran, the build's plan holds the three endgame rungs (the other rungs designed
  *   around the placed one, above and below); the placed rung is the one stage that keeps the reader's `source`, or none
- *   below the endgame (the read plan's stage unplaced: the three rungs designed, seeded from it, choice A); and with no
- *   better round, it sits on the rung `place` gave it and keeps the file's tree (D1-tree runs on the designed rungs only).
- * - `owned-guide`: a guide holds owned content to every rule. No stage keeps what the reader named legacy or no longer
- *   obtainable (read.json's `legacy`, D-395), each shown at the design gate as a trade (`trades.json`, a `from` naming
- *   it, a `to` what replaces it); and the placed rung's rares are specs, so none keeps the reader's `owned` mark (§16).
+ *   below the endgame (the read plan's stage unplaced: the three rungs designed, seeded from it, choice A). It is a
+ *   guide's rung: no `config.file` (the owner's configuration stays in the read). With no better round, it sits on the
+ *   rung `place` gave it and keeps the file's tree and items, each item as read but a rare turned into a spec (its base
+ *   kept) or a change a trade shows (its slot, or the item's name in its `from`); a user's request at a design or final
+ *   gate that names the rung lifts the tree and item comparison.
+ * - `owned-guide`: a guide holds owned content to every rule. No `owned` mark stays in the plan (V1 would skip it); no
+ *   stage keeps what the reader named legacy or no longer obtainable (read.json's `legacy`, D-395), each shown at the
+ *   design gate as a trade (`trades.json`, a `from` naming it, a `to` what replaces it); and the placed rung's rares are
+ *   specs, priced by a spec the D1 gate's basis maps to them (§16).
  */
 function checkFileRun({ log, plan, readPlan, read, trades, gate, fail }) {
   const stages = list(log.stages);
@@ -3240,35 +3256,54 @@ function checkFileRun({ log, plan, readPlan, read, trades, gate, fail }) {
   const below = isObj(readStage) && readStage.variant === undefined;
   if (below && placed.length > 0) lad(`stage ${placed.map((x) => x.id).join(', ')} keeps the reader's source, but the character is below the endgame (the read plan's stage ${show(readStage.id)} isn't placed): its ladder's three rungs are designed, seeded from it, and none is placed (choice A, D-522)`);
   if (!below && placed.length !== 1) lad(`${placed.length} stages keep the reader's source; the placed rung is the one stage that keeps it, the character's design on the rung place gave it (D-522)`);
+  for (const p of placed) if (isObj(p.config) && 'file' in p.config) lad(`the placed rung ${show(p.id)} keeps config.file, the owner's configuration; a guide's rung takes the guide's (the earned states its build produces and the scenario, at its rung's reference hits), and the owner's custom lines, enemy settings and party stay in the read at the root (D-522)`);
   const better = stages.some((s) => s.scope === 'better');
+  const tradeList = list(trades);
   if (placed.length === 1 && isObj(readStage) && !below && !better) {
     const p = placed[0];
     if (p.variant !== readStage.variant) lad(`the placed rung ${show(p.id)} is on ${show(p.variant)}, but place put the character on ${show(readStage.variant)}; the ladder is built around the rung place gave it, never assumed (D-522)`);
-    const ids = (v) => [...new Set(Array.isArray(v) ? v.map(String) : [])].sort();
-    const sameSet = (a, b) => show(ids(a)) === show(ids(b));
-    for (const k of ['nodes', 'ascendancyNodes']) {
-      if (!sameSet(p.tree?.[k], readStage.tree?.[k])) lad(`the placed rung ${show(p.id)}'s tree.${k} isn't the file's (plan.json's stage ${show(readStage.id)}); the placed rung keeps its tree, and D1-tree runs on the designed rungs only (D-522)`);
+    // A user's request at a design or final gate that names the placed rung (its id, its rung's words) changes it.
+    const words = [`\\b${p.id}\\b`, ...({ 'entering-maps': ['entering[- ]maps'], budget: ['(?<!non[- ])budget'], 'non-budget': ['non[- ]budget'] }[p.variant] ?? []), 'placed rung', 'my (?:character|build)'];
+    const named = new RegExp(words.join('|'), 'i');
+    const revised = list(log.checkpoints).some((c) => ['design', 'final'].includes(c.checkpoint) && /^revise:/.test(String(c.answer)) && named.test(String(c.answer).slice(7)));
+    if (!revised) {
+      const ids = (v) => [...new Set(Array.isArray(v) ? v.map(String) : [])].sort();
+      for (const k of ['nodes', 'ascendancyNodes']) {
+        if (show(ids(p.tree?.[k])) !== show(ids(readStage.tree?.[k]))) lad(`the placed rung ${show(p.id)}'s tree.${k} isn't the file's (plan.json's stage ${show(readStage.id)}); the placed rung keeps its tree, and D1-tree runs on the designed rungs only (D-522)`);
+      }
+      const traded = (where, name) => tradeList.some((t) => isObj(t) && t.stage === p.id && (t.slot === where || (textOk(t.from) && textOk(name) && norm(t.from).includes(norm(name)))));
+      const mine = new Map([...list(p.items?.slots).map((x) => [x.slot, x]), ...list(p.items?.treeJewels).map((x) => [`jewel ${x.node}`, x])]);
+      for (const it of [...list(readStage.items?.slots), ...list(readStage.items?.treeJewels)]) {
+        if (!textOk(it.text)) continue;
+        const where = it.slot ?? `jewel ${it.node}`;
+        const was = itemOf(it.text);
+        const now = mine.get(where);
+        const kept = isObj(now) && textOk(now.text) && (was.rarity === 'RARE' ? itemOf(now.text).rarity === 'RARE' && itemOf(now.text).lines[2] === was.lines[2] : norm(now.text) === norm(it.text));
+        if (!kept && !traded(where, was.name)) lad(`the placed rung ${show(p.id)}'s ${where} isn't the file's ${was.name ? show(was.name) : 'item'}${was.rarity === 'RARE' ? ' as a spec on its base' : ''}, and no trade in trades.json shows the change (its slot, or the item's name in its from); the placed rung keeps the file's items, its rares turned into specs (D-522)`);
+      }
     }
   }
-  // owned-guide: what the reader named legacy or no longer obtainable stays out of every stage, shown as a trade.
+  // owned-guide: no owned mark; what the reader named legacy or no longer obtainable stays out of every stage, a trade.
+  for (const x of st) {
+    const marked = [...list(x.items?.slots).filter((it) => it.owned === true).map((it) => it.slot), ...list(x.items?.treeJewels).filter((it) => it.owned === true).map((it) => `jewel ${it.node}`), ...list(x.skills?.groups).map((g, k) => (g?.owned === true ? `group ${k + 1}` : null)).filter(Boolean)];
+    if (marked.length > 0) own(`builds/${FILE_ID}/plan.json's stage ${x.id} keeps the owned mark on ${marked.join(', ')}; in a guide owned content meets every rule (V1 skips owned content), so the ladder drops every owned mark, its prices reused by id (§15, D-522)`);
+  }
   const names = (x) => [
     ...list(x.skills?.groups).flatMap((g) => list(g?.gems)).map((g) => g?.name),
     ...[...list(x.items?.slots), ...list(x.items?.treeJewels)].map((it) => itemOf(it?.text).name),
   ].filter(textOk).map(norm);
-  const tradeList = list(trades);
   for (const l of list(read?.legacy).filter((x) => isObj(x) && textOk(x.name))) {
     for (const x of st) if (names(x).includes(norm(l.name))) own(`builds/${FILE_ID}/plan.json's stage ${x.id} keeps ${show(l.name)}, which the reader named ${l.kind === 'unique' ? 'no longer obtainable' : 'legacy'} (read.json); a guide never keeps legacy or no-longer-obtainable content, the character's own included: its design gate shows it as a trade, with what replaces it (D-395, D-522)`);
     if (!tradeList.some((t) => isObj(t) && textOk(t.from) && norm(t.from).includes(norm(l.name)) && textOk(t.to))) own(`builds/${FILE_ID}/trades.json has no trade from ${show(l.name)}, the character's ${l.kind === 'unique' ? 'unique' : 'gem'} the reader named ${l.kind === 'unique' ? 'no longer obtainable' : 'legacy'} (read.json); owned content a guide can't carry is shown at the design gate as a trade, its from naming it and its to what replaces it (D-522)`);
   }
-  // The placed rung's rares are specs: a design's item each (no owned mark), priced by a spec (the D1 gate's basis maps it).
+  // The placed rung's rares are specs, each priced by a spec the D1 gate's basis maps to it.
   const slots = list(gate?.basis?.budget?.slots);
-  for (const p of placed) {
+  for (const p of isObj(gate) ? placed : []) {
     for (const it of [...list(p.items?.slots), ...list(p.items?.treeJewels)]) {
       if (!isObj(it) || itemOf(it.text).rarity !== 'RARE') continue;
       const where = it.slot ?? `jewel ${it.node}`;
-      if (it.owned === true) own(`builds/${FILE_ID}/plan.json's placed rung ${show(p.id)} keeps the owned rare in ${where}; in a guide its rares are specs, the must-haves at their tiers' lowest rolls, so any player can buy them, and a spec is a design's item, with no owned mark (§16, D-522)`);
       const id = slots.find((x) => x.stage === p.id && (it.slot !== undefined ? x.slot === it.slot : x.jewel === it.node))?.priceId;
-      if (isObj(gate) && !isObj(list(plan.prices).find((x) => x.id === id)?.spec)) own(`builds/${FILE_ID}/plan.json's placed rung ${show(p.id)} prices its rare in ${where} ${id === undefined ? "by no entry the D1 gate's basis maps to it" : `by ${show(id)}, which has no spec`}; in a guide the placed rung's rares are specs, priced by the spec loop from the character's own lines (§16, D-522)`);
+      if (!isObj(list(plan.prices).find((x) => x.id === id)?.spec)) own(`builds/${FILE_ID}/plan.json's placed rung ${show(p.id)} prices its rare in ${where} ${id === undefined ? "by no entry the D1 gate's basis maps to it" : `by ${show(id)}, which has no spec`}; in a guide the placed rung's rares are specs, priced by the spec loop from the character's own lines (§16, D-522)`);
     }
   }
 }

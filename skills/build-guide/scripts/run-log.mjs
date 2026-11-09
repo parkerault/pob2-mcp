@@ -206,6 +206,13 @@
 // WU-162 (D-521): the better round's design display names its draft first (the gate's `draft`) and invites accept (F1
 // writes the final PoB file), changes or stop; its design checkpoint takes `accept`, `revise:<text>` or `stop`, with no
 // `scaling`, and its escalation no `verification`.
+// WU-164 (D-522): a file run, `/pob2:build-guide` from a PoB file, is a pipeline log whose brief names the file (`from`, a
+// builds-folder name or "import code"), with `better` (the better round first) and `campaign` (false: declined at the
+// start); `init` refuses `from` without the slug `file`, the slug without `from`, and `better` or `campaign` without it.
+// It has no brainstorm or verification gate (`fileRunGates`): no `verification` answer at its design gate or escalation,
+// no `accept:verification` at its final gate, and its better round's design gate takes accept, revise:<text> or stop.
+// Its design display serves the better round as a compile run's (the draft first, what the budget can't reach) and the
+// ladder with the placed rung's costed findings, each inviting no way back to a verification gate.
 //
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
@@ -342,8 +349,33 @@ export const PIECE_SOURCE_KINDS = { compile: ['builds-folder', 'import-code'], p
 export const SOURCE_FIELDS = ['kind', 'name', 'sha1', 'build'];
 /** A piece run's piece (D-516): the log's `piece`, one of the three, or null for a pipeline run's log. */
 export const pieceOf = (log) => (isObj(log) && PIECES.includes(log.piece) ? log.piece : null);
-/** D-516 (§18): a file run, `/pob2:build-guide` from a PoB file: a pipeline log whose slug is `file`. */
-export const isFileRun = (log) => isObj(log) && pieceOf(log) === null && log.slug === FILE_ID;
+/**
+ * D-522 (§18, C-51): a file run, `/pob2:build-guide` from a PoB file: a pipeline log whose brief names the file it starts
+ * from (`from`, a builds-folder name or "import code"); its slug is `file`.
+ */
+export const isFileRun = (log) => isObj(log) && pieceOf(log) === null && isObj(log.brief) && typeof log.brief.from === 'string' && log.brief.from.trim() !== '';
+/**
+ * D-522 (C-51, Appendix A.6): a file run's brief fields beside the pipeline's: `from`, the file (a builds-folder name, or
+ * "import code": the code itself goes only to the reader), `better` (the better round first) and `campaign` (false: the
+ * user declined the campaign at the start, so D2 doesn't run; the coordinator's proceed-on, beside A.6's two).
+ */
+export const FILE_BRIEF_FIELDS = ['from', 'better', 'campaign'];
+/** D-522: the problems of a pipeline `init`'s brief and slug against the file run's rules: `from` gives the slug `file`. */
+export function fileBriefProblems(slug, brief) {
+  if (!isObj(brief)) return [];
+  const bad = [];
+  const from = brief.from;
+  if (from !== undefined && !(typeof from === 'string' && from.trim() !== '')) bad.push(`brief.from is ${show(from)}; the PoB file the run starts from, a builds-folder name or "import code" (the code itself goes only to the reader), D-522`);
+  const file = typeof from === 'string' && from.trim() !== '';
+  if (file && slug !== FILE_ID) bad.push(`slug is ${show(slug)}; a run from a PoB file (brief.from) has the slug ${FILE_ID}: guide_run {new_run: "${FILE_ID}"} (D-522)`);
+  if (!file && slug === FILE_ID) bad.push(`slug ${FILE_ID} is a run from a PoB file's, whose brief names the file in from; this brief has none (D-522)`);
+  for (const k of ['better', 'campaign']) {
+    if (brief[k] === undefined) continue;
+    if (typeof brief[k] !== 'boolean') bad.push(`brief.${k} is ${show(brief[k])}; true or false (D-522)`);
+    else if (!file) bad.push(`brief.${k} is a run from a PoB file's (brief.from); this brief names no file (D-522)`);
+  }
+  return bad;
+}
 /** D-516: whether a log names its one build `file`: a piece run (a writer run's W1 names its source's build), or a file run. */
 export const takesFileId = (log) => pieceOf(log) !== null || isFileRun(log);
 /** D-482: the steps that take the user's requests and return one `request:` line per request. */
@@ -649,6 +681,8 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION, op
     else {
       if (!text(e.slug)) bad.push('slug is the run folder\'s slug');
       if (!isObj(e.brief)) bad.push('brief is the parsed brief, {} for an empty one');
+      // D-522 (§18): a run from a PoB file, its brief's from, has the slug file; better and campaign are its own.
+      else if (v4) bad.push(...fileBriefProblems(e.slug, e.brief));
       if (e.source !== undefined) bad.push(`source is a piece run's (D-516); a /pob2:build-guide run's init takes slug and brief, and a piece run's init takes piece (${PIECES.join(', ')}) and source`);
     }
     if (!['offline', 'online'].includes(e.mode)) bad.push('mode is offline or online');
@@ -899,6 +933,27 @@ export function writeLog(runFolder, kind, entry) {
 }
 
 /**
+ * D-522 (§18): a file run's gates. It has no brainstorm or verification gate: the file is the skeleton, and its card the
+ * file card. Its design gate takes no `verification`, nor its escalation, nor its final gate `accept:verification`; the
+ * better round's design gate (its last D1 gate's scope `better`) takes accept (the result placed again, then the ladder),
+ * revise:<text> or stop, with no scaling question.
+ */
+function fileRunGates(log, kind, entry) {
+  const bad = [];
+  const which = kind === 'checkpoint' ? entry.checkpoint : kind === 'escalation' ? 'escalation' : null;
+  if (which === null) return bad;
+  if (['brainstorm', 'verification'].includes(which)) return [`a run from a PoB file has no ${which} gate: the file is its skeleton and cards/${FILE_ID}.md its card (D-522)`];
+  if ((which === 'design' && entry.answer === 'verification') || (kind === 'escalation' && entry.choice === 'verification') || (which === 'escalation' && entry.answer === 'verification') || (which === 'final' && entry.answer === 'accept:verification')) {
+    return [`a run from a PoB file has no verification gate to go back to: its ${which === 'final' ? 'final gate takes accept, campaign, revise:<text> or decline:<note>' : which === 'design' ? 'design gate takes accept, accept:file, revise:<text> or stop' : 'escalation takes accept, retry or stop'} (D-522)`];
+  }
+  const lastGate = objects(log.stages).filter((x) => x.stage === 'D1-gate' && x.outcome !== 'missing').pop();
+  if (which === 'design' && lastGate?.scope === 'better' && (!/^(?:accept|revise:.+|stop)$/s.test(String(entry.answer)) || entry.scaling !== undefined)) {
+    bad.push(`answer ${show(entry.answer)}${entry.scaling !== undefined ? ` with scaling ${show(entry.scaling)}` : ''}: the better round's design gate takes accept (the result placed again, then the ladder around it), revise:<text> or stop, and asks no scaling question (D-521, D-522)`);
+  }
+  return bad;
+}
+
+/**
  * D-516 (Appendix A.6): a write against a piece run, and revision 16's steps and scopes against a pipeline run. A piece run
  * logs only its piece's steps; its checkpoints are the compile run's better round's design gate and escalation question,
  * naming its one build `file`, as its escalations do; it has no `build` entry, no gate's `pricing` answer (a stop ends it,
@@ -916,6 +971,7 @@ function pieceAgainstRun(log, kind, entry) {
       else if (!isFileRun(log)) bad.push(`${entry.stage} is a file run's step (/pob2:build-guide from a PoB file, slug ${FILE_ID}) or a piece run's; this run's slug is ${show(log.slug)} (D-516)`);
     }
     if (kind === 'stage' && ['better', 'ladder'].includes(entry.scope) && !isFileRun(log)) bad.push(`scope ${entry.scope} is ${entry.scope === 'better' ? "the better round's, a compile run's or a file run's" : "a file run's rungs around the placed one"}; this run's slug is ${show(log.slug)} (D-516)`);
+    if (isFileRun(log)) bad.push(...fileRunGates(log, kind, entry));
     return bad;
   }
   const steps = PIECE_STEPS[piece];
@@ -1901,6 +1957,11 @@ const INVITE4 = {
   // D-521 (§17): a compile run's better round: accept writes the final PoB file (F1), under its own name; no guide follows.
   better: "Ask anything about this build first. Then accept it (I'll write its final PoB file into your Builds folder under its own name, beside yours), ask for changes, or stop.",
   betterEscalation: 'Ask anything about this first. Then accept what failed, give guidance for one more try, or stop.',
+  // D-522 (§18): a file run's gates, with no verification gate to go back to: its better round's accept places the
+  // result again and builds the ladder around it; its ladder's accept asks guide or file, and late endgame scaling.
+  fileBetter: "Ask anything about this build first. Then accept it (I'll place it on the ladder again and design the other rungs around it), ask for changes, or stop.",
+  fileLadder: "Ask anything about this build first. Then accept it (I'll ask: its guide or its PoB file only, and late endgame scaling), ask for changes, or stop.",
+  fileFinal: 'Ask anything about the guide first. Then accept it, add the campaign, ask for changes, or say that you decline it.',
 };
 /** D-412: a build's status in words, for the verification display's list of the run's builds. */
 const BUILD_WORDS = {
@@ -2935,8 +2996,10 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
   const buildName = text(b?.name) ? b.name.trim() : name(s.concept);
   // The draft the gate wrote (D-479: builds[].draftFile, else the verdict's draft); once F1 removed it, the final file.
   // D-521: a compile run's, the gate's or an escalation accept's (`compileDraft`).
-  const compile = pieceOf(log) === 'compile';
-  const draft = compile ? compileDraft(log, s, gate) : text(b?.draftFile) ? b.draftFile : text(b?.pobFile) ? b.pobFile : text(gate.draft) ? gate.draft : null;
+  // D-522: a file run's better round shows as a compile run's; its ladder shows the placed rung's costed findings too.
+  const fileRun = isFileRun(log);
+  const compile = pieceOf(log) === 'compile' || (fileRun && s.scope === 'better');
+  const draft = pieceOf(log) === 'compile' ? compileDraft(log, s, gate) : text(b?.draftFile) ? b.draftFile : text(b?.pobFile) ? b.pobFile : text(gate.draft) ? gate.draft : null;
   const summary = isObj(gate.design.summary) ? gate.design.summary : {};
   const stop = (v) => String(v ?? '').trim();
   const out = [draft !== null ? `PoB file: ${baseName(draft)} in your Builds folder` : 'PoB file: none written yet', ''];
@@ -2979,10 +3042,13 @@ function designDisplay14(dir, log, s, gate, plan, record, folder) {
     }
     const over = overBudgetLines(r, rec, finds);
     if (over.length > 0) out.push('**Over budget**', ...over, '');
+    // D-522 (§18): the placed rung keeps the character's design; its targets not reached are findings, with their cost.
+    const placed = fileRun && isObj(st.source) ? notReachedLines(r, gate, rec) : [];
+    if (placed.length > 0) out.push('**Not reached on this rung**', ...placed, '');
   }
   out.push(`**The catch.** ${text(summary.catch) ? stop(summary.catch) : 'not given'}`, '');
   // D-521: a compile run's better round, its draft named first (above): accept runs F1, ask for changes, or stop.
-  out.push(pieceOf(log) === 'compile' ? INVITE4.better : INVITE4.design14, '', '**Options**');
+  out.push(pieceOf(log) === 'compile' ? INVITE4.better : fileRun ? (s.scope === 'better' ? INVITE4.fileBetter : INVITE4.fileLadder) : INVITE4.design14, '', '**Options**');
   return out;
 }
 
@@ -3063,7 +3129,7 @@ function designDisplay(dir, log, id, opts = {}) {
   const estimates = (Array.isArray(gate.design.estimates) ? gate.design.estimates.filter(text) : []).map((e) => e.replace(/^(\w+):\s*/, (m, rung) => (ids.has(rung) ? `${rungLabel(plan, rung)}: ` : m)));
   if (estimates.length > 0) out.push('Still estimates:', ...estimates.map((e) => `- ${e}`), '');
   // D-480 (amendment 14): a build held to 14 asks guide or file at its accept, in --detail too.
-  out.push(verdictWords('D1-gate', gate.verdict), '', pieceOf(log) === 'compile' ? INVITE4.better : log.schemaVersion === 4 ? (held14 ? INVITE4.design14 : INVITE4.design) : INVITE.design);
+  out.push(verdictWords('D1-gate', gate.verdict), '', pieceOf(log) === 'compile' ? INVITE4.better : isFileRun(log) ? (s.scope === 'better' ? INVITE4.fileBetter : INVITE4.fileLadder) : log.schemaVersion === 4 ? (held14 ? INVITE4.design14 : INVITE4.design) : INVITE.design);
   const rungs = objects(gate.design.rungs).map((r) => `${rungLabel(plan, r.stage)}: ${r.stage}`);
   return [...out, ...reference([`Verdict: ${parts(gate.verdict)}`, `Verdict file: ${file}`, ...(rungs.length > 0 ? [`Rungs: ${rungs.join(', ')}`] : [])])];
 }
@@ -3164,7 +3230,7 @@ async function finalDisplay(dir, log, id) {
   const kiAt = lines.indexOf('### Known issues');
   const end = lines.findIndex((l, i) => i > kiAt && /^#{1,3} /.test(l));
   const issues = kiAt < 0 ? [] : lines.slice(kiAt + 1, end < 0 ? undefined : end).filter((l) => l.trim() !== '');
-  out.push('', "What's still open, the guide's known issues:", ...(issues.length > 0 ? issues : ['None.']), '', log.schemaVersion === 4 ? INVITE4.final : INVITE.final);
+  out.push('', "What's still open, the guide's known issues:", ...(issues.length > 0 ? issues : ['None.']), '', isFileRun(log) ? INVITE4.fileFinal : log.schemaVersion === 4 ? INVITE4.final : INVITE.final);
   const ref = [];
   for (const [s, g] of [[d1, d1gate], [d2, d2gate]]) if (s) ref.push(`${s.stage}: ${parts(g?.verdict)} (${verdictFile(s)})`);
   if (rungIds.length > 0) ref.push(`Rungs: ${rungIds.join(', ')}`);
@@ -3193,7 +3259,7 @@ function escalationDisplay(dir, log) {
     `${what} for ${name(s.concept)} failed ${failed} ${failed === 1 ? 'time' : 'times'}, so the run stops to ask you. What failed: ${why}${text(first) ? `: ${plain(first)}` : ''}${findings.length > 1 ? ` (and ${findings.length - 1} more, under For reference)` : ''}.`,
     '',
     // D-521: a compile run has no verification gate to go back to.
-    pieceOf(log) === 'compile' ? INVITE4.betterEscalation : INVITE.escalation,
+    pieceOf(log) === 'compile' || isFileRun(log) ? INVITE4.betterEscalation : INVITE.escalation,
     ...reference([
       `${s.stage}, ${s.concept}: attempts ${attempts.map((a) => `${a.attempt} ${a.outcome}`).join(', ')}`,
       `Verdict: ${parts(gate?.verdict)}`,

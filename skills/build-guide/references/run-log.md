@@ -87,8 +87,9 @@ text gives it, with the names exactly as the brief check's tools gave them:
 | `budget` | `"budget"`, `"non-budget"`, or a figure in divines (a number) |
 | `around` | text, as the user wrote it; a support gem by its name as the lookup gave it (`"Fork"`, D-343) |
 | `like`, `notes`, `popularity` | text, as the user wrote it |
+| `from`, `better`, `campaign` | a run from a PoB file (D-522): `from` the build's name or `"import code"`; `better` and `campaign` true or false |
 
-The slug comes from it: `<ascendancy>-<skill>`, `<ascendancy>-open`, `open-<skill>`, or with neither
+The slug comes from it, `file` when it has `from`, else `<ascendancy>-<skill>`, `<ascendancy>-open`, `open-<skill>`, or with neither
 `open-<first playstyle tag>`, else `open` (`skills/build-guide/references/run-folder.md`). A finalized card whose identity contradicts the
 brief's `ascendancy` or `skill` can't exist: R1a-assemble deals no such card.
 
@@ -642,6 +643,11 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
   piece's (a compile run with a better round, pricing's too); it skips the slug-from-brief rule, the pipeline's lists and
   the pipeline's order (D-516, `RULE_PIECES` in `skills/build-guide/scripts/check-run.mjs`), but a compile run's better
   round keeps the D1 loop's order, D1-build to F1, its design gate taking `accept`, `revise:<text>` or `stop` (D-521).
+- **A file run** (D-522) is a pipeline log whose brief has `from`, slug `file`, its one build `file` in `builds/file/`
+  (a `build` entry after the measure), its read at the root. Its order: `read` and `measure` (again after an answer),
+  `place`; with `better`, D1 in scope `better` to its design gate (`accept`, `revise:<text>` or `stop`), whose accept
+  runs `place` again; then D1 in scope `ladder` and the pipeline's steps, F1's pass going on to D2 unless `campaign` is
+  false. No brainstorm or verification gate, and no `verification` or `accept:verification` answer.
 
 ## Runs before revision 16
 

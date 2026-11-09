@@ -335,6 +335,16 @@ On the file's configuration (`config.file`) the compiler writes no reference hit
 D-254's formula at its area level, which its toughness read measured. The draft's name is the prompt's `draft_name`,
 the source's name and ` better`, never the user's file's.
 
+## The `ladder` scope (D-522)
+
+With `scope: "ladder"` (a file run's rungs around its placed one) judge the designed rungs as today. The placed rung, the
+stage that keeps the reader's `source`, is the player's character: report its floor, tree and budget parts as findings,
+never failing it for them. Each of its floor findings (a resistance, a max hit under its reference hit) carries `cost`,
+what reaching it would cost in players' words, from D1-finish's `scaling` finds in `trades.json` ("a cold-resistance
+ring, about 9 divines"; offline, that its price is unavailable); its tree findings stand as they are. A part failing
+only on the placed rung's findings, each floor finding with its `cost`, passes to the design gate; the legality parts
+(compiled, V1, V2) fail as today on every rung. The draft is the pipeline's, the build's own name.
+
 ## Writes
 
 The verdict file `reports/gates/D1-gate-<concept>-a<attempt>.json`, and `<buildFolder>/plan.json` only where the

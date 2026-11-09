@@ -354,15 +354,16 @@ describe('AC-W147 (WU-159, D-516): the checker by piece', () => {
     expect(write(compile, 'stage', { stage: 'D1-tree', concept: 'file', attempt: 1, outcome: 'done', scope: 'ladder' })).toMatchObject({ code: 1, stderr: expect.stringMatching(/scope ladder is a file run's/) });
     expect(write(compile, 'stage', { stage: 'D1-tree', concept: 'r1-a-1', attempt: 1, outcome: 'done', scope: 'better' })).toMatchObject({ code: 1, stderr: expect.stringMatching(/a compile run's one build is file/) });
     expect(lines(check(compile).stderr, 'run-log')).toEqual([]);
-    // A file run (/pob2:build-guide from a file, slug file): read, measure and place, then D1 with scope ladder on build file.
+    // A file run (/pob2:build-guide from a file: its brief's from, slug file, D-522): read, measure and place, then D1
+    // with scope ladder on build file.
     const run = folder('file');
-    expect(write(run, 'init', { slug: 'file', brief: {}, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
+    expect(write(run, 'init', { slug: 'file', brief: { from: 'Fixture Titan' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
     for (const [stage, outcome] of [['read', 'done'], ['measure', 'done'], ['place', 'done']]) expect(write(run, 'stage', { stage, attempt: 1, outcome }).code).toBe(0);
     expect(write(run, 'build', { id: 'file', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' })).toEqual({ code: 0, stdout: 'run-log: wrote builds[0]\n', stderr: '' });
     expect(write(run, 'stage', { stage: 'D1-build', concept: 'file', attempt: 1, outcome: 'done', scope: 'ladder' }).code).toBe(0);
     expect(write(run, 'stage', { stage: 'price', attempt: 1, outcome: 'done' })).toMatchObject({ code: 1, stderr: expect.stringMatching(/price is \/pob2:pricing's step/) });
-    // The checker takes each entry and the build's folder; the brief's `from` (which gives the slug file) and a file run's
-    // order (its build finalized by its read, not a verification gate) are a file run's own unit's (WU-164).
+    // The checker takes each entry and the build's folder; the brief's `from` gives the slug file (D-522), and a file run's
+    // order (its build queued from its read, not a verification gate) is WU-164's own test's (fileRun.test.ts).
     fs.mkdirSync(path.join(run, 'builds', 'file'), { recursive: true });
     const fileRun = check(run).stderr;
     expect(lines(fileRun, 'run-log').filter((l) => /stages\[\d+\]|builds\[\d+\]/.test(l))).toEqual([]);
@@ -432,7 +433,7 @@ describe('AC-W147 (WU-159, D-516): the checker by piece', () => {
   it('a file run logs the withdrawal after an answer change (D-480) for its build file; a pipeline run takes no file', () => {
     // A file run (slug file) whose build file passed F1 after the design gate's accept, then changed to the PoB file only.
     const run = folder('file');
-    expect(write(run, 'init', { slug: 'file', brief: {}, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
+    expect(write(run, 'init', { slug: 'file', brief: { from: 'Fixture Titan' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
     for (const stage of ['read', 'measure', 'place']) expect(write(run, 'stage', { stage, attempt: 1, outcome: 'done' }).code).toBe(0);
     expect(write(run, 'build', { id: 'file', roll: { className: 'Warrior', ascendancy: 'Titan', skill: 'Blood Hunt' }, status: 'queued' }).code).toBe(0);
     const from = path.join(PIPELINE, 'run-a14', 'builds', 'r1-a-2');
@@ -448,7 +449,7 @@ describe('AC-W147 (WU-159, D-516): the checker by piece', () => {
     expect(write(run, 'answer-change', { checkpoint: 'design', visit: 1, from: 'accept', to: 'accept:file', note: 'just the file, thanks' })).toEqual({ code: 0, stdout: 'run-log: wrote answerChanges[0] (file: accept to accept:file, at stages[8])\n', stderr: '' });
     expect(node(RENDER_AUDIT, [run, '--withdraw', 'file'])).toEqual({ code: 0, stdout: 'render-audit: withdrew builds/file/audit.md and builds/file/guide.md for file, and logged withdrawn\n', stderr: '' });
     expect(readJson(run, 'run-log.json').withdrawals).toEqual([{ build: 'file', files: ['builds/file/audit.md', 'builds/file/guide.md'], at: 8 }]);
-    // The checker takes both entries naming file (the file run's order and its brief's from are WU-164's).
+    // The checker takes both entries naming file (the file run's order is WU-164's own test's, fileRun.test.ts).
     expect(lines(check(run).stderr, 'run-log').filter((l) => /answerChanges|withdrawals/.test(l))).toEqual([]);
     // A pipeline run's withdrawal names a card.
     const pipeline = copy(path.join(PIPELINE, 'run-a14'), 'titan-blood-hunt/2026-10-08-1');

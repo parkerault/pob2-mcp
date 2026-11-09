@@ -184,7 +184,8 @@ The rules every design step keeps:
 | `measure` | `${CLAUDE_PLUGIN_ROOT}/skills/compile/references/stages/measure.md` | the read plan's measure-only compile under its own configuration (`measure_as`), the engagement, the callouts, the Spirit question, the summary against the targets and, for the better round, the file card (D-519) |
 | `price` | `${CLAUDE_PLUGIN_ROOT}/skills/pricing/references/stages/price.md` | a pricing run's league, rates and replace cost (an owned rare by its own spec, a unique by name, what its sockets hold and the gems from the exchange), its place on the ladder and, with a budget, the upgrades, within the notice's search cap (D-520); with `stage: "place"`, the placement scope alone, for compile's better round and a file run |
 
-A compile run's better round runs the design steps above with `scope: "better"` (D-521).
+A compile run's better round runs the design steps above with `scope: "better"` (D-521). A file run's ladder runs them
+with `scope: "ladder"` (D-522).
 
 ## The fix round and revisions (`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/SKILL.md` steps 12 and 16)
 

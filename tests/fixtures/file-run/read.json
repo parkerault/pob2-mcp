@@ -1,0 +1,52 @@
+{
+  "source": {
+    "kind": "builds-folder",
+    "name": "Fixture Titan.xml",
+    "sha1": "5981bffa81424f9b1eee6fa970cb10b5b2808c41",
+    "copy": "source.xml"
+  },
+  "treeVersion": "0_5",
+  "loadouts": [
+    "Endgame budget"
+  ],
+  "loadout": "Endgame budget",
+  "groups": [
+    {
+      "plan": 1,
+      "file": 1
+    },
+    {
+      "plan": 2,
+      "file": 2
+    },
+    {
+      "plan": 3,
+      "file": 3
+    }
+  ],
+  "left": [],
+  "dropped": [],
+  "levels": [],
+  "questions": [],
+  "notRead": [
+    "notes",
+    "playerStats",
+    "tradeWeights",
+    "timelessData",
+    "party"
+  ],
+  "partyFilled": false,
+  "grantedQuality": [],
+  "legacy": [
+    {
+      "kind": "gem",
+      "name": "Bloodlust",
+      "where": "plan group 1",
+      "reason": "PoB marks it legacy (D-384): kept owned, as the character has it"
+    }
+  ],
+  "doubleDefined": [],
+  "corruptLevels": [],
+  "unconfirmed": [],
+  "answers": {}
+}

@@ -341,6 +341,16 @@ request (D-411, D-413).
      its number was worked out. PoB counts the socketed supports of both sets, where the game counts only the active
      set's (PG-71): on a build with a set-2 skill, a per-support modifier (Gem Studded) is overstated, so
      hand-calculate it as a custom modifier with its reason.
+   - **A buff switched as needed** (D-518, schema 11). A buff the Spirit can't carry with the rest may stay, switched
+     as needed, instead of being cut: its group `enabled: false` with `switch {when, off}`, `when` a short phrase for
+     the player ("for bosses", "as needed"), `off` the stage's groups switched off for it (the fewest whose
+     reservation makes room). The compile measures it with its `off` groups off (the record's `switches`), and V1's
+     `switched-spirit` fails a switch that leaves the Spirit below 0. The guide says when to switch it.
+   - **A granted skill's quality** (D-512). Only a wand, a staff or a sceptre gives the skill it grants quality, its
+     own `Quality:` line (a quarterstaff is no staff); you may raise one that grants a skill the build uses to quality
+     20, unpriced, which the guide tells the player to do with Arcanist's Etchers. Never give a granted skill's gem a
+     quality: the plan's copy is at 0, and the compile writes the item's on it. Skill level and quality modifiers reach
+     a granted skill as any other.
 5. **Tree.** A node list within the points the level allows (`data/campaign/limits.json`:
    `passive-points.max`; the ascendancy at most `ascendancy.max`), with its weapon-set nodes and attribute
    choices. Seed each rung's tree from the stage before it (step 3); `m`, with no campaign stage, starts from the
@@ -704,7 +714,27 @@ ascendancy and its allocated ascendancy nodes, the main skill and the weapon typ
 as set, `source`, and each owned item, group and tree jewel (`owned: true`) unless replacing it gains within the
 budget. **Yours to change:** the tree's points, supports and gem levels, any slot's gear within the budget, the
 anoint, and a buff switched as needed (`switch`, §14). A replacement drops the `owned` mark and meets every rule: a
-rare is written as a spec, and D1-finish prices it by the spec loop. The plan stays at `schemaVersion: 11`.
+rare is written as a spec, and D1-finish prices it by the spec loop. The plan stays at `schemaVersion: 11`. In a file
+run (`/pob2:build-guide` from a PoB file, D-522) `buildFolder` is `builds/file`: attempt 1 writes `<buildFolder>/plan.json`
+from the read plan at the run folder's root (`<runFolderRel>/plan.json`), as from a card's skeleton.
+
+## The `ladder` scope (D-522)
+
+Your header's `scope: "ladder"` (a file run, amendment 16 §18): design the rungs around the placed one, the player's
+character, read from their file (its `source`) and placed on its rung, or the better round's result. Attempt 1 writes
+`<buildFolder>/plan.json` anew from the read plan at the run folder's root, or, after a better round, edits its plan;
+the card is the file card `cards/file.md`, with no skeleton, dossier or Pieces table. **The placed rung** keeps the
+file's design (or the round's), its stage `source`, id, `variant` and tree, changed only on the user's request: its
+uniques stay named and owned, but its rares are turned into specs by pricing's rule for an owned rare (§16: its 3 or 4
+explicit lines PoB weights highest for the slot, each at its tier's lowest roll, a fractured, crafted or desecrated line
+as a plain explicit mod, a corrupted implicit left out), so any player can buy them, each a design's item with no
+`owned` mark; and owned content a guide can't carry (a gem or unique the reader named legacy or no
+longer obtainable in `read.json`, D-395; a "Legacy of …" soul core or the Raven-Touched Shard, D-465; a corrupted rare's
+implicit, D-484) is replaced, each a trade in `trades.json` (its kind's, `from` the owned item or gem, `to` what replaces
+it), which the design gate shows. **The other rungs:** a rung below takes the placed rung's skill and supports with
+cheaper gear meeting its own target (D-281, as for `m`); a rung above takes the placed rung as its seed and upgrades
+within its target (step 3's seeding). Below the endgame (the read stage unplaced, choice A) design all three, seeded from
+the character, and keep no stage with `source`. Every rung meets every rule: in a guide, owned content does too (§15).
 
 ## The fix round and revisions (D-264, D-352)
 

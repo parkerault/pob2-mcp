@@ -1,6 +1,6 @@
 ---
 name: build-guide
-description: Build a Path of Exile 2 build and its guide from an open brief, through the pob2 MCP server. Brainstorm a deck of candidate builds, verify the ones the user picks, let the user finalize 1 to 3 of them, then for each design and compile its endgame (entering maps, budget and non-budget), write its endgame guide (level with any build of the class, then switch) and verify its claims; on request, add a build's campaign for the full guide (level 1 through the campaign to the endgame). Use when the user runs /pob2:build-guide <free text> [--offline [--test <path>]] [--no-ninja], the fixed roll /pob2:build-guide <ascendancy> <skill> included, resumes a run with /pob2:build-guide --resume <run folder> or --campaign <run folder> <card id>, or asks for a build guide.
+description: Build a Path of Exile 2 build and its guide from an open brief, through the pob2 MCP server. Brainstorm a deck of candidate builds, verify the ones the user picks, let the user finalize 1 to 3 of them, then for each design and compile its endgame (entering maps, budget and non-budget), write its endgame guide (level with any build of the class, then switch) and verify its claims; on request, add a build's campaign for the full guide (level 1 through the campaign to the endgame). Use when the user runs /pob2:build-guide <free text> [--offline [--test <path>]] [--no-ninja], the fixed roll /pob2:build-guide <ascendancy> <skill> included, resumes a run with /pob2:build-guide --resume <run folder> or --campaign <run folder> <card id>, or asks for a build guide. Also a guide from the player's own PoB file or import code (/pob2:build-guide <build name or import code>), as in "a build guide for my build MyCharacter123": the character placed on the ladder, made better first on request, the other rungs designed around it. Measuring or improving a character alone is /pob2:compile's.
 ---
 
 # build-guide
@@ -130,6 +130,10 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md` and do it, i
 line: line 3 of each running league's digest, which `init` or `resume` printed after the `digests:` line a researcher's header copies (D-400,
 D-507). `init` records `--no-ninja` as `noNinja`, and a resume replaces it with its session's (D-412, D-420): read it from `run-log.json` for every
 pricing step, the D1 gate included, which then prices without currency rates (D-333). No Agent tool: the run stops (D-344).
+
+**A run from a PoB file** (D-522): a request for a guide to the player's own build or file starts it ("a build guide for
+my build MyCharacter123"), its brief's `from`, `better` and `campaign`, its slug `file`. Read
+`${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/file-run.md` and do it: its own steps replace 2a to 5.
 
 **A resume** (D-415; `${CLAUDE_PLUGIN_ROOT}/skills/build-guide/references/start.md`, "Resuming a run", has its order): `/pob2:build-guide --resume <run folder>`
 goes on with an earlier run in its own folder, and `--campaign <run folder> <id>` resumes it and answers

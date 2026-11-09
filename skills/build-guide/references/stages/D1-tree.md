@@ -333,6 +333,12 @@ With `scope: "better"` the one stage is the player's character: search from its 
 it. Players respec freely, so any of its nodes may move, one start node the only constraint (D-452); its needs keep the
 main skill's and the owned items' requirements. There is no other rung and no ladder order.
 
+## The `ladder` scope (D-522)
+
+With `scope: "ladder"` (a file run) search the designed rungs only, as for any rung: the placed rung, the stage that
+keeps the reader's `source`, keeps its tree as it is, and no other rung's search changes it. A rung below the endgame's
+placed one (none is placed below the endgame, choice A) is seeded from the character's tree.
+
 ## Writes
 
 `<buildFolder>/plan.json`: its rungs' `tree` (`nodes`, `attributeChoices`, `needs`, a pool move's

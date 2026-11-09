@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 4,
+  "skillRevision": 16,
+  "runFolder": "/tmp/pob2-guides/file/2026-12-01-1",
+  "slug": "file",
+  "brief": {
+    "from": "Fixture Titan.xml"
+  },
+  "status": "running",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": [
+    "forbidden-rites.md",
+    "runes-of-aldur.md"
+  ],
+  "dossier": null,
+  "builds": [
+    {
+      "id": "file",
+      "roll": {
+        "className": "Warrior",
+        "ascendancy": "Titan",
+        "skill": "Blood Hunt"
+      },
+      "name": "Fixture Titan's Blood Hunt",
+      "status": "designing",
+      "folder": "builds/file",
+      "guide": null,
+      "pobFile": null,
+      "draftFile": "Fixture Titan's Blood Hunt (draft).xml"
+    }
+  ],
+  "stages": [
+    {
+      "stage": "read",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "measure",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "place",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "D1-build",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-tree",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-finish",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done",
+      "scope": "ladder"
+    },
+    {
+      "stage": "D1-gate",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "pass",
+      "scope": "ladder"
+    }
+  ],
+  "checkpoints": [],
+  "displays": [
+    {
+      "checkpoint": "design",
+      "visit": 1
+    }
+  ],
+  "escalations": [],
+  "faults": [],
+  "resumes": [],
+  "pricing": {
+    "stops": [],
+    "retries": []
+  }
+}

@@ -95,6 +95,11 @@ scaling pass (`scaling`), each below ("The `swap` scope", "The `scaling` scope")
    plan of this run first.
    - **No entry for a Flask slot** (D-472): a plain flask costs nothing worth counting. **No entry for a pinned
      weapon's Swap slot** (`sameAs`, D-464): it is its set-1 slot's item, priced once by that slot's entry.
+   - **A granted skill's quality** (D-512): a wand, staff or sceptre raised to quality 20 for the skill it grants (a
+     quarterstaff is no staff) is priced at its base quality; the quality is the player's Arcanist's Etchers,
+     unpriced. A granted skill's gem has no quality of its own. **A buff switched as needed** (D-518): price its gem
+     as any other; when a rung's Spirit can't carry a buff with the rest, you may switch it as D1-build does (`switch
+     {when, off}`, the group `enabled: false`) instead of cutting it, and recompile.
    - **The pace line first** (D-474; `skills/pricing/references/pricing.md`, "Pace"): read your first trade call's reply for
      `Pace: 45 s between searches, at most 7 in 5 minutes.`; with no such line, or `Pace: off (test setting).`,
      make no more trade calls and return the stop `pace: missing` or `pace: off`, the call counted `pace`.
@@ -504,6 +509,14 @@ gave it, reused; price each replacement by the spec loop (step 2 onward), within
 gives. Write the anoint, the ledger and the claims as for a rung. In `trades.json` each change against the character as
 read is a trade of its kind (Appendix A's), with `from` the owned item or setting, `to` the replacement and its
 `price`. A target the budget can't reach stays missed: the D1 gate reports it with what reaching it would cost.
+
+## The `ladder` scope (D-522)
+
+With `scope: "ladder"` (a file run's rungs around its placed one): finish every rung as today. On the placed rung, the
+stage that keeps the reader's `source`, its owned uniques and gems keep the prices `place` gave them, reused; price its
+rares as the specs D1-build turned them into, by the spec loop; and keep each replacement of owned content a guide can't
+carry as D1-build's trade, priced. Its missed targets are the D1 gate's findings: write a `scaling` find in
+`trades.json` for each, the cheapest change that would reach it with its price, which the gate's `cost` names.
 
 ## The fix round and revisions (D-264, D-352)
 

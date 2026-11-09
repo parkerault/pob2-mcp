@@ -161,6 +161,16 @@
 //    (`interview`, compile's too); `better` holds its file card, its one stage on its rung (m's below the endgame,
 //    `betterRung`), its scope and each missed target's `cost` (in the `better` scope a floor finding with a cost covers
 //    its part, `costShown`); and no PoB file it writes (the draft, the final file) has the source's name.
+//  - WU-164 (D-522, D-518): a file run, `/pob2:build-guide` from a PoB file, is a pipeline run whose brief names the file
+//    (`from`, with `better` and `campaign`; the slug `file`, `slugOfBrief`). Its read sits at the folder's root
+//    (`FILE_READ`: the read plan, placed, its measure-only record beside it) and its one build in builds/file/; it has no
+//    deck, probes or dossier. `checkFlow4` holds it to its own order (read, measure, place; the better round in scope
+//    `better` with the brief's `better`, its accept placing the result again; the ladder in scope `ladder`, F1 going on to
+//    D2 unless `campaign` is false; no verification gate), and in the `ladder` scope a D1 gate finding on the placed rung
+//    covers its part (`placedCover`: its tree, its floor with a `cost`), the designed rungs judged as today, also once a
+//    guide rests on it. `checkFileRun`: the three rungs around the placed one, which keeps its rung and tree (`ladder`); no
+//    stage keeping what read.json names legacy, each shown as a trade, and the placed rung's rares specs (`owned-guide`).
+//    For every guide, a line per buff switched as needed (`switched-buffs`, `checkSwitchedBuffs`).
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -194,6 +204,7 @@ import {
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
   swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES, A15, boundariesOf,
   A16, PIECES, FILE_ID, PIECE_STEPS, PIECE_STAGES, PIECE_SOURCE_KINDS, SOURCE_FIELDS, pieceOf, takesFileId, scopesOf, SCOPES16,
+  isFileRun, FILE_BRIEF_FIELDS, fileBriefProblems,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -364,6 +375,8 @@ export const PIECE_FILES = {
   pricing: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'compile-record.json', 'compiled-build.xml', 'prices.md', 'upgrades.json'],
   writer: ['run-log.json', 'guide.md', 'audit.md', 'notes.txt'],
 };
+/** D-522 (§18): what a file run's read and measure write at its folder's root, as a compile run's do (Appendix A.6). */
+const FILE_READ = ['source.xml', 'read.json', 'plan.json', 'compile-record.json', 'compiled-build.xml', 'measure.md'];
 /** D-516 (§12): the piece tags, the pieces of the skill split (D-506) whose rules the checker holds. */
 export const RULE_TAGS = ['run', 'game-knowledge', 'discovery', 'research', 'review', 'compile', 'writer', 'pricing'];
 /**
@@ -400,6 +413,10 @@ export const RULE_PIECES = {
   'offline-prices': ['pricing'], 'nfr-22': ['pricing'], pricing: ['pricing'], budget: ['pricing'], listing: ['pricing'], spec: ['pricing'],
   // D-520 (WU-163): a pricing run's place by its replace cost, its owned rares' specs and its upgrades.
   placement: ['pricing'], 'owned-spec': ['pricing'], upgrades: ['pricing'],
+  // D-522 (WU-164): a file run's ladder around its placed rung, and a guide's rules on owned content (the writer's too).
+  ladder: ['compile'], 'owned-guide': ['compile', 'writer'],
+  // D-518 (WU-164): a guide's line per buff switched as needed.
+  'switched-buffs': ['writer'],
   // Shared: runes, corruption and flasks (compile and pricing); known issues (the writer and review); the advice to test
   // in game and the campaign rewards (the writer and compile).
   runes: ['compile', 'pricing'], corruption: ['compile', 'pricing'], flasks: ['compile', 'pricing'],
@@ -421,8 +438,8 @@ const D1_SCOPED = ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate'];
 /** D-521 (§17): a compile run's design gate answers: accept (F1 next), revise:<text> (D1 again) or stop. */
 const BETTER_DESIGN_ANSWER = /^(?:accept|revise:.+|stop)$/s;
 const RESUME_LISTS = ['stages', 'checkpoints', 'escalations', 'displays'];
-/** C-51, D-285, D-335: the brief's fields, every one optional. */
-const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity'];
+/** C-51, D-285, D-335: the brief's fields, every one optional; D-522: a file run's `from`, `better` and `campaign`. */
+const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity', ...FILE_BRIEF_FIELDS];
 /** C-51: the playstyle vocabulary (delivery, buttons, focus, defence, pace), which cards use too. */
 const PLAYSTYLE_TAGS = ['melee', 'ranged-attack', 'spell', 'minion', 'totem-trap', 'mixed', 'one-button', 'few-buttons', 'combo', 'clear', 'boss', 'balanced', 'tanky', 'glass', 'fast', 'steady'];
 /**
@@ -591,6 +608,13 @@ const INFO_CODES = ['chaos-exception', 'over-target', 'boots-exception'];
 const TARGET_PARTS = ['floor'];
 /** D-521: whether a gate finding shows a target the budget can't reach, with what it would cost. */
 export const costShown = (f) => isObj(f) && TARGET_PARTS.includes(f.part) && typeof f.cost === 'string' && f.cost.trim() !== '';
+/**
+ * D-522 (§17, §18): in a file run's `ladder` scope the D1 gate judges the designed rungs as today and reports the placed
+ * rung's floor, tree and budget parts as findings, never failing it for them: a finding on the placed rung (`placed`, the
+ * stage with the reader's `source`) covers its part, its tree's as it is, its floor's when it shows what reaching the
+ * target would cost (`costShown`, the missed target §17 accepts only so).
+ */
+export const placedCover = (placed) => (f) => typeof placed === 'string' && isObj(f) && f.stage === placed && (f.part === 'tree' || costShown(f));
 /** D-521 (choice A): the level from which a character is in the endgame, the first waystone tier's area level (65). */
 export const ENDGAME_LEVEL = 65;
 /**
@@ -780,6 +804,8 @@ export function slugOf(ascendancy, skill) {
  */
 export function slugOfBrief(brief) {
   const b = isObj(brief) ? brief : {};
+  // D-522 (§18): a run from a PoB file (the brief's from) has the slug file.
+  if (typeof b.from === 'string' && b.from.trim() !== '') return FILE_ID;
   const named = (v) => (typeof v === 'string' && v.trim() !== '' ? v : null);
   const [ascendancy, skill] = [named(b.ascendancy), named(b.skill)];
   const tag = Array.isArray(b.playstyle) ? b.playstyle.find((t) => typeof t === 'string' && PLAYSTYLE_TAGS.includes(t.trim().toLowerCase())) : undefined;
@@ -1306,7 +1332,10 @@ export async function checkRun(runFolder) {
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
   // D-412: a schema-4 run holds its builds in builds/<id>/; only a migrated run's build stays at the root.
   const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'trades.json', 'rounds', ...BUILD_FILES_A14];
-  const KNOWN_TOP = piece !== null ? PIECE_FILES[piece] : ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
+  // D-522 (§18): a file run reads its file at the folder's root, as a compile run does (`FILE_READ`): the read plan and its
+  // measure-only compile beside it; its one build's design is builds/file/.
+  const fileRun = isFileRun(log);
+  const KNOWN_TOP = piece !== null ? PIECE_FILES[piece] : ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : []), ...(fileRun ? FILE_READ : [])];
   // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
   for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
     if (KNOWN_TOP.includes(name)) continue;
@@ -1422,7 +1451,14 @@ export async function checkRun(runFolder) {
     if (ns.length > probeCap(id)) fail('probes', `probes/${id}/ holds ${ns.length} probe variants; ${capWords(id)}`);
     probeCounts.set(id, ns.length);
   }
-  const allPlans = [...[...buildPlans.values()].filter(isObj), ...[...conceptPlans.values()].filter(isObj)];
+  // D-522 (§18): a file run's read plan at the root, placed by `place` and priced there; the measure compiles it
+  // measure-only beside it.
+  const readPlan = fileRun ? readJson('plan.json') : null;
+  if (fileRun && exists('compile-record.json')) {
+    const rec = readJson('compile-record.json');
+    if (isObj(rec) && (rec.mode !== 'measure-only' || rec.pobFile?.location !== 'run' || !exists('compiled-build.xml'))) fail('layout', `compile-record.json at the run folder's root is a ${show(rec.mode)} compile${exists('compiled-build.xml') ? '' : ' with no compiled-build.xml beside it'}; a file run's read plan is compiled measure-only there, by its measure and its place (D-208, D-522)`);
+  }
+  const allPlans = [...[...buildPlans.values()].filter(isObj), ...[...conceptPlans.values()].filter(isObj), ...(isObj(readPlan) ? [readPlan] : [])];
   const ledgerIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.ledger) ? p.ledger.map((e) => e?.id) : [])));
   const priceIds = new Set(allPlans.flatMap((p) => (Array.isArray(p.prices) ? p.prices.map((e) => e?.id) : [])));
 
@@ -1430,6 +1466,7 @@ export async function checkRun(runFolder) {
   if (offline) {
     const labelled = [
       ...[...buildPlans].map(([b, p]) => [inFolder(b.folder, 'plan.json'), p]),
+      ...(isObj(readPlan) ? [['plan.json', readPlan]] : []),
       ...[...conceptPlans].map(([id, cp]) => [`concepts/${id}/plan.json`, cp]),
       ...[...probePlans].map(([at, pp]) => [`probes/${at}/plan.json`, pp]),
     ];
@@ -1551,21 +1588,32 @@ export async function checkRun(runFolder) {
     /** Whether the run holds the card a gate answer names (C-52). */
     cardExists: (id) => cardIds.has(id),
     legacy,
+    /** D-522 (§18): a file run's placed rung, its build plan's stage with the reader's `source`, or null. */
+    placedStage: (concept) => list(planOf(concept)?.stages).find((st) => isObj(st?.source))?.id ?? null,
   };
   // D-516 (§12): a piece run's flow isn't the pipeline's, so checkFlow4 skips it, but for a compile run with a better
   // round (a D1 step or F1 logged), which keeps its D1 loop's order, D1-build to F1 (AC-W154); D-521: that round's own
   // rules, and its design gate's interview notes.
   const better = piece === 'compile' && stages.some((s) => BETTER_STEPS.includes(s.stage));
-  if ((piece === null || better) && v4) checkFlow4(log, fail, { ...flowCtx, better });
+  if ((piece === null || better) && v4) checkFlow4(log, fail, { ...flowCtx, better, fileRun: isFileRun(log) });
   else if (piece === null) checkFlow(log, fail, flowCtx);
+  // D-522 (§18): a file run's ladder around its placed rung, and a guide's rules on owned content.
+  if (fileRun && v4) {
+    const fileBuild = builds.find((b) => b.id === FILE_ID);
+    // The last ladder D1 gate's verdict, whose basis maps each price entry to its rung's slot.
+    const ladderGate = stages.filter((s) => s.stage === 'D1-gate' && s.scope === 'ladder' && !idle(s)).pop();
+    const gate = ladderGate ? gateReports.get(`reports/gates/D1-gate-${ladderGate.concept}-a${ladderGate.attempt}.json`) ?? null : null;
+    checkFileRun({ log, plan: fileBuild ? buildPlans.get(fileBuild) : null, readPlan, read: readJson('read.json'), trades: fileBuild ? readJson(inFolder(fileBuild.folder, 'trades.json'))?.trades : null, gate, fail });
+  }
   if (better) {
     checkBetterRound({ log, plan: buildPlans.get(builds[0]), gateReports, exists, fail });
     checkInterviews(log, listDir('interviews'), readText, exists, questionProbes, fail);
   }
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
-  // D-516: a piece run has no brainstorm, deck or probes.
-  if (v3 && piece === null) {
+  // D-516: a piece run has no brainstorm, deck or probes; D-522: nor has a file run, whose gates' notes are checked alone.
+  if (v3 && piece === null && fileRun) checkInterviews(log, listDir('interviews'), readText, exists, questionProbes, fail);
+  if (v3 && piece === null && !fileRun) {
     const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
     // §11: a run dates as amendment-8-or-later by its rival or by its skill revision (the rounds dealt after its stamp).
     checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log), cardOf, heldStage });
@@ -1779,7 +1827,8 @@ async function checkBuild(c) {
     // `-campaign`, and leaves the endgame file F1 wrote as it was, which the user has likely saved in PoB since (D-211).
     // So a build whose final record is a D2 gate's after a campaign answer (the final gate's `campaign`, or a resume's
     // `campaign:<id>`) has the `-campaign` name; an endgame-only build's, F1's, has none.
-    const campaignAsked = v4 && list(log.checkpoints).some((c) => (c.checkpoint === 'final' && c.concept === build.id && c.answer === 'campaign') || (c.checkpoint === 'verification' && c.answer === `campaign:${build.id}`));
+    // D-522 (§18): a file run builds its campaign after F1 unless its brief declined it.
+    const campaignAsked = v4 && (list(log.checkpoints).some((c) => (c.checkpoint === 'final' && c.concept === build.id && c.answer === 'campaign') || (c.checkpoint === 'verification' && c.answer === `campaign:${build.id}`)) || (isFileRun(log) && log.brief?.campaign !== false));
     const lastFinal = stages.filter((s) => FINAL_GATES.includes(s.stage) && s.outcome === 'pass').pop();
     const campaignFile = campaignAsked && lastFinal?.stage === 'D2-gate';
     if (piece !== null) {
@@ -2150,6 +2199,8 @@ async function checkBuild(c) {
     checkRequestWords({ log, stages, build, runFolder, readText, fail });
     if (build.status === 'file-only') for (const rel of ['guide.md', 'audit.md']) if (exists(rel)) fail('layout', `${rel} is in a file-only build's folder; a build that ends with its PoB file only holds no guide and no audit, and pob2-render-audit <runFolder> --withdraw ${build.id} removes what the guide route left after an answer change (D-480)`);
   }
+  // D-518 (§14): a guide's line per buff switched as needed, the writer's rule.
+  if (guideText !== null && isObj(plan)) checkSwitchedBuffs({ guideText, endgame, fail });
 
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
   // PoB file opens on it; D-516: a read plan's stage too.
@@ -2165,11 +2216,15 @@ async function checkBuild(c) {
       const g = gateFor(stage, guideConcept, guideBefore);
       const rep = g ? gateReports.get(g.file) : null;
       if (!isObj(rep) || !isObj(rep.verdict)) continue;
+      // D-522 (§18): a file run's ladder gate never fails the placed rung for its floor and tree (`placedCover`).
+      const ladder = stage === 'D1-gate' && isFileRun(log) && stages.some((x) => x.stage === stage && x.concept === guideConcept && x.attempt === g.attempt && x.scope === 'ladder');
+      const placed = ladder ? planStages.find((st) => isObj(st.source))?.id ?? null : null;
+      const coveredHere = ladder ? (f) => covered(f) || placedCover(placed)(f) : covered;
       for (const part of partsOf(rep, stage)) {
         // The budget never fails (D-371): a `fail` there is an unknown value, which the gate-report check names.
         if (rep.verdict[part] !== 'fail' || part === 'budget') continue;
         const findings = list(rep.findings).filter((f) => f.part === part && !INFO_CODES.includes(f.code));
-        const openFindings = findings.filter((f) => !covered(f));
+        const openFindings = findings.filter((f) => !coveredHere(f));
         if (part === 'compiled' || findings.length === 0 || openFindings.length > 0) {
           fail(ruleOf(part), `${g.file} says ${part}: "fail"${openFindings.length > 0 ? ` (${openFindings.map((f) => f.code).join(', ')})` : ''}, and no accepted finding covers it; the guide's concept passed this gate (§5.3, §5.4)`);
         }
@@ -2737,6 +2792,9 @@ function checkBrief(brief, bad) {
       if (!Array.isArray(v) || v.length === 0 || !v.every(text)) bad('brief.playstyle', `is ${show(v)}; it lists the playstyle tags (${PLAYSTYLE_TAGS.join(', ')}) and any free text, as strings`);
     } else if (k === 'budget') {
       if (!(v === 'budget' || v === 'non-budget' || (isNum(v) && v > 0))) bad('brief.budget', `is ${show(v)}; "budget", "non-budget" or a figure in divines (C-51)`);
+    } else if (k === 'better' || k === 'campaign') {
+      // D-522 (§18): a file run's better round first, and its campaign declined at the start (false).
+      if (typeof v !== 'boolean') bad(`brief.${k}`, `is ${show(v)}; true or false (D-522)`);
     } else if (!text(v)) bad(`brief.${k}`, `is ${show(v)}; a field the brief gives is text, and one it doesn't give is left out`);
   }
 }
@@ -3159,6 +3217,91 @@ function checkBetterRound({ log, plan, gateReports, exists, fail }) {
   });
 }
 
+/**
+ * D-522 (§18, §15, §16): a file run's own rules, beside its order (`checkFlow4`'s).
+ * - `ladder`: once the ladder's D1-build ran, the build's plan holds the three endgame rungs (the other rungs designed
+ *   around the placed one, above and below); the placed rung is the one stage that keeps the reader's `source`, or none
+ *   below the endgame (the read plan's stage unplaced: the three rungs designed, seeded from it, choice A); and with no
+ *   better round, it sits on the rung `place` gave it and keeps the file's tree (D1-tree runs on the designed rungs only).
+ * - `owned-guide`: a guide holds owned content to every rule. No stage keeps what the reader named legacy or no longer
+ *   obtainable (read.json's `legacy`, D-395), each shown at the design gate as a trade (`trades.json`, a `from` naming
+ *   it, a `to` what replaces it); and the placed rung's rares are specs, so none keeps the reader's `owned` mark (§16).
+ */
+function checkFileRun({ log, plan, readPlan, read, trades, gate, fail }) {
+  const stages = list(log.stages);
+  if (!isObj(plan) || !stages.some((s) => s.stage === 'D1-build' && s.scope === 'ladder' && !idle(s))) return;
+  const lad = (why) => fail('ladder', `builds/${FILE_ID}/plan.json: ${why}`);
+  const own = (why) => fail('owned-guide', why);
+  const st = list(plan.stages).filter(isObj);
+  const rungs = st.filter((x) => RUNGS.includes(x.variant));
+  for (const v of RUNGS) if (!rungs.some((x) => x.variant === v)) lad(`has no ${v} rung; the ladder designs the other rungs around the placed one, above and below, so the guide holds all three (D-522, D-104, D-281)`);
+  const placed = st.filter((x) => isObj(x.source));
+  const readStage = list(readPlan?.stages).find((x) => isObj(x?.source));
+  const below = isObj(readStage) && readStage.variant === undefined;
+  if (below && placed.length > 0) lad(`stage ${placed.map((x) => x.id).join(', ')} keeps the reader's source, but the character is below the endgame (the read plan's stage ${show(readStage.id)} isn't placed): its ladder's three rungs are designed, seeded from it, and none is placed (choice A, D-522)`);
+  if (!below && placed.length !== 1) lad(`${placed.length} stages keep the reader's source; the placed rung is the one stage that keeps it, the character's design on the rung place gave it (D-522)`);
+  const better = stages.some((s) => s.scope === 'better');
+  if (placed.length === 1 && isObj(readStage) && !below && !better) {
+    const p = placed[0];
+    if (p.variant !== readStage.variant) lad(`the placed rung ${show(p.id)} is on ${show(p.variant)}, but place put the character on ${show(readStage.variant)}; the ladder is built around the rung place gave it, never assumed (D-522)`);
+    const ids = (v) => [...new Set(Array.isArray(v) ? v.map(String) : [])].sort();
+    const sameSet = (a, b) => show(ids(a)) === show(ids(b));
+    for (const k of ['nodes', 'ascendancyNodes']) {
+      if (!sameSet(p.tree?.[k], readStage.tree?.[k])) lad(`the placed rung ${show(p.id)}'s tree.${k} isn't the file's (plan.json's stage ${show(readStage.id)}); the placed rung keeps its tree, and D1-tree runs on the designed rungs only (D-522)`);
+    }
+  }
+  // owned-guide: what the reader named legacy or no longer obtainable stays out of every stage, shown as a trade.
+  const names = (x) => [
+    ...list(x.skills?.groups).flatMap((g) => list(g?.gems)).map((g) => g?.name),
+    ...[...list(x.items?.slots), ...list(x.items?.treeJewels)].map((it) => itemOf(it?.text).name),
+  ].filter(textOk).map(norm);
+  const tradeList = list(trades);
+  for (const l of list(read?.legacy).filter((x) => isObj(x) && textOk(x.name))) {
+    for (const x of st) if (names(x).includes(norm(l.name))) own(`builds/${FILE_ID}/plan.json's stage ${x.id} keeps ${show(l.name)}, which the reader named ${l.kind === 'unique' ? 'no longer obtainable' : 'legacy'} (read.json); a guide never keeps legacy or no-longer-obtainable content, the character's own included: its design gate shows it as a trade, with what replaces it (D-395, D-522)`);
+    if (!tradeList.some((t) => isObj(t) && textOk(t.from) && norm(t.from).includes(norm(l.name)) && textOk(t.to))) own(`builds/${FILE_ID}/trades.json has no trade from ${show(l.name)}, the character's ${l.kind === 'unique' ? 'unique' : 'gem'} the reader named ${l.kind === 'unique' ? 'no longer obtainable' : 'legacy'} (read.json); owned content a guide can't carry is shown at the design gate as a trade, its from naming it and its to what replaces it (D-522)`);
+  }
+  // The placed rung's rares are specs: a design's item each (no owned mark), priced by a spec (the D1 gate's basis maps it).
+  const slots = list(gate?.basis?.budget?.slots);
+  for (const p of placed) {
+    for (const it of [...list(p.items?.slots), ...list(p.items?.treeJewels)]) {
+      if (!isObj(it) || itemOf(it.text).rarity !== 'RARE') continue;
+      const where = it.slot ?? `jewel ${it.node}`;
+      if (it.owned === true) own(`builds/${FILE_ID}/plan.json's placed rung ${show(p.id)} keeps the owned rare in ${where}; in a guide its rares are specs, the must-haves at their tiers' lowest rolls, so any player can buy them, and a spec is a design's item, with no owned mark (§16, D-522)`);
+      const id = slots.find((x) => x.stage === p.id && (it.slot !== undefined ? x.slot === it.slot : x.jewel === it.node))?.priceId;
+      if (isObj(gate) && !isObj(list(plan.prices).find((x) => x.id === id)?.spec)) own(`builds/${FILE_ID}/plan.json's placed rung ${show(p.id)} prices its rare in ${where} ${id === undefined ? "by no entry the D1 gate's basis maps to it" : `by ${show(id)}, which has no spec`}; in a guide the placed rung's rares are specs, priced by the spec loop from the character's own lines (§16, D-522)`);
+    }
+  }
+}
+
+/**
+ * D-518 (§14, Appendix A.9): a guide writes one line per buff switched as needed (an endgame rung's group with `switch`),
+ * in its skills: `- <skill>: switch it on <when>; switch <skills> off for it.`, `<skills>` its `off` groups' skills (the
+ * clause left out with none). The writer's rule `switched-buffs`.
+ */
+function checkSwitchedBuffs({ guideText, endgame, fail }) {
+  const lines = String(guideText ?? '').split(/\r?\n/).map((l) => norm(l.replace(/\*\*/g, '').replace(/^\s*[-*]\s*/, '')));
+  const seen = new Set();
+  for (const x of endgame) {
+    const groups = list(x.skills?.groups);
+    groups.forEach((g, k) => {
+      if (!isObj(g?.switch)) return;
+      const skill = list(g.gems)[0]?.name;
+      const when = g.switch.when;
+      if (!textOk(skill) || !textOk(when)) return;
+      const offs = (Array.isArray(g.switch.off) ? g.switch.off : []).map((n) => list(groups[n - 1]?.gems)[0]?.name).filter(textOk);
+      const key = `${norm(skill)}|${norm(when)}|${offs.map(norm).sort().join(',')}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const head = `${norm(skill)}: switch it on ${norm(when).replace(/\.$/, '')}`;
+      const ok = lines.some((l) => l.startsWith(head) && (offs.length === 0 || (/; switch .+ off for it\.?$/.test(l) && offs.every((o) => l.slice(head.length).includes(norm(o))))));
+      if (!ok) {
+        const want = `- ${skill}: switch it on ${when.trim().replace(/\.$/, '')}${offs.length > 0 ? `; switch ${offs.length === 1 ? offs[0] : `${offs.slice(0, -1).join(', ')} and ${offs[offs.length - 1]}`} off for it` : ''}.`;
+        fail('switched-buffs', `guide.md has no line for ${x.id}'s buff switched as needed, group ${k + 1} (${skill}): "${want}", one line per switched buff in its skills (D-518, §14)`);
+      }
+    });
+  }
+}
+
 function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capWords: () => `a card has at most ${PROBE_CAP} (D-292)` }) {
   const v3 = schema !== 2;
   const v4 = schema === 4;
@@ -3180,6 +3323,8 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
     if ('slug' in log && isObj(log.brief) && log.slug !== slugOfBrief(log.brief)) {
       bad('slug', `is ${show(log.slug)}; the brief's slug is "${slugOfBrief(log.brief)}": the slug comes from the brief, and the cards finalized later go in builds[], not in the folder name (§2, D-285, D-412)`);
     }
+    // D-522 (§18): better and campaign are a run from a PoB file's (its brief's from).
+    if (isObj(log.brief) && !isFileRun(log)) for (const k of ['better', 'campaign']) if (k in log.brief) bad(`brief.${k}`, `is a run from a PoB file's (brief.from); this brief names no file (D-522)`);
     checkSchema4Fields(log, bad);
   } else if (!v3) {
     // D-326: the parsed brief is schema 3's (C-51, D-289); a schema-2 run's roll is set from the start.
@@ -4096,10 +4241,21 @@ const describeClass4 = (cls) => ({ ledger: "is the write ledger's refusal (ledge
  * F1 pass completes the build and ends the run; an escalation's or the D1 gate's way back to a verification gate ends
  * it; a resume (§12: the retry after a pricing stop) runs the stopped step again, or reopens a stopped build at its
  * design gate; and its log holds no builds[].
+ *
+ * D-522 (§18): a file run (`ctx.fileRun`, `/pob2:build-guide` from a PoB file) runs in its own order: `read` and
+ * `measure` (again after an answer that changes the plan), `place`, then its one build `file`, queued from the start: with
+ * the brief's `better`, the better round's D1 loop (scope `better`) to its design gate, whose accept places the result
+ * again (`place`); then the ladder, D1 in scope `ladder`, the design gate, F1 and on as the pipeline's, F1's pass going on
+ * to the campaign (D2, then the D2 gate) unless the brief declined it (`campaign: false`). No brainstorm, verification
+ * gate or verification answer: an infeasible ladder, or an escalation's way back, ends the run. In the `ladder` scope a
+ * D1 gate's findings on the placed rung (the stage with `source`) cover their part: its tree, and its floor when each
+ * shows what reaching the target would cost (`cost`); the designed rungs are judged as today.
  */
 function checkFlow4(log, fail, ctx) {
   if (!Array.isArray(log.stages) || !log.stages.every(isObj)) return;
   const better = ctx.better === true;
+  const fileRun = ctx.fileRun === true;
+  const wantCampaign = fileRun && log.brief?.campaign !== false;
   const stages = log.stages;
   const escalations = list(log.escalations);
   const checkpoints = list(log.checkpoints);
@@ -4192,7 +4348,9 @@ function checkFlow4(log, fail, ctx) {
   const coveredSoFar = (concept) => (f) => acceptedSoFar.some((a) => a.concept === concept && a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
   // D-521 (§17): in the better scope, a target the budget can't reach is a finding shown with what it would cost (its
   // `cost`), not a failed attempt: such a finding covers its part as an accepted one does.
-  const coverOf = (s) => (s?.scope === 'better' ? (f) => coveredSoFar(s.concept)(f) || costShown(f) : coveredSoFar(s?.concept));
+  // D-522 (§17, §18): in the ladder scope, the placed rung's floor and tree findings, its floor's with their cost.
+  const coverOf = (s) => (s?.scope === 'better' ? (f) => coveredSoFar(s.concept)(f) || costShown(f)
+    : s?.scope === 'ladder' && fileRun ? (f) => coveredSoFar(s.concept)(f) || placedCover(ctx.placedStage?.(s.concept) ?? null)(f) : coveredSoFar(s?.concept));
   const freeFault = (s) => {
     if (s.attempt !== 1 || s.outcome !== 'fail') return false;
     const rep = ctx.verdict(s);
@@ -4247,7 +4405,8 @@ function checkFlow4(log, fail, ctx) {
   let runEnded = null; // why the run ended, or null
   let started = null; // the D1-build that just started a design
   // D-516 (§17): a compile run's one build, file, is the read plan's design, queued from the start: no gate finalizes it.
-  if (better) {
+  // D-522 (§18): a file run's too.
+  if (better || fileRun) {
     buildOf(FILE_ID);
     queue = [FILE_ID];
     finalizeOrder.push(FILE_ID);
@@ -4296,7 +4455,7 @@ function checkFlow4(log, fail, ctx) {
     }
     runEnded = why;
     if (s !== undefined) {
-      illegal(i, better ? `follows ${why}, which ends the run; entries after it come only behind a resume (D-516)` : `follows ${why}, which ends the run: no card is queued and no answer asked for the verification gate; entries after it come only behind a resume (D-411, D-415)`);
+      illegal(i, better || fileRun ? `follows ${why}, which ends the run; entries after it come only behind a resume (D-516${fileRun ? ', D-522' : ''})` : `follows ${why}, which ends the run: no card is queued and no answer asked for the verification gate; entries after it come only behind a resume (D-411, D-415)`);
       runEnded = null;
     }
     return 'end';
@@ -4347,6 +4506,16 @@ function checkFlow4(log, fail, ctx) {
         illegal(i, `follows the design gate answered ${show(a)}, which isn't an answer of a compile run's design gate: accept (F1 writes the final PoB file), revise:<text> (D1 again) or stop (D-516, D-521)`);
         return undefined;
       }
+      // D-522 (§18): a file run has no verification gate; its better round's accept places the result again, then the ladder.
+      if (fileRun && (a === 'verification' || (cur.phase === 'better' && a === 'accept:file'))) {
+        illegal(i, `follows the design gate answered ${show(a)}, which isn't an answer of ${cur.phase === 'better' ? "a file run's better round: accept (the result placed again, then the ladder), revise:<text> or stop" : "a file run's design gate: accept, accept:file, revise:<text> or stop; it has no verification gate"} (D-522)`);
+        return undefined;
+      }
+      if (fileRun && cur.phase === 'better' && a === 'accept') {
+        cur.phase = 'placing';
+        if (s !== undefined && s.stage !== 'place') illegal(i, `follows the better round's design gate answered "accept", which places the result again: place next, then the ladder's D1-build around its rung, not ${s.stage}${s.concept ? ` ${s.concept}` : ''} (D-522)`);
+        return 'accept';
+      }
       if (a === 'accept' || a === 'accept:file') {
         cur.after = better ? 'better' : a === 'accept' ? 'guide' : 'file';
         // D-486 (amendment 14): "late endgame scaling, yes?" answered yes runs D1-finish's scaling pass before F1.
@@ -4374,6 +4543,10 @@ function checkFlow4(log, fail, ctx) {
     if (kind === 'final') {
       if (cur === null) {
         illegal(i, `follows ${where}, but no build is at the final gate`);
+        return undefined;
+      }
+      if (fileRun && a === 'accept:verification') {
+        illegal(i, `follows the final gate answered "accept:verification"; a file run has no verification gate to go back to: accept, campaign, revise:<text> or decline:<note> (D-522)`);
         return undefined;
       }
       if (a === 'accept' || a === 'accept:verification') {
@@ -4482,10 +4655,10 @@ function checkFlow4(log, fail, ctx) {
     if (p.stage === 'R1b-assemble') return s !== undefined && s === autoRival ? { table: true } : { gate: 'verification' };
     if (p.stage === 'RV' && p.outcome === 'none-found') return { gate: 'verification' };
     // D-516: a compile run has no verification gate to go back to: the D1 gate's infeasible ends its better round.
-    if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return better ? { end: `${p.concept}'s D1 gate found the better round infeasible` } : { gate: 'verification' };
+    if (p.stage === 'D1-gate' && p.outcome === 'infeasible') return better || fileRun ? { end: `${p.concept}'s D1 gate found the ${p.scope === 'ladder' ? 'ladder' : 'better round'} infeasible` } : { gate: 'verification' };
     if (p.outcome === 'escalated') {
       const choice = lastEscalation?.choice;
-      if (choice === 'verification') return better ? { end: `${p.stage} ${p.concept}'s escalation answered verification` } : { gate: 'verification' };
+      if (choice === 'verification') return better || fileRun ? { end: `${p.stage} ${p.concept}'s escalation answered verification` } : { gate: 'verification' };
       if (choice === 'stop') return { end: `${p.stage} ${p.concept}'s escalation answered stop` };
       if (choice === 'accept' && p.stage === 'D1-gate' && b && !b.verified) return { gate: 'design' };
       return { escalation: choice };
@@ -4530,7 +4703,7 @@ function checkFlow4(log, fail, ctx) {
     }
     if (esc < escalations.length && esc > r.lengths.escalations) fail('order', `run-log.json resumes[${n}] records ${r.lengths.escalations} escalation(s), but ${esc} were logged before it (D-415)`);
     runEnded = null;
-    if (better) {
+    if (better || fileRun) {
       // D-516 (§12): no verification gate: the stopped step runs again, and a build stopped at its design gate (or an
       // escalation) after a passing D1 gate is back at that gate.
       const b = B.get(FILE_ID);
@@ -4627,7 +4800,11 @@ function checkFlow4(log, fail, ctx) {
         const legacy = legacyAt(prev?.i);
         const routes = {
           // D-516: a compile run's better round starts at its D1-build.
-          start: better ? ['D1-build'] : ['R1a'],
+          start: better ? ['D1-build'] : fileRun ? ['read'] : ['R1a'],
+          // D-522 (§18): a file run reads and measures (again after an answer that changes the plan), then places.
+          read: p?.outcome === 'fail' ? [] : ['read', 'measure'],
+          measure: p?.outcome === 'fail' ? [] : ['read', 'measure', 'place'],
+          place: ['place', 'D1-build'],
           R1a: ['R1a', 'R1a-assemble', 'R1a-synthesize'],
           'R1a-assemble': ['R1a-assemble'],
           'R1a-synthesize': ['R1a-synthesize'],
@@ -4648,7 +4825,8 @@ function checkFlow4(log, fail, ctx) {
           D2: p?.outcome === CLAIMS_EDITED ? ['W1'] : ['D2-gate'],
           'D2-gate': p?.outcome === 'pass' ? ['W1'] : ['D2'],
           // D-477: a file-only build held to revision 13 has its claims pass after F1, and its re-check after a recompile.
-          F1: p?.outcome === 'pass' ? (b?.claims?.state === 'want' ? ['V4k'] : b?.claims?.fix ? ['V4r'] : ['W1']) : ['F1'],
+          // D-522 (§18): a file run's F1 after the accept goes on to the campaign (D2) unless the brief declined it.
+          F1: p?.outcome === 'pass' ? (b?.claims?.state === 'want' ? ['V4k'] : b?.claims?.fix ? ['V4r'] : wantCampaign && b && !b.full && b.cycle === null && b.after === 'guide' ? ['D2'] : ['W1']) : ['F1'],
           // D-487 (amendment 14): a passing claims pass of a build held to 14 goes on to its notes, W1 with scope notes.
           V4k: p?.outcome === 'fail' ? ['D1-finish'] : b?.claims?.state === 'notes' ? ['W1'] : [],
           W1: [nextCheck],
@@ -4662,6 +4840,7 @@ function checkFlow4(log, fail, ctx) {
         const keepsConcept = [...D1_STAGES, 'D1-gate', 'D2', 'D2-gate', 'F1', 'W1', 'V4', 'V4r', 'V4c', 'V4k'].includes(pf);
         if (keepsConcept && p && !ROUND_STAGES.includes(s.stage) && !same) illegal(i, `is about ${s.concept}, but the build before it is ${p.concept}'s; a build's steps run for its own card until it ends (D-411)`);
         if (better && pf === 'start' && s.stage === 'D1-build') startDesign(s, i);
+        if (fileRun && pf === 'place' && s.stage === 'D1-build' && queue[0] === FILE_ID) startDesign(s, i);
       }
     }
     // D-264: a claims-only owner edits in place before any gate of its fix round or revision.
@@ -4720,6 +4899,23 @@ function checkFlow4(log, fail, ctx) {
     // Builds: their designs, final compiles, guides and checks (D-411…D-415).
     if (BUILD_STEPS.includes(s.stage) && typeof s.concept === 'string' && !B.has(s.concept)) illegal(i, `is about ${s.concept}, which no verification gate finalized (D-411)`);
     const b = BUILD_STEPS.includes(s.stage) && typeof s.concept === 'string' ? buildOf(s.concept) : null;
+    // D-522 (§18): a file run's D1 steps run in scope better (the better round, which the brief's better asks for, first)
+    // or ladder (the rungs around the placed one, after the better round's accept placed it again); D1-finish's one-item
+    // swap and scaling pass aside.
+    if (fileRun && b && D1_SCOPED.includes(s.stage) && !(s.stage === 'D1-finish' && ['swap', 'scaling'].includes(s.scope))) {
+      const fresh = pf === 'place' && s.stage === 'D1-build';
+      const want = fresh ? (b.phase === 'placing' || log.brief?.better !== true ? 'ladder' : 'better') : b.phase ?? (log.brief?.better === true ? 'better' : 'ladder');
+      if (s.scope !== want) illegal(i, `is ${s.stage} with scope ${show(s.scope)}, but a file run's ${want === 'better' ? "better round (its brief's better) runs first, with scope better" : `ladder ${b.phase === 'placing' || fresh ? "after the better round's accept placed the result again" : 'around the placed rung'} runs with scope ladder`}; its D1 steps take better until the better round's accept, then ladder (D-522)`);
+      if (fresh && b.phase === 'placing') {
+        // The ladder starts its own design chain, from the result the better round's accept placed again.
+        freshChain(b, 'D1-gate');
+        b.verified = false;
+        b.after = null;
+      }
+      if (fresh || b.phase === undefined || b.phase === null) b.phase = want;
+    } else if (fileRun && s.stage === 'place' && cur?.phase !== undefined && cur.phase !== null && cur.phase !== 'placing' && !(p?.stage === 'place')) {
+      illegal(i, `places the build again, but no better round's design gate accepted a result to place: place runs after the measure, and once more after the better round's accept (D-522)`);
+    }
     /** A step about a build after its V4 checks: the fix round when the last check found something, else a revision. */
     const afterVerification = () => {
       // D-482 (amendment 14): one more fix round behind an ask answered round keeps the cycle, its re-check to come.

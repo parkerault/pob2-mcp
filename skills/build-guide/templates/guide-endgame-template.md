@@ -117,7 +117,7 @@ Level with any <the card's Class> build you like, and switch to this one at leve
 - **Links and quality:** <…>.
 - **Stats:** <the stat priority, in order>.
 - **Weapon swap:** <the rule of thumb>.
-- **When you're short:** short on <spirit | mana | an attribute>? I drop <first>, then <second> (<the record's numbers>).
+- **When you're short:** short on <spirit | mana | an attribute>? I drop <first>, then <second> (<the record's numbers>). [when a rung has a buff switched as needed (D-518)] On Spirit, see each rung's switch lines under its gems.
 
 ## Endgame: entering maps
 
@@ -158,6 +158,8 @@ Move here when <the trigger: the key item, or a rare with a stat floor>.
 ```
 
 - **Gems:** <skill> (level <n>, quality <q>) with <supports>; <the other groups>.
+- [one line per group of this rung with switch, D-518] <skill>: switch it on <when>; switch <its off groups' skills> off for it.
+- [only when a wand, staff or sceptre of this rung grants a skill the build uses, D-512] Raise <the item> to quality 20 with Arcanist's Etchers: <the skill> takes its quality.
 - **Tree:** <the keystones and notables, each with what it buys>.
 - **Anoint:** <the notable>, from <its three Distilled Emotions, as the record names them> (<its price, or unavailable>): <its reason, as the plan gives it>.
 - [only on a schema-8 plan, when the stage's record has treeChange with refunded above 0 (D-452); the counts only, no gold figure] Respec: refund <treeChange.refunded> points and allocate <treeChange.added>; respeccing costs gold.

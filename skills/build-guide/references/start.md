@@ -48,6 +48,11 @@ text doesn't give, and never invent one:
   it, never in `skill` (D-343): only an active skill gem, or a command a summon's minion casts, is a `skill`.
   Step 1's gem lookup tells them apart.
 - **Player evidence** comes only from `popularity`: no tool supplies it (D-335).
+- **A guide to the player's own build or file** ("a build guide for my build MyCharacter123", or a build name or import
+  code given to the command, D-522): a run from a PoB file, slug `file`, whose brief adds `from` (the build's name in
+  the builds folder, or `"import code"`), `better` (`true`: the character made better first) and `campaign` (`false`:
+  the campaign declined at the start). `skills/build-guide/references/file-run.md` gives its steps in place of the ones
+  below.
 
 ## In this order, before any agent runs
 

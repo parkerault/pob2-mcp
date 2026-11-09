@@ -169,8 +169,9 @@ describe('D1-tree (AC-W77): the swap loop, its own fresh step (D-418)', () => {
     expect(raw.split('\n')[0]).toBe('# D1-tree: trees that minimize travel (`build-guide-coordinator`)');
     // Headings outside fenced blocks: the Writes section shows pieces.md's `## Jewel lines` in a block.
     const h2 = raw.replace(/```[\s\S]*?```/g, '').split('\n').filter((l) => l.startsWith('## '));
-    // Amendment 16 (WU-162, D-521): the better round's section, one per D1 stage reference.
-    expect(h2).toEqual(['## Inputs', '## Work', '## The `better` scope (D-521)', '## Writes', '## Returns', '## Fault directives']);
+    // Amendment 16 (WU-162, D-521): the better round's section, one per D1 stage reference; WU-164 (D-522): the ladder's,
+    // a file run's rungs around its placed one (D1-tree searches the designed rungs only).
+    expect(h2).toEqual(['## Inputs', '## Work', '## The `better` scope (D-521)', '## The `ladder` scope (D-522)', '## Writes', '## Returns', '## Fault directives']);
     // Amendment 11 (WU-115, D-439): D1-tree writes the unmodelled needs' trades too; amendment 12 (WU-125, D-453):
     // and pieces.md's jewel lines.
     expect(tree).toMatch(/\*\*Header:\*\* `stage: "D1-tree"`, `attempt`, `concept`, `mode`, `runFolder`, `runFolderRel`, `buildFolder`, `compile: "measure-only"`, `writes: \["<buildFolder>\/plan\.json", "<buildFolder>\/trades\.json", "<buildFolder>\/pieces\.md"\]` \(`pieces\.md` for its `## Jewel lines` only, D-453\)/);

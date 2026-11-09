@@ -753,19 +753,31 @@ export async function pinUpgrade(tag, { stage: stageOpt } = {}) {
       }
       let { retire, judgment } = sortFailures(first.suites, entries);
       const result = { first: counts(first.suites), retired: [], rerun: null };
-      if (retire.length > 0) {
-        for (const e of retire) {
-          const removed = [];
-          const modulePath = path.join(REPO, e.module);
-          fs.writeFileSync(modulePath, removeLuaEntry(fs.readFileSync(modulePath, 'utf8'), e.pg));
-          removed.push(`${e.module} entry`);
-          const testPath = path.join(REPO, e.test.file);
-          fs.writeFileSync(testPath, removeTestCase(fs.readFileSync(testPath, 'utf8'), e.test.case));
-          removed.push(`${e.test.file}: its retirement test`);
-          report.retired.push({ pg: e.pg, removed });
-          report.judgment.push({ kind: 'retired', pg: e.pg, removed, left: 'its pob-gaps.md entry, the test file\'s other cases and the helpers the entry used' });
-          result.retired.push(e.pg);
+      // Each retirement is all or nothing: both texts are made before either file is written, and one the script can't
+      // cut is left to judgment, its files untouched.
+      const byHand = [];
+      for (const e of retire) {
+        const modulePath = path.join(REPO, e.module);
+        const testPath = path.join(REPO, e.test.file);
+        let moduleText;
+        let testText;
+        try {
+          moduleText = removeLuaEntry(fs.readFileSync(modulePath, 'utf8'), e.pg);
+          testText = removeTestCase(fs.readFileSync(testPath, 'utf8'), e.test.case);
+        } catch (err) {
+          byHand.push(e);
+          report.judgment.push({ kind: 'retireByHand', pg: e.pg, test: e.test.file, error: err instanceof Error ? err.message : String(err) });
+          continue;
         }
+        fs.writeFileSync(modulePath, moduleText);
+        fs.writeFileSync(testPath, testText);
+        const removed = [`${e.module} entry`, `${e.test.file}: its retirement test`];
+        report.retired.push({ pg: e.pg, removed });
+        report.judgment.push({ kind: 'retired', pg: e.pg, removed, left: 'its pob-gaps.md entry, the test file\'s other cases and the helpers the entry used' });
+        result.retired.push(e.pg);
+      }
+      retire = retire.filter((e) => !byHand.includes(e));
+      if (retire.length > 0) {
         const failedFiles = first.suites.filter((s) => failuresOf(s).length > 0).map((s) => s.file);
         const again = gateRun([`pnpm exec jest --testPathIgnorePatterns /node_modules/ -- ${failedFiles.join(' ')}`], 'rerun');
         const rerunFiles = new Set(again.suites.map((s) => s.file));

@@ -194,6 +194,8 @@ function testFile(n: number, singleLine: boolean): string {
   const retire = CASE[n as keyof typeof CASE];
   const setup = SETUP[n as keyof typeof SETUP];
   const lines = [`describe('PG-${n}', () => {`];
+  // PG-905's title is also quoted in a comment, so the script can't tell which to cut.
+  if (n === 905) lines.push(`  // ${JSON.stringify(retire)} is the retirement case.`);
   if (setup) lines.push(`  it(${JSON.stringify(setup)}, () => {`, '    expect(1).toBe(1);', '  });', '');
   if (singleLine) lines.push(`  it(${JSON.stringify(retire)}, () => {`, '    expect(true).toBe(true);', '  });');
   else lines.push('  it(', `    ${JSON.stringify(retire)},`, '    () => {', '      expect(0).toBe(0);', '    },', '  );');
@@ -384,8 +386,12 @@ function writeFakeData(): void {
     golden,
     other,
   ]));
-  // Runs 2 and 3: nothing fails.
-  for (const n of [4, 5, 6, 7]) write(path.join(FAKE, `gate-${n}.json`), jestResult([{ file: 'tests/unit/fine.test.ts', tests: [pass('works')] }]));
+  // Run 2: PG-905's retirement case fails, but its file quotes the title twice. Run 3: nothing fails.
+  write(path.join(FAKE, 'gate-4.json'), jestResult([
+    { file: 'tests/unit/fine.test.ts', tests: [pass('works')] },
+    { file: 'tests/integration/pg905.test.ts', tests: [failed(CASE[905], 'expect(received).toEqual(expected)')] },
+  ]));
+  for (const n of [5, 6, 7]) write(path.join(FAKE, `gate-${n}.json`), jestResult([{ file: 'tests/unit/fine.test.ts', tests: [pass('works')] }]));
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -690,13 +696,22 @@ describe('AC-W138 (WU-155): scripts/pin-upgrade.mjs on fixtures, no network and 
       ]);
     });
 
-    it('lists a missing skill-slot method, its warning gone, and the newer tree; with no failure, nothing retires and nothing re-runs', () => {
+    it("leaves a retirement it can't cut to judgment, its entry and its test file untouched, and re-runs nothing", () => {
+      expect(ofKind(report, 'retireByHand')).toEqual([
+        { kind: 'retireByHand', pg: 'PG-905', test: 'tests/integration/pg905.test.ts', error: `2 cases titled "${CASE[905]}"` },
+      ]);
+      expect(read(path.join(REPO, 'pob-api/API/ParseFixes.lua'))).toContain("pg = 'PG-905'");
+      expect(read(path.join(REPO, 'tests/integration/pg905.test.ts'))).toBe(testFile(905, false));
+      expect(report.retired).toEqual([]);
+      expect(ofKind(report, 'retired')).toEqual([]);
+      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 0 }));
+    });
+
+    it('lists a missing skill-slot method, its warning gone, and the newer tree', () => {
       expect(ofKind(report, 'skillSlotMethod')).toEqual([expect.objectContaining({ file: 'Classes/SkillsTab.lua', method: 'SkillsTabClass:UpdateGlobalGemCountAssignments' })]);
       expect(ofKind(report, 'skillSlotWarning')).toEqual([expect.objectContaining({ file: 'Modules/Build.lua', text: 'You have too many gem groups allocated' })]);
       expect(ofKind(report, 'treeVersion')).toEqual([{ kind: 'treeVersion', old: '0_5', new: '0_6', literal: 'scripts/check-construct.lua' }]);
       expect(ofKind(report, 'fingerprint').map((j) => [j.pg, j.problem])).toEqual([['PG-901', 'function SkillsTabClass:UpdateGlobalGemCountAssignments() is missing']]);
-      expect(report.retired).toEqual([]);
-      expect((report.steps as Json).gate).toEqual(expect.objectContaining({ retired: [], rerun: null, judgment: 0 }));
       // The digest is written for the pin's new label, but no flag changed: not a judgment item.
       expect(ofKind(report, 'digestFlags')).toEqual([]);
       expect(((report.steps as Json).reflag as Json).digests).toEqual({ 'embers.md': { written: true, changed: 0 } });

@@ -138,7 +138,10 @@ what the script does and what is left:
 8. Re-check the bridge patches' fingerprints (D-509): each entry of both patch modules records the sha1 of the PoB
    code it relies on, checked by `tests/static/patchFingerprints.test.ts` through `scripts/patch-fingerprints.mjs`.
    The script lists each one that changed on the new tree. A changed fingerprint means re-check the patch against the
-   new code and then update its `sha1`, never retire it on that alone.
+   new code and then update its `sha1`, never retire it on that alone. Also re-check `invalid_options` in
+   `pob-api/API/Compile.lua`: a read plan's configuration callout reads PoB's option gate in `Classes/ConfigTab.lua`
+   through `debug.getupvalue` (D-519). If a release renames that upvalue, the callout reports nothing, and
+   `tests/integration/compileReadPlan.test.ts` fails.
 
 **League launch.** Commit the new league's digest before or at its launch: the readers take only running leagues, so
 an early digest waits for its start (D-507). Re-run the digest script when poe2db's dates move; it rewrites the other
@@ -152,10 +155,12 @@ rules above: poe2db at the digest's pace, anything else with the user's approval
   `docs/build-guide/spec/README.md`, are kept as history.
 - `docs/stabilization/grounding/`: fact sheets on the code, PoB2's Lua internals, MCP and the tooling.
 - The repository is also the Claude Code plugin `pob2` (amendment 15, D-499): its manifests in `.claude-plugin/`,
-  the build-guide skill in `skills/build-guide/` (run as `/pob2:build-guide`), game knowledge's references and data
-  builders in `skills/game-knowledge/`, the four agent types in `agents/` (`pob2:build-guide-coordinator` and the
-  rest), the run scripts' commands in `bin/` (`pob2-check-run`, `pob2-run-log`, `pob2-render-audit`,
-  `pob2-render-notes`) and the compaction reminder's hook in `hooks/hooks.json`. Skill and agent text names plugin
+  the build-guide skill in `skills/build-guide/` (run as `/pob2:build-guide`), the pieces `skills/compile/`,
+  `skills/pricing/` and `skills/writer/` (`/pob2:compile`, `/pob2:pricing`, `/pob2:writer`, amendment 16), game
+  knowledge's references and data builders in `skills/game-knowledge/`, the four agent types in `agents/`
+  (`pob2:build-guide-coordinator` and the rest), the run scripts' commands in `bin/` (`pob2-check-run`,
+  `pob2-run-log`, `pob2-render-audit`, `pob2-render-notes`, `pob2-league-digest`) and the compaction reminder's hook
+  in `hooks/hooks.json`. Skill and agent text names plugin
   files from the plugin root (D-500).
 - `scripts/fresh-clone-check.sh`: clones HEAD into a temp dir, runs `mise run setup`, and checks the
   result as a server, with no trade or poe.ninja requests.

@@ -60,11 +60,13 @@ this section gives their detail as built.
   `src/services/readBack.ts`): engine kind `none`, group `core`, no engine lock, nothing fetched. Two calls (a16 §13,
   Appendix A.7):
   - the first takes `run_folder` with exactly one of `build_name` and `import_code` (decoded under D-50's 16 MiB cap)
-    and optionally `loadout`; it keeps the decoded document as `source.xml` in the run folder and writes `plan.json`
-    (schema 11, one read stage) and `read.json`;
-  - the second takes `run_folder` and the answers only (`tree`, `main_group`, `buffs_on`, `buffs_swap`, `switch_off`,
-    `stand_in`; group numbers are the plan's), reads `source.xml` again, refuses a builds-folder file whose sha1
-    changed, and writes both files again.
+    and no answer, a call carrying one refused ("the first call takes no answer"); it reads the file's active loadout,
+    keeps the decoded document as `source.xml` in the run folder and writes `plan.json` (schema 11, one read stage) and
+    `read.json`;
+  - the second takes `run_folder` and the answers only (`loadout`, `tree`, `main_group`, `buffs_on`, `buffs_swap`,
+    `switch_off`, `stand_in`; group numbers are the plan's; `src/handlers/planFromBuildHandlers.ts`'s `ANSWERS`),
+    reads `source.xml` again, refuses a builds-folder file whose sha1 changed, and writes both files again. A changed
+    `loadout` renumbers the groups, so it clears the answers that name them.
 
   It reads the file as written, never through a load: every item, one on a base the pin lacks included (PG-110);
   every gem of a granted group, which a load drops (D-398); each roll from the item's text, never PoB's misnumbered
@@ -97,7 +99,8 @@ Everything goes in its run folder, at the folder's root (C-61; Appendix A.6's co
 WL:7518–7520, :7570–7573).
 
 In the builds folder it writes only the better round's draft (the D1 gate's, by `draft_name`: the source's name and
-` better`) and F1's final file (`first_free`, under its own name), both through `buildFileWriter` (C-17), never under
+` better`, written as `<name> (draft)`, `draftCandidates` in `src/plan/compiler.ts`) and F1's final file (`first_free`,
+under its own name, the run's date added when the name is taken), both through `buildFileWriter` (C-17), never under
 the user's file's name. An accepted escalation's draft is written by the runner's `compile_plan {plan_path,
 draft_name}` and logged as the escalation's `draftFile`, a departure from Appendix A.6 (the coordinator's call,
 WL:7848–7853, :7892–7893). It never writes the user's file: the reader keeps its own copy.
@@ -113,8 +116,8 @@ WL:7848–7853, :7892–7893). It never writes the user's file: the reader keeps
 - **The tree version** (a16 §13): a `treeVersion` the pin lacks is refused, naming it; an older one the pin holds is a
   question. As built, no `plan.json` is written until the answer is `tree: "newest"`, and `stop` removes one written
   earlier (WL:7510–7511).
-- **One loadout, one stage:** the file's active loadout, or the one `loadout` names; a title that doesn't pair is
-  refused, with the file's loadouts listed.
+- **One loadout, one stage:** the file's active loadout on the first call, or the one the second call's `loadout`
+  names, a title from `read.json`'s loadouts; a title that doesn't pair is refused, with the file's loadouts listed.
 - **PoB's gaps in a player's file** (a16 §13):
   - PG-108, the copies: PoB's own granted groups aren't written; per granted skill the copy with the most enabled
     supports is kept, a copy with no support dropped when its level equals PoB's group's and kept, both levels named,
@@ -426,9 +429,9 @@ against.
      reference hits (the file's own configuration gave 68,502); the lowest max hit 5,200 chaos. Level 100: in the
      endgame. The Spirit answer reads and measures it again, with the buffs the user doesn't keep on switched as needed.
    - **The better round, offline:** the user names the rung, never assumed; the round designs at the floor tiers, its
-     prices `unavailable`, said once; the design gate's display names the draft, "ResurrectForbidden better", first;
-     on accept F1 writes the final file under its own name by `first_free`, never over the user's file; `pob2-check-run`
-     passes.
+     prices `unavailable`, said once; the design gate's display names the draft, "ResurrectForbidden better (draft)",
+     first; on accept F1 writes the final file, "ResurrectForbidden better" by `first_free` (the run's date added when
+     that name is taken), never over the user's file; `pob2-check-run` passes.
 2. **CullTheConquerer** (`CullTheConquerer-oauth-import.xml`; imported with PoB2's own OAuth importer, unchanged, a
    level 70 Lich). A request such as "what does my character CullTheConquerer do" starts `/pob2:compile`.
    - **The read:** Mana Drain's copy dropped (level 18, as PoB's from the wand); Sigil of Power's supported copy kept on
@@ -439,10 +442,13 @@ against.
      20); Sigil of Power at its staff's quality 18; V1 passes, so no Spirit question; Essence Drain 3,469 on maps, on
      resisting rares and on the boss; the Arbiter survived; EHP 15,221 at `n`'s reference hits (the file's own
      19,291); the lowest max hit 10,497 physical. Level 70, past the campaign's last area level (64): in the endgame.
-   - **The better round, offline:** as case 1, the draft "CullTheConquerer better".
+   - **The better round, offline:** as case 1, the draft "CullTheConquerer better (draft)", the final file
+     "CullTheConquerer better".
 3. **The library file** (choice D; `~/projects/poe2-guide-library/guides/twister-spirit-walker-snoobae/pob/build.xml`,
-   read in place): the reader's case, read in the file run of slice 03. Its active loadout, "Mid Endgame", of 10 is
-   read, and the loadout question is asked.
+   read in place): the reader's case, read in the file run of slice 03. It isn't in the builds folder, and
+   `plan_from_build` takes a builds-folder name or an import code, so its run starts from an import code of the file.
+   The first call reads its active loadout, "Mid Endgame", one of 10, and the reply asks the loadout question, which the
+   second call answers with `loadout`.
 
 **No campaign character** is among the real cases: the user has none (choice A; WL:6989–6991). The campaign path
 rests on the fixtures: the importer fixture read again at level 50 aims the better round at `m`'s targets (AC-W154) and

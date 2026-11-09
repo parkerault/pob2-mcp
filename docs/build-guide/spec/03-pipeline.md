@@ -589,11 +589,14 @@ no `pass` field (D-267).
 > (at the ladder's design gate) and `file-run-completed` (laid over it at test time), rebuilt on the real path from
 > the importer fixture (WL:8005–8010, :8029–8033). **WU-168's file-run case** (a16 §20, AC-W160): `/pob2:build-guide`
 > from ResurrectForbidden, started by a request such as "a build guide for my build ResurrectForbidden", to its design
-> gate. Expected: the read and the measure as slice 05 §6's case 1; the rung the user names (offline); the ladder's
-> other two rungs designed around it; at the design gate the placed rung's items kept, its rares as specs, any owned
-> content a guide can't carry shown as a trade, and the placed rung's floor and tree reported as findings, never a
-> failed gate. With choice D, the library file (`guides/twister-spirit-walker-snoobae/pob/build.xml`) the same way,
-> its loadout question asked first (its active loadout, "Mid Endgame", one of 10).
+> gate. Expected: the read and the measure as slice 05 §6's case 1; the rung the user names, offline (the
+> coordinator's call: offline unless the user approves a trade run, the handoff's trade rule); the ladder's other two
+> rungs designed around it; at the design gate the placed rung's items kept, its rares as specs, any owned content a
+> guide can't carry shown as a trade, and the placed rung's floor, tree and budget reported as findings, never a failed
+> gate. With choice D, the library file (`guides/twister-spirit-walker-snoobae/pob/build.xml`) the same way, from an
+> import code of the file (it isn't in the builds folder, and `plan_from_build` takes a builds-folder name or an import
+> code): the first call reads its active loadout, "Mid Endgame", one of 10, and the loadout question is asked before
+> the measure, its answer the second call's `loadout`.
 
 `SKILL.md`'s step list, as built (since WU-57, merge `c872dea`; before it, steps 2 to 5 were R1a's concept
 proposals, R1b per concept, R1b-assemble's checkpoint-1 comparison and checkpoint 1, and step 16 was

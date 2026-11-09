@@ -161,8 +161,9 @@ display. Nothing goes into the builds folder, and the player's file is never wri
 - **Owned content in a pricing run** (D-519): an owned item, group or tree jewel is exempt from the rules that would
   reject what the game allows (slice 05 §2.3), the checker's `spec` and `listing` among them. As built (a merge-forced
   change, WL:7933–7937): a price entry whose `query.slot` names an owned slot or tree jewel of the read stage is owned,
-  exempt from `spec` and `listing` and held to `owned-spec`; in a file run, where other rungs sit beside the read stage,
-  the pipeline's rules hold (slice 03).
+  exempt from `spec` and `listing`, in a compile run too, for the entries the better round's `place` writes
+  (`ownedContent`, `check-run.mjs`:7102–7103); in a pricing run it is held to `owned-spec`, which only a pricing run
+  runs; in a file run, where other rungs sit beside the read stage, the pipeline's rules hold (slice 03).
 - **The placement scope** (`stage: "place"`, `writes: ["plan.json"]`): the league, the replace cost and the place,
   nothing else. Compile's better round runs it (slice 05) and a file run runs it (slice 03), each in its own folder;
   `maxSearches` is counted without the upgrades (WL:7931–7933).

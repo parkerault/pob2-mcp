@@ -242,8 +242,9 @@ describe('AC-W143 (WU-158, D-525): the spine holds amendment 16\'s M-29 as built
     expect(m29).toMatch(/WU-157 not run/);
     // D-525 (WU-167): M-30's docs unit marks M-30 built, so the line stays "approved" only until then.
     const m30 = s93.slice(s93.indexOf('- **M-30, '));
-    if (m30Folded) expect(m30).toMatch(/\*\*Status: built(, WU-168 open)?\*\*/);
-    else expect(m30).toContain('**Status: approved**');
+    if (!m30Folded) expect(m30).toContain('**Status: approved**');
+    else if (/open/.test(row('WU-168')[1])) expect(m30).toContain('**Status: built, WU-168 open**');
+    else expect(m30).toContain('**Status: built**');
   });
 
   it('names each M-29 criterion in §14.3\'s as-built line', () => {
@@ -395,14 +396,24 @@ describe('AC-W161 (WU-167, D-525): the spine holds amendment 16 as built', () =>
     else expect(Number(m![2] ?? m![1])).toBeGreaterThanOrEqual(16);
   });
 
-  it('names C-61 to C-66, each built', () => {
+  /** A contract's block in §5.2: from its bold head to the next contract's head or heading. */
+  const contractBlock = (c: string) => {
+    const at = SPINE.indexOf(`\n**${c} `);
+    if (at < 0) throw new Error(`the spine has no block for ${c}`);
+    const ends = [SPINE.indexOf('\n**C-', at + 1), SPINE.indexOf('\n#', at + 1)].filter((i) => i > 0);
+    return SPINE.slice(at, Math.min(...ends));
+  };
+
+  it('names C-61 to C-66, each built, with its as-built note', () => {
     expect(row('C-62')[2]).toMatch(/\bbuilt WU-\d+/);
     expect(row('C-62')[2]).not.toMatch(/not built/);
+    expect(row('C-62').join(' | ')).toContain('**As built**');
     for (const c of ['C-61', 'C-63', 'C-64', 'C-65', 'C-66']) {
       const head = new RegExp(`\\*\\*${c} [^*]+\\*\\* \\(new;[^)]*\\)`).exec(flat);
       expect(head).not.toBeNull();
       expect(head![0]).toMatch(/\bbuilt WU-\d+/);
       expect(head![0]).not.toMatch(/not built/);
+      expect(contractBlock(c)).toMatch(/^- \*\*As built\*\* \(/m);
     }
   });
 
@@ -423,6 +434,10 @@ describe('AC-W161 (WU-167, D-525): the spine holds amendment 16 as built', () =>
     });
     expect(wrong).toEqual([]);
     expect(SPINE).not.toContain('(amendment 16, approved)**:');
+    // Each decision but the real cases' (§20's, recorded at AC-W150 and AC-W151) states what was built as built.
+    const realCases = /^## 20\. (D-\d+)/m.exec(AMENDMENT)![1];
+    const noNote = M30_DECISIONS.filter((d) => d !== realCases && !/\bas built\b/.test(last(row(d))));
+    expect(noNote).toEqual([]);
   });
 
   it('marks the build and docs units built and WU-168 open; M-30 "built, WU-168 open" in §9.3', () => {
@@ -432,7 +447,9 @@ describe('AC-W161 (WU-167, D-525): the spine holds amendment 16 as built', () =>
       else expect(title).toMatch(/^\*\*Built\*\*/);
     }
     const s93 = folded(sectionOf(SPINE, '### 9.3 '));
-    expect(s93.slice(s93.indexOf('- **M-30, '))).toMatch(/\*\*Status: built(, WU-168 open)?\*\*/);
+    const m30 = s93.slice(s93.indexOf('- **M-30, '));
+    if (/open/.test(row('WU-168')[1])) expect(m30).toContain('**Status: built, WU-168 open**');
+    else expect(m30).toContain('**Status: built**');
   });
 
   it("names each M-30 criterion in §14.3's as-built line, AC-W160 and AC-W140 open while WU-168 is", () => {

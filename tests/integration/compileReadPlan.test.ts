@@ -11,11 +11,15 @@
  *   compiled file's config set as read, with no reference hit written; V2's findings are callouts (`from-file`) and its
  *   verdict passes; the record holds the boss, resisting, Arbiter and toughness reads (the toughness read at the
  *   non-budget rung's reference hits, its conditioned read too), with no variant in the plan, `measuredAs`, `owned` and
- *   the Spirit question's figures.
+ *   the Spirit question's figures. compile_check measures an owned unique PoB marks no longer obtainable, in an item slot
+ *   (Thunderstep in Boots) and in a tree socket, and refuses each once its mark is off (D-384). V2's `unproduced-state`
+ *   callout names a file input nothing in the build produces (Arcane Cloak's option, with no Arcane Cloak; the Parry
+ *   debuff once the shield that grants Parry is gone) and not one the build produces (the Parry debuff with its shield).
  * - AC-W152: on the read plan with the Spirit question answered (Virtuous Barrier, Blasphemy, Wind Dancer and Combat
  *   Frenzy switched, Herald of Ice off for Wind Dancer) and measured on weapon set 2, the switched groups are written
  *   disabled, the measured numbers leave their reservation out, and the record's `switches` holds each one measured on
  *   set 2 with its `off` groups off; V1 reports `switched-spirit` for Blasphemy (below 0) and not for the others. On a
+ *   stage measured on set 1, a switched group on set 2 is measured with set 2 active, the others on set 1. On a
  *   plan of ten ungranted groups, the tenth disabled, PoB's skill-slot warning comes only when that group is switched
  *   (marked for PG-106's recount). A stage without `switch` or owned content gets none of the record's new fields.
  */
@@ -58,6 +62,26 @@ function sceptreAt10(plan: Json): Json {
   expect(slot.text).toContain('Shrine Sceptre');
   expect(slot.text).not.toContain('Unique ID:');
   slot.text = slot.text.replace('Quality: 20', 'Quality: 10');
+  return p;
+}
+/**
+ * D-384: Thunderstep, a unique PoB's data marks no longer obtainable (`vendor/…/Data/Uniques/boots.lua`, as
+ * `tests/integration/ruleBreaks.test.ts` uses it), in Boots; and in the tree socket a unique jewel no longer obtainable.
+ * PoB2's unique data marks no jewel so, so the jewel's own text says it: PoB reads an item's `Source:` line
+ * (`Classes/Item.lua`:689-690), and `BuildOps.is_unobtainable_unique` reads it for a unique its data doesn't list.
+ * `ownedBoots` and `ownedJewel` keep or take off each one's mark.
+ */
+const THUNDERSTEP = 'Rarity: UNIQUE\nThunderstep\nSteeltoe Boots';
+const LOST_JEWEL = 'Rarity: UNIQUE\nRelic of the Lost Pact\nRuby\nSource: No longer obtainable\n+12% to Fire Resistance';
+function unobtainable(plan: Json, ownedBoots: boolean, ownedJewel: boolean): Json {
+  const p = clone(plan);
+  const s = p.stages[0];
+  const boots = s.items.slots.find((x: Json) => x.slot === 'Boots');
+  Object.assign(boots, { text: THUNDERSTEP });
+  if (!ownedBoots) delete boots.owned;
+  expect(s.items.treeJewels).toHaveLength(1);
+  Object.assign(s.items.treeJewels[0], { text: LOST_JEWEL });
+  if (!ownedJewel) delete s.items.treeJewels[0].owned;
   return p;
 }
 /** Without the owned legacy gem, Bloodlust (plan group 8), which compile_check refuses unowned (D-384). */
@@ -151,6 +175,23 @@ engineDescribe('AC-W151, AC-W152 (WU-161): compile_plan on a read plan (D-518, D
     const two = clone(answered);
     two.stages[0].items.useSecondWeaponSet = true;
     await compile('switched', two, { measure_as: 'non-budget' });
+    // A stage measured on set 1 whose switched Wind Dancer (group 9) sits on set 2: its switch is measured with set 2 active.
+    const one = clone(answered);
+    one.stages[0].skills.groups[8].weaponSet = 2;
+    await compile('switchedSet1', one, { measure_as: 'non-budget' });
+    // Two states the file sets: Arcane Cloak's mana spent (`ifSkill`), with no Arcane Cloak in the build, and the Parry
+    // debuff (`ifFlag` CanParry), which the Parry its shield grants produces; then the same without the shield and its
+    // Parry group (plan group 11, the last).
+    const states = clone(read);
+    Object.assign(states.stages[0].config.file, { arcaneCloakUsedRecentlyCheck: true, parryActive: true });
+    await compile('states', states);
+    const noParry = clone(states);
+    noParry.stages[0].items.slots = noParry.stages[0].items.slots.filter((x: Json) => x.slot !== 'Weapon 2');
+    expect(noParry.stages[0].skills.groups[10].gems[0].name).toBe('Parry');
+    noParry.stages[0].skills.groups.pop();
+    await compile('statesNoParry', noParry);
+    await compile('unobtainableOwned', unobtainable(read, true, true));
+    await compile('unobtainableUnmarked', unobtainable(read, false, false));
     // Ten ungranted groups on PoB's nine skill slots, the tenth disabled: switched (marked) or plainly disabled.
     const lich = JSON.parse(fs.readFileSync(LICH, 'utf8')) as Json;
     lich.schemaVersion = 11;
@@ -172,6 +213,19 @@ engineDescribe('AC-W151, AC-W152 (WU-161): compile_plan on a read plan (D-518, D
       expect(read.stages[0].skills.groups[7].gems.map((x: Json) => x.name)).toContain('Bloodlust');
       expect(outcomes.owned.isError).toBe(false);
       expect(outcomes.owned.text).toMatch(/^Compiled .*: 1 stage \(measure-only\)/);
+    });
+
+    it('an owned unique PoB marks no longer obtainable is measured, in an item slot and in a tree socket; unmarked, each is refused (D-384)', () => {
+      expect(outcomes.unobtainableOwned.isError).toBe(false);
+      expect(stage('unobtainableOwned').owned).toEqual(expect.arrayContaining(['Boots', `Jewel ${read.stages[0].items.treeJewels[0].node}`]));
+      expect(files.unobtainableOwned).toContain('Thunderstep');
+      expect(files.unobtainableOwned).toContain('Relic of the Lost Pact');
+      expect(outcomes.unobtainableUnmarked.isError).toBe(true);
+      const at = outcomes.unobtainableUnmarked.text.indexOf('nothing was compiled:\n');
+      expect(outcomes.unobtainableUnmarked.text.slice(at).trim().split('\n').slice(1).sort()).toEqual([
+        "stage f: item in Boots: Thunderstep is no longer obtainable: PoB's unique data marks it so",
+        `stage f: tree jewel on node ${read.stages[0].items.treeJewels[0].node}: Relic of the Lost Pact is no longer obtainable: PoB's unique data marks it so`,
+      ]);
     });
 
     it('the same plan without the owned marks is refused for Bloodlust, as a design holding it is (D-384)', () => {
@@ -256,6 +310,25 @@ engineDescribe('AC-W151, AC-W152 (WU-161): compile_plan on a read plan (D-518, D
     });
   });
 
+  describe("AC-W151: V2's unproduced-state, callout (a): a state nothing in the build produces", () => {
+    it("Arcane Cloak's option, with no Arcane Cloak, is a from-file callout; the Parry debuff, which the shield's Parry produces, none until the shield goes", () => {
+      const callouts = (name: string) => (stage(name).v2?.findings ?? []).filter((x) => x.code === 'unproduced-state');
+      expect(outcomes.states.isError).toBe(false);
+      expect(outcomes.statesNoParry.isError).toBe(false);
+      expect(callouts('states').map((x) => [x.data, x.kind])).toEqual([[{ option: 'arcaneCloakUsedRecentlyCheck', value: true }, 'from-file']]);
+      expect(callouts('statesNoParry').map((x) => x.data)).toEqual([
+        { option: 'arcaneCloakUsedRecentlyCheck', value: true },
+        { option: 'parryActive', value: true },
+      ]);
+      expect(stage('states').v2?.pass).toBe(true);
+      expect(stage('statesNoParry').v2?.pass).toBe(true);
+      // The file as read sets no state PoB hides for the build.
+      expect(callouts('owned')).toEqual([]);
+      // A plan without a read stage gets none.
+      expect((stage('slotsDisabled').v2?.findings ?? []).some((x) => x.code === 'unproduced-state')).toBe(false);
+    });
+  });
+
   describe('AC-W152: switched buffs', () => {
     it('the switched groups are written disabled and their reservation is out of the measured numbers', () => {
       const switched = answered.stages[0].skills.groups.flatMap((g: Json, k: number) => (g.switch ? [k + 1] : []));
@@ -280,6 +353,21 @@ engineDescribe('AC-W151, AC-W152 (WU-161): compile_plan on a read plan (D-518, D
       // Blasphemy's 76 over the 70 left; Wind Dancer's 30 with Herald of Ice's 30 off; Combat Frenzy's 30.
       expect(unreserved).toEqual({ 2: 70, 7: -6, 9: 70, 10: 40 });
       for (const x of s.switches!) expect(x.keyFigures.SpiritUnreserved).toBe(x.spiritUnreserved);
+    });
+
+    it('on a stage measured on set 1, a switched group on set 2 is measured with set 2 active, the others on set 1', () => {
+      const s = stage('switchedSet1');
+      expect(s.outputs.Spirit).toBe(100);
+      expect(s.switches!.map((x) => [x.group, x.weaponSet, x.keyFigures.Spirit])).toEqual([
+        [2, 1, 100],
+        [7, 1, 100],
+        [9, 2, 200],
+        [10, 1, 100],
+      ]);
+      // Wind Dancer on set 2, Herald of Ice off for it: 200 less Trinity's 100 and Wind Dancer's 30.
+      expect(s.switches!.find((x) => x.group === 9)!.spiritUnreserved).toBe(70);
+      // Each pass puts the set back: the stage's own measure stays set 1's.
+      expect(s.outputsSet2?.Spirit).toBe(200);
     });
 
     it('V1 reports switched-spirit for the switch that leaves Spirit below 0, and nothing for those that fit', () => {

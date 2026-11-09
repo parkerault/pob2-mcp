@@ -817,6 +817,10 @@ addition (a plan of version 10 or older errs at it):
   overrides one of its inputs, and the stage gets no reference hit. V2's findings on such a stage are callouts on what
   the player set (`kind: "from-file"` in the record, `(from the file)` in the reply) and never fail its verdict; each file
   input is in `configEffective` with class `file`, and the scenario's `source.xml` entry isn't resolved against the data.
+  V2's `unproduced-state` names each file input PoB itself marks invalid ("conditional with missing source"): a state
+  nothing in the build produces, such as the Parry debuff with no Parry in the build. A final record's callouts fail no
+  checker rule, and a placed read stage's toughness band reads its toughness read (`measures.ehp`), every other stage's its
+  `TotalEHP` as before.
 - **`measure_as: "non-budget"`** (`compile_plan`, measure-only) measures each read stage (`source`, no `variant`) as the
   non-budget rung: the Pinnacle boss pass with the Arbiter read, the resisting read, the conditioned read and a toughness
   read at that rung's reference hits, each putting the file's configuration back after. The stage keeps no variant, so

@@ -2131,7 +2131,8 @@ async function checkBuild(c) {
           continue;
         }
         // D-440: an information-only code (a boots exception, `boots-exception`) fails nothing, like the chaos exception.
-        const openFindings = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !INFO_CODES.includes(f?.code) && !covered({ stage: id, part: check, code: f?.code }));
+        // D-519 (amendment 16 §15): nor does a callout on a file's configuration (`kind: "from-file"`), never a failed verdict.
+        const openFindings = (Array.isArray(verdict.findings) ? verdict.findings : []).filter((f) => !INFO_CODES.includes(f?.code) && f?.kind !== 'from-file' && !covered({ stage: id, part: check, code: f?.code }));
         if (openFindings.length > 0) fail('record-verdicts', `the final record's stage ${id} fails ${check.toUpperCase()}: ${openFindings.map((f) => f?.code).join(', ')}`);
       }
     }
@@ -6218,7 +6219,9 @@ function checkDesignField({ file, design, endgame, plan, record, ledgerNow, trad
         if (isObj(engagement) && tough.engagement !== engagement.kind) bad('toughness', `${at}'s toughness.engagement is ${show(tough.engagement)}, but the plan's ${r.stage}.skills.engagement is ${show(engagement.kind)} (D-441)`);
         const target = t.targets[isObj(engagement) && ['close', 'distance'].includes(engagement.kind) ? engagement.kind : tough.engagement];
         if (tough.target !== target) bad('toughness', `${at}'s toughness.target is ${show(tough.target)}, but references/toughness-targets.json gives a ${isObj(engagement) ? engagement.kind : tough.engagement} build ${target} (D-441)`);
-        const ehp = rec?.outputs?.TotalEHP;
+        // D-519: a placed read stage's (its plan stage names its `source`) EHP is its toughness read's, at the rung's reference
+        // hits (measures.ehp); every other stage's is its TotalEHP, as before.
+        const ehp = (isObj(st.source) ? rec?.measures?.ehp : undefined) ?? rec?.outputs?.TotalEHP;
         if (!isNum(ehp)) bad('toughness', `${at}'s band can't be recomputed: the record has no ${r.stage}.TotalEHP (D-441)`);
         else {
           const want = bandOf(ehp, target, t);
@@ -6421,7 +6424,9 @@ function checkDesignField12({ file, design, endgame, plan, record, fresh, fail, 
     let condType = null;
     if (fresh && isObj(t) && isNum(t.under) && isNum(t.over) && isNum(target)) {
       const tm = isObj(m.toughness) ? m.toughness : null;
-      if (isNum(rec?.outputs?.TotalEHP)) band = bandOf(rec.outputs.TotalEHP, target, t);
+      // D-519: a placed read stage's EHP is its toughness read's (measures.ehp); every other stage's its TotalEHP, as before.
+      const ehp = (isObj(st.source) ? rec?.measures?.ehp : undefined) ?? rec?.outputs?.TotalEHP;
+      if (isNum(ehp)) band = bandOf(ehp, target, t);
       const share = tm?.chance?.share;
       if (isNum(share) ? !near(tough.chanceShare, share * 100, 0.5) : tm !== null && tough.chanceShare !== null && tough.chanceShare !== undefined) bad('toughness', `${at}'s toughness.chanceShare is ${show(tough.chanceShare ?? null)}, but the record's ${r.stage}.measures.toughness.chance${isNum(share) ? `.share is ${share}, ${round2(share * 100)}%` : ' is null, so it is null'} (D-449)`);
       if (tm !== null && !(isObj(tm.conditioned) && isNum(tm.conditioned.ehp)) && c !== null && c !== undefined) bad('toughness', `${at}'s toughness.conditioned is ${show(c)}, but the record's ${r.stage}.measures.toughness has no conditioned EHP, so it is null (D-449)`);

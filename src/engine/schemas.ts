@@ -1571,6 +1571,12 @@ export const stageChecksSchema = z
     /** The conditional config options PoB shows for the stage (their gates hold, D-250). */
     shownOptions: luaArray(z.string()),
     /**
+     * D-519 (WU-161): on a read stage (`fileConfig`), the inputs PoB marks invalid: a conditional option set away from its
+     * default whose show gate finds nothing in the build ("conditional with missing source and is invalid",
+     * Classes/ConfigTab.lua:578-631), for V2's `unproduced-state`. Absent on any other stage.
+     */
+    invalidOptions: luaArray(z.string()).optional(),
+    /**
      * D-380: each group's skill a passive grants: its skill gem (`kind: 'gem'`, "Navira, the Last Mirage" by node
      * 32705) or its `minionSkill` (`kind: 'minionSkill'`, "Navira's Fracturing" by node 10561), by the passives
      * whose line reads `Grants Skill: <name>`, and whether the stage allocates any of them. `group` is 1-based.

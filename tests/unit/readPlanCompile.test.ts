@@ -16,7 +16,12 @@
  *   gets none of the new parameters.
  * - The checker (AC-W151's "no checker failure for owned content"): in a compile or pricing run, owned content passes
  *   `runes`, `corruption`, both parts of `flasks`, `rare-title`, and pricing's `spec` and `listing`; unmarked, or in a run
- *   of another piece, it fails them as today.
+ *   of another piece (`ownedContent` owns nothing in a writer run or a pipeline run), it fails them as today. A final
+ *   record's V2 callouts (`from-file`) fail no `record-verdicts`, and a placed read stage's toughness band is read from its
+ *   toughness read at the rung's reference hits (`measures.ehp`), not the file's enemy damage.
+ * - V2's `unproduced-state` (§15's callout (a)): a file input PoB marks invalid (its show gate finds nothing in the build
+ *   it comes from or applies to, `checks.invalidOptions`) is a `from-file` callout; one it doesn't mark is none; a stage
+ *   without `config.file` gets none.
  */
 import { spawnSync } from 'child_process';
 import fs from 'fs';
@@ -179,6 +184,30 @@ describe('WU-161 (AC-W151, AC-W152): the compile on a read plan, as pure functio
       expect(today.verdict.pass).toBe(false);
       expect(today.verdict.findings.map((f) => f.code).sort()).toEqual(['default-unlisted', 'source-unresolved']);
       expect(today.verdict.findings.every((f) => f.kind === undefined)).toBe(true);
+    });
+
+    it("unproduced-state (callout (a)): a file input PoB marks invalid is a from-file callout; one it doesn't, none; without config.file, none", () => {
+      const items = ['Flask 1', 'Charm 1'].map((slot) => ({ slot, name: slot, baseName: slot, levelRequirement: 0, active: true }));
+      const defaults = {
+        enemyIsBoss: { type: 'list', apply: true, conditional: false, default: 'Pinnacle', first: 'None' },
+        windDancerStacks: { type: 'countAllowZero', apply: true, conditional: true },
+      };
+      const baseline = { schemaVersion: 1 as const, options: { windDancerStacks: { rationale: 'r' } } };
+      const run = (st: Stage, invalidOptions?: string[]) =>
+        checkV2({ stage: st, checks: checksOf({ items, ...(invalidOptions !== undefined ? { invalidOptions } : {}) }), producers: new Map(), defaults, baseline, ref }).verdict;
+      expect(stage.config.file?.windDancerStacks).toBe(3);
+      const invalid = run(stage, ['windDancerStacks']);
+      expect(invalid.findings.filter((f) => f.code === 'unproduced-state').map((f) => [f.data, f.kind])).toEqual([[{ option: 'windDancerStacks', value: 3 }, 'from-file']]);
+      expect(invalid.findings.find((f) => f.code === 'unproduced-state')!.message).toContain(
+        'windDancerStacks is 3 in the file, but PoB finds nothing in the build it comes from or applies to: PoB marks it "conditional with missing source and is invalid"',
+      );
+      expect(invalid.pass).toBe(true);
+      expect(run(stage, []).findings.some((f) => f.code === 'unproduced-state')).toBe(false);
+      expect(run(stage).findings.some((f) => f.code === 'unproduced-state')).toBe(false);
+      // A plan without a read stage's configuration is unchanged: no such finding, whatever the checks say.
+      const plain = clone(plan);
+      delete plain.stages[0].config.file;
+      expect(run(valid(plain)[0], ['windDancerStacks']).findings.some((f) => f.code === 'unproduced-state')).toBe(false);
     });
   });
 
@@ -415,6 +444,22 @@ describe("WU-161 (AC-W151): the checker's rules on owned content (D-519)", () =>
     expect(ownedRules(betterRound(false))).toEqual([...RULES].sort());
   });
 
+  it('in a pricing run too; the compile-only rare-title aside, its unmarked content fails the rest', () => {
+    expect(ownedRules(betterRound(true, 'pricing'))).toEqual([]);
+    expect(ownedRules(betterRound(false, 'pricing'))).toEqual(['corruption', 'flasks', 'listing', 'runes', 'spec']);
+  });
+
+  it('ownedContent owns nothing outside a compile or pricing run: a writer run, a pipeline run (no piece), a review', () => {
+    const stages = [{ id: 'n', source: { kind: 'import-code' }, items: { slots: [{ slot: 'Body Armour', text: 'x', owned: true }], treeJewels: [{ node: 1, text: 'x', owned: true }] }, skills: { groups: [{ owned: true }] } }];
+    const probe = `const m = await import(${JSON.stringify(`file://${CHECKER}`)}); const s = ${JSON.stringify(stages)};
+      const keys = ['Body Armour', 'jewel 1', 'group 1', 'Flask 1'];
+      process.stdout.write(JSON.stringify(Object.fromEntries(['compile', 'pricing', 'writer', null, 'review'].map((p) => [String(p), keys.filter((k) => m.ownedContent(s, p)('n', k))]))));`;
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', probe], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW }, encoding: 'utf8', timeout: 60000 });
+    expect(r.stderr).toBe('');
+    const all = ['Body Armour', 'jewel 1', 'group 1', 'Flask 1'];
+    expect(JSON.parse(r.stdout)).toEqual({ compile: all, pricing: all, writer: [], null: [], review: [] });
+  });
+
   it('a read stage\'s empty Flask 1 is the character\'s own slot; a designed stage\'s empty Flask 1 still fails', () => {
     const dir = betterRound(true);
     const plan = JSON.parse(fs.readFileSync(path.join(dir, 'plan.json'), 'utf8')) as Json;
@@ -424,5 +469,80 @@ describe("WU-161 (AC-W151): the checker's rules on owned content (D-519)", () =>
     delete plan.stages[0].source;
     fs.writeFileSync(path.join(dir, 'plan.json'), `${JSON.stringify(plan, null, 2)}\n`);
     expect(ownedRules(dir)).toEqual(['flasks']);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// The checker's read of a read plan's record: V2's callouts and the toughness band (D-519)
+// ---------------------------------------------------------------------------------------------------
+
+/** The checker's lines of rule `rule` on a run folder. */
+function ruleLines(dir: string, rule: string): string[] {
+  const r = spawnSync(process.execPath, [CHECKER, dir], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW }, encoding: 'utf8', timeout: 60000 });
+  return r.stderr.split('\n').filter((l) => l.startsWith(`check-run: [${rule}] `));
+}
+
+describe('WU-161 (AC-W151): the checker reads a read plan\'s record as the compile writes it (D-519)', () => {
+  it("record-verdicts: a final record's V2 callout (from-file) fails nothing; the same finding without the kind fails as today", () => {
+    const final = (kind: string | undefined): string => {
+      const dir = betterRound(true);
+      const rec = JSON.parse(fs.readFileSync(path.join(dir, 'compile-record.json'), 'utf8')) as Json;
+      rec.mode = 'final';
+      rec.stages.f.v2 = { pass: kind !== undefined, findings: [{ code: 'default-unlisted', message: 'enemyArmour is driven by PoB\'s placeholder', data: { option: 'enemyArmour' }, ...(kind !== undefined ? { kind } : {}) }], notes: [] };
+      fs.writeFileSync(path.join(dir, 'compile-record.json'), `${JSON.stringify(rec, null, 2)}\n`);
+      return dir;
+    };
+    expect(ruleLines(final('from-file'), 'record-verdicts')).toEqual([]);
+    expect(ruleLines(final(undefined), 'record-verdicts')).toEqual(["check-run: [record-verdicts] the final record's stage f fails V2: default-unlisted"]);
+  });
+
+  /**
+   * A better round's D1 gate on the read stage placed on the non-budget rung (`n`), its record as the compile writes a read
+   * plan's: `outputs.TotalEHP` at the file's enemy damage (31,500, over the close target's band, 20,000 × 1.5) and
+   * `measures.ehp` the toughness read at `n`'s reference hits (15,000, under it, 20,000 × 0.9), its conditioned read under
+   * too. The design field gives the band and the warning by the toughness read: under, the `under` warning.
+   */
+  function placedRound(): string {
+    const dir = betterRound(true);
+    const plan = JSON.parse(fs.readFileSync(path.join(dir, 'plan.json'), 'utf8')) as Json;
+    const s = plan.stages[0];
+    Object.assign(s, { id: 'n', loadoutName: s.loadoutName.replace('{f}', '{n}'), variant: 'non-budget' });
+    s.skills.engagement = { kind: 'close', reason: 'a spear thrown from close' };
+    fs.writeFileSync(path.join(dir, 'plan.json'), `${JSON.stringify(plan, null, 2)}\n`);
+    const rec = JSON.parse(fs.readFileSync(path.join(dir, 'compile-record.json'), 'utf8')) as Json;
+    const st = rec.stages.f;
+    delete rec.stages.f;
+    rec.stagesCompiled = ['n'];
+    st.loadoutName = s.loadoutName;
+    st.outputs.TotalEHP = 31500;
+    st.measuredAs = undefined;
+    st.measures = {
+      dps: 50000, ehp: 15000, clearSpeed: { speed: 'slow' }, movementSpeed: 1, damage: { map: 50000, resisting: 40000, boss: 45000 },
+      toughness: { lowestMaxHit: { type: 'physical', value: 5100 }, immune: [], chance: null, conditioned: { ehp: 12000, lowestMaxHit: { type: 'physical', value: 4000 } } },
+    };
+    rec.stages.n = st;
+    fs.writeFileSync(path.join(dir, 'compile-record.json'), `${JSON.stringify(rec, null, 2)}\n`);
+    const gate = {
+      verdict: {},
+      basis: { budget: { slots: [] } },
+      design: {
+        rungs: [{
+          stage: 'n', damage: { map: 50000, resisting: 40000, boss: 45000 }, cull: null, trigger: null, trades: [],
+          boss: { measured: 45000, estimate: null, corrections: [], floor: 1, under: false },
+          toughness: {
+            engagement: 'close', reason: 'a spear thrown from close', target: 20000, band: 'under', chanceShare: null, ailmentCut: null,
+            conditioned: { ehp: 12000, band: 'under' },
+            warning: { kind: 'under', type: 'physical', fix: 'the pool, armour or a physical shift' },
+          },
+        }],
+      },
+    };
+    fs.writeFileSync(path.join(dir, 'reports', 'gates', 'D1-gate-file-a1.json'), `${JSON.stringify(gate, null, 2)}\n`);
+    return dir;
+  }
+
+  it("the D1 gate's toughness band on a placed read stage is read from measures.ehp, the toughness read at the rung's hits", () => {
+    const lines = ruleLines(placedRound(), 'toughness');
+    expect(lines.filter((l) => /toughness\.band is|toughness\.warning|band can't be recomputed/.test(l))).toEqual([]);
   });
 });

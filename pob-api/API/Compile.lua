@@ -226,7 +226,8 @@
 --     ({group, off, set} each) the reply's `switches` is each switched buff measured with its group on and its `off`
 --     groups off on weapon set `set`, {group, off, set, spiritUnreserved, keyFigures} (measure_switches); with
 --     `spiritBuffs` (a read stage) the reply's `spirit {set, spirit, unreserved, buffs[{group, activeSkill, skill,
---     reserved}]}` is the Spirit question's figures from the stage's own measure (stage_spirit). Each pass puts
+--     reserved}]}` is the Spirit question's figures from the stage's own measure (stage_spirit), and its `checks` gain
+--     `invalidOptions`, the inputs PoB marks invalid (invalid_options), for V2's `unproduced-state`. Each pass puts
 --     back what it changed. compile_check measures an owned gem, item or jewel PoB marks legacy or no longer obtainable
 --     rather than refusing it (D-519's owned-legacy exemption).
 --     Under POB_API_TEST_ACTIONS=1 only, `__crashForTest` exits the engine (AC-P35), and `__noDeferForTest`
@@ -2701,6 +2702,37 @@ local function granted_skills(st)
   return out
 end
 
+-- D-519 (amendment 16 §15's callout (a); WU-161): the inputs PoB itself marks invalid on a read stage's config set (with
+-- `fileConfig` only): a conditional option set away from its default whose show gate finds nothing in the build it comes
+-- from or applies to, the option PoB draws with a red border and whose tooltip says "This config option is conditional
+-- with missing source and is invalid" (Classes/ConfigTab.lua:578-631). PoB keeps the gate as `innerShown`, an upvalue of
+-- the control's replaced `shown`, read here as PoB reads it there: `not shown and cur ~= nil and cur ~= def`. Without it
+-- (a pin that renames it) nothing is reported.
+local function invalid_options(cs)
+  local out = {}
+  local ct = build.configTab
+  for var, entry in pairs(config_baseline()) do
+    local control = entry.conditional and ct.varControls and ct.varControls[var]
+    local fn = control and control.shown
+    local inner, found = nil, false
+    for i = 1, 60 do
+      if type(fn) ~= 'function' then break end
+      local name, value = debug.getupvalue(fn, i)
+      if name == nil then break end
+      if name == 'innerShown' then inner, found = value, true break end
+    end
+    if found then
+      local ok, shown = true, inner
+      if type(inner) == 'function' then ok, shown = pcall(inner) end
+      local cur = cs and cs.input[var]
+      local def = ct:GetDefaultState(var, type(cur))
+      if ok and not shown and cur ~= nil and cur ~= def then out[#out + 1] = var end
+    end
+  end
+  table.sort(out)
+  return out
+end
+
 -- The V1 and V2 inputs, read after the stage's measurement (`output` is its main output). PoB's warning
 -- lines come from get_warnings with the rebuild it starts skipped when `defer` is on: the build was just
 -- rebuilt.
@@ -2766,6 +2798,8 @@ local function stage_checks(st, output, configSetId, defer)
     activeSkills = activeSkills,
     config = { input = scalars(cs and cs.input), placeholder = scalars(cs and cs.placeholder) },
     shownOptions = shownOptions,
+    -- D-519: on a read stage, the inputs PoB marks invalid (invalid_options).
+    invalidOptions = type(st.fileConfig) == 'table' and invalid_options(cs) or nil,
     grantedSkills = granted_skills(st),
     implicitVariants = implicit_variants(st),
     customMods = custom_mod_names(st),

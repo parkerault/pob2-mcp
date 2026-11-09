@@ -15,6 +15,7 @@
  * | `quest-not-reached` | a quest-reward option (a C1 `pob-config-key`) is on in the stage's effective config and its quest comes after `progress` |
  * | `default-unlisted` | an option on by default, or placeholder-driven in the stage's config set, that the stage doesn't list and the baseline list doesn't cover: it doesn't name it; or it is conditional and PoB shows it for the stage (D-250); or the stage fights a boss and it is one of the enemy's level, armour, evasion, resistances or crit (D-252) |
  * | `toggle-empty` | a toggle is active on a slot holding no flask or charm |
+ * | `unproduced-state` | (WU-161, D-519; a stage with `config.file` only) a file input PoB itself marks invalid (`checks.invalidOptions`): a conditional option (its show gate, `ifFlag`, `ifCond`, `ifSkill` and the rest, D-250) set away from its default while the gate finds nothing in the build it comes from or applies to, which PoB draws red and calls "conditional with missing source and is invalid": a state nothing in the build produces, such as the Parry debuff with no Parry in the build (`ifFlag` CanParry). A callout (`from-file`), never a failure |
  *
  * **On** (A-P5): `true`, a non-zero number, or a list value other than the option's first list entry.
  *
@@ -29,7 +30,9 @@
  * **A file's configuration** (WU-161; amendment 16 §13, §15, D-519): on a stage with `config.file` (a read plan's, written
  * as the file set it), each file input is listed (`explicit`, class `file`), a scenario entry whose source is the read's
  * own copy of the file (`source.xml`) isn't resolved against the C1/E1 data, and every finding is a callout on what the
- * player set (`kind: 'from-file'`), for the measure to show: none fails the verdict.
+ * player set (`kind: 'from-file'`), for the measure to show: none fails the verdict. The file names no producer, so the
+ * producer check reads PoB's own: an input PoB marks invalid (its show gate finds nothing in the build it comes from or
+ * applies to, `checks.invalidOptions`) is `unproduced-state`, callout (a) of §15.
  *
  * **configEffective** holds every option that affects the calculation: each listed one (`explicit`, class
  * `earned` or `scenario`), each default-on one the stage doesn't list (`default`, its value in the set) and
@@ -217,6 +220,22 @@ export function checkV2(input: V2Input): V2Result {
     }
     return { ok: true };
   };
+  // D-519 (WU-161, §15's callout (a)): a file input PoB marks invalid, a conditional option set while its show gate finds
+  // nothing in the build it comes from or applies to: a state nothing in the build produces. The file names no producer,
+  // so PoB's own judgement is the producer check.
+  if (fromFile) {
+    const invalid = new Set(checks.invalidOptions ?? []);
+    for (const [option, value] of Object.entries(stage.config.file ?? {})) {
+      if (!invalid.has(option)) continue;
+      findings.push({
+        code: 'unproduced-state',
+        message:
+          `${option} is ${JSON.stringify(value)} in the file, but PoB finds nothing in the build it comes from or applies to: ` +
+          `PoB marks it "conditional with missing source and is invalid", a state nothing in the build produces`,
+        data: { option, value },
+      });
+    }
+  }
   for (const option of Object.keys(defaults).sort()) {
     if (listed.has(option)) continue;
     const info = defaults[option];

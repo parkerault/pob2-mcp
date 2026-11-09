@@ -28,8 +28,6 @@ type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-ex
 
 const REPO = path.resolve(__dirname, '..', '..');
 const LEAGUES = path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'leagues.mjs');
-const RUN_LOG = path.join(REPO, 'skills', 'build-guide', 'scripts', 'run-log.mjs');
-const CHECKER = path.join(REPO, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
 const PIPELINE = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const COMMITTED = path.join(REPO, 'data', 'league');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'running-leagues-'));
@@ -71,6 +69,27 @@ function fiveDigests(folder: string) {
   digest(folder, 'not-started.md', '1.1', 'League: from 2027-03-05 20:00 UTC until no end announced.');
   digest(folder, 'undated.md', '0.4', null);
   fs.writeFileSync(path.join(folder, 'running-with-end.rule-changers.json'), '{"ruleChangers": {}}\n');
+}
+
+/** The 0.5 leagues' two committed digests, by name: a digest committed later (1.0's, before its launch) isn't one of them. */
+const DIGESTS_05 = ['forbidden-rites.md', 'runes-of-aldur.md'];
+
+/**
+ * The repository's layout in a temp dir whose `data/league/` holds only the two 0.5 digests: build-guide's scripts
+ * copied, so they read the temp root, and everything else linked.
+ */
+function repoWithThe05Digests(): string {
+  const root = newDir('repo');
+  const link = (...p: string[]) => fs.symlinkSync(path.join(REPO, ...p), path.join(root, ...p));
+  for (const e of fs.readdirSync(REPO)) if (!e.startsWith('.') && !['skills', 'data', 'tests', 'node_modules', 'coverage'].includes(e)) link(e);
+  fs.mkdirSync(path.join(root, 'skills', 'build-guide', 'scripts'), { recursive: true });
+  for (const e of fs.readdirSync(path.join(REPO, 'skills'))) if (e !== 'build-guide') link('skills', e);
+  for (const e of fs.readdirSync(path.join(REPO, 'skills', 'build-guide'))) if (e !== 'scripts') link('skills', 'build-guide', e);
+  for (const f of fs.readdirSync(path.join(REPO, 'skills', 'build-guide', 'scripts'))) fs.copyFileSync(path.join(REPO, 'skills', 'build-guide', 'scripts', f), path.join(root, 'skills', 'build-guide', 'scripts', f));
+  fs.mkdirSync(path.join(root, 'data', 'league'), { recursive: true });
+  for (const e of fs.readdirSync(path.join(REPO, 'data'))) if (e !== 'league') link('data', e);
+  for (const f of DIGESTS_05) fs.copyFileSync(path.join(COMMITTED, f), path.join(root, 'data', 'league', f));
+  return root;
 }
 
 /** A temporary plugin layout: leagues.mjs at its path and `data/league/` holding what `fill` writes. */
@@ -153,11 +172,20 @@ describe('AC-W130 (WU-151, D-507): runningDigests(folders, now), the one rule', 
     // A bad instant, or another option, is a usage error.
     for (const args of [['--at', 'soon'], ['--at'], ['--folder', 'x']]) expect(node([command, ...args]).code).toBe(2);
   });
+
+  it('leagues.mjs prints the same through a symbolic link to the plugin root, as a plugin folder can be', () => {
+    const root = layout(fiveDigests);
+    const linked = path.join(newDir('linked'), 'plugin');
+    fs.symlinkSync(root, linked);
+    const r = node([path.join(linked, 'skills', 'game-knowledge', 'scripts', 'leagues.mjs'), '--at', '2026-11-08T12:00Z']);
+    expect(r).toEqual({ code: 0, stdout: digestReport(root, at('2026-11-08T12:00Z')), stderr: '' });
+    expect(r.stdout.split('\n')[0]).toBe('digests: ["data/league/running-with-end.md","data/league/running-no-end.md"]');
+  });
 });
 
 describe('AC-W130 (WU-151, D-507): the committed digests on 2026-12-11, when both 0.5 leagues end and 1.0 starts', () => {
   const root = layout((league) => {
-    for (const f of fs.readdirSync(COMMITTED).filter((x) => x.endsWith('.md'))) fs.copyFileSync(path.join(COMMITTED, f), path.join(league, f));
+    for (const f of DIGESTS_05) fs.copyFileSync(path.join(COMMITTED, f), path.join(league, f));
   });
   const command = path.join(root, 'skills', 'game-knowledge', 'scripts', 'leagues.mjs');
 
@@ -170,6 +198,10 @@ describe('AC-W130 (WU-151, D-507): the committed digests on 2026-12-11, when bot
 });
 
 describe('AC-W130 (WU-151, D-507): the run log records the running digests from skill revision 15, and the checker accepts each form', () => {
+  // The run scripts in a layout holding only the two 0.5 digests, so a digest committed later doesn't move the lists.
+  const ROOT = repoWithThe05Digests();
+  const RUN_LOG = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'run-log.mjs');
+  const CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-run.mjs');
   const readLog = (dir: string): Json => JSON.parse(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')) as Json;
   const writeLog = (dir: string, edit: (l: Json) => void) => {
     const l = readLog(dir);
@@ -196,7 +228,7 @@ describe('AC-W130 (WU-151, D-507): the run log records the running digests from 
     const r = runLog(dir, ['init', JSON.stringify({ slug: 'titan-blood-hunt', brief: {}, mode: 'offline', testConfig: 'none', noNinja: false })], '2026-12-11T19:59Z');
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
     expect(readLog(dir)).toMatchObject({ skillRevision: 15, digest: BOTH });
-    expect(r.stdout).toBe(`run-log: wrote the first log\n${digestReport(REPO, at('2026-12-11T19:59Z'))}`);
+    expect(r.stdout).toBe(`run-log: wrote the first log\n${digestReport(ROOT, at('2026-12-11T19:59Z'))}`);
     expect(r.stdout.split('\n')[1]).toBe('digests: ["data/league/forbidden-rites.md","data/league/runes-of-aldur.md"]');
     const resumed = runLog(dir, ['resume', '{"noNinja": true}'], '2026-12-11T20:00Z');
     expect(resumed).toEqual({ code: 0, stdout: "run-log: wrote resumes[0], status running\ndigests: []\nNo running league has a league digest: what is new in it isn't in the committed data.\n", stderr: '' });

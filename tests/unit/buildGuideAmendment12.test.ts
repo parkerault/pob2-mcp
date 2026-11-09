@@ -22,7 +22,7 @@ import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { treeChangeOf } from '../../src/plan/compiler';
 import { decidingRow, type ArbiterMeasure } from '../../src/plan/record';
-import { digestReport } from '../helpers/runningDigests';
+import { digestReport, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -36,7 +36,8 @@ const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'a12-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-const ENV = { PATH: '/usr/bin:/bin', LANG: 'C' };
+// D-507: the test clock, so the run log and the expected digests read the league rule at one instant.
+const ENV = { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW };
 function node(script: string, args: string[], input?: string) {
   const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
@@ -556,14 +557,14 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     });
     const at11 = { ...readJson(dir, 'run-log.json').skillRevisionFrom };
     const before = readJson(dir, 'run-log.json');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 12, 13, 14 and 15)\n${digestReport(REPO)}` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}` });
     const log = readJson(dir, 'run-log.json');
     expect(log.skillRevision).toBe(15);
     const last = log.resumes[log.resumes.length - 1].lengths;
     expect(log.skillRevisionFrom).toEqual({ 11: at11, 12: last, 13: last, 14: last, 15: last });
     expect(lines(check(dir).stderr, 'run-log')).toEqual([]);
     // Resumed again, nothing more is stamped.
-    expect(write(dir, 'resume', { noNinja: false }).stdout).toBe(`run-log: wrote resumes[${before.resumes.length + 1}], status running\n${digestReport(REPO)}`);
+    expect(write(dir, 'resume', { noNinja: false }).stdout).toBe(`run-log: wrote resumes[${before.resumes.length + 1}], status running\n${digestReport(REPO, TEST_NOW_MS)}`);
     expect(readJson(dir, 'run-log.json').skillRevisionFrom).toEqual(log.skillRevisionFrom);
     // A boundary no resume recorded fails, and so does 12's before 11's.
     editJson(dir, 'run-log.json', (l) => {
@@ -581,7 +582,7 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     const dir = copy('run-builds');
     const before = readJson(dir, 'run-log.json');
     expect(before).not.toHaveProperty('skillRevision');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}` });
     const log = readJson(dir, 'run-log.json');
     const lengths = log.resumes[log.resumes.length - 1].lengths;
     expect(log.skillRevisionFrom).toEqual({ 11: lengths, 12: lengths, 13: lengths, 14: lengths, 15: lengths });

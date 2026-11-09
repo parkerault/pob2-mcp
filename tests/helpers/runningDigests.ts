@@ -1,6 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * The test clock's instant for the tests that spawn `pob2-run-log` against the committed digests: each spawn sets
+ * `BUILD_GUIDE_TEST_NOW` to it and the expected list reads the rule at it, so neither side reads the machine's clock.
+ */
+export const TEST_NOW = '2026-11-08T12:00Z';
+export const TEST_NOW_MS = Date.parse(TEST_NOW);
+
 /** A league digest as the rule reads it: its file name and path, its third line and its league's instants (ms). */
 export type Digest = { name: string; path: string; line: string; start: number; end: number | null };
 

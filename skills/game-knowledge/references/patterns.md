@@ -589,7 +589,7 @@ differ, the line gives both. Kits are common wisdom and go stale after a patch: 
 - **Search:** the family, not the resource: `mechanic "Infusion" (gem)`, not "Cold Infusion"; Grep
   `-i 'creates: [^|]*<family>'` across `data/rules/` and `data/monsters/monster-mods.md` (`pairs.md` lists a
   family only when an entry also pays off on it), and the family's word in the running league digests' bodies (a
-  task header's `digests`, D-507); cover gems, uniques, passives, ascendancy nodes and monster modifiers; one lookup per
+  task header's `digests`, or `skills/game-knowledge/scripts/leagues.mjs`'s list, D-507); cover gems, uniques, passives, ascendancy nodes and monster modifiers; one lookup per
   unfamiliar term in a result ("Verisium Infusion") before stopping. Record each supplier in the research
   file's `## Supply search` (D-404).
 - **PoB:** config stand-in for what the supply makes (Chilled Ground: "Is the enemy on Chilled Ground?"); the

@@ -27,7 +27,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { headlineDps } from '../../src/plan/record';
-import { digestReport, runningNames } from '../helpers/runningDigests';
+import { digestReport, runningNames, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 import { CARD, GATE_FILE, MINION, editJson, readJson, writeGuideRun, writeMinionGuideRun, type Json } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -43,7 +43,7 @@ function run(script: string, ...args: string[]) {
 }
 /** `run` with `input` on the child's stdin, as a heredoc gives it. */
 function runWith(input: string | undefined, script: string, ...args: string[]) {
-  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000, input });
+  const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW }, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 let folders = 0;
@@ -315,7 +315,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     const dir = folder();
     // Amendment 9 (WU-94): init writes schema 4, and the runner states noNinja (D-412). Amendment 16 (WU-151, D-507):
     // init prints the running leagues' digests after its first line.
-    expect(log(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted', noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO)}`, stderr: '' });
+    expect(log(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted', noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     return dir;
   };
   /** Schema 4: a design or final checkpoint names a build of the run (D-412), so the card is finalized first. */
@@ -338,7 +338,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       testConfig: 'accepted',
       noNinja: false,
       pinCommit: readJson(REPO, 'pob-pin.json').commit,
-      digest: runningNames(REPO),
+      digest: runningNames(REPO, TEST_NOW_MS),
       dossier: null,
       builds: [],
       stages: [],
@@ -458,7 +458,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     expect(runWith(`${JSON.stringify({ checkpoint: 'design', concept: CARD, visit: 1, answer, answeredBy: 'user' })}\n`, RUN_LOG, dir, 'checkpoint', '-')).toEqual({ code: 0, stdout: 'run-log: wrote checkpoints[0]\n', stderr: '' });
     expect(readJson(dir, 'run-log.json').checkpoints).toEqual([{ checkpoint: 'design', concept: CARD, visit: 1, answer, answeredBy: 'user' }]);
     // Through a real shell heredoc too, the form references/run-log.md gives.
-    const sh = spawnSync('/bin/sh', ['-c', `"${process.execPath}" "${RUN_LOG}" "${dir}" escalation - <<'JSON'\n{"stage": "D1-gate", "concept": "${CARD}", "verdict": "reports/gates/D1-gate-${CARD}-a1.json", "choice": "retry", "guidance": "don't drop the helmet's life"}\nJSON\n`], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C' }, encoding: 'utf8', timeout: 30000 });
+    const sh = spawnSync('/bin/sh', ['-c', `"${process.execPath}" "${RUN_LOG}" "${dir}" escalation - <<'JSON'\n{"stage": "D1-gate", "concept": "${CARD}", "verdict": "reports/gates/D1-gate-${CARD}-a1.json", "choice": "retry", "guidance": "don't drop the helmet's life"}\nJSON\n`], { cwd: TMP, env: { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW }, encoding: 'utf8', timeout: 30000 });
     expect({ code: sh.status, stdout: sh.stdout, stderr: sh.stderr }).toEqual({ code: 0, stdout: 'run-log: wrote escalations[0]\n', stderr: '' });
     expect(readJson(dir, 'run-log.json').escalations[0].guidance).toBe("don't drop the helmet's life");
     // An empty stdin is no JSON, and nothing is written.

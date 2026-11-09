@@ -25,7 +25,7 @@ import { buildSha1 } from '../../src/plan/buildHash';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { cleanBuildName } from '../../src/plan/compiler';
-import { digestReport } from '../helpers/runningDigests';
+import { digestReport, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -39,7 +39,8 @@ const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'a13-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-const ENV = { PATH: '/usr/bin:/bin', LANG: 'C' };
+// D-507: the test clock, so the run log and the expected digests read the league rule at one instant.
+const ENV = { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW };
 function node(script: string, args: string[], input?: string) {
   const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
@@ -857,7 +858,7 @@ describe("AC-W100 (D-474, §15, §22): the checker's fixes, M-25's leftovers, sk
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const old = copy('run-a12');
     const before = readJson(old, 'run-log.json');
-    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 13, 14 and 15)\n${digestReport(REPO)}`, stderr: '' });
+    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     const log = readJson(old, 'run-log.json');
     expect(log.skillRevision).toBe(15);
     expect(log.skillRevisionFrom).toEqual({ 13: log.resumes[0].lengths, 14: log.resumes[0].lengths, 15: log.resumes[0].lengths });

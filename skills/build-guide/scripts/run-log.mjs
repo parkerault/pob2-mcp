@@ -971,8 +971,9 @@ const today = () => {
 
 /**
  * D-415: a resume's entry, `{date, pinCommit, digest, noNinja, lengths}`: the session's date, the pin's commit and the
- * newest digest as the repository holds them now, the session's --no-ninja, and the lengths of `stages[]`,
- * `checkpoints[]`, `escalations[]` and `displays[]` at the resume, so every entry after it can be placed.
+ * running leagues' digests (D-507) as the repository and the clock give them now, the session's --no-ninja, and the
+ * lengths of `stages[]`, `checkpoints[]`, `escalations[]` and `displays[]` at the resume, so every entry after it can be
+ * placed.
  */
 function resumeEntry(log, noNinja) {
   const n = (k) => (Array.isArray(log[k]) ? log[k].length : 0);

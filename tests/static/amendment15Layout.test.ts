@@ -168,7 +168,7 @@ const D507_EDITS: Record<string, [string, string][]> = {
   ],
   'patterns.md': [
     [
-      "and the family's word in the running league digests' bodies (a\n  task header's `digests`, D-507); cover gems,",
+      "and the family's word in the running league digests' bodies (a\n  task header's `digests`, or `skills/game-knowledge/scripts/leagues.mjs`'s list, D-507); cover gems,",
       "and the family's word in the league digest's body\n  (`data/league/`); cover gems,",
     ],
   ],

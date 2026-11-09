@@ -24,7 +24,7 @@ import os from 'os';
 import path from 'path';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
-import { digestReport } from '../helpers/runningDigests';
+import { digestReport, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -58,7 +58,8 @@ const ROOT_CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-
   fs.cpSync(path.join(FIXTURES, 'data'), path.join(ROOT, 'data'), { recursive: true });
 })();
 
-const ENV = { PATH: '/usr/bin:/bin', LANG: 'C' };
+// D-507: the test clock, so the run log and the expected digests read the league rule at one instant.
+const ENV = { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW };
 function node(script: string, args: string[], input?: string) {
   const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
@@ -808,7 +809,7 @@ describe('AC-W89 (D-443, §11, §19): the rival only in older runs, and the run 
     // Amendment 12 (Appendix A): a log from before amendment 11 resumed now is stamped with a boundary per revision;
     // amendment 13 (§22) stamps 13.
     // Amendment 16's M-29 (WU-151, §24, D-507): 15, named as a revision, and the running leagues' digests printed after.
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}` });
     const log = readJson(dir, 'run-log.json');
     const lengths = { stages: before.stages.length, checkpoints: before.checkpoints.length, escalations: 0, displays: before.displays.length };
     expect(log).toMatchObject({ skillRevision: 15, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths, 14: lengths, 15: lengths }, pricing: { stops: [], retries: [] } });

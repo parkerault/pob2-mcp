@@ -319,7 +319,7 @@ queue is empty, and at a resume (D-415). Recorded as checkpoint `verification`.
   path. After an `infeasible` design or an escalation, show that card's evidence: its last verdict file. With no
   viable card, show each failed card's last verdict and why it fails (D-141); a card that can't be finalized yet is
   listed with its status, never as a failure. In a schema-4 run the display then lists every build of the run with
-  its status (D-411), says when PoB's version (the pin's commit) or the league digest changed since the run last
+  its status (D-411), says when PoB's version (the pin's commit) or the league digests changed since the run last
   ran (D-415: a card verified on the old pin may still be finalized, and its design measures afresh), and after a
   resume names the answers a resume adds. **A dossier written before amendment 11** (a resumed older run's, read by
   its header, §19) keeps its older display: each card's skeleton figures (its clear speed, damage, life and EHP),

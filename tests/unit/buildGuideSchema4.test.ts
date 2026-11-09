@@ -19,7 +19,7 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { digestReport, runningNames } from '../helpers/runningDigests';
+import { digestReport, runningNames, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -33,7 +33,8 @@ const FIXTURES = path.join(REPO, 'tests', 'fixtures', 'pipeline');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'schema4-'));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-const ENV = { PATH: '/usr/bin:/bin', LANG: 'C' };
+// D-507: the test clock, so the run log and the expected digests read the league rule at one instant.
+const ENV = { PATH: '/usr/bin:/bin', LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW };
 function node(script: string, args: string[], input?: string) {
   const r = spawnSync(process.execPath, [script, ...args], { cwd: TMP, env: ENV, encoding: 'utf8', timeout: 30000, input });
   return { code: r.status, stdout: r.stdout, stderr: r.stderr };
@@ -181,14 +182,14 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
   it("init records noNinja, the pin's commit from pob-pin.json and the running leagues' digests, with builds[], no roll or outputs, and resumes[]", () => {
     const dir = folder();
     // Amendment 16 (WU-151, D-507): init prints the running leagues' digests after its first line.
-    expect(write(dir, 'init', { ...INIT, noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO)}`, stderr: '' });
+    expect(write(dir, 'init', { ...INIT, noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     const log = readJson(dir, 'run-log.json');
     const pin = readJson(REPO, 'pob-pin.json').commit;
     // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12;
     // amendment 13 (§22): 13; amendment 16's M-29 (§24, D-507): 15, its digest the running leagues' list.
     expect(log).toEqual({
       schemaVersion: 4, skillRevision: 15, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
-      noNinja: true, pinCommit: pin, digest: runningNames(REPO), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
+      noNinja: true, pinCommit: pin, digest: runningNames(REPO, TEST_NOW_MS), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
     // noNinja is the runner's to state: init refuses a first write without it (D-412, D-420).
@@ -252,10 +253,10 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     // Amendment 11 (§19): the resume stamps the older log with the skill revision, held from here on.
     // Amendment 12 (Appendix A): an older log is stamped with a boundary for each revision; amendment 13 (§22): 13.
     // Amendment 16's M-29 (§24, D-507): 15, which names revisions, and the running leagues' digests printed after.
-    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[25] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}`, stderr: '' });
+    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[25] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
-    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: runningNames(REPO), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
+    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: runningNames(REPO, TEST_NOW_MS), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
     expect(write(dir, 'resume', {}).stderr).toMatch(/noNinja is true or false: whether this session prices without poe\.ninja/);
     const old = copy('run-ok');
     expect(write(old, 'resume', { noNinja: false }).stderr).toBe('run-log: resume entry refused: run-log.json is a schema-3 log; resume is schema 4\'s (amendment 9): run pob2-run-log <runFolder> migrate first\n');

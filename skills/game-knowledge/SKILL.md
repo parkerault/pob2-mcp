@@ -88,7 +88,7 @@ one is that no build can use it, because it isn't in the game; never "usable, at
   kind of source; the families are the index's (`${CLAUDE_PLUGIN_ROOT}/data/rules/vocabulary.md`). Run the mechanic
   query on the family's word, not on one element's or one type's form of it. `grep -i 'creates: [^|]*<family>'`
   across `${CLAUDE_PLUGIN_ROOT}/data/rules/` and `${CLAUDE_PLUGIN_ROOT}/data/monsters/monster-mods.md`, and the
-  family's word in the league digest's body. Cover gems, uniques, passives, ascendancy nodes and monster modifiers.
+  family's word in the running league digests' bodies. Cover gems, uniques, passives, ascendancy nodes and monster modifiers.
 - **Follow every term you can't place:** one lookup per unfamiliar term in a result, before you stop. The best
   supplier may never name what it supplies.
 - **Skills, not only mods:** a mechanic can live in a gem's description, in the game's own words.

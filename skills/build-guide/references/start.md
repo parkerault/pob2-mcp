@@ -107,8 +107,9 @@ text doesn't give, and never invent one:
    until its end, if one is recorded; `pob2-run-log` applies that rule, never you. Keep its `digests:` line, the
    running digests' paths: every R1a and researcher Q header copies it as `digests`
    (`skills/build-guide/references/task-header.md`); after a compaction,
-   `node <root>/skills/game-knowledge/scripts/leagues.mjs` prints the same lines. The user runs
-   `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch lands; nothing waits on it.
+   `node <root>/skills/game-knowledge/scripts/leagues.mjs` prints the same lines, unless a league started or ended
+   since `init`. The user runs `skills/game-knowledge/scripts/league-digest.mjs` when a league or patch lands;
+   nothing waits on it.
 
 Steps 1 to 4 always run as written, whatever tools the session has: never check for the Agent tool before
 them. A stop in step 1, 3 or 4 ends the run there, and the later steps don't run: a brief that fails step 1

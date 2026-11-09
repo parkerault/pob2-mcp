@@ -87,7 +87,7 @@ describe('AC-W132 (WU-151, D-507): the readers name running leagues, never the n
     // The supply search Greps the running digests' bodies, not the whole data/league/ folder.
     const supply = folded(read('skills', 'game-knowledge', 'references', 'patterns.md'));
     const search = supply.slice(supply.indexOf('### Supply by family'), supply.indexOf('### ', supply.indexOf('### Supply by family') + 4));
-    expect(search).toContain("the family's word in the running league digests' bodies (a task header's `digests`, D-507)");
+    expect(search).toContain("the family's word in the running league digests' bodies (a task header's `digests`, or `skills/game-knowledge/scripts/leagues.mjs`'s list, D-507)");
     expect(search).not.toContain('(`data/league/`)');
   });
 

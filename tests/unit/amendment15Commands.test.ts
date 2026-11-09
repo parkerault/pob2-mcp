@@ -21,7 +21,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { digestReport } from '../helpers/runningDigests';
+import { digestReport, TEST_NOW, TEST_NOW_MS } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -46,7 +46,8 @@ interface Result {
   stdout: string;
   stderr: string;
 }
-const ENV = { LANG: 'C' };
+// D-507: the test clock, so the run log and the expected digests read the league rule at one instant.
+const ENV = { LANG: 'C', BUILD_GUIDE_TEST_NOW: TEST_NOW };
 
 /** `node` on a script, from the repository root. */
 function viaNode(script: string, args: string[], input?: string): Result {
@@ -165,7 +166,7 @@ describe('AC-W118 (WU-145, D-500): an old run resumes unchanged', () => {
     const dir = copyOf(RUN_A14);
     expect(readLog(dir)).toMatchObject({ schemaVersion: 4, skillRevision: 14, status: 'completed' });
     const stages = readLog(dir).stages.length;
-    expect(viaBin('pob2-run-log', [dir, 'resume', '{"noNinja": true}'])).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${stages}]\n${digestReport(REPO)}`, stderr: '' });
+    expect(viaBin('pob2-run-log', [dir, 'resume', '{"noNinja": true}'])).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${stages}]\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     expect(viaBin('pob2-check-run', [dir])).toEqual({ code: 0, stdout: `check-run: ok: ${dir}\n`, stderr: '' });
     const log = readLog(dir);
     expect(log).toMatchObject({ schemaVersion: 4, skillRevision: 15, status: 'running', noNinja: true });

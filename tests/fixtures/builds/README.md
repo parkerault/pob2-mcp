@@ -58,3 +58,18 @@ the game names it) with a Greater Storm Rune in their one socket, and one socket
 |---|---|
 | Effect | PoB2 `v0.23.1` reads only "Ward:", so the item's text doesn't read back the same: before D-399, every export (`ItemsTab:Save`'s `BuildAndParseRaw`) gave the gloves one more socket and one more rune (`tests/integration/snapshotItemText.test.ts`). |
 | Re-check | On a PoB pin bump: whether PoB reads "Runic Ward:" (`Classes/Item.lua`, `ParseRaw`). |
+
+## `pg109-rune-wand.xml` and `pg109-pob-copies.xml` (rolls on an item with a rune, PG-109, D-511)
+
+Written by hand from the game data and the open-spell plan's items (`tests/fixtures/plans/open-spell/r1-s-4/plan.json`),
+not from any player's build: a level-90 Witch with no passives and one Spark group, holding the corrupted Liminal Coil
+(`Data/Uniques/wand.lua`) with Hedgewitch Assandra's Rune of Wisdom, whose two wand lines are the item's two rune lines
+(`Data/ModRunes.lua`), and the Veilpiercer ring, with no rune. `pg109-rune-wand.xml` writes both items' rolls as
+`{range:}` tags, as a plan does, and holds no `<ModRange>`. `pg109-pob-copies.xml` holds the wand as PoB2 `v0.23.1`'s
+own save writes it (the text with its tags and eight `<ModRange>` copies, numbered across the rune lines) and the ring
+as an older PoB writes one: its text with bare ranges, its rolls (1, 0.25, 0.9, 0.75) only in `<ModRange>`.
+
+| | |
+|---|---|
+| Effect | On PoB2 `v0.23.1` unpatched, one save and load moves the wand's rolls: 9% Cast Speed reads 13% and the per-curse gains 29% read 27%. With the bridge's PG-109 patch, the rolls stay (`tests/integration/pg109.test.ts`). |
+| Re-check | On a PoB pin bump: whether PoB's load still skips the rune lines (`Classes/ItemsTab.lua`, `ItemsTabClass:Load`); the retirement test says so. |

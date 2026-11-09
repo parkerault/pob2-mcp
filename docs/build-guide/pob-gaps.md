@@ -736,10 +736,19 @@ Reports from `pob-upstream.md` §2, checked against the pin's code and, where a 
     PoB, by `lua_load_build`, or, after the user saves it in PoB, by the read-back, which compares item lines and would
     report the moved rolls as the user's change. In the probe, the open-spell plan's corrupted Liminal Coil (two rune
     lines) read 9% Cast Speed and 29% per-curse gains; after one save and load, 13% (the Coiling Bolts level's 0.95
-    roll) and 27%.
+    roll) and 27%, before the bridge's patch (below).
   - **Seen in:** issue #2275 (a pasted helmet's +28 mana read +30 after reopening); the probe on the open-spell plan's
     items.
-  - **Workaround:** on an item that holds a rune or soul core, write a rolled line as its number, not as a range.
+  - **Workaround:** corrected in the bridge (D-509, D-511). `pob-api/API/Patches.lua`'s PG-109 entry wraps
+    `ItemsTabClass:Save`, which then drops the `<ModRange>` copies from every item, so every file the engine composes
+    (the compile's, `lua_save_build`, `export_build`, the snapshots) carries each roll once, in its text, and desktop
+    PoB reads it right on its first open; and `ItemsTabClass:Load`, which drops them from every item whose text
+    carries a `{range:` tag before PoB reads them, so every load, reload, temporary load and snapshot restore takes
+    the rolls from the text. An item with no `{range:` tag (an older PoB's, its rolls only in `<ModRange>`) loads as
+    before. `import_build {save_as}` writes a code's items by the load's rule. Its retirement test,
+    `tests/integration/pg109.test.ts`, fails once a release keeps the rolls on their lines itself. What it can't
+    cover: a file the user saves again in desktop PoB holds the misnumbered copies again, and the next open there
+    moves the rolls; only an upstream fix prevents that, though our engine still reads the file right.
   - **Upstream:** issue #2275 (open), no pull request. Its thread blames hybrid mods and doesn't name this cause.
     Unchanged on `dev` (checked 2026-11-06).
 - **PG-110, an item on a base the pin lacks is dropped without a word.** data, confirmed by probe.

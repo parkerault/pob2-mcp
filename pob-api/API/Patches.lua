@@ -113,11 +113,39 @@ local PG106 = {
   end,
 }
 
--- PG-109 (D-511, amendment 16 §7): a saved item's ranged rolls move when it holds a rune. WU-153 builds this entry:
--- the wraps on ItemsTabClass:Save and ItemsTabClass:Load, its retirement test's file and case, then deletes `stub`.
+-- PG-109's helpers: whether an <Item> node's text carries a `{range:` tag, and a copy of the node without its
+-- <ModRange> children. PoB's XML nodes (runtime/lua/xml.lua) hold `elem`, `attrib`, `empty` and their children in
+-- order, the item's text as a string child.
+local function item_text_has_range(node)
+  for _, child in ipairs(node) do
+    if type(child) == 'string' and child:find('{range:', 1, true) then return true end
+  end
+  return false
+end
+
+local function without_mod_ranges(node)
+  local out = { elem = node.elem, attrib = node.attrib, empty = node.empty }
+  for _, child in ipairs(node) do
+    if not (type(child) == 'table' and child.elem == 'ModRange') then out[#out + 1] = child end
+  end
+  return out
+end
+
+-- PG-109 (D-511, amendment 16 §7): a saved item's ranged rolls move when it holds a rune. PoB's save writes each
+-- line's roll twice: as the `{range:<r>}` tag on the item text's line (Classes/Item.lua:1461-1463) and as a
+-- <ModRange>, numbered across the enchant, rune, implicit and explicit lines (Classes/ItemsTab.lua:1221-1245). Its
+-- load walks the lines without the rune lines (:1118) and sets each <ModRange> roll over the text's, so on an item
+-- with rune lines each roll lands that many lines further down. Both sides are wrapped:
+-- - the save: PoB's own Save, then every <Item> it built loses its <ModRange> children, so every file the engine
+--   composes (export_build_xml's: the compile's files, the saved and exported builds, the snapshots, the tree-state
+--   reads) carries each roll once, in the text, which an unpatched PoB reads right on its first open;
+-- - the load: every <Item> whose text carries a `{range:` tag loses its <ModRange> children before PoB's own Load,
+--   so the rolls come from the text on every load, reload, temporary load and snapshot restore. An item with no
+--   `{range:` tag (an older PoB's, whose rolls live only in <ModRange>) loads as before. The load gets a copy of
+--   the <Items> node; PoB's parsed node is left as it was.
+local restorePG109
 local PG109 = {
   pg = 'PG-109',
-  stub = true,
   fingerprints = {
     { file = 'Classes/ItemsTab.lua',
       func = 'function ItemsTabClass:Load(xml, dbFileName)',
@@ -127,9 +155,43 @@ local PG109 = {
       sha1 = '4d03009ee84e2bfb55eb7753a26af9bddac47782' },
   },
   test = { file = 'tests/integration/pg109.test.ts',
-    case = "WU-153: the bug-still-present case's title" },
-  apply = function() error('a stub: WU-153 builds it', 0) end,
-  revert = function() end,
+    case = "with both wraps reverted, PoB's own save and load move the wand's rolls onto other lines (if this fails, PoB no longer moves a saved item's rolls: remove PG-109's entry from pob-api/API/Patches.lua)" },
+  apply = function()
+    local restoreSave = M.wrap('ItemsTab', 'Save', function(pob)
+      return function(self, xml, ...)
+        pob(self, xml, ...)
+        for i, child in ipairs(xml) do
+          if type(child) == 'table' and child.elem == 'Item' then xml[i] = without_mod_ranges(child) end
+        end
+      end
+    end)
+    -- Both wraps or neither: a refused Load wrap takes the Save wrap back off.
+    local ok, restoreLoad = pcall(M.wrap, 'ItemsTab', 'Load', function(pob)
+      return function(self, xml, ...)
+        local items = { elem = xml.elem, attrib = xml.attrib, empty = xml.empty }
+        for i, child in ipairs(xml) do
+          if type(child) == 'table' and child.elem == 'Item' and item_text_has_range(child) then
+            items[i] = without_mod_ranges(child)
+          else
+            items[i] = child
+          end
+        end
+        return pob(self, items, ...)
+      end
+    end)
+    if not ok then
+      restoreSave()
+      error(restoreLoad, 0)
+    end
+    restorePG109 = function()
+      restoreLoad()
+      restoreSave()
+    end
+  end,
+  revert = function()
+    if restorePG109 then restorePG109() end
+    restorePG109 = nil
+  end,
 }
 
 -- PG-114 (D-512, amendment 16 §8): a granted skill gets quality 0. WU-154 builds this entry: the wrap on

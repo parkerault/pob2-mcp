@@ -152,3 +152,19 @@ export async function resolveBuildXml(source: string, fetchImpl: typeof globalTh
   const code = /^https?:\/\//i.test(s) ? await fetchBuildCode(s, fetchImpl) : s;
   return decodePobCode(code);
 }
+
+/** One `<ModRange>` element on its own line: its indentation, the element, and its line break. */
+const MOD_RANGE_LINE = /[ \t]*<ModRange\b[^>]*?(?:\/>|>[\s\S]*?<\/ModRange>)[ \t]*(?:\r?\n)?/g;
+
+/**
+ * D-511 (PG-109, amendment 16 §7): the build XML with PoB's second copy of each roll, the `<ModRange>` elements,
+ * dropped from every `<Item>` whose text carries a `{range:` tag, the engine's load-side rule (the PG-109 entry of
+ * `pob-api/API/Patches.lua`), so the file reads its rolls from the item text in any PoB. PoB numbers those copies
+ * across the rune lines its load skips, so on an item with a rune they move the rolls. An item with no `{range:`
+ * tag keeps its `<ModRange>` (its rolls live there), and every other byte is kept as it came.
+ */
+export function dropModRangeCopies(xml: string): string {
+  return xml.replace(/(<Item\b(?:[^>]*[^/>])?>)([\s\S]*?)(<\/Item>)/g, (whole, open: string, body: string, close: string) =>
+    body.includes("{range:") ? `${open}${body.replace(MOD_RANGE_LINE, "")}${close}` : whole,
+  );
+}

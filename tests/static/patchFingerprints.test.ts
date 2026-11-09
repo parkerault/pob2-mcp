@@ -25,7 +25,6 @@ const MODULES = ['pob-api/API/ParseFixes.lua', 'pob-api/API/Patches.lua'];
  * its own line when it fills its entry in Patches.lua.
  */
 const STUBS = new Set<string>([
-  'PG-109', // WU-153 (D-511) deletes this line
   // (this line keeps the two units' edits apart)
   'PG-114', // WU-154 (D-512) deletes this line
 ]);

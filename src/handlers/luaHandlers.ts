@@ -7,7 +7,7 @@ import { handleGetBuildIssues } from "./buildGoalsHandlers.js";
 import { renderIssueLines } from "../advice/report.js";
 import path from "path";
 import { wrapHandler } from "../utils/errorHandling.js";
-import { resolveBuildXml } from "../utils/buildCode.js";
+import { dropModRangeCopies, resolveBuildXml } from "../utils/buildCode.js";
 
 export interface LuaHandlerContext {
   pobDirectory: string;
@@ -886,7 +886,9 @@ export async function handleListGems(
  * - Only a `<PathOfBuilding2>` root is accepted, and the code may inflate to at most 16 MiB
  *   (`buildCode.ts`): both fail before the engine's build is touched.
  * - `save_as` writes **the XML just loaded** through the build-file writer as `kind: 'engine'` (it is
- *   the engine's current build), so the loaded build is re-pointed at the saved file (D-51d).
+ *   the engine's current build), so the loaded build is re-pointed at the saved file (D-51d). The bytes are
+ *   the decoded code's, less PoB's `<ModRange>` copies on every item whose text carries a `{range:` tag
+ *   (D-511, PG-109): the rule the engine's load applies, so the file holds what the engine loaded.
  * - Before the load, the writer checks the target (`checkBuildFile`, C-17 steps 1–3): a bad name, an
  *   existing target without `overwrite: true`, or a target that changed on disk since the engine loaded
  *   or the writer saved it refuses the call with the engine's build untouched.
@@ -937,7 +939,7 @@ export async function handleImportBuild(
       try {
         result = await context.buildFileWriter.writeBuildFile({
           name: guard.path,
-          bytes: xml,
+          bytes: dropModRangeCopies(xml),
           overwrite: overwrite === true,
           kind: 'engine',
           ctx: engine,

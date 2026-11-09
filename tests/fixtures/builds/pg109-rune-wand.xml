@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding2>
+	<Build level="90" targetVersion="0_1" className="Witch" ascendClassName="None" mainSocketGroup="1" viewMode="ITEMS" characterLevelAutoMode="false">
+	</Build>
+	<Tree activeSpec="1">
+		<Spec title="Default" treeVersion="0_5" classId="1" ascendClassId="0" secondaryAscendClassId="nil" nodes="" masteryEffects="">
+		</Spec>
+	</Tree>
+	<Skills activeSkillSet="1">
+		<SkillSet id="1" title="Default">
+			<Skill label="Spark" enabled="true" includeInFullDPS="false" mainActiveSkill="1" mainActiveSkillCalcs="1">
+				<Gem skillId="SparkPlayer" level="1" quality="0" enabled="true"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Items activeItemSet="1">
+		<Item id="1">
+Rarity: UNIQUE
+Liminal Coil
+Twisted Wand
+League: Runes of Aldur
+Quality: 20
+Sockets: S
+Rune: Hedgewitch Assandra's Rune of Wisdom
+LevelReq: 65
+Implicits: 3
+{rune}+1 to Level of all Spell Skills
+{enchant}+1 to Level of all Chaos Spell Skills
+{range:0.95}Grants Skill: Level (1-20) Coiling Bolts
+{range:0.25}(71-113)% increased Spell Damage
+{range:0.25}(7-13)% increased Cast Speed
+Magnitudes of Curses you inflict are zero
+Curses you inflict ignore Curse limit
+{range:0.75}Spell Hits Gain (23-31)% of Damage as Extra Chaos Damage per Curse on target
+{range:0.75}Spell Hits Gain (23-31)% of Damage as Extra Physical Damage per Curse on target
+Corrupted
+		</Item>
+		<Item id="2">
+Rarity: UNIQUE
+Veilpiercer
+Amethyst Ring
+League: Runes of Aldur
+LevelReq: 20
+Implicits: 1
+{range:1}+(7-13)% to Chaos Resistance
+{range:0.25}+(60-100) to maximum Mana
+{range:0.9}+(15-25) to Intelligence
+Curses you inflict can affect Hexproof Enemies
+Curses you inflict spread to enemies within 3 metres when Cursed enemy dies
+Gain 1 Dark Whisper every second there is a Cursed Enemy in your Presence
+{range:0.75}(20-40)% increased Damage with Hits against targets in your Presence
+		</Item>
+		<ItemSet id="1" title="Default">
+			<Slot itemId="1" name="Weapon 1"/>
+			<Slot itemId="2" name="Ring 1"/>
+		</ItemSet>
+	</Items>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1" title="Default"/>
+	</Config>
+	<Notes>
+	</Notes>
+</PathOfBuilding2>

@@ -7605,3 +7605,177 @@ What the coordinator folded (revision 2, approved):
   buffs next.
 - **WU-160 (`plan_from_build`, the file reader) merged** at `9ca04ce` (fast-forward, two commits on `0731969`). AC-W148
   in `tests/mcp/planFromBuild.test.ts`, AC-W149 in `tests/unit/planFromBuildReader.test.ts`, AC-W150 recorded above.
+- **WU-161 dispatched** (the compile on a read plan, lane `bg-161` off `9baf7b2`), with M-29's binding facts (owned
+  items skip `NormaliseQuality`, the granted copy's quality, the switched mark), WU-160's notes (Bloodlust and the
+  owned-legacy exemption, `switch_off`) and the loadout-change test, and the probe's compile half on the two
+  characters.
+- **A security review of WU-166's lane commit (`3509c5e`, automated, checked by the coordinator):** the run settings
+  example allows `Bash(pob2-league-digest:*)`, but `bin/pob2-league-digest` passes every argument to `league-digest.mjs`,
+  whose maintainer modes (`<slug> --save <folder> --out <dir>`, `--reflag`) fetch and write wherever `--out` names, so
+  the allow rule is wider than the run's one use (§19: it writes only its league folder). For WU-166's fix round: the
+  `bin/` command runs `--running` only and refuses the other modes (maintainers keep `node
+  skills/game-knowledge/scripts/league-digest.mjs …`, which no allow rule names), and `--running` writes only inside
+  the league folder its `--out` names (an existing folder named `league`), with a test for each refusal.
+- **WU-166's doer, phase 1,** finished at `3509c5e` on `bg/wu-166` (one commit on `0731969`; 0.54M subagent tokens).
+  Its own gate rc 0 (261 suites, 4,476 tests; the timing step 2 suites, 4 tests), build rc 0; words loaded max +2.1%
+  (D2); build-guide's `SKILL.md` 318 lines. AC-W159 in `tests/unit/leagueOverlay.test.ts`,
+  `tests/integration/leagueOverlay.test.ts` and `tests/static/leagueOverlay.test.ts` (the overlay soul core measured
+  through the server, +16 chaos resistance over the item's own line, also with a sidecar that appears after the engine
+  started). **AC-W162's list, WU-166** (each forced by D-523): `leagueDigest.test.ts` (AC-W70's `--from` file list
+  gains the sidecar, both `--reflag` stdout pins the retired line, "prints the entries added" ×3 and AC-W131's filter
+  compare without the sidecar's lines), `buildGuidePipeline.test.ts`'s Bash-list regex (the `--league` clause and the
+  command, D-501), `amendment15Layout.test.ts`'s `bin/` listing (C-57's fifth), `runSettingsExample.test.ts`'s allow
+  list, `guideRun.test.ts`:255's `new_run` reply gaining `leagueFolder` (C-50), `pinUpgrade.test.ts`'s fixture layout
+  (`overlay.mjs`, a rune in v0.0.2 only, a sidecar, `overlayRetired`). **Deviations reported** (for the review): `type`
+  from the name (poe2db tags every socketable SoulCore); the reload an engine restart before a load-kind call when the
+  sidecar list changed (no new C-5 action); `leagueFolder` kept in the log for `resume`; `leagues.mjs --league
+  <folder>`; the sidecar only the pin's missing entries, a multi-variant unique skipped and listed; a fresh `statOrder`
+  of the pin's max + 1 + FNV-1a mod 1e6; the retired filter reads the pinned `vendor/`; R1a, R1a-assemble and R1b one
+  clause each (D-400 amended); the README's command list updated, `CLAUDE.md`'s `bin/` list left to the coordinator.
+  Gate verifier and reviewer dispatched in parallel.
+- **WU-166's gate verifier** (fresh context) **failed `3509c5e`** (phase 1) on a tool-contract change outside the
+  grant: after the sidecar list changes, `lua_reload_build` with no `build_name` refuses ("did not come from a file"),
+  because the overlay's restart (`src/engine/session.ts`:416–431, `reloadOverlay`, called at :505) drops the loaded
+  file before the handler reads it (`luaHandlers.ts`:621); probe: load `grenadator.xml`, write an empty sidecar to the
+  league folder, reload. Should fix: `socketableType`'s name rule (`overlay.mjs`:46) gets 13 of the pin's 287
+  socketables wrong (4 "Gaze" are AbyssalEye, Raven-Touched Shard CongealedMist, 4 "Carved" Idol, 4 "Thesis"
+  SoulCore), and PoB reads `type` (`Item.lua`:1172–1173, `ItemsTab.lua`:1969–1979); a static test against
+  `Data/ModRunes.lua`'s types, the rule extended until it holds. Otherwise: gate from clean rc 0 (261 suites, 4,476
+  tests), build rc 0; words loaded max +2.1%; AC-W159's tests on the real paths (bites shown for the slot map, the
+  retirement check, the `reloadOverlay` call, committed-wins, the once-a-day reuse); AC-W162's list confirmed, all
+  forced by D-523; `guide_run {resume}`'s reply unchanged; waivers `[]`, `vendor/` identical. Gaps noted: the
+  verification display's overlay block has no test; "nothing offline" is checked only as `start.md`'s text;
+  `amendment15Layout`'s test title still says "four". Fix round after the review.
+- **WU-166's review** (fresh, read-only): the verifier's finding, wider: the restart also drops the user's build and
+  snapshot when a load-kind call fails before loading, with no notice, and leaves `revision` unbumped for
+  `find_upgrades`' cache; a check of "an existing folder named `league`" still admits the committed `data/league`, where
+  `--running` would write new digests and `rewriteOthers` rewrite the committed `League:` lines; a failed page is
+  fetched again at every run start that UTC day (poe2db's "nothing fetched twice"); R1a's, R1a-assemble's and R1b's
+  clause would also match the sidecar's `skipped` list; `Overlay.lua` takes a non-numeric `statOrder`, and `sortRunes`
+  then aborts step 5e (no code execution: dkjson parses, the strings reach only PoB's parsers); the lookups' mark omits
+  the overlay's limits (§19, "wherever an overlay item is shown"); the reload is tested only by a pid change. Checked
+  fine: `vendor/` untouched; the tool changes inside the grant; the fetcher serial, 3 s apart, no cookie, one retry
+  after 60 s; the reload under the lock. **The coordinator's call (the review's spec gap):** lookups are read-kind
+  calls, so a sidecar `--running` writes into an engine already running stays unseen until a compile; the overlay check
+  runs before every engine call, the restart restoring the loaded build. **Fix round** sent to the doer: the restart
+  keeping the build and snapshot (recovered into the new engine, the revision bumped), the check on every call, the
+  `bin/` command `--running` only and `--out` an existing `league` folder outside the plugin root, failed fetches
+  recorded per UTC day, the three clauses, `Overlay.lua`'s checks, the lookups' limits, `socketableType` against the
+  pin's 287, the nits; each with a test.
+- **WU-161's doer** finished at `796be2e` on `bg/wu-161` (one commit on `9baf7b2`; 0.64M subagent tokens). Its own gate
+  rc 0 (262 suites, 4,519 tests; the timing step 2 suites, 4 tests), build rc 0. AC-W151 in
+  `tests/integration/compileReadPlan.test.ts` (10 engine tests) and `tests/unit/readPlanCompile.test.ts` (a real
+  `check-run` on a better-round copy passes the six owned exemptions with the marks and fails all six without);
+  AC-W152 in the same files (5 engine, 3 unit); WU-160's missing test added (a loadout change clears `switch_off`).
+  **AC-W151's probe, the compile half** (a `mktemp -d`, a server started with `spawnServer`'s env, import codes in
+  memory, the temp folders removed): every §20 measured point met. ResurrectForbidden (main group 11): no skill-slot
+  warning, only the Spirit one; Purity of Ice measured at its sceptre's quality 10, in the plan's copy and PoB's group;
+  the Spirit question 254 reserved against 215, −39 unreserved (Trinity 100, Charge Regulation 40, Herald of Ice 30,
+  Wind Dancer 30, Combat Frenzy 30, Ghost Dance 24); reads: damage 306,058 map, 288,051 resisting, 306,058 boss, the
+  Arbiter survived, EHP at `n`'s hits 48,855 (the file's own 68,502), lowest max hit 5,200 chaos. CullTheConquerer
+  (main group 2): Mana Drain measured at its wand's quality 1 (`NormaliseQuality` would have made it 20); Sigil of
+  Power at its staff's quality 18; V1 passes; damage 3,469 on all three, the Arbiter survived, EHP 15,221 (own
+  19,291), lowest max hit 10,497 physical. sha1 unchanged (`72694e635561…`, `527ceb0143d0…`); nothing personal
+  recorded. **AC-W162's list, WU-161:** `compilePlan.test.ts` AC-P38, compile_plan's properties gain `measure_as`
+  (D-519). **Deviations reported:** record fields shown only on read plans beyond A.8 (`measuredAs`, `spirit` per
+  buff, `switches[].weaponSet`, V2's `file` class and `from-file` kind, the reply tag "(from the file)"), **ruled by the
+  coordinator inside HG-12's "compile_plan on a read plan"**: they appear only on read plans and carry what §15 names
+  (the Spirit question's reservations); `measure_as` only `"non-budget"`, refused without `measure_only` or a read
+  stage; the file's config written raw, the plan's custom lines after the file's; a switch measured on its group's own
+  set, else the stage's (§14's proceed-on); a read stage with a rung reads toughness at the rung's hits; the checker
+  counts a read stage's empty Flask 1 as owned, and exempts spec and listing only for price entries mapped to an owned
+  item; `keepQuality` gives 0 to an item with no quality line. Gate verifier and reviewer dispatched in parallel.
+- **WU-166's fix round** at `dbed038` (one commit on `3509c5e`): the restart keeps the loaded build and snapshot, marks
+  the engine for recovery, `recover()` restoring the build into the new engine with a notice, the revision bumped, dirty
+  kept (an engine holding only its start build restarts fresh; one whose build changed with no snapshot isn't
+  restarted); the check before every engine call but `lua_start` and `lua_stop`; `bin/pob2-league-digest` runs
+  `--running --out <dir>` only (through `--command`), `--out` an existing folder named `league` whose realpath isn't
+  under the plugin root, so `guide_run {new_run}` now creates `<stateDir>/league` (inside the grant for that reply);
+  a failed page recorded per UTC day; the three clauses; `Overlay.lua`'s entry checks, `sortRunes` in a pcall; the
+  lookups' limits once per reply with an overlay hit; `socketableType` matching the pin's type for all 287 socketables
+  ("Thesis", "Carved …", "… Gaze", "… Shard"); the nits; each with a test. Two more changed assertions, forced by the
+  `league` folder rule: "reads nothing when the newest running digest records its end" (`existsSync` → an empty
+  folder) and the wrapper text pin (`--command`). Doer's gate rc 0 (261 suites, 4,487 tests). Re-check sent to the
+  gate verifier.
+- **WU-161's review** (fresh, read-only): the switched mark set at every `compile_stage` before the measured rebuild
+  (`Compile.lua`:3240), a switched group and a plain disabled one never sharing a skill set; `measure_switches` restoring
+  the group, weapon-set and weapon-fit flags; `keepQuality` passed only for owned items and jewels; the `measure_as`
+  passes leaving the saved config set equal to `config.file`; a plan without a read stage unchanged in params, record
+  and reply; no contract change outside the grant and the ruling. Findings for a fix round: (1, medium) the checker's
+  `record-verdicts` (`check-run.mjs`:2134–2135) counts the `from-file` callouts, so a better round's F1 record fails
+  (simulated: "stage f fails V2: default-unlisted"), against §15's "never a failed verdict"; (2, medium) callout (a), a
+  state nothing in the build produces, can never fire, since V2 checks producers only for `config.earned`
+  (`v2.ts`:162–163), which a read plan leaves empty; (3, low) the D1 gate's toughness band reads `outputs.TotalEHP`
+  (`check-run.mjs`:6221, :6424), the file's enemy damage on a placed read stage, not `measures.ehp` at the rung's hits;
+  (4, low) the owned exemption for a unique PoB marks unobtainable (`Compile.lua`:1089, :1115) and "another piece's run
+  fails them as today" untested. Deviations all accepted (`keepQuality`'s 0 is what PoB's parser gives already,
+  `Item.lua`:1350–1351). **The coordinator's call on (2):** §15 makes (a) "V2's check", so V2's producer check runs on
+  `config.file`'s inputs it knows producers for, each unproduced state a `from-file` callout, never a failed verdict.
+- **WU-166's re-check** (the gate verifier) of `dbed038`: the code right on all nine items, failed on two test gaps.
+  The restart probe passes (a level change before a sidecar change survives, dirty kept); seven fixes' tests bite
+  (dropping the snapshot fails 3, restarting on an unchanged list 2; the check only before loads fails the lookup test;
+  every bad wrapper form exits 2, `--command` by hand in any position, a symlink to `data/league` and a folder holding
+  a `league` symlink included; the same-day check; `Overlay.lua`'s type and statOrder checks, the `sortRunes` pcall
+  letting step 5e go on; the lookups' line; `socketableType` 0 wrong of 287; the verification display); `new_run`'s
+  reply exactly phase 1's; AC-W162's two forced. **Gaps:** the three stages' "not `skipped`" wording untested, and
+  `Overlay.lua`'s rank check untested. Residual: with no snapshot the engine isn't restarted, yet the record's
+  `overlay` (read from disk) can name an item the engine never loaded. **The coordinator's call:** the restart notice
+  on any engine tool's reply after a sidecar change is accepted (the existing notice channel, as a crash recovery's).
+  Sent back to the doer: the two tests and the record's `overlay` from the list the engine loaded; targeted suites
+  only.
+- **WU-166's second fix round** at `04dff84` (one commit on `dbed038`): the three stages' wording and `Overlay.lua`'s
+  rank check tested; the record's `overlay` from the names the running engine loaded (`overlayNamesLoaded` at spawn,
+  `EngineCallContext.overlayNames()`). The new no-snapshot test found a session bug, fixed: `reloadOverlay` judged an
+  engine fresh by its revision alone, so after an overlay restore with no snapshot a restored build would have been
+  dropped; fresh now also needs `engineHoldsNewBuild` (set on a first start and recovery's no-snapshot path, cleared
+  once a build is restored). Targeted suites rc 0 (`tests/unit` and `tests/static` 141 suites, 3,005 tests; the
+  session suites). Re-check of the session's states sent to the gate verifier.
+- **WU-161's gate verifier** (fresh context) **failed `796be2e`** on AC-W151's "every exemption of §15 exercised":
+  `compile_check`'s refusal of a unique PoB marks unobtainable (D-384), exempted for an owned item
+  (`Compile.lua`:1115) and tree jewel (:1089), is untested (both exemptions removed, all 15 engine tests pass), the
+  review's (4). Otherwise: gate from clean rc 0 (262 suites, 4,519 tests; the timing step 2 suites, 4 tests), build
+  rc 0; mutations bit for the legacy gem, `keepQuality`, `write_file_config`, `measure_toughness`, `ownedContent`, the
+  switched mark and `switched-spirit`; **all 22 committed fixture plans compiled at base and head**: records equal but
+  for the times, `compiledAt` and the saved file's sha1 and code, replies equal but for the time, the XML equal as sets
+  in 20 of 22 (the two titan-rake plans differ only in the order of a base's variant lines, PoB's `pairs` order,
+  `Item.lua`:1511); the 13 pipeline and 3 piece fixtures' checker output identical (run-rival rc 1 at both); AC-W162's
+  one assertion; the probe's points met (the six reservations sum to 254; Clarity I's 10 isn't shown apart); waivers
+  `[]`, nothing outside §24's row. Minor: `measure_switches`' weapon-set switch (`Compile.lua`:3177) unexercised; the
+  checker's piece limit (:6563) untested. **Fix round** sent to the doer: the exemption test, the review's 1 to 4 with
+  (2) as ruled, and the two minor tests.
+- **WU-166's re-check** (the gate verifier) **passed `04dff84`** (phase 1): each of the four fixes' tests fails with it
+  broken (R1b's clause, the rank check, the disk listing back in `compiler.ts`, fresh by revision alone); 10 suites,
+  207 tests (the overlay, `guideRun` and the session and crash-recovery suites), build rc 0. **The session's states
+  probed in one engine test:** a first start by a lookup reads a later sidecar at the next lookup; a crash with a
+  snapshot restores the build, then a sidecar change keeps level 63 and dirty; a crash without one refuses as before,
+  then restarts fresh with the new sidecar; `lua_stop`/`lua_start` reads the sidecars at the spawn; `lua_new_build`, a
+  change, then a sidecar change keeps level 44. No path where a stale flag drops a build. For phase 2: a test of the
+  fresh-restart edge (setting the first-start flag false passes every test); `overlayNamesLoaded` reads the files in
+  Node, so an entry `Overlay.lua` refuses would still be named in a record.
+- **WU-161's fix round** at `122a89a` (one commit on `796be2e`): the unobtainable unique's owned exemption tested
+  (Thunderstep in Boots, and a unique jewel carrying its own `Source: No longer obtainable` line, since PoB2's data marks
+  no jewel so; marked measured, unmarked refused with the two defects); `record-verdicts` leaving out `from-file`
+  findings; callout (a) as V2's `unproduced-state`; the D1 gate's band from `measures.ehp` on a stage naming `source`
+  (the literal `?? TotalEHP` broke two amendment-14 tests that edit only `outputs.TotalEHP`); the piece limit tested
+  (writer, pipeline and review runs own nothing; a pricing run's owned content passes); a switched group on set 2 of a
+  set-1 stage measured with set 2 active. No existing assertion changed; doer's gate rc 0 (262 suites, 4,527 tests).
+  **Callout (a), as built, accepted by the coordinator in place of the literal ruling:** V2 has no table from an input
+  to its producer (it reads only the producer an earned entry names, `v2.ts`:155–172), so a read stage's checks gain
+  PoB's own invalid-option judgement ("conditional with missing source and is invalid", `ConfigTab.lua`:578–631),
+  read through `debug.getupvalue` (`Compile.lua` `invalid_options`), fail-closed if a release renames it; its engine
+  test then fails at the pin. A partial stand-in: inputs PoB doesn't gate (charges, "enemy Chilled") get no callout,
+  and a disabled skill's option still counts as valid. Re-check sent to the gate verifier.
+- **WU-161's re-check** (the gate verifier) passed `122a89a`: 4 suites, 133 tests, build rc 0; each fix's test fails
+  with it removed (each exemption on its own, the `from-file` filter, `invalid_options` returning nothing, each band
+  site on its own, the piece limit, the set switch); the bridge's `invalid_options` only reads (PoB's show predicate,
+  `ConfigTab.lua`:214–270, and `GetDefaultState`), and makes no call on a plan without a read stage (0 calls across the
+  fifteen-stage plan); the 16 fixtures' checker output identical. **All 22 committed fixture plans compiled at base and
+  head again:** 21 equal but for times, sha1 and code, the XML equal as sets in 22 of 22. **A PoB instability found:**
+  the fifteen-stage plan's Earthquake Aftershock `AreaOfEffectRadiusMetres` reads 1.8 at the base and 2.4 to 2.7 at
+  the head (12 fields, repeatable), but the same head with a one-line logging write, `invalid_options` never called,
+  gives 1.8 again, as does the old code at another path: PoB's figure moves with the engine's memory layout (an
+  iteration order, likely), not with the unit's logic. For WU-167: a `pob-gaps.md` entry, noted against the golden
+  values; no test pins it.
+- **WU-161 (the compile on a read plan) merged** at `122a89a` (fast-forward, two commits on `9baf7b2`). AC-W151 in
+  `tests/integration/compileReadPlan.test.ts` and `tests/unit/readPlanCompile.test.ts`, its probe recorded above;
+  AC-W152 in the same files.

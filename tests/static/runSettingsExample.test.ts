@@ -29,17 +29,20 @@ const PLUGIN_HOOKS = path.join(REPO, 'hooks', 'hooks.json');
  * the shared rules.
  */
 const ruleSentences = (root: string) => [
-  'If a /pob2:build-guide run is in progress, this session was just compacted',
+  // Amendment 16's M-30 (WU-159, D-516): any pob2 run with a run-log.json in progress, whose runner re-reads its
+  // command's SKILL.md.
+  'If a pob2 run with a `run-log.json` is in progress (/pob2:build-guide, /pob2:compile, /pob2:pricing or /pob2:writer), this session was just compacted',
   `Re-read \`${root}/skills/build-guide/SKILL.md\` and \`${root}/skills/build-guide/references/runner-rules.md\` whole`,
   "the run's `run-log.json`",
   "the current step's reference",
   "the visit's notes (`interviews/<gate>-<visit>.md`, with its `## Pending decision`)",
+  `in a /pob2:compile, /pob2:pricing or /pob2:writer run, that command's \`${root}/skills/<piece>/SKILL.md\` in place of build-guide's`,
   // WU-95's fix round: the design and final gates' displays take the build (D-411).
   'print its display again with `pob2-run-log <runFolder> display <gate> [--build <id>]` (the design and final gates take `--build <id>`, the build at the gate)',
   'which records no second visit',
   "Act on no yes the notes don't hold",
   'restate the pending decision and wait for it',
-  'If no /pob2:build-guide run is in progress, ignore this.',
+  'If no pob2 run is in progress, ignore this.',
 ];
 
 interface HookCommand {

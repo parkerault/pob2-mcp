@@ -160,8 +160,10 @@ describe('AC-W122 (WU-146, D-501): the reminder\'s source text', () => {
 
   it('its text names /pob2:build-guide, runner-rules.md and pob2-run-log, and no bare /build-guide', () => {
     const text = REMINDER.slice(REMINDER.indexOf("<<'EOF'"));
-    expect(text).toContain('If a /pob2:build-guide run is in progress');
-    expect(text).toContain('If no /pob2:build-guide run is in progress, ignore this.');
+    // Amendment 16's M-30 (WU-159, D-516): worded for any pob2 run with a run-log.json in progress, /pob2:build-guide's
+    // or a piece's.
+    expect(text).toContain('If a pob2 run with a `run-log.json` is in progress (/pob2:build-guide, /pob2:compile, /pob2:pricing or /pob2:writer)');
+    expect(text).toContain('If no pob2 run is in progress, ignore this.');
     expect(text).toContain('runner-rules.md');
     expect(text).toContain('pob2-run-log <runFolder> display <gate>');
     expect(text).not.toMatch(/(?<!pob2:)\/build-guide /);

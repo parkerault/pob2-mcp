@@ -6,12 +6,13 @@ through `skills/build-guide/scripts/run-log.mjs` (D-356, "Writing it" below), ne
 (`skills/build-guide/references/run-folder.md`). This page is **schema version 4** (D-412), the run log of the three phases and their gates
 with one build per finalized card (D-411); `pob2-run-log <runFolder> migrate` rewrites a schema-3 log as schema 4
 (D-415), and the run checker also reads schemas 3 and 2, so runs recorded before amendments 9 and 3 still check
-(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 15` (amendment 16's
-M-29, §24: the running leagues' `digest`; `14`, `13`, `12` or `11` in a log written under amendment 14's, 13's, 12's or
-11's rules): `init` writes it, and a resume stamps it on
+(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 16` (amendment 16's
+M-30, §24: piece runs, the file run, the id `file` and the scopes `better` and `ladder`, "Piece runs" below; `15`, M-29's
+running leagues' `digest`, and `14`, `13`, `12` or `11` in a log written under those revisions' rules): `init` writes it,
+and a resume stamps it on
 an older log with one boundary per revision, so the entries after a revision's boundary are held to its rules and the
 ones before it to their own. Revisions compare by order: amendment 11's rules hold from 11's boundary, amendment 12's from
-12's, amendment 13's from 13's, amendment 14's from 14's, revision 15's from 15's, and a build is held to the rules of its
+12's, amendment 13's from 13's, amendment 14's from 14's, revision 15's from 15's, revision 16's from 16's, and a build is held to the rules of its
 last D1 gate, a card to those of the round that dealt it ("Runs before amendment 11" to "Runs before revision 15", below;
 "Amendment 14's entries" for what 14 adds).
 
@@ -20,7 +21,7 @@ last D1 gate, a card to those of the round that dealt it ("Runs before amendment
 | Field | Content |
 |---|---|
 | `schemaVersion` | `4` |
-| `skillRevision` | `15`: the run is held to revision 15's rules (amendment 16's M-29: the running leagues' `digest`, D-507), and amendment 14's, 13's, 12's and 11's. `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 14's rules has `14`, one under 13's `13`, one under 12's `12`, one under 11's `11` |
+| `skillRevision` | `16`: the run is held to revision 16's rules (amendment 16's M-30: piece runs, the file run, the id `file`, the scopes `better` and `ladder`, D-516), revision 15's (M-29: the running leagues' `digest`, D-507), and amendment 14's, 13's, 12's and 11's. `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 14's rules has `14`, one under 13's `13`, one under 12's `12`, one under 11's `11` |
 | `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}, "13": {…}, "14": {…}, "15": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
 | `runFolder` | the absolute path `mcp__pob2__guide_run {new_run}` returned |
 | `slug` | the run's slug, from the brief (`skills/build-guide/references/run-folder.md`, D-285) |
@@ -520,7 +521,7 @@ the pin's commit and the running leagues' digests as `pob2-run-log` reads them f
 ```json
 {
   "schemaVersion": 4,
-  "skillRevision": 15,
+  "skillRevision": 16,
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "slug": "titan-blood-hunt",
   "brief": { "ascendancy": "Titan", "skill": "Blood Hunt" },
@@ -588,6 +589,59 @@ beside a skeleton's plan, pass at every revision, since the M-27 server writes t
 A log `init` wrote below `skillRevision` 15 records its top-level `digest` as one file name, the digest D-412's rule
 chose then, or `null`, and keeps it; a resume after amendment 16's M-29 stamps 15 and records the running leagues'
 list in its own `resumes[]` entry, and the run checker accepts each form where its revision puts it (D-507).
+
+## Piece runs (revision 16)
+
+A piece run is a piece started by its own command on what the user brings, `/pob2:compile`, `/pob2:pricing` or
+`/pob2:writer`, in its own folder, `Guides/<piece>/<date>-<n>/` (`mcp__pob2__guide_run {new_run: "<piece>"}`, D-516,
+C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, `testConfig`, `noNinja`, `status`
+(optional) and `source`, and no `slug` or `brief` (`init` refuses either, and a piece outside the three). The log:
+
+```json
+{"schemaVersion": 4, "skillRevision": 16, "piece": "compile", "runFolder": "<absolute>/compile/2026-12-01-1", "status": "running",
+ "mode": "online", "testConfig": "none", "noNinja": false, "pinCommit": "…", "digest": ["forbidden-rites.md", "runes-of-aldur.md"],
+ "source": {"kind": "builds-folder", "name": "ResurrectForbidden", "sha1": "…"},
+ "stages": [], "checkpoints": [], "displays": [], "escalations": [], "faults": [], "resumes": [],
+ "pricing": {"stops": [], "retries": []}}
+```
+
+- **`source`** is what the run started from, `{kind, name?, sha1?, build?}`: for compile and pricing a builds-folder file
+  (`"builds-folder"`, `name` its name, `sha1` once known) or an import code (`"import-code"`, no name: the code itself
+  goes only to the reader, never in the log); for the writer a run folder (`"run-folder"`, `name` relative to the guides
+  root, `<slug>/<date>-<n>`, and `build`, its build's id when it has `builds/`).
+- **Its steps** (Appendix A.6): compile `read`, `measure` and, with the better round, `place`, `D1-build`, `D1-tree`,
+  `D1-finish`, `D1-gate` and `F1`; pricing `read` and `price`; the writer `W1`. `read` is `done` or `fail` (the reader
+  refused the file), `measure` `done` or `fail`, `place` and `price` `done`; the four carry no `concept`, and `place` and
+  `price` carry `priceOutcomes`. A file run (`/pob2:build-guide` from a PoB file, slug `file`) logs `read`, `measure` and
+  `place` too. Any other step is refused.
+- **The id `file`**: a compile run's and a file run's one build is `file` wherever a pipeline run names a card (a step's,
+  a design checkpoint's and an escalation's `concept`, a file run's `builds[]` id, the gate verdicts
+  `reports/gates/<stage>-file-a<n>.json`, the file card `cards/file.md`). A writer run's `W1` names its source's build,
+  `source.build`, else `file`.
+- **The scopes** `better` (the better round on a read plan, a compile run's or a file run's) and `ladder` (a file run's
+  rungs around the placed one) go on D1-build, D1-tree, D1-finish and D1-gate.
+- **Its files sit at the folder's root**, with no `builds/`, `dossier` or `builds[]`: compile's `source.xml`,
+  `plan.json`, `read.json`, `measure.md`, `compile-record.json`, `compiled-build.xml`, `cards/file.md`, `pieces.md`,
+  `trades.json`, `trade-links.json`, `reports/gates/` and `interviews/`; pricing's `source.xml`, `plan.json`,
+  `read.json`, `compile-record.json`, `compiled-build.xml`, `prices.md` and `upgrades.json`; the writer's `guide.md`,
+  `audit.md` and `notes.txt`. `pob2-render-audit <runFolder>` and `pob2-render-notes <runFolder>` take that root build
+  with no `--build`. No `build` entry is written.
+- **Gates**: only a compile run's better round has them, its design gate (`display design`, or `display design --build
+  file`) and its escalation question, and an `ask` after a departure (D-482), each naming `file`; any other display or
+  checkpoint is refused.
+- **A pricing stop ends the run.** A piece run has no gate that asks to retry: a step whose `priceOutcomes` counts
+  `rate_limited`, `locked_out` or `pace` records `pricing.stops[]` as above, and the runner asks for the rung first when
+  none is placed, sets the status `stopped`, tells the user when the lockout ends, and stops. `/pob2:<piece> --resume
+  <run folder>` after the lockout is the retry: `resume` clears the stop, and the step runs again. `pricing` is refused in
+  a piece run.
+- **The run checker** holds a piece run to the run's rules as they apply (its layout, its log), game knowledge's and its
+  piece's (a compile run with a better round, pricing's too); it skips the slug-from-brief rule, the pipeline's lists and
+  the pipeline's order (D-516, `RULE_PIECES` in `skills/build-guide/scripts/check-run.mjs`).
+
+## Runs before revision 16
+
+A log at `skillRevision` 15 (or older) has none of revision 16's piece fields, steps, scopes or `file` id; a resume stamps
+16 with its boundary and changes nothing else, since revision 16 adds only what a new piece run or file run writes.
 
 ## Schema 3: runs recorded before amendment 9
 

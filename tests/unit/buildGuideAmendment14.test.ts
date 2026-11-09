@@ -138,18 +138,18 @@ describe('AC-W108: run-a14 is a run the amended pipeline could write', () => {
   });
 
   // Amendment 16's M-29 (WU-151, §24, D-507): init writes 15, and a resume stamps 15 beside 14 and prints the digests.
-  it('init writes skillRevision 15 (14 before amendment 16); a resume of a revision-13 log stamps 14 and 15 with their boundaries', () => {
+  it('init writes skillRevision 16 (14 before amendment 16, 15 before its M-30); a resume of a revision-13 log stamps 14, 15 and 16 with their boundaries', () => {
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     expect(write(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 15, builds: [] });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 16, builds: [] });
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const old = copy('run-a13');
     const before = readJson(old, 'run-log.json');
-    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
+    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 16 from stages[${before.stages.length}] (the rules of revisions 14, 15 and 16)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     const log = readJson(old, 'run-log.json');
-    expect(log.skillRevision).toBe(15);
-    expect(log.skillRevisionFrom).toEqual({ 14: log.resumes[0].lengths, 15: log.resumes[0].lengths });
+    expect(log.skillRevision).toBe(16);
+    expect(log.skillRevisionFrom).toEqual({ 14: log.resumes[0].lengths, 15: log.resumes[0].lengths, 16: log.resumes[0].lengths });
     passes(old);
   });
 

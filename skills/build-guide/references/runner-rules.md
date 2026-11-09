@@ -27,6 +27,12 @@ states it.
   no `mcp__pob2__get_leagues`, `mcp__pob2__get_item_price` for an item, `mcp__pob2__search_trade_items`,
   `mcp__pob2__search_stats` or `mcp__pob2__find_upgrades`; the exchange stays allowed
   (`skills/build-guide/references/pricing.md`).
+- **In a piece run, a pricing stop ends the run** (D-516): a `/pob2:compile` or `/pob2:pricing` run has no gate that
+  asks to retry. When a step's `priceOutcomes` counts a stop, `pob2-run-log` records it as above; then ask the user for
+  the rung first when none is placed (entering maps, budget or non-budget, or "in the campaign"), set the status
+  `stopped` (`pob2-run-log <runFolder> set`), tell the user when the lockout ends, and stop. The retry is
+  `/pob2:<piece> --resume <run folder>` after the lockout: the resume clears the stop, and the step runs again, reusing
+  every price the plan holds. A piece run logs no `pricing` answer, and no trade request comes before the lockout ends.
 - **Tell the user before pricing starts** (D-461): that it starts, about how many searches, at least 45 s apart,
   and that their browser shares the limit; one trade call at a time (`skills/build-guide/references/pricing.md`,
   "Pace").
@@ -53,7 +59,8 @@ states it.
     `--build <id>`, the build's folder (D-412);
   - the audit render, `pob2-render-audit <runFolder> --build <id>` (D-355),
     and its withdrawal after an answer change, `pob2-render-audit <runFolder> --withdraw <id>` (D-480);
-  - the notes render, `pob2-render-notes <runFolder> --build <id>` (D-487);
+  - the notes render, `pob2-render-notes <runFolder> --build <id>` (D-487); in a piece run each render takes its one
+    build at the folder's root, with no `--build` (D-516);
   - the run log, `pob2-run-log <runFolder> <kind> - <<'JSON'`, the entry, `JSON` (D-356),
     its migration, `pob2-run-log <runFolder> migrate` (D-415),
     a gate's display, `pob2-run-log <runFolder> display <gate>` (D-367),

@@ -223,16 +223,16 @@ describe('AC-W130 (WU-151, D-507): the run log records the running digests from 
     return r.stdout.split('\n').filter((l) => /^The league digests? changed since this run last ran/.test(l));
   };
 
-  it('init and resume at revision 15 record the list at the test clock, and print it for the runner', () => {
+  it('init and resume at revision 15 or later (init writes 16) record the list at the test clock, and print it for the runner', () => {
     const dir = newDir('init');
     const r = runLog(dir, ['init', JSON.stringify({ slug: 'titan-blood-hunt', brief: {}, mode: 'offline', testConfig: 'none', noNinja: false })], '2026-12-11T19:59Z');
     expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
-    expect(readLog(dir)).toMatchObject({ skillRevision: 15, digest: BOTH });
+    expect(readLog(dir)).toMatchObject({ skillRevision: 16, digest: BOTH });
     expect(r.stdout).toBe(`run-log: wrote the first log\n${digestReport(ROOT, at('2026-12-11T19:59Z'))}`);
     expect(r.stdout.split('\n')[1]).toBe('digests: ["data/league/forbidden-rites.md","data/league/runes-of-aldur.md"]');
     const resumed = runLog(dir, ['resume', '{"noNinja": true}'], '2026-12-11T20:00Z');
     expect(resumed).toEqual({ code: 0, stdout: "run-log: wrote resumes[0], status running\ndigests: []\nNo running league has a league digest: what is new in it isn't in the committed data.\n", stderr: '' });
-    expect(readLog(dir)).toMatchObject({ skillRevision: 15, digest: BOTH, resumes: [expect.objectContaining({ digest: [], noNinja: true })] });
+    expect(readLog(dir)).toMatchObject({ skillRevision: 16, digest: BOTH, resumes: [expect.objectContaining({ digest: [], noNinja: true })] });
     expect(readLog(dir)).not.toHaveProperty('skillRevisionFrom');
     // D-415's line: two lists as sets.
     expect(digestLine(dir, '2026-12-11T20:00Z')).toEqual(['The league digests changed since this run last ran (forbidden-rites.md, runes-of-aldur.md, now none).']);
@@ -243,9 +243,9 @@ describe('AC-W130 (WU-151, D-507): the run log records the running digests from 
     expect(readLog(dir)).toMatchObject({ skillRevision: 14, digest: 'runes-of-aldur.md', resumes: [] });
     const stages = readLog(dir).stages.length;
     const r = runLog(dir, ['resume', '{"noNinja": false}'], '2026-11-08T12:00Z');
-    expect({ code: r.code, stderr: r.stderr, first: r.stdout.split('\n')[0] }).toEqual({ code: 0, stderr: '', first: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${stages}]` });
+    expect({ code: r.code, stderr: r.stderr, first: r.stdout.split('\n')[0] }).toEqual({ code: 0, stderr: '', first: `run-log: wrote resumes[0], status running, skillRevision 16 from stages[${stages}] (the rules of revisions 15 and 16)` });
     const log = readLog(dir);
-    expect(log).toMatchObject({ skillRevision: 15, digest: 'runes-of-aldur.md', skillRevisionFrom: { 15: log.resumes[0].lengths } });
+    expect(log).toMatchObject({ skillRevision: 16, digest: 'runes-of-aldur.md', skillRevisionFrom: { 15: log.resumes[0].lengths, 16: log.resumes[0].lengths } });
     expect(log.resumes[0].digest).toEqual(BOTH);
     expect(runLogLines(check(dir).stderr)).toEqual([]);
     // runes-of-aldur.md isn't the list's first entry: the line says the digests changed.

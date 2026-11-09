@@ -1,0 +1,76 @@
+{
+  "recordVersion": 2,
+  "planSchemaVersion": 11,
+  "planSha1": "dc9a846d65142a3b5272dbf2d383c35ba819f527",
+  "buildSha1": "0000000000000000000000000000000000000000",
+  "compiledAt": "2026-12-01T10:00:00.000Z",
+  "mode": "measure-only",
+  "stagesCompiled": [
+    "f"
+  ],
+  "engine": {
+    "pobTag": "v0.23.1",
+    "pobCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+    "treeVersion": "0_5"
+  },
+  "versionNotes": [],
+  "loadoutWarnings": [],
+  "saveWarnings": [],
+  "pobFile": {
+    "location": "run",
+    "path": "pricing/2026-12-01-1/compiled-build.xml",
+    "sha1": "dd04ad4d2c0da9f7ba5e096deb183f029758cbae",
+    "bytes": 94
+  },
+  "savedLevel": {
+    "level": 90,
+    "autoMode": true
+  },
+  "activeLoadout": "Endgame (L90) {f}",
+  "sets": [],
+  "stages": {
+    "f": {
+      "loadoutName": "Endgame (L90) {f}",
+      "level": 90,
+      "elapsedMs": 900,
+      "outputs": {
+        "Life": 4200,
+        "TotalDPS": 50000,
+        "TotalEHP": 31500,
+        "PhysicalMaximumHitTaken": 5100,
+        "FireResist": 75,
+        "ColdResist": 75,
+        "LightningResist": 75,
+        "ChaosResist": 28
+      },
+      "configWritten": {
+        "enemyIsBoss": "Pinnacle"
+      },
+      "customModsWritten": [],
+      "computedWithCustomMods": false,
+      "configEffective": {},
+      "pobWarnings": {
+        "kept": [],
+        "filtered": []
+      },
+      "v1": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      },
+      "v2": {
+        "pass": true,
+        "findings": [],
+        "notes": []
+      }
+    }
+  },
+  "ledger": {},
+  "unresolvedRefs": [],
+  "timing": {
+    "totalMs": 900,
+    "checkMs": 100,
+    "finishMs": 100,
+    "exportMs": 100
+  }
+}

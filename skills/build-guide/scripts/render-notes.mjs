@@ -2,6 +2,10 @@
 // The build-guide PoB notes render (amendment 14, D-487; Appendix A's `notes.txt`).
 //
 //   pob2-render-notes <runFolder> --build <card id>
+//   pob2-render-notes <runFolder>
+//
+// A piece run (amendment 16's M-30, D-516: its log's `piece`) keeps its one build at the folder's root, so the render
+// takes it with no `--build`, as for schema 3; a file run's one build is `--build file`, beside the card ids.
 //
 // It writes a guide build's `notes.txt` in its folder (`builds/<id>/`, or "." for a migrated run's build): the build's
 // `guide.md` as plain text for PoB's Notes tab, which shows the `<Notes>` element's text with PoB's colour codes
@@ -30,6 +34,8 @@ import { fileURLToPath } from 'node:url';
 
 /** Appendix A: PoB's colour code for a heading line in the notes (`^x` and six hex digits, `Classes/NotesTab.lua`). */
 export const HEADING_COLOUR = '^xE0C080';
+/** D-516: the pieces a piece run's log names (run-log.mjs's PIECES). */
+const PIECES = ['compile', 'pricing', 'writer'];
 /** The H2 whose first fenced block is the guide's import code (§8). */
 const PRIMER_H2 = 'Your PoB file';
 /** A weighted trade link's URL (`src/trade/links.ts`'s `tradeQueryUrl`). */
@@ -133,7 +139,11 @@ export function writeNotes(runFolder, id) {
   } catch (e) {
     throw new Error(`run-log.json can't be read (${e.code ?? e.message})`);
   }
-  const entry = list(log.builds).find((b) => b.id === id);
+  // D-516: a piece run's one build is at its folder's root, taken with no --build; every other run names its build.
+  const piece = PIECES.includes(log.piece);
+  if (piece && id !== undefined) throw new Error(`a ${log.piece} run keeps its one build at the folder's root: pob2-render-notes <runFolder>, with no --build (D-516)`);
+  if (!piece && id === undefined) throw new Error('a schema-4 run holds one folder per build: pob2-render-notes <runFolder> --build <card id> (D-412)');
+  const entry = piece ? { folder: '.' } : list(log.builds).find((b) => b.id === id);
   if (!entry) throw new Error(`run-log.json has no build ${id}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const folder = entry.folder === '.' ? '' : `${entry.folder}/`;
   const at = (rel) => path.join(runFolder, ...`${folder}${rel}`.split('/'));
@@ -159,12 +169,14 @@ export function writeNotes(runFolder, id) {
 
 function main(argv) {
   const args = argv.slice(2);
-  if (args.length !== 3 || args[1] !== '--build' || !/^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/.test(args[2])) {
-    process.stderr.write('usage: node render-notes.mjs <runFolder> --build <card id>\n');
+  // D-516: a piece run's root build takes no --build; a file run's one build is `file`.
+  const root = args.length === 1 && !args[0].startsWith('--');
+  if (!root && (args.length !== 3 || args[1] !== '--build' || !/^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(args[2]))) {
+    process.stderr.write("usage: node render-notes.mjs <runFolder> --build <card id>, or <runFolder> alone for a piece run's root build (D-516)\n");
     return 2;
   }
   try {
-    process.stdout.write(`render-notes: ${writeNotes(path.resolve(args[0]), args[2])}\n`);
+    process.stdout.write(`render-notes: ${writeNotes(path.resolve(args[0]), root ? undefined : args[2])}\n`);
     return 0;
   } catch (e) {
     process.stderr.write(`render-notes: ${e.message}\n`);

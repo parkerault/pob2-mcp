@@ -146,6 +146,16 @@
 //    the top-level `digest` in the form of the revision `init` wrote (a list of file names from 15, a string or null
 //    before), each `resumes[]` entry's in the form of its resume (strings or null before the resume that stamped 15, lists
 //    from it on).
+//  - amendment 16's M-30 (WU-159; D-516, C-61, its Appendix A.6): `skillRevision` 16. A piece run (a log with `piece`:
+//    compile, pricing or writer) has A.6's log (`checkPieceFields`: no slug, brief, dossier or builds; its `source`; only
+//    its piece's steps; a compile run's better round's design gate, escalation and ask, naming `file`; no pricing answer),
+//    its files at its folder's root (`PIECE_FILES`, its one build `file` there), and no slug-from-brief rule, pipeline
+//    lists or pipeline order; it is held to the rules `RULE_PIECES` tags `run`, `game-knowledge` and its piece (and a
+//    compile run with a better round to pricing's too), every other rule's violations set aside. A writer run's own files
+//    are checked here (`checkWriterFiles`); against its source, by the writer's checker (D-522). A file run (slug `file`)
+//    and a piece run name their one build `file`; the steps `read`, `measure`, `place` and `price` and the scopes `better`
+//    and `ladder` are revision 16's, where a piece run or a file run takes them. A read plan's stage (its `source`) is no
+//    campaign stage. A pipeline run is checked by every rule, as before.
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -176,6 +186,7 @@ import {
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
   swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES, A15, boundariesOf,
+  A16, PIECES, FILE_ID, PIECE_STEPS, PIECE_STAGES, PIECE_SOURCE_KINDS, SOURCE_FIELDS, pieceOf, takesFileId, scopesOf, SCOPES16,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -311,6 +322,8 @@ const PRICE_OUTCOMES = ['ok', 'error', ...TRADE_KINDS, EXCHANGE, PACE];
 const PRICING_STAGES = { 2: ['R1b', 'D1', 'D1-gate', 'D2'], 3: ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'] };
 /** D-490 (amendment 14): D1-tree's count is recorded so a trade call shows; any non-zero count fails (`checkFlow4`). */
 PRICING_STAGES[4] = [...PRICING_STAGES[3], 'D1-tree'];
+/** D-516 (Appendix A.6): a compile run's and a file run's `place`, and the pricing run's `price`, price too. */
+PRICING_STAGES[4].push('place', 'price');
 
 /**
  * D-326, D-412: the run-log schema versions the checker reads: 4 (amendment 9), 3 (D-289), and 2 only so recorded runs
@@ -335,6 +348,58 @@ const BUILD_FIELDS_NAMED = ['id', 'roll', 'name', 'status', 'folder', 'guide', '
 const IN_PROGRESS = ['queued', 'designing', 'writing'];
 /** D-415: a resume's entry, and the four lists whose lengths it records. */
 const RESUME_FIELDS = ['date', 'pinCommit', 'digest', 'noNinja', 'lengths'];
+/** D-516 (Appendix A.6): a piece run's log's fields, in order: no slug, brief, dossier or builds. */
+const PIECE_LOG_FIELDS = ['schemaVersion', 'skillRevision', 'piece', 'runFolder', 'status', 'mode', 'testConfig', 'noNinja', 'pinCommit', 'digest', 'source', 'stages', 'checkpoints', 'displays', 'escalations', 'faults', 'resumes', 'pricing'];
+/** D-516 (Appendix A.6): the files at a piece run's root, by piece; the folders `cards/`, `reports/` and `interviews/` among them. */
+export const PIECE_FILES = {
+  compile: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'measure.md', 'compile-record.json', 'compiled-build.xml', 'cards', 'pieces.md', 'trades.json', 'trade-links.json', 'reports', 'interviews'],
+  pricing: ['run-log.json', 'source.xml', 'plan.json', 'read.json', 'compile-record.json', 'compiled-build.xml', 'prices.md', 'upgrades.json'],
+  writer: ['run-log.json', 'guide.md', 'audit.md', 'notes.txt'],
+};
+/** D-516 (§12): the piece tags, the pieces of the skill split (D-506) whose rules the checker holds. */
+export const RULE_TAGS = ['run', 'game-knowledge', 'discovery', 'research', 'review', 'compile', 'writer', 'pricing'];
+/**
+ * D-516 (§12, a15 §18): every rule the checker can emit, tagged by the piece it belongs to; a rule two pieces share
+ * carries both. A pipeline run (a log with no `piece`) is checked by every rule, as before; a piece run by `run`'s rules
+ * as they apply, by game knowledge's and by its piece's, and a compile run with a better round (a D1 step logged) by
+ * pricing's too. The rule names are the tests' pins, unchanged.
+ */
+export const RULE_PIECES = {
+  // The run: its layout, its log, the displays, the order and caps, the routing, the design gate, the escalations, the requests.
+  layout: ['run'], 'run-log': ['run'], display: ['run'], order: ['run'], caps: ['run'], routing: ['run'], 'design-gate': ['run'],
+  escalation: ['run'], requests: ['run'], respec: ['run'],
+  // Game knowledge: the source tags, the offline tag, the markers, a claim's kind.
+  'source-tags': ['game-knowledge'], 'offline-tag': ['game-knowledge'], markers: ['game-knowledge'], 'claim-kind': ['game-knowledge'],
+  // Discovery: the brainstorm and the verification, their deck, cards, probes and dossier.
+  deck: ['discovery'], probes: ['discovery'], pieces: ['discovery'], card: ['discovery'], 'gate-card': ['discovery'], rival: ['discovery'],
+  'dossier-sections': ['discovery'],
+  // Research: the gates' interview notes and their question steps.
+  interview: ['research'],
+  // Review: the V4 passes and their reports.
+  reports: ['review'], 'report-shape': ['review'], recheck: ['review'], verification: ['review'],
+  // Compile: the gate verdicts, the records, the PoB file, the ledger and the D1 gate's recompute.
+  'gate-report': ['compile'], gates: ['compile'], 'record-plan': ['compile'], 'record-verdicts': ['compile'], 'pob-file': ['compile'],
+  ledger: ['compile'], floor: ['compile'], 'rolled-skill': ['compile'], trades: ['compile'], 'design-field': ['compile'],
+  toughness: ['compile'], 'boss-estimate': ['compile'], 'boss-floor': ['compile'], 'boss-fall': ['compile'], arbiter: ['compile'],
+  'defence-plan': ['compile'], 'rare-title': ['compile'], swap: ['compile'],
+  // The writer: the guide, the audit and the notes.
+  'guide-sections': ['writer'], 'word-cap': ['writer'], 'guide-markers': ['writer'], 'audit-sections': ['writer'], 'audit-render': ['writer'],
+  'checks-block': ['writer'], 'import-code': ['writer'], leveling: ['writer'], 'verdict-line': ['writer'], 'survival-label': ['writer'],
+  'tree-change': ['writer'], levels: ['writer'],
+  // Pricing: the prices, their stops and the budget.
+  'offline-prices': ['pricing'], 'nfr-22': ['pricing'], pricing: ['pricing'], budget: ['pricing'], listing: ['pricing'], spec: ['pricing'],
+  // Shared: runes, corruption and flasks (compile and pricing); known issues (the writer and review); the advice to test
+  // in game and the campaign rewards (the writer and compile).
+  runes: ['compile', 'pricing'], corruption: ['compile', 'pricing'], flasks: ['compile', 'pricing'],
+  'known-issues': ['writer', 'review'], 'test-advice': ['writer', 'compile'], 'campaign-rewards': ['writer', 'compile'],
+};
+/** D-516: the tags whose rules check a piece run: `run`'s, game knowledge's, its piece's, and a better round's pricing. */
+function pieceTags(log) {
+  const piece = pieceOf(log);
+  if (piece === null) return null;
+  const better = piece === 'compile' && list(log.stages).some((s) => ['D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'].includes(s.stage));
+  return new Set(['run', 'game-knowledge', piece, ...(better ? ['pricing'] : [])]);
+}
 const RESUME_LISTS = ['stages', 'checkpoints', 'escalations', 'displays'];
 /** C-51, D-285, D-335: the brief's fields, every one optional. */
 const BRIEF_FIELDS = ['ascendancy', 'skill', 'playstyle', 'budget', 'around', 'like', 'notes', 'popularity'];
@@ -362,7 +427,9 @@ const CARD_ID = 'r[1-9]\\d*-[a-cgsx]-[1-9]\\d*';
 /** A card made at a gate (D-391): `r<k>-g-<n>`, k its brainstorm round, n counting the run's gate-made cards in it. */
 const GATE_CARD = /^r([1-9]\d*)-g-([1-9]\d*)$/;
 /** The id form a run's steps, folders and files use: the card id in schema 3, the concept id in schema 2. */
-const idSource = (schema) => (schema === 2 ? CONCEPT_ID : schema === 3 || schema === 4 ? CARD_ID : `(?:${CONCEPT_ID}|${CARD_ID})`);
+const idSource = (schema, file = false) => (schema === 2 ? CONCEPT_ID : schema === 3 || schema === 4 ? (file ? `(?:${CARD_ID}|${FILE_ID})` : CARD_ID) : `(?:${CONCEPT_ID}|${CARD_ID})`);
+/** D-516: whether a log names its one build `file`: a piece run's or a file run's, at revision 16. */
+const fileIdOk = (log) => isObj(log) && log.schemaVersion === 4 && (revisionOf(log) ?? 0) >= A16 && takesFileId(log);
 const idForm = (schema) => (schema === 2 ? 'the concept id c<n>' : 'the card id r<round>-<letter>-<n>');
 /** D-292: a card's probe variants, beyond R1b's two compiles. */
 const PROBE_CAP = 4;
@@ -447,6 +514,8 @@ STAGE_OUTCOMES[4]['D1-tree'] = ['done', 'respec', 'stale-server'];
 STAGE_OUTCOMES[4]['V4-claims'] = ['pass', 'fail'];
 // Amendment 14 (D-480): W1's `cancelled`, a W1 stopped by an answer change after F1.
 STAGE_OUTCOMES[4].W1 = ['done', 'cancelled'];
+// Amendment 16's M-30 (D-516, Appendix A.6): a piece run's and a file run's own steps, revision 16's.
+Object.assign(STAGE_OUTCOMES[4], { read: ['done', 'fail'], measure: ['done', 'fail'], place: ['done'], price: ['done'] });
 /** D-421: a step the permission system refused, logged so and re-run alone, uncounted (schema 4). */
 const REFUSED = 'refused';
 /** D-467 (amendment 13): D1-tree's stop on a session server built before M-26, whose node power ignores the targets. */
@@ -1170,7 +1239,9 @@ export async function checkRun(runFolder) {
   const schema = SCHEMA_VERSIONS.includes(log.schemaVersion) ? log.schemaVersion : null;
   const v3 = schema !== 2;
   const v4 = schema === 4;
-  const ID = new RegExp(`^${idSource(schema)}$`);
+  // D-516 (§12): a piece run (its log's `piece`), checked by `run`'s rules as they apply, game knowledge's and its piece's.
+  const piece = v4 ? pieceOf(log) : null;
+  const ID = new RegExp(`^${idSource(schema, fileIdOk(log))}$`);
   // D-433: a composite is any card with `### Pieces`, whatever its id letter; its probe cap is 8, a plain card's 4.
   const composites = compositeIds(runFolder);
   const probeCap = (id) => (composites.has(id) ? COMPOSITE_PROBE_CAP : PROBE_CAP);
@@ -1188,7 +1259,9 @@ export async function checkRun(runFolder) {
   const runName = runDir.split('/').slice(-2).join('-'); // <slug>-<YYYY-MM-DD>-<n>: the PoB file's build_name (§2)
   const runDate = (/(\d{4}-\d{2}-\d{2})-\d+$/.exec(runDir) ?? [])[1] ?? null;
   // D-412: the run's builds: schema 4's builds[] (a migrated run's build in "."), else the one build at the root.
-  const builds = v4 ? list(log.builds).filter((b) => typeof b.id === 'string' && typeof b.folder === 'string') : [{ id: null, folder: '.', status: null }];
+  // D-516 (Appendix A.6): a piece run's files sit at its folder's root, its one build's, as a schema-3 run's did.
+  const builds = piece !== null ? [{ id: FILE_ID, roll: null, status: log.status, folder: '.', guide: null, pobFile: null }]
+    : v4 ? list(log.builds).filter((b) => typeof b.id === 'string' && typeof b.folder === 'string') : [{ id: null, folder: '.', status: null }];
   const rootBuild = builds.find((b) => b.folder === '.') ?? null;
   /** D-415: a migrated run's entries recorded by schema 3's pipeline, before its first resume; null for any other run. */
   const legacy = legacyPart(log);
@@ -1196,12 +1269,14 @@ export async function checkRun(runFolder) {
   // ---- Layout (§2; the cards, the deck and the probes since amendment 3, D-338) ----------------------
   // D-412: a schema-4 run holds its builds in builds/<id>/; only a migrated run's build stays at the root.
   const BUILD_TOP = ['plan.json', 'compile-record.json', 'compiled-build.xml', 'guide.md', 'audit.md', 'pieces.md', 'trades.json', 'rounds', ...BUILD_FILES_A14];
-  const KNOWN_TOP = ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
+  const KNOWN_TOP = piece !== null ? PIECE_FILES[piece] : ['run-log.json', 'research', 'cards', 'cards.md', 'interviews', 'concepts', 'probes', 'dossier.md', 'reports', ...(rootBuild ? BUILD_TOP : []), ...(v4 ? ['builds'] : [])];
   // run-log.mjs writes run-log.json.tmp, then renames it over the log; one left by a write cut short is no output.
   for (const name of fs.readdirSync(runFolder).filter((x) => x !== 'run-log.json.tmp')) {
-    if (!KNOWN_TOP.includes(name)) fail('layout', `${name} isn't part of the run-folder layout (§2)${v4 && BUILD_TOP.includes(name) ? "; a schema-4 run keeps each build's files in its folder builds/<id>/ (D-412)" : ''}; agents write only the files §2 names`);
+    if (KNOWN_TOP.includes(name)) continue;
+    if (piece !== null) fail('layout', `${name} isn't part of a ${piece} run's folder, whose files sit at its root: ${PIECE_FILES[piece].join(', ')} (D-516, Appendix A.6)`);
+    else fail('layout', `${name} isn't part of the run-folder layout (§2)${v4 && BUILD_TOP.includes(name) ? "; a schema-4 run keeps each build's files in its folder builds/<id>/ (D-412)" : ''}; agents write only the files §2 names`);
   }
-  if (v4) {
+  if (v4 && piece === null) {
     // D-412: builds/<id>/, one folder per build builds[] names, and nothing else.
     if (exists('builds') && !isDir('builds')) fail('layout', 'builds is a file; §2 names the folder builds/, one builds/<id>/ per build (D-412)');
     for (const f of listDir('builds')) {
@@ -1216,8 +1291,9 @@ export async function checkRun(runFolder) {
   // C-52, D-319: R1a writes each card at cards/<id>.md, and R1b its verification half; nothing else goes there.
   const cardIds = new Set();
   for (const f of listDir('cards')) {
-    const m = new RegExp(`^(${CARD_ID})\\.md$`).exec(f);
-    if (!m || isDir(`cards/${f}`)) fail('layout', `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391, and x for the rival's, D-408)`);
+    // D-516: a compile run holds its file card alone, cards/file.md; a file run holds it beside the card ids.
+    const m = new RegExp(`^(${piece !== null ? FILE_ID : fileIdOk(log) ? `${CARD_ID}|${FILE_ID}` : CARD_ID})\\.md$`).exec(f);
+    if (!m || isDir(`cards/${f}`)) fail('layout', piece !== null ? `cards/${f} isn't the file card cards/${FILE_ID}.md, a ${piece} run's one card (D-516, Appendix A.6)` : `cards/${f} isn't a card file cards/<id>.md, the id r<round>-<letter>-<n> (§2, D-319; the letter g for a card made at a gate, D-391, and x for the rival's, D-408)`);
     else cardIds.add(m[1]);
   }
   // D-408: the rival's step, once per run after the first verification round's assembly (or at a gate, on request).
@@ -1235,7 +1311,7 @@ export async function checkRun(runFolder) {
   });
   /** D-429: a run whose brainstorm rounds R1a-synthesize composed. */
   const composite = stages.some((s) => s.stage === 'R1a-synthesize');
-  if (log.status === 'completed' && !exists('dossier.md')) fail('layout', 'dossier.md is missing; a completed run has its dossier (§2)');
+  if (log.status === 'completed' && piece === null && !exists('dossier.md')) fail('layout', 'dossier.md is missing; a completed run has its dossier (§2)');
   if (v4 && log.dossier !== null && log.dossier !== undefined && (typeof log.dossier !== 'string' || !exists(log.dossier))) fail('run-log', `dossier is ${show(log.dossier)}, which names no file in the run folder (D-412)`);
   const researchFiles = listDir('research');
   for (const f of researchFiles) {
@@ -1346,7 +1422,7 @@ export async function checkRun(runFolder) {
 
   // ---- Reports: the gate verdicts (§2, gates.md), run-wide in reports/gates/ ---------------------------
   const gates = [];
-  const GATE_FILE = new RegExp(`^(R1b|D1-gate|D2-gate${v4 ? '|F1' : ''})-(${idSource(schema)})-a([1-9]\\d*)\\.json$`);
+  const GATE_FILE = new RegExp(`^(R1b|D1-gate|D2-gate${v4 ? '|F1' : ''})-(${idSource(schema, fileIdOk(log))})-a([1-9]\\d*)\\.json$`);
   for (const f of listDir('reports/gates')) {
     const m = GATE_FILE.exec(f);
     if (!m) fail('layout', `reports/gates/${f} isn't named <stage>-<${v3 ? 'card' : 'concept'}>-a<attempt>.json, with ${idForm(schema)} (§2)`);
@@ -1439,11 +1515,14 @@ export async function checkRun(runFolder) {
     cardExists: (id) => cardIds.has(id),
     legacy,
   };
-  if (v4) checkFlow4(log, fail, flowCtx);
-  else checkFlow(log, fail, flowCtx);
+  // D-516 (§12): a piece run's flow isn't the pipeline's, so checkFlow4 skips it (a compile run's better round's D1
+  // order is its own unit's, AC-W154).
+  if (piece === null && v4) checkFlow4(log, fail, flowCtx);
+  else if (piece === null) checkFlow(log, fail, flowCtx);
 
   // ---- The deck and the probes (D-287, D-338, D-339), against the log ----------------------------------
-  if (v3) {
+  // D-516: a piece run has no brainstorm, deck or probes.
+  if (v3 && piece === null) {
     const cardOf = (id) => parseCard(readText(`cards/${id}.md`));
     // §11: a run dates as amendment-8-or-later by its rival or by its skill revision (the rounds dealt after its stamp).
     checkDeck(readText('cards.md'), stages, cardIds, fail, { rivalRan, noteOf: roundNotes(log), cardOf, heldStage });
@@ -1499,12 +1578,20 @@ export async function checkRun(runFolder) {
   // ---- Each build's artifacts, in its folder (D-412; a schema-2 or schema-3 run's one build at the root) ---------
   const ledgerModule = await loadLedgerModule();
   const otherIds = new Set(builds.filter((b) => b.folder !== '.').map((b) => b.id));
-  for (const build of builds) {
+  // D-516: a writer run's guide is checked on its own files here; against its source's plan and record, by §18's checker.
+  if (piece === 'writer') checkWriterFiles({ log, readText, exists, fail });
+  // D-516 (Appendix A.6): a completed compile or pricing run holds what its read and its measure or price wrote.
+  if (['compile', 'pricing'].includes(piece) && log.status === 'completed') {
+    for (const rel of ['source.xml', 'plan.json', 'read.json', 'compile-record.json', piece === 'compile' ? 'measure.md' : 'prices.md']) {
+      if (!exists(rel)) fail('layout', `${rel} is missing; a completed ${piece} run holds source.xml, plan.json and read.json (its read), compile-record.json and ${piece === 'compile' ? 'measure.md (its measure)' : 'prices.md (its price)'} at its folder's root (D-516, Appendix A.6)`);
+    }
+  }
+  for (const build of piece === 'writer' ? [] : builds) {
     // A build's own steps: its card's (in "." also those of cards with no folder of their own), refused calls aside.
     const mine = v4 ? stages.filter((s) => s.outcome !== REFUSED && (build.folder === '.' ? !otherIds.has(s.concept) : s.concept === build.id)) : stages;
     await checkBuild({
       runFolder, build, log, schema, stages: mine, gates, gateReports, accepted: v4 ? accepted.filter((a) => a.concept === build.id) : accepted,
-      ledgerModule, runName, runDate, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate,
+      ledgerModule, runName, runDate, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate, piece,
       fail: build.folder === '.' ? fail : (rule, message) => fail(rule, `${build.folder}: ${message}`),
     });
   }
@@ -1525,6 +1612,13 @@ export async function checkRun(runFolder) {
   });
   // D-412: a schema-4 run with no build at the root holds no V4 report there: each build's are in its folder.
   if (v4 && !rootBuild) for (const f of listDir('reports').filter((x) => x !== 'gates')) fail('layout', `reports/${f} is at the run folder's root; a schema-4 run's V4 reports are each build's, builds/<id>/reports/V4-<n>.md (D-412)`);
+  // D-516 (§12): a piece run is held to the rules its tags give it; the others don't apply to it. A rule the table
+  // doesn't name is kept (the static scan fails it).
+  const tags = pieceTags(log);
+  if (tags !== null) {
+    const kept = violations.filter((v) => !(v.rule in RULE_PIECES) || RULE_PIECES[v.rule].some((t) => tags.has(t)));
+    violations.splice(0, violations.length, ...kept);
+  }
   return violations;
 }
 
@@ -1534,7 +1628,7 @@ export async function checkRun(runFolder) {
  * log records for its card. A schema-2 or schema-3 run's one build is the root's, held to the whole log.
  */
 async function checkBuild(c) {
-  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, runDate, offline, mode, ID, plan, sources, fail, legacy, legacyGate } = c;
+  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, runDate, offline, mode, ID, plan, sources, fail, legacy, legacyGate, piece = null } = c;
   const v4 = schema === 4;
   const folder = build.folder;
   const { abs, exists, isDir, listDir, readText, readJson } = folderIO(path.join(runFolder, folder), fail);
@@ -1559,7 +1653,7 @@ async function checkBuild(c) {
     // audit.md, reports/V4-<n>.md and rounds/<n>/.
     for (const f of listDir('.')) if (!BUILD_FILES.includes(f)) fail('layout', `${f} isn't part of a build's folder (plan.json, compile-record.json, compiled-build.xml, guide.md, audit.md, pieces.md, trades.json, reports/, rounds/, final-build.xml, final-build-campaign.xml, readback.json, notes.txt, trade-links.json; D-412, D-434, D-439, D-479, D-487, D-488)`);
   }
-  if (completed) {
+  if (completed && piece === null) {
     for (const rel of ['plan.json', 'compile-record.json', 'guide.md', 'audit.md']) {
       if (!exists(rel)) fail('layout', `${rel} is missing; a completed ${v4 ? 'build' : 'run'} has plan.json, compile-record.json, guide.md and audit.md (§2${v4 ? ', D-412' : ''})`);
     }
@@ -1573,11 +1667,13 @@ async function checkBuild(c) {
   const finalRecord = isObj(record) && record.mode === 'final' ? record : null;
   const planStages = isObj(plan) && Array.isArray(plan.stages) ? plan.stages.filter(isObj) : [];
   const endgame = planStages.filter((s) => s.variant !== undefined);
-  const campaign = planStages.filter((s) => s.variant === undefined);
+  // D-516: a read plan's stage (`source`, Appendix A.5) is the player's file, no campaign stage, until placing gives it a rung.
+  const campaign = planStages.filter((s) => s.variant === undefined && !isObj(s.source));
   /** D-414: the guide a plan decides: no campaign stage, the endgame guide (schema 4's); else the full guide. */
   const template = v4 && isObj(plan) && campaign.length === 0 ? 'endgame' : 'full';
   // D-414: the run log's guide field records the template its plan decides; the checker fails a mismatch.
-  if (v4 && isObj(plan) && build.guide !== null && build.guide !== undefined && build.guide !== template) {
+  // D-516: a piece run has no builds[], so its one build records no guide, PoB file or draft there.
+  if (v4 && piece === null && isObj(plan) && build.guide !== null && build.guide !== undefined && build.guide !== template) {
     fail('run-log', `builds[] ${build.id}'s guide is ${show(build.guide)}, but its plan ${campaign.length === 0 ? 'has no campaign stage, so its guide is the endgame guide' : `has ${campaign.length} campaign stage(s), so its guide is the full guide`}: "${template}" (D-414)`);
   }
   // Which artifacts are current, from the log (the runner can't delete files): the guide is current when no
@@ -1593,7 +1689,7 @@ async function checkBuild(c) {
   if (guideText0 !== null && !guideCurrent && completed) {
     fail('layout', `status is "completed", but guide.md is from ${describe(stages[lastW1])}, and design steps ran after it; a completed ${v4 ? 'build' : 'run'} ends with a current guide`);
   }
-  if (v4 && guideText !== null && (build.guide === null || build.guide === undefined)) fail('run-log', `builds[] ${build.id}'s guide is null, but its folder holds a current guide.md; the runner records the guide its plan decides, "${template}" (D-414)`);
+  if (v4 && piece === null && guideText !== null && (build.guide === null || build.guide === undefined)) fail('run-log', `builds[] ${build.id}'s guide is null, but its folder holds a current guide.md; the runner records the guide its plan decides, "${template}" (D-414)`);
   // A claims-only owner (D-264) compiles nothing, so it leaves the final record current.
   const lastFinalGate = lastAt((s) => FINAL_GATES.includes(s.stage) && s.outcome !== 'missing');
   const recordCurrent = finalRecord !== null && !(lastAt((s) => PRODUCERS.includes(s.stage) && s.outcome !== CLAIMS_EDITED) > lastFinalGate);
@@ -1614,7 +1710,7 @@ async function checkBuild(c) {
     }
     if (finalRecord && o.pobFile !== finalRecord.pobFile?.path) fail('run-log', `outputs.pobFile is ${show(o.pobFile)}; the record's PoB file is ${show(finalRecord.pobFile?.path)}`);
   }
-  if (v4 && (build.pobFile !== null && build.pobFile !== undefined ? true : ['completed', 'file-only'].includes(build.status)) && finalRecord && build.pobFile !== finalRecord.pobFile?.path) {
+  if (v4 && piece === null && (build.pobFile !== null && build.pobFile !== undefined ? true : ['completed', 'file-only'].includes(build.status)) && finalRecord && build.pobFile !== finalRecord.pobFile?.path) {
     fail('run-log', `builds[] ${build.id}'s pobFile is ${show(build.pobFile)}; the final record's PoB file is ${show(finalRecord.pobFile?.path)} (D-412)`);
   }
   if (finalRecord) {
@@ -1628,7 +1724,9 @@ async function checkBuild(c) {
     const campaignAsked = v4 && list(log.checkpoints).some((c) => (c.checkpoint === 'final' && c.concept === build.id && c.answer === 'campaign') || (c.checkpoint === 'verification' && c.answer === `campaign:${build.id}`));
     const lastFinal = stages.filter((s) => FINAL_GATES.includes(s.stage) && s.outcome === 'pass').pop();
     const campaignFile = campaignAsked && lastFinal?.stage === 'D2-gate';
-    if (a13Build && folder !== '.') {
+    if (piece !== null) {
+      // D-516: a piece run's final file is named by its piece (the better round's, §17), not by its folder.
+    } else if (a13Build && folder !== '.') {
       // D-466 (amendment 13): the file is named by the build's session name, cleaned: `<name>`, `<name> <run date>` or
       // `<name> <run date> <k>`, a campaign's ending ` (campaign)`; never the old `<runName>-<id>`.
       const session = sessionName(runFolder, build);
@@ -1831,14 +1929,7 @@ async function checkBuild(c) {
     }
 
     // (w) No pipeline text: no footnote marker, confidence label or finding id, anywhere outside the import code.
-    // Only the import code's block is exempt; any other fenced block is guide text like the rest.
-    guide.lines.forEach((line, i) => {
-      if (importBlock !== null && i >= importBlock.start && i <= importBlock.end) return;
-      const label = CONFIDENCE_LABEL.exec(line)?.[0];
-      const id = FINDING_ID.exec(line)?.[0];
-      const what = line.includes('[^') ? 'a footnote marker "[^"' : label ? `the confidence label "${label}"` : id ? `the finding id "${id}"` : null;
-      if (what) fail('guide-markers', `guide.md:${i + 1} carries ${what}; the guide renders the plan with no markers, confidence labels or finding ids, and the plan's claims carry the sources (D-276, D-283)`);
-    });
+    checkGuideMarkers(guide, importBlock, fail);
   }
 
   // The audit layer (§7.8, D-278, D-355): audit.md beside a current guide, with its six H2s, and equal to what
@@ -1998,8 +2089,8 @@ async function checkBuild(c) {
   }
 
   // S7: a stage with the named damage source (its group is `rolledGroup`, D-295) makes it the main skill, so the
-  // PoB file opens on it.
-  for (const s of campaign) {
+  // PoB file opens on it; D-516: a read plan's stage too.
+  for (const s of planStages.filter((x) => x.variant === undefined)) {
     if (s.skills?.rolledGroup !== undefined && s.skills?.main?.group !== s.skills.rolledGroup) {
       fail('rolled-skill', `campaign stage ${s.id}'s main group is ${show(s.skills?.main?.group)}, but its rolledGroup is ${s.skills.rolledGroup}; a stage with the named damage source makes it the main skill (S7)`);
     }
@@ -2124,6 +2215,42 @@ async function checkBuild(c) {
       }));
     }
   }
+}
+
+/**
+ * (w), D-276, D-283: no footnote marker, confidence label or finding id in the guide, anywhere outside the import code
+ * `importBlock` (the first fenced block of "Your PoB file", or null): only its block is exempt; any other fenced block is
+ * guide text like the rest.
+ */
+function checkGuideMarkers(guide, importBlock, fail) {
+  guide.lines.forEach((line, i) => {
+    if (importBlock !== null && i >= importBlock.start && i <= importBlock.end) return;
+    const label = CONFIDENCE_LABEL.exec(line)?.[0];
+    const id = FINDING_ID.exec(line)?.[0];
+    const what = line.includes('[^') ? 'a footnote marker "[^"' : label ? `the confidence label "${label}"` : id ? `the finding id "${id}"` : null;
+    if (what) fail('guide-markers', `guide.md:${i + 1} carries ${what}; the guide renders the plan with no markers, confidence labels or finding ids, and the plan's claims carry the sources (D-276, D-283)`);
+  });
+}
+
+/**
+ * D-516 (§12, Appendix A.6): a writer run's own files, at its folder's root: a completed run holds its guide and its
+ * audit; its guide carries no pipeline text (`guide-markers`) and, with its notes, no advice to test in game
+ * (`test-advice`, D-489: a writer run is revision 16's). Holding the guide and the audit to the source's plan, record and
+ * verdicts (the checker for a writer run, D-522) is §18's.
+ */
+function checkWriterFiles({ log, readText, exists, fail }) {
+  const written = list(log.stages).some((s) => s.stage === 'W1' && s.outcome === 'done');
+  if (log.status === 'completed' || written) {
+    for (const rel of ['guide.md', 'audit.md']) if (!exists(rel)) fail('layout', `${rel} is missing; a writer run whose W1 wrote its guide holds guide.md and audit.md at its folder's root (D-516, Appendix A.6)`);
+  }
+  const text = readText('guide.md');
+  if (text === null) return;
+  const guide = parseMarkdown(text);
+  const primer = h2Named(guide, PRIMER_H2);
+  const at = primer ? guide.sectionOf(primer) : null;
+  const importBlock = at ? guide.fences.find((f) => f.start > at.start && f.start < at.end) ?? null : null;
+  checkGuideMarkers(guide, importBlock, fail);
+  checkTestAdvice({ guide: text, notes: readText('notes.txt'), planStages: [], fail });
 }
 
 /**
@@ -2619,7 +2746,7 @@ const PICK_CAP = 3;
  * `[{id: "r<k>-g-<n>", name, from, words}]` with a brainstorm `pick:` or a verification `verify:`, the picks and the
  * new cards 1–3 together; `note` only with `more`.
  */
-function checkGateChoice(c, at, ids, bad, schema = 3, a14 = false) {
+function checkGateChoice(c, at, ids, bad, schema = 3, a14 = false, fileOk = false) {
   const gate = c.checkpoint;
   const a = String(c.answer);
   // D-412: schema 4's design and final checkpoints name their build, `concept`; no other checkpoint does. D-486 (amendment
@@ -2628,7 +2755,7 @@ function checkGateChoice(c, at, ids, bad, schema = 3, a14 = false) {
   for (const k of Object.keys(c)) if (!fields.includes(k)) bad(at, `has "${k}", which isn't a field of a checkpoint (${fields.join(', ')})`);
   if (schema === 4) {
     const per = ['design', 'final'].includes(gate);
-    if (per && !new RegExp(`^${CARD_ID}$`).test(String(c.concept))) bad(at, `is a ${gate} checkpoint with concept ${show(c.concept)}; in schema 4 a ${gate} checkpoint names its build, the card id (D-412)`);
+    if (per && !new RegExp(`^${idSource(4, fileOk)}$`).test(String(c.concept))) bad(at, `is a ${gate} checkpoint with concept ${show(c.concept)}; in schema 4 a ${gate} checkpoint names its build, the card id${fileOk ? ` or ${FILE_ID}, the run's one build (D-516)` : ''} (D-412)`);
     else if (!per && 'concept' in c) bad(at, `has concept, which only a design or final checkpoint carries (D-412)`);
     if (gate === 'final' && a === 'stop' && c.answeredBy !== 'default') bad(at, "answers stop, which at the final gate is the default only; a user who declines answers decline:<note> (D-411)");
   }
@@ -2665,7 +2792,7 @@ function checkGateChoice(c, at, ids, bad, schema = 3, a14 = false) {
 }
 
 /** A schema-3 checkpoint entry's answer and rule (D-288, D-323; checkpoints.md's pre-supplied answers). */
-function checkGateAnswer(c, at, bad, schema = 3, a14 = false) {
+function checkGateAnswer(c, at, bad, schema = 3, a14 = false, fileOk = false) {
   const gate = c.checkpoint;
   const [answers, forms, rules] = schema === 4 ? [GATE_ANSWERS4, ANSWER_FORMS4, GATE_RULES4] : [GATE_ANSWERS, ANSWER_FORMS, GATE_RULES];
   if (!Object.prototype.hasOwnProperty.call(answers, gate) || typeof c.answer !== 'string') return;
@@ -2674,7 +2801,7 @@ function checkGateAnswer(c, at, bad, schema = 3, a14 = false) {
   } else if (!answers[gate].test(c.answer)) bad(at, `answers ${show(c.answer)}; the ${gate} ${['unsaved-build', 'escalation'].includes(gate) ? 'question' : 'gate'}'s answer is ${forms[gate]} (D-287, D-289${schema === 4 ? ', D-411' : ''})`);
   const ids = idsOf(c.answer);
   if (new Set(ids).size !== ids.length) bad(at, `answers ${show(c.answer)}, which names a card twice`);
-  checkGateChoice(c, at, ids, bad, schema, a14);
+  checkGateChoice(c, at, ids, bad, schema, a14, fileOk);
   if (typeof c.rule !== 'string' || c.rule.trim() === '') return;
   // D-323: the test config's keys and answers are schema 3's; checkpoint1, checkpoint2 and checkpoint-1 are retired.
   if (/checkpoint-?[12]/.test(c.rule)) bad(at, `has rule ${show(c.rule)}, which names a retired test-config key or answer (checkpoint1, checkpoint2, checkpoint-1); schema 3's are answers.brainstorm, answers.verification, answers.design, answers.final and the escalation answer "verification" (D-323, D-362)`);
@@ -2749,7 +2876,8 @@ function checkSchema4Fields(log, bad) {
     if (!forms.some((f) => show(keys) === show(f))) bad(at, `has the fields ${keys.join(', ')}; a build is {${BUILD_FIELDS.join(', ')}}, with name after roll when its finalize gave it one (D-412, D-435)${drafts ? ', and draftFile after pobFile in a log at 13 (D-466)' : ''}`);
     if ('name' in b && (typeof b.name !== 'string' || b.name.trim() === '')) bad(at, `name is ${show(b.name)}; the build's name, a non-empty text (D-435)`);
     if ('draftFile' in b && b.draftFile !== null && (typeof b.draftFile !== 'string' || b.draftFile.trim() === '')) bad(at, `draftFile is ${show(b.draftFile)}; the latest draft's path, or null (D-466)`);
-    if (!new RegExp(`^${CARD_ID}$`).test(String(b.id))) bad(at, `id ${show(b.id)} isn't a card id r<round>-<letter>-<n> (D-412)`);
+    // D-516: a file run's one build is `file`.
+    if (!new RegExp(`^${idSource(4, fileIdOk(log))}$`).test(String(b.id))) bad(at, `id ${show(b.id)} isn't a card id r<round>-<letter>-<n>${fileIdOk(log) ? ` or ${FILE_ID}` : ''} (D-412)`);
     else if (ids.has(b.id)) bad(at, `${b.id} has a second build; a card with a build in the run isn't finalized again (D-411)`);
     ids.add(b.id);
     if (!(isObj(b.roll) && ['className', 'ascendancy', 'skill'].every((k) => typeof b.roll[k] === 'string' && b.roll[k] !== ''))) bad(at, `roll is ${show(b.roll)}; it is the card's identity {className, ascendancy, skill} (D-286, D-412)`);
@@ -2860,26 +2988,78 @@ function checkSchema4Fields(log, bad) {
  * visit, answer, answeredBy, rule?, at}`: an open finding answered `round` or `ship`, a departure in the user's words;
  * `at` the stages[] length when it was asked. Only in a log held to 14 (`a14`).
  */
-function checkAsk(c, at, bad, a14) {
+function checkAsk(c, at, bad, a14, fileOk = false) {
   if (!a14) return bad(at, `is an ask checkpoint, which is amendment 14's (skillRevision ${A14}): an older log asks nothing outside a gate (D-482)`);
   const allowed = ['checkpoint', 'kind', 'build', 'visit', 'answer', 'answeredBy', 'rule', 'at'];
   for (const k of Object.keys(c)) if (!allowed.includes(k)) bad(at, `has "${k}", which isn't a field of an ask checkpoint (${allowed.join(', ')})`);
   if (!ASK_KINDS.includes(c.kind)) bad(at, `kind is ${show(c.kind)}; one of ${ASK_KINDS.join(', ')} (D-482)`);
-  if (!new RegExp(`^${CARD_ID}$`).test(String(c.build))) bad(at, `build is ${show(c.build)}; the card id of the build asked about (D-482)`);
+  if (!new RegExp(`^${idSource(4, fileOk)}$`).test(String(c.build))) bad(at, `build is ${show(c.build)}; the card id of the build asked about${fileOk ? `, or ${FILE_ID}` : ''} (D-482)`);
   if (!isInt(c.at)) bad(at, `at is ${show(c.at)}; the stages[] length when the question was asked, which pob2-run-log records (D-482)`);
   if (c.kind === 'open-finding' ? !OPEN_FINDING_ANSWERS.includes(c.answer) : typeof c.answer !== 'string' || c.answer.trim() === '') bad(at, c.kind === 'open-finding' ? `answers ${show(c.answer)}; an open finding's answer is round (one more fix round and re-check) or ship (D-482)` : "a departure's answer is the user's words (D-482)");
+}
+
+/**
+ * D-516 (Appendix A.6): a piece run's own fields: its piece one of the three, at skill revision 16 or later; no slug, brief,
+ * dossier or builds; its `source`, `{kind, name?, sha1?, build?}`, of its piece's kinds (a builds-folder file or an import
+ * code for compile and pricing, a run folder for the writer), with no import code in it; only its piece's steps; its gates
+ * a compile run's better round's design gate and escalation question, naming its one build `file`; and no gate's pricing
+ * answer, since a stop ends a piece run and a resume is the retry.
+ */
+function checkPieceFields(log, bad) {
+  if (!PIECES.includes(log.piece)) return bad('piece', `is ${show(log.piece)}; a piece run's piece is ${PIECES.join(', ')} (D-516)`);
+  const piece = log.piece;
+  if (!((revisionOf(log) ?? 0) >= A16)) bad('skillRevision', `is ${show(log.skillRevision)}; a piece run is skill revision ${A16}'s or later (D-516)`);
+  for (const k of ['slug', 'brief', 'dossier', 'builds']) if (k in log) bad(k, `is a /pob2:build-guide run's; a ${piece} run's log has no ${k}: its folder is Guides/${piece}/<date>-<n>/, its files at the root, and source names what it started from (D-516, Appendix A.6)`);
+  const src = log.source;
+  const kinds = PIECE_SOURCE_KINDS[piece];
+  if (!isObj(src)) bad('source', `is ${show(src)}; what the ${piece} run started from, {kind: ${kinds.map(show).join(' | ')}, name?, sha1?, build?} (D-516)`);
+  else {
+    const keys = Object.keys(src);
+    if (keys.some((k) => !SOURCE_FIELDS.includes(k)) || show(keys) !== show(SOURCE_FIELDS.filter((k) => keys.includes(k)))) bad('source', `has the fields ${keys.join(', ')}; a source is {${SOURCE_FIELDS.join(', ')}}, in that order, each but kind optional, and never an import code (D-516)`);
+    if (!kinds.includes(src.kind)) bad('source', `kind is ${show(src.kind)}; a ${piece} run starts from ${kinds.map(show).join(' or ')} (D-516)`);
+    const named = typeof src.name === 'string' && src.name.trim() !== '' && src.name.length <= 255;
+    if (src.kind === 'import-code' ? 'name' in src : !named) bad('source', src.kind === 'import-code' ? 'name is set on an import code; an import code has no name, and the code itself never goes in the log (D-516)' : `name is ${show(src.name)}; ${src.kind === 'run-folder' ? 'the source run folder, relative to the guides root' : "the builds-folder file's name"}, at most 255 characters (D-516)`);
+    if (src.kind === 'run-folder' && named && !/^[^\\/]+\/\d{4}-\d{2}-\d{2}-[1-9]\d*$/.test(src.name)) bad('source', `name is ${show(src.name)}; a run folder relative to the guides root, <slug>/<YYYY-MM-DD>-<n> (D-516)`);
+    if ('sha1' in src && (src.kind === 'run-folder' || !/^[0-9a-f]{40}$/.test(String(src.sha1)))) bad('source', `sha1 is ${show(src.sha1)}; a file's sha1, 40 lowercase hex digits, and none for a run folder (D-516)`);
+    if ('build' in src && (src.kind !== 'run-folder' || !new RegExp(`^${idSource(4, true)}$`).test(String(src.build)))) bad('source', `build is ${show(src.build)}; a run folder's build, a card id or ${FILE_ID} (D-516)`);
+  }
+  const steps = PIECE_STEPS[piece];
+  list(log.stages).forEach((s, i) => {
+    if (!steps.includes(s.stage)) bad(`stages[${i}]`, `is ${show(s.stage)}, which a ${piece} run doesn't log; it logs ${steps.join(', ')} (D-516, Appendix A.6)`);
+  });
+  const w1 = isObj(src) && typeof src.build === 'string' ? src.build : FILE_ID;
+  list(log.stages).forEach((s, i) => {
+    if (typeof s.concept !== 'string') return;
+    const want = piece === 'writer' ? w1 : FILE_ID;
+    if (s.concept !== want) bad(`stages[${i}]`, `names ${show(s.concept)}; a ${piece} run's one build is ${want}${piece === 'writer' ? ", its source's build (source.build, else file)" : ''} (D-516)`);
+  });
+  list(log.checkpoints).forEach((c, i) => {
+    if (piece !== 'compile' || !['design', 'escalation', 'ask'].includes(c.checkpoint)) bad(`checkpoints[${i}]`, `is a ${show(c.checkpoint)} checkpoint; a ${piece} run has ${piece === 'compile' ? "only its better round's design gate, escalation question and ask" : 'no gate'} (D-516)`);
+    else if ((c.checkpoint === 'design' && c.concept !== FILE_ID) || (c.checkpoint === 'ask' && c.build !== FILE_ID)) bad(`checkpoints[${i}]`, `names ${show(c.checkpoint === 'ask' ? c.build : c.concept)}; a compile run's ${c.checkpoint} checkpoint names its one build, ${FILE_ID} (D-516)`);
+  });
+  list(log.escalations).forEach((e, i) => {
+    if (piece !== 'compile' || e.concept !== FILE_ID) bad(`escalations[${i}]`, `is ${show(e.stage)} ${show(e.concept)}; only a compile run's better round escalates, naming its one build ${FILE_ID} (D-516)`);
+  });
+  if (isObj(log.pricing) && list(log.pricing.retries).length > 0) bad('pricing.retries', `holds ${list(log.pricing.retries).length} answer(s); a ${piece} run has no gate that asks to retry pricing: a stop ends it, and /pob2:${piece} --resume <run folder> after the lockout is the retry (D-516)`);
 }
 
 function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capWords: () => `a card has at most ${PROBE_CAP} (D-292)` }) {
   const v3 = schema !== 2;
   const v4 = schema === 4;
-  for (const k of RUN_LOG_FIELDS[v4 ? 4 : v3 ? 3 : 2]) if (!(k in log)) fail('run-log', `run-log.json has no ${k} (§6${v4 ? ', D-412' : ''})`);
+  // D-516 (Appendix A.6): a piece run's log has its own fields, no slug, brief, dossier or builds; the slug-from-brief rule
+  // and the pipeline's lists skip it.
+  const piece = v4 && 'piece' in log ? log.piece : null;
+  const fileOk = fileIdOk(log);
+  for (const k of piece !== null ? PIECE_LOG_FIELDS : RUN_LOG_FIELDS[v4 ? 4 : v3 ? 3 : 2]) if (!(k in log)) fail('run-log', `run-log.json has no ${k} (§6${piece !== null ? ', D-516, Appendix A.6' : v4 ? ', D-412' : ''})`);
   const bad = (field, why) => fail('run-log', `run-log.json ${field}: ${why}`);
   if ('schemaVersion' in log && !SCHEMA_VERSIONS.includes(log.schemaVersion)) {
     bad('schemaVersion', `is ${show(log.schemaVersion)}; it is 3, or 2 for a run recorded before amendment 3 (D-289, D-326), and 4 from amendment 9 on (D-412)`);
   }
   const roll = log.roll;
-  if (v4) {
+  if (piece !== null) {
+    checkPieceFields(log, bad);
+    checkSchema4Fields(log, bad);
+  } else if (v4) {
     if ('brief' in log) checkBrief(log.brief, bad);
     if ('slug' in log && isObj(log.brief) && log.slug !== slugOfBrief(log.brief)) {
       bad('slug', `is ${show(log.slug)}; the brief's slug is "${slugOfBrief(log.brief)}": the slug comes from the brief, and the cards finalized later go in builds[], not in the folder name (§2, D-285, D-412)`);
@@ -2916,8 +3096,9 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
   if ('runFolder' in log) {
     const rf = typeof log.runFolder === 'string' ? log.runFolder.replace(/\\/g, '/').replace(/\/+$/, '') : '';
     const segs = rf.split('/');
-    if (!(path.isAbsolute(log.runFolder ?? '') || /^[A-Za-z]:\//.test(rf)) || segs[segs.length - 2] !== log.slug || !/^\d{4}-\d{2}-\d{2}-[1-9]\d*$/.test(segs[segs.length - 1] ?? '')) {
-      bad('runFolder', `${show(log.runFolder)} isn't an absolute <root>/<slug>/<YYYY-MM-DD>-<n> path (C-34)`);
+    // D-516: a piece run's folder is named by its piece, Guides/<piece>/<date>-<n>.
+    if (!(path.isAbsolute(log.runFolder ?? '') || /^[A-Za-z]:\//.test(rf)) || segs[segs.length - 2] !== (piece !== null ? piece : log.slug) || !/^\d{4}-\d{2}-\d{2}-[1-9]\d*$/.test(segs[segs.length - 1] ?? '')) {
+      bad('runFolder', piece !== null ? `${show(log.runFolder)} isn't an absolute <root>/${piece}/<YYYY-MM-DD>-<n> path, the folder guide_run {new_run: "${piece}"} makes (C-34, D-516)` : `${show(log.runFolder)} isn't an absolute <root>/<slug>/<YYYY-MM-DD>-<n> path (C-34)`);
     }
   }
   const oneOf = (field, allowed) => {
@@ -2936,7 +3117,7 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
     }
     return log[field];
   };
-  const ID = new RegExp(`^${idSource(schema)}$`);
+  const ID = new RegExp(`^${idSource(schema, fileOk)}$`);
   arr('stages').forEach((s, i) => {
     const at = `stages[${i}]`;
     if (!isObj(s)) return bad(at, 'is an object');
@@ -2955,9 +3136,13 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
     }
     // D-421: a refused call is schema 4's outcome; in schema 3 the permission system's refusal had no entry of its own.
     if (!v4 && s.outcome === REFUSED) return bad(at, `outcome "refused" is schema 4's (D-421); a schema-${schema ?? 3} log has none`);
-    if (ROUND_STAGES.includes(s.stage) ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
-      bad(at, ROUND_STAGES.includes(s.stage) ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}`);
+    // D-516: a piece run's and a file run's steps carry no concept; their D1 steps name the one build, `file`.
+    const noConcept = ROUND_STAGES.includes(s.stage) || PIECE_STAGES.includes(s.stage);
+    if (noConcept ? s.concept !== undefined && s.concept !== null : !ID.test(s.concept ?? '')) {
+      bad(at, noConcept ? `a ${s.stage} entry concerns no one ${v3 ? 'card' : 'concept'}` : `a ${s.stage} entry names its ${v3 ? 'card' : 'concept'}, ${idForm(schema)}${fileOk ? ` or ${FILE_ID}, the run's one build (D-516)` : ''}`);
     }
+    // D-516 (Appendix A.6): read, measure and place are a piece run's or a file run's (price the pricing run's), revision 16's.
+    if (v4 && PIECE_STAGES.includes(s.stage) && !fileOk) bad(at, `is ${s.stage}, a piece run's or a file run's step (revision ${A16}, D-516); this run is neither`);
     // D-339: a short brainstorm round's reason, on its R1a-assemble entry, or its R1a-synthesize entry (D-429).
     if (v3 && 'shortReason' in s && (!ASSEMBLY_STAGES.includes(s.stage) || typeof s.shortReason !== 'string' || s.shortReason.trim() === '')) {
       bad(at, `has shortReason ${show(s.shortReason)}; only an R1a-assemble or R1a-synthesize entry carries one, the reason its return gave for a short round (D-339, D-429)`);
@@ -2990,7 +3175,10 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
       const isText = (v) => typeof v === 'string' && v.trim() !== '';
       if ('skeletonFile' in s && (s.stage !== 'R1b' || !(s.skeletonFile === null || isText(s.skeletonFile)))) bad(at, `has skeletonFile ${show(s.skeletonFile)}; only an R1b entry carries it: the skeleton PoB file R1b's draft write returned, "<card name> skeleton (draft).xml", or null (D-479)`);
       if ('skeletonRemoved' in s && (s.skeletonRemoved !== true || !isText(s.skeletonFile))) bad(at, `has skeletonRemoved ${show(s.skeletonRemoved)}; true, on an R1b entry that records its skeletonFile, once the runner removed the file (D-479)`);
-      if ('scope' in s && !(SCOPES[s.stage] ?? []).includes(s.scope)) bad(at, `has scope ${show(s.scope)}; ${Object.entries(SCOPES).map(([st, xs]) => `${st} takes ${xs.join(' or ')}`).join(', ')}, and no other step has one (Appendix A)`);
+      // D-516 (revision 16): D1's four steps take better and ladder too, in the entries held to 16.
+      const a16 = i >= heldFrom(log, 'stages', A16);
+      if ('scope' in s && !scopesOf(s.stage, a16 ? A16 : A14).includes(s.scope)) bad(at, `has scope ${show(s.scope)}; ${[...new Set([...Object.keys(SCOPES), ...(a16 ? Object.keys(SCOPES16) : [])])].map((st) => `${st} takes ${scopesOf(st, a16 ? A16 : A14).join(' or ')}`).join(', ')}, and no other step has one (Appendix A${a16 ? ', D-516' : ''})`);
+      else if (['better', 'ladder'].includes(s.scope) && !(s.scope === 'better' ? fileOk && piece !== 'pricing' && piece !== 'writer' : fileOk && piece === null)) bad(at, `has scope ${s.scope}, ${s.scope === 'better' ? "the better round's, a compile run's or a file run's" : "a file run's rungs around its placed one"} (D-516)`);
       if ('requests' in s) {
         const ok = REQUEST_STAGES.includes(s.stage) && Array.isArray(s.requests) && s.requests.length > 0 && s.requests.every((r) => isObj(r) && show(Object.keys(r).sort()) === show(['id', 'result', 'words']) && isText(r.id) && isText(r.words) && REQUEST_RESULT.test(String(r.result)));
         if (!ok) bad(at, `has requests ${show(s.requests)}; on ${REQUEST_STAGES.join(', ')} only, [{id, words, result}], the user's words verbatim and "made" or "departs: <how>" (D-482)`);
@@ -3035,8 +3223,8 @@ function checkRunLog(log, fail, schema, caps = { probeCap: () => PROBE_CAP, capW
       if (c.visit !== want) bad(at, `is visit ${c.visit} of ${show(c.checkpoint)}, but it is that checkpoint's entry ${want}; visit counts its visits from 1`);
     }
     // D-482 (amendment 14, Appendix A): an ask checkpoint, in a log held to 14 from its checkpoint.
-    if (v4 && c.checkpoint === 'ask') checkAsk(c, at, bad, i >= heldFrom(log, 'checkpoints', A14));
-    else if (v3) checkGateAnswer(c, at, bad, schema, v4 && i >= heldFrom(log, 'checkpoints', A14));
+    if (v4 && c.checkpoint === 'ask') checkAsk(c, at, bad, i >= heldFrom(log, 'checkpoints', A14), fileOk);
+    else if (v3) checkGateAnswer(c, at, bad, schema, v4 && i >= heldFrom(log, 'checkpoints', A14), fileOk);
     // D-367: run-log.mjs records a gate visit's display in displays[] before it logs that visit's answer.
     if (v3 && DISPLAYED.includes(c.checkpoint) && !displays.some((d) => d.checkpoint === c.checkpoint && d.visit === c.visit)) {
       fail('display', `run-log.json ${at}: ${c.checkpoint} visit ${c.visit} has no display in displays[]; every gate visit prints its display first, pob2-run-log <runFolder> display ${c.checkpoint}${v4 && ['design', 'final'].includes(c.checkpoint) ? ` --build ${typeof c.concept === 'string' ? c.concept : '<id>'}` : ''}, and only then logs its answer (D-367)`);

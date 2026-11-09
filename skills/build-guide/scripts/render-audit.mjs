@@ -4,6 +4,10 @@
 //   pob2-render-audit <runFolder> [--build <card id>]
 //   pob2-render-audit <runFolder> --withdraw <card id>
 //
+// Amendment 16's M-30 (D-516): a piece run (`/pob2:compile`'s, `/pob2:pricing`'s or `/pob2:writer`'s, its log's `piece`)
+// keeps its one build at the folder's root, so the render takes it with no `--build`, as for schema 3; a file run's one
+// build is `--build file`, beside the card ids.
+//
 // A schema-4 run (amendment 9, D-412) renders one build's audit.md, `--build <card id>`: from its folder's plan.json,
 // compile-record.json and audit.md (`builds/<id>/`, or "." for a migrated run's build), and its card's last D1 gate
 // verdict file; a schema-3 run renders the root's, with no --build. Its H1 names the build by its `builds[].name`, the
@@ -82,6 +86,8 @@ const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
 /** The server's compiled ledger evaluator: in the repository's `build/`, or for tests `BUILD_GUIDE_SERVER_BUILD` when set (D-435). */
 const ledgerModulePath = () => path.join(process.env.BUILD_GUIDE_SERVER_BUILD ? path.resolve(process.env.BUILD_GUIDE_SERVER_BUILD) : path.join(REPO, 'build'), 'plan', 'ledger.js');
 const PRICES_FILE = path.join(REPO, 'data', 'economy', 'prices.json');
+/** D-516: the pieces a piece run's log names (run-log.mjs's PIECES, repeated: run-log.mjs imports this file). */
+const PIECES = ['compile', 'pricing', 'writer'];
 
 /** The endgame rungs, in the order the Checks blocks follow. */
 const RUNGS = ['entering-maps', 'budget', 'non-budget'];
@@ -331,7 +337,10 @@ export async function loadAuditInputs(runFolder, build) {
   // D-412: a schema-4 run holds one folder per build, `builds/<id>/` ("." for a migrated run's build); the render reads
   // that build's plan, record and audit.md, and its card's last D1 gate verdict file.
   if (build !== undefined && log.schemaVersion !== 4) throw new Error('--build is schema 4\'s (amendment 9); this run log is schema 3');
-  if (build === undefined && log.schemaVersion === 4) throw new Error('a schema-4 run holds one folder per build: pob2-render-audit <runFolder> --build <card id> (D-412)');
+  // D-516: a piece run (its log's `piece`) keeps its one build at the folder's root, as a schema-3 run did: no --build.
+  const piece = PIECES.includes(log.piece);
+  if (piece && build !== undefined) throw new Error(`a ${log.piece} run keeps its one build at the folder's root: pob2-render-audit <runFolder>, with no --build (D-516)`);
+  if (build === undefined && log.schemaVersion === 4 && !piece) throw new Error('a schema-4 run holds one folder per build: pob2-render-audit <runFolder> --build <card id> (D-412)');
   const entryOf = build === undefined ? null : list(log.builds).find((b) => b.id === build);
   if (build !== undefined && !entryOf) throw new Error(`run-log.json has no build ${build}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const folder = entryOf && entryOf.folder !== '.' ? `${entryOf.folder}/` : '';
@@ -822,8 +831,8 @@ export async function withdraw(runFolder, id) {
 
 async function main(argv) {
   const args = argv.slice(2);
-  // D-429: a composite's id has the letter s.
-  const card = (x) => /^r[1-9]\d*-[a-cgsx]-[1-9]\d*$/.test(String(x));
+  // D-429: a composite's id has the letter s; D-516: a file run's one build is `file`.
+  const card = (x) => /^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(String(x));
   const withBuild = args.length === 3 && args[1] === '--build' && card(args[2]);
   const withdrawing = args.length === 3 && args[1] === '--withdraw' && card(args[2]);
   if ((args.length !== 1 && !withBuild && !withdrawing) || args[0].startsWith('--')) {

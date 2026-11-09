@@ -182,6 +182,28 @@
 //  - the test clock: `BUILD_GUIDE_TEST_NOW=<instant>` (as `leagues.mjs --at` reads one) sets `now` for the league rule.
 //    Tests only: a run never sets it.
 //
+// Amendment 16's M-30 (WU-159; D-516, C-61, its Appendix A.6), skill revision 16 (`init` writes it, a resume stamps it):
+//  - a piece run, `Guides/<piece>/<date>-<n>/` for the piece `compile`, `pricing` or `writer`: `init '{"piece", "mode",
+//    "testConfig", "noNinja", "status"?, "source"}'`, no `slug` or `brief`, writes A.6's log, `{schemaVersion: 4,
+//    skillRevision: 16, piece, runFolder, status, mode, testConfig, noNinja, pinCommit, digest, source, stages,
+//    checkpoints, displays, escalations, faults, resumes, pricing}`, with no `slug`, `brief`, `dossier` or `builds`;
+//    `source` is what the run started from, `{kind: "builds-folder" | "import-code" | "run-folder", name?, sha1?, build?}`
+//    (`run-folder`, with the source build's id, the writer's), and never holds an import code;
+//  - a piece run logs only its piece's steps (A.6): compile `read`, `measure` and, in its better round, `place`, D1-build,
+//    D1-tree, D1-finish, D1-gate and F1; pricing `read` and `price`; the writer W1. The steps `read`, `measure`, `place`
+//    and `price` carry no concept; `place` and `price` carry `priceOutcomes`; a file run (`/pob2:build-guide` from a
+//    file, slug `file`) logs `read`, `measure` and `place` too;
+//  - the build id `file`, beside the card ids, wherever a compile run or a file run names its one build (a step's, a
+//    design checkpoint's and an escalation's `concept`, a gate verdict's file name, `cards/file.md`); a writer run's W1
+//    names its source's build;
+//  - the scopes `better` (the better round, a compile run's or a file run's) and `ladder` (a file run's) on D1-build,
+//    D1-tree, D1-finish and D1-gate;
+//  - a pricing stop ends a piece run: the step's entry records `pricing.stops[]` as in the pipeline, its line tells the
+//    runner to ask for the rung when none is placed, set the status `stopped`, say when the lockout ends and stop; `pricing`
+//    (a gate's retry answer) is refused in a piece run, and a `resume` on the piece's folder clears the stop, the retry;
+//  - `display design [--build file]` serves a compile run's better round from its root build, `display escalation` its
+//    escalation; a piece run has no other gate, and no `build` entry.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
 // (D-486, default false). What needs the deck (a new card's `from` and its name) is checked when the gate's checkpoint is
@@ -249,12 +271,23 @@ const OUTCOMES = {
   'R1a-synthesize': ['done'],
   // Amendment 13 (D-477): a file-only build's claims pass, its plan's hinge claims checked with no guide.
   'V4-claims': ['pass', 'fail'],
+  // Amendment 16's M-30 (D-516, Appendix A.6): a piece run's and a file run's own steps. `read` runs plan_from_build
+  // (`fail` when it refused the file); `measure` the measure-only compile of the read plan (`fail` when it failed);
+  // `place` places the read stage on the ladder; `price` prices the gear (a stop is its priceOutcomes').
+  read: ['done', 'fail'],
+  measure: ['done', 'fail'],
+  place: ['done'],
+  price: ['done'],
 };
-/** The stages schema 4 adds (amendment 9, and amendment 10's synthesis); a schema-3 log has none. */
-const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize', 'V4-claims'];
-const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV'];
+/** D-516 (Appendix A.6): the steps revision 16 adds, a piece run's and a file run's; none carries a concept. */
+export const PIECE_STAGES = ['read', 'measure', 'place', 'price'];
+/** The stages schema 4 adds (amendment 9, amendment 10's synthesis, and revision 16's piece steps); a schema-3 log has none. */
+const SCHEMA4_STAGES = ['D1-tree', 'F1', 'V4-campaign', 'R1a-synthesize', 'V4-claims', ...PIECE_STAGES];
+const NO_CONCEPT = ['R1a', 'R1a-assemble', 'R1a-synthesize', 'R1b-assemble', 'Q', 'RV', ...PIECE_STAGES];
 /** The steps that price (pricing.md); D1-build since amendment 11, for its `find_upgrades` calls (D-444). */
 const PRICING = ['R1b', 'D1-build', 'D1-finish', 'D1-gate', 'D2'];
+/** D-516 (Appendix A.6): the piece steps that price, revision 16's: `place` (a compile run's and a file run's) and `price`. */
+const PIECE_PRICING = ['place', 'price'];
 /** D-490 (amendment 14): D1-tree makes no trade call, but a log at 14 records its count, so a call shows (and fails). */
 const PRICING14 = [...PRICING, 'D1-tree'];
 /** D-444: a `priceOutcomes` key for the calls priced from poe.ninja's currency exchange, which send no trade request. */
@@ -268,7 +301,7 @@ export const PACE = 'pace';
  * §19, amendment 12's §22, amendment 13's §22: the skill revision `init` writes and `resume` stamps; a log without it is
  * held to the rules before amendment 11.
  */
-export const SKILL_REVISION = 15;
+export const SKILL_REVISION = 16;
 /** Amendment 11's revision (§19): its rules hold from its boundary in every log at 11 or later. */
 export const A11 = 11;
 /** Amendment 13's revision (§22): its rules hold a build from its boundary, read by the build's last D1 gate. */
@@ -277,10 +310,39 @@ export const A13 = 13;
 export const A14 = 14;
 /** Amendment 16's M-29 revision (§24, D-507): the run log's `digest` is the running leagues' list from it. */
 export const A15 = 15;
+/** Amendment 16's M-30 revision (§24, D-516): piece runs, the file run, the id `file` and the scopes better and ladder. */
+export const A16 = 16;
 /** Appendix A (amendment 12): the revisions a log can be held to, in order; each one's rules hold from its own boundary. */
-export const REVISIONS = [11, 12, 13, 14, 15];
+export const REVISIONS = [11, 12, 13, 14, 15, 16];
 /** D-481, D-486, D-487 (Appendix A): each step's `scope`, the task header's field that narrows it. */
 export const SCOPES = { 'D1-finish': ['swap', 'scaling'], W1: ['notes'] };
+/**
+ * D-516 (§17, §18): the scopes revision 16 adds on D1's four steps: `better`, the better round on a read plan (a compile
+ * run's or a file run's), and `ladder`, a file run's rungs designed around the placed one.
+ */
+export const SCOPES16 = { 'D1-build': ['better', 'ladder'], 'D1-tree': ['better', 'ladder'], 'D1-finish': ['better', 'ladder'], 'D1-gate': ['better', 'ladder'] };
+/** A step's scopes in a log at `revision`: SCOPES', and from revision 16 SCOPES16's. */
+export const scopesOf = (stage, revision) => [...(SCOPES[stage] ?? []), ...(revision >= A16 ? SCOPES16[stage] ?? [] : [])];
+/** D-516 (C-61): the pieces a piece run is run by, each its own command (`/pob2:<piece>`) and its folder `Guides/<piece>/`. */
+export const PIECES = ['compile', 'pricing', 'writer'];
+/** D-516: the one build of a compile run and of a file run, named `file` where a pipeline run names a card. */
+export const FILE_ID = 'file';
+/** D-516 (Appendix A.6): the steps each piece logs. */
+export const PIECE_STEPS = {
+  compile: ['read', 'measure', 'place', 'D1-build', 'D1-tree', 'D1-finish', 'D1-gate', 'F1'],
+  pricing: ['read', 'price'],
+  writer: ['W1'],
+};
+/** D-516 (§12): what a piece run starts from, `source.kind`, by piece: a player's file, or (the writer's) a run folder. */
+export const PIECE_SOURCE_KINDS = { compile: ['builds-folder', 'import-code'], pricing: ['builds-folder', 'import-code'], writer: ['run-folder'] };
+/** D-516 (Appendix A.6): a piece run's `source`'s fields, in order. */
+export const SOURCE_FIELDS = ['kind', 'name', 'sha1', 'build'];
+/** A piece run's piece (D-516): the log's `piece`, one of the three, or null for a pipeline run's log. */
+export const pieceOf = (log) => (isObj(log) && PIECES.includes(log.piece) ? log.piece : null);
+/** D-516 (§18): a file run, `/pob2:build-guide` from a PoB file: a pipeline log whose slug is `file`. */
+export const isFileRun = (log) => isObj(log) && pieceOf(log) === null && log.slug === FILE_ID;
+/** D-516: whether a log names its one build `file`: a piece run (a writer run's W1 names its source's build), or a file run. */
+export const takesFileId = (log) => pieceOf(log) !== null || isFileRun(log);
 /** D-482: the steps that take the user's requests and return one `request:` line per request. */
 export const REQUEST_STAGES = ['R1b', 'D1-build', 'D1-tree', 'D1-finish', 'D2', 'W1'];
 /** D-482 (Appendix A): an `ask` checkpoint's kinds, and an open finding's two answers. */
@@ -360,7 +422,8 @@ const FIELDS4 = {
   // Amendment 14: the `ask` checkpoint's `kind` and `build` (D-482); the design accept's `scaling` (D-486).
   checkpoint: ['checkpoint', 'concept', 'kind', 'build', 'visit', 'answer', 'answeredBy', 'rule', 'questions', 'changes', 'newCards', 'note', 'scaling'],
   set: ['status', 'dossier', 'faults'],
-  init: ['slug', 'brief', 'mode', 'testConfig', 'noNinja', 'status'],
+  // D-516 (Appendix A.6): a piece run's `init` takes `piece` and `source` in place of `slug` and `brief`.
+  init: ['slug', 'brief', 'piece', 'mode', 'testConfig', 'noNinja', 'status', 'source'],
   // D-466 (amendment 13): `draftFile`, the latest draft's path, on a log at 13.
   build: ['id', 'roll', 'name', 'status', 'guide', 'pobFile', 'draftFile'],
   resume: ['noNinja'],
@@ -458,11 +521,14 @@ function newCardBody(c) {
 
 /**
  * The problems with an entry of a kind: its fields, as run-log.md's entry form gives them, in the log's schema (3, or 4
- * from amendment 9).
+ * from amendment 9). `opts.fileId`: the log names its one build `file` (a piece run or a file run, D-516).
  */
-export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
+export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION, opts = {}) {
   if (!isObj(e)) return ['the entry is a JSON object'];
   const v4 = schema === 4;
+  // D-516: a card id, or in a piece run or a file run its one build's id `file`.
+  const isId = (v) => CARD.test(String(v)) || (v4 && opts.fileId === true && v === FILE_ID);
+  const idWords = v4 && opts.fileId === true ? ` or ${FILE_ID}, the run's one build (D-516)` : '';
   // Amendment 14 (Appendix A): its fields and writes need a log at 14; an older log is resumed first, which stamps it.
   const a14 = v4 && revision >= A14;
   const allowed = ((v4 ? FIELDS4 : FIELDS)[kind] ?? []).filter((k) => a14 || !(FIELDS14[kind] ?? []).includes(k));
@@ -490,7 +556,9 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     const stages = Object.keys(OUTCOMES).filter((s) => v4 || !SCHEMA4_STAGES.includes(s));
     const outcomes = stages.includes(e.stage) ? OUTCOMES[e.stage] : undefined;
     if (!outcomes) return [...bad, `stage ${show(e.stage)} isn't one of ${stages.join(', ')}${SCHEMA4_STAGES.includes(e.stage) ? ` (${e.stage} is schema 4's: migrate the log first)` : ''}`];
-    if (NO_CONCEPT.includes(e.stage) ? e.concept !== undefined : !CARD.test(String(e.concept))) bad.push(NO_CONCEPT.includes(e.stage) ? `a ${e.stage} entry has no concept` : `concept ${show(e.concept)} isn't a card id r<round>-<letter>-<n>`);
+    if (NO_CONCEPT.includes(e.stage) ? e.concept !== undefined : !isId(e.concept)) bad.push(NO_CONCEPT.includes(e.stage) ? `a ${e.stage} entry has no concept` : `concept ${show(e.concept)} isn't a card id r<round>-<letter>-<n>${idWords}`);
+    // D-516 (Appendix A.6): a piece run's and a file run's steps are revision 16's.
+    if (PIECE_STAGES.includes(e.stage) && !(revision >= A16)) bad.push(`${e.stage} is a piece run's or a file run's step, revision ${A16}'s (D-516); this log is at ${revision ?? 'no skillRevision'}`);
     if (!isInt(e.attempt, 1)) bad.push(`attempt ${show(e.attempt)} isn't a whole number from 1`);
     // D-421: in schema 4 any step the permission system refused is logged `refused`, then re-run alone, uncounted.
     const any = v4 ? ['missing', 'refused'] : ['missing'];
@@ -502,14 +570,15 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     // the runner logs as null; a failed attempt returns no skeleton line and logs none.
     if (e.skeletonFile !== undefined && (e.stage !== 'R1b' || !(e.skeletonFile === null || (text(e.skeletonFile) && /\.xml$/i.test(e.skeletonFile.trim()) && !/^none:/i.test(e.skeletonFile.trim()))))) bad.push('skeletonFile is only on R1b: the skeleton PoB file its draft write returned ("skeleton: <relpath>"), "<card name> skeleton (draft).xml", or null when the write was refused ("skeleton: none: <why>") (D-479)');
     // D-481, D-486, D-487: the scope narrows D1-finish (swap, scaling) and W1 (notes).
-    if (e.scope !== undefined && !(SCOPES[e.stage] ?? []).includes(e.scope)) bad.push(`scope ${show(e.scope)} isn't one of ${e.stage}'s; ${Object.entries(SCOPES).map(([st, xs]) => `${st} takes ${xs.join(' or ')}`).join(', ')} (Appendix A)`);
+    // D-516 (revision 16): D1's four steps also take `better` and `ladder`.
+    if (e.scope !== undefined && !scopesOf(e.stage, revision).includes(e.scope)) bad.push(`scope ${show(e.scope)} isn't one of ${e.stage}'s; ${[...new Set([...Object.keys(SCOPES), ...(revision >= A16 ? Object.keys(SCOPES16) : [])])].map((st) => `${st} takes ${scopesOf(st, revision).join(' or ')}`).join(', ')} (Appendix A${revision >= A16 ? ', D-516' : ''})`);
     // D-482: one result per request, the user's words verbatim.
     if (e.requests !== undefined) {
       if (!REQUEST_STAGES.includes(e.stage)) bad.push(`requests is only on ${REQUEST_STAGES.join(', ')}, the steps that take the user's requests (D-482)`);
       else if (!Array.isArray(e.requests) || e.requests.length === 0 || !e.requests.every((r) => isObj(r) && Object.keys(r).every((k) => ['id', 'words', 'result'].includes(k)) && text(r.id) && text(r.words) && REQUEST_RESULT.test(String(r.result)))) bad.push('requests is [{"id", "words", "result"}], one per request: its id, the user\'s words verbatim, and "made" or "departs: <how>" (D-482)');
     }
     if (e.priceOutcomes !== undefined) {
-      const pricing = a14 ? PRICING14 : PRICING;
+      const pricing = [...(a14 ? PRICING14 : PRICING), ...(revision >= A16 ? PIECE_PRICING : [])];
       if (!pricing.includes(e.stage)) bad.push(`priceOutcomes is only on ${pricing.join(', ')}`);
       else if (!isObj(e.priceOutcomes) || Object.entries(e.priceOutcomes).some(([k, v]) => !['ok', 'error', ...TRADE_KINDS, EXCHANGE, PACE].includes(k) || !isInt(v, 0))) bad.push('priceOutcomes counts calls by outcome: ok, error or a [trade:<kind>] kind, exchange for the calls priced from poe.ninja\'s currency exchange (D-444), and pace for the trade call whose reply had no pace line or the pace off (D-474), each a whole number');
     }
@@ -522,7 +591,7 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     // an open finding after the one re-check.
     if (a14 && e.checkpoint === 'ask') {
       if (!ASK_KINDS.includes(e.kind)) bad.push(`kind ${show(e.kind)} isn't one of ${ASK_KINDS.join(', ')} (D-482)`);
-      if (!CARD.test(String(e.build))) bad.push(`build ${show(e.build)} isn't a card id: the build the question is about (D-482)`);
+      if (!isId(e.build)) bad.push(`build ${show(e.build)} isn't a card id${idWords}: the build the question is about (D-482)`);
       for (const k of ['concept', 'questions', 'changes', 'newCards', 'note', 'scaling']) if (e[k] !== undefined) bad.push(`${k} isn't a field of an ask checkpoint (checkpoint, kind, build, visit, answer, answeredBy, rule)`);
       if (!isInt(e.visit, 1)) bad.push(`visit ${show(e.visit)} isn't a whole number from 1`);
       if (e.kind === 'open-finding' ? !OPEN_FINDING_ANSWERS.includes(e.answer) : !text(e.answer)) bad.push(e.kind === 'open-finding' ? `an open finding's answer is round (one more fix round and re-check, once a build) or ship (the issue goes in the PoB notes), not ${show(e.answer)} (D-482)` : "a departure's answer is the user's words, a non-empty text (D-482)");
@@ -543,7 +612,7 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     if (v4) {
       // D-412: a design or final checkpoint names its build, the card id; no other checkpoint does.
       const per = ['design', 'final'].includes(e.checkpoint);
-      if (per ? !CARD.test(String(e.concept)) : e.concept !== undefined) bad.push(per ? `a ${e.checkpoint} checkpoint names its build: concept, the card id r<round>-<letter>-<n>, not ${show(e.concept)} (D-412)` : `concept is only on a design or final checkpoint (D-412)`);
+      if (per ? !isId(e.concept) : e.concept !== undefined) bad.push(per ? `a ${e.checkpoint} checkpoint names its build: concept, the card id r<round>-<letter>-<n>${idWords}, not ${show(e.concept)} (D-412)` : `concept is only on a design or final checkpoint (D-412)`);
       // D-411: the final gate's stop is the default only; a user who declines answers decline:<note>.
       if (e.checkpoint === 'final' && e.answer === 'stop' && e.answeredBy !== 'default') bad.push("the final gate's stop is the default answer only; a user who declines the guide answers decline:<note> (D-411)");
     }
@@ -557,8 +626,8 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     // D-413: in schema 4 F1, the endgame-only build's final compile, escalates too.
     const gates = v4 ? ['D1-gate', 'D2-gate', 'F1'] : ['D1-gate', 'D2-gate'];
     if (!gates.includes(e.stage)) bad.push(`stage is ${gates.slice(0, -1).join(', ')} or ${gates[gates.length - 1]}`);
-    if (!CARD.test(String(e.concept))) bad.push(`concept ${show(e.concept)} isn't a card id`);
-    if (!new RegExp(`^reports/gates/(D[12]-gate|F1)-(${CARD_ID})-a[1-9]\\d*\\.json$`).test(String(e.verdict)) || !String(e.verdict).startsWith(`reports/gates/${e.stage}-${e.concept}-a`)) bad.push("verdict is the escalated attempt's file, reports/gates/<stage>-<concept>-a<attempt>.json");
+    if (!isId(e.concept)) bad.push(`concept ${show(e.concept)} isn't a card id${idWords}`);
+    if (!new RegExp(`^reports/gates/(D[12]-gate|F1)-(${CARD_ID}${v4 && opts.fileId === true ? `|${FILE_ID}` : ''})-a[1-9]\\d*\\.json$`).test(String(e.verdict)) || !String(e.verdict).startsWith(`reports/gates/${e.stage}-${e.concept}-a`)) bad.push("verdict is the escalated attempt's file, reports/gates/<stage>-<concept>-a<attempt>.json");
     if (!['accept', 'retry', 'verification', 'stop'].includes(e.choice)) bad.push('choice is accept, retry, verification or stop');
     if (e.choice === 'retry' ? !text(e.guidance) : e.guidance !== undefined) bad.push('guidance goes with retry, and only with it');
   } else if (kind === 'set') {
@@ -569,8 +638,13 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     // D-412: the dossier is a run-wide field in schema 4, its path in the run folder.
     if (e.dossier !== undefined && e.dossier !== null && !text(e.dossier)) bad.push('dossier is the dossier\'s path in the run folder, or null');
   } else if (kind === 'init') {
-    if (!text(e.slug)) bad.push('slug is the run folder\'s slug');
-    if (!isObj(e.brief)) bad.push('brief is the parsed brief, {} for an empty one');
+    // D-516 (Appendix A.6): a piece run's first write takes its piece and its source, and no slug or brief.
+    if (v4 && e.piece !== undefined) bad.push(...pieceInitProblems(e));
+    else {
+      if (!text(e.slug)) bad.push('slug is the run folder\'s slug');
+      if (!isObj(e.brief)) bad.push('brief is the parsed brief, {} for an empty one');
+      if (e.source !== undefined) bad.push(`source is a piece run's (D-516); a /pob2:build-guide run's init takes slug and brief, and a piece run's init takes piece (${PIECES.join(', ')}) and source`);
+    }
     if (!['offline', 'online'].includes(e.mode)) bad.push('mode is offline or online');
     if (!['none', 'accepted', 'refused'].includes(e.testConfig)) bad.push('testConfig is none, accepted or refused');
     if (e.status !== undefined && !['running', 'stopped'].includes(e.status)) bad.push('a first write\'s status is running, or stopped for a refused test config');
@@ -579,7 +653,7 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
   } else if (kind === 'build') {
     // D-412: a finalized card's build, added queued with its card's identity; later writes change its status, its
     // guide (as the plan decides, D-414) or its PoB file (the final compile's record path).
-    if (!CARD.test(String(e.id))) bad.push(`id ${show(e.id)} isn't a card id r<round>-<letter>-<n>`);
+    if (!isId(e.id)) bad.push(`id ${show(e.id)} isn't a card id r<round>-<letter>-<n>${idWords}`);
     if (e.roll !== undefined && !isRoll(e.roll)) bad.push("roll is the card's identity {className, ascendancy, skill} (D-286)");
     // D-435: the build's name, the card's or the one its finalize revision gave it; render-audit.mjs titles the audit with it.
     if (e.name !== undefined && !text(e.name)) bad.push("name is the build's name, the card's or the one its finalize revision gave it, a non-empty text (D-435)");
@@ -596,6 +670,37 @@ export function entryProblems(kind, e, schema = 3, revision = SKILL_REVISION) {
     if (!DISPLAYED.includes(e.checkpoint)) bad.push(`checkpoint ${show(e.checkpoint)} isn't one of ${DISPLAYED.join(', ')}: the gate that asked whether to retry pricing (D-444)`);
     if (!RETRY_ANSWERS.includes(e.answer)) bad.push(`answer ${show(e.answer)} isn't ${RETRY_ANSWERS.join(' or ')} (D-444)`);
   }
+  return bad;
+}
+
+/** D-516: a sha1 as `read.json` gives it, 40 lowercase hex digits. */
+const SHA1 = /^[0-9a-f]{40}$/;
+/** D-516: the longest name a piece run's `source` takes, a file name's; an import code never goes in the log. */
+const SOURCE_NAME_MAX = 255;
+
+/**
+ * D-516 (Appendix A.6): a piece run's `init` entry, `{piece, mode, testConfig, noNinja, status?, source}` (its mode, test
+ * config, status and noNinja checked as a pipeline run's): the piece one of the three, no `slug` or `brief`, and `source`
+ * what the run started from, `{kind, name?, sha1?, build?}`: compile and
+ * pricing a builds-folder file (`name`, its name) or an import code (no name: the code itself never goes in the log);
+ * the writer a run folder (`name`, relative to the guides root, and `build`, its build's id when it has builds/).
+ */
+function pieceInitProblems(e) {
+  const bad = [];
+  if (!PIECES.includes(e.piece)) return [`piece ${show(e.piece)} isn't one of ${PIECES.join(', ')}: a piece run is /pob2:compile's, /pob2:pricing's or /pob2:writer's (D-516)`];
+  for (const k of ['slug', 'brief']) if (e[k] !== undefined) bad.push(`${k} is a /pob2:build-guide run's; a piece run's log has no slug or brief: its folder is Guides/${e.piece}/<date>-<n>/, and source names what it started from (D-516, Appendix A.6)`);
+  const kinds = PIECE_SOURCE_KINDS[e.piece];
+  const src = e.source;
+  if (!isObj(src)) return [...bad, `source is what the ${e.piece} run started from, {kind: ${kinds.map(show).join(' | ')}, …} (D-516, Appendix A.6)`];
+  for (const k of Object.keys(src)) if (!SOURCE_FIELDS.includes(k)) bad.push(`source has "${k}", which isn't one of ${SOURCE_FIELDS.join(', ')}; an import code itself never goes in the log (D-516)`);
+  if (!kinds.includes(src.kind)) bad.push(`source.kind is ${show(src.kind)}; a ${e.piece} run starts from ${kinds.map(show).join(' or ')} (D-516)`);
+  const name = typeof src.name === 'string' ? src.name.trim() : '';
+  if (src.kind === 'import-code') {
+    if (src.name !== undefined) bad.push('source.name goes with a builds-folder file or a run folder; an import code is no name, and the code itself never goes in the log (D-516)');
+  } else if (name === '' || src.name.length > SOURCE_NAME_MAX) bad.push(`source.name is ${src.name === undefined ? 'missing' : `${String(src.name).length > 80 ? `${String(src.name).slice(0, 77)}...` : show(src.name)}`}; ${src.kind === 'run-folder' ? "the source run folder, relative to the guides root (<slug>/<date>-<n>)" : "the builds-folder file's name"}, at most ${SOURCE_NAME_MAX} characters (D-516)`);
+  if (src.kind === 'run-folder' && name !== '' && !/^[^\\/]+\/\d{4}-\d{2}-\d{2}-[1-9]\d*$/.test(name)) bad.push(`source.name is ${show(src.name)}; a run folder relative to the guides root, <slug>/<YYYY-MM-DD>-<n> (D-516)`);
+  if (src.sha1 !== undefined && (src.kind === 'run-folder' || !SHA1.test(String(src.sha1)))) bad.push(src.kind === 'run-folder' ? "source.sha1 is a file's; a run folder has none (D-516)" : `source.sha1 is ${show(src.sha1)}; the file's sha1, 40 lowercase hex digits, as read.json gives it (D-516)`);
+  if (src.build !== undefined && (src.kind !== 'run-folder' || !(CARD.test(String(src.build)) || src.build === FILE_ID))) bad.push(src.kind !== 'run-folder' ? "source.build is a run folder's build; a player's file has none (D-516)" : `source.build is ${show(src.build)}; the source build's id, a card id or ${FILE_ID} (D-516)`);
   return bad;
 }
 
@@ -652,10 +757,22 @@ export function writeLog(runFolder, kind, entry) {
   const existing = kind === 'init' ? null : readLog(file);
   const schema = existing?.schemaVersion ?? 4;
   if (schema !== 4 && ['build', 'resume', 'pricing'].includes(kind)) throw new Error(`${kind} entry refused: run-log.json is a schema-3 log; ${kind} is schema 4's (amendment 9): run pob2-run-log <runFolder> migrate first`);
-  const problems = entryProblems(kind, entry, schema, existing === null ? SKILL_REVISION : revisionOf(existing));
+  const problems = entryProblems(kind, entry, schema, existing === null ? SKILL_REVISION : revisionOf(existing), { fileId: existing !== null && takesFileId(existing) });
   if (problems.length > 0) throw new Error(`${kind} entry refused: ${problems.join('; ')}`);
+  // D-516: a piece run's writes, held to its piece (Appendix A.6), and the steps and scopes of revision 16 in a pipeline run.
+  const against16 = existing !== null && schema === 4 ? pieceAgainstRun(existing, kind, entry) : [];
+  if (against16.length > 0) throw new Error(`${kind} entry refused: ${against16.join('; ')}`);
   let log;
-  if (kind === 'init') {
+  if (kind === 'init' && entry.piece !== undefined) {
+    if (fs.existsSync(file)) throw new Error('run-log.json exists; init writes the first log only');
+    // D-516 (Appendix A.6): a piece run's log, its fields in A.6's order: no slug, brief, dossier or builds.
+    log = {
+      schemaVersion: 4, skillRevision: SKILL_REVISION, piece: entry.piece, runFolder: path.resolve(runFolder), status: entry.status ?? 'running',
+      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(),
+      source: Object.fromEntries(SOURCE_FIELDS.filter((k) => entry.source[k] !== undefined).map((k) => [k, entry.source[k]])),
+      stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [], pricing: { stops: [], retries: [] },
+    };
+  } else if (kind === 'init') {
     if (fs.existsSync(file)) throw new Error('run-log.json exists; init writes the first log only');
     // §19, amendment 12's §22: a new run is held to the current revision's rules from its start (no boundary); D-444: its
     // pricing stops and retries.
@@ -674,7 +791,8 @@ export function writeLog(runFolder, kind, entry) {
       throw new Error(`checkpoint entry refused: ${gateName(entry.checkpoint)}'s visit ${entry.visit} printed no display; run pob2-run-log <runFolder> display ${entry.checkpoint}${schema === 4 && ['design', 'final'].includes(entry.checkpoint) && typeof entry.concept === 'string' ? ` --build ${entry.concept}` : ''} first and print its output (D-367)`);
     }
     if (kind === 'checkpoint') {
-      const against = [...newCardsAgainstRun(runFolder, log, entry), ...(schema === 4 ? buildsAgainstRun(log, entry) : [])];
+      // D-516: a piece run has no builds[]; its design checkpoint names its one build, file (pieceAgainstRun).
+      const against = [...newCardsAgainstRun(runFolder, log, entry), ...(schema === 4 && pieceOf(log) === null ? buildsAgainstRun(log, entry) : [])];
       if (against.length > 0) throw new Error(`checkpoint entry refused: ${against.join('; ')}`);
     }
     // D-429: a run keeps the coordinator step its first brainstorm round used, R1a-assemble or R1a-synthesize.
@@ -728,6 +846,8 @@ export function writeLog(runFolder, kind, entry) {
         if (!Array.isArray(log.pricing.stops)) log.pricing.stops = [];
         log.pricing.stops.push({ at: log.stages.length - 1, step: entry.stage, outcome: stop });
         saveLog(file, log);
+        // D-516: a piece run has no gate that asks to retry, so a stop ends it, and a resume after the lockout is the retry.
+        if (pieceOf(log) !== null) return `stages[${log.stages.length - 1}], and pricing.stops[${log.pricing.stops.length - 1}]: trade-site pricing stopped after ${stop}, which ends this ${log.piece} run: ask the user for the rung first when none is placed, set the status stopped, tell the user when the lockout ends, and stop; /pob2:${log.piece} --resume <run folder> after it is the retry (D-516)`;
         return `stages[${log.stages.length - 1}], and pricing.stops[${log.pricing.stops.length - 1}]: trade-site pricing stopped after ${stop} until a gate's retry-pricing (D-444)`;
       }
     } else if (kind === 'pricing') {
@@ -773,6 +893,50 @@ export function writeLog(runFolder, kind, entry) {
 }
 
 /**
+ * D-516 (Appendix A.6): a write against a piece run, and revision 16's steps and scopes against a pipeline run. A piece run
+ * logs only its piece's steps; its checkpoints are the compile run's better round's design gate and escalation question,
+ * naming its one build `file`, as its escalations do; it has no `build` entry, no gate's `pricing` answer (a stop ends it,
+ * and the resume is the retry) and no `dossier`. In a pipeline run, `read`, `measure` and `place` are a file run's only
+ * (slug `file`), and `price` is the pricing piece's; the scope `better` is a compile run's or a file run's, `ladder` a file
+ * run's.
+ */
+function pieceAgainstRun(log, kind, entry) {
+  const piece = pieceOf(log);
+  const bad = [];
+  if (piece === null) {
+    if (kind === 'stage' && PIECE_STAGES.includes(entry.stage)) {
+      if (entry.stage === 'price') bad.push(`price is /pob2:pricing's step; a /pob2:build-guide run prices inside its own steps (D-516, Appendix A.6)`);
+      else if (!isFileRun(log)) bad.push(`${entry.stage} is a file run's step (/pob2:build-guide from a PoB file, slug ${FILE_ID}) or a piece run's; this run's slug is ${show(log.slug)} (D-516)`);
+    }
+    if (kind === 'stage' && ['better', 'ladder'].includes(entry.scope) && !isFileRun(log)) bad.push(`scope ${entry.scope} is ${entry.scope === 'better' ? "the better round's, a compile run's or a file run's" : "a file run's rungs around the placed one"}; this run's slug is ${show(log.slug)} (D-516)`);
+    return bad;
+  }
+  const steps = PIECE_STEPS[piece];
+  if (kind === 'stage') {
+    if (!steps.includes(entry.stage)) bad.push(`${entry.stage} isn't a ${piece} run's step; a ${piece} run logs ${steps.join(', ')} (D-516, Appendix A.6)`);
+    if (entry.scope === 'ladder') bad.push(`scope ladder is a file run's (/pob2:build-guide from a PoB file); a ${piece} run designs no ladder (D-516)`);
+    if (piece === 'compile' && entry.concept !== undefined && entry.concept !== FILE_ID) bad.push(`concept ${show(entry.concept)}: a compile run's one build is ${FILE_ID} (D-516)`);
+    // D-516 (§18): a writer run's W1 writes the guide of its source's build: source.build, or file for a root build.
+    const want = isObj(log.source) && text(log.source.build) ? log.source.build : FILE_ID;
+    if (piece === 'writer' && entry.stage === 'W1' && entry.concept !== want) bad.push(`concept ${show(entry.concept)}: a writer run's W1 writes the guide of its source's build, ${want} (source.build, else ${FILE_ID}; D-516)`);
+  } else if (kind === 'checkpoint' || kind === 'escalation') {
+    const which = kind === 'checkpoint' ? entry.checkpoint : 'escalation';
+    // D-482: the better round's D1 steps take the user's requests, so its runner may ask about a departure (`ask`).
+    if (piece !== 'compile' || !['design', 'escalation', 'ask'].includes(which)) bad.push(`a ${piece} run has no ${which === 'escalation' ? 'escalation' : which === 'ask' ? 'ask checkpoint' : `${which} gate`}; only a compile run's better round has gates, its design gate and its escalation question, and its ask (D-516)`);
+    else if (kind === 'checkpoint' && which === 'design' && entry.concept !== FILE_ID) bad.push(`concept ${show(entry.concept)}: a compile run's design checkpoint names its one build, ${FILE_ID} (D-516)`);
+    else if (kind === 'checkpoint' && which === 'ask' && entry.build !== FILE_ID) bad.push(`build ${show(entry.build)}: a compile run's ask names its one build, ${FILE_ID} (D-516)`);
+    else if (kind === 'escalation' && entry.concept !== FILE_ID) bad.push(`concept ${show(entry.concept)}: a compile run's escalation names its one build, ${FILE_ID} (D-516)`);
+  } else if (kind === 'pricing') {
+    bad.push(`a ${piece} run has no gate that asks to retry pricing: a stop ends the run (status stopped), and /pob2:${piece} --resume <run folder> after the lockout is the retry, which clears the stop (D-516)`);
+  } else if (kind === 'build') {
+    bad.push(`a ${piece} run has no builds[]: its files sit at the folder's root, its one build's (D-516, Appendix A.6)`);
+  } else if (kind === 'set' && entry.dossier !== undefined) {
+    bad.push(`a ${piece} run has no dossier (D-516, Appendix A.6)`);
+  }
+  return bad;
+}
+
+/**
  * Amendment 14 (D-479, D-480, D-482; Appendix A): a write against the run: a skeleton removed is a picked card's (a build
  * of the run) whose last R1b recorded the file and no removal yet; an answer change amends a design visit answered
  * `accept`, after its build's F1 passed and before any W1 entry after that pass, once; W1's `cancelled` follows an answer
@@ -803,7 +967,8 @@ function amendment14AgainstRun(log, kind, entry) {
     if (!change) bad.push(`${entry.concept} has no answer change; W1 is cancelled only when the user changed the design gate's accept to the PoB file only after F1 (D-480)`);
     else if (stages.slice(change.at).some((s) => s.stage === 'W1' && s.concept === entry.concept && real(s))) bad.push(`${entry.concept}'s W1 after its answer change is already logged; one W1 is cancelled, the one running when the answer changed (D-480)`);
   } else if (kind === 'checkpoint' && entry.checkpoint === 'ask') {
-    if (!builds.some((b) => b.id === entry.build)) bad.push(`build ${entry.build} has no build in the run; builds[] holds ${builds.map((b) => b.id).join(', ') || 'none'} (D-482)`);
+    // D-516: a piece run has no builds[]; its ask names its one build, file (pieceAgainstRun).
+    if (pieceOf(log) === null && !builds.some((b) => b.id === entry.build)) bad.push(`build ${entry.build} has no build in the run; builds[] holds ${builds.map((b) => b.id).join(', ') || 'none'} (D-482)`);
     const next = objects(log.checkpoints).filter((c) => c.checkpoint === 'ask').length + 1;
     if (entry.visit !== next) bad.push(`the next ask is visit ${next}, not ${entry.visit}`);
   } else if (kind === 'withdrawn') {
@@ -1554,7 +1719,8 @@ function readJson(dir, rel) {
 /** The card ids of the run's card files `cards/<id>.md`. */
 function listCards(dir) {
   try {
-    return fs.readdirSync(path.join(dir, 'cards')).map((f) => new RegExp(`^(${CARD_ID})\\.md$`).exec(f)?.[1]).filter(Boolean).sort();
+    // D-516: a compile run's or a file run's file card, cards/file.md, beside the card ids.
+    return fs.readdirSync(path.join(dir, 'cards')).map((f) => new RegExp(`^(${CARD_ID}|${FILE_ID})\\.md$`).exec(f)?.[1]).filter(Boolean).sort();
   } catch {
     return [];
   }
@@ -2993,12 +3159,17 @@ export async function display(runFolder, gate, build, opts = {}) {
   const log = readLog(file);
   // D-411, D-412: in schema 4 the design and final gates are a build's, named with --build <id>; no other gate is.
   const perBuild = ['design', 'final'].includes(gate);
+  const piece = pieceOf(log);
   if (log.schemaVersion !== 4 && build !== undefined) throw new Error('display: --build is schema 4\'s (amendment 9); this run log is schema 3');
-  if (log.schemaVersion === 4 && perBuild && build === undefined) throw new Error(`display: the ${gate} gate is a build's: display ${gate} --build <card id> (D-411)`);
+  // D-516: a compile run's better round has the design gate and the escalation question, its one build file at the root;
+  // no other piece run has a gate.
+  if (piece !== null && (piece !== 'compile' || !['design', 'escalation'].includes(gate))) throw new Error(`display: a ${piece} run has no ${gate === 'escalation' ? 'escalation' : `${gate} gate`}; only a compile run's better round has gates, its design gate and its escalation question (D-516)`);
+  if (piece !== null && build !== undefined && (gate !== 'design' || build !== FILE_ID)) throw new Error(`display: a compile run's one build is ${FILE_ID}, at the folder's root: display design, or display design --build ${FILE_ID} (D-516)`);
+  if (piece === null && log.schemaVersion === 4 && perBuild && build === undefined) throw new Error(`display: the ${gate} gate is a build's: display ${gate} --build <card id> (D-411)`);
   if (build !== undefined && !perBuild) throw new Error(`display: --build goes with the design and final gates, not ${gate}`);
-  if (build !== undefined && !objects(log.builds).some((b) => b.id === build)) throw new Error(`display: ${build} has no build in the run; builds[] holds ${objects(log.builds).map((b) => b.id).join(', ') || 'none'}`);
+  if (piece === null && build !== undefined && !objects(log.builds).some((b) => b.id === build)) throw new Error(`display: ${build} has no build in the run; builds[] holds ${objects(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const visit = (Array.isArray(log.checkpoints) ? log.checkpoints.filter((c) => isObj(c) && c.checkpoint === gate).length : 0) + 1;
-  const body = await DISPLAYS[gate](runFolder, log, build, opts);
+  const body = await DISPLAYS[gate](runFolder, log, piece !== null && gate === 'design' ? FILE_ID : build, opts);
   if (!Array.isArray(log.displays)) log.displays = [];
   if (!log.displays.some((d) => isObj(d) && d.checkpoint === gate && d.visit === visit)) {
     // D-475 (amendment 13, Appendix A): the brainstorm display's number-to-id map, so the runner maps the user's numbers.

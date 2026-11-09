@@ -1,0 +1,34 @@
+{
+  "source": {
+    "kind": "builds-folder",
+    "name": "Fixture Titan",
+    "sha1": "dd346b1b547364b85a8a16b04272addf74cd123a",
+    "copy": "source.xml"
+  },
+  "treeVersion": "0_5",
+  "loadouts": [
+    "Endgame"
+  ],
+  "loadout": "Endgame",
+  "groups": [
+    {
+      "plan": 1,
+      "file": 1
+    },
+    {
+      "plan": 2,
+      "file": 2
+    }
+  ],
+  "left": [],
+  "dropped": [],
+  "levels": [],
+  "questions": [],
+  "notRead": [
+    "notes",
+    "party",
+    "tradeWeights",
+    "timelessData"
+  ],
+  "answers": {}
+}

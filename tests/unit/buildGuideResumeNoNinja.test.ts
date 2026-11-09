@@ -50,7 +50,7 @@ describe("resume sets the top-level noNinja to the session's --no-ninja; resumes
     // Amendment 11 (§19), amendment 12 (Appendix A): the resume stamps the migrated log with the skill revision, a
     // boundary for each of amendments 11 and 12 at the same lengths; amendment 13 (§22) adds 13's; amendment 16's M-29
     // (WU-151, §24, D-507) 15's, which names revisions, and prints the running leagues' digests after.
-    expect(resume(dir, true)).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[19] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
+    expect(resume(dir, true)).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 16 from stages[19] (the rules of revisions 11, 12, 13, 14, 15 and 16)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     expect(log(dir)).toMatchObject({ noNinja: true, status: 'running', resumes: [expect.objectContaining({ noNinja: true })] });
     // The checker holds a migrated run's noNinja to true, false or null: true passes its field rule.
     expect(node(CHECKER, [dir]).stderr).not.toMatch(/noNinja/);

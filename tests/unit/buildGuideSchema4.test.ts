@@ -188,7 +188,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12;
     // amendment 13 (§22): 13; amendment 16's M-29 (§24, D-507): 15, its digest the running leagues' list.
     expect(log).toEqual({
-      schemaVersion: 4, skillRevision: 15, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
+      schemaVersion: 4, skillRevision: 16, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
       noNinja: true, pinCommit: pin, digest: runningNames(REPO, TEST_NOW_MS), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
@@ -253,7 +253,7 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     // Amendment 11 (§19): the resume stamps the older log with the skill revision, held from here on.
     // Amendment 12 (Appendix A): an older log is stamped with a boundary for each revision; amendment 13 (§22): 13.
     // Amendment 16's M-29 (§24, D-507): 15, which names revisions, and the running leagues' digests printed after.
-    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[25] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
+    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 16 from stages[25] (the rules of revisions 11, 12, 13, 14, 15 and 16)\n${digestReport(REPO, TEST_NOW_MS)}`, stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
     expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: runningNames(REPO, TEST_NOW_MS), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);

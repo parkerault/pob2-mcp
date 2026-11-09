@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 4,
+  "skillRevision": 16,
+  "piece": "pricing",
+  "runFolder": "/tmp/pob2-guides/pricing/2026-12-01-1",
+  "status": "completed",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": [
+    "forbidden-rites.md",
+    "runes-of-aldur.md"
+  ],
+  "source": {
+    "kind": "import-code"
+  },
+  "stages": [
+    {
+      "stage": "read",
+      "attempt": 1,
+      "outcome": "done"
+    },
+    {
+      "stage": "price",
+      "attempt": 1,
+      "outcome": "done",
+      "priceOutcomes": {}
+    }
+  ],
+  "checkpoints": [],
+  "displays": [],
+  "escalations": [],
+  "faults": [],
+  "resumes": [],
+  "pricing": {
+    "stops": [],
+    "retries": []
+  }
+}

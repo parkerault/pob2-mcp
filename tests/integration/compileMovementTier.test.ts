@@ -11,6 +11,7 @@
  *   config sets, each set's lines sorted. A compile now keeps every one of those fields equal (new fields may be added),
  *   and the saved config sets are the same lines: the boss measure puts `enemyIsBoss` back. WU-120 (amendment 12 §22):
  *   every field but `measures.arbiter`, which now reads the Pinnacle pass; the new passes put their options back too.
+ *   D-511 (amendment 16 §7): nor the saved file's size, smaller now that it leaves out PoB's `<ModRange>` copies.
  * - **The boots.** A schema-7 plan of the same Warrior / Titan, its boots written from the pinned data (Rough Greaves with
  *   one movement-speed line, Data/ModItem.lua's tiers 20% to 35%; the unique Birth of Fury, Stone Greaves at 20%,
  *   Data/Uniques/boots.lua; Leap Slam, PoB's Travel type, Data/Skills/act_str.lua): campaign stages at
@@ -161,6 +162,9 @@ engineDescribe('WU-111: movement-tier and a schema-6 plan through compile_plan (
       // WU-120 (amendment 12 §22): the Arbiter rows now read the Pinnacle pass on every recompiled plan, so the equality
       // leaves measures.arbiter out (AC-P82's rule); compileMeasures.test.ts checks those rows against PoB.
       for (const s of Object.values<Json>(before.stages)) delete s.measures?.arbiter;
+      // D-511 (amendment 16 §7): the saved file leaves out PoB's <ModRange> copies, so it is smaller.
+      expect(ladder.pobFile.bytes).toBeLessThan(before.pobFile.bytes);
+      delete before.pobFile.bytes;
       expect(differences(before, ladder)).toEqual([]);
       // The ladder's variant stages gained the new measures beside them: amendment 11's damage figures and amendment 12's
       // resisting figure and toughness reading (the conditioned read on n only).

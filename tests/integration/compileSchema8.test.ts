@@ -11,7 +11,8 @@
  *   fixture's `record-before-schema8.json` is its compile record from the build before WU-119 (M-25's integration head,
  *   2ac662c), less the fields that change on every compile (`compiledAt`, `timing`, each stage's `elapsedMs`, the import
  *   code, the saved file's sha1 and path). A compile now keeps every one of those fields equal but `measures.arbiter` (the
- *   Pinnacle pass changes it, §22), and `two-stage-count` (schema 2) keeps its findings.
+ *   Pinnacle pass changes it, §22) and the saved file's size (smaller since D-511, amendment 16 §7: no `<ModRange>`), and
+ *   `two-stage-count` (schema 2) keeps its findings.
  * - **One tree per loadout** (§7): the ladder at schema 8 without the respec, a `tmpb1` copying `b` listed after it, and
  *   three custom lines on `n`; and the same trees at schema 7.
  * - **The curse cap** (§10): Elemental Weakness, Despair and Frost Bomb (`Data/Skills/act_int.lua`: the curse cap 72 at gem
@@ -248,6 +249,9 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
     it("AC-P82: a schema-7 plan's record keeps every field but measures.arbiter equal to record-before-schema8.json", () => {
       const before = read(path.join(LADDER7, 'record-before-schema8.json'));
       for (const s of Object.values(before.stages) as Json[]) delete s.measures?.arbiter;
+      // D-511 (amendment 16 §7): the saved file leaves out PoB's <ModRange> copies, so it is smaller.
+      expect(ladder7.pobFile.bytes).toBeLessThan(before.pobFile.bytes);
+      delete before.pobFile.bytes;
       expect(differences(before, ladder7)).toEqual([]);
       // Its respec and tree-continuity are schema 7's: n drops b's Area Damage branch with no respec.
       expect(codesOf(ladder7, 'n', 'tree-continuity').map((x) => x.data)).toEqual([{ predecessor: 'b', dropped: [53443, 59767] }]);
@@ -266,6 +270,9 @@ engineDescribe('WU-119: plan schema 8 and V1 through compile_plan (amendment 12 
       for (const id of Object.keys(before.stages)) {
         expect({ id, v1: count.stages[id].v1, v2: count.stages[id].v2 }).toEqual({ id, v1: before.stages[id].v1, v2: before.stages[id].v2 });
       }
+      // D-511 (amendment 16 §7): the saved file leaves out PoB's <ModRange> copies, so it is smaller.
+      expect(count.pobFile.bytes).toBeLessThan(before.pobFile.bytes);
+      delete before.pobFile.bytes;
       expect(differences(before, count)).toEqual([]);
       // Its custom line adds life, with no coverage result: custom-defence would find it on a schema-8 plan.
       expect(count.stages['2'].customModsWritten).toEqual(['+100 to maximum Life']);

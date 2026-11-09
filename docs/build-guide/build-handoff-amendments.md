@@ -178,6 +178,25 @@ M-21's to M-29's formats stay in force where M-30 doesn't change them.
     runningDigests.ts`'s `TEST_NOW`); a test that spawns `run-log` without it can flake at a league boundary.
   - **Temp layouts** that copy build-guide's scripts also copy `skills/game-knowledge/scripts/` (`run-log.mjs` imports
     `leagues.mjs`).
+- **Found while building M-30** (for WU-168 and HG-8; the work-log's M-30 section has the evidence):
+  - **The expected results** are in slice 05 (compile: both characters' read and measured points, and the library
+    file's case), 06 (pricing), 07 (writer) and slice 03's §5.2 (the file run). The library file isn't in the builds
+    folder: its run starts from an import code of it, read in place, its loadout answered on `plan_from_build`'s second
+    call (`loadout` is an answer, never a first-call field).
+  - **Online runs fetch:** each piece and `/pob2:build-guide` run `pob2-league-digest --running --out <leagueFolder>`
+    at a run's start when online (poe2db at the digest's pace; it writes only the state folder's `league`, which
+    `guide_run {new_run}` creates). Trade only with the user's approval, announced; the pricing notice states its
+    search bound and asks over 30.
+  - **Writes:** the better round's draft "<name> better (draft)" and final "<name> better" (by `first_free`, the run's
+    date added when taken) in the builds folder; the writer writes only its own folder and leaves `notes.txt` for the
+    user to paste into PoB.
+  - **Room:** words loaded are near their bounds (D1-finish 70,014 of 70,327; W1 +4.2%), so a fix from a real case that
+    adds stage text trims elsewhere. The always-on cost is about 2,882 tokens (R-115).
+  - **HG-8:** the words-loaded baseline's `since` entries (`measure` at `6b4020b`, `price` at `3ac345d`) and every lane
+    commit the work-log, the spine and slices 01 to 07 cite are remapped to the signed commits, or a fresh clone's
+    test fails.
+  - **PG-116:** Earthquake Aftershock's area figure moves with the engine's memory layout; a golden value of it can
+    move with any bridge edit.
 - **Lane bootstrap, network, commits, notification:** as M-29's, with `build-guide/m30`.
 
 ## M-28: amendment 15, the plugin layout, the shared rules and game knowledge (built)

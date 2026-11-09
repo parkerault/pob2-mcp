@@ -8194,3 +8194,44 @@ What the coordinator folded (revision 2, approved):
   `stand_in` (named by slot, not group). No personal detail added.
 - **WU-167 (M-30's documents) merged** at `edb4eed` (fast-forward, three commits on `49a4c7f`). AC-W161 in
   `tests/static/amendment16Docs.test.ts` and `specSpine.test.ts`. Every M-30 unit but WU-168 is merged.
+- **M-30's milestone gate dispatched** to a fresh verifier on `5f48715` (brief: the full gate from clean,
+  `fresh-clone-check.sh`, the load check with five skills and four agents and the always-on cost against R-115's, the
+  pin-upgrade dry run on the merged tree, each M-30 criterion with its test, AC-W162 over the milestone against
+  `cf16e07`, the fold, the fixed things, nothing personal committed).
+- **M-30's milestone gate** (fresh verifier) **passed on `5f48715`** (the four lines above were uncommitted in the
+  working tree during the run; the fresh clone took HEAD, and the dry run left them as they were):
+  - `mise run test` rc 0 (274 suites, 4,776 tests, none failed or skipped, the engine suites included; the timing step
+    2 suites, 4 tests: compilePlanNfr 150.9 s, tradeQueryNfr 17.0 s), `pnpm build` rc 0; 574 s in all.
+  - `scripts/fresh-clone-check.sh` rc 0: 86 tools, 85 with poe.ninja off; `lua_load_build` grenadator.xml Life 2,977;
+    `find_upgrades` "[trade:no_session]"; "fresh-clone check passed (5f48715…)".
+  - **The load check on the merged tree:** `claude plugin validate` rc 0, only the expected warnings (no `version`
+    twice, the root `CLAUDE.md`, `ICON_MISSING`); `plugin details pob2` rc 0: Skills (5) `build-guide`, `compile`,
+    `game-knowledge`, `pricing`, `writer`; Agents (4); Hooks (1) `SessionStart`. **The always-on cost about 2,882
+    tokens** against R-115's 1,362 at M-28 and M-29 (+1,520: compile about 500, pricing 420, writer 410); no bound,
+    recorded.
+  - **The pin-upgrade dry run on the merged tree** (`node scripts/pin-upgrade.mjs v0.23.1`) rc 0: all nine steps, its
+    gate 276 suites and 4,780 tests, "Judgment: none", nothing retired; the tree as it was; the staged tree deleted.
+  - Each of AC-W139 (max +4.5%, D1-finish 70,014 against 66,978), AC-W142, AC-W144 (323 lines) and AC-W145 to
+    AC-W159 and AC-W161 holds, its tests named as above and passing in the gate; AC-W150 and AC-W151's probe recorded
+    with the three sha1s unchanged. AC-W160 and AC-W140 not run (WU-168), open by design.
+  - **AC-W162 over the milestone:** 123 test files changed (85 added, 38 modified); every changed assertion is on its
+    unit's list with its decision (D-516, D-517, D-519, D-520, D-521, D-522, D-523, D-525); none flagged. The 13
+    pipeline fixtures under `cf16e07`'s checker and the head's: exit codes equal (12 rc 0, run-rival rc 1 at both),
+    output byte-identical.
+  - **The fold:** "Folded through amendment 16, 2026-11-09."; D-516…D-525 and C-61…C-66 built with as-built notes
+    (D-524 built for the tools' real cases, the pieces' part a target until WU-168); WU-159…WU-167 built, WU-168,
+    AC-W160 and AC-W140 open; M-30 "built, WU-168 open"; slices 05 to 07 with their real cases.
+  - Waivers `[]`; `package.json`, `pnpm-lock.yaml` and `pob-pin.json` unchanged since `9f00715`; `vendor/` identical to
+    the main checkout's at `7d6f530`; 86 tools and 86 README rows; every `src/server/` contract change inside the HG-12
+    grant; no character hash or account name committed.
+- **M-30 built; WU-168 open.** R-115's row gains M-30's always-on cost; the handoff's M-30 section gains "Found while
+  building M-30" for WU-168. **Cost:** about 14M subagent tokens (doers, verifiers and reviewers: WU-159 1.14M, WU-160
+  1.19M, WU-161 1.35M, WU-162 1.39M, WU-163 1.37M, WU-164 1.53M, WU-165 1.17M, WU-166 about 2.2M over both phases,
+  WU-167 1.37M; the milestone gate 0.26M). Next, with the user: HG-8 (sign `build-guide/m30` onto `main` and push,
+  remapping the citations and the words-loaded `since` commits), then `pnpm build` in the main checkout and `/mcp`,
+  then WU-168 in a `--plugin-dir` session (HG-38, HG-39), with WU-157's probe; then PG-109's upstream PR draft.
+- **Friction for the next run:**
+  - Words loaded are near their bounds (D1-finish +4.5% of 5%, W1 +4.2%); a later stage text must trim as it adds.
+  - A fixture built by hand from another run hid two defects (WU-162's and WU-164's); real-path fixtures from an
+    uncommitted engine probe caught them. Build fixtures from the reader's and the compile's output.
+  - A fresh worktree's static tests need `pnpm build` first (the README test and the F1 checker test read `build/`).

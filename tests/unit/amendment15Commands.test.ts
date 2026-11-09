@@ -8,7 +8,8 @@
  *   `pob2-render-audit <copy> --build <id>`, `pob2-render-notes <copy> --build <id>`; and `pob2-check-run` through a
  *   symbolic link to the `bin/` folder gives the same result.
  * - AC-W118: old runs resume. A copy of the revision-14 fixture run (schema 4, `skillRevision` 14) resumes with
- *   `pob2-run-log <copy> resume '{"noNinja": true}'` and then passes the checker; the log's `skillRevision` stays 14.
+ *   `pob2-run-log <copy> resume '{"noNinja": true}'` and then passes the checker; the log's `skillRevision` stays 14
+ *   (until amendment 16's M-29, whose revision 15 a resume stamps with its boundary, D-507).
  * - AC-W119 (unit part): `scripts/run-usage.mjs` names a step the same for `pob2:build-guide-coordinator` as for
  *   `build-guide-coordinator`.
  * - AC-W120 (unit part): the data builders at `skills/game-knowledge/scripts/`: `rules-index.mjs check` passes on
@@ -20,6 +21,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { pathToFileURL } from 'url';
+import { digestReport } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -157,13 +159,16 @@ describe("AC-W117 (WU-145, D-500): the render's withdrawal refusal names the bin
 });
 
 describe('AC-W118 (WU-145, D-500): an old run resumes unchanged', () => {
-  it("a copy of the revision-14 fixture resumes with pob2-run-log, then passes the checker; its skillRevision stays 14", () => {
+  // Amendment 16's M-29 (WU-151, §24, D-507): skill revision 15, so the resume stamps 15 with its boundary and prints
+  // the running leagues' digests; the old run still passes.
+  it("a copy of the revision-14 fixture resumes with pob2-run-log, then passes the checker; its skillRevision becomes 15 (amendment 16's M-29)", () => {
     const dir = copyOf(RUN_A14);
     expect(readLog(dir)).toMatchObject({ schemaVersion: 4, skillRevision: 14, status: 'completed' });
-    expect(viaBin('pob2-run-log', [dir, 'resume', '{"noNinja": true}'])).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running\n', stderr: '' });
+    const stages = readLog(dir).stages.length;
+    expect(viaBin('pob2-run-log', [dir, 'resume', '{"noNinja": true}'])).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${stages}]\n${digestReport(REPO)}`, stderr: '' });
     expect(viaBin('pob2-check-run', [dir])).toEqual({ code: 0, stdout: `check-run: ok: ${dir}\n`, stderr: '' });
     const log = readLog(dir);
-    expect(log).toMatchObject({ schemaVersion: 4, skillRevision: 14, status: 'running', noNinja: true });
+    expect(log).toMatchObject({ schemaVersion: 4, skillRevision: 15, status: 'running', noNinja: true });
     expect(log.resumes).toEqual([expect.objectContaining({ noNinja: true })]);
   });
 });

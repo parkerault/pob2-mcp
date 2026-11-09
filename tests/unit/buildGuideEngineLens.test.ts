@@ -41,6 +41,8 @@ const CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-run.m
   const scripts = path.dirname(CHECKER);
   fs.mkdirSync(scripts, { recursive: true });
   for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(scripts, f));
+  // Amendment 16 (WU-151, D-507): run-log.mjs reads the running leagues through game knowledge's leagues.mjs.
+  fs.cpSync(path.join(REPO, 'skills', 'game-knowledge', 'scripts'), path.join(ROOT, 'skills', 'game-knowledge', 'scripts'), { recursive: true });
   fs.symlinkSync(path.join(REPO, 'build'), path.join(ROOT, 'build'));
   fs.mkdirSync(path.join(ROOT, 'data', 'rules'), { recursive: true });
   for (const d of ['campaign', 'economy', 'enemies']) fs.symlinkSync(path.join(REPO, 'data', d), path.join(ROOT, 'data', d));

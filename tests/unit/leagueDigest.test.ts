@@ -298,7 +298,8 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
     expect(text.split('\n').slice(0, 3)).toEqual([
       '# League digest: Embers of Tarn',
       '',
-      `Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. In-pin flags: checked against the fixture name list on ${day(new Date())}.`,
+      // D-507 (amendment 16, WU-151): the league's dates from its homepage card, after the fetch date.
+      `Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. League: from 2026-08-01 20:00 UTC until 2026-12-04 20:00 UTC. In-pin flags: checked against the fixture name list on ${day(new Date())}.`,
     ]);
     expect(text).toContain('Cite an entry by its id: `data | league/embers-of-tarn.md#<id>`.');
     expect(headOf(text)).toEqual(HEAD);
@@ -488,6 +489,81 @@ describe('league-digest.mjs (WU-84, D-400): a poe2db section as data/league/<slu
 });
 
 /**
+ * AC-W131 (WU-151, amendment 16 §3, D-507): the league's dates. The fixture homepage (`home.html`, its comment) has three
+ * league cards apart from the section blocks, each a header with its version label and two time slots, and a section
+ * per card: "Tidewater Return" (0.9) runs 2026-08-01 20:00 UTC to 2026-12-04 20:00 UTC, "Marsh Festival" (0.9.1) from
+ * 2026-10-02 20:00 UTC to the same end, and "Release" (1.0) has an event slot (2026-11-14 17:45 UTC) and starts
+ * 2026-12-04 20:00 UTC, no end announced. The card names aren't the section names; the versions match. Every run here
+ * reads saved pages under a preload that makes `fetch` throw: no request.
+ */
+describe("AC-W131 (WU-151, D-507): the digest script's league dates, from the homepage's cards", () => {
+  const EMBERS = 'League: from 2026-08-01 20:00 UTC until 2026-12-04 20:00 UTC.';
+  const SALTMARSH = 'League: from 2026-10-02 20:00 UTC until 2026-12-04 20:00 UTC.';
+  const HOLLOW = 'League: from 2026-12-04 20:00 UTC until no end announced.';
+  const third = (text: string) => text.split('\n')[2];
+  /** A hand-written digest in `out`: its first three lines and one body line. */
+  const written = (out: string, file: string, line: string) => {
+    fs.writeFileSync(path.join(out, file), `# League digest: ${file}\n\n${line}\n\nA body line.\n`);
+    return path.join(out, file);
+  };
+
+  it("writes Appendix A.1's sentence after the fetch date, from the card whose version label ends the section's <small>: its Running for slot the start, its Ends in slot the end", () => {
+    const { text, stdout } = digestOf();
+    expect(third(text)).toBe(`Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. ${EMBERS} In-pin flags: checked against the fixture name list on ${day(new Date())}.`);
+    expect(third(text)).toMatch(/ on poe2db\.tw, fetched \d{4}-\d{2}-\d{2}\. League: from \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC until \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC\. In-pin flags: /);
+    // The card's name isn't the section's: the version label matched it. A dated section says nothing more.
+    const home = fs.readFileSync(path.join(FIXTURES, 'home.html'), 'utf8');
+    expect(home).toContain('<h5 class="card-header">Tidewater Return <small class="float-end">0.9</small></h5>');
+    expect(stdout).not.toMatch(/no league card/);
+  });
+
+  it('rewrites, in the same run, the League: sentence of every other digest in its output folder whose card the homepage shows, and prints each change; the event slot is ignored; one whose card is gone keeps what it has', () => {
+    const out = outDir();
+    const saltmarsh = written(out, 'saltmarsh-rites.md', 'Saltmarsh Rites (0.9.1) on poe2db.tw, fetched 2026-10-03. League: from 2026-10-02 20:00 UTC until no end announced. In-pin flags: checked against the fixture name list on 2026-10-03.');
+    const hollow = written(out, 'hollow-crown.md', 'Hollow Crown (1.0) on poe2db.tw, fetched 2026-11-07. In-pin flags: checked against the fixture name list on 2026-11-07.');
+    const old = written(out, 'old-tides.md', 'Old Tides (Drowned Bells 0.8) on poe2db.tw, fetched 2026-01-02. League: from 2025-12-12 20:00 UTC until 2026-04-01 20:00 UTC. In-pin flags: checked against the fixture name list on 2026-01-02.');
+    const oldText = fs.readFileSync(old, 'utf8');
+    const { stdout } = digestOf(pages(), out);
+    // 0.9.1's card gives Saltmarsh Rites its end, 1.0's card its start (the Starts in slot, not the event's), and the
+    // 0.8 digest, whose card the homepage no longer shows, is left as it was. Each change is printed, by file name.
+    expect(third(fs.readFileSync(saltmarsh, 'utf8'))).toBe(`Saltmarsh Rites (0.9.1) on poe2db.tw, fetched 2026-10-03. ${SALTMARSH} In-pin flags: checked against the fixture name list on 2026-10-03.`);
+    expect(third(fs.readFileSync(hollow, 'utf8'))).toBe(`Hollow Crown (1.0) on poe2db.tw, fetched 2026-11-07. ${HOLLOW} In-pin flags: checked against the fixture name list on 2026-11-07.`);
+    expect(fs.readFileSync(old, 'utf8')).toBe(oldText);
+    expect(fs.readFileSync(saltmarsh, 'utf8').split('\n').slice(3)).toEqual(['', 'A body line.', '']);
+    expect(stdout.split('\n').filter((l) => l.startsWith('league-digest: ') && !l.startsWith('league-digest: wrote '))).toEqual([
+      `league-digest: ${hollow}: ${HOLLOW} (was: no League: sentence)`,
+      `league-digest: ${saltmarsh}: ${SALTMARSH} (was: League: from 2026-10-02 20:00 UTC until no end announced.)`,
+    ]);
+    expect(stdout).not.toContain('2026-11-14');
+    // A second run changes nothing, and prints no change.
+    expect(digestOf(pages(), out).stdout.split('\n').filter((l) => / \(was: /.test(l))).toEqual([]);
+  });
+
+  it('writes no sentence for a section that no card matches, or whose card has no start slot (an event label is no start), and says so', () => {
+    const notice = 'league-digest: no league card on the homepage gives Embers of Tarn (Sunken Crowns 0.9) a start, so the digest records no league dates and no reader takes it as running.';
+    for (const edit of [
+      { file: 'home.html', from: 'Tidewater Return <small class="float-end">0.9</small>', to: 'Tidewater Return <small class="float-end">0.8</small>' },
+      { file: 'home.html', from: '<a href="Version_0.9">Running for</a>', to: '<a href="Version_0.9">Season Finale</a>' },
+    ]) {
+      const { text, stdout } = digestOf(pages(edit));
+      expect(third(text)).toBe(`Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. In-pin flags: checked against the fixture name list on ${day(new Date())}.`);
+      expect(text).not.toContain('League:');
+      expect(stdout.split('\n')).toContain(notice);
+    }
+  });
+
+  it('--reflag keeps the sentence: only the in-pin flags move', () => {
+    const { file, out } = digestOf();
+    const names = JSON.parse(fs.readFileSync(PIN_NAMES, 'utf8'));
+    const upgraded = path.join(newDir('pin'), 'upgraded.json');
+    fs.writeFileSync(upgraded, JSON.stringify({ ...names, pin: 'the upgraded list' }));
+    const r = run(['--reflag', SLUG, '--out', out, '--pin-names', upgraded], { preload: NO_NETWORK });
+    expect({ code: r.code, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(third(fs.readFileSync(file, 'utf8'))).toBe(`Embers of Tarn (Sunken Crowns 0.9) on poe2db.tw, fetched ${SAVED_DAY}. ${EMBERS} In-pin flags: checked against the upgraded list on ${day(new Date())}.`);
+  });
+});
+
+/**
  * The committed digest's form, which holds through a re-fetch at a patch and a `--reflag` at a pin upgrade: these
  * check its shape, not its counts or dates.
  */
@@ -498,7 +574,8 @@ describe('the first digest, data/league/runes-of-aldur.md (WU-84, D-400): built 
   it('names its section and fetch date in its first three lines, and its entries line counts its blocks', () => {
     const top = text.split('\n').slice(0, 3);
     expect(top.slice(0, 2)).toEqual(['# League digest: Runes of Aldur', '']);
-    expect(top[2]).toMatch(/^Runes of Aldur \(Return of the Ancients [\d.]+\) on poe2db\.tw, fetched \d{4}-\d{2}-\d{2}(?: to \d{4}-\d{2}-\d{2})?\. In-pin flags: checked against the PoB2 pin v[\d.]+ on \d{4}-\d{2}-\d{2}\.$/);
+    // D-507 (amendment 16, WU-151): the League: sentence after the fetch date, its instants in UTC.
+    expect(top[2]).toMatch(/^Runes of Aldur \(Return of the Ancients [\d.]+\) on poe2db\.tw, fetched \d{4}-\d{2}-\d{2}(?: to \d{4}-\d{2}-\d{2})?\. League: from \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC until (?:\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC|no end announced)\. In-pin flags: checked against the PoB2 pin v[\d.]+ on \d{4}-\d{2}-\d{2}\.$/);
     const count = (kind: string) => body.filter((b) => b.fields.Kind === kind).length;
     const inPin = body.filter((b) => b.fields['In pin'] === 'yes').length;
     expect(text).toContain(`Entries: ${count('gem')} gems, ${count('unique')} uniques, ${count('item')} items, ${count('ascendancy')} ascendancies, ${count('passive')} passives; ${inPin} of the ${body.length} in the pin.`);

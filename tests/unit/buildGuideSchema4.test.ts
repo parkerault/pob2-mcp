@@ -19,7 +19,7 @@ import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { newestDigest } from '../helpers/newestDigest';
+import { digestReport, runningNames } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -178,16 +178,17 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
   const write = (dir: string, kind: string, entry: Json) => node(RUN_LOG, [dir, kind, JSON.stringify(entry)]);
   const INIT = { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none' };
 
-  it("init records noNinja, the pin's commit from pob-pin.json and the newest league digest, with builds[], no roll or outputs, and resumes[]", () => {
+  it("init records noNinja, the pin's commit from pob-pin.json and the running leagues' digests, with builds[], no roll or outputs, and resumes[]", () => {
     const dir = folder();
-    expect(write(dir, 'init', { ...INIT, noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote the first log\n', stderr: '' });
+    // Amendment 16 (WU-151, D-507): init prints the running leagues' digests after its first line.
+    expect(write(dir, 'init', { ...INIT, noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO)}`, stderr: '' });
     const log = readJson(dir, 'run-log.json');
     const pin = readJson(REPO, 'pob-pin.json').commit;
     // Amendment 11 (WU-113, §19, D-444): the skill revision and the pricing stops and retries; amendment 12 (§22): 12;
-    // amendment 13 (§22): 13.
+    // amendment 13 (§22): 13; amendment 16's M-29 (§24, D-507): 15, its digest the running leagues' list.
     expect(log).toEqual({
-      schemaVersion: 4, skillRevision: 14, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
-      noNinja: true, pinCommit: pin, digest: newestDigest(REPO), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
+      schemaVersion: 4, skillRevision: 15, runFolder: dir, slug: 'titan-blood-hunt', brief: INIT.brief, status: 'running', mode: 'offline', testConfig: 'none',
+      noNinja: true, pinCommit: pin, digest: runningNames(REPO), dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [],
       pricing: { stops: [], retries: [] },
     });
     // noNinja is the runner's to state: init refuses a first write without it (D-412, D-420).
@@ -196,20 +197,28 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     expect(fs.readdirSync(other)).toEqual([]);
   });
 
-  it('init reads the pin and the digest beside its own scripts: the newest digest by the fetch date on its third line, not by name', () => {
-    // The repository's layout in a temp dir: the scripts, a pob-pin.json and two digests.
+  // Amendment 16 (WU-151, D-507): the running leagues' digests, by their League: sentences, replace the newest by fetch
+  // date; the test clock sets the instant.
+  it("init reads the pin and the digests beside its own scripts: the running leagues' digests, the latest start first, not the newest fetched", () => {
+    // The repository's layout in a temp dir: the scripts (the league rule's module among them), a pob-pin.json and three digests.
     const root = path.join(TMP, `repo-${++copies}`);
     const scripts = path.join(root, 'skills', 'build-guide', 'scripts');
     fs.mkdirSync(scripts, { recursive: true });
     for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(scripts, f));
+    fs.mkdirSync(path.join(root, 'skills', 'game-knowledge', 'scripts'), { recursive: true });
+    fs.copyFileSync(path.join(REPO, 'skills', 'game-knowledge', 'scripts', 'leagues.mjs'), path.join(root, 'skills', 'game-knowledge', 'scripts', 'leagues.mjs'));
     writeJson(root, 'pob-pin.json', { repo: 'x', tag: 'v0.0.1', commit: '0123456789abcdef0123456789abcdef01234567', version: '0.0.1', headlessWrapperSha1: 'x' });
     fs.mkdirSync(path.join(root, 'data', 'league'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'data', 'league', 'a-newer-league.md'), '# League digest: A\n\nA (0.6) on poe2db.tw, fetched 2026-11-02. In-pin flags: checked.\n');
-    fs.writeFileSync(path.join(root, 'data', 'league', 'z-older-league.md'), '# League digest: Z\n\nZ (0.5) on poe2db.tw, fetched 2026-10-18. In-pin flags: checked.\n');
-    fs.writeFileSync(path.join(root, 'data', 'league', 'z-older-league.rule-changers.json'), '{}');
+    fs.writeFileSync(path.join(root, 'data', 'league', 'a-fetched-last.md'), '# League digest: A\n\nA (0.6) on poe2db.tw, fetched 2026-11-02. League: from 2026-04-01 20:00 UTC until 2026-12-11 20:00 UTC. In-pin flags: checked.\n');
+    fs.writeFileSync(path.join(root, 'data', 'league', 'z-started-last.md'), '# League digest: Z\n\nZ (0.5) on poe2db.tw, fetched 2026-10-18. League: from 2026-09-04 20:00 UTC until no end announced. In-pin flags: checked.\n');
+    fs.writeFileSync(path.join(root, 'data', 'league', 'm-undated.md'), '# League digest: M\n\nM (0.4) on poe2db.tw, fetched 2026-11-05. In-pin flags: checked.\n');
+    fs.writeFileSync(path.join(root, 'data', 'league', 'z-started-last.rule-changers.json'), '{}');
     const dir = folder();
-    expect(node(path.join(scripts, 'run-log.mjs'), [dir, 'init', JSON.stringify({ ...INIT, noNinja: false })]).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ noNinja: false, pinCommit: '0123456789abcdef0123456789abcdef01234567', digest: 'a-newer-league.md' });
+    const r = spawnSync(process.execPath, [path.join(scripts, 'run-log.mjs'), dir, 'init', JSON.stringify({ ...INIT, noNinja: false })], { cwd: TMP, env: { ...ENV, BUILD_GUIDE_TEST_NOW: '2026-11-08T12:00Z' }, encoding: 'utf8', timeout: 30000 });
+    expect({ code: r.status, stderr: r.stderr }).toEqual({ code: 0, stderr: '' });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ noNinja: false, pinCommit: '0123456789abcdef0123456789abcdef01234567', digest: ['z-started-last.md', 'a-fetched-last.md'] });
+    expect(r.stdout).toBe(`run-log: wrote the first log\n${digestReport(root, Date.parse('2026-11-08T12:00Z'))}`);
+    expect(r.stdout).toContain('data/league/m-undated.md records no league dates: re-run its digest script\n');
   });
 
   it('build adds a finalized card queued with its identity in builds/<id>, then changes its status, guide and PoB file; a card with a build is never finalized again', () => {
@@ -242,10 +251,11 @@ describe('AC-W76: run-log.mjs writes schema 4 (D-412)', () => {
     });
     // Amendment 11 (§19): the resume stamps the older log with the skill revision, held from here on.
     // Amendment 12 (Appendix A): an older log is stamped with a boundary for each revision; amendment 13 (§22): 13.
-    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: 'run-log: wrote resumes[0], status running, skillRevision 14 from stages[25] (the rules of amendments 11, 12, 13 and 14)\n', stderr: '' });
+    // Amendment 16's M-29 (§24, D-507): 15, which names revisions, and the running leagues' digests printed after.
+    expect(write(dir, 'resume', { noNinja: true })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[25] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}`, stderr: '' });
     const log = readJson(dir, 'run-log.json');
     expect(log.status).toBe('running');
-    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: newestDigest(REPO), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
+    expect(log.resumes).toEqual([{ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), pinCommit: readJson(REPO, 'pob-pin.json').commit, digest: runningNames(REPO), noNinja: true, lengths: { stages: 25, checkpoints: 7, escalations: 0, displays: 7 } }]);
     expect(write(dir, 'resume', {}).stderr).toMatch(/noNinja is true or false: whether this session prices without poe\.ninja/);
     const old = copy('run-ok');
     expect(write(old, 'resume', { noNinja: false }).stderr).toBe('run-log: resume entry refused: run-log.json is a schema-3 log; resume is schema 4\'s (amendment 9): run pob2-run-log <runFolder> migrate first\n');

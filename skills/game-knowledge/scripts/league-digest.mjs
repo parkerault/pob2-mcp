@@ -38,8 +38,9 @@
 // "passive": […], "socketable": […]}`, replaces the pinned data, for tests. An item poe2db lists without a page of its
 // own has no item class; it is tagged a socketable when the pin knows it as one (Data/ModRunes.lua).
 //
-// **The file** (`--out <dir>`, default data/league): its first three lines name the section and its fetch date (the
-// runner prints `head -3` at a run's start); then how to read and cite it; `## Head`, one line per entry (name, kind
+// **The file** (`--out <dir>`, default data/league): its first three lines name the section, its fetch date and its
+// league's dates (the runner prints the third line of each running league's digest at a run's start, D-507); then how
+// to read and cite it; `## Head`, one line per entry (name, kind
 // and first tag, the first clause of its text, and `[not in pin]`); `## Body`, one block per entry: `### <Name>`, then
 // `- Id: <id>`, kind, tags, in pin, URL, fetch date and text. An entry keeps the id it had in the file's previous
 // version, so citations stay good; a new entry's id is its name as a slug, or the slug and its kind when another entry
@@ -51,8 +52,20 @@
 // `{"ruleChangers": {"<entry id>": "<why>", …}}`, committed beside the digest and read at each write; an id that
 // isn't a socketable of the digest is refused, so a re-fetch that drops one says so.
 //
+// **The league's dates** (amendment 16 §3, D-507; Appendix A.1). The homepage has a row of league cards apart from the
+// section blocks: a card header with a `<small>` version label (`1.0`, `0.5.5`, `0.5`), then time slots, each a
+// `data-displaytime` (Unix seconds) and a label in the element after it. A slot labelled "Running for" or "Starts in"
+// is the league's start, "Ends in" its end; any other label is an event, not a league time, and is ignored. A card
+// belongs to the section whose `<small>` ends with the card's version label (the names differ). The third line gets
+// `League: from <YYYY-MM-DD HH:MM> UTC until <YYYY-MM-DD HH:MM> UTC.` after the fetch date, or `… until no end
+// announced.`, in UTC to the minute; a section no card matches gets none, and the script says so. In the same run, with
+// no further request, it rewrites the `League:` sentence of every other digest in `--out` whose card the homepage shows
+// (matched by the version in its third line's parentheses) and prints each change; one whose card is gone keeps what
+// it has. skills/game-knowledge/scripts/leagues.mjs reads the sentence (the running leagues).
+//
 // **`--reflag <slug>`**, offline, for a pin upgrade: re-checks only the in-pin flags of the committed digest (each
-// block's `- In pin:`, its head line's marker, the count and the pin's name and date) and prints what changed.
+// block's `- In pin:`, its head line's marker, the count and the pin's name and date) and prints what changed; the
+// `League:` sentence stays.
 //
 // Exit 0: written. Exit 1: refused (stderr), the digest unwritten (pages fetched so far stay saved). Exit 2: usage error.
 
@@ -60,6 +73,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LEAGUE_SENTENCE, leagueSentence } from './leagues.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(SCRIPT_DIR, '..', '..', '..');
@@ -294,6 +308,84 @@ export function parseSection(html, slug) {
     entries.push({ kind, name: entryName, tags: [], url: absolute(a.attrs.href, POE2DB), variants: [] });
   }
   return { name, label, lists, entries };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The homepage's league cards (D-507, Appendix A.1)
+
+const START_LABEL = /^(?:running for|starts in)\b/i;
+const END_LABEL = /^ends in\b/i;
+
+/**
+ * The league cards: each card header with a `<small>` version label, and the time slots after it (in the page's order,
+ * before the next card header), each a `data-displaytime` in Unix seconds and the label in the element after it. A card
+ * is `{name, version, start, end}`, its instants in milliseconds or null; a header with no slot (a section block's) is
+ * no card. "Running for" and "Starts in" give the start, "Ends in" the end; any other label is an event, ignored.
+ */
+export function parseCards(html) {
+  const home = parseHtml(html);
+  const cards = [];
+  let cur = null;
+  for (const el of walk(home)) {
+    if (hasClass(el, 'card-header')) {
+      const small = elementsOf(el).find((c) => c.tag === 'small');
+      cur = small ? { name: lineOf(el.children.filter((c) => c !== small)), version: clean(lineOf([small]).replace(/[<>]/g, '')), start: null, end: null, slots: 0 } : null;
+      if (cur) cards.push(cur);
+      continue;
+    }
+    if (!cur || el.attrs['data-displaytime'] === undefined) continue;
+    const seconds = Number(el.attrs['data-displaytime']);
+    if (!Number.isFinite(seconds) || el.attrs['data-displaytime'].trim() === '') continue;
+    const siblings = elementsOf(el.parent);
+    const next = siblings[siblings.indexOf(el) + 1];
+    const label = next ? textOf(next) : '';
+    cur.slots += 1;
+    if (START_LABEL.test(label)) cur.start ??= seconds * 1000;
+    else if (END_LABEL.test(label)) cur.end ??= seconds * 1000;
+  }
+  return cards.filter((c) => c.slots > 0).map(({ slots, ...c }) => c);
+}
+
+/** The card of a section whose `<small>` reads `label`: the first whose version label ends it. */
+export function cardFor(label, cards) {
+  const l = clean(label ?? '');
+  return cards.find((c) => c.version !== '' && (l === c.version || l.endsWith(` ${c.version}`))) ?? null;
+}
+
+/** A card's `League:` sentence, or null when it has no start slot. */
+const sentenceOf = (card) => (card && card.start !== null ? leagueSentence(card.start, card.end) : null);
+
+/** A digest's third line: its section's name, its label in parentheses and its fetch date (`… fetched <date>. `). */
+const THIRD_LINE = /^(.*) \(([^()]*)\) on poe2db\.tw, fetched [^.]*\. /;
+
+/**
+ * D-507: the other digests in `out` (every `*.md` but `file` whose third line is a digest's): each whose card the
+ * homepage shows gets that card's `League:` sentence, replacing the one it had or inserted after its fetch date; one
+ * whose card is gone keeps what it has. Returns the changes, `{file, from, to}`.
+ */
+export function rewriteOthers(out, file, cards) {
+  let names;
+  try {
+    names = fs.readdirSync(out).filter((f) => f.endsWith('.md')).sort();
+  } catch {
+    return [];
+  }
+  const changes = [];
+  for (const name of names) {
+    const p = path.join(out, name);
+    if (path.resolve(p) === path.resolve(file)) continue;
+    const lines = fs.readFileSync(p, 'utf8').split('\n');
+    const m = THIRD_LINE.exec(lines[2] ?? '');
+    if (!m) continue;
+    const to = sentenceOf(cardFor(m[2], cards));
+    if (to === null) continue;
+    const from = LEAGUE_SENTENCE.exec(lines[2])?.[0] ?? null;
+    if (from === to) continue;
+    lines[2] = from !== null ? lines[2].replace(from, to) : lines[2].replace(/(on poe2db\.tw, fetched [^.]*\.) /, `$1 ${to} `);
+    fs.writeFileSync(p, lines.join('\n'));
+    changes.push({ file: p, from, to });
+  }
+  return changes;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -573,13 +665,13 @@ function countsLine(entries) {
 
 const pinLine = (label, date) => `In-pin flags: checked against ${label} on ${date}.`;
 
-export function renderDigest({ slug, fileSlug, section, entries, currency, pin, checked, sources, ruleChangers = new Map() }) {
+export function renderDigest({ slug, fileSlug, section, entries, currency, pin, checked, sources, ruleChangers = new Map(), league = null }) {
   const dates = [...new Set(entries.map((e) => e.fetched))].sort();
   const fetched = dates.length > 1 ? `${dates[0]} to ${dates[dates.length - 1]}` : dates[0] ?? checked;
   const out = [
     `# League digest: ${section.name}`,
     '',
-    `${section.name}${section.label ? ` (${section.label})` : ''} on poe2db.tw, fetched ${fetched}. ${pinLine(pin.label, checked)}`,
+    `${section.name}${section.label ? ` (${section.label})` : ''} on poe2db.tw, fetched ${fetched}. ${league ? `${league} ` : ''}${pinLine(pin.label, checked)}`,
     '',
     `What this section adds, from poe2db: the gems, uniques and items its list pages show (${sources.join(', ')}), with ` +
       `poe2db's text, which is the game's own, and the new ascendancies and passives its block on the homepage names ` +
@@ -843,10 +935,17 @@ async function run(opts) {
   }));
   const sources = LISTS.filter((l) => section.lists.includes(l)).map((l) => pageUrl(opts.slug, l));
   const ruleChangers = readRuleChangers(path.join(opts.out, `${fileSlug}.rule-changers.json`), entries);
-  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers });
+  // D-507: the section's league dates, from its card on the homepage.
+  const cards = parseCards(home.html);
+  const league = sentenceOf(cardFor(section.label, cards));
+  const text = renderDigest({ slug: opts.slug, fileSlug, section, entries, currency, pin, checked: today, sources, ruleChangers, league });
   fs.mkdirSync(opts.out, { recursive: true });
   fs.writeFileSync(file, text);
   console.log(`league-digest: wrote ${file}. ${countsLine(entries)} Currency left out: ${currency}.`);
+  if (league === null) {
+    console.log(`league-digest: no league card on the homepage gives ${section.name}${section.label ? ` (${section.label})` : ''} a start, so the digest records no league dates and no reader takes it as running.`);
+  }
+  for (const c of rewriteOthers(opts.out, file, cards)) console.log(`league-digest: ${c.file}: ${c.to} (was: ${c.from ?? 'no League: sentence'})`);
   if (!before) {
     console.log(`Added: the first digest of ${opts.slug}, so all ${entries.length} entries are new.`);
     return;

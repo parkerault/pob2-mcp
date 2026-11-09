@@ -142,6 +142,10 @@
 //    `ask` checkpoint, the design accept's `scaling`, `answerChanges[]` and `withdrawals[]`, W1's `cancelled`; and in
 //    `checkFlow4`, the answer change after F1 (the claims route, then W1's notes), the swap after a `revise:`, the scaling
 //    pass before F1, one more round behind an `ask` answered `round`, a departure's ask, and D1-tree with no price call.
+//  - amendment 16's M-29 (WU-151; D-507, C-59): `skillRevision` 15, whose run log records the running leagues' digests:
+//    the top-level `digest` in the form of the revision `init` wrote (a list of file names from 15, a string or null
+//    before), each `resumes[]` entry's in the form of its resume (strings or null before the resume that stamped 15, lists
+//    from it on).
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -171,7 +175,7 @@ import {
   COMPOSITE_HEADER, COMPOSITE_FOOTER, SUPERSEDED, COMPOSITE_CARD, RESEARCHER_CARD, PIECE_KEY, PIECES_COLUMNS, MEASURED_COLUMNS,
   PIECE_KINDS, PIECE_STATUSES, ASSEMBLY_STAGES, emptyCell,
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
-  swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES,
+  swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES, A15, boundariesOf,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -2692,6 +2696,31 @@ function checkGateAnswer(c, at, bad, schema = 3, a14 = false) {
   if (!resolved) bad(at, `answers ${show(c.answer)}, but its rule ${show(c.rule)} resolves to ${n !== undefined ? `pick: with at most ${n} card(s), or stop` : c.rule === 'first-viable' ? 'pick:<one card>, or stop' : show(c.rule)} (checkpoints.md)`);
 }
 
+/** D-412: a digest's file name, as a log before skill revision 15 records it. */
+const isDigestName = (v) => typeof v === 'string' && v.trim() !== '';
+/** D-507: the running leagues' digests, as a log at 15 records them: a list of file names, possibly empty. */
+const isDigestList = (v) => Array.isArray(v) && v.every((x) => isDigestName(x) && !/[\\/]/.test(x));
+/** The skill revision `init` wrote: the log's own when no resume stamped it (no boundary for it), else below it. */
+const initRevision = (log) => {
+  const r = revisionOf(log);
+  return r !== null && !(String(r) in boundariesOf(log)) ? r : null;
+};
+/**
+ * D-507: the first `resumes[]` index whose entry records the running leagues' list: 0 in a log init wrote at 15 or later;
+ * in one a resume stamped 15, the resume that stamped it (the first whose digest is a list, its lengths the boundary's);
+ * Infinity in a log below 15.
+ */
+function digestListsFrom(log) {
+  const r = revisionOf(log);
+  if (r === null || r < A15) return Infinity;
+  const b = boundariesOf(log)[String(A15)];
+  if (!isObj(b)) return 0;
+  const resumes = list(log.resumes);
+  const first = resumes.findIndex((x) => Array.isArray(x.digest));
+  const at = first >= 0 && isObj(resumes[first].lengths) && RESUME_LISTS.every((k) => resumes[first].lengths[k] === b[k]) ? first : resumes.findIndex((x) => isObj(x.lengths) && RESUME_LISTS.every((k) => x.lengths[k] === b[k]));
+  return at >= 0 ? at : first >= 0 ? first : Infinity;
+}
+
 /**
  * Schema 4's own fields (amendment 9; D-412, D-415): no run-level `roll` or `outputs`; `noNinja` true or false (null in
  * a migrated run), the pin's commit and the digest's file name (or null); the run-wide `dossier`; `builds[]`, one per
@@ -2704,7 +2733,13 @@ function checkSchema4Fields(log, bad) {
   // D-415: a migrated log's three nulls (its run predates them); a log init wrote holds true or false.
   const migrated = list(log.builds).some((b) => b.folder === '.') || (log.pinCommit === null && log.digest === null);
   if ('noNinja' in log && !(typeof log.noNinja === 'boolean' || (migrated && log.noNinja === null))) bad('noNinja', `is ${show(log.noNinja)}; init records true or false (--no-ninja), null only in a migrated run (D-412, D-415)`);
-  for (const k of ['pinCommit', 'digest']) if (k in log && log[k] !== null && (typeof log[k] !== 'string' || log[k].trim() === '')) bad(k, `is ${show(log[k])}; the ${k === 'pinCommit' ? "pin's commit, read from pob-pin.json" : "newest league digest's file name"}, or null (D-412)`);
+  if ('pinCommit' in log && log.pinCommit !== null && (typeof log.pinCommit !== 'string' || log.pinCommit.trim() === '')) bad('pinCommit', `is ${show(log.pinCommit)}; the pin's commit, read from pob-pin.json, or null (D-412)`);
+  // D-507: the top-level digest keeps the form of the revision init wrote: from 15 the running leagues' list.
+  if ('digest' in log) {
+    if (initRevision(log) >= A15) {
+      if (!isDigestList(log.digest)) bad('digest', `is ${show(log.digest)}; from skill revision ${A15}, which init wrote here, the running leagues' digests: a list of file names, the latest start first, possibly empty (D-507)`);
+    } else if (log.digest !== null && !isDigestName(log.digest)) bad('digest', `is ${show(log.digest)}; the newest league digest's file name, or null, in a log init wrote before skill revision ${A15} (D-412, D-507)`);
+  }
   if ('dossier' in log && log.dossier !== null && (typeof log.dossier !== 'string' || log.dossier.trim() === '')) bad('dossier', `is ${show(log.dossier)}; the dossier's path in the run folder, or null (D-412)`);
   if ('builds' in log && !Array.isArray(log.builds)) bad('builds', 'is a list, one build per finalized card (D-412)');
   const ids = new Set();
@@ -2797,6 +2832,7 @@ function checkSchema4Fields(log, bad) {
     });
   }
   if ('resumes' in log && !Array.isArray(log.resumes)) bad('resumes', 'is a list, one entry per resume (D-415)');
+  const resumeFrom15 = digestListsFrom(log);
   let before = Object.fromEntries(RESUME_LISTS.map((k) => [k, 0]));
   list(log.resumes).forEach((r, i) => {
     const at = `resumes[${i}]`;
@@ -2804,7 +2840,11 @@ function checkSchema4Fields(log, bad) {
     if (show(keys) !== show(RESUME_FIELDS)) bad(at, `has the fields ${keys.join(', ')}; a resume is {${RESUME_FIELDS.join(', ')}} (D-415)`);
     if (typeof r.date !== 'string' || !ISO_DATE.test(r.date)) bad(at, `date is ${show(r.date)}; YYYY-MM-DD`);
     if (typeof r.noNinja !== 'boolean') bad(at, `noNinja is ${show(r.noNinja)}; the session's --no-ninja, true or false (D-415)`);
-    for (const k of ['pinCommit', 'digest']) if (r[k] !== null && (typeof r[k] !== 'string' || r[k].trim() === '')) bad(at, `${k} is ${show(r[k])}; text or null (D-415)`);
+    if (r.pinCommit !== null && (typeof r.pinCommit !== 'string' || r.pinCommit.trim() === '')) bad(at, `pinCommit is ${show(r.pinCommit)}; text or null (D-415)`);
+    // D-507: a resume from the one that stamped revision 15 on records a list; one before it, text or null.
+    if (i >= resumeFrom15) {
+      if (!isDigestList(r.digest)) bad(at, `digest is ${show(r.digest)}; a resume at skill revision ${A15} records the running leagues' digests, a list of file names, possibly empty (D-507)`);
+    } else if (r.digest !== null && !isDigestName(r.digest)) bad(at, `digest is ${show(r.digest)}; text or null in a resume before skill revision ${A15} (D-415, D-507)`);
     const l = isObj(r.lengths) ? r.lengths : null;
     if (!l || show(Object.keys(l)) !== show(RESUME_LISTS) || !RESUME_LISTS.every((k) => isInt(l[k]))) {
       bad(at, `lengths is ${show(r.lengths)}; it is {${RESUME_LISTS.join(', ')}}, each list's length at the resume, so the entries after it can be placed (D-415)`);

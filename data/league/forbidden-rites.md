@@ -1,6 +1,6 @@
 # League digest: Forbidden Rites
 
-Forbidden Rites (0.5.5) on poe2db.tw, fetched 2026-11-07. In-pin flags: checked against the PoB2 pin v0.23.1 on 2026-11-07.
+Forbidden Rites (0.5.5) on poe2db.tw, fetched 2026-11-07. League: from 2026-09-04 20:00 UTC until 2026-12-11 20:00 UTC. In-pin flags: checked against the PoB2 pin v0.23.1 on 2026-11-07.
 
 What this section adds, from poe2db: the gems, uniques and items its list pages show (https://poe2db.tw/us/Forbidden_Rites_items), with poe2db's text, which is the game's own, and the new ascendancies and passives its block on the homepage names (https://poe2db.tw/us/), as names and URLs only. Currency is left out (0 entries: what poe2db marks as currency). Socketables (runes, soul cores and idols) are in the body; the head names only those judged to change a rule, marked `[rule]` with why (`forbidden-rites.rule-changers.json`). `[not in pin]` marks an entry the PoB pin doesn't know: no plan can compile it, so a card that rests on one can't be finalized yet. Read the head whole; Grep the body by mechanic. Cite an entry by its id: `data | league/forbidden-rites.md#<id>`. Written by `skills/game-knowledge/scripts/league-digest.mjs Forbidden_Rites`; re-run it rather than editing by hand, and `--reflag Forbidden_Rites` after a pin upgrade.
 

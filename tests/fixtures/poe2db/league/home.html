@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<!-- Handwritten for league-digest.mjs's tests (WU-84, AC-W70). It follows the structure of poe2db's homepage: a block per
-     league or patch section, and the Ascendancy card whose lists the character classes head. Every name in it is
-     invented; none of its text is poe2db's. -->
+<!-- Handwritten for league-digest.mjs's tests (WU-84, AC-W70; WU-151, AC-W131). It follows the structure of poe2db's
+     homepage: a row of league cards (D-507, amendment 16 Appendix A.1), a block per league or patch section, and the
+     Ascendancy card whose lists the character classes head. Every name and instant in it is invented; none of its text
+     is poe2db's. Each league card has a header with its version label and two time slots, a data-displaytime (Unix
+     seconds) and its label: 0.9 runs 2026-08-01 20:00 UTC to 2026-12-04 20:00 UTC, 0.9.1 2026-10-02 20:00 UTC to the
+     same end, and 1.0's first slot is an event (2026-11-14 17:45 UTC), its start 2026-12-04 20:00 UTC, no end. -->
 <html lang="us">
   <head>
     <meta charset="utf-8">
@@ -11,6 +14,35 @@
     </script>
   </head>
   <body>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card mb-2">
+          <h5 class="card-header">Tidewater Return <small class="float-end">0.9</small></h5>
+          <div class="card-body">
+            <div data-displaytime='1785614400'></div><div><a href="Version_0.9">Running for</a></div>
+            <div data-displaytime='1796414400'></div><div>Ends in</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-2">
+          <h5 class="card-header">Marsh Festival <small class="float-end">0.9.1</small></h5>
+          <div class="card-body">
+            <div data-displaytime='1790971200'></div><div><a href="Version_0.9.1">Running for</a></div>
+            <div data-displaytime='1796414400'></div><div>Ends in</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-2">
+          <h5 class="card-header">Release <small class="float-end">1.0</small></h5>
+          <div class="card-body">
+            <div data-displaytime='1794678300'></div><div>Founders' Gathering</div>
+            <div data-displaytime='1796414400'></div><div><a href="Version_1.0">Starts in</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class='vte col-12'>
         <div class='card mb-2'>
@@ -54,6 +86,20 @@
               <ul>
                 <li><span class="disabled">Gems</span></li>
                 <li><a class="gemitem" href="/us/Tarnished_Infusion">Tarnished Infusion</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class='vte col-12'>
+        <div class='card mb-2'>
+          <h5 class="card-header"><small class='float-end'> <span>1.0</span></small>Hollow Crown</h5>
+          <div class="card-body">
+            <div class="py-1 itemList">
+              <ul>
+                <li><span class="disabled">Mechanism</span></li>
+                <li><a href="/us/Version_1.0">Patchnotes</a></li>
+                <li><a class="uniqueitem" href="/us/Hollow_Crown_uniques">Unique</a></li>
               </ul>
             </div>
           </div>

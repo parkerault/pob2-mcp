@@ -31,7 +31,8 @@
 //  - the log: `{schemaVersion: 4, runFolder, slug, brief, status, mode, testConfig, noNinja, pinCommit, digest, dossier,
 //    builds, stages, checkpoints, displays, escalations, faults, resumes}`; no run-level `roll` or `outputs`. `init`
 //    takes `noNinja` (true or false, --no-ninja), and records the pin's commit from pob-pin.json and the newest league
-//    digest's file name (data/league/<name>.md, newest by the fetch date on its third line), null when there is none;
+//    digest's file name (data/league/<name>.md, newest by the fetch date on its third line), null when there is none
+//    (from skill revision 15 the running leagues' digests, a list: amendment 16, below);
 //  - `builds[]`, one per finalized card in finalize order, `{id, roll, status, folder, guide, pobFile}`: `build` adds one
 //    `{"id", "roll", "status": "queued"}` (its folder `builds/<id>`), then changes its `status` (queued, designing,
 //    writing, completed, file-only, not-accepted, dropped, stopped, escalated), its `guide` (null, endgame or full) or
@@ -169,6 +170,18 @@
 //    [GR] form from the D1 gate's `summary` (`display design --build <id> --detail` prints today's), the final display's
 //    PoB file first; a clear skill with no area reads `no area: chains <n>, projectiles <m>` once the record has them.
 //
+// Amendment 16's M-29 (WU-151; D-507, C-59), skill revision 15 (`init` writes it, a resume stamps it with its boundary):
+//  - `digest` is the running leagues' digests, `skills/game-knowledge/scripts/leagues.mjs`'s `runningDigests` over
+//    `data/league/` at the machine's clock: a list of file names, the latest start first, possibly empty. The top-level
+//    `digest` keeps the form of the revision `init` wrote (a string or null before 15), each `resumes[]` entry that of
+//    its resume (a list from 15 on). `init` and `resume` print, after their first line, what the runner copies:
+//    `digests: [<paths>]`, the task header's `digests`, then each running digest's third line (the staleness line) or
+//    the none line, then each undated digest named once;
+//  - D-415's line compares two lists as sets, and a string with a list's first entry: "The league digests changed since
+//    this run last ran";
+//  - the test clock: `BUILD_GUIDE_TEST_NOW=<instant>` (as `leagues.mjs --at` reads one) sets `now` for the league rule.
+//    Tests only: a run never sets it.
+//
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
 // (D-486, default false). What needs the deck (a new card's `from` and its name) is checked when the gate's checkpoint is
@@ -180,6 +193,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { playersWords, bossFigure, arbiterFloor, ARBITER_FLOOR, arbiterReading, arbiterLabel12, hasHitsSurvived, survivedPercent, typeWords } from './render-audit.mjs';
+import { runningDigests, report as leagueReport, instantOf } from '../../game-knowledge/scripts/leagues.mjs';
 
 /**
  * A card id (D-319): `r<round>-<letter>-<n>`, the letters a to c a brainstorm round's researchers', g a card made at a
@@ -254,15 +268,17 @@ export const PACE = 'pace';
  * §19, amendment 12's §22, amendment 13's §22: the skill revision `init` writes and `resume` stamps; a log without it is
  * held to the rules before amendment 11.
  */
-export const SKILL_REVISION = 14;
+export const SKILL_REVISION = 15;
 /** Amendment 11's revision (§19): its rules hold from its boundary in every log at 11 or later. */
 export const A11 = 11;
 /** Amendment 13's revision (§22): its rules hold a build from its boundary, read by the build's last D1 gate. */
 export const A13 = 13;
 /** Amendment 14's revision (§25): its rules hold a build from its boundary, read by the build's last D1 gate. */
 export const A14 = 14;
+/** Amendment 16's M-29 revision (§24, D-507): the run log's `digest` is the running leagues' list from it. */
+export const A15 = 15;
 /** Appendix A (amendment 12): the revisions a log can be held to, in order; each one's rules hold from its own boundary. */
-export const REVISIONS = [11, 12, 13, 14];
+export const REVISIONS = [11, 12, 13, 14, 15];
 /** D-481, D-486, D-487 (Appendix A): each step's `scope`, the task header's field that narrows it. */
 export const SCOPES = { 'D1-finish': ['swap', 'scaling'], W1: ['notes'] };
 /** D-482: the steps that take the user's requests and return one `request:` line per request. */
@@ -645,7 +661,7 @@ export function writeLog(runFolder, kind, entry) {
     // pricing stops and retries.
     log = {
       schemaVersion: 4, skillRevision: SKILL_REVISION, runFolder: path.resolve(runFolder), slug: entry.slug, brief: entry.brief, status: entry.status ?? 'running',
-      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: newestDigest(),
+      mode: entry.mode, testConfig: entry.testConfig, noNinja: entry.noNinja, pinCommit: pinCommit(), digest: runningDigestNames(),
       dossier: null, builds: [], stages: [], checkpoints: [], displays: [], escalations: [], faults: [], resumes: [], pricing: { stops: [], retries: [] },
     };
   } else {
@@ -747,7 +763,8 @@ export function writeLog(runFolder, kind, entry) {
       if (!isObj(log.pricing)) log.pricing = { stops: [], retries: [] };
       saveLog(file, log);
       const at = stamped ? log.skillRevisionFrom[String(SKILL_REVISION)].stages : null;
-      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${at}]${added.length > 1 ? ` (the rules of amendments ${added.slice(0, -1).join(', ')} and ${added[added.length - 1]})` : ''}` : ''}`;
+      // Revision 15 is amendment 16's (M-29), so the stamp names revisions, not amendments.
+      return `resumes[${log.resumes.length - 1}], status running${stamped ? `, skillRevision ${SKILL_REVISION} from stages[${at}]${added.length > 1 ? ` (the rules of revisions ${added.slice(0, -1).join(', ')} and ${added[added.length - 1]})` : ''}` : ''}`;
     } else Object.assign(log, entry);
   }
   saveLog(file, log);
@@ -917,22 +934,33 @@ export function pinCommit(repo = REPO) {
 }
 
 /**
- * D-412: the newest league digest's file name, `data/league/<name>.md`, newest by the fetch date on its third line
- * ("… on poe2db.tw, fetched <YYYY-MM-DD>. …"), then by name; null when there is none.
+ * D-507 (amendment 16 §3): the instant the league rule reads, once per process: the machine's clock, or the test
+ * clock `BUILD_GUIDE_TEST_NOW` (an instant as `leagues.mjs --at` reads one), which only tests set.
  */
-export function newestDigest(repo = REPO) {
-  const dir = path.join(repo, 'data', 'league');
-  let names;
-  try {
-    names = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
-  } catch {
-    return null;
+let nowAt;
+export function leagueNow() {
+  if (nowAt === undefined) {
+    const at = process.env.BUILD_GUIDE_TEST_NOW;
+    nowAt = at === undefined || at === '' ? Date.now() : instantOf(at);
+    if (!Number.isFinite(nowAt)) throw new Error(`BUILD_GUIDE_TEST_NOW is "${at}", which isn't an instant (2026-12-11T19:59Z)`);
   }
-  const dated = names.map((f) => {
-    const third = (readText(dir, f) ?? '').split(/\r?\n/)[2] ?? '';
-    return { f, date: /\bfetched (\d{4}-\d{2}-\d{2})\b/.exec(third)?.[1] ?? null };
-  }).filter((d) => d.date !== null).sort((a, b) => (a.date === b.date ? a.f.localeCompare(b.f) : a.date.localeCompare(b.date)));
-  return dated.length > 0 ? dated[dated.length - 1].f : null;
+  return nowAt;
+}
+
+/** The committed league digests' folder, `data/league/` at the plugin root. */
+const leagueFolder = (repo = REPO) => path.join(repo, 'data', 'league');
+
+/**
+ * D-507: the running leagues' digests, as the run log records them from revision 15: their file names, the latest start
+ * first, then by name (`runningDigests`, C-59), possibly empty.
+ */
+export function runningDigestNames(repo = REPO, now = leagueNow()) {
+  return runningDigests([leagueFolder(repo)], now).map((d) => d.name);
+}
+
+/** D-507: what `init` and `resume` print after their first line, for the runner to copy (`leagues.mjs`'s report). */
+export function digestReport(repo = REPO, now = leagueNow()) {
+  return leagueReport([leagueFolder(repo)], now, repo);
 }
 
 /** Today's date, YYYY-MM-DD, in local time. */
@@ -948,7 +976,7 @@ const today = () => {
  */
 function resumeEntry(log, noNinja) {
   const n = (k) => (Array.isArray(log[k]) ? log[k].length : 0);
-  return { date: today(), pinCommit: pinCommit(), digest: newestDigest(), noNinja, lengths: { stages: n('stages'), checkpoints: n('checkpoints'), escalations: n('escalations'), displays: n('displays') } };
+  return { date: today(), pinCommit: pinCommit(), digest: runningDigestNames(), noNinja, lengths: { stages: n('stages'), checkpoints: n('checkpoints'), escalations: n('escalations'), displays: n('displays') } };
 }
 
 /** The log at `file`, schema 3 or 4, or throws an Error saying why not. */
@@ -2259,19 +2287,40 @@ function verificationDisplay(dir, log) {
 }
 
 /**
- * D-415: when the pin's commit or the newest league digest differs from the one the run last recorded (the resume
- * before this session's, or init's), the verification display says so: a card verified on the old pin may still be
+ * D-415, as D-507 amends it: whether two recorded digests differ. Two lists compare as sets, a string with a list's
+ * first entry (none when the list is empty), two strings as text; a record that is neither (a migrated run's null) is
+ * never a change.
+ */
+export function digestsDiffer(before, now) {
+  const isList = (v) => Array.isArray(v) && v.every((x) => text(x));
+  if (!(text(before) || isList(before)) || !(text(now) || isList(now))) return false;
+  if (isList(before) && isList(now)) {
+    const [a, b] = [new Set(before), new Set(now)];
+    return a.size !== b.size || [...a].some((x) => !b.has(x));
+  }
+  if (isList(before)) return before[0] !== now;
+  if (isList(now)) return now[0] !== before;
+  return before !== now;
+}
+const digestWords = (v) => (Array.isArray(v) ? (v.length > 0 ? v.join(', ') : 'none') : v);
+
+/**
+ * D-415: when the pin's commit or the league digests differ from the ones the run last recorded (the resume before
+ * this session's, or init's), the verification display says so: a card verified on the old pin may still be
  * finalized, its skeleton's figures the old pin's, and the design measures afresh.
  */
 function pinChanges(log) {
   const recorded = [{ pinCommit: log.pinCommit, digest: log.digest }, ...objects(log.resumes)];
-  const now = recorded.length > 1 ? recorded[recorded.length - 1] : { pinCommit: pinCommit(), digest: newestDigest() };
+  const now = recorded.length > 1 ? recorded[recorded.length - 1] : { pinCommit: pinCommit(), digest: runningDigestNames() };
   const before = recorded.length > 1 ? recorded[recorded.length - 2] : recorded[0];
   const out = [];
   if (text(before.pinCommit) && text(now.pinCommit) && before.pinCommit !== now.pinCommit) {
     out.push(`PoB's version changed since this run last ran (commit ${before.pinCommit.slice(0, 7)}, now ${now.pinCommit.slice(0, 7)}): a card verified before keeps its skeleton's figures from the old version, and its design measures afresh.`);
   }
-  if (text(before.digest) && text(now.digest) && before.digest !== now.digest) out.push(`The league digest changed since this run last ran (${before.digest}, now ${now.digest}).`);
+  // D-507: a list on either side reads as the running leagues' digests; two strings keep D-415's line as it was.
+  if (digestsDiffer(before.digest, now.digest)) {
+    out.push(text(before.digest) && text(now.digest) ? `The league digest changed since this run last ran (${before.digest}, now ${now.digest}).` : `The league digests changed since this run last ran (${digestWords(before.digest)}, now ${digestWords(now.digest)}).`);
+  }
   return out;
 }
 
@@ -3013,7 +3062,10 @@ async function main(argv) {
   }
   try {
     const what = writeLog(path.resolve(args[0]), args[1], entry);
-    process.stdout.write(`run-log: wrote ${what}\n`);
+    // D-507: init and resume print the running leagues' digests, which the runner copies into the headers' `digests`
+    // and prints as the staleness line.
+    const digests = ['init', 'resume'].includes(args[1]) ? digestReport().map((l) => `${l}\n`).join('') : '';
+    process.stdout.write(`run-log: wrote ${what}\n${digests}`);
     return 0;
   } catch (e) {
     process.stderr.write(`run-log: ${e.message}\n`);

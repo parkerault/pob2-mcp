@@ -24,6 +24,7 @@ import os from 'os';
 import path from 'path';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
+import { digestReport } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -47,6 +48,8 @@ const ROOT_CHECKER = path.join(ROOT, 'skills', 'build-guide', 'scripts', 'check-
 (() => {
   fs.mkdirSync(path.dirname(ROOT_CHECKER), { recursive: true });
   for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(path.dirname(ROOT_CHECKER), f));
+  // Amendment 16 (WU-151, D-507): run-log.mjs reads the running leagues through game knowledge's leagues.mjs.
+  fs.cpSync(path.join(REPO, 'skills', 'game-knowledge', 'scripts'), path.join(ROOT, 'skills', 'game-knowledge', 'scripts'), { recursive: true });
   fs.cpSync(path.join(SKILL, 'references'), path.join(ROOT, 'skills', 'build-guide', 'references'), { recursive: true });
   fs.symlinkSync(path.join(REPO, 'build'), path.join(ROOT, 'build'));
   fs.mkdirSync(path.join(ROOT, 'data', 'rules'), { recursive: true });
@@ -804,10 +807,11 @@ describe('AC-W89 (D-443, §11, §19): the rival only in older runs, and the run 
     const before = readJson(dir, 'run-log.json');
     // Amendment 12 (Appendix A): a log from before amendment 11 resumed now is stamped with a boundary per revision;
     // amendment 13 (§22) stamps 13.
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 14 from stages[${before.stages.length}] (the rules of amendments 11, 12, 13 and 14)\n` });
+    // Amendment 16's M-29 (WU-151, §24, D-507): 15, named as a revision, and the running leagues' digests printed after.
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}` });
     const log = readJson(dir, 'run-log.json');
     const lengths = { stages: before.stages.length, checkpoints: before.checkpoints.length, escalations: 0, displays: before.displays.length };
-    expect(log).toMatchObject({ skillRevision: 14, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths, 14: lengths }, pricing: { stops: [], retries: [] } });
+    expect(log).toMatchObject({ skillRevision: 15, skillRevisionFrom: { 11: lengths, 12: lengths, 13: lengths, 14: lengths, 15: lengths }, pricing: { stops: [], retries: [] } });
     expect(log.resumes[log.resumes.length - 1].lengths).toEqual(log.skillRevisionFrom['11']);
     // The entries before the stamp keep their rules (its D1 gates hold no amendment-11 design field); run-log.mjs
     // refuses the rival after it, and so does the checker.
@@ -833,7 +837,7 @@ describe("AC-W89 (§19, D-436, D-437, D-442): a resume-stamped old run's display
       });
     }
     if (stamp) {
-      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 14 from stages\[25\]/) });
+      expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 15 from stages\[25\]/) });
     }
     return dir;
   }

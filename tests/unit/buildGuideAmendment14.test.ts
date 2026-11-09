@@ -21,6 +21,7 @@ import path from 'path';
 import { buildSha1 } from '../../src/plan/buildHash';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
+import { digestReport } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -135,18 +136,19 @@ describe('AC-W108: run-a14 is a run the amended pipeline could write', () => {
     expect(readJson(dir, TRADES).trades.find((t: Json) => t.kind === 'scaling')).toMatchObject({ stage: 'b', slot: 'Weapon 1', by: 'D1-build', measured: true });
   });
 
-  it('init writes skillRevision 14; a resume of a revision-13 log stamps 14 with its boundary', () => {
+  // Amendment 16's M-29 (WU-151, §24, D-507): init writes 15, and a resume stamps 15 beside 14 and prints the digests.
+  it('init writes skillRevision 15 (14 before amendment 16); a resume of a revision-13 log stamps 14 and 15 with their boundaries', () => {
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     expect(write(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 14, builds: [] });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 15, builds: [] });
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const old = copy('run-a13');
     const before = readJson(old, 'run-log.json');
-    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 14 from stages[${before.stages.length}]\n`, stderr: '' });
+    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 14 and 15)\n${digestReport(REPO)}`, stderr: '' });
     const log = readJson(old, 'run-log.json');
-    expect(log.skillRevision).toBe(14);
-    expect(log.skillRevisionFrom).toEqual({ 14: log.resumes[0].lengths });
+    expect(log.skillRevision).toBe(15);
+    expect(log.skillRevisionFrom).toEqual({ 14: log.resumes[0].lengths, 15: log.resumes[0].lengths });
     passes(old);
   });
 

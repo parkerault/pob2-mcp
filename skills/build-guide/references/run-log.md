@@ -6,21 +6,22 @@ through `skills/build-guide/scripts/run-log.mjs` (D-356, "Writing it" below), ne
 (`skills/build-guide/references/run-folder.md`). This page is **schema version 4** (D-412), the run log of the three phases and their gates
 with one build per finalized card (D-411); `pob2-run-log <runFolder> migrate` rewrites a schema-3 log as schema 4
 (D-415), and the run checker also reads schemas 3 and 2, so runs recorded before amendments 9 and 3 still check
-(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 14` (amendment 14, §25;
-`13`, `12` or `11` in a log written under amendment 13's, 12's or 11's rules): `init` writes it, and a resume stamps it on
+(D-326, the last section). A log carries the skill revision its run is held to, `skillRevision: 15` (amendment 16's
+M-29, §24: the running leagues' `digest`; `14`, `13`, `12` or `11` in a log written under amendment 14's, 13's, 12's or
+11's rules): `init` writes it, and a resume stamps it on
 an older log with one boundary per revision, so the entries after a revision's boundary are held to its rules and the
 ones before it to their own. Revisions compare by order: amendment 11's rules hold from 11's boundary, amendment 12's from
-12's, amendment 13's from 13's, amendment 14's from 14's, and a build is held to the rules of its last D1 gate, a card to
-those of the round that dealt it ("Runs before amendment 11" to "Runs before amendment 14", below; "Amendment 14's
-entries" for what 14 adds).
+12's, amendment 13's from 13's, amendment 14's from 14's, revision 15's from 15's, and a build is held to the rules of its
+last D1 gate, a card to those of the round that dealt it ("Runs before amendment 11" to "Runs before revision 15", below;
+"Amendment 14's entries" for what 14 adds).
 
 ## Fields
 
 | Field | Content |
 |---|---|
 | `schemaVersion` | `4` |
-| `skillRevision` | `14`: the run is held to amendment 14's rules, and 13's, 12's and 11's (§25). `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 13's rules has `13`, one under 12's `12`, one under 11's `11` |
-| `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}, "13": {…}, "14": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
+| `skillRevision` | `15`: the run is held to revision 15's rules (amendment 16's M-29: the running leagues' `digest`, D-507), and amendment 14's, 13's, 12's and 11's. `init` writes it; `resume` stamps it on a log below it or without it. A log written under amendment 14's rules has `14`, one under 13's `13`, one under 12's `12`, one under 11's `11` |
+| `skillRevisionFrom` | only on a log a resume stamped: one boundary per revision it stamped, `{"11": {stages, checkpoints, escalations, displays}, "12": {…}, "13": {…}, "14": {…}, "15": {…}}`, each the four lists' lengths at the stamp, equal to that resume's `lengths`; the entries from a revision's boundary on are held to its rules, the ones before it to their own. A revision `init` wrote has no boundary and holds from the start. A log at `11` keeps amendment 11's flat form, `{stages, checkpoints, escalations, displays}`, read as `{"11": …}` |
 | `runFolder` | the absolute path `mcp__pob2__guide_run {new_run}` returned |
 | `slug` | the run's slug, from the brief (`skills/build-guide/references/run-folder.md`, D-285) |
 | `brief` | the parsed brief (below, C-51); `{}` for an empty brief, "surprise me" |
@@ -29,7 +30,7 @@ entries" for what 14 adds).
 | `testConfig` | `none`, `accepted` (a `--test` file with `--offline`) or `refused` (a `--test` file without `--offline`, or one that isn't the documented shape) |
 | `noNinja` | `true` or `false`: whether the **current session** prices without poe.ninja's currency rates (`--no-ninja`, D-333): `init` records the first session's flag, and each `resume` replaces it with its session's (its `resumes[]` entry keeps that session's record). Every pricing step is told from here, never from memory (D-412, D-420); `null` in a migrated run until its first resume |
 | `pinCommit` | the PoB pin's commit when `init` ran, which `pob2-run-log` reads from `pob-pin.json` (the runner runs no `git`); `null` in a migrated run |
-| `digest` | the newest league digest's file name when `init` ran (`data/league/<name>.md`, newest by its fetch date), or `null` |
+| `digest` | the running leagues' digests when `init` ran (D-507): their file names in `data/league/`, the latest start first, possibly empty, as `pob2-run-log` reads them by each digest's `League:` sentence (`skills/game-knowledge/scripts/leagues.mjs`); in a log `init` wrote below revision 15, the newest digest's file name by its fetch date, or `null` |
 | `dossier` | `null` until R1b-assemble writes the dossier; then its path in the run folder, `dossier.md`, run-wide |
 | `builds[]` | one per finalized card, in finalize order: `{id, roll, status, folder, guide, pobFile}` (below, D-412), with `name` after `roll` once a `build` entry gave one (D-435), and `draftFile` after `pobFile` in a log at 13 (D-466) |
 | `stages[]` | one per agent call, in run order: `{stage, concept?, attempt, outcome, priceOutcomes?, probes?, skeletonFile?, shortReason?, tried?, scope?, requests?}`; R1b's `skeletonRemoved: true` once the runner removed its skeleton file (amendment 14, "Amendment 14's entries" below) |
@@ -64,13 +65,14 @@ holds the import code, whose one home is the record (D-260).
 
 ### Resumes (D-415)
 
-`resume` appends one entry per session that resumes the run: the date, the pin's commit and the newest digest as
-the repository holds them then, the session's `noNinja`, and `lengths`, how many entries `stages[]`,
+`resume` appends one entry per session that resumes the run: the date, the pin's commit and the running leagues'
+digests (a list, D-507) as the repository and the clock give them then, the session's `noNinja`, and `lengths`, how many entries `stages[]`,
 `checkpoints[]`, `escalations[]` and `displays[]` held at the resume. So every entry after it can be placed: the
 run checker accepts entries after a build's or the run's end only behind a resume, and the pricing stop holds
 only for the session it happened in (a `stages[]` entry from index `resumes[<last>].lengths.stages` on,
-`skills/build-guide/references/pricing.md`). When the pin's commit or the digest differs from the run's last recorded one, the verification
-display says so.
+`skills/build-guide/references/pricing.md`). When the pin's commit or the digests differ from the run's last recorded ones, the verification
+display says so: two lists compare as sets, and an older run's string with a list's first entry ("The league digests
+changed since this run last ran").
 
 ### The brief
 
@@ -307,10 +309,14 @@ JSON
 pob2-run-log <runFolder> migrate
 ```
 
-- `init` writes the first log (below): `skillRevision` 14, `runFolder` the folder given, `noNinja` the run's
-  `--no-ninja` (`true` or `false`, required), the pin's commit and the newest digest as the script reads them,
+- `init` writes the first log (below): `skillRevision` 15, `runFolder` the folder given, `noNinja` the run's
+  `--no-ninja` (`true` or `false`, required), the pin's commit and the running leagues' digests as the script reads them,
   `dossier` null, the lists empty, `pricing` with no stop or retry, `status` `running`, or `stopped` with a refused
-  test config. It never overwrites a log.
+  test config. It never overwrites a log. After its first line, `init` and `resume` print the running digests (D-507):
+  `digests: [<paths>]`, the root-relative paths every task header's `digests` copies, newest first; then each one's
+  third line (the staleness line, `skills/build-guide/references/start.md` step 5), or `No running league has a league
+  digest: what is new in it isn't in the committed data.`; then `<path> records no league dates: re-run its digest
+  script` for each undated digest. Tests set the instant with `BUILD_GUIDE_TEST_NOW`; a run never does.
 - `stage`, `checkpoint` and `escalation` each append one entry to `stages[]`, `checkpoints[]` or
   `escalations[]`. A `stage` entry counting a `rate_limited`, `locked_out` or `pace` call also records its stop in
   `pricing.stops[]` (D-444, D-474). A log with `skillRevision` refuses a stage `RV`: the rival is removed (D-443); a log
@@ -339,12 +345,12 @@ pob2-run-log <runFolder> migrate
   ```
 - `resume` (D-415) appends a `resumes[]` entry, `{date, pinCommit, digest, noNinja, lengths}`, from this session's
   `noNinja` (its `--no-ninja`) and the four lists' lengths, sets the top-level `noNinja` to this session's flag, and
-  sets `status` `running`. On a log below `skillRevision` 14, or without it, it stamps `skillRevision` 14 and writes a
-  boundary in `skillRevisionFrom`, its resume's lengths, for every revision above the log's old one: a log at 13 gains
-  `"14"`; a log at 12 gains `"13"` and `"14"` (and keeps 11's or 12's boundary when a resume stamped them); a log at 11
-  keeps 11's boundary (its flat form read as `"11"`) and gains `"12"`, `"13"` and `"14"`; a log without `skillRevision`
-  gains `"11"` to `"14"` at the same lengths, so its earlier entries are held to none of those amendments' rules; it adds
-  `pricing` (§19, amendment 12 §22, amendment 13 §22, amendment 14 §25). It runs once per resume,
+  sets `status` `running`. On a log below `skillRevision` 15, or without it, it stamps `skillRevision` 15 and writes a
+  boundary in `skillRevisionFrom`, its resume's lengths, for every revision above the log's old one: a log at 14 gains
+  `"15"`; a log at 13 gains `"14"` and `"15"`; a log at 12 gains `"13"` to `"15"` (and keeps 11's or 12's boundary when a resume stamped them); a log at 11
+  keeps 11's boundary (its flat form read as `"11"`) and gains `"12"` to `"15"`; a log without `skillRevision`
+  gains `"11"` to `"15"` at the same lengths, so its earlier entries are held to none of those revisions' rules; it adds
+  `pricing` (§19, amendment 12 §22, amendment 13 §22, amendment 14 §25, amendment 16 §24). It runs once per resume,
   before the resume's unsaved-build question and verification visit.
 - `migrate` (D-415), with no JSON, rewrites a schema-3 log as schema 4: its finalized card becomes `builds[0]` with
   `folder: "."` (its files stay at the root), its status from the old `status` and last answer, `guide` from
@@ -509,12 +515,12 @@ it did):
 ## A first write
 
 The log before any agent runs (`skills/build-guide/SKILL.md` §1, step 3), as `init` writes it: the brief as parsed, no build yet, and
-the pin's commit and newest digest as `pob2-run-log` reads them from the repository.
+the pin's commit and the running leagues' digests as `pob2-run-log` reads them from the repository.
 
 ```json
 {
   "schemaVersion": 4,
-  "skillRevision": 14,
+  "skillRevision": 15,
   "runFolder": "/abs/guides/titan-blood-hunt/2026-10-08-1",
   "slug": "titan-blood-hunt",
   "brief": { "ascendancy": "Titan", "skill": "Blood Hunt" },
@@ -523,7 +529,7 @@ the pin's commit and newest digest as `pob2-run-log` reads them from the reposit
   "testConfig": "accepted",
   "noNinja": false,
   "pinCommit": "<the pin's commit, from pob-pin.json>",
-  "digest": "<the newest league digest's file name>",
+  "digest": ["<a running league's digest's file name, the latest start first>"],
   "dossier": null,
   "builds": [],
   "stages": [],
@@ -576,6 +582,12 @@ words of advice to test in game, the listings, the specs, a bare `Corrupted` uni
 brainstorm and verification displays keep their older forms. The layout lists are the exception: `final-build.xml`,
 `final-build-campaign.xml`, `readback.json`, `notes.txt` and `trade-links.json` in a build's folder, and `readback.json`
 beside a skeleton's plan, pass at every revision, since the M-27 server writes them at every compile.
+
+## Runs before revision 15
+
+A log `init` wrote below `skillRevision` 15 records its top-level `digest` as the newest digest's file name by fetch
+date, or `null` (D-412), and keeps it; a resume after amendment 16's M-29 stamps 15 and records the running leagues'
+list in its own `resumes[]` entry, and the run checker accepts each form where its revision puts it (D-507).
 
 ## Schema 3: runs recorded before amendment 9
 

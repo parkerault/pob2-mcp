@@ -25,6 +25,7 @@ import { buildSha1 } from '../../src/plan/buildHash';
 import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { cleanBuildName } from '../../src/plan/compiler';
+import { digestReport } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -346,8 +347,9 @@ describe('AC-W100 (D-466): the files named by the session name, the draft, one f
     setFile(dir, `${NAME}.xml`);
     expect(lines(check(dir).stderr, 'layout')).toEqual([expect.stringMatching(/its build_name is "titan-blood-hunt-2026-10-08-1-r1-a-2"/)]);
     const stamped = copy('run-a12');
-    expect(write(stamped, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 14 from stages\[14\] \(the rules of amendments 13 and 14\)\n$/) });
-    expect(readJson(stamped, 'run-log.json').skillRevisionFrom).toEqual({ 13: { stages: 14, checkpoints: 4, escalations: 0, displays: 4 }, 14: { stages: 14, checkpoints: 4, escalations: 0, displays: 4 } });
+    // Amendment 16's M-29 (WU-151, §24, D-507): the stamp adds 15, named as a revision, and prints the running digests.
+    expect(write(stamped, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: expect.stringMatching(/skillRevision 15 from stages\[14\] \(the rules of revisions 13, 14 and 15\)\ndigests: /) });
+    expect(readJson(stamped, 'run-log.json').skillRevisionFrom).toEqual({ 13: { stages: 14, checkpoints: 4, escalations: 0, displays: 4 }, 14: { stages: 14, checkpoints: 4, escalations: 0, displays: 4 }, 15: { stages: 14, checkpoints: 4, escalations: 0, displays: 4 } });
     expect(check(stamped).stderr).toBe('');
   });
 
@@ -408,7 +410,7 @@ describe('AC-W100 (D-465): a "Legacy of …" soul core or the Raven-Touched Shar
     const old = composite(12);
     addPiece(old, 'r1-s-2', ROW('in'));
     expect(write(old, 'resume', { noNinja: false }).code).toBe(0);
-    expect(readJson(old, 'run-log.json').skillRevision).toBe(14);
+    expect(readJson(old, 'run-log.json').skillRevision).toBe(15);
     expect(lines(check(old).stderr, 'runes')).toEqual([]);
   });
 
@@ -845,18 +847,20 @@ describe("AC-W100 (D-474, §15, §22): the checker's fixes, M-25's leftovers, sk
     expect(arbiter.join('\n')).not.toMatch(/59\.98/);
   });
 
-  it('init writes skillRevision 14 (13 before amendment 14); a resume of a revision-12 log stamps 13 and 14 with their boundaries', () => {
+  // Amendment 16's M-29 (WU-151, §24, D-507): init writes 15; the stamp adds 15, named as a revision, and prints the
+  // running leagues' digests.
+  it('init writes skillRevision 15 (13 before amendment 14, 14 before amendment 16); a resume of a revision-12 log stamps 13, 14 and 15 with their boundaries', () => {
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     expect(write(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 14, builds: [] });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 15, builds: [] });
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const old = copy('run-a12');
     const before = readJson(old, 'run-log.json');
-    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 14 from stages[${before.stages.length}] (the rules of amendments 13 and 14)\n`, stderr: '' });
+    expect(write(old, 'resume', { noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote resumes[0], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 13, 14 and 15)\n${digestReport(REPO)}`, stderr: '' });
     const log = readJson(old, 'run-log.json');
-    expect(log.skillRevision).toBe(14);
-    expect(log.skillRevisionFrom).toEqual({ 13: log.resumes[0].lengths, 14: log.resumes[0].lengths });
+    expect(log.skillRevision).toBe(15);
+    expect(log.skillRevisionFrom).toEqual({ 13: log.resumes[0].lengths, 14: log.resumes[0].lengths, 15: log.resumes[0].lengths });
     expect(check(old).stderr).toBe('');
   });
 });

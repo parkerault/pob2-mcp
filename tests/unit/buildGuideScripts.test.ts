@@ -27,7 +27,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { headlineDps } from '../../src/plan/record';
-import { newestDigest } from '../helpers/newestDigest';
+import { digestReport, runningNames } from '../helpers/runningDigests';
 import { CARD, GATE_FILE, MINION, editJson, readJson, writeGuideRun, writeMinionGuideRun, type Json } from '../helpers/guideRunFolder';
 
 const REPO = path.resolve(__dirname, '..', '..');
@@ -313,8 +313,9 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
   const shownFor = (dir: string, gate: string) => expect(run(RUN_LOG, dir, 'display', gate, '--build', CARD)).toMatchObject({ code: 0, stderr: '' });
   const started = () => {
     const dir = folder();
-    // Amendment 9 (WU-94): init writes schema 4, and the runner states noNinja (D-412).
-    ok(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted', noNinja: false }, 'the first log');
+    // Amendment 9 (WU-94): init writes schema 4, and the runner states noNinja (D-412). Amendment 16 (WU-151, D-507):
+    // init prints the running leagues' digests after its first line.
+    expect(log(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'accepted', noNinja: false })).toEqual({ code: 0, stdout: `run-log: wrote the first log\n${digestReport(REPO)}`, stderr: '' });
     return dir;
   };
   /** Schema 4: a design or final checkpoint names a build of the run (D-412), so the card is finalized first. */
@@ -324,10 +325,11 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
     const dir = started();
     // Amendment 9 (WU-94, D-412): schema 4, with noNinja, the pin's commit and the newest league digest.
     // Amendment 11 (WU-113, §19): the skill revision a new run is held to, and its pricing stops and retries (D-444);
-    // amendment 12 (WU-121, §22) makes it 12, amendment 13 (WU-130, §22) 13.
+    // amendment 12 (WU-121, §22) makes it 12, amendment 13 (WU-130, §22) 13; amendment 16's M-29 (WU-151, §24) 15, its
+    // digest the running leagues' list (D-507).
     expect(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8')).toBe(`${JSON.stringify({
       schemaVersion: 4,
-      skillRevision: 14,
+      skillRevision: 15,
       runFolder: dir,
       slug: 'titan-blood-hunt',
       brief: { ascendancy: 'Titan', skill: 'Blood Hunt' },
@@ -336,7 +338,7 @@ describe("run-log.mjs (WU-71, D-356): the runner writes the run log through it, 
       testConfig: 'accepted',
       noNinja: false,
       pinCommit: readJson(REPO, 'pob-pin.json').commit,
-      digest: newestDigest(REPO),
+      digest: runningNames(REPO),
       dossier: null,
       builds: [],
       stages: [],

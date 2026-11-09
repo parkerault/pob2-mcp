@@ -22,6 +22,7 @@ import { validatePlan } from '../../src/plan/schema';
 import { loadReferenceData } from '../../src/plan/referenceData';
 import { treeChangeOf } from '../../src/plan/compiler';
 import { decidingRow, type ArbiterMeasure } from '../../src/plan/record';
+import { digestReport } from '../helpers/runningDigests';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -523,11 +524,12 @@ describe('AC-W93 (D-454): the resisting figure', () => {
 // ---------------------------------------------------------------------------------------------------
 
 describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its own boundary', () => {
-  it('init writes skillRevision 14 (12 before amendment 13, 13 before amendment 14); a revision-11 log (run-a11) passes unchanged and keeps amendment 11\'s rules from its own boundary', () => {
+  // Amendment 16's M-29 (WU-151, §24, D-507): revision 15, whose stamp names revisions and prints the running digests.
+  it('init writes skillRevision 15 (12 before amendment 13, 13 before amendment 14, 14 before amendment 16); a revision-11 log (run-a11) passes unchanged and keeps amendment 11\'s rules from its own boundary', () => {
     const dir = path.join(TMP, `log-${++copies}`);
     fs.mkdirSync(dir);
     expect(write(dir, 'init', { slug: 'titan-blood-hunt', brief: { ascendancy: 'Titan', skill: 'Blood Hunt' }, mode: 'offline', testConfig: 'none', noNinja: false }).code).toBe(0);
-    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 14 });
+    expect(readJson(dir, 'run-log.json')).toMatchObject({ skillRevision: 15 });
     expect(readJson(dir, 'run-log.json')).not.toHaveProperty('skillRevisionFrom');
     const a11 = copy('run-a11');
     expect(readJson(a11, 'run-log.json').skillRevision).toBe(11);
@@ -538,15 +540,15 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     });
     expect(lines(check(a11).stderr, 'rival')).toEqual([expect.stringMatching(/stages\[14\] runs the rival \(RV\), which amendment 11 removes/)]);
     expect(lines(check(a11).stderr, 'respec')).toEqual([]);
-    // A skillRevision that isn't 11, 12, 13 or 14 fails.
+    // A skillRevision that isn't 11, 12, 13, 14 or 15 fails.
     const bad = copy('run-a11');
     editJson(bad, 'run-log.json', (l) => {
-      l.skillRevision = 15;
+      l.skillRevision = 16;
     });
-    expect(lines(check(bad).stderr, 'run-log')).toContainEqual(expect.stringMatching(/run-log\.json skillRevision: is 15; 11 or 12 or 13 or 14/));
+    expect(lines(check(bad).stderr, 'run-log')).toContainEqual(expect.stringMatching(/run-log\.json skillRevision: is 16; 11 or 12 or 13 or 14 or 15/));
   });
 
-  it("a revision-11 log resumed now keeps 11's boundary and gains 12's (and 13's and 14's, amendments 13 and 14)", () => {
+  it("a revision-11 log resumed now keeps 11's boundary and gains 12's (and 13's, 14's and 15's, amendments 13, 14 and 16)", () => {
     // run-builds stamped at 11 by its first resume (amendment 11's flat boundary), then resumed now.
     const dir = copy('run-builds');
     editJson(dir, 'run-log.json', (l) => {
@@ -554,13 +556,14 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     });
     const at11 = { ...readJson(dir, 'run-log.json').skillRevisionFrom };
     const before = readJson(dir, 'run-log.json');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 14 from stages[${before.stages.length}] (the rules of amendments 12, 13 and 14)\n` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 12, 13, 14 and 15)\n${digestReport(REPO)}` });
     const log = readJson(dir, 'run-log.json');
-    expect(log.skillRevision).toBe(14);
-    expect(log.skillRevisionFrom).toEqual({ 11: at11, 12: log.resumes[log.resumes.length - 1].lengths, 13: log.resumes[log.resumes.length - 1].lengths, 14: log.resumes[log.resumes.length - 1].lengths });
+    expect(log.skillRevision).toBe(15);
+    const last = log.resumes[log.resumes.length - 1].lengths;
+    expect(log.skillRevisionFrom).toEqual({ 11: at11, 12: last, 13: last, 14: last, 15: last });
     expect(lines(check(dir).stderr, 'run-log')).toEqual([]);
     // Resumed again, nothing more is stamped.
-    expect(write(dir, 'resume', { noNinja: false }).stdout).toBe(`run-log: wrote resumes[${before.resumes.length + 1}], status running\n`);
+    expect(write(dir, 'resume', { noNinja: false }).stdout).toBe(`run-log: wrote resumes[${before.resumes.length + 1}], status running\n${digestReport(REPO)}`);
     expect(readJson(dir, 'run-log.json').skillRevisionFrom).toEqual(log.skillRevisionFrom);
     // A boundary no resume recorded fails, and so does 12's before 11's.
     editJson(dir, 'run-log.json', (l) => {
@@ -570,7 +573,7 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     // A revision-11 log init wrote (no boundary) resumed at 12 gains 12's alone.
     const fresh = copy('run-a11');
     expect(write(fresh, 'resume', { noNinja: false }).code).toBe(0);
-    expect(Object.keys(readJson(fresh, 'run-log.json').skillRevisionFrom)).toEqual(['12', '13', '14']);
+    expect(Object.keys(readJson(fresh, 'run-log.json').skillRevisionFrom)).toEqual(['12', '13', '14', '15']);
     passes(fresh);
   });
 
@@ -578,10 +581,10 @@ describe('AC-W93 (§22, Appendix A): revisions compare by order, each with its o
     const dir = copy('run-builds');
     const before = readJson(dir, 'run-log.json');
     expect(before).not.toHaveProperty('skillRevision');
-    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 14 from stages[${before.stages.length}] (the rules of amendments 11, 12, 13 and 14)\n` });
+    expect(write(dir, 'resume', { noNinja: false })).toMatchObject({ code: 0, stdout: `run-log: wrote resumes[${before.resumes.length}], status running, skillRevision 15 from stages[${before.stages.length}] (the rules of revisions 11, 12, 13, 14 and 15)\n${digestReport(REPO)}` });
     const log = readJson(dir, 'run-log.json');
     const lengths = log.resumes[log.resumes.length - 1].lengths;
-    expect(log.skillRevisionFrom).toEqual({ 11: lengths, 12: lengths, 13: lengths, 14: lengths });
+    expect(log.skillRevisionFrom).toEqual({ 11: lengths, 12: lengths, 13: lengths, 14: lengths, 15: lengths });
     // Its entries before the stamp keep their rules: no amendment-11 or amendment-12 rule fires on them.
     const stderr = check(dir).stderr;
     expect(rules(stderr, 'run-log', 'rival', 'toughness', 'dossier-sections', 'design-field', 'arbiter', 'trades', 'respec', 'defence-plan')).toEqual([]);
@@ -721,6 +724,8 @@ describe('AC-W93 (Appendix A): references/toughness-targets.json holds the Arbit
     const scripts = path.join(root, 'skills', 'build-guide', 'scripts');
     fs.mkdirSync(scripts, { recursive: true });
     for (const f of fs.readdirSync(SCRIPTS).filter((x) => x.endsWith('.mjs'))) fs.copyFileSync(path.join(SCRIPTS, f), path.join(scripts, f));
+    // Amendment 16 (WU-151, D-507): run-log.mjs reads the running leagues through game knowledge's leagues.mjs.
+    fs.cpSync(path.join(REPO, 'skills', 'game-knowledge', 'scripts'), path.join(root, 'skills', 'game-knowledge', 'scripts'), { recursive: true });
     fs.cpSync(path.join(SKILL, 'references'), path.join(root, 'skills', 'build-guide', 'references'), { recursive: true });
     fs.symlinkSync(path.join(REPO, 'build'), path.join(root, 'build'));
     fs.symlinkSync(path.join(REPO, 'data'), path.join(root, 'data'));

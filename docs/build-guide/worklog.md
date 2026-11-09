@@ -7949,3 +7949,95 @@ What the coordinator folded (revision 2, approved):
   read stage, needs a guard (skip entries the gate maps to another stage).
 - **WU-163 (`/pob2:pricing`) merged** at `56e9e22` (fast-forward, four commits on `327fefd`). AC-W155 in
   `tests/static/pricingPiece.test.ts`, `tests/unit/pricingPiece.test.ts` and `tests/integration/pricingRun.test.ts`.
+- **WU-164 dispatched** (a guide from a file, lane `bg-164` off `73cf7a1`), carrying `ownedContent`'s guard for file
+  runs, the `cost` cover for `ladder`, a test of the checker's `draftFile` rule, the granted-quality facts, and room in
+  build-guide's `SKILL.md` (at most 323 lines, WU-166's fetch line to come).
+- **WU-164's doer** finished at `53d1771` on `bg/wu-164` (two commits on `73cf7a1`: `5c3e98e` the feature, `53d1771` a
+  wording fix in `file-run.md`; 0.62M subagent tokens). Its own gate rc 0 at `5c3e98e` (269 suites, 4,670 tests; the
+  timing step 2 suites, 4 tests), build rc 0; the targeted suites after the wording commit (57 suites, 1,287 tests).
+  Build-guide's `SKILL.md` 321 lines; words loaded D1-finish +4.1% (about 600 words of room left for WU-165 and
+  WU-166), D1-build +3.3%, D2 +3.3%. AC-W144 and AC-W156 in `tests/static/fileRun.test.ts` (10) and
+  `tests/unit/fileRun.test.ts` (25); AC-W157 there (`switched-buffs`). The 13 pipeline fixtures byte-identical under
+  `cf16e07`'s, `73cf7a1`'s and the head's checker. **AC-W162's list, WU-164** (each forced by D-522):
+  `pieceRuns.test.ts`:359 and :435 (a file run's `init` takes `brief.from`; `init` refuses the slug `file` without it),
+  `buildGuideD1Tree.test.ts`:173 (the `ladder` H2). The carried items: `ownedContent` not extended to file runs (§15:
+  a guide holds owned content to every rule; tested); the `ladder` cover (the placed rung's tree findings as they are,
+  its floor findings only with a `cost`); the checker's `draftFile` rule tested; the granted-quality facts in D1-build,
+  D1-finish, W1 and both templates, nothing caveating item-granted skills. **Deviations reported** (for the review): a
+  third brief field `campaign`; the read at the run folder's root, the design in `builds/file/`; the better round in a
+  file run stopping at its design gate (no F1), accept leading to `place` and the ladder; no verification gate; the
+  `build` entry after the measure; three new rules (`ladder`, `owned-guide`, `switched-buffs`); the fixture
+  `tests/fixtures/file-run` hand-made from run-a14's ladder; text placement (a `start.md` bullet, a `SKILL.md` §1
+  paragraph, D1-build's inline spec rule). Gate verifier and reviewer dispatched in parallel.
+- **WU-164's gate verifier** (fresh context) **failed `53d1771`** on the fixture: `tests/fixtures/file-run`'s read files
+  aren't in the reader's and the compile's shape (the root `plan.json` has no `config.file`, ten skeleton entries in
+  `config.scenario` where the reader writes only `enemyIsBoss`, no `claims` or `ledger`; the root record has no `owned`
+  and carries reference hits a `config.file` stage never gets; `read.json`'s `unconfirmed` and `notRead` differ; the
+  placed rung `b` has no `config.file`). Given the real shape, the checker still passes, so no false pass today, but
+  the fixture doesn't test the real path. Otherwise: gate from clean rc 0 (269 suites, 4,670 tests), build rc 0; nine
+  mutations each biting its test; the 13 pipeline fixtures byte-identical under three checkers, the 4 piece fixtures
+  passing; AC-W162's assertions forced (`pieceRuns.test.ts`:360, :436; `buildGuideD1Tree.test.ts`:174); words loaded
+  max +4.1% (D1-finish), each stage recorded; deviations all acceptable. Notes: no checker rule compares the placed
+  rung's items with the read stage; `W1.md`:272's "nothing else does" reads against §8 (quality modifiers do reach
+  granted skills); `from` takes any text, so a pasted import code could land in the log (C-61, A.6). **The
+  coordinator's call on the verifier's open question** (D1-build's `ladder` section is silent on whether the placed
+  rung keeps `config.file`): §18 keeps the file's *design* (items, tree, skills); a guide is for other players, so the
+  placed rung drops `config.file` and is measured on the guide's configuration at its rung's reference hits, as every
+  rung is (the earned states the build produces, the scenario's); the owner's custom modifiers, enemy settings and
+  party buffs stay in the read at the root, with the measure's callouts. Fix round after the review.
+- **WU-164's review** (fresh, read-only; probes on scratch copies): the quality and switched-buff lines match the
+  user's game facts. Findings: (1, high) every completed file run fails `layout` on `dossier.md` (`check-run.mjs`:1380),
+  though §18 step 1 has the measure write "its dossier row" and W1 and D2 Grep it; the fixture stops while running,
+  which hid it; (2, medium) the ladder text is silent on the placed rung's `config.file` (the verifier's question);
+  (3, medium) owned exemptions reach a guide through V1, since the placed rung keeps its uniques and gems `owned`
+  (`D1-build.md`:728, `D1-finish.md`:516) and V1 skips owned content (`v1.ts`:740–741, :1022–1023, :1436–1437,
+  :1561–1562), e.g. a +1 corrupted gem on a rung D-471 forbids; (4, medium) a resumed file run is routed to the
+  verification gate (`SKILL.md`:138–141, `start.md`:145–149; `display verification` accepts it); (5–9, low) a
+  user-requested change to the placed rung can't pass `ladder`; no text says schema 11; the place step's header lacks
+  `compile` and `league` and the campaign case; the runner's tool and reading lists; the better round's draft left in
+  the builds folder. The fixture rejected as the only one (no `config.file`, run-a14's `variantBasis`, no owned unique,
+  never completed); the other deviations accepted. **The coordinator's calls:** the measure writes the file's dossier
+  row (§18 as written); the placed rung drops `config.file` (above) and every `owned` mark in the ladder (§15: in a
+  guide, owned content meets every rule; prices reused by id; what a guide can't carry shown as a trade), `owned-guide`
+  failing any mark left. **Fix round** sent to the doer: the fixture rebuilt on the real path with a completed variant,
+  the rulings, findings 4 to 9, and the verifier's notes (W1's wording, `init` refusing a `from` that looks like an
+  import code, a check of the placed rung's items against the read stage's).
+- **WU-164's fix round** at `01534d2` (one commit on `53d1771`): **the fixtures rebuilt on the real path** by an
+  uncommitted engine probe from `imported-character.xml` with WU-162's answers (the root read files the reader's and
+  the compile's output; the ladder `m`, the placed `b` and `n` compiled by the engine, V1 and V2 passing on each; the
+  verdict, guide and V4 report written to the checker's rules): `tests/fixtures/file-run` at the ladder's design gate,
+  `tests/fixtures/file-run-completed` to `completed` (about 1.6 MB together); the completed variant exposed the guide's
+  floor recompute failing the placed rung (`check-run.mjs` ~:2150), now under the ladder cover. The dossier row by the
+  measure (`measure.md` step 9 when `writes` names `dossier.md`; compile runs unchanged); the placed rung dropping
+  `config.file` and every `owned` mark (`ladder` and `owned-guide` failing either left); a file run's resume clauses
+  and `display verification`/`brainstorm` refusing; a `revise:` naming the placed rung (matched by words) skipping the
+  comparisons; schema 11's wording; the place step's header; `SKILL.md`'s tool and reading lists and the one-word name
+  rule; `remove_draft` of the better round's draft; W1's wording; `init` refusing an import code as `from`; a new check
+  of the placed rung's items against the read stage's. No other unit's assertion changed. Doer's gate rc 0 (269
+  suites, 4,678 tests); build-guide's `SKILL.md` 322 lines; words loaded D1-finish +4.3% (about 470 words of room),
+  D1-build +3.5%, D1-gate +3.4%, D2 +3.4%. Re-check sent to the gate verifier.
+- **WU-164's re-check** (the gate verifier) passed `01534d2`: 10 suites, 613 tests, build rc 0; **the fixtures checked
+  real** (a probe server's `plan_from_build` with the fixture's answers gives its `read.json`, and its plan once the
+  measure's and the place's additions are set aside; a measure-only recompile gives the same `planSha1` and an equal
+  root record; the ladder plan's recompile the same `planSha1` and `buildSha1` and every rung's fields; the
+  hand-written verdict, F1 and V4 reports, guide and dossier agree with what the checker recomputes); each fix bites;
+  compile runs unchanged; the 13 pipeline fixtures byte-identical under three checkers, the 4 piece fixtures under two;
+  words loaded max +4.3% (D1-finish). Two follow-ups taken before the merge: the word match for a `revise:` naming the
+  placed rung misfires both ways (`\bm\b` matches "I'm"; "the rung I play now" doesn't match), so a change to the
+  placed rung is a trade shown at the gate, as the item check already accepts; and the two fixtures duplicate about
+  800 KB, so the completed variant is built at test time from `file-run` and its own files. Sent to the doer.
+- **WU-164's follow-ups** at `8fe1c0f` (one commit on `01534d2`): the word match removed; the placed rung's tree must
+  equal the read stage's nodes after each trade on that rung carrying `nodes {remove, add}`, which `checkTradesFile`
+  now allows on a file run's placed rung (any kind; on a designed rung `nodes` stays a boss trade's only), D1-tree's
+  line saying so; the completed fixture now only its own files, laid over `file-run` at test time (1.3 MB in all, from
+  1.64 MB). Targeted suites (8 suites, 565 tests) and build rc 0; words loaded unchanged. Short re-check sent to the
+  gate verifier.
+- **WU-164's short re-check** (the gate verifier) passed `8fe1c0f`: build rc 0, 5 suites, 490 tests; the four tree-trade
+  cases behave as specified and each piece bites (the comparison, applying the nodes, the placed-rung branch in
+  `checkTradesFile`, its restriction to the placed rung); the 13 pipeline fixtures byte-identical to `cf16e07`'s
+  checker; `file-run` with the completed overlay equals `01534d2`'s committed completed fixture file for file (20
+  files, `diff -r` empty). Note: a boss trade on the placed rung would be applied wrongly, which can't arise since
+  D1-tree, which writes boss trades, runs only on the designed rungs.
+- **WU-164 (a guide from a file) merged** at `8fe1c0f` (fast-forward, four commits on `73cf7a1`). AC-W144, AC-W156 and
+  AC-W157 in `tests/static/fileRun.test.ts` and `tests/unit/fileRun.test.ts`; the fixtures `tests/fixtures/file-run`
+  and `file-run-completed`.

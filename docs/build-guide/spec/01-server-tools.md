@@ -107,15 +107,18 @@ bridge actions that the spine delegates to this slice.
 > - **PG-106, the gem-group recount** (D-510): PoB's skill-slot warning, which `get_build_issues`, the advice report,
 >   V1's `skill-slots` and the load replies read, counts a group only when its first enabled active gem isn't granted,
 >   so a support in a granted skill no longer counts its group; as built, an enabled gem PoB can't resolve counts its
->   group, as PoB and the game do (`Patches.lua`:66–85; WL:7127–7130). No figure moves.
+>   group, as PoB and the game do (`Patches.lua`:67–86; WL:7127–7130). No figure moves.
 > - **PG-109, rune rolls** (D-511): every file the engine composes (`compile_plan`'s files, `lua_save_build`,
 >   `export_build` with notes, the snapshots) leaves out PoB's `<ModRange>` copies, every load drops them from an item
 >   whose text has a `{range:` tag, and `import_build {save_as}` writes its code with them dropped on those items
 >   (`dropModRangeCopies`, `src/utils/buildCode.ts`:166). As built, `export_build` without notes stays an exact byte
 >   copy (D-42; `src/handlers/exportHandlers.ts`:64–66; WL:7223–7226).
-> - **PG-114, a granted skill's quality** (D-512): a skill a wand, a staff (not a quarterstaff) or a sceptre grants is
->   calculated at its item's quality in every calculation, whatever a file saved on PoB's granted group; every other
->   granted skill keeps PoB's value (`Patches.lua`:204–209). PG-115 (an item-only granted skill missing level and
+> - **PG-114, a granted skill's quality** (D-512): PoB's own granted group of a skill a wand, a staff (not a
+>   quarterstaff) or a sceptre grants is calculated at its item's quality, whatever a file saved on that group; every
+>   other granted skill keeps PoB's value (`Patches.lua`:204–210). A copy of the skill that carries its supports
+>   (PG-108) keeps its file's quality on a load, as in `analyze_build` of an import; it gets the item's quality only
+>   through the compile, from plan schema 11 (slice 02 §3.6's note), until M-30's read plan, which goes through the
+>   compile (WL:7253–7259). PG-115 (an item-only granted skill missing level and
 >   quality modifiers) was checked and isn't recorded: every "Grants Skill:" line resolves through the gem list
 >   (`Modules/ModParser.lua`:2170–2186; WL:7277–7279).
 >

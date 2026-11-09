@@ -1004,7 +1004,7 @@ V4 re-checks only `--changed`'s set. A revision's output is reported beside the 
 > (`check-run.mjs`:145–148). `init` and `resume` also print the `digests:` line the task header copies (§5.1), then
 > the staleness line: line 3 of each running digest, newest first, or "No running league has a league digest: what is
 > new in it isn't in the committed data.", then each undated digest once (`skills/build-guide/SKILL.md`:128–130,
-> `references/start.md`:103–111). As built (WL:7082–7089): the test clock `BUILD_GUIDE_TEST_NOW`, which only tests set;
+> `references/start.md`:103–112). As built (WL:7082–7089): the test clock `BUILD_GUIDE_TEST_NOW`, which only tests set;
 > the resume stamp says "revisions"; the run log, the checker and the readers are WU-151's (AC-W130, AC-W132). The
 > trade league for designs is unchanged (D-20).
 

@@ -82,7 +82,7 @@ researcher's and coordinator's definitions; `source-markers.md` from `SKILL.md`,
 `skills/build-guide/references/stages/README.md`, the checker and three agent definitions. Since M-29 the league rule
 is game knowledge's too: `skills/build-guide/scripts/run-log.mjs` imports `runningDigests` from `leagues.mjs` (:196)
 for the run log's `digest` list and the `digests:` line `init` and `resume` print; build-guide's runner rules,
-`start.md` and `run-log.md` name the command; and `lookups.md` (:124–126) and `patterns.md` (:591–592) name the task
+`start.md` and `run-log.md` name the command; and `lookups.md` (:125–127) and `patterns.md` (:591–592) name the task
 header's `digests` or the command's list where they used to read "the newest" digest.
 
 ### 2.2 What it writes
@@ -92,7 +92,7 @@ that loads, adds, sets, toggles or compiles), and prices nothing (no trade, exch
 is the session's reply.
 
 **The Bash line** (D-515, as built at M-29, WU-156): the runner searches with `grep` through Bash, as the runner rules
-allow (`runner-rules.md`:46–49: reading commands only, no redirection and nothing that writes), and Reads a file whole
+allow (`runner-rules.md`:47–50: reading commands only, no redirection and nothing that writes), and Reads a file whole
 (`SKILL.md`:16); every other search line in the skill names `grep` the same way, the league bullet's too (WU-151's
 rebase round). Its Bash runs only those reads and the league command (§2.1). Amendment 15's "You need no Bash: Read,
 Grep and Glob make every read" is gone: in this Claude Code a session with Bash has no Grep or Glob tool (a16 §11),

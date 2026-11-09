@@ -7,9 +7,10 @@
  * - Slices 01, 02 and 03 carry §21's notes for M-29: the patches (01 and 02), the granted-quality rule (02) and the
  *   league rule (03), each a `> **Note (amendment 16, …; M-29)**` block whose links resolve.
  * - The spine names C-59 and C-60 as built, marks M-29's decisions and units built (WU-157 not run), M-29 built in
- *   §9.3, keeps no M-29 decision in an "(amendment 16, approved)" note, names each M-29 criterion's test in §14.3, and
- *   its status line reads "Folded through amendment 16 (approved; as built through 15 and amendment 16's M-29)" (after
- *   M-30's docs unit, WU-167, the parenthesis goes, and a later amendment's approval adds its own).
+ *   §9.3, keeps no M-29 decision in an "(amendment 16, approved)" note, names each M-29 criterion's test in §14.3 (AC-W140
+ *   not run while WU-157 isn't), marks no M-30 row built before M-30's docs unit (WU-167) does, and its status line reads
+ *   exactly "Folded through amendment 16 (approved; as built through 15 and amendment 16's M-29)" until WU-167's row is
+ *   built; then the parenthesis goes, and a later amendment's approval adds its own.
  * `tests/static/specSpine.test.ts` is the criterion's other half; the rows' status and the status line are also the
  * gate verifier's record (a16 §21).
  */
@@ -80,6 +81,14 @@ const DECISIONS = [...new Set((PART_ONE.match(/^## \d+\. D-\d+/gm) ?? []).map((h
 const UNITS = [
   ...sectionOf(sectionOf(AMENDMENT, '## 24. '), '### M-29').matchAll(/^\| (WU-\d+) \| ([^|]+?) \|/gm),
 ].map((m) => ({ id: m[1], kind: m[2].trim() }));
+/** Part II's decisions (§12 to §20's headings) and §24's M-30 units: M-30's, which WU-167 marks built. */
+const PART_TWO = AMENDMENT.slice(AMENDMENT.indexOf('# Part II'), AMENDMENT.indexOf('## 21. '));
+const M30_DECISIONS = [...new Set((PART_TWO.match(/^## \d+\. D-\d+/gm) ?? []).map((h) => /D-\d+/.exec(h)![0]))];
+const M30_UNITS = [...sectionOf(sectionOf(AMENDMENT, '## 24. '), '### M-30').matchAll(/^\| (WU-\d+) \| ([^|]+?) \|/gm)].map(
+  (m) => ({ id: m[1], kind: m[2].trim() }),
+);
+/** M-30's docs unit, whose row the fold rule marks built last (a16 §21). */
+const M30_DOCS = M30_UNITS.find((u) => u.kind === 'docs')!.id;
 /** §25's M-29 criteria. */
 const CRITERIA = [...sectionOf(sectionOf(AMENDMENT, '## 25. '), '### M-29').matchAll(/^- \*\*(AC-W\d+) /gm)].map(
   (m) => m[1],
@@ -91,6 +100,9 @@ describe('AC-W143 (WU-158, D-525): the amendment\'s M-29 rows, read from its tex
     expect(UNITS.map((u) => u.id)).toEqual(['WU-151', 'WU-152', 'WU-153', 'WU-154', 'WU-155', 'WU-156', 'WU-157', 'WU-158']);
     expect(UNITS.find((u) => u.id === 'WU-157')!.kind).toMatch(/^human/);
     expect(CRITERIA).toEqual(Array.from({ length: 15 }, (_, i) => `AC-W${130 + i}`));
+    expect(M30_DECISIONS).toEqual(Array.from({ length: 9 }, (_, i) => `D-${516 + i}`));
+    expect(M30_UNITS.map((u) => u.id)).toEqual(Array.from({ length: 10 }, (_, i) => `WU-${159 + i}`));
+    expect(M30_DOCS).toBe('WU-167');
   });
 });
 
@@ -147,18 +159,32 @@ describe('AC-W143 (WU-158, D-525): slices 01, 02 and 03 carry §21\'s notes for 
 describe('AC-W143 (WU-158, D-525): the spine holds amendment 16\'s M-29 as built', () => {
   const flat = folded(SPINE);
 
-  it('its status line names amendment 16\'s M-29 as built (or a later fold)', () => {
-    const status = SPINE.split('\n').find((l) => l.startsWith('**Status:**'))!;
-    const m = /Folded through amendment (\d+)(?: \(approved; as built through (\d+)(?: and amendment (\d+)'s M-(\d+))?\))?/.exec(
-      folded(SPINE.slice(SPINE.indexOf(status), SPINE.indexOf(status) + 400)),
-    );
-    expect(m).not.toBeNull();
-    const [, foldedN, builtN, partN, milestone] = m!;
-    if (Number(foldedN) === 16 && builtN !== undefined) {
-      expect([builtN, partN, milestone]).toEqual(['15', '16', '29']);
+  /** Whether M-30's docs unit has marked M-30 built: its row's title starts "**Built**" (the fold rule's last step). */
+  const m30Folded = /^\*\*Built\*\*/.test(row(M30_DOCS)[1]);
+
+  it('its status line reads exactly "(approved; as built through 15 and amendment 16\'s M-29)" until M-30 is folded', () => {
+    const status = folded(SPINE.slice(SPINE.indexOf('**Status:**'), SPINE.indexOf('**Status:**') + 400));
+    const n = Number(/Folded through amendment (\d+)/.exec(status)?.[1]);
+    if (n === 16 && !m30Folded) {
+      expect(status).toContain("Folded through amendment 16 (approved; as built through 15 and amendment 16's M-29),");
+    } else if (n === 16) {
+      expect(status).toMatch(/Folded through amendment 16(?! \()/);
     } else {
-      expect(Number(builtN ?? foldedN)).toBeGreaterThanOrEqual(16);
+      expect(n).toBeGreaterThan(16);
+      expect(m30Folded).toBe(true);
+      const built = /Folded through amendment \d+ \(approved; as built through (\d+)\)/.exec(status);
+      if (built) expect(Number(built[1])).toBeGreaterThanOrEqual(16);
+      else expect(status).toMatch(/Folded through amendment \d+(?! \()/);
     }
+  });
+
+  it('marks no M-30 row built before M-30\'s docs unit folds it', () => {
+    if (m30Folded) return;
+    const built = [
+      ...M30_UNITS.filter((u) => /^\*\*(Built|Recorded)\*\*/.test(row(u.id)[1])).map((u) => u.id),
+      ...M30_DECISIONS.filter((d) => /\bbuilt WU-\d+/.test(last(row(d))) || !/\*\*target\*\*/.test(last(row(d)))),
+    ];
+    expect(built).toEqual([]);
   });
 
   it('names C-59 and C-60, each built', () => {
@@ -207,5 +233,7 @@ describe('AC-W143 (WU-158, D-525): the spine holds amendment 16\'s M-29 as built
     const asBuilt = s143.slice(s143.indexOf('As built at M-29'));
     expect(s143).toContain('As built at M-29');
     expect(CRITERIA.filter((c) => !asBuilt.includes(c))).toEqual([]);
+    // AC-W140 stays not run while WU-157's row says so (WU-168 records it at the latest).
+    if (/not run/.test(row('WU-157')[1])) expect(asBuilt).toContain('AC-W140 not run');
   });
 });

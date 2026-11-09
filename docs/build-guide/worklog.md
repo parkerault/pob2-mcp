@@ -7910,3 +7910,42 @@ What the coordinator folded (revision 2, approved):
 - **WU-162 (`/pob2:compile`) merged** at `91a39df` (fast-forward, four commits on `b437f8e`). AC-W153 in
   `tests/static/compileSkill.test.ts`, AC-W154 in `tests/unit/compileBetterRound.test.ts` and the static better-scope
   tests.
+- **WU-163's fix round** at `24c259a` (one commit on `dfff01c`): `measure_as` only while the stage is unplaced, a placed
+  stage measured as its own rung (an engine test through the real compile: a `rate_limited` stop, the player's rung
+  `b`, the resume refused with `measure_as` and run without it, the stage placed again on `m`); the notice's bound
+  counted from one `guide_run {view}` (2 a rare or rare jewel, 1 a unique, magic or normal item or socketed rune, 2 a
+  gear slot with a budget), the player's yes over 30, `maxSearches` in the header, the step never past it (a
+  `find_upgrades` call counted by its `Searches <n>`), `prices.md`'s `Searches: <made> of at most <max>.` held by
+  `pricing` (an engine test on the server's real pace, its clock moved only by the pace's waits); **gems priced** as
+  ruled (each as its uncut gem at its level, a support as `Uncut Support Gem (Level <tier>)`, a lineage support by
+  name; ids `f-gem-<group>-<gem>`; counted by the place, three 2-divine gems moving a character from `m` to `b`); the
+  thin retry's must-have to `leftOut`; a stop winning over `place: ask`; no build named; the budget and league on
+  resume; the verifier's split test, `owned-spec` requiring a spec, the day-21 "over 200 divines" line, the banner.
+  Deviations: the checker counts gem entries without requiring one per gem (a passive's granted skill isn't a gem);
+  uncut gems count no search (the exchange lists them). Only WU-163's own tests changed. Doer's gate rc 0 (265 suites,
+  4,594 tests); `SKILL.md` 132 lines; words loaded max +1.9%. Phase 2 sent: the rebase onto `327fefd`, the
+  coordinator's `price` row and compile's placement line; then one re-check of both.
+- **WU-163's phase 2** at `56e9e22`, rebased onto `327fefd` (`3ac345d` feature, `bcc4298` the `since.price` entry,
+  `02d83d5` the fix round, `56e9e22` phase 2): one conflict, the baseline's `since` section, both entries kept
+  (`measure` as WU-162 recorded it at `6b4020b`, 25,947 words; `price` recounted at `3ac345d`, 24,729, since WU-162's
+  coordinator text is part of its count); the coordinator's `price` row beside `measure` (its `stage: "place"` running
+  the placement scope alone) and the description's stage list; compile's §5 place line naming the step, its reference
+  from the plugin root, `writes`, and `maxSearches` counted without the upgrades. **A checker change the merge
+  forced:** WU-162's `pieceHeld` made `checkPrices14` run on pricing runs, whose `spec` rule failed every owned rare,
+  so an entry whose `query.slot` names an owned slot or tree jewel of the read stage is owned, exempt from `spec` and
+  `listing` (D-519) and held to `owned-spec`; one of WU-163's own assertions forced by it (a planted stray spec also
+  fails `spec`). Doer's gate rc 0 (267 suites, 4,635 tests); compile's `SKILL.md` 132 lines, pricing's 132,
+  build-guide's 317; words loaded max +2.6% (D2), `price` +2.0%, `measure` +0.3% (the `price` row). Re-check of the
+  fix round and phase 2, with a full gate on the tree holding both pieces, sent to the gate verifier.
+- **WU-163's re-check** (the gate verifier) passed `56e9e22`, the fix round and phase 2: gate from clean rc 0 (267
+  suites, 4,635 tests, the 6 `pricingRun` engine tests run; the timing step 2 suites, 4 tests), build rc 0; each fix's
+  check bites in a temporary copy; phase 2's row and place line pinned; the merge's checker change right against D-519
+  and §15, only in compile and pricing runs (`ownedContent` false elsewhere), biting (off, 21 pricing tests fail and
+  none of `pieceRuns`, `readPlanCompile`, `compileBetterRound`); both deviations acceptable (a skipped gem would
+  understate the cost unchecked; an exchange fallback counts against the cap, which is announced again, never
+  passed); the 13 pipeline fixtures identical under `cf16e07`'s checker and the head's, the 4 piece fixtures pass;
+  both `since` entries equal `--at <commit>`; the bounds held. **For WU-164:** pipeline `b`/`n` rares carry
+  `query.slot` too (`pricing.md`:314–316), so `ownedContent` extended to file runs, where other rungs sit beside the
+  read stage, needs a guard (skip entries the gate maps to another stage).
+- **WU-163 (`/pob2:pricing`) merged** at `56e9e22` (fast-forward, four commits on `327fefd`). AC-W155 in
+  `tests/static/pricingPiece.test.ts`, `tests/unit/pricingPiece.test.ts` and `tests/integration/pricingRun.test.ts`.

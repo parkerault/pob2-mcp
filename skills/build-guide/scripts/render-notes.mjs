@@ -3,6 +3,9 @@
 //
 //   pob2-render-notes <runFolder> --build <card id>
 //   pob2-render-notes <runFolder>
+//   pob2-render-notes <runFolder> --source <source run folder> [--build <card id>]
+//
+// D-522: a writer run's notes are its guide's, with its source build's plan and links (run-log.mjs's `writerRenderTarget`).
 //
 // A piece run (amendment 16's M-30, D-516: its log's `piece`) keeps its one build at the folder's root, so the render
 // takes it with no `--build`, as for schema 3; a file run's one build is `--build file`, beside the card ids.
@@ -31,6 +34,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writerRenderTarget } from './run-log.mjs';
 
 /** Appendix A: PoB's colour code for a heading line in the notes (`^x` and six hex digits, `Classes/NotesTab.lua`). */
 export const HEADING_COLOUR = '^xE0C080';
@@ -132,21 +136,23 @@ export function renderNotes(guideText, links = [], plan = null) {
  * Reads a build's guide.md, plan.json and trade-links.json (optional) and writes its notes.txt. Returns what it did;
  * throws an Error naming what is missing.
  */
-export function writeNotes(runFolder, id) {
+export function writeNotes(runFolder, id, source) {
   let log;
   try {
     log = JSON.parse(fs.readFileSync(path.join(runFolder, 'run-log.json'), 'utf8'));
   } catch (e) {
     throw new Error(`run-log.json can't be read (${e.code ?? e.message})`);
   }
+  const w = writerRenderTarget(runFolder, log, { source, build: id });
   // D-516: a piece run's one build is at its folder's root, taken with no --build; every other run names its build.
   const piece = PIECES.includes(log.piece);
-  if (piece && id !== undefined) throw new Error(`a ${log.piece} run keeps its one build at the folder's root: pob2-render-notes <runFolder>, with no --build (D-516)`);
+  if (piece && id !== undefined && !w) throw new Error(`a ${log.piece} run keeps its one build at the folder's root: pob2-render-notes <runFolder>, with no --build (D-516)`);
   if (!piece && id === undefined) throw new Error('a schema-4 run holds one folder per build: pob2-render-notes <runFolder> --build <card id> (D-412)');
   const entry = piece ? { folder: '.' } : list(log.builds).find((b) => b.id === id);
   if (!entry) throw new Error(`run-log.json has no build ${id}; builds[] holds ${list(log.builds).map((b) => b.id).join(', ') || 'none'}`);
   const folder = entry.folder === '.' ? '' : `${entry.folder}/`;
   const at = (rel) => path.join(runFolder, ...`${folder}${rel}`.split('/'));
+  const from = (rel) => (w ? path.join(w.dir, w.folder, rel) : at(rel));
   let guide;
   try {
     guide = fs.readFileSync(at('guide.md'), 'utf8');
@@ -155,7 +161,7 @@ export function writeNotes(runFolder, id) {
   }
   const json = (rel) => {
     try {
-      return JSON.parse(fs.readFileSync(at(rel), 'utf8'));
+      return JSON.parse(fs.readFileSync(from(rel), 'utf8'));
     } catch (e) {
       if (e.code === 'ENOENT') return null;
       throw new Error(`${folder}${rel} isn't valid JSON: ${e.message}`);
@@ -181,12 +187,14 @@ function main(argv) {
   // D-516: only a piece run's root build takes no --build (any other run's is the usage error, as before); a file run's
   // one build is `file`.
   const root = args.length === 1 && !args[0].startsWith('--') && pieceRunAt(path.resolve(args[0]));
-  if (!root && (args.length !== 3 || args[1] !== '--build' || !/^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(args[2]))) {
-    process.stderr.write("usage: node render-notes.mjs <runFolder> --build <card id>, or <runFolder> alone for a piece run's root build (D-516)\n");
+  const id = (x) => /^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(x);
+  const source = args[1] === '--source' && (args.length === 3 || (args.length === 5 && args[3] === '--build' && id(args[4]))) ? args[2] : undefined;
+  if (!root && source === undefined && (args.length !== 3 || args[1] !== '--build' || !id(args[2]))) {
+    process.stderr.write("usage: node render-notes.mjs <runFolder> --build <card id>, or <runFolder> alone for a piece run's root build (D-516), or <runFolder> --source <folder> for a writer run (D-522)\n");
     return 2;
   }
   try {
-    process.stdout.write(`render-notes: ${writeNotes(path.resolve(args[0]), root ? undefined : args[2])}\n`);
+    process.stdout.write(`render-notes: ${writeNotes(path.resolve(args[0]), root ? undefined : source !== undefined ? args[4] : args[2], source)}\n`);
     return 0;
   } catch (e) {
     process.stderr.write(`render-notes: ${e.message}\n`);

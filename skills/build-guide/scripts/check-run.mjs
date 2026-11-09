@@ -171,6 +171,12 @@
 //    guide rests on it. `checkFileRun`: the three rungs around the placed one, which keeps its rung and tree (`ladder`); no
 //    stage keeping what read.json names legacy, each shown as a trade, and the placed rung's rares specs (`owned-guide`).
 //    For every guide, a line per buff switched as needed (`switched-buffs`, `checkSwitchedBuffs`).
+//  - WU-165 (D-522, C-65): a writer run is checked against its source (`checkWriterSource`): the source a build that passed
+//    F1 with nothing a guide can't carry, as `init` holds it (`writer-source`, `owned-guide`); then the source's own checker
+//    on that build alone (`checkRun`'s `opts.writer`), the writer's guide.md, audit.md and notes.txt read over its folder
+//    (`overlayIO`) and its W1 after the source's steps, keeping the writer's rules; and a better round's guide holding its
+//    one rung's H2 (its verdict line at the rung's hits, `rungHits`, the record writing none on a file's configuration)
+//    and its owned rares as specs, never their own rolls (`owned-guide`).
 //
 // Node built-ins only, plus the server's compiled ledger module `build/plan/ledger.js` (its imports are
 // type-only, so it loads alone; amendment 1 §6 relaxes FR-W7's built-ins rule for it), its build projection
@@ -204,7 +210,7 @@ import {
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
   swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES, A15, boundariesOf,
   A16, PIECES, FILE_ID, PIECE_STEPS, PIECE_STAGES, PIECE_SOURCE_KINDS, SOURCE_FIELDS, pieceOf, takesFileId, scopesOf, SCOPES16,
-  isFileRun, FILE_BRIEF_FIELDS, fileBriefProblems,
+  isFileRun, FILE_BRIEF_FIELDS, fileBriefProblems, writerSource, writerSourceProblems, rungHits,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -417,6 +423,8 @@ export const RULE_PIECES = {
   ladder: ['compile'], 'owned-guide': ['compile', 'writer'],
   // D-518 (WU-164): a guide's line per buff switched as needed.
   'switched-buffs': ['writer'],
+  // D-522 (WU-165): a writer run's source, a build that passed F1 (its card, plan, D1-gate verdict and final record).
+  'writer-source': ['writer'],
   // Shared: runes, corruption and flasks (compile and pricing); known issues (the writer and review); the advice to test
   // in game and the campaign rewards (the writer and compile).
   runes: ['compile', 'pricing'], corruption: ['compile', 'pricing'], flasks: ['compile', 'pricing'],
@@ -1279,7 +1287,7 @@ function compositeIds(runFolder) {
   return out;
 }
 
-export async function checkRun(runFolder) {
+export async function checkRun(runFolder, opts = {}) {
   const violations = [];
   const fail = (rule, message) => violations.push({ rule, message });
   // D-435: the result's warnings, a stale server build among them; `display final` prints them. The violations stay.
@@ -1402,6 +1410,8 @@ export async function checkRun(runFolder) {
 
   // Plans: each build's own, the skeletons and the probes; prices and ledger ids resolve across the first two.
   const buildPlans = new Map(builds.map((b) => [b, readJson(inFolder(b.folder, 'plan.json'))]));
+  // D-522: a writer's guide of a /pob2:compile run's better round names its roll, the read plan's.
+  if (opts.writer && piece === 'compile' && isObj(buildPlans.get(builds[0])?.roll)) builds[0].roll = buildPlans.get(builds[0]).roll;
   const conceptPlans = new Map();
   for (const id of listDir('concepts')) {
     if (!ID.test(id) || !isDir(`concepts/${id}`)) {
@@ -1676,8 +1686,11 @@ export async function checkRun(runFolder) {
   // ---- Each build's artifacts, in its folder (D-412; a schema-2 or schema-3 run's one build at the root) ---------
   const ledgerModule = await loadLedgerModule();
   const otherIds = new Set(builds.filter((b) => b.folder !== '.').map((b) => b.id));
-  // D-516: a writer run's guide is checked on its own files here; against its source's plan and record, by §18's checker.
-  if (piece === 'writer') checkWriterFiles({ log, readText, exists, fail });
+  // D-516: a writer run's guide is checked on its own files here; D-522: and against its source (`checkWriterSource`).
+  if (piece === 'writer') {
+    checkWriterFiles({ log, readText, exists, fail });
+    await checkWriterSource({ runFolder, log, readText, fail });
+  }
   // D-516 (Appendix A.6): a completed compile or pricing run holds what its read and its measure or price wrote.
   if (['compile', 'pricing'].includes(piece) && log.status === 'completed') {
     for (const rel of ['source.xml', 'plan.json', 'read.json', 'compile-record.json', piece === 'compile' ? 'measure.md' : 'prices.md']) {
@@ -1693,13 +1706,20 @@ export async function checkRun(runFolder) {
     const upgrades = exists('upgrades.json') ? readJson('upgrades.json', 'upgrades') : null;
     if (upgrades !== null) checkUpgrades({ upgrades, plan, log, fail });
   }
-  for (const build of piece === 'writer' ? [] : builds) {
+  // D-522 (§18): checked for a writer run (`opts.writer`), only the source's build it writes the guide of, with the writer's
+  // guide.md, audit.md and notes.txt in place of its own and the writer's W1 after its steps.
+  const target = opts.writer ? builds.find((b) => (piece === 'compile' ? b === builds[0] : b.id === opts.writer.build)) : undefined;
+  for (const build of piece === 'writer' ? [] : opts.writer ? [target].filter(Boolean) : builds) {
     // A build's own steps: its card's (in "." also those of cards with no folder of their own), refused calls aside.
     const mine = v4 ? stages.filter((s) => s.outcome !== REFUSED && (build.folder === '.' ? !otherIds.has(s.concept) : s.concept === build.id)) : stages;
+    const writer = opts.writer ? {
+      io: overlayIO(path.join(runFolder, build.folder), opts.writer.folder, WRITER_FILES, fail),
+      loadAudit: () => loadAuditInputs(opts.writer.folder, piece === null ? build.id : undefined, runFolder),
+    } : {};
     await checkBuild({
-      runFolder, build, log, schema, stages: mine, gates, gateReports, accepted: v4 ? accepted.filter((a) => a.concept === build.id) : accepted,
-      ledgerModule, runName, runDate, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate, piece,
-      fail: build.folder === '.' ? fail : (rule, message) => fail(rule, `${build.folder}: ${message}`),
+      runFolder, build, log, schema, stages: opts.writer ? [...mine, ...opts.writer.stages] : mine, gates, gateReports, accepted: v4 ? accepted.filter((a) => a.concept === build.id) : accepted,
+      ledgerModule, runName, runDate, offline, mode, ID, plan: buildPlans.get(build), sources, legacy, legacyGate, piece, ...writer,
+      fail: build.folder === '.' || opts.writer ? fail : (rule, message) => fail(rule, `${build.folder}: ${message}`),
     });
   }
   // D-466 (amendment 13): each build writes its own file; two builds recording one PoB file (names compare without
@@ -1721,10 +1741,16 @@ export async function checkRun(runFolder) {
   if (v4 && !rootBuild) for (const f of listDir('reports').filter((x) => x !== 'gates')) fail('layout', `reports/${f} is at the run folder's root; a schema-4 run's V4 reports are each build's, builds/<id>/reports/V4-<n>.md (D-412)`);
   // D-516 (§12): a piece run is held to the rules its tags give it; the others don't apply to it. A rule the table
   // doesn't name is kept (the static scan fails it).
-  const tags = pieceTags(log);
+  const tags = opts.writer ? null : pieceTags(log);
   if (tags !== null) {
     const kept = violations.filter((v) => !(v.rule in RULE_PIECES) || RULE_PIECES[v.rule].some((t) => tags.has(t)));
     violations.splice(0, violations.length, ...kept);
+  }
+  // D-522: a writer run's own files and its source's check both read its guide (guide-markers, test-advice): one line each.
+  if (piece === 'writer') {
+    const seen = new Set();
+    const once = violations.filter((v) => !seen.has(`${v.rule}\n${v.message}`) && seen.add(`${v.rule}\n${v.message}`));
+    violations.splice(0, violations.length, ...once);
   }
   return violations;
 }
@@ -1735,10 +1761,11 @@ export async function checkRun(runFolder) {
  * log records for its card. A schema-2 or schema-3 run's one build is the root's, held to the whole log.
  */
 async function checkBuild(c) {
-  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, runDate, offline, mode, ID, plan, sources, fail, legacy, legacyGate, piece = null } = c;
+  const { runFolder, build, log, schema, stages, gates, gateReports, accepted, ledgerModule, runName, runDate, offline, mode, ID, plan, sources, fail, legacy, legacyGate, piece = null, io = null, loadAudit = null } = c;
   const v4 = schema === 4;
   const folder = build.folder;
-  const { abs, exists, isDir, listDir, readText, readJson } = folderIO(path.join(runFolder, folder), fail);
+  // D-522: a writer run's check reads its guide, audit and notes over the source build's folder (`overlayIO`).
+  const { abs, exists, isDir, listDir, readText, readJson } = io ?? folderIO(path.join(runFolder, folder), fail);
   const completed = v4 ? build.status === 'completed' : log.status === 'completed';
   const covered = (f) => accepted.some((a) => a.stage === (f.stage ?? null) && a.part === f.part && a.code === f.code);
   // §22 (amendment 13): a build is held to the rules of its last D1 gate, logged at or after a revision's boundary; every
@@ -1973,7 +2000,9 @@ async function checkBuild(c) {
   // The guide renders the plan: it carries no markers, so the plan's claims hold its sources.
   let guide = null;
   let audit = null;
-  const wantH2 = template === 'endgame' ? ENDGAME_GUIDE_H2 : GUIDE_H2;
+  // D-522 (§18): the guide of a better round's build (a read plan's stage on its one rung) holds that rung's Endgame H2 alone.
+  const absentRungs = planStages.some((s) => isObj(s.source)) ? RUNGS.filter((v) => !endgame.some((s) => s.variant === v)).map((v) => VARIANT_H2[v]) : [];
+  const wantH2 = (template === 'endgame' ? ENDGAME_GUIDE_H2 : GUIDE_H2).filter((t) => !absentRungs.includes(t));
   // D-486 (amendment 14): the late endgame scaling H2, after "Endgame: non-budget", only when the build's last design
   // accept answered scaling: true.
   const lastAccept = list(log.checkpoints).filter((c) => c.checkpoint === 'design' && c.concept === build.id && ['accept', 'accept:file'].includes(c.answer)).pop();
@@ -2068,7 +2097,7 @@ async function checkBuild(c) {
         fail('audit-sections', `audit.md's H2s are ${why}; §7.8 wants ${show(AUDIT_H2)} in that order (D-278, D-355)`);
       }
       try {
-        auditInputs = await loadAuditInputs(runFolder, v4 ? build.id : undefined);
+        auditInputs = await (loadAudit !== null ? loadAudit() : loadAuditInputs(runFolder, v4 ? build.id : undefined));
       } catch (e) {
         fail('audit-render', `audit.md can't be compared with its render: ${e.message} (D-355)`);
       }
@@ -2368,7 +2397,7 @@ function checkGuideMarkers(guide, importBlock, fail) {
  * D-516 (§12, Appendix A.6): a writer run's own files, at its folder's root: a completed run holds its guide and its
  * audit; its guide carries no pipeline text (`guide-markers`) and, with its notes, no advice to test in game
  * (`test-advice`, D-489: a writer run is revision 16's). Holding the guide and the audit to the source's plan, record and
- * verdicts (the checker for a writer run, D-522) is §18's.
+ * verdicts is `checkWriterSource`'s (D-522).
  */
 function checkWriterFiles({ log, readText, exists, fail }) {
   const written = list(log.stages).some((s) => s.stage === 'W1' && s.outcome === 'done');
@@ -2383,6 +2412,80 @@ function checkWriterFiles({ log, readText, exists, fail }) {
   const importBlock = at ? guide.fences.find((f) => f.start > at.start && f.start < at.end) ?? null : null;
   checkGuideMarkers(guide, importBlock, fail);
   checkTestAdvice({ guide: text, notes: readText('notes.txt'), planStages: [], fail });
+}
+
+/** D-522 (Appendix A.6): the files a writer run writes for its source's build, read over that build's folder. */
+const WRITER_FILES = ['guide.md', 'audit.md', 'notes.txt'];
+
+/**
+ * D-522: a folder's files as `folderIO` reads them, but `names`, read from the folder `top` (a writer run's, at its root):
+ * the source build's folder with the writer's guide, audit and notes in place of its own.
+ */
+function overlayIO(base, top, names, fail) {
+  const under = folderIO(base, fail);
+  const over = folderIO(top, fail);
+  const pick = (rel) => (names.includes(rel) ? over : under);
+  return {
+    abs: (rel) => pick(rel).abs(rel),
+    exists: (rel) => pick(rel).exists(rel),
+    isDir: (rel) => pick(rel).isDir(rel),
+    listDir: (rel) => (rel === '.' || rel === '' ? [...under.listDir(rel).filter((f) => !names.includes(f)), ...names.filter((f) => over.exists(f))].sort() : pick(rel).listDir(rel)),
+    readText: (rel) => pick(rel).readText(rel),
+    readJson: (rel, rule) => pick(rel).readJson(rel, rule),
+  };
+}
+
+/**
+ * D-522 (§18, C-65): the checker for a writer run, against its source, the run folder its log's `source` names
+ * (`writerSource`): the source a build that passed F1 (`writer-source`) keeping nothing a guide can't carry
+ * (`owned-guide`), as `init` refused (`writerSourceProblems`); then the source's checker on that build alone, the writer's
+ * guide.md, audit.md and notes.txt read in place of its own and its W1 after the source's steps, every writer rule kept
+ * (the guide's sections and cap, its markers, import code, verdict lines, Checks blocks, levels, Known issues, switched
+ * buffs and test advice, and the audit's render from the source's plan, record and D1 gate verdict), the source's own other
+ * rules set aside; and in the guide of a better round's build (a /pob2:compile source) each owned rare a spec, never the
+ * character's own rolls (`owned-guide`, §16): no rolled line of it printed but at its spec's minimum.
+ */
+async function checkWriterSource({ runFolder, log, readText, fail }) {
+  if (!isObj(log.source) || log.source.kind !== 'run-folder') return;
+  const problems = writerSourceProblems(runFolder, log.source);
+  for (const p of problems) {
+    if (p.rule === 'owned-guide') fail('owned-guide', `run-log.json source: ${p.why}`);
+    else fail('writer-source', `run-log.json source: ${p.why}`);
+  }
+  const src = writerSource(runFolder, log.source);
+  if (problems.some((p) => p.rule === 'writer-source') || src.log === null || src.build === null) return;
+  const w1 = list(log.stages).filter((s) => s.stage === 'W1');
+  for (const v of await checkRun(src.dir, { writer: { folder: runFolder, build: src.build.id, stages: w1 } })) {
+    if (RULE_PIECES[v.rule]?.includes('writer')) fail(v.rule, v.message);
+  }
+  const guide = readText('guide.md');
+  if (guide === null || src.piece !== 'compile') return;
+  let plan = null;
+  try {
+    plan = JSON.parse(fs.readFileSync(path.join(src.dir, ...inFolder(src.build.folder, 'plan.json').split('/')), 'utf8'));
+  } catch {
+    return;
+  }
+  const text = norm(guide.replace(/[*`_]/g, ''));
+  const inGuide = (line) => text.includes(norm(line));
+  for (const st of list(plan?.stages)) {
+    for (const it of [...list(st.items?.slots), ...list(st.items?.treeJewels)]) {
+      if (it.owned !== true || itemOf(it.text).rarity !== 'RARE') continue;
+      const where = it.slot ?? `tree jewel ${it.node}`;
+      // Its spec: the price entry whose query.slot names it (a tree jewel's `Jewel <node>`), as pricing's owned-spec maps it.
+      const sp = list(plan.prices).find((p) => isObj(p.spec) && isObj(p.query) && p.query.slot === (it.slot ?? `Jewel ${it.node}`))?.spec;
+      for (const line of affixLines(it.text)) {
+        // The line as the item prints it: a `(a-b)` range at its `{range:<r>}` roll (PoB's 0.5 without one), rounded.
+        const r = Number(/\{range:([\d.]+)\}/.exec(line)?.[1] ?? 0.5);
+        const shown = line.replace(/\{[^}]*\}/g, '').replace(/\(\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*\)/g, (m, a, b) => String(Math.round(Number(a) + r * (Number(b) - Number(a))))).trim();
+        const value = lineValue(line);
+        if (!/\d/.test(shown) || !inGuide(shown)) continue;
+        const mh = list(sp?.mustHaves).find((m) => affixKey(m.affix) === affixKey(line));
+        if (mh !== undefined && isNum(mh.min) && isNum(value) && Math.abs(mh.min - value) < 1e-6) continue;
+        fail('owned-guide', `guide.md prints ${show(shown)}, the character's own roll on its owned rare in ${where} (stage ${st.id}); in a guide an owned rare is a spec, what any player buys: its base and its must-have affixes at their minimums (its price entry's spec), or with no spec the affixes it needs with no value, never the character's own rolls (§16, D-522)`);
+      }
+    }
+  }
 }
 
 /**
@@ -2614,9 +2717,11 @@ function checkVerdictLines(guide, endgame, record, d1rep, ledgerNow, fail, v3, p
       fail('verdict-line', `${at}: the record holds no outputs for stage ${s.id}, so its ${label} verdict line can't be compared (D-283)`);
       continue;
     }
-    // D-353: the reference hits the compiler wrote into the stage's config, filling any the plan omits.
+    // D-353: the reference hits the compiler wrote into the stage's config, filling any the plan omits. D-519, D-522: a
+    // stage on a file's configuration (a better round's) is measured at its rung's hits without writing them (`rungHits`).
     const written = isObj(st?.configWritten) ? st.configWritten : {};
-    const hit = (t) => written[`enemy${t}Damage`];
+    const fileHits = isObj(s.config?.file) && !isNum(written.enemyPhysicalDamage) ? rungHits(s.variant) : null;
+    const hit = (t) => (fileHits !== null ? fileHits[t] : written[`enemy${t}Damage`]);
     const least = (xs) => (xs.every(isNum) ? Math.min(...xs) : undefined);
     const most = (xs) => (xs.every(isNum) ? Math.max(...xs) : undefined);
     const parts = [

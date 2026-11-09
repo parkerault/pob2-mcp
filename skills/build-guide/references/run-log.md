@@ -610,7 +610,9 @@ C-61). Its first write is `pob2-run-log <runFolder> init` with `piece`, `mode`, 
   (`"builds-folder"`, `name` its name, `sha1` given at `init` when known: `source` is written only there, and
   `read.json` holds the file's sha1) or an import code (`"import-code"`, no name: the code itself goes only to the
   reader, never in the log); for the writer a run folder (`"run-folder"`, `name` relative to the guides
-  root, `<slug>/<date>-<n>`, and `build`, its build's id when it has `builds/`).
+  root, `<slug>/<date>-<n>`, and `build`, its build's id when it has `builds/`). `init` refuses a writer's source that
+  isn't a build that passed F1 (its card, a D1-gate verdict, a final record) or that keeps what a guide can't carry
+  (D-522).
 - **Its steps** (Appendix A.6): compile `read`, `measure` and, with the better round, `place`, `D1-build`, `D1-tree`,
   `D1-finish`, `D1-gate` and `F1`; pricing `read` and `price`; the writer `W1`. `read` is `done` or `fail` (the reader
   refused the file), `measure` `done` or `fail`, `place` and `price` `done`; the four carry no `concept`, and `place` and

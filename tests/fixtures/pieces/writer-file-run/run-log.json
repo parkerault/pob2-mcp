@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 4,
+  "skillRevision": 16,
+  "piece": "writer",
+  "runFolder": "/tmp/pob2-guides/writer/2026-12-01-1",
+  "status": "completed",
+  "mode": "offline",
+  "testConfig": "none",
+  "noNinja": false,
+  "pinCommit": "7d6f530cbdab20389ff8bc6ba97a37ac27f74e41",
+  "digest": [
+    "forbidden-rites.md",
+    "runes-of-aldur.md"
+  ],
+  "source": {
+    "kind": "run-folder",
+    "name": "file/2026-12-01-1",
+    "build": "file"
+  },
+  "stages": [
+    {
+      "stage": "W1",
+      "concept": "file",
+      "attempt": 1,
+      "outcome": "done"
+    }
+  ],
+  "checkpoints": [],
+  "displays": [],
+  "escalations": [],
+  "faults": [],
+  "resumes": [],
+  "pricing": {
+    "stops": [],
+    "retries": []
+  }
+}

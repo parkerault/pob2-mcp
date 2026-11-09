@@ -213,6 +213,13 @@
 // no `accept:verification` at its final gate, and its better round's design gate takes accept, revise:<text> or stop.
 // Its design display serves the better round as a compile run's (the draft first, what the budget can't reach) and the
 // ladder with the placed rung's costed findings, each inviting no way back to a verification gate.
+// WU-165 (D-522, C-65): a writer run's `init` reads its source, `<guides root>/<source.name>` (`writerSource`), and refuses
+// one that isn't a build that passed F1 (`writerSourceProblems`): a run folder under the guides root with a schema-4 log,
+// not a pricing or writer run; its build (`source.build`, none for a /pob2:compile run's root build) holding its card, its
+// plan, a D1-gate verdict and a final compile that passed with its final record (a compile run with only a measure is
+// refused, naming the better round or a file run); and nothing a guide can't carry (`guideCantCarry`: a legacy
+// or no-longer-obtainable gem or unique, D-395; an owned rare's corruption or rune over the budget, D-465, D-471, D-484),
+// each named, pointing to a file run.
 //
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
@@ -762,6 +769,150 @@ function pieceInitProblems(e) {
   return bad;
 }
 
+/**
+ * D-522 (§18, C-65): a writer run's source, the run folder its `source.name` names under the guides root, two folders
+ * above the writer's own (`Guides/writer/<date>-<n>/`). Returns `{root, dir, log, piece, build}`: the source's log (null
+ * when it has none), its piece (null for a /pob2:build-guide run), and its build `{id, folder}`: a /pob2:compile run's one
+ * build `file` at its root, else the builds[] entry `source.build` names, or null.
+ */
+export function writerSource(runFolder, source) {
+  const root = path.resolve(runFolder, '..', '..');
+  const name = isObj(source) && text(source.name) ? source.name : '';
+  const dir = path.resolve(root, ...name.split('/'));
+  let log = null;
+  try {
+    log = JSON.parse(fs.readFileSync(path.join(dir, 'run-log.json'), 'utf8'));
+  } catch {
+    log = null;
+  }
+  if (!isObj(log) || name === '') log = null;
+  const piece = log === null ? null : pieceOf(log);
+  const entry = log === null ? null : piece === 'compile' ? { id: FILE_ID, folder: '.' } : objects(log.builds).find((b) => b.id === source.build && text(b.folder)) ?? null;
+  return { root, dir, log, piece, build: entry === null ? null : { id: entry.id, folder: entry.folder } };
+}
+
+/**
+ * D-522 (§18): what `pob2-render-audit` and `pob2-render-notes` read for a run whose log is `log`. A writer run reads its
+ * source's build, the run folder its log's `source` names: `opts.source` (`--source`), when given, is that folder
+ * (`<slug>/<date>-<n>` under the guides root, or its absolute path) and `opts.build` (`--build`) its build
+ * (`source.build`, none for a /pob2:compile run's root build). Returns `{dir, folder, build, name}` for a writer run (the
+ * source run folder, its build's folder in it, the build to pass the render, undefined for a root build, and the source's
+ * name), null for any other run, which takes no `--source`; throws an Error saying why not.
+ */
+export function writerRenderTarget(runFolder, log, opts = {}) {
+  if (!isObj(log) || log.piece !== 'writer') {
+    if (opts.source !== undefined) throw new Error("--source is a writer run's: /pob2:writer reads the run folder its log's source names; any other run renders its own build (D-522)");
+    return null;
+  }
+  const src = writerSource(runFolder, log.source);
+  const name = String(log.source?.name ?? '');
+  const want = isObj(log.source) && text(log.source.build) ? log.source.build : undefined;
+  if (src.log === null) throw new Error(`the writer run's source ${show(name)} names no run folder with a run-log.json under the guides root ${src.root} (D-522)`);
+  if (opts.source !== undefined && path.resolve(src.root, opts.source) !== src.dir) throw new Error(`--source ${opts.source} isn't this writer run's source, ${name} (${src.dir}), which its log names (D-522)`);
+  if (opts.build !== undefined && opts.build !== want) throw new Error(`--build ${opts.build} isn't the source's build; the writer run's source.build is ${want ?? "none, a /pob2:compile run's build at its root"} (D-522)`);
+  if (src.build === null) throw new Error(`the writer run's source.build ${show(want ?? null)} names no build of ${name}'s builds[] (D-522)`);
+  return { dir: src.dir, folder: src.build.folder, build: src.piece === 'compile' ? undefined : src.build.id, name };
+}
+
+/** A fact's value in a `data/enemies/` file (`{facts: {<key>: {value}}}`), or undefined. */
+function enemyFact(file, key) {
+  return readJson(path.join(REPO, 'data', 'enemies'), file)?.facts?.[key]?.value;
+}
+/**
+ * D-519, D-522: a rung's five reference hits by D-254's formula, `{Physical, Fire, Cold, Lightning, Chaos}`, for a stage on
+ * a file's configuration (`config.file`, a better round's), which the compile measures at its rung's hits without writing
+ * them (the compiler's `fileStageHits`, the checker's floor recompute): the monster damage at the rung's area level (T5 for
+ * entering maps, T15 for budget, the top for non-budget) × (1 + the waystone's increased damage / 100), × its extra damage
+ * as an element / 100 for the other four, each rounded to 2 decimals and then up (D-256). Null when the data lacks one.
+ */
+export function rungHits(variant) {
+  const tier = { 'entering-maps': 5, budget: 15 }[variant];
+  const level = tier !== undefined ? enemyFact('waystones.json', 'area-level.offset') + tier : enemyFact('waystones.json', 'area-level.max');
+  const base = enemyFact('map-monsters.json', 'damage.by-level')?.[String(level)];
+  const increased = enemyFact('waystones.json', 'mods.increased-monster-damage')?.max;
+  const extra = enemyFact('waystones.json', 'mods.extra-damage-as-element')?.max;
+  if (!['entering-maps', 'budget', 'non-budget'].includes(variant) || ![level, base, increased, extra].every(isNum)) return null;
+  const up = (v) => Math.ceil(Math.round(v * 100) / 100);
+  return Object.fromEntries(['Physical', 'Fire', 'Cold', 'Lightning', 'Chaos'].map((t) => [t, up(base * (1 + increased / 100) * (t === 'Physical' ? 1 : extra / 100))]));
+}
+
+/** An item text's rarity (upper case), its name (the line after the rarity) and its lines, trimmed. */
+const itemHead = (t) => {
+  const lines = String(t ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const r = /^Rarity:\s*(\S+)/i.exec(lines[0] ?? '');
+  return { rarity: r ? r[1].toUpperCase() : null, name: r ? lines[1] ?? null : null, lines };
+};
+
+/**
+ * D-522 (§18, §15): the content a guide can't carry that a plan keeps: a gem or unique the reader named legacy or no
+ * longer obtainable (`read.json`'s `legacy`, D-395); on an owned item, a "Legacy of …" soul core or the Raven-Touched Shard
+ * (D-465) and a rare's corruption (D-471, D-484). In a guide owned content meets every rule; a file run's ladder replaces
+ * each with a trade. Returns `[{what, where, rule}]`.
+ */
+export function guideCantCarry(plan, read) {
+  const out = [];
+  const legacy = objects(read?.legacy).filter((l) => text(l.name));
+  for (const s of objects(plan?.stages)) {
+    const items = [...objects(s.items?.slots).map((x) => ({ where: `stage ${s.id} ${x.slot}`, x })), ...objects(s.items?.treeJewels).map((x) => ({ where: `stage ${s.id} tree jewel ${x.node}`, x }))];
+    for (const l of legacy) {
+      objects(s.skills?.groups).forEach((g, k) => {
+        if (objects(g.gems).some((m) => norm(m.name ?? '') === norm(l.name))) out.push({ what: `the gem ${show(l.name)}`, where: `stage ${s.id} group ${k + 1}`, rule: 'legacy, D-395' });
+      });
+      for (const it of items) if (norm(itemHead(it.x.text).name ?? '') === norm(l.name)) out.push({ what: `the unique ${show(l.name)}`, where: it.where, rule: 'no longer obtainable, D-395' });
+    }
+    for (const it of items.filter((y) => y.x.owned === true)) {
+      const head = itemHead(it.x.text);
+      for (const line of head.lines) {
+        const rune = /^Rune:\s*(.+?)\s*$/i.exec(line)?.[1];
+        const n = norm(String(rune ?? '').replace(/[‐-―−]/g, '-').replace(/[‘’ʼ]/g, "'"));
+        if (rune !== undefined && (/^legacy of \S/.test(n) || /\braven-touched shard\b/.test(n))) out.push({ what: `the rune ${show(rune)}`, where: it.where, rule: 'a rune over the budget, D-465' });
+      }
+      if (head.rarity === 'RARE' && head.lines.some((l) => l === 'Corrupted' || l === 'Twice Corrupted')) out.push({ what: 'a corrupted rare', where: it.where, rule: 'corruption never on rares, D-471, D-484' });
+    }
+  }
+  return out;
+}
+
+/**
+ * D-522 (§18): the writer's source at `init`, which the run checker holds too. The source is a run folder under the guides
+ * root holding a schema-4 run log: a /pob2:build-guide run's build (`source.build`, one of its builds[]), a file run's
+ * (`file`), or a /pob2:compile run's better round (no `build`: its one build at the root); never a pricing or writer run.
+ * Its build passed F1: the minimum a guide needs without a brainstorm is its card (`cards/<id>.md`, the file card for a
+ * file run or a better round), its plan (whose claims the guide renders), a D1-gate verdict and a final compile that
+ * passed (F1 or the D2 gate) with its final record. A compile run with only a measure has neither of the last two:
+ * refused, naming the better round or a file run. Returns `[{rule, why}]`: `writer-source` for these, `owned-guide` for the content a guide can't carry
+ * (`guideCantCarry`), refused too, naming each and pointing to a file run.
+ */
+export function writerSourceProblems(runFolder, source) {
+  const src = writerSource(runFolder, source);
+  const at = `source.name ${show(source?.name)}`;
+  const kinds = "a /pob2:build-guide run's build, a file run's (/pob2:build-guide from a PoB file), or a /pob2:compile run whose better round was accepted";
+  const one = (why) => [{ rule: 'writer-source', why: `${why} (D-522)` }];
+  const rel = path.relative(src.root, src.dir);
+  if (rel === '' || rel.split(path.sep)[0] === '..' || path.isAbsolute(rel)) return one(`${at} isn't a run folder under the guides root (${src.root}); the writer's source is ${kinds}`);
+  if (src.log === null) return one(`${at} names no run folder with a run-log.json under the guides root (${src.root}); the writer's source is ${kinds}`);
+  if (src.log.schemaVersion !== 4) return one(`${at} is a schema-${show(src.log.schemaVersion)} run, recorded before amendment 9; the writer reads a schema-4 run's build`);
+  if (src.piece === 'pricing' || src.piece === 'writer') return one(`${at} is a /pob2:${src.piece} run, which designs no build; the writer's source is ${kinds}`);
+  if (src.piece === 'compile' && source.build !== undefined) return one(`source.build is ${show(source.build)}; a /pob2:compile run's one build sits at its folder's root, so the source names no build`);
+  if (src.build === null) return one(`source.build is ${source?.build === undefined ? 'missing' : show(source.build)}; it names ${at}'s build, one of its builds[]: ${objects(src.log.builds).map((b) => b.id).join(', ') || 'none'}`);
+  const { id, folder } = src.build;
+  const own = objects(src.log.stages).filter((s) => s.concept === id);
+  const d1 = own.filter((s) => s.stage === 'D1-gate' && !['missing', 'refused'].includes(s.outcome)).pop();
+  const record = readJson(src.dir, inFolder(folder, 'compile-record.json'));
+  const finalPass = own.some((s) => ['F1', 'D2-gate'].includes(s.stage) && s.outcome === 'pass') && isObj(record) && record.mode === 'final';
+  if (src.piece === 'compile' && (d1 === undefined || !finalPass)) {
+    return one(`${at} is a /pob2:compile run ${d1 === undefined ? 'with its measure only: it has no D1-gate verdict and no final record' : "whose better round wasn't accepted: no final compile (F1) passed"}, so no guide comes from it. A guide needs the better round accepted (/pob2:compile on the file, asking to make the character better, then /pob2:writer on that run), or a guide from the file (/pob2:build-guide <the file>)`);
+  }
+  const missing = [];
+  if (readText(src.dir, `cards/${id}.md`) === null) missing.push(`its card (cards/${id}.md)`);
+  if (d1 === undefined || readText(src.dir, `reports/gates/D1-gate-${id}-a${d1.attempt}.json`) === null) missing.push('a D1-gate verdict');
+  if (!finalPass) missing.push('a final compile that passed (F1, or the D2 gate) with its final record');
+  const plan = readJson(src.dir, inFolder(folder, 'plan.json'));
+  if (!isObj(plan)) missing.push(`its plan (${inFolder(folder, 'plan.json')})`);
+  if (missing.length > 0) return one(`${at}'s build ${id} lacks ${missing.join(', ')}; the writer writes the guide of a build that passed F1, from its card, its plan and claims, its D1-gate verdict and its final record`);
+  return guideCantCarry(plan, readJson(src.dir, 'read.json')).map((c) => ({ rule: 'owned-guide', why: `${at} keeps ${c.what} (${c.where}), which a guide can't carry (${c.rule}): in a guide owned content meets every rule, so a guide from this character is a file run's, whose ladder replaces it with a trade its design gate shows (/pob2:build-guide <the file>) (D-522)` }));
+}
+
 /** A card's identity (D-286): `{className, ascendancy, skill}`, each non-empty text. */
 const isRoll = (r) => isObj(r) && ['className', 'ascendancy', 'skill'].every((k) => text(r[k])) && Object.keys(r).length === 3;
 
@@ -820,6 +971,9 @@ export function writeLog(runFolder, kind, entry) {
   // D-516: a piece run's writes, held to its piece (Appendix A.6), and the steps and scopes of revision 16 in a pipeline run.
   const against16 = existing !== null && schema === 4 ? pieceAgainstRun(existing, kind, entry) : [];
   if (against16.length > 0) throw new Error(`${kind} entry refused: ${against16.join('; ')}`);
+  // D-522 (§18): a writer run's source is a build that passed F1, keeping nothing a guide can't carry.
+  const sourceProblems = kind === 'init' && entry.piece === 'writer' ? writerSourceProblems(runFolder, entry.source) : [];
+  if (sourceProblems.length > 0) throw new Error(`init entry refused: ${sourceProblems.map((p) => p.why).join('; ')}`);
   let log;
   if (kind === 'init' && entry.piece !== undefined) {
     if (fs.existsSync(file)) throw new Error('run-log.json exists; init writes the first log only');

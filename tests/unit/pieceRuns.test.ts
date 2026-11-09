@@ -75,7 +75,24 @@ function copy(from: string, folder: string): string {
   });
   return dir;
 }
-const piece = (name: 'compile' | 'pricing' | 'writer') => copy(path.join(PIECES, `${name}-run`), `${name}/2026-12-01-1`);
+/**
+ * D-522 (WU-165): a writer run reads its source, so the writer fixture's, run-a14 (`titan-blood-hunt/2026-10-08-1`, its
+ * build r1-a-2, whose guide, audit and notes the fixture's are), is laid beside it in its guides root.
+ */
+function withWriterSource(dir: string): void {
+  const src = path.join(path.dirname(path.dirname(dir)), 'titan-blood-hunt', '2026-10-08-1');
+  if (fs.existsSync(src)) return;
+  fs.mkdirSync(path.dirname(src), { recursive: true });
+  fs.cpSync(path.join(PIPELINE, 'run-a14'), src, { recursive: true });
+  editJson(src, 'run-log.json', (l) => {
+    l.runFolder = src;
+  });
+}
+function piece(name: 'compile' | 'pricing' | 'writer'): string {
+  const dir = copy(path.join(PIECES, `${name}-run`), `${name}/2026-12-01-1`);
+  if (name === 'writer') withWriterSource(dir);
+  return dir;
+}
 /** A new, empty run folder under a guides root, `<root>/<segment>/2026-12-01-1`. */
 function folder(segment: string): string {
   const dir = path.join(TMP, `root-${++copies}`, segment, '2026-12-01-1');
@@ -106,6 +123,7 @@ describe("AC-W145 (WU-159, D-516): a piece run's log", () => {
     expect(write(compile, 'init', { piece: 'compile', mode: 'offline', testConfig: 'none', noNinja: true, source: { kind: 'import-code' } }).code).toBe(0);
     expect(readJson(compile, 'run-log.json')).toMatchObject({ piece: 'compile', source: { kind: 'import-code' } });
     const writer = folder('writer');
+    withWriterSource(writer);
     expect(write(writer, 'init', { piece: 'writer', mode: 'online', testConfig: 'none', noNinja: false, source: { kind: 'run-folder', name: 'titan-blood-hunt/2026-10-08-1', build: 'r1-a-2' } }).code).toBe(0);
     expect(readJson(writer, 'run-log.json').source).toEqual({ kind: 'run-folder', name: 'titan-blood-hunt/2026-10-08-1', build: 'r1-a-2' });
   });
@@ -412,7 +430,9 @@ describe('AC-W147 (WU-159, D-516): the checker by piece', () => {
     fs.rmSync(path.join(writer, 'notes.txt'));
     expect(node(RENDER_NOTES, [writer])).toEqual({ code: 0, stdout: expect.stringMatching(/^render-notes: wrote notes\.txt \(\d+ characters\) from guide\.md\n$/), stderr: '' });
     expect(fs.readFileSync(path.join(writer, 'notes.txt'), 'utf8')).toBe(fs.readFileSync(path.join(PIECES, 'writer-run', 'notes.txt'), 'utf8'));
-    expect(node(RENDER_NOTES, [writer, '--build', 'r1-a-2'])).toMatchObject({ code: 1, stderr: expect.stringMatching(/a writer run keeps its one build at the folder's root: pob2-render-notes <runFolder>, with no --build/) });
+    // D-522 (WU-165): a writer run's --build names its source's build (source.build), so r1-a-2 is taken and another refused.
+    expect(node(RENDER_NOTES, [writer, '--build', 'r1-a-2'])).toMatchObject({ code: 0 });
+    expect(node(RENDER_NOTES, [writer, '--build', 'r1-a-1'])).toMatchObject({ code: 1, stderr: expect.stringMatching(/--build r1-a-1 isn't the source's build; the writer run's source\.build is r1-a-2 \(D-522\)/) });
     // Only a piece run takes its root build with no --build: any other folder gets the usage error, as before.
     expect(node(RENDER_NOTES, [path.join(PIPELINE, 'run-a14')])).toEqual({ code: 2, stdout: '', stderr: expect.stringMatching(/^usage: node render-notes\.mjs <runFolder> --build <card id>/) });
     expect(node(RENDER_NOTES, [path.join(TMP, 'no-such-folder')])).toMatchObject({ code: 2 });

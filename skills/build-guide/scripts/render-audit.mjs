@@ -3,6 +3,9 @@
 //
 //   pob2-render-audit <runFolder> [--build <card id>]
 //   pob2-render-audit <runFolder> --withdraw <card id>
+//   pob2-render-audit <runFolder> --source <source run folder> [--build <card id>]
+//
+// D-522: a writer run renders its source's build (run-log.mjs's `writerRenderTarget`) into its own audit.md.
 //
 // Amendment 16's M-30 (D-516): a piece run (`/pob2:compile`'s, `/pob2:pricing`'s or `/pob2:writer`'s, its log's `piece`)
 // keeps its one build at the folder's root, so the render takes it with no `--build`, as for schema 3; a file run's one
@@ -318,8 +321,8 @@ export function rungBudget(stage, plan, budget, market, table, opts = {}) {
  * price-day conversion (`priceTable`).
  * Throws an Error naming what is missing.
  */
-export async function loadAuditInputs(runFolder, build) {
-  const file = (rel) => path.join(runFolder, ...rel.split('/'));
+export async function loadAuditInputs(runFolder, build, source = null) {
+  const file = (rel) => path.join(source ?? runFolder, ...rel.split('/'));
   const json = (rel) => {
     let text;
     try {
@@ -359,16 +362,18 @@ export async function loadAuditInputs(runFolder, build) {
     // no card file: the card id stands in for its title
   }
   if (typeof entryOf?.name === 'string' && entryOf.name.trim() !== '') title = entryOf.name.trim();
-  const audit = fs.existsSync(file(`${folder}audit.md`)) ? fs.readFileSync(file(`${folder}audit.md`), 'utf8') : null;
+  const auditFile = source === null ? file(`${folder}audit.md`) : path.join(runFolder, 'audit.md');
+  const audit = fs.existsSync(auditFile) ? fs.readFileSync(auditFile, 'utf8') : null;
   // D-482 (amendment 14, §25): a build held to 14 by its last D1 gate lists its last V4 report's open findings.
-  const { heldFrom, A14 } = await import('./run-log.mjs');
+  const { heldFrom, A14, rungHits } = await import('./run-log.mjs');
   const a14 = log.schemaVersion === 4 && list(log.stages).indexOf(entry) >= heldFrom(log, 'stages', A14);
   const open = a14 ? openFindings(file(`${folder}reports`)) : [];
   const ledgerFile = ledgerModulePath();
   if (!fs.existsSync(ledgerFile)) throw new Error(`the server's ledger evaluator ${path.relative(REPO, ledgerFile)} is missing; build the server (pnpm build)`);
   const ledgerModule = await import(pathToFileURL(ledgerFile).href);
   const prices = priceTable();
-  return { plan, record, gate, gateFile, folder, title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices, open };
+  const fileHits = Object.fromEntries(list(plan.stages).filter((s) => isObj(s.config?.file)).map((s) => [s.id, rungHits(s.variant)]));
+  return { plan, record, gate, gateFile, folder: source === null ? folder : '', title, offline: log.mode === 'offline', audit, ledger: ledgerValues(ledgerModule, plan, record), prices, open, fileHits };
 }
 
 /**
@@ -518,7 +523,7 @@ export function bossFigure(stageId, plan, rec, ledger) {
   return isNum(boss) ? boss : null;
 }
 
-function stageDetail({ plan, record, ledger }) {
+function stageDetail({ plan, record, ledger, fileHits }) {
   // D-437: the named source's figure against map monsters and against a Pinnacle boss, once a record carries
   // `measures.damage`; a record from before amendment 11 keeps its one figure under its old label (§19). D-454
   // (amendment 12): the resisting figure between them, once a record carries `measures.damage.resisting`.
@@ -537,7 +542,9 @@ function stageDetail({ plan, record, ledger }) {
     const middle = threeFigures ? ` / ${num(damage?.resisting)}` : '';
     const figure = !endgame ? num(headlineDps(s, rec)) : isObj(damage) ? `${num(damage.map)}${middle} / ${num(bossFigure(s.id, plan, rec, ledger))}` : num(rec.measures?.dps);
     const others = OTHER_TYPES.map((t) => o[`${t}MaximumHitTaken`]).filter(isNum);
-    const cw = isObj(rec.configWritten) ? rec.configWritten : {};
+    // D-519: a stage on a file's configuration is measured at its rung's hits, which the record doesn't write.
+    const own = isObj(fileHits?.[s.id]) && !isNum(rec.configWritten?.enemyPhysicalDamage) ? fileHits[s.id] : null;
+    const cw = own ? Object.fromEntries(Object.entries(own).map(([t, v]) => [`enemy${t}Damage`, v])) : isObj(rec.configWritten) ? rec.configWritten : {};
     const hits = OTHER_TYPES.map((t) => cw[`enemy${t}Damage`]).filter(isNum);
     const reference = endgame ? `${num(cw.enemyPhysicalDamage)} / ${hits.length > 0 ? num(Math.max(...hits)) : '—'}` : '—';
     out.push(`| ${cell(rec.loadoutName ?? s.loadoutName)} | ${num(rec.level ?? s.level)} | ${num(o.Life)} | ${figure} | ${['Fire', 'Cold', 'Lightning', 'Chaos'].map((t) => num(o[`${t}Resist`])).join('/')}% | ${num(o.PhysicalMaximumHitTaken)} / ${others.length > 0 ? num(Math.min(...others)) : '—'} | ${reference} | ${num(endgame ? rec.measures?.ehp : o.TotalEHP)} |`);
@@ -835,8 +842,9 @@ async function main(argv) {
   const card = (x) => /^(?:r[1-9]\d*-[a-cgsx]-[1-9]\d*|file)$/.test(String(x));
   const withBuild = args.length === 3 && args[1] === '--build' && card(args[2]);
   const withdrawing = args.length === 3 && args[1] === '--withdraw' && card(args[2]);
-  if ((args.length !== 1 && !withBuild && !withdrawing) || args[0].startsWith('--')) {
-    process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id> | --withdraw <card id>]\n');
+  const source = args[1] === '--source' && [3, 5].includes(args.length) && (args.length === 3 || (args[3] === '--build' && card(args[4]))) ? args[2] : undefined;
+  if ((args.length !== 1 && !withBuild && !withdrawing && source === undefined) || args[0].startsWith('--')) {
+    process.stderr.write('usage: node render-audit.mjs <runFolder> [--build <card id> | --withdraw <card id> | --source <source run folder> [--build <card id>]]\n');
     return 2;
   }
   if (withdrawing) {
@@ -850,14 +858,24 @@ async function main(argv) {
   }
   const folder = path.resolve(args[0]);
   let inputs;
+  let w = null;
   try {
-    inputs = await loadAuditInputs(folder, withBuild ? args[2] : undefined);
+    const { writerRenderTarget } = await import('./run-log.mjs');
+    let log = null;
+    try {
+      log = JSON.parse(fs.readFileSync(path.join(folder, 'run-log.json'), 'utf8'));
+    } catch {
+      // loadAuditInputs names it
+    }
+    w = writerRenderTarget(folder, log, { source, build: source !== undefined ? args[4] : withBuild ? args[2] : undefined });
+    inputs = await loadAuditInputs(folder, w ? w.build : withBuild ? args[2] : undefined, w?.dir ?? null);
   } catch (e) {
     process.stderr.write(`render-audit: ${e.message}\n`);
     return 1;
   }
   fs.writeFileSync(path.join(folder, ...`${inputs.folder}audit.md`.split('/')), renderAudit(inputs));
-  process.stdout.write(`render-audit: wrote ${inputs.folder}audit.md from ${inputs.folder}plan.json, ${inputs.folder}compile-record.json and ${inputs.gateFile}\n`);
+  const from = w ? `${w.name}/${w.folder === '.' ? '' : `${w.folder}/`}` : inputs.folder;
+  process.stdout.write(`render-audit: wrote ${inputs.folder}audit.md from ${from}plan.json, ${from}compile-record.json and ${inputs.gateFile}\n`);
   return 0;
 }
 

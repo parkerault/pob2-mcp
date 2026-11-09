@@ -7394,3 +7394,21 @@ What the coordinator folded (revision 2, approved):
   - **AC-W162's list, WU-155:** `compilePlan.test.ts`:208–209 (`record.engine` from `pob-pin.json`, `versionNotes`
     computed; D-508 §4 step 4); `skillSlots.test.ts`'s `pobLine` and `v1SkillSlots.test.ts`:50 (PoB's warning found by
     its text; §4 step 6).
+- **WU-158's review** (fresh, read-only): the status line exact, every M-29 row built and no M-30 row, WU-157 and
+  AC-W140 not run and open, every listed item present, the work-log ranges and sampled code cites right; static tests
+  1,177 pass. Findings: (high) WU-155 marked built at its pre-fix head `6f4759e`, which is on no integration branch
+  (WU-158 ran beside WU-155's fix round by the coordinator's call); (medium) slice 01's PG-114 note says every
+  calculation, where a loaded copy keeps its file's quality; (medium) the new static test passes with the status line's
+  parenthesis dropped and doesn't check M-30's rows stay unbuilt; (low) two line cites off by one, a pre-rebase hash
+  `4f671a7`, two lost "; " separators. Fix round sent to the doer, with the rebase onto `9d6a8ea` and WU-155's merge
+  head `a45457c` and fix-round notes.
+- **WU-158's fix round** at `6aea374` (rebased onto `9d6a8ea`): WU-155's rows cite `a45457c` with its fix rounds in
+  D-508's, C-6's and C-60's notes; slice 01's PG-114 note limited to PoB's own granted group (a loaded copy keeps its
+  file's quality; the compile gives it the item's from schema 11); the docs test requires the exact parenthesis while
+  M-30 is unbuilt, no M-30 row built before WU-167's, and AC-W140 not run while WU-157 hasn't run (five planted defects
+  each fail exactly its check); the cites re-checked on the rebased tree (`run-log.mjs`:2295 is right there);
+  §9.3's gates cited from this log; the two separators restored. **Re-check by the coordinator:** no `6f4759e` or
+  `4f671a7` left, `a45457c` cited 7 times, the status line exact, `run-log.mjs`:2295 is `digestsDiffer`; `pnpm build`
+  rc 0, `tests/static` 1,184 of 1,184.
+- **WU-158 (M-29's documents) merged** at `6aea374` (fast-forward, two commits on `9d6a8ea`). AC-W143:
+  `tests/static/amendment16Docs.test.ts`, `specSpine.test.ts`; the rows and status line for the gate's verifier.

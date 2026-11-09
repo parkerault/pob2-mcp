@@ -35,7 +35,7 @@ interface Count {
   allowed: number;
   groups: number;
   /** PoB's lineage bookkeeping for the copy's support, which the wrap leaves PoB's. */
-  clarity: number | null;
+  clarity: number | false;
   /** Each group as PoB holds it: its label, its source, whether it's enabled, and its enabled gems' names. */
   list: Array<{ label: string; source: string | false; enabled: boolean; gems: string[] }>;
 }

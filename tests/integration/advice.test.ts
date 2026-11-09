@@ -76,10 +76,10 @@ engineDescribe('AC-A1 (WU-18, D-30): get_warnings reads PoB\'s warnings without 
     const reply = await call('get_warnings');
     expect(Array.isArray(reply.result.lines)).toBe(true);
     for (const line of reply.result.lines) expect(typeof line).toBe('string');
-    // PoB's own line for the golden build (10 gem groups against PoB's limit of 9), colour codes stripped.
-    expect(reply.result.lines).toContain(
-      'You have too many gem groups allocated. Max allowed is 9. You have 10 non-item/non-granted gem groups allocated.',
-    );
+    // No skill-slot line since the bridge's recount (D-510, PG-106): the Grenade group is a skill the crossbow grants
+    // (`Data/Skills/other.lua`:7881), which its three supports no longer count, so the golden build holds 9 groups
+    // against PoB's 9 slots (PoB's own count is 10). Colour codes stripped.
+    expect(reply.result.lines.filter((l: string) => l.startsWith('You have too many gem groups'))).toEqual([]);
     expect(reply.result.lines.join('\n')).not.toMatch(/\^(x[0-9A-Fa-f]{6}|\d)/);
 
     expect((await call('get_build_info')).info.level).toBe(90);
@@ -135,6 +135,8 @@ engineDescribe('AC-A1 (WU-18, D-30): get_warnings reads PoB\'s warnings without 
     await call('load_build_xml', { xml: LOW_STR_XML, name: 'Grenadator (low Str)' });
     const lines = (await call('get_warnings')).result.lines as string[];
     expect(lines.some((l) => /do not meet the Strength requirement/.test(l))).toBe(true);
+    // PoB's own lines, colour codes stripped.
+    expect(lines.join('\n')).not.toMatch(/\^(x[0-9A-Fa-f]{6}|\d)/);
 
     // The golden build itself meets it (Strength 119 against Herald of Ash's 116).
     await call('load_build_xml', { xml: GOLDEN_XML, name: 'Grenadator' });

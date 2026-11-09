@@ -7445,3 +7445,140 @@ What the coordinator folded (revision 2, approved):
   words-loaded baseline's `since` section is empty, so there was nothing to remap there. **The user, 2026-11-09:** PG-109's
   upstream PR draft (choice C) and WU-157 wait until after M-30; AC-W140 is then recorded at WU-168, which §11 allows
   ("The probe holds up neither milestone's merge").
+
+## 2026-11-09: M-30 (amendment 16 Part II) build started
+
+- **The user's go** (verbatim): "Delete the leftover lane branches and start M-30". The seven M-29 lane branches
+  (`bg/wu-151` to `bg/wu-158`), each pointing at a commit kept in `refs/archive/pre-sign-m29-2026-11-09`, deleted.
+  `main` and `origin/main` at `9f00715`; the session's pob2 server reconnected (`/mcp`) on the rebuilt main checkout.
+- **Deferred by the user** (M-29's section): PG-109's upstream PR draft and WU-157 wait until after M-30.
+- **Trade:** none in M-30's units (the handoff: test servers keep trade off; online pricing fixtures go through
+  `fixtureFetch`). A trade run at WU-168 only with the user's approval, announced.
+- **The real cases** (§20), read in place by WU-160's and WU-161's probes only, never copied: the two characters in
+  `~/pob2-real-cases/` and the library file `guides/twister-spirit-walker-snoobae/pob/build.xml` (choice D). Their
+  sha1s at the start: ResurrectForbidden `72694e635561…`, CullTheConquerer `527ceb0143d0…`, the library file
+  `fc24d994646d…`.
+- **Integration worktree** `pob2-mcp-wt/m30`, branch `build-guide/m30`, off `main` at `9f00715`. `vendor/` copied from
+  the main checkout, `pnpm install --frozen-lockfile` rc 0, `mise run pob:fetch` rc 0, signing off in the worktree.
+- **De-risk** (the assumption Part II rides on: PoB's import shape reads back into a plan the compile can measure):
+  WU-160's probe reads the real cases in wave 1, before any piece's text is written on top of the reader.
+- **Recon:** none dispatched. §24's table and the handoff's M-30 bullets are the contention map: WU-159 and WU-160
+  disjoint (WU-159 the run scripts and renders, WU-160 `src/` and the fixtures); WU-160 then WU-161 in `src/plan/`;
+  WU-162 and WU-163 each own a skill folder, WU-163 adding the `price` row and compile's placement line after WU-162;
+  WU-166 beside WU-161 to WU-165, adding its lines to the piece `SKILL.md`s when it rebases, merging last.
+- **Baseline gate** on `9f00715` (the integration head, clean rebuild, under the lock, run by the coordinator in the
+  background): `mise run test` rc 0 (256 suites, 4,418 tests; the timing step 2 suites, 4 tests), `pnpm build` rc 0;
+  both waiver files `[]`.
+- **Wave 1 dispatched:** WU-159 (piece runs, lane `bg-159`) and WU-160 (`plan_from_build`, lane `bg-160`), one brief
+  for every M-30 unit.
+- **WU-159's doer** finished at `3ecc5bf` on `bg/wu-159` (0.59M subagent tokens). Its own gate rc 0 (258 suites, 4,436
+  tests; the timing step 2 suites, 4 tests), build rc 0. AC-W145…AC-W147 in `tests/unit/pieceRuns.test.ts` and
+  `tests/static/pieceRuns.test.ts`; the 13 pipeline fixtures' checker output identical to the base's; every stage
+  within 5% (D2 +1.8%). **AC-W162's list, WU-159** (each forced by D-516): skill revision 16's init and resume pins in
+  `amendment15Commands` :165–172, `buildGuideResumeNoNinja` :53, `buildGuideAmendment11` :812–841,
+  `buildGuideAmendment12` :529–588 (the out-of-range probe 16 → 17), `buildGuideAmendment13` :352–353, :414,
+  :853–864, `buildGuideAmendment14` :141–152, `buildGuideSchema4` :191, :256, `buildGuideScripts` :332,
+  `runningLeagues` :226–248; the reminder's wording in `amendment15Rules` :160–164 and `runSettingsExample`'s
+  `ruleSentences`; one clause of the renders' root build in `buildGuidePipeline` :1471's Bash-list pin. **Deviations
+  reported** (for the review): `checkFlow4` skipped for every piece run (the better round's flow is WU-162's); a writer
+  run checks only its own files (the source checks are WU-165's); F1's file-name rule skipped in piece runs (WU-162);
+  `read`/`measure` done|fail, `place`/`price` done with `priceOutcomes`; an `ask` checkpoint allowed in compile runs
+  (D-482); `source` required at init; a stage carrying `source` left out of the reward-picks check; `place`/`price` in
+  a revision-16 list beside the pipeline's `PRICING`; piece fixtures under `tests/fixtures/pieces/`; file runs detected
+  as slug `file` until WU-164's brief `from`. Gate verifier and reviewer dispatched in parallel.
+- **WU-160's doer** finished at `669794d` on `bg/wu-160` (one commit; 0.61M subagent tokens). Its own gate rc 0 (258
+  suites, 4,456 tests; the timing step 2 suites, 4 tests), build rc 0; its tree merges cleanly with `bg/wu-159` (one
+  shared file, `runSettingsExample.test.ts`, separate hunks). AC-W148 in `tests/mcp/planFromBuild.test.ts` (13 tests),
+  AC-W149 in `tests/unit/planFromBuildReader.test.ts` (22 tests); the fixtures `imported-character.xml` (and its code)
+  and `imported-ninja.xml`, no character hash or account name. **AC-W150, the probe's read half** (a `mktemp -d`, a
+  server started with `spawnServer`'s env, each file an import code encoded in memory, the temp folders removed after):
+  every §20 read result met. ResurrectForbidden: Spear Throw's copy with Frost Nexus kept on both sets; Virtuous
+  Barrier's level 20 copy kept beside the tree's level 1; Righteous Descent's copy dropped (level 19); Purity of Ice's
+  supported copy kept on set 2 at quality 0; `useSecondWeaponSet` true; the main skill asked, file group 14 (Twister)
+  as plan group 11; no `importLeague`. CullTheConquerer: Mana Drain's copy dropped (level 18); Sigil of Power's
+  supported copy kept on set 2; `useSecondWeaponSet` false; the main skill asked, file group 3 (Essence Drain) as plan
+  group 2, marked as PoB's guess; the Blasphemy group's two skills; `importLeague` Forbidden Rites. The library file
+  (choice D): its active loadout "Mid Endgame" of 10 read, the loadout question asked. All three pass `guide_run
+  {validate}`. sha1 before and after unchanged (`72694e635561…`, `527ceb0143d0…`, `fc24d994646d…`); nothing personal
+  recorded. The measured points (the recount, the three items' quality, the Spirit question) are WU-161's half.
+  **AC-W162's list, WU-160** (each forced by D-517's 86th tool): `gemCorruption.test.ts` AC-E65 (85 → 86, 84 → 85),
+  `findUpgrades.test.ts` AC-T45, `tradeQueryOptions.test.ts` AC-T41, `readme.test.ts` AC-G1 (85 → 86),
+  `toolDisposition.test.ts`'s `BUILD_GUIDE_NEW` and `runSettingsExample.test.ts`'s allow set gain `plan_from_build`;
+  not assertions: `toolHygiene.test.ts`/`tool-calls.json`'s `$READ_RUN` samples, `fresh-clone-check.mjs`'s
+  `EXPECTED_TOOLS` 86. **Deviations reported** (for the review): the first call also refuses a plan a design step
+  wrote; `switch.off` written `[]` (A.7's input has no off list); a gem the pin lacks asked informationally (field
+  `gem`); a stand-in `owned` and `standIn`; on an older tree no plan.json until `tree: "newest"`, `stop` removing one
+  written earlier; Spirit buffs found without the engine; an unsupported copy of unknown level kept, `granted: null`;
+  `enginePatch`/`externalPatch` from committed data; flask and charm toggles from the item set's `active` flags;
+  read.json's extra fields (`grantedQuality`, `legacy`, `doubleDefined`, `corruptLevels`, `unconfirmed`,
+  `partyFilled`); `<ModRange>` on an untagged item numbered by PoB's load rule; `resolveRunFolder` takes the argument's
+  name. **For WU-161:** the importer fixture's read plan fails `compile_check` only on the legacy gem Bloodlust, which
+  the owned-legacy exemption clears. Gate verifier and reviewer dispatched in parallel.
+- **WU-159's review** (fresh, read-only; checked against the code by the coordinator): five findings for a fix round.
+  (1, medium) `PIECE_FILES.compile` (`check-run.mjs`:355) leaves out `final-build.xml` and `readback.json`, which F1
+  writes at the root of a compile run with a better round, so such a run would fail `layout`; Appendix A.6's list has
+  the same gap, so **the coordinator's call:** both join the compile run's files, a departure from A.6 stated. (2,
+  medium) `pieceTags` (:400) adds pricing's rules to a compile run only when a D1 step is logged, so a stop at `place`
+  (the better round's first step) passes unchecked; `place` joins the scan. (4, low) the `withdrawn` entry and
+  `withdrawals[]` still require a card id in a file run (`run-log.mjs`:551, `check-run.mjs`:2955). (5, low)
+  `run-log.md`:609 says `sha1` is logged "once known", but `source` is written only at `init`. (6, low) the unit test and
+  `run-log.md`:603 use a real character's file name as sample data (from A.6); a fixture name instead. **Carried into
+  WU-162's brief, not fixed here:** a compile run with a better round keeps `checkFlow4`'s D1-loop order (§12; the doer
+  skipped `checkFlow4` for every piece run, accepted since its test, AC-W154, needs WU-162's fixture), F1's "no file
+  name equals the source's", and finding 3 (the design display's invitation in a compile run names the pipeline's guide
+  and verification gate, and the checkpoint accepts `verification` and `accept:file`; AC-W154's "names the draft
+  first"). Every other deviation accepted.
+- **WU-159's gate verifier** (fresh context) **failed `3ecc5bf`** on one finding, the review's (2): a compile run stopped
+  at `place` passes with pricing's rules filtered out (probe: a `place` with `rate_limited`, then a second `place`
+  pricing without a resume, checker "ok"; with the filter off, `nfr-22`, `pricing` and two `offline-prices`). Otherwise:
+  gate from clean rc 0 (258 suites, 4,436 tests, none skipped; the timing step 2 suites, 4 tests), build rc 0; twelve
+  mutations, each failing its named test; AC-W162's list confirmed, all forced by D-516; the 13 fixtures identical at
+  base and head; waivers `[]`, nothing outside the unit's scope, `SKILL.md` 317 lines, words loaded max +1.8%. Notes:
+  the `interview` rule is tagged `research`, so a better round's gate notes go unchecked (carried to WU-162); A.6's
+  example `testConfig: null`, the code takes `none`/`accepted`/`refused` (the reference says `none`); `pob2-render-notes`
+  on a pipeline run without `--build` exits 1 instead of the usage error's rc 2. **Fix round** sent to the doer: the
+  review's 1, 2, 4, 5, 6 (with the verifier's tests for 2) and the render-notes exit code restored.
+- **WU-160's review** (fresh, read-only): M-29's binding facts hold (a kept granted copy at quality 0 with
+  `grantedQuality` naming the file's value; PoB's own granted groups and the dropped copies not written, so the PG-106
+  recount sees only the kept copies; base matching as `Item.lua`:781–818; `<ModRange>` numbering as
+  `ItemsTab.lua`:1108–1125; PG-111's 19 bases); `resolveRunFolder` keeps `'resume'` as its default name, so existing
+  replies are byte-identical; nothing outside the HG-12 grant. Findings for a fix round: (1, medium) any call carrying
+  `build_name` or `import_code` is taken as a first call (`planFromBuildHandlers.ts`:100–114, :166), so a second file
+  sent to a read folder silently replaces `source.xml`, `plan.json` and `read.json`, and A.6's `source` sha1 goes stale;
+  refuse it. (2, low) `partyFilled` counts `<ExportedBuffs>` (`readBack.ts`:287), which PoB's load ignores; count only
+  `ImportedBuffs`. (3, low) a tree jewel on a base the pin lacks goes to `left` with no question and can't take a
+  `stand_in`; on an older-tree read a jewel whose node the newest tree lacks is skipped with no `left` entry
+  (`fileReader.ts`:625–643). Deviations all accepted. **The coordinator's call on `switch.off`:** §14 has the reader
+  write a switched buff's `off` "as the user confirms it" from the measure's proposal (§15), but A.7's input has no field
+  to carry it, so every switched buff would be measured with nothing off and fail `switched-spirit`. `plan_from_build`'s
+  second call gains `switch_off?: {<plan group>: number[]}` beside `buffs_on` and `buffs_swap`: a group not kept on or
+  swapped is switched, `when: "as needed"`, its `off` the entry's list (each a plan group, none itself), `[]` without
+  one; an entry for a group that isn't switched is refused. A departure from A.7, inside the granted tool's contract;
+  WU-162's `measure.md` passes it.
+- **WU-160's gate verifier** (fresh context) **passed `669794d`**: gate from clean rc 0 (258 suites, 4,456 tests; the
+  timing step 2 suites, 4 tests), build rc 0. AC-W148's 13 tests through the in-process server (the run folder compared
+  before and after each refusal; a spawn hook proving no engine started); AC-W149's 22 (one per §13 rule); ten
+  mutations, each failing its test (the design-step check, the changed-file sha1, the tree question, `source.xml`
+  written first, granted quality kept, the unsupported copy at PoB's level, `"nil"` as true, flask and charm lines
+  unnumbered, the desktop granted group kept, a switched group left enabled). The fixtures checked by hand against the
+  pin's data and §20's list: no character hash or account name (`<Import>` holds only `lastRealm`, `lastLeague`,
+  `exportParty`). AC-W150 judged on the itemized results above. AC-W162's list confirmed. Waivers `[]`, nothing outside
+  §24's row, `SKILL.md` 317 lines, game knowledge's 125, words loaded max +0.6%; HG-12: `resolveRunFolder`'s other
+  caller (`guide_run`, `planHandlers.ts`:757) unchanged byte for byte. Notes: `switch.off` (ruled above); a stand-in is
+  `owned` too, so §15's exemptions cover text the user types (for WU-167's slice notes). **Fix round** sent to the doer:
+  the review's 1 to 3 and `switch_off`.
+- **WU-159's fix round** at `fa92de7` (one commit on `3ecc5bf`): `place` counted by `pieceTags` (three tests: a stop at
+  `place` fails `nfr-22`, pricing again before a resume fails `pricing`, an offline `place` with trade calls fails
+  `offline-prices`); `final-build.xml` and `readback.json` in the compile run's files, A.6's omission stated (a pricing
+  run still fails `layout` on them); the withdrawal takes `file` in the `withdrawn` entry, `withdrawals[]` and, one more
+  than named, `answerChanges[]` (driven through `pob2-render-audit --withdraw file`; a pipeline run naming `file` still
+  fails); `run-log.md`'s `sha1` at `init`; synthetic sample names; `pob2-render-notes` without `--build` on a non-piece
+  folder back to the usage error, rc 2 (the one changed assertion, in the unit's own new test file). Doer's gate rc 0
+  (258 suites, 4,441 tests). Targeted re-check sent to the gate verifier.
+- **WU-159's targeted re-check** (the gate verifier) passed `fa92de7`: build rc 0; the four targeted suites (468
+  tests); each fix's test fails with its fix reverted in a temporary copy (`place` out of `pieceTags`, F1's two files
+  out of or into pricing's list, each of the three withdrawal sites card-only, `withdrawals[]` taking `file` in any
+  run, the `pieceRunAt` guard removed); AC-W162's one changed assertion forced by fix 6; the 13 fixtures identical;
+  nothing outside the unit's scope. Its full gate at `3ecc5bf` stands for the rest.
+- **WU-159 (piece runs) merged** at `fa92de7` (fast-forward, two commits on `9f00715`). AC-W145…AC-W147 in
+  `tests/unit/pieceRuns.test.ts` and `tests/static/pieceRuns.test.ts`.

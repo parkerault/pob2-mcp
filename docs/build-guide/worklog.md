@@ -8134,3 +8134,63 @@ What the coordinator folded (revision 2, approved):
 - **WU-166 (the overlay) merged** at `b9dfd3f` (fast-forward, four commits on `28f5b9d`), the last build unit. AC-W159
   in `tests/unit/leagueOverlay.test.ts`, `tests/integration/leagueOverlay.test.ts` and
   `tests/static/leagueOverlay.test.ts`.
+- **`CLAUDE.md`** (the coordinator, `49a4c7f`): "Where things are" names the three pieces and `pob2-league-digest`; the
+  pin upgrade's step 8 names `invalid_options`' read of ConfigTab's option gate through `debug.getupvalue`. `tests/static`
+  rc 0 (57 suites, 1,268 tests) after a rebuild (the README test reads the built tool list).
+- **WU-167 dispatched** (M-30's documents, lane `bg-167` off `49a4c7f`), with the coordinator's list of as-built items
+  (each decision's notes and the coordinator's calls), the `pob-gaps.md` entry for the Aftershock radius, and the
+  writer's line-62 nit.
+- **WU-167's doer** finished at `da9d02f` on `bg/wu-167` (`0503fef` the work, `da9d02f` one line of the spine's HG-12
+  note; 0.69M subagent tokens). Its own gate rc 0 at `0503fef` (274 suites, 4,776 tests; the timing step 2 suites, 4
+  tests), build rc 0; the spine and docs tests after `da9d02f` (55). New slices 05 (compile), 06 (pricing) and 07
+  (writer), each with a "Real cases" section of WU-168's expected results (compile's from the probe); slice 03's M-30
+  notes (§5.2 holding the file run's expected results); slice 04's commands; notes in 01 and 02; the spine "Folded
+  through amendment 16, 2026-11-09", D-516…D-525 and C-61…C-66 built with as-built notes and the coordinator's calls
+  marked, older amended rows noted, WU-159…WU-167 built, WU-168, AC-W160 and AC-W140 open, M-30 "built, WU-168 open";
+  `pob-gaps.md`'s PG-116 (the Aftershock radius instability; PG-115 left unused, amendment 16 having reserved it for a
+  gap whose check didn't hold); the writer's line 62. AC-W161 in `tests/static/amendment16Docs.test.ts` (19 tests; eight
+  planted defects each failing). **AC-W162's list, WU-167:** `amendment16Docs.test.ts`'s "marks M-29 built in §9.3,
+  M-30 still approved" now expects M-30 built (D-525). Deviations reported: slice 03's shrink as notes only (§8 pinned
+  by `s8Rows`, as M-28 did); two D-496 notes (C-36 names D-520; D-516 names D-522); §1.2 and §9.3 recording M-29's gate
+  and signing; lane commits cited as-is (remapped at HG-8). Gate verifier and reviewer dispatched in parallel.
+- **WU-167's review** (fresh, read-only, against the work-log, the code at `da9d02f`, §20, §21 and A.2/A.6/A.7): every
+  item on the coordinator's list present; the status line in M-28's form; every older row an M-30 decision amends
+  marked; the departures (A.6's files and `draftFile`, A.2's, the overlay's restart and `--out league` rule, the
+  writer's own folder, gems, the search bound, `measure_as`) right against the code; no personal detail. Findings:
+  (1, medium) slice 05 (:62–66) and C-62's input cell (README:1574) put `loadout` on the first call; as built it is a
+  second-call answer and a first call carrying it is refused (`planFromBuildHandlers.ts`:57, :114–116), so WU-168's
+  library case run from the slice would fail; (2, low) D-522's note says `owned-guide` fails a kept `config.file`
+  (`ladder` does; the error came from the coordinator's list); (3, low) D-520's and C-64's notes limit the owned
+  replace-cost exemption to pricing runs (compile runs too, `check-run.mjs`:7102–7103); (4, low) the AC-W161 tests
+  accept a bare "**Status: built**" and require no as-built note on D-516…D-523 or the new contract blocks; (5, low)
+  WU-168's expected results: the draft is "ResurrectForbidden better (draft)"; the file run's "(offline)" unmarked;
+  the placed rung's budget findings left out; the library file starts from an import code (not in the builds folder).
+  Deviations all accepted. **The coordinator's call:** the file run at WU-168 is offline unless the user approves a
+  trade run (the handoff's trade rule), marked as the coordinator's. Fix round after the verifier.
+- **WU-167's gate verifier** (fresh context) **passed `da9d02f`**: gate from clean rc 0 (274 suites, 4,776 tests; the
+  timing step 2 suites, 4 tests), build rc 0; AC-W161's expected values from the amendment's own text; 11 of 12 planted
+  defects caught (an EHP figure the work-log alone gives passed, so every slice 05 figure was checked against the
+  work-log's probe results by hand: all match); the status line in amendment 14's form; all 32 "(amendment 16,
+  approved)" notes reworded as built, the two new D-496 notes grounded; every cited merge commit an ancestor of the
+  head; slice 03's nine notes and sampled line citations right; PG-116 as recorded; AC-W162's one assertion forced by
+  D-525 and the helper change only narrowing; nothing outside the unit's scope; words loaded unchanged. Fix round sent
+  to the doer for the review's findings (the `loadout` answer, two notes, the test's fidelity, WU-168's expected
+  results with the coordinator's offline call).
+- **WU-167's fix round** at `edb4eed` (one commit on `da9d02f`): `loadout` a second-call answer in slice 05 §2.1 and
+  §2.3 and C-62 (its as-built note stating the departure from the row's input text; every other `plan_from_build`
+  field checked against the handler and `toolSchemas.ts`); D-522's note (`ladder` fails a kept `config.file`,
+  `owned-guide` a kept `owned` mark; the coordinator's list had named `owned-guide` for both); the owned replace-cost
+  exemption "in a compile or pricing run" in D-520, C-64 and slice 06; the AC-W161 tests requiring ", WU-168 open",
+  "as built" on D-516…D-523 and the new contract blocks' as-built bullets (four planted deletions each failing);
+  WU-168's expected results (the drafts "… better (draft)", the finals by `first_free`; "offline" as the coordinator's
+  call; the placed rung's floor, tree and budget findings; the library file's run from an import code, its loadout on
+  the second call). `tests/static` rc 0 (57 suites, 1,287 tests); no further assertion changed. Re-check sent to the
+  reviewer.
+- **WU-167's re-check** (the reviewer) passed `edb4eed`: all five findings fixed, the diff docs and the docs test only,
+  39 tests; `loadout` and the other fields sampled against the handler's `ARGS`/`ANSWERS` and `toolSchemas.ts`;
+  `owned-spec` only in pricing runs (`check-run.mjs`:1700–1705); planted deletions fail (D-520's note, C-64's and C-62's
+  markers, §9.3 cut to "built"); D-524's exemption right. Left, low: with D-516's own note removed the suite still
+  passes, its "amended by D-522 (amendment 16, as built)" mark matching `\bas built\b`; a loadout change also clears
+  `stand_in` (named by slot, not group). No personal detail added.
+- **WU-167 (M-30's documents) merged** at `edb4eed` (fast-forward, three commits on `49a4c7f`). AC-W161 in
+  `tests/static/amendment16Docs.test.ts` and `specSpine.test.ts`. Every M-30 unit but WU-168 is merged.

@@ -72,11 +72,28 @@ describe('AC-W158 (WU-165, D-522): skills/writer/SKILL.md', () => {
     expect(BODY).toContain('**After a compaction** during a writer run, before your next step: re-read this file and the runner rules whole, and the run\'s `run-log.json`.');
   });
 
-  it('names its source as a run folder, never guessing it, and sends a PoB file or a character to /pob2:build-guide', () => {
+  it('names its source as a run folder after new_run, never guessing it; a named file matched against the compile runs\' final files first', () => {
     const src = section(BODY_RAW, '## The source');
-    expect(src).toContain('a run folder, `<slug>/<YYYY-MM-DD>-<n>` under the guides root');
-    expect(src).toContain('and ask; never guess');
-    expect(src).toContain("A request naming a PoB file or a character (\"my build MyCharacter123\") is `/pob2:build-guide`'s guide from a file: say so and stop.");
+    expect(src).toContain('Call `mcp__pob2__guide_run {new_run: "writer"}` first (step 1): the guides root is two folders above your run folder.');
+    expect(src).toContain('The source is a run folder there, `<slug>/<YYYY-MM-DD>-<n>` (or its absolute path), holding a build that passed F1');
+    // Only build-guide, file and compile runs are sources: a pricing or writer run designs no build.
+    expect(src).toContain('list those runs, newest first (`ls -td <guides root>/*/*/`, leaving out `pricing/` and `writer/`), with each one\'s builds, and ask; never guess');
+    // A named file: an accepted better round's final file (F1's finalCompile.pobFile) first, then /pob2:build-guide.
+    expect(src).toContain("match it first against the compile runs' final files, each F1 verdict's `finalCompile.pobFile` (`grep -il \"<name>\" <guides root>/compile/*/reports/gates/F1-*.json`); a match is that run's better round, the source.");
+    expect(src).toContain("Otherwise a PoB file or a character (\"my build MyCharacter123\") is `/pob2:build-guide`'s guide from a file: say so and stop.");
+  });
+
+  it('writes only its own folder: no compile_plan, the notes left in its folder for the user to paste into PoB (§18, choice G)', () => {
+    expect(RAW).not.toContain('compile_plan');
+    expect(BODY).toContain('Your one pob2 tool: `mcp__pob2__guide_run` (`{new_run: "writer"}`, `{resume: <run folder>}`).');
+    expect(section(BODY_RAW, '## What you never do')).toContain('**Write outside your own run folder**: nothing in the source run folder and nothing in the builds folder, the notes included');
+    expect(section(BODY_RAW, '## 4. Known issues and the notes')).toContain("Nothing goes into a PoB file: the user pastes `notes.txt` into PoB's Notes tab.");
+    expect(section(BODY_RAW, '## 5. End')).toContain("the notes' path (`<runFolder>/notes.txt`, to paste into PoB's Notes tab)");
+  });
+
+  it("a resume renders the audit again before W1 (it keeps the Known issues rows); W1's source folder is the build's own", () => {
+    expect(section(BODY_RAW, '## 1. Start')).toContain('`pob2-run-log <runFolder> resume` with `noNinja` false, `pob2-render-audit <runFolder>` again (it keeps the Known issues rows), then the step the log shows next');
+    expect(section(BODY_RAW, '## 3. W1')).toContain('buildFolder: <its build\'s builds[] entry\'s folder (a migrated run\'s is "."), or "." for a compile run>}');
   });
 
   it("starts its run folder and its log with the source, and init's refusal ends the run with its reason", () => {
@@ -90,11 +107,17 @@ describe('AC-W158 (WU-165, D-522): skills/writer/SKILL.md', () => {
     expect(section(BODY_RAW, '## 2. The audit')).toContain('`pob2-render-audit <runFolder>`: in a writer run it reads the source build its log names');
     const w1 = section(BODY_RAW, '## 3. W1');
     expect(w1).toContain('`Agent({subagent_type: "pob2:build-guide-writer"');
-    expect(w1).toContain('`buildFolder: "."`, `compile: "none"`, `writes: ["guide.md", "audit.md"]`, `source: {runFolder: <the source\'s absolute path>, buildFolder: <builds/<id>, or "." for a compile run>}`');
+    expect(w1).toContain('`buildFolder: "."`, `compile: "none"`, `writes: ["guide.md", "audit.md"]`, `source: {runFolder: <the source\'s absolute path>, buildFolder:');
     expect(w1).toContain("`concept` the source's build (`source.build`, else `file`)");
     expect(section(BODY_RAW, '## 4. Known issues and the notes')).toContain('`pob2-render-notes <runFolder>`');
     expect(section(BODY_RAW, '## 5. End')).toContain("it checks your guide and audit against the source's files");
-    expect(section(BODY_RAW, '## What you never do')).toContain('**Write in the source run folder**');
+  });
+
+  it("build-guide's and compile's descriptions route a finished build and an accepted better round to /pob2:writer", () => {
+    const description = (piece: string) => /^description: (.*)$/m.exec(read('skills', piece, 'SKILL.md'))?.[1] ?? '';
+    expect(description('build-guide')).toContain('A guide for a build already finished ("write the guide for the build I just made") is /pob2:writer\'s.');
+    expect(description('compile')).toContain('Once its better round is accepted, the guide for it ("write a guide for my improved character") is /pob2:writer\'s.');
+    for (const piece of ['build-guide', 'compile']) expect(description(piece).length).toBeLessThanOrEqual(1536);
   });
 });
 

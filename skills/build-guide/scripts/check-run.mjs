@@ -210,7 +210,7 @@ import {
   MEASURED_COLUMNS_A11, DOES_SOMETHING, SKILL_REVISION, A11, A13, REVISIONS, heldFrom, openStop, stopOutcome, STOP_OUTCOMES, RETRY_ANSWERS, EXCHANGE, PACE, referenceJson,
   swapLabel, revisionOf, A14, SCOPES, ASK_KINDS, OPEN_FINDING_ANSWERS, REQUEST_RESULT, REQUEST_STAGES, A15, boundariesOf,
   A16, PIECES, FILE_ID, PIECE_STEPS, PIECE_STAGES, PIECE_SOURCE_KINDS, SOURCE_FIELDS, pieceOf, takesFileId, scopesOf, SCOPES16,
-  isFileRun, FILE_BRIEF_FIELDS, fileBriefProblems, writerSource, writerSourceProblems, rungHits,
+  isFileRun, FILE_BRIEF_FIELDS, fileBriefProblems, writerSource, writerSourceProblems, rungHits, guideCantCarryWhy,
 } from './run-log.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -2436,6 +2436,32 @@ function overlayIO(base, top, names, fail) {
 }
 
 /**
+ * D-522 (§15, §18): the corruption a writer's source keeps on its owned uniques that a guide can't carry: the corruption
+ * rule (`checkCorruption`, D-471, D-484; an amendment 14 build's) on the source build's owned uniques alone, at the
+ * source's D1 gate's prices and mode: a bare `Corrupted` line passes on an always-corrupted unique, one with the extra
+ * socket or a cheap one (unpriced offline, cheapness unchecked, as the rule allows), a designed corruption only on its
+ * rungs and cheap. A rare, magic or normal item's is run-log.mjs's `guideCantCarry`. Returns the rule's messages; init
+ * refuses the source with them, and the checker fails `owned-guide`.
+ */
+export function ownedCorruption(src) {
+  if (src?.log === null || src?.build === null || src?.log === undefined) return [];
+  const io = folderIO(path.join(src.dir, src.build.folder), () => {});
+  const plan = io.readJson('plan.json');
+  if (!isObj(plan)) return [];
+  const d1 = list(src.log.stages).filter((s) => s.stage === 'D1-gate' && s.concept === src.build.id && !['missing', REFUSED].includes(s.outcome)).pop();
+  const gate = d1 ? folderIO(src.dir, () => {}).readJson(`reports/gates/D1-gate-${src.build.id}-a${d1.attempt}.json`) : null;
+  const uniques = new Set();
+  for (const st of list(plan.stages)) {
+    for (const x of list(st.items?.slots)) if (x.owned === true && itemOf(x.text).rarity === 'UNIQUE') uniques.add(`${st.id}|${x.slot}`);
+    for (const x of list(st.items?.treeJewels)) if (x.owned === true && itemOf(x.text).rarity === 'UNIQUE') uniques.add(`${st.id}|jewel ${x.node}`);
+  }
+  const out = [];
+  if (uniques.size === 0) return out;
+  checkCorruption({ plan, planStages: list(plan.stages), gate: isObj(gate) ? gate : null, guide: null, offline: src.log.mode === 'offline', a14: true, owned: (id, key) => !uniques.has(`${id}|${key}`), fail: (rule, message) => out.push(message) });
+  return out;
+}
+
+/**
  * D-522 (§18, C-65): the checker for a writer run, against its source, the run folder its log's `source` names
  * (`writerSource`): the source a build that passed F1 (`writer-source`) keeping nothing a guide can't carry
  * (`owned-guide`), as `init` refused (`writerSourceProblems`); then the source's checker on that build alone, the writer's
@@ -2454,6 +2480,8 @@ async function checkWriterSource({ runFolder, log, readText, fail }) {
   }
   const src = writerSource(runFolder, log.source);
   if (problems.some((p) => p.rule === 'writer-source') || src.log === null || src.build === null) return;
+  // An owned unique's corruption the corruption rule doesn't allow (D-471, D-484), as init refuses it.
+  for (const why of ownedCorruption(src)) fail('owned-guide', `run-log.json source: ${guideCantCarryWhy(log.source, why)}`);
   const w1 = list(log.stages).filter((s) => s.stage === 'W1');
   for (const v of await checkRun(src.dir, { writer: { folder: runFolder, build: src.build.id, stages: w1 } })) {
     if (RULE_PIECES[v.rule]?.includes('writer')) fail(v.rule, v.message);
@@ -2466,12 +2494,22 @@ async function checkWriterSource({ runFolder, log, readText, fail }) {
   } catch {
     return;
   }
-  const text = norm(guide.replace(/[*`_]/g, ''));
-  const inGuide = (line) => text.includes(norm(line));
+  const guideLines = guide.split(/\r?\n/).map((l) => norm(l.replace(/[*`_]/g, '')));
+  const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const word = (w) => new RegExp(`(^|[^a-z0-9])${escape(w)}($|[^a-z0-9])`);
   for (const st of list(plan?.stages)) {
     for (const it of [...list(st.items?.slots), ...list(st.items?.treeJewels)]) {
       if (it.owned !== true || itemOf(it.text).rarity !== 'RARE') continue;
       const where = it.slot ?? `tree jewel ${it.node}`;
+      // Only the lines naming the item: its slot (with or without its number), its base or the base's last word.
+      const base = norm(itemOf(it.text).lines[2] ?? '');
+      const names = [...new Set([norm(where), norm(where).replace(/\s*\d+$/, ''), base, base.split(' ').pop()].filter((n) => n !== ''))].map(word);
+      const mine = guideLines.filter((l) => names.some((re) => re.test(l)));
+      // A roll as a whole number, not inside a larger one ("5%" in "25%"); a leading + optional.
+      const inGuide = (line) => {
+        const re = new RegExp(`(^|[^\\d.])${escape(norm(line).replace(/^\+/, ''))}`);
+        return mine.some((l) => re.test(l));
+      };
       // Its spec: the price entry whose query.slot names it (a tree jewel's `Jewel <node>`), as pricing's owned-spec maps it.
       const sp = list(plan.prices).find((p) => isObj(p.spec) && isObj(p.query) && p.query.slot === (it.slot ?? `Jewel ${it.node}`))?.spec;
       for (const line of affixLines(it.text)) {

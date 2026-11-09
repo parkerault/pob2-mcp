@@ -264,7 +264,51 @@ describe("AC-W158 (WU-165, D-522, §15, §16): a writer run on a better round's 
     const { r } = init(root, { kind: 'run-folder', name: 'compile/2026-12-01-1' });
     expect(r.code).toBe(1);
     expect(r.stderr).toContain('keeps the rune "Legacy of Atziri" (stage b Boots), which a guide can\'t carry (a rune over the budget, D-465)');
-    expect(r.stderr).toContain('keeps a corrupted rare (stage b Belt), which a guide can\'t carry (corruption never on rares, D-471, D-484)');
+    expect(r.stderr).toContain('keeps a corrupted rare item (stage b Belt), which a guide can\'t carry (corruption never on a rare, magic or normal item, D-471)');
+  });
+
+  /** The better round's source with an owned normal spear and an owned unique amulet each carrying a bare Corrupted line. */
+  function corruptedSource(root: string, amulet: Json | null): string {
+    const src = betterSource(root);
+    editJson(src, 'plan.json', (p) => {
+      const slot = (name: string) => p.stages[0].items.slots.find((x: Json) => x.slot === name);
+      slot('Weapon 1 Swap').text = `${slot('Weapon 1 Swap').text}\nCorrupted`;
+      slot('Amulet').text = `${slot('Amulet').text}\nCorrupted`;
+      if (amulet !== null) Object.assign(p.prices.find((x: Json) => x.id === 'b-amulet'), amulet);
+    });
+    return src;
+  }
+
+  it("refuses an owned normal item's corruption (D-471) and an owned dear unique's bare Corrupted line (D-484), at init and in the checker", () => {
+    // Choir of the Storm priced 30 divines: a bare Corrupted line on a unique that dear is the corruption rule's failure.
+    const root = newRoot();
+    corruptedSource(root, { status: 'ok', amount: 30, currency: 'divine', note: null });
+    const { dir, r } = init(root, { kind: 'run-folder', name: 'compile/2026-12-01-1' });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain('keeps a corrupted normal item (stage b Weapon 1 Swap), which a guide can\'t carry (corruption never on a rare, magic or normal item, D-471)');
+    expect(r.stderr).toMatch(/source\.name "compile\/2026-12-01-1" keeps owned content a guide can't carry: the source's plan\.json's stage b slot "Amulet" holds Choir of the Storm with a bare Corrupted line, priced 30 divine\(s\); a bare Corrupted line is allowed on a unique PoB's data marks always corrupted, one bought corrupted with the extra socket, or a cheap unique \(under 1 divine\).*\(\/pob2:build-guide <the file>\) \(D-522\)/);
+    expect(fs.existsSync(path.join(dir, 'run-log.json'))).toBe(false);
+    // The checker fails a writer log naming that source: both, under owned-guide, as init refused them.
+    const writer = lay(root, 'writer/2026-12-02-1', path.join(PIECES, 'writer-better-run'));
+    const failed = lines(check(writer).stderr, 'owned-guide');
+    expect(failed).toEqual(expect.arrayContaining([
+      expect.stringMatching(/run-log\.json source: source\.name "compile\/2026-12-01-1" keeps a corrupted normal item \(stage b Weapon 1 Swap\)/),
+      expect.stringMatching(/run-log\.json source: source\.name "compile\/2026-12-01-1" keeps owned content a guide can't carry: the source's plan\.json's stage b slot "Amulet" holds Choir of the Storm with a bare Corrupted line, priced 30 divine\(s\)/),
+    ]));
+    expect(failed).toHaveLength(2);
+  });
+
+  it("takes an owned unique's bare Corrupted line the corruption rule allows: a cheap one, or one an offline round couldn't price", () => {
+    // Cheap: under the rule's 1 divine.
+    const cheap = newRoot();
+    corruptedSource(cheap, { status: 'ok', amount: 0.5, currency: 'divine', note: null });
+    const r1 = init(cheap, { kind: 'run-folder', name: 'compile/2026-12-01-1' }).r;
+    expect(r1.stderr).not.toMatch(/Amulet/);
+    expect(r1.stderr).toMatch(/Weapon 1 Swap/);
+    // Offline and unpriced (its note "offline run"): the rule leaves its cheapness unchecked, as the pipeline's does.
+    const offline = newRoot();
+    corruptedSource(offline, null);
+    expect(init(offline, { kind: 'run-folder', name: 'compile/2026-12-01-1' }).r.stderr).not.toMatch(/Amulet/);
   });
 
   it('the fixture writer run passes: the endgame guide of its one rung, its verdict line at the rung\'s hits, nothing in the source', () => {
@@ -310,9 +354,51 @@ describe("AC-W158 (WU-165, D-522, §15, §16): a writer run on a better round's 
     expect(now.some((l) => l.includes('"+30% to Fire Resistance", the character\'s own roll on its owned rare in Ring 1'))).toBe(true);
   });
 
+  it("owned-guide reads only the lines naming the rare's slot or base, and a roll only as a whole number", () => {
+    const { source, writer } = betterWriter();
+    // Ring 1 also rolls 5% cold resistance; the guide's other lines name other items.
+    editJson(source, 'plan.json', (p) => {
+      const ring = p.stages[0].items.slots.find((x: Json) => x.slot === 'Ring 1');
+      ring.text = `${ring.text}\n+5% to Cold Resistance`;
+    });
+    editText(path.join(writer, 'guide.md'), (t) => t.replace('a rare Two-Stone Ring with maximum life and fire resistance;', 'a rare Two-Stone Ring with +25% to Cold Resistance and maximum life;\n\n- Gloves: any rare gloves with +40 to maximum Life.\n\nAlso'));
+    expect(lines(check(writer).stderr, 'owned-guide')).toEqual([]);
+    // The same roll on the ring's own line fails.
+    editText(path.join(writer, 'guide.md'), (t) => t.replace('+25% to Cold Resistance', '+5% to Cold Resistance'));
+    expect(lines(check(writer).stderr, 'owned-guide')).toEqual([expect.stringMatching(/guide\.md prints "\+5% to Cold Resistance", the character's own roll on its owned rare in Ring 1 \(stage b\)/)]);
+  });
+
   it('the checker refuses the source as init does: a log naming the round with its legacy gem fails owned-guide', () => {
     const { writer } = betterWriter(false);
     expect(lines(check(writer).stderr, 'owned-guide')).toEqual([expect.stringMatching(/^check-run: \[owned-guide\] run-log\.json source: source\.name "compile\/2026-12-01-1" keeps the gem "Bloodlust" \(stage b group 8\), which a guide can't carry \(legacy, D-395\)/)]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// The writer writes only its own folder
+// ---------------------------------------------------------------------------------------------------
+
+describe('AC-W158 (WU-165, D-522, choice G): a writer run writes only its own folder', () => {
+  it("its scripts, init to the checker, leave the guides root and the builds folder as they were but for its folder", () => {
+    const root = newRoot();
+    const source = betterSource(root);
+    // A builds folder beside it, holding the better round's final file under its own name.
+    const builds = path.join(TMP, `builds-${roots}`);
+    fs.mkdirSync(builds);
+    fs.copyFileSync(path.join(source, 'final-build.xml'), path.join(builds, 'imported-character better.xml'));
+    const before = { root: tree(root), builds: tree(builds) };
+    const { dir, r } = init(root, { kind: 'run-folder', name: 'compile/2026-12-01-1' }, 2);
+    expect(r.code).toBe(0);
+    expect(node(RENDER_AUDIT, [dir]).code).toBe(0);
+    expect(write(dir, 'stage', { stage: 'W1', concept: 'file', attempt: 1, outcome: 'done' }).code).toBe(0);
+    fs.copyFileSync(path.join(PIECES, 'writer-better-run', 'guide.md'), path.join(dir, 'guide.md'));
+    expect(node(RENDER_NOTES, [dir]).code).toBe(0);
+    expect(write(dir, 'set', { status: 'completed' }).code).toBe(0);
+    passes(dir);
+    expect(fs.readdirSync(dir).sort()).toEqual(['audit.md', 'guide.md', 'notes.txt', 'run-log.json']);
+    const after = tree(root);
+    for (const f of Object.keys(after).filter((f) => f.startsWith(`writer${path.sep}`))) delete after[f];
+    expect({ root: after, builds: tree(builds) }).toEqual(before);
   });
 });
 

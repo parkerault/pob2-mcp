@@ -218,8 +218,9 @@
 // not a pricing or writer run; its build (`source.build`, none for a /pob2:compile run's root build) holding its card, its
 // plan, a D1-gate verdict and a final compile that passed with its final record (a compile run with only a measure is
 // refused, naming the better round or a file run); and nothing a guide can't carry (`guideCantCarry`: a legacy
-// or no-longer-obtainable gem or unique, D-395; an owned rare's corruption or rune over the budget, D-465, D-471, D-484),
-// each named, pointing to a file run.
+// or no-longer-obtainable gem or unique, D-395; an owned item's rune over the budget, D-465, or corruption on a rare, magic
+// or normal item, D-471; and, by the run checker's corruption rule, `ownedCorruption`, an owned unique's corruption it
+// doesn't allow, D-471, D-484), each named, pointing to a file run.
 //
 // `test-config <path>` (D-394) checks a test config's shape and writes nothing: each gate's answers are strings, or
 // objects `{ask, answer, changes, newCards, note}` scripting an interview; a design answer's object may carry `scaling`
@@ -846,8 +847,9 @@ const itemHead = (t) => {
 /**
  * D-522 (§18, §15): the content a guide can't carry that a plan keeps: a gem or unique the reader named legacy or no
  * longer obtainable (`read.json`'s `legacy`, D-395); on an owned item, a "Legacy of …" soul core or the Raven-Touched Shard
- * (D-465) and a rare's corruption (D-471, D-484). In a guide owned content meets every rule; a file run's ladder replaces
- * each with a trade. Returns `[{what, where, rule}]`.
+ * (D-465) and corruption on a rare, magic or normal item (D-471; an owned unique's is the run checker's corruption rule,
+ * `ownedCorruption`, D-484). In a guide owned content meets every rule; a file run's ladder replaces each with a trade.
+ * Returns `[{what, where, rule}]`.
  */
 export function guideCantCarry(plan, read) {
   const out = [];
@@ -867,11 +869,14 @@ export function guideCantCarry(plan, read) {
         const n = norm(String(rune ?? '').replace(/[‐-―−]/g, '-').replace(/[‘’ʼ]/g, "'"));
         if (rune !== undefined && (/^legacy of \S/.test(n) || /\braven-touched shard\b/.test(n))) out.push({ what: `the rune ${show(rune)}`, where: it.where, rule: 'a rune over the budget, D-465' });
       }
-      if (head.rarity === 'RARE' && head.lines.some((l) => l === 'Corrupted' || l === 'Twice Corrupted')) out.push({ what: 'a corrupted rare', where: it.where, rule: 'corruption never on rares, D-471, D-484' });
+      if (head.rarity !== 'UNIQUE' && head.lines.some((l) => l === 'Corrupted' || l === 'Twice Corrupted')) out.push({ what: `a corrupted ${String(head.rarity ?? 'unknown').toLowerCase()} item`, where: it.where, rule: 'corruption never on a rare, magic or normal item, D-471' });
     }
   }
   return out;
 }
+
+/** D-522: the refusal of a source keeping an owned unique's corruption (`ownedCorruption`'s message `why`), pointing to a file run. */
+export const guideCantCarryWhy = (source, why) => `source.name ${show(source?.name)} keeps owned content a guide can't carry: the source's ${why.replace(/\.$/, '')}; in a guide owned content meets every rule, so a guide from this character is a file run's, whose ladder replaces it with a trade its design gate shows (/pob2:build-guide <the file>) (D-522)`;
 
 /**
  * D-522 (§18): the writer's source at `init`, which the run checker holds too. The source is a run folder under the guides
@@ -959,9 +964,10 @@ function newCardsAgainstRun(runFolder, log, entry) {
 /**
  * Applies one write to the run folder's log. Returns what it did, or throws an Error saying why not. `init` writes a
  * schema-4 log (amendment 9, D-412); the other writes append in the log's own schema, so a schema-3 log keeps its form
- * until `migrate` rewrites it, and `build` and `resume` are schema 4's.
+ * until `migrate` rewrites it, and `build` and `resume` are schema 4's. `extra`: a writer `init`'s problems its caller
+ * found with the run checker (`ownedCorruption`, D-522), refused beside the source's own.
  */
-export function writeLog(runFolder, kind, entry) {
+export function writeLog(runFolder, kind, entry, extra = []) {
   const file = path.join(runFolder, 'run-log.json');
   const existing = kind === 'init' ? null : readLog(file);
   const schema = existing?.schemaVersion ?? 4;
@@ -972,7 +978,7 @@ export function writeLog(runFolder, kind, entry) {
   const against16 = existing !== null && schema === 4 ? pieceAgainstRun(existing, kind, entry) : [];
   if (against16.length > 0) throw new Error(`${kind} entry refused: ${against16.join('; ')}`);
   // D-522 (§18): a writer run's source is a build that passed F1, keeping nothing a guide can't carry.
-  const sourceProblems = kind === 'init' && entry.piece === 'writer' ? writerSourceProblems(runFolder, entry.source) : [];
+  const sourceProblems = kind === 'init' && entry.piece === 'writer' ? [...writerSourceProblems(runFolder, entry.source), ...extra] : [];
   if (sourceProblems.length > 0) throw new Error(`init entry refused: ${sourceProblems.map((p) => p.why).join('; ')}`);
   let log;
   if (kind === 'init' && entry.piece !== undefined) {
@@ -3531,7 +3537,14 @@ async function main(argv) {
     return 1;
   }
   try {
-    const what = writeLog(path.resolve(args[0]), args[1], entry);
+    // D-522 (§15, §18): a writer's source keeping an owned unique's corruption a guide can't carry, by the run checker's
+    // corruption rule (D-471, D-484), once the source itself is one; refused at init as the checker fails it.
+    let extra = [];
+    if (args[1] === 'init' && isObj(entry) && entry.piece === 'writer' && !writerSourceProblems(path.resolve(args[0]), entry.source).some((p) => p.rule === 'writer-source')) {
+      const { ownedCorruption } = await import('./check-run.mjs');
+      extra = ownedCorruption(writerSource(path.resolve(args[0]), entry.source)).map((why) => ({ rule: 'owned-guide', why: guideCantCarryWhy(entry.source, why) }));
+    }
+    const what = writeLog(path.resolve(args[0]), args[1], entry, extra);
     // D-507: init and resume print the running leagues' digests, which the runner copies into the headers' `digests`
     // and prints as the staleness line.
     const digests = ['init', 'resume'].includes(args[1]) ? digestReport().map((l) => `${l}\n`).join('') : '';

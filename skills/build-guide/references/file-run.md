@@ -20,10 +20,9 @@ back to a verification gate. Read this once, at the start, and after a compactio
   declines the campaign (the guide from level 1, D2 after F1), which you offer once at the start; and any other field the
   words give (`budget`, `notes`), never invented. The file gives the class, ascendancy and skill: no brief check.
 - **The folder and the log.** `mcp__pob2__guide_run {new_run: "file"}`: keep `runFolder`, `runFolderRel` and
-  `loadedBuildUnsaved`. Then `pob2-run-log <runFolder> init` with `{"slug": "file", "brief", "mode", "testConfig",
-  "noNinja"}` (`init` refuses a `from` without the slug `file`, and the slug without it). Then
-  `skills/build-guide/references/start.md`'s steps 3 to 5 as written: the test config, the unsaved build, the league
-  digests' line.
+  `loadedBuildUnsaved`. Then `skills/build-guide/references/start.md`'s steps 3 to 5 as written: the test config, then
+  `pob2-run-log <runFolder> init` with `{"slug": "file", "brief", "mode", "testConfig", "noNinja"}` (it refuses a `from`
+  without the slug `file`, and the slug without it); the unsaved build; the league digests' line.
 
 ## 2. Read and measure (steps 2 and 3 of `skills/compile/SKILL.md`)
 

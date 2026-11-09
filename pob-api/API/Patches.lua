@@ -137,8 +137,8 @@ end
 -- load walks the lines without the rune lines (:1118) and sets each <ModRange> roll over the text's, so on an item
 -- with rune lines each roll lands that many lines further down. Both sides are wrapped:
 -- - the save: PoB's own Save, then every <Item> it built loses its <ModRange> children, so every file the engine
---   composes (export_build_xml's: the compile's files, the saved and exported builds, the snapshots, the tree-state
---   reads) carries each roll once, in the text, which an unpatched PoB reads right on its first open;
+--   composes (export_build_xml's: the compile's files, the saved builds, export_build with notes, the snapshots, the
+--   tree-state reads) carries each roll once, in the text, which an unpatched PoB reads right on its first open;
 -- - the load: every <Item> whose text carries a `{range:` tag loses its <ModRange> children before PoB's own Load,
 --   so the rolls come from the text on every load, reload, temporary load and snapshot restore. An item with no
 --   `{range:` tag (an older PoB's, whose rolls live only in <ModRange>) loads as before. The load gets a copy of

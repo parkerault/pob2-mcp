@@ -70,6 +70,13 @@ const WAND_AS_WRITTEN = [
   'Spell Hits Gain 29% of Damage as Extra Physical Damage per Curse on target',
 ];
 
+/** The wand's lines PoB's own save and load move, as the pin reads them: Coiling Bolts' 0.95 on Cast Speed, 0.5 per curse. */
+const WAND_MOVED = [
+  '13% increased Cast Speed',
+  'Spell Hits Gain 27% of Damage as Extra Chaos Damage per Curse on target',
+  'Spell Hits Gain 27% of Damage as Extra Physical Damage per Curse on target',
+];
+
 /** The ring's ranged lines at its rolls (1, 0.25, 0.9, 0.75), in either fixture. */
 const RING_ROLLED = ['+13% to Chaos Resistance', '+70 to maximum Mana', '+24 to Intelligence', '35% increased Damage with Hits against targets in your Presence'];
 
@@ -217,9 +224,10 @@ engineDescribe("AC-W135 (WU-153): PG-109, a saved item's rolls stay on their lin
       "with both wraps reverted, PoB's own save and load move the wand's rolls onto other lines (if this fails, PoB no longer moves a saved item's rolls: remove PG-109's entry from pob-api/API/Patches.lua)",
       () => {
         // Unset only when the case before failed, which carries the setup error (D-509): this case asserts the bug
-        // alone. On the pin the Coiling Bolts roll (0.95) lands on Cast Speed, 13%, and the per-curse lines read 27%.
+        // alone. The text writes 9% Cast Speed and 29% per curse; PoB's own copies put the Coiling Bolts roll (0.95) on
+        // Cast Speed and 0.5 on the per-curse lines.
         if (pobOwn === undefined || written === undefined) return;
-        expect(pobOwn).not.toEqual(written.wand);
+        expect(shaped(pobOwn, WAND_MOVED)).toEqual(WAND_MOVED);
       },
     );
   });
